@@ -1,0 +1,36 @@
+id: "0001"
+slug: platform-redesign-umbrella
+title: "#Platform Redesign Umbrella"
+status: draft
+
+# `core` owns the keystone schema change; every other repo follows.
+area: core
+affects:
+  - core
+  - library
+  - catalog
+  - modules
+
+created: "2026-05-23"
+updated: "2026-05-23"
+
+authors:
+  - OPM Contributors
+
+# Optional at draft; pinned now because the umbrella is unambiguously a
+# major break (FQN regex, `#Module.#defines` removal, `#registry` shape).
+semver: major
+
+implementation:
+  status: not-started
+
+history:
+  - {date: "2026-05-23", event: "Drafted — umbrella scope (registry/materialize/matcher + #ctx.runtime)"}
+  - {date: "2026-05-23", event: "Decisions D1–D4 locked — #ctx collapsed to {release, components}; #Component.#names is source of truth; #ctx.components is CUE projection; clusterDomain moves onto #ReleaseIdentity. OQ18/OQ19/OQ20/OQ21 resolved. Spike at schemas/example_instance.cue."}
+
+# No peer enhancements yet at workspace root. The frozen library
+# predecessors (003 / 004 / 007) are being deleted, not preserved as
+# `legacy:NNN` cross-refs — keep this list empty.
+related: []
+supersedes: []
+superseded_by: null
