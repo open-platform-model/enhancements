@@ -1,0 +1,1060 @@
+# Tasks for OPM enhancements workflow.
+#
+# Operate on enhancements/NNNN/ entries (four-digit ids; 0000 is reserved
+# for the template). Run from the enhancements/ directory, or via the
+# workspace-root include (`task enhancements:<name>`).
+#
+# Deps: cue, yq, awk, sed. Same toolchain as every other OPM Taskfile.
+version: "3"
+
+silent: true
+
+vars:
+  # Path to the workspace root, relative to this Taskfile. Used to resolve
+  # legacy:NNN cross-references against ../library/enhancements/. Override
+  # when invoking from a non-standard layout (e.g. workspace include sets
+  # dir: enhancements, which keeps the default working).
+  WORKSPACE_ROOT: '{{.WORKSPACE_ROOT | default ".."}}'
+
+tasks:
+  default:
+    desc: Show the most useful commands
+    cmds:
+      - |
+        cat <<'EOF'
+        Common tasks:
+          task list                              — status table of every enhancement
+          task show ID=0001                      — full metadata + document list for one
+          task vet                               — hard gate (CUE schema + cross-refs + placeholders)
+          task vet:one ID=0001                   — same, single enhancement
+          task check [ID=0001]                   — soft gate (scope section, decisions, impl block, …)
+          task new SLUG=foo TITLE="Foo Bar"      — scaffold a new enhancement from 0000/
+          task new:experiment ID=0001 NAME=foo   — scaffold an experiment inside an enhancement
+          task experiments:list ID=0001          — list experiments for one enhancement (parsed Status)
+          task graph                             — regenerate GRAPH.md
+          task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
+        EOF
+
+  list:
+    desc: List enhancements with status and metadata (reads each config.yaml)
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # Emit tab-separated rows (header first), then let awk compute
+        # per-column widths in a single in-memory render. Avoids `column -t`
+        # because that tool counts ANSI escapes as visible chars and breaks
+        # header bolding.
+        {
+          printf 'ID\tSTATUS\tSEMVER\tAREA\tIMPL\tIMPL-DATE\tTITLE\n'
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+            [ -f "$cfg" ] || continue
+            id=$(yq -r '.id' "$cfg")
+            # Skip 0000 (reserved template id).
+            [ "$id" = "0000" ] && continue
+            status=$(yq -r '.status' "$cfg")
+            semver=$(yq -r '.semver // "-"' "$cfg")
+            area=$(yq -r '.area' "$cfg")
+            impl=$(yq -r '.implementation.status // "n/a"' "$cfg")
+            impl_date=$(yq -r '.implementation.date // "-"' "$cfg")
+            title=$(yq -r '.title' "$cfg")
+            printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+              "$id" "$status" "$semver" "$area" "$impl" "$impl_date" "$title"
+          done
+        } | awk -F'\t' '
+          {
+            rows[NR] = $0
+            ncols = NF > ncols ? NF : ncols
+            for (i = 1; i <= NF; i++) {
+              if (length($i) > w[i]) w[i] = length($i)
+            }
+          }
+          END {
+            BOLD = "\033[1m"; RESET = "\033[0m"
+            for (n = 1; n <= NR; n++) {
+              split(rows[n], cols, "\t")
+              line = ""
+              for (i = 1; i <= ncols; i++) {
+                if (i == ncols) line = line cols[i]
+                else line = line sprintf("%-*s  ", w[i], cols[i])
+              }
+              if (n == 1) printf "%s%s%s\n", BOLD, line, RESET
+              else print line
+            }
+          }
+        '
+
+  vet:
+    desc: Validate every enhancement's config.yaml against schema.cue + consistency checks
+    preconditions:
+      - sh: command -v cue >/dev/null 2>&1
+        msg: "cue is required"
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        RED='\033[0;31m'; GREEN='\033[0;32m'; RESET='\033[0m'
+        FAIL=0
+        WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
+
+        # Build set of existing four-digit ids (current workspace).
+        EXISTING_IDS=""
+        for d in [0-9][0-9][0-9][0-9]/; do
+          [ -d "$d" ] || continue
+          EXISTING_IDS="${EXISTING_IDS} $(basename "$d")"
+        done
+
+        # Build set of existing legacy three-digit ids (library/enhancements/).
+        # Empty if the library repo is absent — legacy refs then resolve as
+        # dangling, which is the right behaviour once the user deletes the
+        # frozen library entries.
+        EXISTING_LEGACY_IDS=""
+        if [ -d "$WORKSPACE_ROOT/library/enhancements" ]; then
+          for d in "$WORKSPACE_ROOT/library/enhancements/"[0-9][0-9][0-9]-*/; do
+            [ -d "$d" ] || continue
+            EXISTING_LEGACY_IDS="${EXISTING_LEGACY_IDS} $(basename "$d" | cut -c1-3)"
+          done
+        fi
+
+        # Placeholder grep: catches `{Capital...}` template strings left in
+        # the six mandatory docs. Code fences excluded (ASCII diagrams and
+        # CUE-ish snippets there legitimately use `{X}` shapes). HTML
+        # comments excluded (template instructions inside `<!-- … -->` carry
+        # placeholder examples by design).
+        placeholders_in_file() {
+          local f="$1"
+          awk '
+            /^```/        { in_code = !in_code; next }
+            /<!--/        { in_html = 1 }
+            in_html && /-->/ { in_html = 0; next }
+            in_html        { next }
+            !in_code {
+              # Strip single-line backtick runs first so `{X}`-inside-prose
+              # is not flagged. Backticks legitimately contain placeholder
+              # patterns when the prose is describing the rule itself.
+              line = $0
+              gsub(/`[^`]*`/, "", line)
+              while (match(line, /\{[A-Z][^}]*\}/)) {
+                printf "      line %d: %s\n", NR, substr(line, RSTART, RLENGTH)
+                line = substr(line, RSTART + RLENGTH)
+              }
+            }
+          ' "$f"
+        }
+
+        # Resolve a cross-ref token (NNNN or legacy:NNN) → 1 if known, 0 if dangling.
+        ref_exists() {
+          local ref="$1"
+          case "$ref" in
+            legacy:[0-9][0-9][0-9])
+              local lid="${ref#legacy:}"
+              case " $EXISTING_LEGACY_IDS " in
+                *" $lid "*) return 0 ;;
+                *)          return 1 ;;
+              esac
+              ;;
+            [0-9][0-9][0-9][0-9])
+              case " $EXISTING_IDS " in
+                *" $ref "*) return 0 ;;
+                *)          return 1 ;;
+              esac
+              ;;
+            *)
+              return 1
+              ;;
+          esac
+        }
+
+        check() {
+          local cfg="$1"
+          local dir; dir=$(dirname "$cfg")
+          local dir_id; dir_id=$(basename "$dir")
+          local errors=""
+
+          local id status area
+          id=$(yq -r '.id' "$cfg")
+          status=$(yq -r '.status' "$cfg")
+          area=$(yq -r '.area' "$cfg")
+
+          # 1. id matches directory name (no slug suffix now).
+          [ "$id" = "$dir_id" ] || errors="${errors}\n    id '$id' != directory name '$dir_id'"
+
+          # 2. `area` must appear in `affects` (controlled vocab + membership).
+          local affects_has_area
+          affects_has_area=$(yq -r ".affects[] | select(. == \"$area\")" "$cfg" | head -1)
+          [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
+
+          # 3. Cross-ref tokens exist.
+          for field in related supersedes; do
+            while IFS= read -r ref; do
+              [ -z "$ref" ] && continue
+              ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref' (no NNNN/ dir nor legacy:NNN-*/)"
+            done < <(yq -r ".$field[]?" "$cfg")
+          done
+          local sup_by; sup_by=$(yq -r '.superseded_by // ""' "$cfg")
+          if [ -n "$sup_by" ] && [ "$sup_by" != "null" ]; then
+            ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
+          fi
+
+          # 4. Placeholder strings in the six mandatory docs (+ README).
+          for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
+            local path="$dir/$doc"
+            [ -f "$path" ] || { errors="${errors}\n    missing mandatory doc: $doc"; continue; }
+            local hits; hits=$(placeholders_in_file "$path")
+            if [ -n "$hits" ]; then
+              errors="${errors}\n    $doc has unfilled {Placeholder} strings:\n$hits"
+            fi
+          done
+
+          # 5. CUE schema vet (required fields, area/affects/history shapes,
+          #    status-conditional rules, design↔implementation coupling).
+          local cue_out
+          if ! cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
+            errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
+          fi
+
+          # 6. schemas/ directory compiles standalone.
+          if [ -d "$dir/schemas" ]; then
+            local schemas_out
+            if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
+              errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+            fi
+          fi
+
+          # 7. experiments/ structure (only when the directory exists —
+          #    experiments are optional). When present:
+          #      - experiments/README.md MUST exist (the hand-maintained index)
+          #      - every NN-*/ subdirectory MUST contain README.md
+          if [ -d "$dir/experiments" ]; then
+            [ -f "$dir/experiments/README.md" ] \
+              || errors="${errors}\n    experiments/ exists but experiments/README.md (index) is missing"
+            for exp in "$dir/experiments/"[0-9][0-9]-*/; do
+              [ -d "$exp" ] || continue
+              [ -f "$exp/README.md" ] \
+                || errors="${errors}\n    $(basename "$exp"): missing README.md (per-experiment doc with Hypothesis/Setup/Run/Outcome)"
+            done
+          fi
+
+          if [ -n "$errors" ]; then
+            printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
+            return 1
+          fi
+          printf "${GREEN}ok${RESET}   %s\n" "$cfg"
+        }
+
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          id=$(yq -r '.id' "$cfg")
+          # Skip the template — its placeholders are part of the design.
+          # The template's config.yaml is still vetted (it's reserved id
+          # 0000 and must pass the schema), but doc placeholders are
+          # expected.
+          if [ "$id" = "0000" ]; then
+            if cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
+              printf "${GREEN}ok${RESET}   %s (template)\n" "$cfg"
+            else
+              printf "${RED}FAIL${RESET} %s (template)\n    cue vet:\n%s\n" "$cfg" "$(echo "$cue_out" | sed 's/^/      /')"
+              FAIL=1
+            fi
+            continue
+          fi
+          check "$cfg" || FAIL=1
+        done
+
+        exit $FAIL
+
+  vet:one:
+    desc: Validate a single enhancement (ID=NNNN)
+    summary: |
+      Usage:
+        task vet:one ID=0001
+
+      Runs the same checks as `task vet` against one enhancement.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task vet:one ID=<4-digit-id>'
+      - sh: command -v cue >/dev/null 2>&1
+        msg: "cue is required"
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        RED='\033[0;31m'; GREEN='\033[0;32m'; RESET='\033[0m'
+        WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
+        ID="{{.ID}}"
+
+        if [ ! -d "$ID" ]; then
+          echo "No enhancement directory: $ID" >&2
+          exit 1
+        fi
+        cfg="$ID/config.yaml"
+        [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
+
+        EXISTING_IDS=""
+        for d in [0-9][0-9][0-9][0-9]/; do
+          [ -d "$d" ] || continue
+          EXISTING_IDS="${EXISTING_IDS} $(basename "$d")"
+        done
+        EXISTING_LEGACY_IDS=""
+        if [ -d "$WORKSPACE_ROOT/library/enhancements" ]; then
+          for d in "$WORKSPACE_ROOT/library/enhancements/"[0-9][0-9][0-9]-*/; do
+            [ -d "$d" ] || continue
+            EXISTING_LEGACY_IDS="${EXISTING_LEGACY_IDS} $(basename "$d" | cut -c1-3)"
+          done
+        fi
+
+        placeholders_in_file() {
+          local f="$1"
+          awk '
+            /^```/        { in_code = !in_code; next }
+            /<!--/        { in_html = 1 }
+            in_html && /-->/ { in_html = 0; next }
+            in_html        { next }
+            !in_code {
+              # Strip single-line backtick runs first so `{X}`-inside-prose
+              # is not flagged. Backticks legitimately contain placeholder
+              # patterns when the prose is describing the rule itself.
+              line = $0
+              gsub(/`[^`]*`/, "", line)
+              while (match(line, /\{[A-Z][^}]*\}/)) {
+                printf "      line %d: %s\n", NR, substr(line, RSTART, RLENGTH)
+                line = substr(line, RSTART + RLENGTH)
+              }
+            }
+          ' "$f"
+        }
+
+        ref_exists() {
+          local ref="$1"
+          case "$ref" in
+            legacy:[0-9][0-9][0-9])
+              local lid="${ref#legacy:}"
+              case " $EXISTING_LEGACY_IDS " in
+                *" $lid "*) return 0 ;;
+                *)          return 1 ;;
+              esac ;;
+            [0-9][0-9][0-9][0-9])
+              case " $EXISTING_IDS " in
+                *" $ref "*) return 0 ;;
+                *)          return 1 ;;
+              esac ;;
+            *) return 1 ;;
+          esac
+        }
+
+        errors=""
+        dir="$ID"
+        dir_id="$ID"
+
+        cfg_id=$(yq -r '.id' "$cfg")
+        status=$(yq -r '.status' "$cfg")
+        area=$(yq -r '.area' "$cfg")
+
+        [ "$cfg_id" = "$dir_id" ] || errors="${errors}\n    id '$cfg_id' != directory name '$dir_id'"
+
+        affects_has_area=$(yq -r ".affects[] | select(. == \"$area\")" "$cfg" | head -1)
+        [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
+
+        for field in related supersedes; do
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref'"
+          done < <(yq -r ".$field[]?" "$cfg")
+        done
+        sup_by=$(yq -r '.superseded_by // ""' "$cfg")
+        if [ -n "$sup_by" ] && [ "$sup_by" != "null" ]; then
+          ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
+        fi
+
+        for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
+          path="$dir/$doc"
+          [ -f "$path" ] || { errors="${errors}\n    missing mandatory doc: $doc"; continue; }
+          hits=$(placeholders_in_file "$path")
+          if [ -n "$hits" ]; then
+            errors="${errors}\n    $doc has unfilled {Placeholder} strings:\n$hits"
+          fi
+        done
+
+        if ! cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
+          errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
+        fi
+
+        if [ -d "$dir/schemas" ]; then
+          if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
+            errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+          fi
+        fi
+
+        if [ -d "$dir/experiments" ]; then
+          [ -f "$dir/experiments/README.md" ] \
+            || errors="${errors}\n    experiments/ exists but experiments/README.md (index) is missing"
+          for exp in "$dir/experiments/"[0-9][0-9]-*/; do
+            [ -d "$exp" ] || continue
+            [ -f "$exp/README.md" ] \
+              || errors="${errors}\n    $(basename "$exp"): missing README.md (per-experiment doc with Hypothesis/Setup/Run/Outcome)"
+          done
+        fi
+
+        if [ -n "$errors" ]; then
+          printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
+          exit 1
+        fi
+        printf "${GREEN}ok${RESET}   %s\n" "$cfg"
+
+  check:
+    desc: Soft per-status checklist (scope section, decisions, OQ block, impl block, deviations)
+    summary: |
+      Complements `task vet`. vet enforces the machine-readable contract
+      (schema, cross-refs, placeholders, area↔affects); check audits the
+      prose conventions that don't fit a schema:
+
+        - accepted+   → README has '## Scope' with In/Out subsections
+        - accepted+   → 03-decisions.md has at least one '### DN:' heading
+        - accepted+   → 03-decisions.md has '## Open Questions' block
+        - accepted+   → 04-graduation.md has 'draft → accepted' section
+        - implemented → README has '> **Implementation status (YYYY-MM-DD).**'
+                        quote block, date matching implementation.date
+        - implemented → README has '## …Deviation…' section
+        - superseded  → README has '> **Superseded by NNNN …**' quote block
+
+      Usage:
+        task check                # every enhancement
+        task check ID=0001        # single enhancement
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        YELLOW='\033[0;33m'; GREEN='\033[0;32m'; RESET='\033[0m'
+        TARGET="{{.ID}}"
+        FAIL=0
+
+        CFGS=()
+        if [ -n "$TARGET" ]; then
+          [ -d "$TARGET" ] || { echo "No enhancement directory: $TARGET" >&2; exit 1; }
+          CFGS=("$TARGET/config.yaml")
+        else
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+            [ -f "$cfg" ] || continue
+            id=$(yq -r '.id' "$cfg")
+            [ "$id" = "0000" ] && continue
+            CFGS+=("$cfg")
+          done
+        fi
+
+        check_one() {
+          local cfg="$1"
+          local dir; dir=$(dirname "$cfg")
+          local id status impl_date
+          id=$(yq -r '.id' "$cfg")
+          status=$(yq -r '.status' "$cfg")
+          impl_date=$(yq -r '.implementation.date // ""' "$cfg")
+          local warnings=""
+
+          if [ "$status" = "accepted" ] || [ "$status" = "implemented" ] || [ "$status" = "superseded" ]; then
+            grep -qE '^## Scope'         "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '## Scope' section"
+            grep -qE '^### In scope'     "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '### In scope' subsection"
+            grep -qE '^### Out of scope' "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '### Out of scope' subsection"
+
+            if [ -f "$dir/03-decisions.md" ]; then
+              # Accept '### DN:' or '## DN —' style headings.
+              grep -qE '^##+ D[0-9]+' "$dir/03-decisions.md" 2>/dev/null \
+                || warnings="${warnings}\n    03-decisions.md: no '### DN:' decision heading found"
+              # Open Questions block — may live in decisions or README.
+              if ! grep -qE '^## Open Questions' "$dir/03-decisions.md" "$dir/README.md" 2>/dev/null; then
+                warnings="${warnings}\n    missing '## Open Questions' block (looked in 03-decisions.md and README.md)"
+              fi
+            else
+              warnings="${warnings}\n    03-decisions.md missing"
+            fi
+
+            if [ -f "$dir/04-graduation.md" ]; then
+              grep -qE '^## draft → accepted'         "$dir/04-graduation.md" 2>/dev/null \
+                || warnings="${warnings}\n    04-graduation.md: missing '## draft → accepted' section"
+              grep -qE '^## accepted → implemented'   "$dir/04-graduation.md" 2>/dev/null \
+                || warnings="${warnings}\n    04-graduation.md: missing '## accepted → implemented' section"
+            fi
+          fi
+
+          if [ "$status" = "implemented" ]; then
+            if [ -n "$impl_date" ]; then
+              local impl_re='^> \*\*Implementation status \('"${impl_date}"'\)\.\*\*'
+              grep -qE "$impl_re" "$dir/README.md" 2>/dev/null \
+                || warnings="${warnings}\n    README.md: missing '> **Implementation status (${impl_date}).**' quote block (date must match implementation.date)"
+            else
+              grep -qE '^> \*\*Implementation status \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
+                || warnings="${warnings}\n    README.md: missing '> **Implementation status (YYYY-MM-DD).**' quote block"
+            fi
+            grep -qE '^## .*[Dd]eviation' "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '## …Deviation…' section (may say 'None')"
+          fi
+
+          if [ "$status" = "superseded" ]; then
+            grep -qE '^> \*\*Superseded by [0-9]{4}' "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '> **Superseded by NNNN …**' quote block"
+          fi
+
+          if [ -n "$warnings" ]; then
+            printf "${YELLOW}WARN${RESET} %s (status=%s)%b\n" "$cfg" "$status" "$warnings"
+            return 1
+          fi
+          printf "${GREEN}ok${RESET}   %s (status=%s)\n" "$cfg" "$status"
+        }
+
+        for cfg in "${CFGS[@]}"; do
+          check_one "$cfg" || FAIL=1
+        done
+        exit $FAIL
+
+  show:
+    desc: Show full metadata for a single enhancement (ID=NNNN)
+    summary: |
+      Usage:
+        task show ID=0001
+
+      Prints the resolved directory, every config.yaml field (including
+      the full history list), and every document present in that
+      enhancement directory.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task show ID=<4-digit-id>'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; RESET='\033[0m'
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        cfg="$ID/config.yaml"
+        [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
+
+        printf "${BOLD}%s${RESET}\n" "$ID"
+        printf "  %-16s %s\n" "id:"           "$(yq -r '.id' "$cfg")"
+        printf "  %-16s %s\n" "slug:"         "$(yq -r '.slug' "$cfg")"
+        printf "  %-16s %s\n" "title:"        "$(yq -r '.title' "$cfg")"
+        printf "  %-16s %s\n" "status:"       "$(yq -r '.status' "$cfg")"
+        printf "  %-16s %s\n" "area:"         "$(yq -r '.area' "$cfg")"
+        printf "  %-16s %s\n" "affects:"      "$(yq -r '.affects | join(", ")' "$cfg")"
+        printf "  %-16s %s\n" "semver:"       "$(yq -r '.semver // "-"' "$cfg")"
+        printf "  %-16s %s\n" "created:"      "$(yq -r '.created' "$cfg")"
+        printf "  %-16s %s\n" "updated:"      "$(yq -r '.updated' "$cfg")"
+        printf "  %-16s %s\n" "authors:"      "$(yq -r '.authors | join(", ")' "$cfg")"
+        printf "  %-16s %s\n" "impl status:"  "$(yq -r '.implementation.status' "$cfg")"
+        impl_date=$(yq -r '.implementation.date // "-"' "$cfg")
+        printf "  %-16s %s\n" "impl date:"    "$impl_date"
+        impl_notes=$(yq -r '.implementation.notes // ""' "$cfg")
+        [ -n "$impl_notes" ] && printf "  %-16s %s\n" "impl notes:" "$impl_notes"
+        related=$(yq -r '.related | join(", ")' "$cfg")
+        printf "  %-16s %s\n" "related:"      "${related:--}"
+        supersedes=$(yq -r '.supersedes | join(", ")' "$cfg")
+        printf "  %-16s %s\n" "supersedes:"   "${supersedes:--}"
+        sup_by=$(yq -r '.superseded_by // "-"' "$cfg")
+        printf "  %-16s %s\n" "superseded_by:" "$sup_by"
+
+        echo
+        printf "${BOLD}History (%s event(s)):${RESET}\n" "$(yq -r '.history | length' "$cfg")"
+        yq -r '.history[] | "  " + .date + " — " + .event' "$cfg"
+        # `slice` / `semver` structured fields on history events are visible
+        # in config.yaml directly; show keeps the rendered list scannable.
+
+        echo
+        printf "${BOLD}Documents:${RESET}\n"
+        for f in "$ID"/*.md; do
+          [ -f "$f" ] || continue
+          printf "  %s\n" "$(basename "$f")"
+        done
+        if [ -d "$ID/schemas" ]; then
+          printf "  schemas/\n"
+        fi
+        if [ -d "$ID/experiments" ]; then
+          printf "  experiments/\n"
+        fi
+
+  new:
+    desc: Scaffold a new enhancement from 0000/ (auto-numbers id; fills config.yaml + doc titles)
+    summary: |
+      Usage:
+        task new SLUG=platform-context TITLE="Platform Context"
+        task new SLUG=foo TITLE="Foo Bar" AUTHOR="Jane Doe" AREA=cli
+
+      SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case).
+      Computes the next four-digit id from the highest existing enhancement.
+      Today's date is used for `created` and `updated`.
+      AUTHOR defaults to "OPM Contributors".
+      AREA defaults to "cross-cutting"; affects defaults to [AREA].
+    vars:
+      SLUG:   '{{.SLUG   | default ""}}'
+      TITLE:  '{{.TITLE  | default ""}}'
+      AUTHOR: '{{.AUTHOR | default "OPM Contributors"}}'
+      AREA:   '{{.AREA   | default "cross-cutting"}}'
+    preconditions:
+      - sh: '[ -n "{{.SLUG}}" ]'
+        msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>"'
+      - sh: '[ -n "{{.TITLE}}" ]'
+        msg: 'TITLE is required. Usage: task new SLUG=<slug> TITLE="<title>"'
+      - sh: 'printf %s "{{.SLUG}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
+        msg: 'SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        SLUG="{{.SLUG}}"
+        TITLE="{{.TITLE}}"
+        AUTHOR="{{.AUTHOR}}"
+        AREA="{{.AREA}}"
+        TEMPLATE_DIR="0000"
+
+        # Compute next id from the highest existing NNNN/ dir (excluding 0000).
+        HIGHEST=$(find . -maxdepth 1 -type d -regex './[0-9][0-9][0-9][0-9]' -printf '%f\n' 2>/dev/null \
+          | grep -vx 0000 | sort -n | tail -1)
+        HIGHEST="${HIGHEST:-0}"
+        NEW_ID=$(awk -v n="$HIGHEST" 'BEGIN { printf "%04d", n + 1 }')
+        NEW_DIR="$NEW_ID"
+
+        if [ -e "$NEW_DIR" ]; then
+          echo "Target already exists: $NEW_DIR" >&2
+          exit 1
+        fi
+
+        cp -r "$TEMPLATE_DIR" "$NEW_DIR"
+
+        TODAY=$(date +%Y-%m-%d)
+
+        # Fill config.yaml. yq strenv() reads from environment to keep
+        # quoting clean across titles with shell-meta chars.
+        ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AREA_V="$AREA" \
+        CREATED="$TODAY" UPDATED="$TODAY" AUTHOR_V="$AUTHOR" \
+        yq -i '
+          .id       = strenv(ID)       |
+          .slug     = strenv(SLUG_V)   |
+          .title    = strenv(TITLE_V)  |
+          .area     = strenv(AREA_V)   |
+          .affects  = [strenv(AREA_V)] |
+          .created  = strenv(CREATED)  |
+          .updated  = strenv(UPDATED)  |
+          .authors  = [strenv(AUTHOR_V)] |
+          .history  = [{"date": strenv(CREATED), "event": "Drafted"}]
+        ' "$NEW_DIR/config.yaml"
+
+        # Replace {Enhancement Title} placeholder in README + the six split docs.
+        ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
+        for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
+          [ -f "$NEW_DIR/$f" ] && sed -i "s#{Enhancement Title}#${ESCAPED_TITLE}#g" "$NEW_DIR/$f"
+        done
+
+        # Update schemas/cue.mod/module.cue with new four-digit id.
+        if [ -f "$NEW_DIR/schemas/cue.mod/module.cue" ]; then
+          sed -i "s#enhancements.opmodel.dev/0000@v0#enhancements.opmodel.dev/$NEW_ID@v0#g" "$NEW_DIR/schemas/cue.mod/module.cue"
+        fi
+
+        echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, area=$AREA)"
+        echo
+        echo "Next steps:"
+        echo "  1. Fill in $NEW_DIR/01-problem.md and $NEW_DIR/02-design.md"
+        echo "  2. Sketch schemas in $NEW_DIR/schemas/target.cue"
+        echo "  3. Add Open Questions to $NEW_DIR/03-decisions.md; fill decisions iteratively"
+        echo "  4. Update $NEW_DIR/README.md scope + cross-references"
+        echo "  5. Validate:           task vet:one ID=$NEW_ID"
+        echo "  6. Regenerate index:   task index"
+
+  index:
+    desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
+    summary: |
+      Walks every NNNN/config.yaml and writes INDEX.md with a single table
+      mapping id → area → status → title → last history event. With
+      folder names being four-digit only, INDEX.md is the canonical browse
+      surface; regenerate it after any config.yaml edit.
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        OUT="INDEX.md"
+        {
+          echo '# Enhancement Index'
+          echo
+          echo '<!-- Generated by `task index` — do not edit by hand. -->'
+          echo
+          echo '| ID | Area | Status | Semver | Impl | Last event | Title |'
+          echo '| -- | ---- | ------ | ------ | ---- | ---------- | ----- |'
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+            [ -f "$cfg" ] || continue
+            id=$(yq -r '.id' "$cfg")
+            [ "$id" = "0000" ] && continue
+            area=$(yq -r '.area' "$cfg")
+            status=$(yq -r '.status' "$cfg")
+            semver=$(yq -r '.semver // "-"' "$cfg")
+            impl=$(yq -r '.implementation.status' "$cfg")
+            last_date=$(yq -r '.history[-1].date // "-"' "$cfg")
+            last_event=$(yq -r '.history[-1].event // "-"' "$cfg")
+            # Escape pipe chars in titles to keep markdown table intact.
+            title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
+            printf '| [%s](./%s/) | %s | %s | %s | %s | %s — %s | %s |\n' \
+              "$id" "$id" "$area" "$status" "$semver" "$impl" "$last_date" "$last_event" "$title"
+          done
+          echo
+          echo '## Status legend'
+          echo
+          echo '- **draft** — initial design, actively being written'
+          echo '- **accepted** — design agreed upon, ready for implementation'
+          echo '- **implemented** — design has been realized in code'
+          echo '- **superseded** — replaced by a newer enhancement (see `superseded_by` in the entry'\''s config.yaml)'
+        } > "$OUT"
+
+        printf 'Wrote %s\n' "$OUT"
+
+  graph:
+    desc: (Re)generate GRAPH.md with a Mermaid relationship diagram
+    summary: |
+      Walks every NNNN/config.yaml and writes GRAPH.md with a Mermaid
+      diagram:
+        - related[]    → undirected solid edges (deduped: once per pair)
+        - supersedes[] → directed solid edges (newer --supersedes--> older)
+      Nodes are coloured by status. Legacy:NNN cross-references are
+      rendered as boxed peripheral nodes labelled "legacy NNN" so the
+      relationship is visible without claiming the legacy entry is part
+      of the workspace-root id space.
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        OUT="GRAPH.md"
+        TMPDIR=$(mktemp -d)
+        trap 'rm -rf "$TMPDIR"' EXIT
+
+        related_edges="$TMPDIR/related"
+        super_edges="$TMPDIR/super"
+        legacy_refs="$TMPDIR/legacy"
+
+        # Helper: encode a ref token (NNNN or legacy:NNN) → node id usable
+        # in Mermaid. NNNN → N<id>; legacy:NNN → L<id>.
+        node_for() {
+          case "$1" in
+            legacy:*) echo "L${1#legacy:}" ;;
+            *)        echo "N${1}" ;;
+          esac
+        }
+
+        # related: undirected, dedupe per pair using sorted-token form.
+        {
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+            [ -f "$cfg" ] || continue
+            id=$(yq -r '.id' "$cfg")
+            [ "$id" = "0000" ] && continue
+            while IFS= read -r ref; do
+              [ -z "$ref" ] && continue
+              # Track legacy refs so we can render their nodes.
+              case "$ref" in legacy:*) echo "$ref" >> "$legacy_refs" ;; esac
+              a="N$id"
+              b=$(node_for "$ref")
+              if [[ "$a" < "$b" ]]; then echo "$a $b"; else echo "$b $a"; fi
+            done < <(yq -r '.related[]?' "$cfg")
+          done
+        } | sort -u > "$related_edges"
+
+        # supersedes: directed (newer → older). Validator forbids cycles.
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          id=$(yq -r '.id' "$cfg")
+          [ "$id" = "0000" ] && continue
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            case "$ref" in legacy:*) echo "$ref" >> "$legacy_refs" ;; esac
+            a="N$id"
+            b=$(node_for "$ref")
+            echo "$a $b"
+          done < <(yq -r '.supersedes[]?' "$cfg")
+        done > "$super_edges"
+
+        # Dedupe legacy refs.
+        [ -f "$legacy_refs" ] && sort -u "$legacy_refs" -o "$legacy_refs"
+
+        {
+        echo '# Enhancement Relationship Graph'
+        echo
+        echo '<!-- Generated by `task graph` — do not edit by hand. -->'
+        echo
+        echo '```mermaid'
+        echo 'graph LR'
+        echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
+        echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
+        echo '  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000'
+        echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
+        echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
+        echo
+
+        # Pass 1: workspace-root nodes (one per NNNN dir).
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          id=$(yq -r '.id' "$cfg")
+          [ "$id" = "0000" ] && continue
+          status=$(yq -r '.status' "$cfg")
+          # Sanitise titles for Mermaid quoted-label syntax.
+          title=$(yq -r '.title' "$cfg" | tr -d '`' | tr '"' "'")
+          if [ "${#title}" -gt 50 ]; then
+            title="${title:0:49}…"
+          fi
+          printf '  N%s["%s: %s"]:::%s\n' "$id" "$id" "$title" "$status"
+        done
+
+        # Pass 2: legacy refs encountered in cross-refs (peripheral nodes).
+        if [ -f "$legacy_refs" ]; then
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            lid="${ref#legacy:}"
+            printf '  L%s["legacy %s"]:::legacy\n' "$lid" "$lid"
+          done < "$legacy_refs"
+        fi
+
+        echo
+
+        while read -r a b; do
+          [ -z "$a" ] && continue
+          printf '  %s ---|related| %s\n' "$a" "$b"
+        done < "$related_edges"
+
+        while read -r a b; do
+          [ -z "$a" ] && continue
+          printf '  %s -->|supersedes| %s\n' "$a" "$b"
+        done < "$super_edges"
+
+        echo '```'
+
+        echo
+        echo '## Legend'
+        echo
+        echo '```mermaid'
+        echo 'graph LR'
+        echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
+        echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
+        echo '  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000'
+        echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
+        echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
+        echo
+        echo '  subgraph statuses ["Node statuses"]'
+        echo '    Ldraft["draft"]:::draft'
+        echo '    Laccepted["accepted"]:::accepted'
+        echo '    Limplemented["implemented"]:::implemented'
+        echo '    Lsuperseded["superseded"]:::superseded'
+        echo '    Llegacy["legacy NNN"]:::legacy'
+        echo '  end'
+        echo
+        echo '  subgraph edges ["Edge types"]'
+        echo '    Erel_a["A"] ---|related| Erel_b["B"]'
+        echo '    Esup_new["newer"] -->|supersedes| Esup_old["older"]'
+        echo '  end'
+        echo '```'
+        } > "$OUT"
+
+        printf 'Wrote %s\n' "$OUT"
+
+  new:experiment:
+    desc: Scaffold a new experiment inside an enhancement (creates experiments/NN-NAME/)
+    summary: |
+      Usage:
+        task new:experiment ID=0001 NAME=matcher-mechanics
+
+      NAME must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case).
+      If experiments/ doesn't exist yet, creates it with a thin index
+      README. Computes the next two-digit number from existing NN-*/
+      subdirectories. Drops a per-experiment README skeleton with
+      Hypothesis / Setup / Run / Outcome and Status: Draft.
+    vars:
+      ID:   '{{.ID   | default ""}}'
+      NAME: '{{.NAME | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task new:experiment ID=<4-digit-id> NAME=<concept-name>'
+      - sh: '[ -n "{{.NAME}}" ]'
+        msg: 'NAME is required. Usage: task new:experiment ID=<4-digit-id> NAME=<concept-name>'
+      - sh: 'printf %s "{{.NAME}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
+        msg: 'NAME must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        ID="{{.ID}}"
+        NAME="{{.NAME}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+
+        cfg="$ID/config.yaml"
+        TITLE=$(yq -r '.title' "$cfg" 2>/dev/null || echo "$ID")
+
+        EXP_DIR="$ID/experiments"
+
+        # Create experiments/ + index README on first invocation.
+        if [ ! -d "$EXP_DIR" ]; then
+          mkdir -p "$EXP_DIR"
+          cat > "$EXP_DIR/README.md" <<EOF
+        # Experiments — $TITLE
+
+        Self-contained proofs-of-concept validating specific claims from the
+        design. See the enhancement's \`02-design.md\` for the claims being
+        tested. This file is the hand-maintained index — add a row per
+        experiment. Per-experiment status lives in each \`NN-*/README.md\`'s
+        \`Status:\` line.
+
+        | # | Concept | Status |
+        | - | ------- | ------ |
+        EOF
+        fi
+
+        # Compute next two-digit number from existing NN-*/ subdirs.
+        HIGHEST=$(find "$EXP_DIR" -maxdepth 1 -type d -regex ".*/[0-9][0-9]-.*" -printf '%f\n' 2>/dev/null \
+          | cut -c1-2 | sort -n | tail -1)
+        HIGHEST="${HIGHEST:-0}"
+        NEW_NUM=$(awk -v n="$HIGHEST" 'BEGIN { printf "%02d", n + 1 }')
+        NEW_EXP_DIR="$EXP_DIR/${NEW_NUM}-${NAME}"
+
+        if [ -e "$NEW_EXP_DIR" ]; then
+          echo "Target already exists: $NEW_EXP_DIR" >&2
+          exit 1
+        fi
+
+        mkdir -p "$NEW_EXP_DIR"
+
+        # Per-experiment README skeleton.
+        cat > "$NEW_EXP_DIR/README.md" <<EOF
+        # ${NEW_NUM}-${NAME} — $TITLE
+
+        Status: Draft
+
+        ## Hypothesis
+
+        {Single claim from the enhancement's 02-design.md being validated here.}
+
+        ## Setup
+
+        {What was copied in, from where, and what was modified. Be explicit
+        about source-of-truth artefacts that were copied (not referenced):
+        CUE schemas, Go fixtures, transformer bodies, etc.}
+
+        ## Run
+
+        Exact commands to reproduce the result:
+
+        \`\`\`bash
+        # (commands here)
+        \`\`\`
+
+        ## Outcome
+
+        {Observed result; whether the hypothesis held. Update \`Status:\` to
+        \`Running\` once the experiment is live; \`Concluded\` once the
+        outcome is recorded. When concluded, link the result back into the
+        enhancement's 02-design.md or 03-decisions.md so the evidence sits
+        next to the design.}
+        EOF
+
+        # Reminder to extend the index.
+        echo "Created $NEW_EXP_DIR"
+        echo
+        echo "Next steps:"
+        echo "  1. Fill in $NEW_EXP_DIR/README.md (Hypothesis / Setup / Run / Outcome)"
+        echo "  2. Add a row to $EXP_DIR/README.md:"
+        echo "     | $NEW_NUM | $NAME | Draft |"
+        echo "  3. List:                task experiments:list ID=$ID"
+        echo "  4. Validate structure:  task vet:one ID=$ID"
+
+  experiments:list:
+    desc: List experiments for one enhancement with status parsed from each README
+    summary: |
+      Usage:
+        task experiments:list ID=0001
+
+      Reads each NNNN/experiments/NN-*/README.md, parses the `Status:`
+      line, and emits a status table:
+
+        01-matcher-mechanics      Concluded
+        02-read-portability       Running
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task experiments:list ID=<4-digit-id>'
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        EXP_DIR="$ID/experiments"
+
+        if [ ! -d "$EXP_DIR" ]; then
+          printf "${DIM}No experiments/ directory under %s (none have been created yet).${RESET}\n" "$ID"
+          exit 0
+        fi
+
+        # Count first so we can short-circuit. The `any` flag inside a
+        # pipeline subshell would not survive back to this process.
+        exp_count=$(find "$EXP_DIR" -mindepth 1 -maxdepth 1 -type d -regex ".*/[0-9][0-9]-.*" 2>/dev/null | wc -l)
+        if [ "$exp_count" -eq 0 ]; then
+          printf "${DIM}experiments/ exists but no NN-*/ subdirectories found.${RESET}\n"
+          exit 0
+        fi
+
+        {
+          printf 'EXPERIMENT\tSTATUS\n'
+          for exp in "$EXP_DIR/"[0-9][0-9]-*/; do
+            [ -d "$exp" ] || continue
+            name=$(basename "$exp")
+            status="(no Status: line)"
+            if [ -f "$exp/README.md" ]; then
+              parsed=$(grep -m1 -E '^Status:' "$exp/README.md" | sed -E 's/^Status:[[:space:]]*//')
+              [ -n "$parsed" ] && status="$parsed"
+            else
+              status="(missing README.md)"
+            fi
+            printf '%s\t%s\n' "$name" "$status"
+          done
+        } | awk -F'\t' '
+          {
+            rows[NR] = $0
+            for (i = 1; i <= NF; i++) if (length($i) > w[i]) w[i] = length($i)
+          }
+          END {
+            BOLD = "\033[1m"; RESET = "\033[0m"
+            for (n = 1; n <= NR; n++) {
+              split(rows[n], cols, "\t")
+              line = sprintf("%-*s  %s", w[1], cols[1], cols[2])
+              if (n == 1) printf "%s%s%s\n", BOLD, line, RESET
+              else print line
+            }
+          }
+        '
