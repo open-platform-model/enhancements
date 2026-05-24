@@ -4,7 +4,7 @@
 
 | ID | Area | Status | Semver | Impl | Last event | Title |
 | -- | ---- | ------ | ------ | ---- | ---------- | ----- |
-| [0001](./0001/) | core | draft | major | not-started | 2026-05-23 — Decisions D1–D4 locked — #ctx collapsed to {release, components}; #Component.#names is source of truth; #ctx.components is CUE projection; clusterDomain moves onto #ReleaseIdentity. OQ18/OQ19/OQ20/OQ21 resolved. Spike at schemas/example_instance.cue. | #Platform Redesign Umbrella |
+| [0001](./0001/) | core | draft | major | not-started | 2026-05-23 — Decisions D5–D11 locked from experiment evidence. OQ2/OQ3/OQ9/OQ10/OQ11/OQ12/OQ13/OQ14 resolved-by-D##; OQ15 informed-by-exp-05; OQ17 answered. D2/D3/D4 Source lines updated to cite experiments. 02-design.md gained: Materialize Go-side range parsing note (D11), same-FQN divergence error format quote (D6), #names lexical-scope authoring caveat (exp 07). 05-risks.md: stale #ctx evaluation circularity bullet replaced with author-introduced-cycle diagnostic UX note; #ctx.runtime wording dropped. 06-operational.md: MissingFQN shape updated to {release, component, fqn, alternatives}. 04-graduation.md: retired-type references (#ModuleContext / #RuntimeContext / #ContextBuilder) replaced with the inline #ctx shape. All seven experiments flipped Status: Running → Concluded. | #Platform Redesign Umbrella |
 
 ## Status legend
 

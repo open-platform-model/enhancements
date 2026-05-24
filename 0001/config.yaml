@@ -8,7 +8,6 @@ area: core
 affects:
   - core
   - library
-  - catalog
   - modules
 
 created: "2026-05-23"
@@ -27,10 +26,10 @@ implementation:
 history:
   - {date: "2026-05-23", event: "Drafted — umbrella scope (registry/materialize/matcher + #ctx.runtime)"}
   - {date: "2026-05-23", event: "Decisions D1–D4 locked — #ctx collapsed to {release, components}; #Component.#names is source of truth; #ctx.components is CUE projection; clusterDomain moves onto #ReleaseIdentity. OQ18/OQ19/OQ20/OQ21 resolved. Spike at schemas/example_instance.cue."}
+  - {date: "2026-05-23", event: "Experiments 01–07 scaffolded (Draft) — hypotheses + setup + run commands planned, execution deferred"}
+  - {date: "2026-05-23", event: "Experiments 01–07 fixtures written + executed (Running). All seven hypotheses held empirically. Concluded promotion deferred pending user wiring evidence back into 03-decisions.md / 02-design.md / 05-risks.md per skill protocol. Resolutions enabled: OQ13 (regex), OQ14 (always-unify divergence), OQ9/OQ10/OQ11/OQ12 (catalog stamping), OQ1/OQ4/OQ7 (multi-version match), OQ2/OQ3 (filter order + parser), D2/D3 evidence cite."}
+  - {date: "2026-05-23", event: "Decisions D5–D11 locked from experiment evidence. OQ2/OQ3/OQ9/OQ10/OQ11/OQ12/OQ13/OQ14 resolved-by-D##; OQ15 informed-by-exp-05; OQ17 answered. D2/D3/D4 Source lines updated to cite experiments. 02-design.md gained: Materialize Go-side range parsing note (D11), same-FQN divergence error format quote (D6), #names lexical-scope authoring caveat (exp 07). 05-risks.md: stale #ctx evaluation circularity bullet replaced with author-introduced-cycle diagnostic UX note; #ctx.runtime wording dropped. 06-operational.md: MissingFQN shape updated to {release, component, fqn, alternatives}. 04-graduation.md: retired-type references (#ModuleContext / #RuntimeContext / #ContextBuilder) replaced with the inline #ctx shape. All seven experiments flipped Status: Running → Concluded."}
 
-# No peer enhancements yet at workspace root. The frozen library
-# predecessors (003 / 004 / 007) are being deleted, not preserved as
-# `legacy:NNN` cross-refs — keep this list empty.
 related: []
 supersedes: []
 superseded_by: null

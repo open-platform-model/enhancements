@@ -5,7 +5,13 @@
 The umbrella introduces three new structured diagnostic kinds, emitted by the kernel and surfaced through `MatchPlan` and the materialize result:
 
 - **`MaterializeError`** — emitted by `Kernel.Materialize`. Names the failing subscription `id`, the path, the filter, the OCI registry consulted, and the underlying `cuelang.org/go/mod` error. Emitted on pull failure, on a same-SemVer-different-content unification failure at index build time, and on a top-level scan that finds zero `#ComponentTransformer` values in a selected build.
-- **`MissingFQN`** — emitted by `Match` when the consumer Module declares a primitive FQN absent from materialized `#composedTransformers`. One error per `(component, FQN)` pair. Carries the component name, the missing FQN, and the available adjacent-version FQNs as a hint (e.g. "consumer pinned `container@1.5.0`; platform has `container@1.4.0`, `container@1.6.0`").
+- **`MissingFQN`** — emitted by `Match` when the consumer Module declares a primitive FQN absent from materialized `#composedTransformers`. One error per `(release, component, FQN)` triple. Carries:
+  - `release`: the release name (a single materialized platform serves multiple releases; the diagnostic names the failing one explicitly).
+  - `component`: the component name.
+  - `fqn`: the missing FQN as the consumer declared it.
+  - `alternatives`: every key in `#composedTransformers` whose `modulePath/name` prefix matches the missing FQN (i.e. every other SemVer of the same primitive that IS on the platform). Computed as `strings.HasPrefix(composedKey, modulePath+"/"+name+"@")`.
+
+  Example: a consumer pinning `container@1.5.0` against a platform carrying `1.0.4`, `1.1.0`, `1.4.0` produces `{release: "app-x", component: "api", fqn: ".../container@1.5.0", alternatives: [".../container@1.0.4", ".../container@1.1.0", ".../container@1.4.0"]}`. Shape sketched and validated end-to-end in experiment 05-multi-version-match.
 - **`UnifyError`** — emitted by `Match` when the FQN lookup succeeds but `unify(consumer_primitive, transformer.requiredResources[FQN])` fails. One error per pair. Carries the FQN, both primitive values' relevant fields, and the CUE error path so authors can locate the divergence.
 
 All three implement the existing diagnostic interface used by `MatchPlan`; no new top-level UX is required. The library logs a pull plan (subscription → selected versions) at `info` before `Materialize` executes so operators can correlate failures with intent.

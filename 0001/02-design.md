@@ -18,7 +18,7 @@
 ## Non-Goals
 
 - `#Claim` / `#ModuleTransformer` / module extension surface — future enhancement.
-- Platform capabilities (`#Capability`, `#Platform.#provides`, `#Module.#consumes`) and the typed `#ctx.platform` extension channel — future enhancement. This design leaves `#ctx` open at the top level so a future addition of `platform` / `environment` siblings to `runtime` is purely additive.
+- Platform capabilities (`#Capability`, `#Platform.#provides`, `#Module.#consumes`) and the typed `#ctx.platform` extension channel — future enhancement. This design leaves `#ctx` open at the top level (the `...` opening under `#ctx`) so a future addition of `platform` / `environment` siblings is purely additive.
 - `#Bundle` cross-module context — deferred.
 - Content hashes for immutable ConfigMaps / Secrets surfaced through `#ctx` — revisit when a concrete module-readable use case surfaces.
 - Renderer / `#transform` execution model — unchanged. Transformers still receive `#moduleRelease`, `#component`, `#context`; the `#TransformerContext` shape stays as it is for this enhancement, with `#ctx` reads happening from the module side rather than the transformer side.
@@ -36,7 +36,7 @@ The redesign lands as three coordinated changes, designed together because each 
 
 `#Platform.#registry` shifts from `[Id=#NameType]: #ModuleRegistration { #module!: #Module, … }` to `[Id=#NameType]: #Subscription { path!, enable, filter? }`. A subscription stands for "every published build of this catalog that the filter selects." The CUE-level `#Platform` value is a *spec*; the kernel realises it.
 
-The realisation is a new `Kernel.Materialize(*Platform) (*MaterializedPlatform, error)` step. It walks each subscription, resolves the filter against the OCI registry (via `cuelang.org/go/mod`), pulls every selected build into the local CUE module cache, loads each package, and indexes top-level `#ComponentTransformer` values by their stamped FQN. The result is a synthetic `#composedTransformers: #TransformerMap` plus a `#matchers.{resources,traits}: [FQN]: [...#ComponentTransformer]` reverse index that `Match` consults.
+The realisation is a new `Kernel.Materialize(*Platform) (*MaterializedPlatform, error)` step. It walks each subscription, **parses any `range` string Go-side via `github.com/Masterminds/semver/v3`** (D11 — CUE cannot evaluate SemVer range syntax natively), then resolves the in-range subset against the OCI registry (via `cuelang.org/go/mod`), applies `allow` and `deny` per D10's order, pulls every selected build into the local CUE module cache, loads each package, and indexes top-level `#ComponentTransformer` values by their stamped FQN. The result is a synthetic `#composedTransformers: #TransformerMap` plus a `#matchers.{resources,traits}: [FQN]: [...#ComponentTransformer]` reverse index that `Match` consults.
 
 `Match` takes `*MaterializedPlatform` instead of `*Platform`. Materialize is an explicit step rather than implicit-inside-Match so the caller controls when pulling and indexing happen — typically once per platform spec, reused across many `Match` calls.
 
@@ -59,7 +59,7 @@ Every primitive sources its `metadata.version` from `Catalog.Version` and its `m
 
 `#FQNType` changes regex from `…@v[0-9]+$` to `…@<SemVer 2.0>$`. `metadata.version` on `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` changes type from `#MajorVersionType` to `#VersionType`. `#MajorVersionType` is retired from primitive metadata (it may survive elsewhere — `#BundleFQNType` keeps it for now). Two builds of the same primitive at different SemVers are distinct keys in `#composedTransformers` and unify cleanly per CUE's map semantics; same-SemVer rebuilds with identical content collapse via unification, and divergent content fails CUE evaluation at the materialize step.
 
-Match runs against the materialized platform with FQN-keyed lookup followed by an always-on `unify(consumer_component.#resources[FQN], transformer.requiredResources[FQN])` (and the analogous traits step) before predicate evaluation. There is no `--strict` mode, no skip in production — unification cost is bounded (a few CUE evaluations per matched pair) and catches the failure mode that would otherwise propagate to render time as a confusing error. Missing FQNs produce one structured `MissingFQN` error per `(component, FQN)`; unification failures produce one `UnifyError` per pair. The `MatchPlan` accumulates everything in one pass.
+Match runs against the materialized platform with FQN-keyed lookup followed by an always-on `unify(consumer_component.#resources[FQN], transformer.requiredResources[FQN])` (and the analogous traits step) before predicate evaluation. There is no `--strict` mode, no skip in production — unification cost is bounded (a few CUE evaluations per matched pair) and catches the failure mode that would otherwise propagate to render time as a confusing error. Same-SemVer rebuilds with byte-identical bodies collapse to one map entry under unification; divergent bodies produce a CUE error of the form `conflicting values "X" and "Y": ./fileA:line:col ./fileB:line:col` — the kernel surfaces this verbatim with no Go-side formatting (experiment 03 confirmed the format is authoring-grade). Missing FQNs produce one structured `MissingFQN` error per `(release, component, FQN)` triple; unification failures produce one `UnifyError` per pair. The `MatchPlan` accumulates everything in one pass.
 
 ### 3. `#ctx` lands as an inline channel; components compute their own `#names`
 
@@ -122,7 +122,15 @@ The parent `#Module` wires the release into every component via the `#components
 }
 ```
 
-There is no `#ContextBuilder` and no builder unification step. `#ModuleRelease` sets `#module.#ctx.release` from its own metadata; CUE evaluates every `#Component.#names` against its injected `#release`; the `#ctx.components` comprehension projects each `#names` into a sibling map under `#ctx`. Components reference `#ctx.components.api.dns.fqdn` (cross-component reads) or `#names.dns.fqdn` (self-reads) inside their specs; the matcher and renderer see fully concrete values. Equivalently `#components.api.#names.dns.fqdn` works — `#ctx.components` is a convenience projection, not a separate value.
+There is no `#ContextBuilder` and no builder unification step. `#ModuleRelease` sets `#module.#ctx.release` from its own metadata; CUE evaluates every `#Component.#names` against its injected `#release`; the `#ctx.components` comprehension projects each `#names` into a sibling map under `#ctx`. The matcher and renderer see fully concrete values.
+
+**Authoring caveat.** `#names` lives in `#Component`'s definition body, not in the lexical scope of any concrete instance value. CUE references resolve pre-unification, so a component body that writes `spec: url: "http://\(#names.dns.fqdn)"` will see `reference "#names" not found`. The canonical access path from inside a component's `spec` (or `#resources` / `#traits`) is **the projection**:
+
+- **Self-reference:** `#ctx.components.<self-id>.dns.fqdn` — `#ctx` is a sibling of `#components` at the `#Module` level and IS in scope.
+- **Cross-component reference:** `#ctx.components.<other-id>.dns.fqdn` — same path, different id.
+- **External access (from outside any component literal):** `<module-value>.#components.<id>.#names.dns.fqdn` works too — but is rarely what authors want.
+
+Experiment 07 (`ctx-cycle-freedom`) walked into this and used the projection form throughout; the lesson belongs in the SPEC authoring guide when this lands in core.
 
 The cluster-domain default lives on `#ReleaseIdentity` itself (`clusterDomain: string | *"cluster.local"`); operators override per release. No platform-side capability is required — that's the line between this enhancement and the future platform-capabilities work.
 
