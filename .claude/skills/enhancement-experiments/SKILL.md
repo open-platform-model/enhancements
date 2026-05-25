@@ -150,4 +150,5 @@ Deletion is a regular `git rm`. Update the `experiments/README.md` index by remo
 
 - `enhancements/CLAUDE.md` — repo guide; points to this skill at the experiments section.
 - `enhancements/0000/README.md ## Experiments` — canonical rules text reproduced in each enhancement's template.
+- `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — when an experiment's outcome lands an OQ in the `informed-by-exp-NN` / `supported-by-exp-NN` partial bucket, the walk formalizes it into a `### DN:` block. Load that skill alongside this one when concluding an experiment whose result resolves a specific OQ.
 - `core/.claude/skills/core-schema-edit/SKILL.md` — sister skill governing SPEC.md co-update when an experiment's conclusion lands as a real schema change in `core/*.cue`.

@@ -31,6 +31,7 @@ Read these on entry:
 Sibling skills to load when applicable:
 
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — when creating, updating, validating, or concluding experiments under `enhancements/NNNN/experiments/`. Load whenever you are about to invoke `task new:experiment` or `task experiments:list`, or edit any file under `experiments/`.
+- **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — when walking an enhancement's `## Open Questions` block interactively (one OQ at a time, with context + alternatives + a decision write-back). Load before invoking `/enhancement-open-questions ID=NNNN`, or when `task questions:open ID=NNNN` returns rows that need resolution.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — when implementing a slice that touches `core/*.cue`. Enforces the SPEC.md co-update protocol. Required reading before editing the core schema; the pre-commit hook and CI gate will refuse the commit otherwise.
 - **`openspec-*`** (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — when slicing the enhancement's accepted design into per-repo OpenSpec changes for execution.
 
@@ -72,6 +73,8 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffold a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffold an experiment inside an entry. Load `enhancement-experiments` skill first. |
 | `task experiments:list ID=NNNN` | List experiments for one entry; parses `Status:` from each per-experiment README. |
+| `task questions:list ID=NNNN` | List `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
+| `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial buckets only). Consumed by the `enhancement-open-questions` skill. |
 | `task index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
 | `task graph` | Regenerate `GRAPH.md` with a Mermaid relationship diagram. Run after any cross-ref edit. |
 

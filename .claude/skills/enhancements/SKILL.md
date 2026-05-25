@@ -24,6 +24,7 @@ Load this skill when any of the following is true:
 Sibling skills carry parallel protocols you may also need to load:
 
 - **`enhancement-experiments`** — when creating, updating, or validating experiments under `enhancements/NNNN/experiments/`.
+- **`enhancement-open-questions`** — when resolving an enhancement's Open Questions interactively (one OQ at a time, with context + alternatives + a decision write-back). The walk drafts the `### DN:` block, rewrites the OQ's `Status:` line, optionally tightens `// OQN:` markers in `schemas/target.cue`, and appends a single rolled-up `history` event.
 - **`core-schema-edit`** (at `core/.claude/skills/core-schema-edit/`) — when implementing a slice that touches `core/*.cue`. The enhancement's accepted-to-implemented work routes there.
 
 If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `06-operational.md`, and inspect `schemas/target.cue`. The skill matters when you are about to *change* something.
@@ -99,6 +100,8 @@ Decisions are written **after** they are made, not speculatively. The format is 
 
 Source is specific. "User decision 2026-05-23" beats "discussion"; an experiment outcome reference (`enhancements/NNNN/experiments/01-name/`) beats a vague "validated".
 
+**When resolving Open Questions interactively, load `enhancement-open-questions`.** It walks each OQ one at a time, drafts the four-field decision block in the format above, rewrites the OQ's `Status:` line, prompts for `// OQN:` marker edits in `schemas/target.cue` (with `cue vet` in the same pass), and appends a single rolled-up `history` event at the end. Use `task questions:open ID=NNNN` to inspect the walk queue without entering the skill.
+
 ### Phase 3 — Promote `draft → accepted`
 
 The hard gate:
@@ -110,7 +113,7 @@ task check ID=NNNN            # SHOULD pass; document any deferred warnings in t
 
 Before promoting:
 
-- Every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`).
+- Every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`). Use `task questions:open ID=NNNN` to check the queue; if it returns rows, walk them with the `enhancement-open-questions` skill before promoting.
 - Every decision (D1..DN) has the four-field format.
 - `schemas/target.cue` captures the target shape end-to-end and compiles cleanly.
 - `config.yaml.semver` is set (`major | minor | none`).
@@ -236,6 +239,8 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffolding a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffolding an experiment inside an entry. **Load `enhancement-experiments` skill first.** |
 | `task experiments:list ID=NNNN` | Browsing experiments for one entry; parses `Status:` from each per-experiment README. |
+| `task questions:list ID=NNNN` | Listing `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
+| `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial). Consumed by the `enhancement-open-questions` skill walk. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
 | `task graph` | After any cross-reference edit. `GRAPH.md` is generated, not hand-edited. |
 
@@ -282,5 +287,6 @@ When guidance conflicts, the most-specific source wins: target repo skill > this
 - `enhancements/schema.cue` — CUE contract that `task vet` validates each `config.yaml` against.
 - `enhancements/Taskfile.yml` — workflow tasks source.
 - `enhancement-experiments` skill (sibling, under `enhancements/.claude/skills/`) — the experiments protocol.
+- `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — the interactive OQ-walk protocol; load when resolving Open Questions one at a time, especially before promoting `draft → accepted`.
 - `core-schema-edit` skill (`core/.claude/skills/core-schema-edit/`) — the SPEC.md co-update protocol for slices that touch `core/*.cue`.
 - `openspec-*` skills (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — the slice lifecycle in each target repo.

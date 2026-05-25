@@ -31,6 +31,8 @@ tasks:
           task new SLUG=foo TITLE="Foo Bar"      — scaffold a new enhancement from 0000/
           task new:experiment ID=0001 NAME=foo   — scaffold an experiment inside an enhancement
           task experiments:list ID=0001          — list experiments for one enhancement (parsed Status)
+          task questions:list ID=0001            — list Open Questions for one enhancement (grouped, classified)
+          task questions:open ID=0001            — TSV of unresolved Open Questions (for the OQ-walk skill)
           task graph                             — regenerate GRAPH.md
           task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
         EOF
@@ -1056,5 +1058,259 @@ tasks:
               if (n == 1) printf "%s%s%s\n", BOLD, line, RESET
               else print line
             }
+          }
+        '
+
+  questions:list:
+    desc: List Open Questions for one enhancement (grouped by ### subheading, classified by status)
+    summary: |
+      Usage:
+        task questions:list ID=0001
+
+      Reads NNNN/03-decisions.md (or NNNN/README.md as fallback), parses
+      the `## Open Questions` block, and emits a human-readable table
+      grouped by `### ` subheading.
+
+      Status buckets:
+        open      — `Status: open` exactly. Walk these.
+        partial   — `informed-by-exp-NN` / `supported-by-exp-NN`. Walk
+                    these to formalize the experiment outcome into a
+                    decision block.
+        resolved  — `resolved-by-D##`, `deferred`, `deferred-to-NNNN`,
+                    `answered`. Listed for context; skipped by the walk.
+
+      The `enhancement-open-questions` skill consumes `task questions:open`
+      (TSV) for its queue. This task is the human-readable counterpart.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task questions:list ID=<4-digit-id>'
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+
+        # The Open Questions block may live in 03-decisions.md (canonical)
+        # or README.md (allowed by the enhancements skill, line ~203). Try
+        # the canonical location first.
+        OQ_FILE=""
+        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
+          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
+            OQ_FILE="$candidate"; break
+          fi
+        done
+
+        if [ -z "$OQ_FILE" ]; then
+          printf "${DIM}No ## Open Questions block in %s/03-decisions.md or %s/README.md.${RESET}\n" "$ID" "$ID"
+          exit 0
+        fi
+
+        # Parser: state machine over the block. Emits TSV per OQ row:
+        #   OQ_ID \t STATUS \t BUCKET \t GROUP \t TITLE
+        # Wrapped bullets are merged before extraction. The closing `**`
+        # of the bold span (not the first ".") bounds the title — titles
+        # legitimately contain periods.
+        ROWS=$(awk '
+          function trim(s) {
+            sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s
+          }
+          function flush(   search, bold_end, title, after, dot, status, bucket) {
+            if (oq_id == "") return
+            search = oq_line
+            sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", search)
+            bold_end = index(search, "**")
+            if (bold_end == 0) { oq_id = ""; oq_line = ""; return }
+            title = substr(search, 1, bold_end - 1)
+            sub(/\.[[:space:]]*$/, "", title)
+            title = trim(title)
+            after = substr(search, bold_end + 2)
+            sub(/^[[:space:]]*Status:[[:space:]]*/, "", after)
+            dot = index(after, ".")
+            if (dot > 0) status = substr(after, 1, dot - 1)
+            else status = after
+            status = trim(status)
+            bucket = "unknown"
+            if (status == "open") bucket = "open"
+            else if (status ~ /^informed-by-exp-/ || status ~ /^supported-by-exp-/) bucket = "partial"
+            else if (status ~ /^resolved-by-D/ || status ~ /^deferred/ || status == "answered") bucket = "resolved"
+            printf "%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, current_group, title
+            oq_id = ""; oq_line = ""
+          }
+          BEGIN { inblock = 0; current_group = "(ungrouped)"; oq_id = ""; oq_line = "" }
+          /^## Open Questions[[:space:]]*$/ { flush(); inblock = 1; current_group = "(ungrouped)"; next }
+          inblock && /^## / { flush(); inblock = 0; next }
+          !inblock { next }
+          /^### / && !/^### D[0-9]+:/ {
+            flush()
+            current_group = $0
+            sub(/^###[[:space:]]+/, "", current_group)
+            current_group = trim(current_group)
+            next
+          }
+          /^### D[0-9]+:/ { flush(); next }
+          /^-[[:space:]]+\*\*OQ[0-9]+:/ {
+            flush()
+            oq_line = $0
+            tmp = $0
+            sub(/^-[[:space:]]+\*\*OQ/, "", tmp)
+            oq_id = "OQ"
+            i = 1
+            while (i <= length(tmp) && substr(tmp, i, 1) ~ /[0-9]/) {
+              oq_id = oq_id substr(tmp, i, 1); i++
+            }
+            next
+          }
+          oq_id != "" && /^[[:space:]]+[^[:space:]]/ {
+            oq_line = oq_line " " trim($0); next
+          }
+          oq_id != "" && /^$/ { flush(); next }
+          oq_id != "" && /^- / { flush(); next }
+          END { flush() }
+        ' "$OQ_FILE")
+
+        if [ -z "$ROWS" ]; then
+          printf "${DIM}## Open Questions block in %s is empty.${RESET}\n" "$OQ_FILE"
+          exit 0
+        fi
+
+        # Render: section-broken by GROUP, columnar (OQ_ID, STATUS, TITLE)
+        # within each group. Bucket is folded into the status column by
+        # bold/dim coloring at print time.
+        printf '%s\n' "$ROWS" | awk -F'\t' '
+          {
+            rows[NR] = $0
+            # widths: col 1 = OQ_ID, col 2 = STATUS, col 5 = TITLE (group is header)
+            if (length($1) > w1) w1 = length($1)
+            if (length($2) > w2) w2 = length($2)
+            groups[$4] = 1
+          }
+          END {
+            BOLD = "\033[1m"; DIM = "\033[2m"; RESET = "\033[0m"
+            # First pass: ordered list of groups in encounter order
+            ngroups = 0
+            for (n = 1; n <= NR; n++) {
+              split(rows[n], cols, "\t")
+              g = cols[4]
+              if (!(g in seen)) { seen[g] = 1; order[++ngroups] = g }
+            }
+            for (gi = 1; gi <= ngroups; gi++) {
+              g = order[gi]
+              printf "%s%s%s\n", BOLD, g, RESET
+              for (n = 1; n <= NR; n++) {
+                split(rows[n], cols, "\t")
+                if (cols[4] != g) continue
+                style = ""
+                if (cols[3] == "resolved") style = DIM
+                printf "  %s%-*s  %-*s  %s%s\n", style, w1, cols[1], w2, cols[2], cols[5], RESET
+              }
+              if (gi < ngroups) printf "\n"
+            }
+          }
+        '
+
+  questions:open:
+    desc: Emit TSV of unresolved Open Questions (open + partial) — machine-readable, for the OQ-walk skill
+    summary: |
+      Usage:
+        task questions:open ID=0001
+
+      Tab-separated rows of Open Questions whose status bucket is `open`
+      (Status: open exactly) or `partial` (informed-by-exp-NN /
+      supported-by-exp-NN — experiment evidence exists but no formal
+      decision yet). Resolved OQs are omitted.
+
+      Columns: OQ_ID  STATUS  GROUP  TITLE
+
+      Designed for `enhancement-open-questions` skill consumption. The
+      human-readable counterpart with all buckets is `task questions:list`.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task questions:open ID=<4-digit-id>'
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+
+        OQ_FILE=""
+        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
+          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
+            OQ_FILE="$candidate"; break
+          fi
+        done
+
+        [ -n "$OQ_FILE" ] || exit 0
+
+        # Same parser as questions:list. Output is filtered to open +
+        # partial buckets and reshaped to drop the BUCKET column (callers
+        # only need OQ_ID + STATUS + GROUP + TITLE).
+        awk '
+          function trim(s) {
+            sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s
+          }
+          function flush(   search, bold_end, title, after, dot, status, bucket) {
+            if (oq_id == "") return
+            search = oq_line
+            sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", search)
+            bold_end = index(search, "**")
+            if (bold_end == 0) { oq_id = ""; oq_line = ""; return }
+            title = substr(search, 1, bold_end - 1)
+            sub(/\.[[:space:]]*$/, "", title)
+            title = trim(title)
+            after = substr(search, bold_end + 2)
+            sub(/^[[:space:]]*Status:[[:space:]]*/, "", after)
+            dot = index(after, ".")
+            if (dot > 0) status = substr(after, 1, dot - 1)
+            else status = after
+            status = trim(status)
+            bucket = "unknown"
+            if (status == "open") bucket = "open"
+            else if (status ~ /^informed-by-exp-/ || status ~ /^supported-by-exp-/) bucket = "partial"
+            else if (status ~ /^resolved-by-D/ || status ~ /^deferred/ || status == "answered") bucket = "resolved"
+            printf "%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, current_group, title
+            oq_id = ""; oq_line = ""
+          }
+          BEGIN { inblock = 0; current_group = "(ungrouped)"; oq_id = ""; oq_line = "" }
+          /^## Open Questions[[:space:]]*$/ { flush(); inblock = 1; current_group = "(ungrouped)"; next }
+          inblock && /^## / { flush(); inblock = 0; next }
+          !inblock { next }
+          /^### / && !/^### D[0-9]+:/ {
+            flush()
+            current_group = $0
+            sub(/^###[[:space:]]+/, "", current_group)
+            current_group = trim(current_group)
+            next
+          }
+          /^### D[0-9]+:/ { flush(); next }
+          /^-[[:space:]]+\*\*OQ[0-9]+:/ {
+            flush()
+            oq_line = $0
+            tmp = $0
+            sub(/^-[[:space:]]+\*\*OQ/, "", tmp)
+            oq_id = "OQ"
+            i = 1
+            while (i <= length(tmp) && substr(tmp, i, 1) ~ /[0-9]/) {
+              oq_id = oq_id substr(tmp, i, 1); i++
+            }
+            next
+          }
+          oq_id != "" && /^[[:space:]]+[^[:space:]]/ {
+            oq_line = oq_line " " trim($0); next
+          }
+          oq_id != "" && /^$/ { flush(); next }
+          oq_id != "" && /^- / { flush(); next }
+          END { flush() }
+        ' "$OQ_FILE" | awk -F'\t' '
+          $3 == "open" || $3 == "partial" {
+            printf "%s\t%s\t%s\t%s\n", $1, $2, $4, $5
           }
         '
