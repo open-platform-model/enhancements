@@ -59,16 +59,15 @@ None at this stage. Updated when implementation lands and any deliberate diverge
 | `/CLAUDE.md` (workspace root) | Workspace map; identifies the directory ownership the `area` / `affects` fields validate against. |
 | `core/CLAUDE.md` | Core repo guide. Schema editing protocol (`SPEC.md` co-update, pre-commit hook) governs every CUE change this enhancement lands. |
 | `core/SPEC.md` | Normative schema specification. Every construct touched by this enhancement (`#Platform`, `#Module`, `#FQNType`, …) has a SPEC section that must be co-updated when the CUE lands. |
-| `core/CONSTITUTION.md` | Core design principles. |
-| `core/platform.cue` | Target of the `#Platform` / `#registry` rewrite (`#ModuleRegistration` retired; `#Subscription` / `#SubscriptionFilter` introduced; `#knownResources` / `#knownTraits` removed; `#composedTransformers` + `#matchers` become kernel-filled optional slots). |
-| `core/module.cue` | Target of the `#Module.#defines` removal and inline `#ctx { release, components, ... }` addition (including the `#components: [Id]: #Component & { #release: #ctx.release }` pattern constraint). |
-| `core/transformer.cue` | Target of the `#ComponentTransformer` SemVer-FQN change. |
-| `core/types.cue` | Target of the `#FQNType` regex change and `#MajorVersionType` retirement from primitive metadata. |
-| `core/resource.cue`, `core/trait.cue`, `core/blueprint.cue` | Each carries `metadata.version: #MajorVersionType` today; switches to `#VersionType`. |
-| `core/component.cue` | Gains `metadata.resourceName: *name \| #NameType` cascade, a hidden `#release: #ReleaseIdentity` injection slot, and a `#names` block that computes `resourceName` + DNS variants inline from the component's metadata and injected release. |
-| `core/module_release.cue` | Sets `#module.#ctx.release` from release metadata. No builder, no per-component injection — CUE evaluates `#names` and the `#ctx.components` projection automatically. |
-| `core/module_context.cue` *(new)* | Home of `#ReleaseIdentity` and `#ComponentNames` only. |
-| `core/catalog.cue` *(new)* | Home of `#Catalog` and `#CatalogFQNType` (D19, supersedes D7 + D15). |
+| `core/src/platform.cue` | Target of the `#Platform` / `#registry` rewrite (`#ModuleRegistration` retired; `#Subscription` / `#SubscriptionFilter` introduced; `#knownResources` / `#knownTraits` removed; `#composedTransformers` + `#matchers` become kernel-filled optional slots). |
+| `core/src/module.cue` | Target of the `#Module.#defines` removal and inline `#ctx { release, components, ... }` addition (including the `#components: [Id]: #Component & { #release: #ctx.release }` pattern constraint). |
+| `core/src/transformer.cue` | Target of the `#ComponentTransformer` SemVer-FQN change. |
+| `core/src/types.cue` | Target of the `#FQNType` regex change and `#MajorVersionType` retirement from primitive metadata. |
+| `core/src/resource.cue`, `core/src/trait.cue`, `core/src/blueprint.cue` | Each carries `metadata.version: #MajorVersionType` today; switches to `#VersionType`. |
+| `core/src/component.cue` | Gains `metadata.resourceName: *name \| #NameType` cascade, a hidden `#release: #ReleaseIdentity` injection slot, and a `#names` block that computes `resourceName` + DNS variants inline from the component's metadata and injected release. |
+| `core/src/module_release.cue` | Sets `#module.#ctx.release` from release metadata. No builder, no per-component injection — CUE evaluates `#names` and the `#ctx.components` projection automatically. |
+| `core/src/module_context.cue` *(new)* | Home of `#ReleaseIdentity` and `#ComponentNames` only. |
+| `core/src/catalog.cue` *(new)* | Home of `#Catalog` and `#CatalogFQNType` (D19, supersedes D7 + D15). |
 | `core/INDEX.md` | Generated definition index — regenerated via `task generate:index` once the schema changes land. |
 | `library/opm/kernel/` | Target of the new `Materialize` step and `Kernel.Registry` field. |
 | `library/opm/compile/match.go` | Target of the matcher rewrite (FQN-lookup + always-unify + predicate evaluation). |
