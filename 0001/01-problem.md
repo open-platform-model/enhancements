@@ -34,7 +34,7 @@ Today's `#Platform`, defined in [`core/platform.cue`](../../core/platform.cue), 
 A platform fixture is wired up by importing a Module via CUE and assigning it to `#registry.<id>.#module`. The default Kubernetes fixture at [`library/modules/opm_platform/platform.cue`](../../library/modules/opm_platform/platform.cue) does exactly this:
 
 ```cue
-import opm_package "opmodel.dev/modules/opm"
+import opm_package "opmodel.dev/catalogs/opm"
 #registry: opm: { #module: opm_package, enabled: true }
 ```
 
@@ -98,15 +98,15 @@ The five constraints below all share one root: today's `#Platform` collapses *ca
 
 ## Concrete Example
 
-Suppose a platform team operates the `k8s-prod` platform and supports the OPM core catalog at `opmodel.dev/modules/opm`. Two application teams use it:
+Suppose a platform team operates the `k8s-prod` platform and supports the OPM core catalog at `opmodel.dev/catalogs/opm`. Two application teams use it:
 
-- **App A** depends on `opmodel.dev/modules/opm@v1.0.4` — pinned at that build because their charts were authored before `1.1.0` shipped. Their module declares one component, `api`, with a `Container` resource and an `Expose` trait. The component spec wants to reference its own predictable DNS name (`api.app-a-prod.svc.cluster.local`) inside an environment variable so the container talks to itself by name.
-- **App B** depends on `opmodel.dev/modules/opm@v1.4.0` — pinned because they need a `scaling` trait field added in `1.4.0`. Their module declares two components, `frontend` and `worker`, and the `frontend` needs to compute its own DNS name plus the worker's DNS name into the same environment-variable manifest.
+- **App A** depends on `opmodel.dev/catalogs/opm@v1.0.4` — pinned at that build because their charts were authored before `1.1.0` shipped. Their module declares one component, `api`, with a `Container` resource and an `Expose` trait. The component spec wants to reference its own predictable DNS name (`api.app-a-prod.svc.cluster.local`) inside an environment variable so the container talks to itself by name.
+- **App B** depends on `opmodel.dev/catalogs/opm@v1.4.0` — pinned because they need a `scaling` trait field added in `1.4.0`. Their module declares two components, `frontend` and `worker`, and the `frontend` needs to compute its own DNS name plus the worker's DNS name into the same environment-variable manifest.
 
 **Today's platform CUE pins exactly one catalog build:**
 
 ```cue
-import opm_package "opmodel.dev/modules/opm"  // resolves to one tag, say 1.4.0
+import opm_package "opmodel.dev/catalogs/opm"  // resolves to one tag, say 1.4.0
 #registry: opm: { #module: opm_package, enabled: true }
 ```
 
@@ -130,7 +130,7 @@ The string is hand-written because there is no `#ctx.runtime.components.api.dns.
 
 ## User Stories
 
-- **As a platform team operator**, I want to subscribe my platform to a *range* of catalog builds (e.g. "all of `opmodel.dev/modules/opm` from `1.0.0` up to but not including `2.0.0`, minus the known-bad `1.3.2`") so that multiple application teams can pin different patches of the same catalog without me forking the platform. Today: a single CUE import pins one tag and the platform definition is rebuilt every time policy changes.
+- **As a platform team operator**, I want to subscribe my platform to a *range* of catalog builds (e.g. "all of `opmodel.dev/catalogs/opm` from `1.0.0` up to but not including `2.0.0`, minus the known-bad `1.3.2`") so that multiple application teams can pin different patches of the same catalog without me forking the platform. Today: a single CUE import pins one tag and the platform definition is rebuilt every time policy changes.
 - **As an application module author**, I want to read my deployment identity and my components' computed names from a typed `#ctx` channel so I can reference `#ctx.runtime.release.namespace` and `#ctx.runtime.components.api.dns.fqdn` in my component spec without hand-coding strings. Today: there is no `#ctx`; identity-shaped values are hand-typed and break on namespace moves.
 - **As a catalog author**, I want to publish my catalog as a plain CUE package that exports `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` at the top level — with one shared `Catalog: { Version, ModulePath }` constant stamped into the artifact at publish time — so the OCI tag and the primitive `metadata.version` strings are identical by construction. Today: every primitive carries hand-written `version: "v1"` strings and the only way to "publish primitives" is to wrap them in `#Module.#defines`, which forces my catalog to be a `#Module` value with empty `#components` / `#config` / `debugValues` slots.
 

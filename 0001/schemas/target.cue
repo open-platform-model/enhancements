@@ -29,6 +29,12 @@ import "strings"
 #FQNType: string &
 	=~"^[a-z0-9.-]+(/[a-z0-9.-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
+// Catalog FQN: `<modulePath>@<version>` (no `name` segment).
+// Distinct from #FQNType which is `<modulePath>/<name>@<version>` for
+// primitives. Both accept SemVer 2.0. See D19.
+#CatalogFQNType: string &
+	=~"^[a-z0-9.-]+(/[a-z0-9.-]+)*@\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+
 #UUIDType: string &
 	=~"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
@@ -87,15 +93,81 @@ import "strings"
 
 #TransformerMap: [#FQNType]: #ComponentTransformer
 
-// ---- Catalog identity stamp ----
+// ---- Catalog ----
 //
-// Every catalog declares this constant at the root of its CUE package.
-// Source-tree default keeps `cue vet` cheap; the publish task overwrites
-// `Version` with the concrete SemVer in a temp build dir before
-// `cue mod publish`. See OQ8 / OQ9 / OQ10 / OQ11 / OQ12.
-#CatalogIdentity: {
-	Version:    #VersionType | *"0.0.0-dev"
-	ModulePath: #ModulePathType
+// Top-level catalog definition. Collapses the prior `#CatalogIdentity`
+// (D7) + `#Transformers` manifest (D15) pair into one typed value with
+// schema-enforced transformer metadata stamping. See D19.
+//
+// Authoring shape (modules-pattern: bare type at file root, fields at
+// package level, no `Catalog:` wrapper — mirrors `m.#Module` embedding
+// in `modules/jellyfin/module.cue`):
+//
+//   // library/modules/opm/catalog.cue
+//   package opm
+//
+//   import (
+//       c  "opmodel.dev/core@v0"
+//       id "opmodel.dev/catalogs/opm/identity"
+//       t  "opmodel.dev/catalogs/opm/transformers"
+//   )
+//
+//   c.#Catalog
+//   metadata: {
+//       modulePath:  id.ModulePath
+//       version:     id.Version
+//       description: "OPM core catalog"
+//   }
+//   #transformers: {
+//       (t.#ConfigMapTransformer.metadata.fqn):  t.#ConfigMapTransformer
+//       (t.#DeploymentTransformer.metadata.fqn): t.#DeploymentTransformer
+//       // … one entry per exported transformer
+//   }
+//
+// Catalog identity (`metadata.{modulePath,version}`) lives in a sibling
+// `identity/` subpackage so transformer subpackages can source it
+// without circular import; publish-time stamping (D9, amended by D19)
+// targets `identity/version_override.cue` instead of the catalog root.
+//
+// The pattern constraint on `#transformers` stamps each entry's
+// `metadata.modulePath` to `"\(M.modulePath)/transformers"` and
+// `metadata.version` to the catalog's version. It does NOT stamp
+// `metadata.fqn` — fqn derives in `#PrimitiveMetadata` from
+// `modulePath/name/version`, and the map key already uses the
+// transformer's own fqn by construction. Author discipline replaced by
+// schema enforcement; see D18 + D19.
+//
+// `_md: metadata` is a hidden mirror so the `#transformers` pattern
+// constraint can reach the outer metadata struct without shadowing —
+// without it, `metadata.…` inside a transformer literal would resolve
+// to the transformer's own under-construction metadata field. Alias
+// labels (`metadata: M={...}`) don't carry across the nested struct
+// boundary; a hidden field reference does.
+//
+// Resources / Traits / Blueprints are surfaced transitively via each
+// transformer's required/optional maps and standard CUE imports; not
+// enumerated in the manifest at this stage. Adding sibling maps
+// (`#resources`, `#traits`, `#blueprints`) is an additive extension if
+// introspection demand surfaces later.
+#Catalog: {
+	kind: "Catalog"
+	metadata: {
+		modulePath!:  #ModulePathType
+		version!:     #VersionType | *"0.0.0-dev"
+		fqn:          #CatalogFQNType & "\(modulePath)@\(version)"
+		description?: string
+		labels?:      #LabelsAnnotationsType
+		annotations?: #LabelsAnnotationsType
+	}
+
+	_md: metadata
+
+	#transformers: [#FQNType]: #ComponentTransformer & {
+		metadata: {
+			modulePath: "\(_md.modulePath)/transformers"
+			version:    _md.version
+		}
+	}
 }
 
 // ---- Platform + subscription ----
@@ -107,7 +179,6 @@ import "strings"
 }
 
 #Subscription: {
-	path!:   #ModulePathType   // e.g. "opmodel.dev/modules/opm"
 	enable:  bool | *true
 	filter?: #SubscriptionFilter
 }
@@ -122,12 +193,16 @@ import "strings"
 	}
 	type!: string
 
-	// Path-keyed by Id (kebab-case). OQ1.
-	#registry: [Id=#NameType]: #Subscription
+	// Path-keyed: map key is the catalog's CUE module path
+	// (e.g. "opmodel.dev/catalogs/opm"). One subscription per path is enforced
+	// by CUE map semantics. Multi-channel-per-path (RC + stable on the same
+	// platform) is not expressible without a future key-shape extension —
+	// see D13.
+	#registry: [Path=#ModulePathType]: #Subscription
 
 	// Kernel-filled after Materialize. Both optional because the CUE-level
 	// #Platform value is a spec; the kernel populates these on the materialized
-	// twin. OQ4.
+	// twin. Materialize is explicit and caller-driven (no kernel cache); see D14.
 	#composedTransformers?: #TransformerMap
 	#matchers?: {
 		resources: [#FQNType]: [...#ComponentTransformer]
