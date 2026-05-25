@@ -45,38 +45,44 @@ The realisation is a new `Kernel.Materialize(*Platform) (*MaterializedPlatform, 
 
 ### 2. Catalogs drop `#defines`; FQNs gain SemVer; publish stamps identity
 
-`#Module.#defines` is removed. `#Module` becomes the consumer artifact only — `#components`, `#config`, `debugValues`, plus the new `#ctx` slot. Catalogs become plain CUE packages that declare an explicit export manifest at their root, sourced from imports of their internal subpackages (`resources/`, `traits/`, `transformers/`, `blueprints/`). The kernel reads the manifest at materialize time — it does not walk the package tree (D15).
+`#Module.#defines` is removed. `#Module` becomes the consumer artifact only — `#components`, `#config`, `debugValues`, plus the new `#ctx` slot. Catalogs become plain CUE packages that declare an explicit export manifest at their root, sourced from imports of their internal subpackages (`resources/`, `traits/`, `transformers/`, `blueprints/`). The kernel reads the manifest at materialize time — it does not walk the package tree (D15, sharpened by D19).
 
-Each catalog ships a single root-package `catalog.cue` file declaring two values:
+Each catalog ships a single root-package `catalog.cue` file that embeds `#Catalog` modules-pattern style — bare type at file root, fields written at the package level, no `Catalog:` wrapper (mirrors `m.#Module` embedding in `modules/jellyfin/module.cue`). Catalog identity (`metadata.{modulePath, version}`) lives in a sibling `identity/` subpackage so transformer subpackages can source it without circular import:
 
 ```cue
-// catalog.cue at the root of e.g. opmodel.dev/catalogs/opm@v0
+// library/modules/opm/catalog.cue
 package opm
 
-import t "opmodel.dev/catalogs/opm/transformers"
+import (
+    c  "opmodel.dev/core@v0"
+    id "opmodel.dev/catalogs/opm/identity"
+    t  "opmodel.dev/catalogs/opm/transformers"
+)
 
-Catalog: #CatalogIdentity & {
-  Version:    "0.0.0-dev"                   // overwritten at publish
-  ModulePath: "opmodel.dev/catalogs/opm"
+c.#Catalog
+metadata: {
+    modulePath:  id.ModulePath
+    version:     id.Version              // overwritten at publish via identity/version_override.cue
+    description: "OPM core catalog"
 }
-
-#Transformers: [#FQNType]: #ComponentTransformer
-#Transformers: {
-  "\(t.#DeploymentTransformer.metadata.fqn)": t.#DeploymentTransformer
-  "\(t.#JobTransformer.metadata.fqn)":        t.#JobTransformer
-  // … one entry per exported transformer
+#transformers: {
+    (t.#ConfigMapTransformer.metadata.fqn):  t.#ConfigMapTransformer
+    (t.#DeploymentTransformer.metadata.fqn): t.#DeploymentTransformer
+    // … one entry per exported transformer
 }
 ```
 
-`Catalog` is the identity stamp (D7); `#Transformers` is the export manifest (D15) and the kernel's sole discovery surface. The map key is the transformer's stamped FQN; the value is the imported definition. Two transformers stamped at the same FQN would collide via CUE map unification at `cue vet` — accidental duplication is caught before publish, not at materialize time.
+The `#Catalog` definition (introduced by D19, superseding D7's loose `#CatalogIdentity` + D15's loose `#Transformers` manifest) carries `kind: "Catalog"`, typed `metadata`, and a hidden FQN-keyed `#transformers` map. A pattern constraint on `#transformers` stamps each entry's `metadata.modulePath` to `"\(catalog.modulePath)/transformers"` and `metadata.version` to the catalog's version — D18's catalog-monolithic lockstep promise is schema-enforced rather than left to author discipline. The pattern does **not** stamp `metadata.fqn` (it derives in `#PrimitiveMetadata` from `modulePath/name/version`; the map key already uses the transformer's own fqn). Two transformers stamped at the same FQN collide via map unification at `cue vet` — accidental duplication is caught before publish, not at materialize time.
 
-Resources, traits, and blueprints are *not* enumerated in the manifest at this stage. They surface transitively through each transformer's `requiredResources` / `optionalResources` / `requiredTraits` / `optionalTraits` maps, and authors of `#Module` consumers import them directly by CUE path. Adding `#Resources` / `#Traits` / `#Blueprints` siblings to the manifest is an additive extension once introspection tooling demands it.
+Catalog FQN shape is `<modulePath>@<version>` (no `name` segment) — `#CatalogFQNType` (sibling to `#FQNType`) covers it. Catalogs are addressed by their CUE module path; a redundant `name` segment would duplicate the trailing path component.
+
+Resources, traits, and blueprints are **not** enumerated in `#transformers` at this stage. They surface transitively through each transformer's `requiredResources` / `optionalResources` / `requiredTraits` / `optionalTraits` maps, and authors of `#Module` consumers import them directly by CUE path. Resource / trait / blueprint metadata sources `modulePath` + `version` from the same `identity/` subpackage but is **not** schema-stamped — the asymmetry is deliberate (transformers are the kernel-consumed shape and earn schema enforcement; the others stay convention-plus-author-discipline). Adding `#resources` / `#traits` / `#blueprints` siblings to `#Catalog` is an additive extension once introspection tooling demands it.
 
 Cross-catalog primitive references are a supported pattern (D16). A transformer in catalog A may reference a resource owned by catalog B by FQN — at A's author time via a standard CUE import (`import b "opmodel.dev/catalogs/b@v0"`), with the referenced value materialised at platform time when both A and B are subscribed. Failure modes route through the same diagnostic kinds the same-catalog case uses: `MaterializeError` when catalog B is not subscribed at all, `MissingFQN` / `UnifyError` when B is subscribed but the referenced SemVer is outside the materialised set. There is no `#CatalogDependencies` manifest and no `CrossCatalogMismatch` diagnostic at this stage; the platform operator is responsible for subscribing to every catalog the transformer chain transitively references.
 
-Every primitive sources its `metadata.version` from `Catalog.Version` and its `metadata.modulePath` from `Catalog.ModulePath` (subpath suffixes appended per subdirectory). The publish task overwrites `Catalog.Version` with the concrete SemVer *in a temp build dir* before running `cue mod publish`. The source tree is never mutated; failure mid-flow leaves the build dir for inspection. Source-tree `Catalog.Version` carries a `0.0.0-dev` default so dev-time `cue vet` works without any pre-stamp; primitives evaluate to `…@0.0.0-dev` FQNs locally.
+Publish-time stamping (D9, amended by D19) writes `identity/version_override.cue` *in a temp build dir* before running `cue mod publish`. The source tree is never mutated; failure mid-flow leaves the build dir for inspection. Source-tree `id.Version` carries a `*"0.0.0-dev"` default so dev-time `cue vet` works without any pre-stamp; primitives evaluate to `…@0.0.0-dev` FQNs locally.
 
-Catalog-monolithic SemVer is the deliberate design (D18). The catalog is the unit of versioning; primitives inherit. Bumping `Catalog.Version` from `1.4.0` to `1.5.0` bumps every primitive's FQN in lockstep, even ones whose schema didn't change. Two mitigations keep consumers from churning their pins: (1) D6's always-unify means byte-identical primitive bodies across adjacent SemVers unify cleanly — the consumer pinned at `container@1.4.0` matching a platform that materialised `container@1.5.0` with an unchanged body works, because the matcher unifies the consumer's pinned value with the materialised SemVer in the bucket the consumer pinned (it does not silently rewrite their pin upward); (2) `#SubscriptionFilter.range` covers multiple SemVers at materialize time, so a platform on `>=1.0.0 <2.0.0` keeps `1.4.0`, `1.4.1`, `1.5.0` all pulled — the consumer's `container@1.4.0` pin keeps matching until the range moves past it. Per-primitive SemVer (each primitive carrying its own author-maintained version independent of the catalog publish) is explicitly not introduced.
+Catalog-monolithic SemVer is the deliberate design (D18). The catalog is the unit of versioning; primitives inherit. Bumping `id.Version` from `1.4.0` to `1.5.0` bumps every primitive's FQN in lockstep, even ones whose schema didn't change. Two mitigations keep consumers from churning their pins: (1) D6's always-unify means byte-identical primitive bodies across adjacent SemVers unify cleanly — the consumer pinned at `container@1.4.0` matching a platform that materialised `container@1.5.0` with an unchanged body works, because the matcher unifies the consumer's pinned value with the materialised SemVer in the bucket the consumer pinned (it does not silently rewrite their pin upward); (2) `#SubscriptionFilter.range` covers multiple SemVers at materialize time, so a platform on `>=1.0.0 <2.0.0` keeps `1.4.0`, `1.4.1`, `1.5.0` all pulled — the consumer's `container@1.4.0` pin keeps matching until the range moves past it. Per-primitive SemVer (each primitive carrying its own author-maintained version independent of the catalog publish) is explicitly not introduced.
 
 `#FQNType` changes regex from `…@v[0-9]+$` to `…@<SemVer 2.0>$`. `metadata.version` on `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` changes type from `#MajorVersionType` to `#VersionType`. `#MajorVersionType` is retired from primitive metadata (it may survive elsewhere — `#BundleFQNType` keeps it for now). Two builds of the same primitive at different SemVers are distinct keys in `#composedTransformers` and unify cleanly per CUE's map semantics; same-SemVer rebuilds with identical content collapse via unification, and divergent content fails CUE evaluation at the materialize step.
 
@@ -196,6 +202,31 @@ metadata: {
 ```
 
 ```cue
+// core/catalog.cue (new file) — D19. Top-level catalog definition with
+// schema-enforced transformer subpath stamping; supersedes D7 + D15.
+#CatalogFQNType: =~"^[a-z0-9.-]+(/[a-z0-9.-]+)*@<SemVer 2.0>$"
+
+#Catalog: {
+  kind: "Catalog"
+  metadata: {
+    modulePath!:  #ModulePathType
+    version!:     #VersionType | *"0.0.0-dev"
+    fqn:          #CatalogFQNType & "\(modulePath)@\(version)"
+    description?: string
+    labels?:      #LabelsAnnotationsType
+    annotations?: #LabelsAnnotationsType
+  }
+  _md: metadata   // hidden mirror — reaches outer metadata across the nested constraint boundary
+  #transformers: [#FQNType]: #ComponentTransformer & {
+    metadata: {
+      modulePath: "\(_md.modulePath)/transformers"
+      version:    _md.version
+    }
+  }
+}
+```
+
+```cue
 // core/platform.cue
 #Platform: {
   kind: "Platform"
@@ -278,6 +309,7 @@ func Match(components cue.Value, plat *MaterializedPlatform, b api.Binding) (*Ma
 - `core/component.cue` — add `metadata.resourceName: *name | #NameType` cascade; add hidden `#release: #ReleaseIdentity` injection slot; add `#names` block that computes `resourceName` + DNS variants inline.
 - `core/module_release.cue` — assemble release identity; set `#module.#ctx.release` from release metadata; that's it. No builder, no per-component injection — CUE evaluates the rest.
 - `core/platform.cue` — replace `#ModuleRegistration` with `#Subscription`; remove `#knownResources` / `#knownTraits`; downgrade `#composedTransformers` and `#matchers` to optional kernel-filled slots.
+- `core/catalog.cue` *(new)* — home of `#Catalog` and `#CatalogFQNType` (D19, supersedes D7 + D15). `#TransformerMap` keeps its definition in `core/transformer.cue` as the value-type used inside `#Catalog.#transformers`.
 - `core/module_context.cue` *(new)* — home of `#ReleaseIdentity` and `#ComponentNames` only. `#ModuleContext`, `#RuntimeContext`, `#ModuleIdentity`, `#ContextBuilder` are deliberately not introduced.
 - `core/INDEX.md` — regenerated via `task generate:index` once schema lands.
 - `core/SPEC.md` — co-update per the core editing protocol: new sections for `#Subscription`, `#SubscriptionFilter`, `#ReleaseIdentity`, `#ComponentNames`; updated sections for `#Platform`, `#Module` (now carries inline `#ctx`), `#Component` (now carries `#release` + `#names`), `#FQNType`, `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` metadata.
@@ -289,8 +321,9 @@ func Match(components cue.Value, plat *MaterializedPlatform, b api.Binding) (*Ma
 - `library/opm/materialize/` *(new package)* — `Materialize` step, OCI pull via `cuelang.org/go/mod`, top-level package scan, FQN indexing. Kernel holds no cache (D14).
 - `library/opm/materialize/cache/` *(new package)* — optional cache helpers consumers can wire up. Ships `MaterializeCache` interface, a reference LRU implementation, and a spec-content-hash key derivation utility. The kernel does not consume this package; it exists for `opm-operator/` and `cli/` to opt into independently (D14).
 - `library/modules/opm_platform/platform.cue` — rewrite to use `#Subscription`-shaped registry; switch import from `opmodel.dev/core/v1alpha2@v1` to `opmodel.dev/core@v0`.
-- `library/modules/opm/` (and any other catalog package) — repackage: drop any `#Module.#defines` wrapper; introduce a root `catalog.cue` file declaring `Catalog: #CatalogIdentity` (D7) plus `#Transformers: [#FQNType]: #ComponentTransformer` manifest (D15); rewire every primitive's `metadata.version` / `metadata.modulePath` to source from `Catalog`. Cue module identity stays on `@v0` per D12 (e.g. `opmodel.dev/catalogs/opm@v0`).
-- `modules/Taskfile.yml` — extend the publish task: `rsync` to `.build/catalog/`; overwrite `Catalog.Version` with the requested SemVer; `cue vet` from build dir; `cue mod publish` from build dir.
+- `library/modules/opm/` — repackage to the D19 shape: drop any `#Module.#defines` wrapper; root `catalog.cue` embeds `c.#Catalog` modules-pattern style (bare type at file root, no wrapper); every primitive (`#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer`) sources `metadata.modulePath` + `metadata.version` from the sibling `identity/` package. Transformer `metadata.modulePath` is schema-stamped to `<id.ModulePath>/transformers` by `#Catalog.#transformers`'s pattern constraint — authors writing it manually unification-fail at `cue vet`. CUE module identifier in `cue.mod/module.cue` stays at `opmodel.dev/catalogs/opm@v0` per D12; first published OCI tag is `0.1.0` per D23.
+- `library/modules/opm/identity/` *(new subpackage)* — holds `ModulePath: string` and `Version: #VersionType | *"0.0.0-dev"`. Imported by the root `catalog.cue` and by every primitive subpackage. Publish flow writes `identity/version_override.cue` per D9 (target adjusted from catalog-root by D19).
+- `modules/Taskfile.yml` — extend the publish task: `rsync` to `.build/catalog/`; write `identity/version_override.cue` setting `Version: "<SemVer>"`; `cue vet` from build dir; `cue mod publish` from build dir.
 
 ## Before / After
 
@@ -340,13 +373,16 @@ func Match(components cue.Value, plat *MaterializedPlatform, b api.Binding) (*Ma
 
 When the release moves from `app-a-prod` to `app-a-staging`, the string updates automatically. The component computes `#names` itself from its `metadata` + the `#release` wired in by the parent `#Module`; the override flows from `metadata.resourceName` (or defaults to `metadata.name`, which itself defaults to the `#components` map key). The renderer never invokes a builder — CUE unification does the work.
 
-### Catalog source layout — `catalog/opm/v1alpha1/` → repackaged
+### Catalog source layout — `library/modules/opm/` → repackaged
 
 ```diff
   opmodel.dev/catalogs/opm/
     cue.mod/module.cue
--   module.cue                            # #Module with #defines.{resources,traits,transformers}
-+   catalog.cue                           # Catalog: { Version, ModulePath }
+-   module.cue                                       # #Module with #defines.{resources,traits,transformers}
++   catalog.cue                                      # bare c.#Catalog embedding (modules-pattern, D19)
++   identity/
++     identity.cue                                   # ModulePath + Version: "0.0.0-dev" default
++     [version_override.cue]                         # written by publish task; not in source tree
     resources/container.cue
     traits/scaling.cue
     transformers/deployment_transformer.cue
@@ -354,17 +390,21 @@ When the release moves from `app-a-prod` to `app-a-staging`, the string updates 
 
 ```diff
   // resources/container.cue (excerpt)
++ import id "opmodel.dev/catalogs/opm/identity"
++
   #ContainerResource: c.#Resource & {
     metadata: {
 -     modulePath: "opmodel.dev/opm/resources/workload"
 -     version:    "v1"
-+     modulePath: "\(opm.Catalog.ModulePath)/resources/workload"
-+     version:    opm.Catalog.Version
++     modulePath: "\(id.ModulePath)/resources/workload"
++     version:    id.Version
       name:       "container"
     }
     spec: container: #ContainerSchema
   }
 ```
+
+Transformer files do **not** set `metadata.modulePath` — the `#Catalog.#transformers` pattern constraint stamps it to `<id.ModulePath>/transformers`. Resource / trait / blueprint files DO set their own subpath suffix (e.g. `/resources/workload`) since they're not schema-stamped at this stage; author discipline is the residual surface there.
 
 ### Matching at the kernel — App A vs App B against one platform
 
