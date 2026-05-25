@@ -137,12 +137,16 @@ import "strings"
 // transformer's own fqn by construction. Author discipline replaced by
 // schema enforcement; see D18 + D19.
 //
-// `_md: metadata` is a hidden mirror so the `#transformers` pattern
-// constraint can reach the outer metadata struct without shadowing —
-// without it, `metadata.…` inside a transformer literal would resolve
-// to the transformer's own under-construction metadata field. Alias
-// labels (`metadata: M={...}`) don't carry across the nested struct
-// boundary; a hidden field reference does.
+// `M=metadata` is a field-label alias (D25, supersedes D19's `_md` hidden
+// mirror as the chosen sound form). It binds `M` to the field/path itself
+// — distinct from the value-alias form `metadata: M={...}` which does NOT
+// carry across the nested pattern-constraint boundary. The label-alias
+// form does carry, letting `M.modulePath` and `M.version` reach the outer
+// catalog metadata. A bare `metadata.X` reference inside the inner
+// `metadata: { ... }` block would walk up to the closest parent field
+// named `metadata` — the inner field itself — and self-embed into a
+// non-concrete interpolation. See experiment 09 for the full mechanism
+// (closest-parent-field-walk) + the two sound forms (mirror, label alias).
 //
 // Resources / Traits / Blueprints are surfaced transitively via each
 // transformer's required/optional maps and standard CUE imports; not
@@ -151,7 +155,7 @@ import "strings"
 // introspection demand surfaces later.
 #Catalog: {
 	kind: "Catalog"
-	metadata: {
+	M=metadata: {
 		modulePath!:  #ModulePathType
 		version!:     #VersionType | *"0.0.0-dev"
 		fqn:          #CatalogFQNType & "\(modulePath)@\(version)"
@@ -160,12 +164,10 @@ import "strings"
 		annotations?: #LabelsAnnotationsType
 	}
 
-	_md: metadata
-
 	#transformers: [#FQNType]: #ComponentTransformer & {
 		metadata: {
-			modulePath: "\(_md.modulePath)/transformers"
-			version:    _md.version
+			modulePath: "\(M.modulePath)/transformers"
+			version:    M.version
 		}
 	}
 }

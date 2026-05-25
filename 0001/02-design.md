@@ -208,7 +208,7 @@ metadata: {
 
 #Catalog: {
   kind: "Catalog"
-  metadata: {
+  M=metadata: {          // D25: field-label alias; M carries across the nested pattern-constraint boundary
     modulePath!:  #ModulePathType
     version!:     #VersionType | *"0.0.0-dev"
     fqn:          #CatalogFQNType & "\(modulePath)@\(version)"
@@ -216,11 +216,10 @@ metadata: {
     labels?:      #LabelsAnnotationsType
     annotations?: #LabelsAnnotationsType
   }
-  _md: metadata   // hidden mirror — reaches outer metadata across the nested constraint boundary
   #transformers: [#FQNType]: #ComponentTransformer & {
     metadata: {
-      modulePath: "\(_md.modulePath)/transformers"
-      version:    _md.version
+      modulePath: "\(M.modulePath)/transformers"
+      version:    M.version
     }
   }
 }

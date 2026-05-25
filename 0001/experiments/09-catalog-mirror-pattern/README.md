@@ -2,7 +2,7 @@
 
 Status: Concluded
 
-Pins: D19 (`_md: metadata` hidden-mirror rationale; CUE alias-form semantics across pattern-constraint boundaries)
+Pins: D19 (schema-enforced stamping) + D25 (label-alias form chosen over `_md` mirror)
 
 ## Hypothesis
 
@@ -100,11 +100,11 @@ Observed on 2026-05-25 with cue v0.16.x:
 2. **The mechanism is closest-parent-field-walk, not "shadowing" in the usual sense.** CUE's reference resolution walks up the lexical struct hierarchy looking for the closest parent field with the matching name. Inside `metadata: { ... }`, a bare `metadata.X` reference finds the inner field being constructed (self), not the outer `#Catalog.metadata`. Calling this "shadowing" is imprecise — it's a name collision in the lexical walk, and the inner field self-embeds rather than masking a distinct outer field.
 3. **The silent-pass production trap is real.** With `#transformers` hidden and no public reader (the real `core/catalog.cue` shape), both `cue vet` and `cue vet -c` pass silently on a broken pattern. The bug is invisible to the typical CI regimen and only surfaces at kernel-time materialize.
 
-**Implications for D19 + the future SPEC authoring guide:**
+**Implications + locked decision (D25):**
 
-1. Either `_md: metadata` mirror OR `M=metadata: {...}` label-alias is structurally sound for reading outer catalog metadata across the nested pattern-constraint boundary. The two forms are interchangeable; D19's choice of the mirror form is stylistic (the mirror is arguably more discoverable because it shows up as a named field in the schema; the label alias is more compact).
-2. The bare `metadata.X` form and the `metadata: M={...}` value-alias form are both unsound. The bare form fails silently in production mode; the value-alias form fails loudly at vet time.
+1. Both `_md: metadata` mirror AND `M=metadata: {...}` label-alias are structurally sound. The experiment validated both. **D25 picks the label-alias form** as the production choice for `core/catalog.cue` — more compact, no extra `_md` field on the catalog's value surface, scoping bridge stays inline with the metadata field. The mirror form remains valid and is documented here for future reference, but is no longer the chosen form for production. (See `03-decisions.md` D25 for the full rationale.)
+2. The bare `metadata.X` form and the `metadata: M={...}` value-alias form are both unsound. The bare form fails silently in production mode (the most dangerous failure mode the experiment surfaced); the value-alias form fails loudly at vet time.
 3. CI for `core/catalog.cue` cannot rely on plain `cue vet` or `cue vet -c` to catch a bad `#transformers` pattern constraint when `#transformers` is hidden. A dedicated probe is needed — either a kernel-time materialize test in `library/`, or a fixture that defines a concrete catalog with a known-good stamping and asserts on `cue eval --all` output.
-4. The closest-parent-field-walk explanation belongs in the SPEC's `#Catalog` authoring caveat as the canonical way to describe why the mirror / label-alias forms are required.
+4. The closest-parent-field-walk explanation belongs in the SPEC's `#Catalog` authoring caveat as the canonical way to describe why the label-alias form is required and why a bare reference would fail.
 
-D19 Source line gains experiment citation.
+D19 + D25 Source lines gain experiment citation.

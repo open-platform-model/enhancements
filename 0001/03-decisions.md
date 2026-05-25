@@ -433,6 +433,24 @@ Source tree is byte-clean after; only `version_override.cue` differs in `.build/
 
 ---
 
+### D25: `#Catalog` uses `M=metadata` field-label alias (supersedes D19's `_md` mirror choice)
+
+**Decision:** Inside `#Catalog`, the field-label alias form `M=metadata: { ... }` replaces D19's `_md: metadata` hidden-mirror form as the chosen mechanism for reaching the outer catalog metadata from inside the `#transformers` pattern constraint. The pattern reads `M.modulePath` and `M.version` to stamp each transformer entry's `metadata.modulePath` and `metadata.version`. D19's structural guarantee (schema-enforced subpath + version stamping) is unchanged; only the specific scoping mechanism switches from a separate sibling field to an inline label alias on the metadata field itself.
+
+**Alternatives considered:**
+
+- **Keep `_md: metadata` hidden mirror (D19's original choice).** Equally sound — experiment 09 confirmed both forms produce identical stamping behaviour. Rejected as the chosen form because it adds a visible sibling field (`_md`) on every `#Catalog` value that mirrors `metadata` byte-for-byte; the field is purely a scoping workaround with no semantic content, but it appears in `cue eval --all` output and in any consumer that traverses `#Catalog`'s field set. The label alias keeps the scoping bridge inline on the metadata field itself, with no extra field at the catalog level.
+- **Value-alias form `metadata: M={...}`.** Rejected as unsound — value aliases do NOT carry across the nested pattern-constraint boundary; vet fails with "reference M not found" (experiment 09's `alias/` variant).
+- **Bare `metadata.modulePath` direct reference.** Rejected as unsound — inside the pattern's inner `metadata: { ... }` block, CUE walks up to the closest parent field named `metadata`, finds the inner field being constructed, and self-embeds into a non-concrete interpolation. In production mode with hidden `#transformers` the failure passes silently at plain `cue vet` (experiment 09's `direct_hidden/` variant) — the most dangerous failure mode.
+
+**Rationale:** Two mechanisms are structurally sound; experiment 09 validated both. The label-alias form is more compact (no extra `_md` field on `#Catalog`'s value surface), keeps the scoping bridge inline with the field that needs it, and avoids the "what does this `_md` field mean?" question a future reader of `cue eval --all` output would ask. The mirror form would have worked equally well; this is a stylistic preference for inline locality over named-sibling discoverability. D19's core decision (schema-enforced stamping; transformers only; identity in sibling subpackage; catalog FQN drops the `name` segment) is unchanged.
+
+**Operational follow-up:** `schemas/target.cue` updated; `02-design.md` Schema/API Surface snippet updated; `05-risks.md` reference to `_md.modulePath` updated; experiment 09 documents both forms (mirror and label alias) but locks the label-alias form as the production choice. Experiments 10 and 11 retain the mirror form in their copied schema slices — per the experiment-experiments skill rule "copy, never reference; experiments are frozen-in-time demonstrations," the older form remains valid evidence for the asymmetry / cross-catalog claims those experiments validate (the mechanism choice is orthogonal to what they test). When 0001's `core/` slice lands, `core/catalog.cue` uses the label-alias form.
+
+**Source:** User decision 2026-05-25. The label-alias form was discovered while debugging experiment 09 (user contributed the scoping explanation: closest-parent-field-walk → self-reference, and the `M=metadata:` fix). Validated by experiment 09's `label_alias/` variant — vet clean, `cue vet -c` clean, stamped values match the `mirror/` variant byte-for-byte.
+
+---
+
 ## Open Questions
 
 Seed agenda — every entry becomes a decision, a deferral, or an explicit `answered` outcome before the enhancement leaves `draft`. The validator (future) requires this block to be present from `accepted` onwards; entries should carry a `Status:` line once the enhancement reaches `implemented`.
