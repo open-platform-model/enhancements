@@ -4,7 +4,7 @@
 
 The umbrella introduces three new structured diagnostic kinds, emitted by the kernel and surfaced through `MatchPlan` and the materialize result:
 
-- **`MaterializeError`** — emitted by `Kernel.Materialize`. Names the failing subscription path (the `#registry` map key per D13), the filter, the OCI registry consulted, and the underlying `cuelang.org/go/mod` error. Emitted on pull failure, on a same-SemVer-different-content unification failure at index build time, and on a top-level scan that finds zero `#ComponentTransformer` values in a selected build.
+- **`MaterializeError`** — emitted by `Kernel.Materialize` and by the lazy core-schema pull (D24). Names the failing subscription path (the `#registry` map key per D13), the filter, the OCI registry consulted, and the underlying `cuelang.org/go/mod` error. Carries a `kind` discriminator: `kind: "catalog"` for subscription pulls (the default), `kind: "core-schema"` for the lazy-on-first-use core-schema pull triggered by `Validate` / `Match` / `Compile` on a `Kernel` with no schema yet loaded. The core-schema variant additionally carries the requested core version (`Kernel.CoreVersion`, e.g. `"v0"` or `"v0.3.0"`) so operators can correlate against their pinning policy. Emitted on pull failure, on a same-SemVer-different-content unification failure at index build time, and on a top-level scan that finds zero `#ComponentTransformer` values in a selected build (catalog variant only).
 - **`MissingFQN`** — emitted by `Match` when the consumer Module declares a primitive FQN absent from materialized `#composedTransformers`. One error per `(release, component, FQN)` triple. Carries:
   - `release`: the release name (a single materialized platform serves multiple releases; the diagnostic names the failing one explicitly).
   - `component`: the component name.
@@ -23,7 +23,7 @@ Cross-catalog primitive references (D16 — transformer in catalog A referencing
 **Minor (within `@v0`).** Every consumer of `opmodel.dev/core@v0` is affected by the schema change, but per `core`'s pre-1.0 versioning rule breaking changes ride a minor bump within `@v0` — no `@v1` cut until `core` is signalled stable (D12). The shipping sequence:
 
 1. `core/` lands the schema change and `SPEC.md` co-update (one PR per the core editing protocol). Published as a new `core` minor on `opmodel.dev/core@v0`.
-2. `library/` rewires Go consumers in lockstep (`Kernel.Registry`, `Materialize`, `Match` signature, `library/opm/materialize/` package, `MatchPlan` diagnostic kinds, library fixture). The library import update from `opmodel.dev/core/v1alpha2@v1` to `opmodel.dev/core@v0` is a hard cutover — see `OQ24` for the sequencing relative to the in-flight core repo split's Part B.
+2. `library/` rewires Go consumers in lockstep (`Kernel.Registry`, `Kernel.CoreVersion`, `Materialize`, `Match` signature, `library/opm/materialize/` package, `MatchPlan` diagnostic kinds, library fixture) **and** deletes the embedded core schema per D24 (`library/apis/core/` directory removed; kernel pulls the schema lazily from OCI via `cuelang.org/go/mod`; `opm/api` + `opm/apiversion` packages deleted — reaffirms Part B's scope). The library import update from `opmodel.dev/core/v1alpha2@v1` to `opmodel.dev/core@v0` is a hard cutover — see D22 / OQ24 for the sequencing relative to the in-flight core repo split's Part B; D24 extends 0001's library slice with the embed deletion as a post-Part-B layer.
 3. `catalog/opm/` repackages and republishes as the first SemVer-FQN catalog (`opmodel.dev/catalogs/opm@1.0.0` or whatever the post-stamp tag becomes).
 4. `modules/` publish task updated with the temp-build-dir stamping flow; rehearsed against a throwaway tag before any production publish.
 
@@ -40,6 +40,8 @@ Removed in this enhancement, not reintroduced under any alias:
 - The MAJOR-only `#FQNType` regex.
 - The library fixture's `opmodel.dev/core/v1alpha2@v1` import.
 - Today's hand-derived per-component DNS / `resourceName` logic inside individual transformers (transformers read `#component.#names` or the renderer-supplied identity instead).
+- `library/apis/core/` — the embedded core schema directory in its entirety (D24). `//go:embed` of any core CUE file is gone; the library never ships a snapshot. Tests asserting embed-pattern boundaries (`opm/api/v1alpha2/embed_test.go` and siblings) are deleted along with the directory they were guarding.
+- `library/opm/api/` and `library/opm/apiversion/` packages — entire trees (binding-dispatch tax; Part B scope reaffirmed by D24).
 
 No deprecation window. The cutover ships as a single connected release.
 
@@ -61,7 +63,7 @@ Half-cutover states (e.g. library on new shape, catalog still on old) fail at ma
 Order is critical because each downstream consumes the upstream's published artefact:
 
 1. **`core/`** — schema change + `SPEC.md` co-update + `INDEX.md` regeneration. Output: a new `core` minor tag on `opmodel.dev/core@v0` (D12 — no `@v1` cut).
-2. **`library/`** — consumes the new `core` tag. Output: new library tag carrying `Kernel.Registry`, `Materialize`, the new `Match` signature, the new diagnostic kinds, and the migrated `opm_platform` fixture.
+2. **`library/`** — consumes the new `core` tag **from OCI at runtime, not via `//go:embed`** (D24). Output: new library tag carrying `Kernel.Registry`, `Kernel.CoreVersion`, `Materialize`, the new `Match` signature, the new diagnostic kinds (including `MaterializeError.kind: "core-schema"`), the deleted `library/apis/core/` directory, the deleted `opm/api` + `opm/apiversion` packages, and the migrated `opm_platform` fixture.
 3. **`catalog/opm/`** — repackages source; publishes the first SemVer-FQN OCI tag via the new `modules/Taskfile.yml` publish task. Output: `opmodel.dev/catalogs/opm@1.0.0` (or first concrete SemVer).
 4. **`modules/`** — publish-task change merged before step 3; rehearsed against a throwaway tag; then drives step 3.
 5. **`opm-operator/`** and **`cli/`** — pick up the new library tag in their respective `go.mod`s; rerun their integration tests against the new core + library + catalog combination. No code change required inside `opm-operator/` or `cli/` if the library API is stable beyond the surface this enhancement touches.

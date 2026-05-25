@@ -7,6 +7,7 @@
 - Platform teams express version policy declaratively (`range` + `allow` + `deny`). Out-of-policy consumer pins surface as a structured "FQN not on platform" diagnostic, not a render-time error or a schema mismatch downstream.
 - Catalogs are plain CUE packages. Catalog authoring is decoupled from `#Module` — `#Module` becomes the consumer artifact only. Authors write `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` at the top of their package; the catalog's identity (`Version`, `ModulePath`) lives in a single per-package constant.
 - Catalog identity is *burned in at publish time*: the OCI artifact contains concrete `metadata.version` on every primitive, sourced from the SemVer the publish task tagged. The kernel never mutates pulled CUE to inject a version; drift between OCI tag and catalog content is impossible by construction.
+- The library kernel carries no embedded copy of the OPM core schema. It pulls `opmodel.dev/core@v0` (or a pinned version) from a CUE OCI registry via `cuelang.org/go/mod` — the same substrate `Kernel.Materialize` uses for catalogs. `Kernel.Registry` is the single discovery surface for both core schema and catalogs. The standalone `core/` repo is the only home for the schema; the library never ships a snapshot (D24).
 - The kernel's match step always unifies the consumer primitive value with the transformer's `requiredResources[FQN]` / `requiredTraits[FQN]` entry before pairing. FQN match is necessary but not sufficient — schema agreement is enforced for every paired primitive.
 - Missing FQNs are hard failures, not warnings. The kernel reports one structured diagnostic per missing FQN (component name, FQN, available alternatives at adjacent SemVers). Match accumulates every miss in one pass; it does not fail-fast.
 - Optional primitives stay optional. A consumer-declared trait on the optional axis of a matched transformer is allowed; a required-axis miss fails the match.
@@ -243,9 +244,11 @@ Go surface:
 ```go
 // library/opm/kernel/kernel.go
 type Kernel struct {
-    Registry string          // default "ghcr.io/open-platform-model"; threads to CUE_REGISTRY for OCI ops
-    cueCtx   *cue.Context
+    Registry    string         // default "ghcr.io/open-platform-model"; threads to CUE_REGISTRY for OCI ops (catalogs + core schema)
+    CoreVersion string         // default "v0" per D12; selects the opmodel.dev/core tag pulled lazily on first use (D24)
+    cueCtx      *cue.Context
     // ... existing fields (logger, tracer, clock)
+    // NOTE: no embed.FS for the core schema — D24. apis/core/ deleted.
 }
 
 // library/opm/platform/ (or new library/opm/materialize/)
@@ -278,7 +281,9 @@ func Match(components cue.Value, plat *MaterializedPlatform, b api.Binding) (*Ma
 - `core/module_context.cue` *(new)* — home of `#ReleaseIdentity` and `#ComponentNames` only. `#ModuleContext`, `#RuntimeContext`, `#ModuleIdentity`, `#ContextBuilder` are deliberately not introduced.
 - `core/INDEX.md` — regenerated via `task generate:index` once schema lands.
 - `core/SPEC.md` — co-update per the core editing protocol: new sections for `#Subscription`, `#SubscriptionFilter`, `#ReleaseIdentity`, `#ComponentNames`; updated sections for `#Platform`, `#Module` (now carries inline `#ctx`), `#Component` (now carries `#release` + `#names`), `#FQNType`, `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` metadata.
-- `library/opm/kernel/kernel.go` — add `Registry` field; default to `"ghcr.io/open-platform-model"`.
+- `library/opm/kernel/kernel.go` — add `Registry` field (default `"ghcr.io/open-platform-model"`) and `CoreVersion` field (default `"v0"` per D12); remove any reference to the embedded core schema; wire lazy core-schema pull on first kernel operation (D24).
+- `library/apis/core/` — **deleted entirely** (D24). `embed.go`, the embedded CUE files, and all tests asserting embed boundaries are removed. The standalone `core/` repo becomes the only home for the schema; the library reads it from OCI via `Kernel.Registry` + `Kernel.CoreVersion`.
+- `library/opm/api/`, `library/opm/apiversion/` — deleted entirely (binding-dispatch tax — Part B's scope; D24 reaffirms within 0001's authoritative decision log).
 - `library/opm/kernel/phases.go` — `Match` signature change.
 - `library/opm/compile/match.go` — algorithm rewrite (lookup → unify → predicate); structured diagnostics (`MissingFQN`, `UnifyError`).
 - `library/opm/materialize/` *(new package)* — `Materialize` step, OCI pull via `cuelang.org/go/mod`, top-level package scan, FQN indexing. Kernel holds no cache (D14).
