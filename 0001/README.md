@@ -50,7 +50,13 @@ Pure-CUE schema sketches live under [`schemas/`](schemas/) and mature alongside 
 
 ## Deviations from Design
 
-None at this stage. Updated when implementation lands and any deliberate divergences from the design need to be documented.
+The library/modules slice (OpenSpec change `library/repackage-opm-catalog`, landed 2026-05-29) diverges from the graduation text in three deliberate, equivalent ways. The design's intent — a guarded, version-stamped catalog publish that does not disturb the Go module's release flow — is preserved; only the mechanics differ:
+
+- **Publish task location.** The graduation text placed the catalog publish in `modules/Taskfile.yml`. It landed in `library/Taskfile.yml` (`cue:publish:catalog`) because the catalog source lives at `library/modules/opm/` per D23 — the publish belongs with the source it stamps.
+- **CI workflow, not Taskfile-only.** Beyond the Taskfile target, a dedicated GitHub workflow (`library/.github/workflows/publish-catalog.yml`) drives publishing on push to `main`. The graduation text implied a Taskfile-only path; the workflow makes the publish automatic and gated.
+- **Standalone registry-presence publish, not release-please.** The catalog is published by a stateless version-gated trigger (read the version from `cue-versions.yml`, HEAD the GHCR manifest, publish only if absent) rather than as a release-please component (D-C). Folding the catalog into the library's release-please would prefix every tag and break the Go module's bare-`vX.Y.Z` `go get` contract.
+
+The umbrella remains `accepted` / `implementation: in-progress`: the `core/` slice and the workspace `modules/*` rewire (D23, non-blocking wave) are still pending.
 
 ## Cross-References
 
