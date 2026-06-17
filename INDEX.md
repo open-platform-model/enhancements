@@ -7,6 +7,7 @@
 | [0001](./0001/) | core | accepted | minor | in-progress | 2026-06-12 — Provider plumbing removed (fork removal 5b) — prov *provider.Provider dropped from the ModuleRenderer/ReleaseRenderer interfaces and kernel renderers, Provider fields off reconcilers/params, catalog.LoadProvider + --catalog-path/--provider-name flags out of main.go (--registry and --cue-cache-dir retained for the kernel), pkg/provider + pkg/loader + internal/catalog + the root catalog/ composition module + its Dockerfile/.dockerignore plumbing deleted. OPERATOR REWRITE COMPLETE: opm-operator consumes only the library kernel + materialized platform; zero pre-0001 fork code remains (pkg/ is down to core/errors/resourceorder — the intentional K8s adapter tail). First half of the final accepted→implemented criterion (opm-operator + cli rewritten onto the kernel) satisfied; cli/ rewrite remains. | #Platform Redesign Umbrella |
 | [0002](./0002/) | core | draft | - | not-started | 2026-06-17 — Drafted | Rename #ModuleRelease to #ModuleInstance |
 | [0003](./0003/) | cli | draft | - | not-started | 2026-06-17 — Drafted | OPM Module Publishing Workflow |
+| [0004](./0004/) | cross-cutting | draft | - | not-started | 2026-06-17 — Drafted | Automated CUE Dependency Updates via Renovate |
 
 ## Status legend
 
