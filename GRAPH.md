@@ -10,7 +10,8 @@ graph LR
   classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
   classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
-  N0001["0001: #Platform Redesign Umbrella"]:::draft
+  N0001["0001: #Platform Redesign Umbrella"]:::accepted
+  N0003["0003: OPM Module Publishing Workflow"]:::draft
 
 ```
 
