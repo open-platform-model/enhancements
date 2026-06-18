@@ -9,8 +9,11 @@
 
 id: "0004"
 slug: cue-dep-automation
-title: Automated CUE Dependency Updates via Renovate
-status: draft
+title: Automated CUE Dependency Updates via Dagger
+status: accepted
+# Design impact on consumers. Required once past draft. This adds CI tooling
+# and rewires a Taskfile target; no schema/API change.
+semver: none
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: cross-cutting
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -24,7 +27,7 @@ affects:
   - opm-operator
   - modules
 created: "2026-06-17"
-updated: "2026-06-17"
+updated: "2026-06-18"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -38,6 +41,15 @@ implementation:
 history:
   - date: "2026-06-17"
     event: Drafted
+  - date: "2026-06-18"
+    event: "Pivoted from self-hosted Renovate to a path-driven Dagger module (D6–D11); OQ1/OQ2 eliminated, OQ3/OQ5/OQ6 answered"
+  - date: "2026-06-18"
+    event: "OQ4 resolved (D12): Dagger module in open-platform-model/daggerverse, reusable workflow in open-platform-model/.github — all Open Questions closed"
+  - date: "2026-06-18"
+    event: "Multi-ecosystem parked after Renovate-in-Dagger research (D13); CUE-only design frozen"
+  - date: "2026-06-18"
+    event: Accepted
+    semver: none
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

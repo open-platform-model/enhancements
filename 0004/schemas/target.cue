@@ -1,108 +1,84 @@
-// Target schema for enhancement 0004 — Automated CUE Dependency Updates via Renovate.
+// Target schema for enhancement 0004 — Automated CUE Dependency Updates via Dagger.
 //
-// This is not an OPM runtime schema. It is the shape of the *shared Renovate
-// preset*, authored in CUE and exported to the JSON that Renovate consumes —
-// the same pattern navecd uses with its renovate.cue. The shared preset is
-// the single source of truth; each repo's renovate.json does nothing but
-// `extends` it. Modelling it here keeps the OCI-route map (the load-bearing
-// coupling) under `cue vet` instead of buried in hand-written JSON.
+// This is not an OPM runtime schema. It models the CI contract for a
+// path-driven Dagger function that walks a directory for CUE modules and bumps
+// their dependencies. The function is the single compute layer, invoked
+// identically in local use (`dagger call update --source=.`) and in CI (a
+// scheduled workflow). Authoring the CI wiring in CUE and exporting it to YAML
+// keeps the one piece of real config — registry auth — under `cue vet`, the
+// same CUE-as-source-of-truth pattern the superseded Renovate design used for
+// its preset (now pointed at the workflow instead).
 //
 // As decisions land in ../03-decisions.md, tighten the fields marked with
 // `// OQN:` comments.
 package schema
 
-// #RegistryRoute maps a CUE module-path host prefix (as it appears in a
-// cue.mod/module.cue `deps` key) to the OCI registry that backs it. This map
-// MIRRORS CUE_REGISTRY — it is the one place Renovate and the workspace
-// registry configuration must agree, and the primary drift risk (see OQ1).
-#RegistryRoute: {
-	// Host prefix as written in deps keys, e.g. "opmodel.dev/".
-	hostPrefix!: string
-	// OCI registry base URL the `docker` datasource queries.
-	registryUrl!: string
-	// Renovate template producing the OCI repository name from the captured
-	// `package` group (the module path with hostPrefix already stripped by
-	// the regex). Triple-brace = no HTML-escaping of the value.
-	packageNameTemplate!: string
+// #UpdateFn is the Dagger function signature every consumer depends on. It is
+// path-driven: point `source` at a directory, the function walks it for
+// cue.mod/module.cue (and the CLI's module.cue.tmpl templates), and for each
+// runs `cue mod get <dep>@v<major>` + `cue mod tidy`, returning the mutated
+// tree plus an old→new summary. Because the major is carried in each deps key
+// (@vN), `cue mod get` never crosses a major — the pin is enforced by CUE
+// itself, not by extra config (D8). And because `cue` reads CUE_REGISTRY
+// directly, there is no route table to mirror (D7 — eliminates OQ1) and no
+// version-rewrite regex (D7 — eliminates OQ2).
+#UpdateFn: {
+	// Module ref: a subpath in the org daggerverse monorepo, independently
+	// versioned via subpath-prefixed tags (cue-deps/vX.Y.Z) per the daggerverse
+	// convention (D12). E.g. "github.com/open-platform-model/daggerverse/cue-deps".
+	module!: string
+	name:    "update"
+	params: {
+		source!:      string // directory to walk; "." both locally and in CI
+		cueRegistry!: string // CUE_REGISTRY value, consumed by `cue` natively
+		ghcrToken!:   string // secret ref: read:packages on ghcr.io for internal modules
+	}
+	returns: "Directory"
 }
 
-// The route table. Derived from GHCR_CUE_REGISTRY / CUE_REGISTRY in the
-// workspace Taskfile:
-//   opmodel.dev=ghcr.io/open-platform-model   (host replaced by prefix)
-//   <fallback>=registry.cue.works             (host kept as path component)
-#routes: [...#RegistryRoute] & [
-	{
-		hostPrefix:          "opmodel.dev/"
-		registryUrl:         "https://ghcr.io"
-		packageNameTemplate: "open-platform-model/{{{package}}}"
-	},
-	{
-		hostPrefix:          "cue.dev/"
-		registryUrl:         "https://registry.cue.works"
-		packageNameTemplate: "cue.dev/{{{package}}}"
-	},
+// #RegistryAuth records which backing OCI registry needs credentials for `cue`
+// to resolve a module population. This is the ONLY registry config the design
+// still carries — and unlike the superseded route table it does NOT duplicate
+// CUE_REGISTRY's host→registry mapping (`cue` reads that itself); it only names
+// auth needs.
+#RegistryAuth: {
+	registry!:  string
+	needsAuth!: bool
+	scope?:     string
+}
+
+// Derived from the workspace registry configuration: internal opmodel.dev/*
+// modules live on ghcr.io (private, token-gated); external cue.dev/* modules
+// resolve through the public registry.cue.works.
+#auth: [...#RegistryAuth] & [
+	{registry: "ghcr.io", needsAuth: true, scope: "read:packages"},
+	{registry: "registry.cue.works", needsAuth: false},
 ]
 
-// #CustomManager is a Renovate regex-type custom manager. One is emitted per
-// route: the regex captures the `package` (module path minus hostPrefix) and
-// the pinned `currentValue` from inside the deps block, and the datasource is
-// always `docker` (CUE modules are OCI artifacts; tags list as clean semver —
-// validated against registry.cue.works on 2026-06-17).
-#CustomManager: {
-	customType:           "regex"
-	managerFilePatterns!: [...string]
-	matchStrings!: [...string]
-	datasourceTemplate:   "docker"
-	registryUrlTemplate!: string
-	packageNameTemplate!: string
-	versioningTemplate:   "semver"
-	// OQ2: the exact regex must tolerate both deps-key layouts —
-	//   "<mod>@vN": { v: "vX.Y.Z" }
-	//   "<mod>@vN": { v: "vX.Y.Z"; default: true }
-	// A spike-validated regex replaces this sketch.
+// #PRConfig — one grouped PR per repo per run on a fixed branch, refreshed
+// daily; the fixed branch makes create-pull-request update the open PR in place
+// rather than stacking new ones (D10 — resolves OQ3 + OQ6).
+#PRConfig: {
+	branch:   "chore/cue-deps"
+	grouped:  true
+	schedule: "daily"
 }
 
-// One manager per route. `package` strips the hostPrefix because the prefix
-// is baked into packageNameTemplate. The `@vN` in the key is matched but NOT
-// captured into the version — the major is pinned by the import path and must
-// never move (see #pinMajor).
-#managers: [for r in #routes {
-	#CustomManager
-	managerFilePatterns: [#"/(^|/)cue\.mod/module\.cue$/"#]
-	matchStrings: [
-		#"\#(r.hostPrefix)(?<package>[^@"]+)@v\d+":\s*\{[^}]*?v:\s*"(?<currentValue>[^"]+)""#,
-	]
-	registryUrlTemplate: r.registryUrl
-	packageNameTemplate: r.packageNameTemplate
-}]
-
-// CUE modules pin their major in the import path (`@v0`). On GHCR a module's
-// v0.x and v1.x tags share ONE OCI repo, so the docker datasource would
-// otherwise surface a v1 bump that silently breaks the import path. Disabling
-// major updates for these managers is the guard.
-#pinMajor: {
-	matchManagers: ["custom.regex"]
-	matchDatasources: ["docker"]
-	major: enabled: false
-}
-
-// Self-hosted-only: after a bump, re-resolve and tidy so the PR is a
-// consistent module, not just a rewritten version string. Requires the
-// command to be allow-listed in the self-hosted Renovate config and `cue`
-// + registry auth present in the runner.
-#postUpgrade: {
-	commands: [
-		"cue mod tidy",
-	]
-	fileFilters: [#"**/cue.mod/module.cue"#]
-	executionMode: "update"
-}
-
-// The exported preset. Per-repo renovate.json is just:
-//   { "extends": ["github>open-platform-model/<host-repo>//renovate/opm-cue.json5"] }
+// The exported contract (D12). The Dagger module lives in the org daggerverse
+// monorepo; the reusable workflow_call lives in the org .github repo. Each
+// consumer repo commits a ~10-line caller that triggers on schedule and `uses:`
+// the reusable workflow, which in turn invokes the module.
 config: {
-	customManagers: #managers
-	packageRules: [#pinMajor]
-	postUpgradeTasks: #postUpgrade
-	// OQ3: one grouped CUE-bump PR per repo per run vs per-dep PRs.
+	fn: #UpdateFn & {
+		module: "github.com/open-platform-model/daggerverse/cue-deps"
+		params: {
+			source:      "."
+			cueRegistry: "$CUE_REGISTRY"
+			ghcrToken:   "secrets.GITHUB_TOKEN"
+		}
+	}
+	// Reusable workflow_call each consumer repo's caller points at.
+	reusableWorkflow: "open-platform-model/.github/.github/workflows/cue-deps.yml"
+	auth:             #auth
+	pr:               #PRConfig
 }

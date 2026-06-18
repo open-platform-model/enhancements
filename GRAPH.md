@@ -13,7 +13,7 @@ graph LR
   N0001["0001: #Platform Redesign Umbrella"]:::accepted
   N0002["0002: Rename #ModuleRelease to #ModuleInstance"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::draft
-  N0004["0004: Automated CUE Dependency Updates via Renovate"]:::draft
+  N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
 
   N0001 ---|related| N0002
   N0002 ---|related| N0004

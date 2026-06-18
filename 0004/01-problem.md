@@ -1,4 +1,4 @@
-# Problem Statement — Automated CUE Dependency Updates via Renovate
+# Problem Statement — Automated CUE Dependency Updates via Dagger
 
 This document answers the question: "Why does this enhancement need to exist?"
 

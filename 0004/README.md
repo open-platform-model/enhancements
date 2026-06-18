@@ -1,10 +1,10 @@
-# Automated CUE Dependency Updates via Renovate (0004)
+# Automated CUE Dependency Updates via Dagger (0004)
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives in this README.
 
 ## Summary
 
-CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout — there is no scheduled detection of upstream releases and no per-bump provenance. This enhancement adds self-hosted Renovate, running on a schedule in each repo, that detects new versions of CUE deps in any `cue.mod/module.cue` (via a regex custom manager resolving OCI tags) and opens a tidy, reviewable PR. It augments — does not replace — `task update-deps`.
+CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout — there is no scheduled detection of upstream releases and no per-bump provenance. This enhancement adds a path-driven **Dagger** function — point it at a directory, it walks for CUE modules and bumps each via CUE's native `cue mod get` + `cue mod tidy` — invoked identically in local use (`dagger call`) and on a daily schedule in each repo's CI, where it opens a grouped, tidied, reviewable PR. Because resolution is CUE-native, no registry route table or `module.cue`-parsing regex is needed. The same function backs `task update-deps`, collapsing the manual and automated paths to one implementation.
 
 <!--
 When implementation lands (status → implemented, or implementation.status → partial+),
@@ -25,7 +25,7 @@ The six split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
-2. [02-design.md](02-design.md) — Self-hosted Renovate + regex custom manager + uniform OCI datasource + shared CUE-exported preset
+2. [02-design.md](02-design.md) — Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
 3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
@@ -42,14 +42,13 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### In scope
 
-- Scheduled, per-repo detection of new versions of CUE module dependencies in any `cue.mod/module.cue` across `core`, `library`, `catalog`, `cli`, `opm-operator`, `modules`.
-- A shared CUE-authored Renovate preset (route table + regex custom manager + major-pin + `cue mod tidy` post-upgrade) exported to JSON and `extends`ed by each repo.
-- Self-hosted Renovate workflow per repo that opens consistent (tidied) dependency-bump PRs.
+- A path-driven Dagger function that walks any directory for CUE modules (`cue.mod/module.cue`, plus the CLI's `module.cue.tmpl` templates) and bumps each dependency to the latest version within its pinned major, via `cue mod get` + `cue mod tidy`.
+- The same function invoked both locally (`dagger call`, and as the new implementation behind `task update-deps`) and on a daily schedule in each repo's CI across `core`, `library`, `catalog`, `cli`, `opm-operator`, `modules`.
+- A shared CUE-authored CI contract (the Dagger module ref + a reusable `workflow_call`) so each repo carries a ~10-line caller that opens one grouped, tidied dependency-bump PR on a fixed branch.
 
 ### Out of scope
 
-- Replacing `task update-deps` (it is retained — D4).
-- Go module (`go.mod`) updates — handled natively by Renovate's `gomod` manager; can be enabled separately.
+- Multi-ecosystem updates — `go.mod`, GitHub Actions pins, Dockerfiles. CUE modules only (D6); a unified bot is a separate, later enhancement.
 - Bumping the CUE language/tool version (`language.version`) — possible follow-on.
 - Auto-merging PRs and cross-major (`@v0`→`@v1`) migrations.
 
@@ -104,7 +103,7 @@ Update the per-experiment README in place as the experiment evolves. Once conclu
 `experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
 
 ```markdown
-# Experiments — Automated CUE Dependency Updates via Renovate
+# Experiments — Automated CUE Dependency Updates via Dagger
 
 | # | Concept | Status |
 | - | ------- | ------ |
@@ -125,11 +124,12 @@ deliberate divergences from the design need to be documented. The validator
 
 | Document | Purpose |
 | -------- | ------- |
-| `/Taskfile.yml` (`deps:update`, `deps:update:modules`, `deps:update:templates`) | The manual update path Renovate augments; source of the registry-route mapping |
-| `/CLAUDE.md` (Environment Variables, "Never manually edit version pins") | `CUE_REGISTRY` / `GHCR_CUE_REGISTRY` mappings the route table mirrors |
-| `<host-repo>/renovate/opm-cue.json5` (to be created, OQ4) | Exported shared preset; target of `schemas/target.cue` |
-| `<each-repo>/renovate.json`, `<each-repo>/.github/workflows/renovate.yml` (to be created) | Per-repo extends + self-hosted Renovate workflow |
-| `enhancements/0002` | Related — module identity vs registry import-path resolution, which the route table depends on |
+| `/Taskfile.yml` (`deps:update`, `deps:update:modules`, `deps:update:templates`) | The bash update logic the Dagger function reimplements; `task update-deps` becomes a wrapper over it (D9) |
+| `/CLAUDE.md` (Environment Variables, "Never manually edit version pins") | `CUE_REGISTRY` / `GHCR_CUE_REGISTRY` the function passes to `cue` natively |
+| `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Shared compute layer; subpath in the org daggerverse monorepo, subpath-prefixed version tags; target of `schemas/target.cue` |
+| `open-platform-model/.github/.github/workflows/cue-deps.yml` reusable workflow (to be created, D12) | Shared CI contract: invokes the daggerverse module, opens the grouped PR |
+| `<each-repo>/.github/workflows/cue-deps.yml` (to be created) | Per-repo ~10-line caller: daily schedule → `uses:` the reusable workflow → grouped PR on a fixed branch |
+| `enhancements/0002` | Related — module identity vs registry import-path resolution, the same coupling CUE resolves natively here |
 
 <!--
 ## Agent Instructions
