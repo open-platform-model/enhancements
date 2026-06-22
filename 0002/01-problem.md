@@ -15,6 +15,14 @@ This document answers the question: "Why does this enhancement need to exist?" I
 
 This naming originates with enhancement [0001](../0001/) (the `#Platform` redesign), which introduced the `#ctx.release` wiring (D1, D3, D4).
 
+The same "Release" vocabulary does not stop at `core` — it is spelled four different ways down the stack, and an author meets all of them:
+
+- **`library` (Go kernel).** A `Release` type with `ReleaseName`/`ReleaseUUID` methods (`opm/module/release.go`), `ReleaseMetadata`/`ReleaseView` (`opm/schema/`), `synth.Release`/`ReleaseInput` (`opm/helper/synth/`), kernel entry points `ProcessModuleRelease`/`SynthesizeRelease`/`compileModuleRelease`, the kind-detection literal `ReleaseSpec.ExpectedKind = "ModuleRelease"` (`opm/helper/loader/internal/shape/shape.go`), and the `module-release.opmodel.dev/*` label literals.
+- **`opm-operator` (controller).** *Two* CRDs carry the word: a `ModuleRelease` CRD (the in-cluster deployable, the operator-side mirror of core's `#ModuleRelease`) **and** a separate GitOps `Release` CRD (`api/v1alpha1/release_types.go`) that fetches a Flux artifact and renders it. Both live under the API group `releases.opmodel.dev`, with reconcilers (`ModuleReleaseReconciler`, `ReleaseReconciler`), the render constant `KindModuleRelease = "ModuleRelease"`, label constants `LabelModuleRelease*`, and the finalizer `releases.opmodel.dev/cleanup`.
+- **`cli`.** A user-facing `opm release …` command group (alias `rel`) with nine subcommands, a parallel `BundleRelease` kind alongside `ModuleRelease` in `DetectReleaseKind`, and the same `LabelModuleRelease*` constants.
+
+So the construct an author thinks of as "one deployed instance of a module" wears at least four inconsistent spellings — a CUE definition, a Go type, two Kubernetes CRDs, and a CLI verb — every one of them built on the word the model is trying to move away from.
+
 ## Gap / Pain
 
 The chosen word is **Release**, and it carries baggage that works against OPM's mental model:

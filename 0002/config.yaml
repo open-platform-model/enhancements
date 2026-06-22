@@ -9,18 +9,25 @@
 
 id: "0002"
 slug: module-instance-rename
-title: 'Rename #ModuleRelease to #ModuleInstance'
-status: draft
+title: 'Rename the Release artifact family to Instance vocabulary (cross-cutting)'
+status: accepted
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: core
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
 affects:
   - core
+  - library
+  - opm-operator
+  - cli
 created: "2026-06-17"
-updated: "2026-06-17"
+updated: "2026-06-22"
 authors:
   - emil@jacero.se
+# Design-impact semver. A definition + CRD + wire rename is breaking for every
+# consumer that names the old identifiers. The core CUE-module tag stays capped
+# at @v0 (bump-minor-pre-major) and ships as a feat!: v0.x minor — see D8.
+semver: major
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
@@ -32,6 +39,12 @@ implementation:
 history:
   - date: "2026-06-17"
     event: Drafted
+  - date: "2026-06-22"
+    event: "Scope expanded to cross-cutting (affects core, library, opm-operator, cli); D1 reversed by D2 — the GitOps Release CRD is renamed to ModulePackage; OQ1-OQ4 resolved by D3-D8; semver set to major"
+    semver: major
+  - date: "2026-06-22"
+    event: "Accepted — design frozen, ready for per-repo slicing (core → library → opm-operator ‖ cli)"
+    semver: major
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

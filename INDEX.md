@@ -5,7 +5,7 @@
 | ID | Area | Status | Semver | Impl | Last event | Title |
 | -- | ---- | ------ | ------ | ---- | ---------- | ----- |
 | [0001](./0001/) | core | accepted | minor | in-progress | 2026-06-22 — Re-scope toward graduation: cli/ rewrite remainder delegated to enhancement 0006 (CLI library-kernel adoption, D9). accepted→implemented gate amended — the cli criterion is now tracked in 0006; the workspace modules/* mass-rewire is reclassified as consumer maintenance (only e2e fixtures gate 0001, and jellyfin/seerr/web_app are already on core@v0; verified 3/28 migrated). Sole remaining 0001 blocker: 0006's kernel-adoption slice. related += 0006. Status stays accepted/in-progress until then. | #Platform Redesign Umbrella |
-| [0002](./0002/) | core | draft | - | not-started | 2026-06-17 — Drafted | Rename #ModuleRelease to #ModuleInstance |
+| [0002](./0002/) | core | accepted | major | not-started | 2026-06-22 — Accepted — design frozen, ready for per-repo slicing (core → library → opm-operator ‖ cli) | Rename the Release artifact family to Instance vocabulary (cross-cutting) |
 | [0003](./0003/) | cli | draft | - | not-started | 2026-06-17 — Drafted | OPM Module Publishing Workflow |
 | [0004](./0004/) | cross-cutting | accepted | none | not-started | 2026-06-18 — Accepted | Automated CUE Dependency Updates via Dagger |
 | [0005](./0005/) | cross-cutting | draft | - | not-started | 2026-06-20 — Design direction set from research synthesis — Model B (sugar composes onto generated mirror) chosen; single cross-cutting umbrella; core change ruled out as not required | Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions |

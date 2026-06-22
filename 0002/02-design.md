@@ -4,61 +4,76 @@ This document answers the question: "What is the proposed solution and how does 
 
 ## Design Goals
 
-- The `core` deployable-artifact definition and its supporting identity types read as *instance* vocabulary end-to-end: `#ModuleInstance`, `#ModuleInstanceMap`, `#InstanceIdentity`, `#ctx.instance`, `#Component.#instance`.
-- The rename is a pure terminology change — zero behavioral change. The same UUID derivation, the same `#names`/DNS computation, the same `values` unification, the same auto-secrets discovery, just under instance-named identifiers.
-- The target schema in `schemas/target.cue` compiles and captures the full renamed surface, so the implementation slice is a mechanical, reviewable substitution rather than a redesign.
-- The boundary between "renamable purely within `core`" and "wire contract that forces downstream coordination" is stated explicitly, so promotion to `accepted` is an informed decision, not an accidental breaking change.
+- One coherent *instance* vocabulary end-to-end across `core`, `library`, `opm-operator`, and `cli` — the same construct stops wearing four inconsistent "Release" spellings. The `core` family reads `#ModuleInstance`, `#ModuleInstanceMap`, `#InstanceIdentity`, `#ctx.instance`, `#Component.#instance`; the library, operator CRDs, and CLI follow.
+- The rename is a pure terminology change — zero behavioral change. The same UUID derivation, the same `#names`/DNS computation, the same `values` unification, the same reconcile loops, just under instance-named identifiers.
+- The target schema in `schemas/target.cue` compiles and captures the full renamed surface (core family + wire kinds + operator CRD shapes), so each implementation slice is a mechanical, reviewable substitution rather than a redesign.
+- The wire contract (kind strings, label domain) and the operator API group move *with* the definitions, in a deliberately sequenced rollout (core → library → operator ‖ cli), rather than being left split-brained.
 
 ## Non-Goals
 
-- **Renaming the operator's `Release` CRD** (`opm-operator/api/v1alpha1/release_types.go`). That CRD is the GitOps *reconciliation* resource — it fetches a Flux artifact, renders it, applies via SSA, prunes, honors `dependsOn`/`suspend`. It is the *act of releasing*, not the instance; "Release" fits it and Argo/Flux precedent supports it. Out of scope by intent (per the scoping decision recorded in D1).
-- **Any change to behavior, evaluation semantics, or field shapes** beyond the identifiers themselves.
-- **Renaming `#Module`, `#Platform`, `#Component`, `#Trait`, `#Resource`, `#Blueprint`** or any other core construct.
-- **A compatibility-alias / deprecation window in `core`.** Whether one is offered is an open question (OQ3); the default position is a hard rename, since `core` is pre-`v1`.
+- **Any change to behavior, evaluation semantics, or field shapes** beyond the identifiers, kind strings, label keys, and API group.
+- **Renaming `#Module`, `#Platform`, `#Component`, `#Trait`, `#Resource`, `#Blueprint`** or any other construct. The `Platform` CRD keeps its kind; it only moves to the new API group along with its siblings (D5).
+- **A compatibility-alias / deprecation window in any repo.** Hard rename — `core` is pre-`v1` and the operator/CLI have no external users (D8).
+
+Note: the previous Non-Goal "do not rename the operator's `Release` CRD" (D1) has been **reversed** by D2 — that CRD is now renamed to `ModulePackage`. See `03-decisions.md`.
 
 ## High-Level Approach
 
-Substitute the "Release" lexeme with "Instance" across the `core` schema's deployable-artifact family, plus its `SPEC.md` and generated `INDEX.md`. Three layers are affected, and they are *not* equally containable:
+Substitute the "Release" lexeme with "Instance" across the whole stack. Three layers are affected; under the cross-cutting scope (D2) all three move together:
 
-1. **CUE definition identifiers** (`#ModuleRelease`, `#ReleaseIdentity`, `#ctx.release`, `#Component.#release`, `#moduleRelease`, …). These are resolved at compile time *within* the published module. Renaming them is a source-level change in `core`; downstream CUE that imports `opmodel.dev/core` and references these identifiers by name must update, but nothing matches them as opaque strings.
-2. **The `kind` discriminator string** `"ModuleRelease"` (`module_release.cue:11`). This is *not* core-internal — the library kernel and the operator's `Release` reconciler match on this literal to decide whether a rendered artifact is a deployable instance (`opm-operator/.../release_types.go` rejects any kind that is not `#ModuleRelease`). Changing it is a wire-contract change that breaks downstream until they update in lockstep.
-3. **The label domain** `module-release.opmodel.dev/{name,uuid}`. These keys land on rendered Kubernetes objects and may be used in selectors. Changing them is observable on the data plane and on anything that selects by them.
+1. **CUE definition identifiers** (`#ModuleRelease`, `#ReleaseIdentity`, `#ctx.release`, `#Component.#release`, `#moduleRelease`, …) and the Go identifiers that mirror them in `library`/`opm-operator`/`cli`. These are resolved at compile time / link time within each module; downstream that references them by name updates in lockstep.
+2. **The wire `kind` discriminator strings** — `"ModuleRelease"` → `"ModuleInstance"`, `"BundleRelease"` → `"BundleInstance"`, and the GitOps CRD kind `Release` → `ModulePackage`. The library kernel, the operator reconcilers, and the CLI kind-detection all match these literals; they move together (D3).
+3. **The label domain** `module-release.opmodel.dev/{name,namespace,uuid}` → `module-instance.opmodel.dev/*`, plus **the operator API group** `releases.opmodel.dev` → `opmodel.dev` and the finalizer key. These land on / govern live Kubernetes objects — the most observable, most disruptive layer (D4, D5).
 
-The clean, truly core-scoped change is layer 1. Layers 2 and 3 are where "core-only" stops being true — they are called out as decisions (D2, D3) so the scope is chosen deliberately rather than discovered during implementation.
+Layer 1 is the bulk of the mechanical work; layers 2 and 3 are the wire/cluster contract and are the reason the rollout must be sequenced rather than landed independently.
 
 ## Schema / API Surface
 
 The full renamed surface is in [`schemas/target.cue`](schemas/target.cue). Headline mapping:
 
-| Today (`core/src`) | Proposed |
-| --- | --- |
-| `#ModuleRelease` | `#ModuleInstance` |
-| `kind: "ModuleRelease"` | `kind: "ModuleInstance"` *(wire — see D2)* |
-| `#ModuleReleaseMap` | `#ModuleInstanceMap` |
-| `#ReleaseIdentity` | `#InstanceIdentity` |
-| `#ctx.release` | `#ctx.instance` |
-| `#Component.#release` | `#Component.#instance` |
-| `#moduleRelease` / `#moduleReleaseMetadata` (transformer) | `#moduleInstance` / `#moduleInstanceMetadata` |
-| label `module-release.opmodel.dev/{name,uuid}` | `module-instance.opmodel.dev/{name,uuid}` *(wire — see D3)* |
+| Today | Proposed | Layer |
+| --- | --- | --- |
+| `#ModuleRelease` | `#ModuleInstance` | core CUE |
+| `#ModuleReleaseMap` | `#ModuleInstanceMap` | core CUE |
+| `#ReleaseIdentity` | `#InstanceIdentity` | core CUE |
+| `#ctx.release` | `#ctx.instance` | core CUE |
+| `#Component.#release` | `#Component.#instance` | core CUE |
+| `#moduleRelease` / `#moduleReleaseMetadata` (transformer) | `#moduleInstance` / `#moduleInstanceMetadata` | core CUE |
+| `kind: "ModuleRelease"` | `kind: "ModuleInstance"` | wire (D3) |
+| `kind: "BundleRelease"` | `kind: "BundleInstance"` | wire (D3, D7) |
+| label `module-release.opmodel.dev/{name,namespace,uuid}` | `module-instance.opmodel.dev/*` | wire (D4) |
+| operator `ModuleRelease` CRD | `ModuleInstance` CRD | operator (D2) |
+| operator GitOps `Release` CRD | `ModulePackage` CRD | operator (D2) |
+| API group `releases.opmodel.dev` | `opmodel.dev` | operator (D5) |
+| finalizer `releases.opmodel.dev/cleanup` | `opmodel.dev/cleanup` | operator (D5) |
+| CLI `opm release …` (alias `rel`) | `opm instance …` (alias `inst`) | cli (D6) |
 
 `#InstanceIdentity` keeps its four fields verbatim (`name`, `namespace`, `uuid`, `clusterDomain`). The `uuid` derivation is unchanged: `SHA1(OPMNamespace, "\(#moduleMetadata.uuid):\(name):\(namespace)")`.
 
 ## Integration Points
 
-Core only (the slice; `affects: [core]`):
+The full per-repo touch-list lives in the README Cross-References table; the representative surface per slice:
+
+**`core`** (publish first):
 
 - `core/src/module_release.cue` → renamed file `core/src/module_instance.cue`. `#ModuleRelease` → `#ModuleInstance`, `kind`, `#ModuleReleaseMap` → `#ModuleInstanceMap`, the `#ctx: instance:` wiring block, and the label keys.
-- `core/src/module_context.cue` — `#ReleaseIdentity` → `#InstanceIdentity` and its doc comment.
-- `core/src/module.cue` — `#ctx.release` slot → `#ctx.instance` (`module.cue:68`), the `#release: #ctx.release` projection → `#instance: #ctx.instance` (`module.cue:47`), and the comment at `module.cue:63`.
-- `core/src/component.cue` — `#release: #ReleaseIdentity` → `#instance: #InstanceIdentity` (`component.cue:39`); the `#names.dns` computation references (`component.cue:52-53`).
-- `core/src/transformer.cue` — `#moduleRelease` → `#moduleInstance`, `#moduleReleaseMetadata` → `#moduleInstanceMetadata`, label key at `transformer.cue:147`.
-- `core/SPEC.md` — every section naming the renamed constructs (co-update gated by the `core-schema-edit` skill + pre-commit hook).
-- `core/INDEX.md` — regenerated via `task generate:index`.
+- `core/src/module_context.cue` — `#ReleaseIdentity` → `#InstanceIdentity`.
+- `core/src/module.cue` — `#ctx.release` → `#ctx.instance`; `#release` projection → `#instance`.
+- `core/src/component.cue` — `#release` → `#instance`; `#names.dns` references.
+- `core/src/transformer.cue` — `#moduleRelease*` → `#moduleInstance*`; label key.
+- `core/SPEC.md` (co-update gated by `core-schema-edit`) + `core/INDEX.md` (regenerated).
 
-Downstream coordination *required if D2/D3 land* (tracked here, executed in those repos under their own OpenSpec slices — they are why a "core-only" rename is not self-contained):
+**`library`** (consume new `core`):
 
-- `library/opm/...` — kind-detection and `synth/release.go` helper match the `kind` string and consume `#ReleaseIdentity`-shaped context.
-- `opm-operator/api/v1alpha1/release_types.go` and reconcilers — kind-detection rejects non-`#ModuleRelease` renders.
+- `opm/module/release.go`, `opm/schema/{metadata,decode,context,paths}.go`, `opm/helper/synth/{release,render}.go`, `opm/helper/loader/file/release.go` + `internal/shape/shape.go`, `opm/kernel/{process,compile,synth,wrappers,phases,inputs,validate_typed}.go`, `opm/core/{compiled,resource}.go` — `Release`→`Instance` Go identifiers, the `"ModuleRelease"` kind literal, and `module-release.opmodel.dev/*` label literals; ~24 test fixtures.
+
+**`opm-operator`** (consume new `core`+`library`):
+
+- `api/v1alpha1/modulerelease_types.go` → `ModuleInstance`, `api/v1alpha1/release_types.go` → `ModulePackage`, API-group markers → `opmodel.dev` (D5); reconcilers/reconcile/render/labels under `internal/` and `pkg/core/labels.go`; regenerated CRDs/RBAC/`PROJECT` and `config/samples` + `test/fixtures`.
+
+**`cli`** (consume new `core`+`library`):
+
+- `internal/cmd/release/` → `internal/cmd/instance/` (command surface, D6), `pkg/bundle/release.go` → `BundleInstance` (D7), kind-detection (`get_release_file.go`, `release_kind.go`), `pkg/core/labels.go`, examples/docs.
 
 ## Before / After
 
@@ -77,7 +92,9 @@ prod: #ModuleInstance & {
 	metadata: {name: "mc-prod", namespace: "games-prod"}
 	values: {...}
 }
-// rendered label: module-instance.opmodel.dev/name: mc-prod   (only if D3 lands)
+// rendered label: module-instance.opmodel.dev/name: mc-prod   (D4)
+// applied as kind ModuleInstance under apiVersion opmodel.dev/v1alpha1 (D2, D5)
+// deployed via:  opm instance apply prod   (D6)
 ```
 
 The component-facing identity reads the same way:
