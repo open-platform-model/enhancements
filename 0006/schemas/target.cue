@@ -19,11 +19,11 @@ package schema
 
 // ModuleRelease.spec — only the fields 0006 reads or adds are modelled here.
 #ModuleReleaseSpec: {
-	owner: #Owner | *"operator" // NEW (D3); the CLI may edit spec when owner=="operator" but defers execution to the operator (D18)
+	owner:  #Owner | *"operator" // NEW (D3); the CLI may edit spec when owner=="operator" but defers execution to the operator (D18)
 	module: #ModuleReference
 	values?: {...} // sole authoritative render input — the CLI unifies ALL value inputs into this blob and renders its own apply from it (D19, resolves OQ10)
-	suspend?: bool // unchanged; orthogonal to owner (D3 rejected suspend-as-marker)
-	prune?:   bool
+	suspend?:      bool // unchanged; orthogonal to owner (D3 rejected suspend-as-marker)
+	prune?:        bool
 	...
 }
 
