@@ -1,0 +1,40 @@
+id: "0006"
+slug: cli-cr-inventory-kernel-handoff
+title: CLI CR Inventory, Library Kernel Adoption, and Operator Handoff
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cli
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - cli
+  - opm-operator
+  - library
+created: "2026-06-22"
+updated: "2026-06-22"
+authors:
+  - OPM Contributors
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones.
+history:
+  - date: "2026-06-22"
+    event: "Drafted — seeded from cli/docs/rfc/0007 (CR inventory + operator handoff); extended with full library-kernel adoption (D9) and CLI-side SSA apply (D10)"
+  - date: "2026-06-22"
+    event: "OQ1 resolved by D11 (platform source precedence; handoff forces the cluster Platform CR) + D12 (Platform has no owner marker; CLI writes un-owned cluster Platform write-if-absent in solo mode)"
+  - date: "2026-06-22"
+    event: "Dependency analysis (research/findings.md): OQ2 resolved by D13 (CLI imports library only, no controller-runtime/Flux; inventory logic homes in library; CR via unstructured); D14 accepts no-compat refactor + CUE v0.17-alpha bump; library added to affects; note to bump operator k8s+controller-runtime to CLI's latest-stable line"
+  - date: "2026-06-22"
+    event: "Review pass (user direction): D15 rename CLI module github.com/opmodel/cli -> github.com/open-platform-model/cli; D16 reverse handoff (--to cli) out of scope (supersedes D7 reverse-mode portion); D17 both local + cluster Platform first-class, OPM never requires cluster-admin on non-handoff paths (reinforces D11/D12). Added OQ10 (spec.values capture / render parity — deeper research, load-bearing for accepted), OQ11 (status.conditions SSA ownership in handoff window), OQ12 (release diff platform source — investigate to a decision), OQ13 (write-if-absent atomicity), OQ14 (platform-source flag surface across commands)"
+# Peer enhancements this one builds on or interacts with.
+# Accepts new four-digit ids ("0042") and legacy three-digit refs
+# ("legacy:003") that point at frozen library/enhancements/ predecessors.
+related:
+  - "0001"
+  - "0002"
+  - "0003"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null

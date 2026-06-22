@@ -56,7 +56,7 @@ The library/modules slice (OpenSpec change `library/repackage-opm-catalog`, land
 - **CI workflow, not Taskfile-only.** Beyond the Taskfile target, a dedicated GitHub workflow (`library/.github/workflows/publish-catalog.yml`) drives publishing on push to `main`. The graduation text implied a Taskfile-only path; the workflow makes the publish automatic and gated.
 - **Standalone registry-presence publish, not release-please.** The catalog is published by a stateless version-gated trigger (read the version from `cue-versions.yml`, HEAD the GHCR manifest, publish only if absent) rather than as a release-please component (D-C). Folding the catalog into the library's release-please would prefix every tag and break the Go module's bare-`vX.Y.Z` `go get` contract.
 
-The umbrella remains `accepted` / `implementation: in-progress`: the `core/` slice and the workspace `modules/*` rewire (D23, non-blocking wave) are still pending.
+The umbrella remains `accepted` / `implementation: in-progress`. As of 2026-06-22 the producer side has fully shipped — `core/` schema (`opmodel.dev/core@v0`), `library/` kernel (v0.3.0), the repackaged catalog (`opmodel.dev/catalogs/opm@v0`), and the complete `opm-operator/` rewrite onto the kernel (2026-06-12). The **sole remaining design blocker is the `cli/` rewrite onto the kernel, now carved into enhancement [0006](../0006/) (D9)**; 0001 graduates to `implemented` when 0006's kernel-adoption slice lands. The workspace `modules/*` mass-rewire (D23, non-blocking wave — 3/28 migrated) is consumer maintenance on each module's own cadence and does not gate graduation. See `04-graduation.md` for the amended `accepted → implemented` criteria.
 
 ## Cross-References
 

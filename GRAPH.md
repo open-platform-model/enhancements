@@ -14,9 +14,14 @@ graph LR
   N0002["0002: Rename #ModuleRelease to #ModuleInstance"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::draft
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
+  N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
+  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::draft
 
   N0001 ---|related| N0002
+  N0001 ---|related| N0006
   N0002 ---|related| N0004
+  N0002 ---|related| N0006
+  N0003 ---|related| N0006
 ```
 
 ## Legend
