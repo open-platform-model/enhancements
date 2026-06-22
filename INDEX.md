@@ -8,6 +8,7 @@
 | [0002](./0002/) | core | draft | - | not-started | 2026-06-17 — Drafted | Rename #ModuleRelease to #ModuleInstance |
 | [0003](./0003/) | cli | draft | - | not-started | 2026-06-17 — Drafted | OPM Module Publishing Workflow |
 | [0004](./0004/) | cross-cutting | accepted | none | not-started | 2026-06-18 — Accepted | Automated CUE Dependency Updates via Dagger |
+| [0005](./0005/) | cross-cutting | draft | - | not-started | 2026-06-20 — Design direction set from research synthesis — Model B (sugar composes onto generated mirror) chosen; single cross-cutting umbrella; core change ruled out as not required | Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions |
 
 ## Status legend
 
