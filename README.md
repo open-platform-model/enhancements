@@ -36,9 +36,12 @@ enhancements/
     ├── schemas/            pure CUE — vettable, importable, never markdown-fenced
     │   ├── cue.mod/module.cue
     │   └── target.cue
-    └── experiments/        (optional) self-contained proofs-of-concept
-        ├── README.md       hand-maintained index of experiments
-        └── NN-{concept}/   one directory per experiment (per-experiment README carries Status:)
+    ├── experiments/        (optional) self-contained proofs-of-concept
+    │   ├── README.md       hand-maintained index of experiments
+    │   └── NN-{concept}/   one directory per experiment (per-experiment README carries Status:)
+    └── research/           (optional) external evidence — deep-research dossiers, benchmarks, surveys
+        ├── findings.md     primary dossier (cited summary + sources)
+        └── {topic}.md      further write-ups
 ```
 
 ## How to read an enhancement
@@ -71,6 +74,10 @@ task new:experiment ID=0001 NAME=matcher-mechanics
 ```
 
 Creates `0001/experiments/` (with an index README on first invocation), drops a per-experiment subdir with a Hypothesis / Setup / Run / Outcome README skeleton and `Status: Draft`. See `0000/README.md ## Experiments` for the full rules (one concept per experiment, self-contained, copy-don't-reference, disposable). `task experiments:list ID=0001` renders the status table; `task vet` enforces structural sanity when `experiments/` is present.
+
+## Research
+
+Also optional. When an enhancement's design rests on **external evidence** — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — capture the cited findings under `research/` so the evidence travels with the design. The primary dossier is `research/findings.md`; add topic-named files for distinct investigations. Research is *gathered* evidence (read-only synthesis), as distinct from `experiments/`, which are *authored* runnable proofs. Cite every claim, date the snapshot, and reference it back from the `Source:` lines in `03-decisions.md`. There is no scaffold task and `task vet` does not gate it. See `0000/README.md ## Research` for the full convention.
 
 ## Validation
 
