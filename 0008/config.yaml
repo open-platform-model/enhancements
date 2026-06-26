@@ -1,0 +1,30 @@
+id: "0008"
+slug: cue-native-crd-schemas
+title: CUE-Native CRD Schemas as Single Source of Truth
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cross-cutting
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - cross-cutting
+  - core
+  - opm-operator
+  - cli
+created: "2026-06-25"
+updated: "2026-06-25"
+authors:
+  - OPM Contributors
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+implementation:
+  status: not-started
+# Append-only timeline of milestones.
+history:
+  - date: "2026-06-25"
+    event: "Drafted — seeded from a deep-research sweep on CUE→CRD and CUE→Go tooling (research/findings.md)"
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0006"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
