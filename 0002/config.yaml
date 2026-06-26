@@ -21,7 +21,7 @@ affects:
   - opm-operator
   - cli
 created: "2026-06-17"
-updated: "2026-06-22"
+updated: "2026-06-26"
 authors:
   - emil@jacero.se
 # Design-impact semver. A definition + CRD + wire rename is breaking for every
@@ -44,6 +44,12 @@ history:
     semver: major
   - date: "2026-06-22"
     event: "Accepted — design frozen, ready for per-repo slicing (core → library → opm-operator ‖ cli)"
+    semver: major
+  - date: "2026-06-26"
+    event: "Pre-implementation: decisions D9–D11 added (D9 release.cue→instance.cue file convention; D10 rename every release-named file/dir, extends D8 to the filesystem; D11 Go // Was: docstring breadcrumb on renamed exported identifiers). README Cross-References rebuilt from an exhaustive re-scan of core/library/opm-operator/cli — the original draft table was materially incomplete."
+    semver: major
+  - date: "2026-06-26"
+    event: "Decision D12 added — generalizes the D11 old-name breadcrumb to every rename site across code, docs, and specs (CUE definitions, markdown, SPEC.md, OpenSpec spec.md deltas) and to every renamed definition regardless of visibility, at declaration/section granularity. Spec-change catalog drafted (9 spec changes: core×1 regular SPEC.md, library×1, opm-operator×3, cli×4, plus the enhancements-wording closing step)."
     semver: major
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs

@@ -122,6 +122,73 @@ This document records every significant design choice with its reasoning and the
 
 ---
 
+### D9: The instance-file naming convention moves — `release.cue` → `instance.cue`
+
+**Decision:** The CLI's expected instance-file name moves with the rename: the loader filename `release.cue` → `instance.cue`, and the kind-detection / file-resolution that keys off that name (`get_release_file.go`, `release_kind.go`, the `internal/releasefile` package) updates to the new literal. Every authoring fixture that uses the old name is renamed too — `cli/examples/releases/**/release.cue` → `cli/examples/instances/**/instance.cue`, and the out-of-scope `modules/` + `releases/` fixtures (tracked as the closing sweep). This surfaced during implementation planning; it was not covered by D1–D8.
+
+**Alternatives considered:**
+
+- **Keep the `release.cue` filename while the kind/types become `Instance`.** Rejected: a user-facing file-naming convention is the most-touched authoring surface; leaving "release" on it reintroduces the exact lexeme the rename retires, at the place users see most often. Partial consistency at the highest-traffic surface is worse than the migration cost.
+
+**Rationale:** The rename's goal is one coherent "instance" vocabulary end-to-end (02-design); a visible authoring convention is squarely inside that goal. The cost is a rename ripple into the out-of-scope `modules/` and `releases/` repos, accepted and tracked as a final sweep rather than left split-brained.
+
+**Source:** User decision 2026-06-25 (AskUserQuestion: `release.cue` filename → "Rename to instance.cue").
+
+---
+
+### D10: Every `release`-named file and directory is renamed on disk (extends D8 to the filesystem)
+
+**Decision:** The hard rename of D8 applies to paths as well as identifiers. Every source, test, sample, fixture, and example file or directory whose name carries the "release" lexeme is `git mv`'d to its instance/package equivalent across all four repos — not only the two the design originally named (`core/src/module_instance.cue`, `cli/internal/cmd/instance/`). Representative moves: library `opm/module/release.go` → `instance.go`, `opm/helper/synth/release.go` → `instance.go`; operator `api/v1alpha1/modulerelease_types.go` → `moduleinstance_types.go`, `release_types.go` → `modulepackage_types.go`, `internal/reconcile/release.go` → `modulepackage.go`, `test/fixtures/releases/` → `modulepackages/`; cli `pkg/render/process_bundlerelease.go` → `process_bundleinstance.go`, `internal/releasefile/` → `internal/instancefile/`. After the slices land, no "release" lexeme remains in any tracked path (excluding incidental tooling — `.goreleaser.yml`, release-please configs — and frozen historical records — ADRs, archived OpenSpec changes, `library/enhancements/001-007`).
+
+**Alternatives considered:**
+
+- **Rename file *contents* everywhere but only `git mv` the files the design explicitly called out.** Rejected: leaves `release`-named files containing `Instance` code — a confusing half-state that contradicts D8's "old names deleted, not aliased" intent and leaves stale paths for greps and imports to trip over.
+
+**Rationale:** D8 established a clean break with no lingering "release"; that intent governs file paths as much as identifiers. The cost is `git mv` churn and a blame discontinuity, accepted given the pre-`v1` posture and absence of external consumers.
+
+**Source:** User decision 2026-06-25 (AskUserQuestion: file renames → "Rename all files to match").
+
+---
+
+### D11: Renamed Go identifiers carry a doc comment with a `// Was:` old-name breadcrumb
+
+**Decision:** In the three Go repos (`library`, `opm-operator`, `cli`), every renamed **exported** func, method, and type gets a Go doc comment whose first line uses the new name and instance vocabulary, followed by a blank comment line and a `// Was: <OldName>` tag — e.g.
+
+```go
+// Instance is a materialized module deployment.
+//
+// Was: Release
+type Instance struct { ... }
+```
+
+Existing doc prose is rewritten in place to the new vocabulary (not duplicated); identifiers that already have docs are updated, identifiers that lack them get a short stub. Scope is exported funcs/methods/types only — unexported helpers are not required to gain new docs, and renamed constants/label keys keep their existing inline comments. This is documentation-only: the old identifier appears solely in a comment, so it is **not** a code alias and stays compatible with D8's hard rename.
+
+**Alternatives considered:**
+
+- **Inline parenthetical `(formerly Release)` on the first doc line.** Rejected in favour of the structured `// Was:` tag, which is uniform and greppable and survives line-wrapping.
+- **No breadcrumb at all.** Rejected: a hard rename with no alias leaves readers no trail from old name to new; the breadcrumb provides that trail without reintroducing the old identifier in code.
+
+**Rationale:** A clean break (D8) gives consumers and future readers nothing connecting the old name to the new. A doc-comment breadcrumb restores the trail at zero code-surface cost, and a single `// Was:` token keeps it consistent and machine-findable for the duration of the transition.
+
+**Source:** User decision 2026-06-25 (AskUserQuestion: docstring scope = funcs/methods + types, exported only, update wording + name prefix; hint format = godoc-style `// Was:` tag).
+
+---
+
+### D12: The old-name breadcrumb applies to every rename site across code, docs, and specs (extends D11)
+
+**Decision:** The breadcrumb introduced in D11 is generalized: whenever a name is changed anywhere in this rollout — in code, in docs, or in specs — a short old-name note is left at the rename site. This broadens D11 in two ways. (1) **Beyond Go exported identifiers** to every renamed *definition* regardless of visibility — package-private Go helpers and CUE `#`-definitions/fields included. (2) **Beyond Go source** to every surface, each with its own light form: CUE — a `// Was: #ModuleRelease` line comment above the renamed definition/field; markdown docs — a "Renamed from `…` (0002)." note on the renamed construct's heading or first mention; core `SPEC.md` — a "Renamed from `…` (0002)." line in the construct's **Definition** prose (fits the `core-schema-edit` four-part format); OpenSpec `spec.md` deltas — a one-line "Renamed from `…` (0002)." in each renamed/`MODIFIED` Requirement, with capability-directory renames recorded in that change's `proposal.md`. The breadcrumb sits at **declaration/definition sites** and at **doc/spec section headings or first mention** — never stamped on every downstream reference. Like D11 it is documentation-only (the old name survives only in a comment/prose note), so it remains compatible with D8's hard rename. D11 stands; D12 extends its scope.
+
+**Alternatives considered:**
+
+- **Keep D11 as-is — breadcrumb on Go exported identifiers only.** Rejected: a reader who lands on the renamed `SPEC.md`, a CUE module, or an OpenSpec requirement gets no trail from old name to new. The migration trail is wanted on every surface a name changes, not only the Go API.
+- **Stamp the old name on every reference/occurrence.** Rejected: thousands of call sites would turn the trail into noise. Definition- and section-level breadcrumbs carry the trail without drowning the code.
+
+**Rationale:** D8's clean break removes the old name from code entirely; D11 restored a trail for the Go exported API. The same argument applies to every surface a reader might land on. A uniform, greppable breadcrumb at definition/section granularity provides that trail at minimal cost and stays out of the way of normal reading.
+
+**Source:** User decision 2026-06-26 (follow-up to D11: "whenever we change the name in code or in docs or in specs we leave a quick note that this has been changed from …").
+
+---
+
 ## Open Questions
 
 All four open questions are now resolved (2026-06-22). They were the crux that determined whether this stayed core-only or became cross-repo; the user chose the cross-repo, fully-consistent path, which is recorded in D2–D8.
