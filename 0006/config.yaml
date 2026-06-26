@@ -11,7 +11,7 @@ affects:
   - opm-operator
   - library
 created: "2026-06-22"
-updated: "2026-06-22"
+updated: "2026-06-23"
 authors:
   - OPM Contributors
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -28,6 +28,8 @@ history:
     event: "Dependency analysis (research/findings.md): OQ2 resolved by D13 (CLI imports library only, no controller-runtime/Flux; inventory logic homes in library; CR via unstructured); D14 accepts no-compat refactor + CUE v0.17-alpha bump; library added to affects; note to bump operator k8s+controller-runtime to CLI's latest-stable line"
   - date: "2026-06-22"
     event: "Review pass (user direction): D15 rename CLI module github.com/opmodel/cli -> github.com/open-platform-model/cli; D16 reverse handoff (--to cli) out of scope (supersedes D7 reverse-mode portion); D17 both local + cluster Platform first-class, OPM never requires cluster-admin on non-handoff paths (reinforces D11/D12). Added OQ10 (spec.values capture / render parity — deeper research, load-bearing for accepted), OQ11 (status.conditions SSA ownership in handoff window), OQ12 (release diff platform source — investigate to a decision), OQ13 (write-if-absent atomicity), OQ14 (platform-source flag surface across commands)"
+  - date: "2026-06-23"
+    event: "D18 (post-handoff dual-mode: CLI may edit an operator-owned CR's spec but defers render/apply/prune/status to the operator; refines D3's EnsureCLIMutable to gate direct resource apply, not spec edits) + D19 resolves OQ10 (spec.values is the sole authoritative render input — CLI unifies all value inputs into it and renders its own apply from it; trusted via diff/dry-run + D7.4 backstop; forward-guard for any future non-value-file render input e.g. RFC-0005 env wiring). OQ10 closed; read-side symmetry was never the risk."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

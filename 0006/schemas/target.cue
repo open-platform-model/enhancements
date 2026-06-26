@@ -19,9 +19,9 @@ package schema
 
 // ModuleRelease.spec — only the fields 0006 reads or adds are modelled here.
 #ModuleReleaseSpec: {
-	owner: #Owner | *"operator" // NEW (D3)
+	owner: #Owner | *"operator" // NEW (D3); the CLI may edit spec when owner=="operator" but defers execution to the operator (D18)
 	module: #ModuleReference
-	values?: {...}
+	values?: {...} // sole authoritative render input — the CLI unifies ALL value inputs into this blob and renders its own apply from it (D19, resolves OQ10)
 	suspend?: bool // unchanged; orthogonal to owner (D3 rejected suspend-as-marker)
 	prune?:   bool
 	...
@@ -51,8 +51,10 @@ package schema
 }
 
 // Full ModuleReleaseStatus is operator-owned. The CLI writes only the subset
-// below (D2); every other field stays unset by the CLI and owned by the
-// controller's reconcile loop.
+// below (D2, amended by D25); every other field stays unset by the CLI and
+// owned by the controller's reconcile loop. Notably the CLI writes NO
+// status.conditions — conditions are operator-exclusive (D25), so this subset
+// carries no Ready entry; in a solo cluster status.conditions is simply absent.
 #CLIStatusSubset: {
 	inventory:               #Inventory
 	releaseUUID:             string
@@ -60,12 +62,11 @@ package schema
 	lastAppliedSourceDigest: string
 	lastAppliedConfigDigest: string
 	lastAppliedAt:           string // RFC3339
-	// Exactly one condition, Ready, reason AppliedByCLI (D2).
-	conditions: [#Condition & {type: "Ready", reason: "AppliedByCLI"}]
 }
 
-// The operator's skip-state condition for a CLI-owned CR (D3): the operator
-// sets Ready=Unknown/ManagedExternally and touches nothing else.
+// status.conditions is operator-exclusive (D25). The operator's skip-state
+// condition for a CLI-owned CR (D3): the operator sets
+// Ready=Unknown/ManagedExternally and touches no CLI-written status field.
 #OperatorSkipCondition: #Condition & {
 	type:   "Ready"
 	status: "Unknown"
@@ -85,7 +86,6 @@ _exampleCLIStatus: #CLIStatusSubset & {
 	lastAppliedSourceDigest: "sha256:2222"
 	lastAppliedConfigDigest: "sha256:3333"
 	lastAppliedAt:           "2026-06-22T00:00:00Z"
-	conditions: [{type: "Ready", status: "True", reason: "AppliedByCLI"}]
 }
 
 // Platform source (D11/D12). The CLI resolves a platform spec by precedence
