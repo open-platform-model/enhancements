@@ -189,6 +189,52 @@ Existing doc prose is rewritten in place to the new vocabulary (not duplicated);
 
 ---
 
+### D13: Artifacts ship as v1 prereleases `v1.x.x-alpha.x`, including the operator/CRDs (revises D8 release mechanics)
+
+**Decision:** Every affected repo's published artifact is versioned as a **v1 prerelease** — `v1.0.0-alpha.N` (scheme `v1.x.x-alpha.x`) — for the duration of this rename rollout, explicitly including `opm-operator` and the CRD bundle it ships ("that includes the CRDs"). This **revises the release-axis mechanics of D8** only: D8's `v0.x` minor (`feat!:` under `bump-minor-pre-major: true`) is replaced by the v1-prerelease line. D8's hard-rename / no-alias conclusion and the `config.yaml.semver: major` design-impact classification **stand unchanged**.
+
+Consequences of the v1 line:
+
+- **core** — the CUE module advances from `opmodel.dev/core@v0` to `opmodel.dev/core@v1` (per `core/CLAUDE.md`, `@v0→@v1` *is* the CUE breaking-major mechanism; there is no `v1.x.x` that remains on the `@v0` path). Every downstream import `".../core@v0:core"` → `@v1`, and core's release-please `bump-minor-pre-major: true` no longer governs — the config must allow the `v1.0.0-alpha` line. This is an additional breaking surface (import paths) that D8 had deliberately avoided; it is accepted here as the cost of graduating the post-rename schema to its v1 baseline.
+- **library / cli / opm-operator** — their published tags move to the same `v1.0.0-alpha.N` scheme; downstream pins (`task update-deps`, Go module requires, kustomize/OCI refs) advance to the v1 prerelease tags in dependency order (core → library → operator ‖ cli).
+- **CRDs (K8s served apiVersion)** — unaffected. The served version (`v1alpha1`) is a Kubernetes-convention axis (`vNalphaM`), not a semver artifact axis, and cannot carry a `v1.x.x-alpha.x` string. "Includes the CRDs" means the operator *artifact* that bundles them is versioned on the v1-prerelease line, not that the served apiVersion changes.
+
+**Alternatives considered:**
+
+- **Keep D8's mechanics — core capped at `@v0`, ships as a `feat!:` `v0.x` minor.** Rejected: a `v0.x` tag understates the milestone and leaves core perpetually pre-`v1`. The rename is the breaking event that justifies declaring the v1 baseline; the user elected to graduate the family to a v1 line rather than take another v0 increment.
+- **Ship a stable `v1.0.0` directly (no prerelease).** Rejected: the rename lands across four repos in sequence and wants a soak/iteration window before a stable commitment; `alpha` prereleases let the new vocabulary settle before `v1.0.0`.
+- **Bump only the K8s CRD served apiVersion (e.g. `v1alpha1` → `v1alpha2`).** Rejected / non-applicable: this enhancement is a pure rename with no schema-shape change (a served-version bump exists to manage stored-object schema migration, which there is none of), and the served-version axis is unrelated to the `v1.x.x-alpha.x` artifact scheme the decision sets.
+
+**Rationale:** The cross-cutting break is the natural moment to declare a v1 baseline; doing it as `v1.0.0-alpha` prereleases marks that milestone while preserving room to iterate across the four-repo rollout before a stable `v1.0.0`. Applying the one scheme to every artifact — including the operator/CRD bundle — keeps a single coherent version story across the family. D8 stays in the log; D13 revises only its release-axis mechanics.
+
+**Source:** User decision 2026-06-26 ("I want the versions to be prereleases of v1. Meaning we name it v1.x.x-alpha.x, that includes the CRDs").
+
+---
+
+### D14: The catalog family is in scope; each catalog CUE module bumps `@v0 → @v1` on a forward-alpha line (extends D8/D13 scope)
+
+**Decision:** The three downstream catalog repos — `catalog_opm` (`opmodel.dev/catalogs/opm`), `catalog_kubernetes` (`opmodel.dev/catalogs/kubernetes`), and `catalog_opm_experimental` (`opmodel.dev/catalogs/opm-experimental`) — are **added to this enhancement's scope** (`affects` gains `catalog`). They consume core's `#TransformerContext` and break the moment they pin `opmodel.dev/core@v1`, so the C1 core rename ripples into them. Four sub-conclusions:
+
+1. **They are renamed, not left behind.** Each catalog pins `opmodel.dev/core@v1` (`v1.0.0-alpha.1`) and renames the consumed surface: transformer-context `#moduleReleaseMetadata` → `#moduleInstanceMetadata` (the only compile-required change; 50 refs in `catalog_opm`, 44 in `catalog_kubernetes`, 0 in the `catalog_opm_experimental` skeleton), plus every `core@v0` import → `@v1`.
+2. **Full consistency rename, not compile-minimum.** Catalog-*local* vocabulary that mirrors the old name is also renamed for consistency with the new core vocabulary, even though it is not inherited from core and would still compile: `catalog_opm`'s helper field `#releasePrefix` → `#instancePrefix` (33 refs), "release" prose comments, and the `"test-release"` test fixture. This matches D12's principle that the rename is total across a renamed concept's sites.
+3. **Each catalog CUE module advances `@v0 → @v1`.** Per the same `@v0→@v1`-is-the-breaking-major mechanism D13 invoked for core, the catalogs graduate to a `@v1` module path and ship on the v1 prerelease line.
+4. **Forward-alpha tag reconciliation for the two repos already past `v1.0.0`.** `catalog_kubernetes` (latest git tag `v1.0.0`) and `catalog_opm_experimental` (`v1.1.0`) had crossed into git-`v1.x` while their CUE module path stayed `@v0` — a pre-existing axis mismatch (release-please bumped the tag-major independently of the CUE module-major). Rather than rewrite published tag history, the module-major is aligned **up** to the existing git-tag-major and the rename ships as the **next forward prerelease** on that line: `catalog_opm` `v1.0.0-alpha.1` (clean, from `v0.6.0`), `catalog_kubernetes` `v1.1.0-alpha.1` (forward of `v1.0.0`), `catalog_opm_experimental` `v1.2.0-alpha.1` (forward of `v1.1.0`). Each catalog's `release-please-config.json` adopts the same prerelease block core uses (`versioning: prerelease`, `prerelease: true`, `prerelease-type: alpha`, `bump-minor-pre-major: false`, fresh `bootstrap-sha`).
+
+The `modules/` and `releases/` re-pin onto `catalog_opm@v1` stays **out of scope** here (consistent with the D9 ripple already excluded by `planned-changes.md`): the old `@v0` catalog tags remain published, so those consumers keep resolving against `core@v0` until migrated under separate tracking.
+
+**Alternatives considered:**
+
+- **Leave the catalogs out of 0002 and migrate them as standalone dep-refresh PRs.** Rejected: the break originates entirely in this enhancement's core rename; folding them in keeps the audit trail (which artifacts ship `v1.x.x-alpha.x`, why `#moduleReleaseMetadata` moved) in one design contract rather than scattering it across untracked PRs.
+- **Compile-minimum only — rename `#moduleReleaseMetadata` and stop.** Rejected: leaves catalog-local `release` vocabulary (`#releasePrefix`, comments, fixtures) contradicting the new core vocabulary, the same split D12 exists to prevent.
+- **Tag the two divergent repos `v1.0.0-alpha.x` to match `catalog_opm` exactly, or rewrite their `v1.x` tags.** Rejected: `1.0.0-alpha.1` sorts below their existing `v1.0.0`/`v1.1.0` releases (release-please cannot go backwards), and rewriting published tag history is destructive. Forward-alpha on the existing line is the only non-destructive, semver-valid path.
+- **Jump the two repos to `@v2` / `v2.0.0-alpha.x`.** Rejected: skips `@v1` entirely for modules currently at `@v0`, fragmenting the family's version story for no benefit over aligning to the already-published `v1.x` tag-major.
+
+**Rationale:** The catalogs are the first real downstream consumers of the renamed core context; bringing them in now (rather than discovering the break at `task update-deps` time) keeps the rename atomic per repo and the design contract complete. The forward-alpha reconciliation respects published history while still graduating every catalog to the `@v1` baseline that D13 set for the rest of the family.
+
+**Source:** User decisions 2026-06-27 (scope: "add to enhancement 0002"; rename depth: "full consistency rename"; versioning: "bump catalogs @v0 → @v1 … tag is v1.0.0-alpha.x"; reconciliation: "align module @v0 → @v1, forward alpha").
+
+---
+
 ## Open Questions
 
 All four open questions are now resolved (2026-06-22). They were the crux that determined whether this stayed core-only or became cross-repo; the user chose the cross-repo, fully-consistent path, which is recorded in D2–D8.
@@ -199,4 +245,4 @@ All four open questions are now resolved (2026-06-22). They were the crux that d
 
 - **OQ3: Hard rename, or a transition window with a `#ModuleRelease` alias in `core`?** Status: resolved-by-D8 (hard rename, no alias — pre-`v1` core, no external CLI/operator users).
 
-- **OQ4: Confirm `config.yaml.semver: major` and the CUE-module tag mechanics.** Status: resolved-by-D8 (`semver: major` design impact; core ships as a `feat!:` `v0.x` minor tag per `bump-minor-pre-major: true`).
+- **OQ4: Confirm `config.yaml.semver: major` and the CUE-module tag mechanics.** Status: resolved-by-D8 (`semver: major` design impact), release-axis mechanics later revised by D13 (artifacts ship as `v1.x.x-alpha.x` prereleases; core advances to `opmodel.dev/core@v1`, superseding D8's `v0.x` minor).

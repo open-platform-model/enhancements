@@ -29,6 +29,7 @@ Pure-CUE schema in [`schemas/target.cue`](schemas/target.cue).
 - **library** — the Go `Release` surface (`Release` type + methods, `ReleaseMetadata`/`ReleaseView`, `synth.Release`/`ReleaseInput`, kernel `ProcessModuleRelease`/`SynthesizeRelease`/kind-detection, `Compiled.Release`/`Resource.Release()`) → `Instance` names; kind literal + label literals.
 - **opm-operator** — `ModuleRelease` CRD → `ModuleInstance`; GitOps `Release` CRD → `ModulePackage` (D2); API group `releases.opmodel.dev` → `opmodel.dev` (D5) + finalizer key; reconcilers, render constant, label constants, regenerated CRDs/RBAC/`PROJECT`/samples/fixtures.
 - **cli** — `opm release …` → `opm instance …` (alias `inst`, D6); `BundleRelease` → `BundleInstance` (D7); kind-detection, label constants, examples/docs.
+- **catalog** (D14) — the three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) pin `opmodel.dev/core@v1` and consume the renamed transformer context (`#moduleReleaseMetadata` → `#moduleInstanceMetadata`); each module bumps `@v0` → `@v1` on a forward-alpha tag, with the full-consistency sweep of catalog-local `release` vocabulary.
 - **wire** — `kind` strings (D3) and the `module-instance.opmodel.dev/*` label domain (D4) move in lockstep.
 - **conventions (all slices)** — every `release`-named file/directory is `git mv`'d to its instance/package equivalent (D10); the CLI instance-file name `release.cue` → `instance.cue` (D9); and every rename site across code, docs, and specs carries a short old-name breadcrumb — a `// Was:` doc/line comment on each renamed Go (D11) and CUE definition, and a "Renamed from …" note on each renamed doc / `SPEC.md` / `spec.md` section (D12 generalizes D11 from Go-exported-only to every surface and every definition).
 
@@ -116,3 +117,24 @@ Three cross-cutting conventions apply to **every** file listed:
 | `cli/internal/workflow/**` (render, apply, query) | Import-path + type renames (`releasefile` → `instancefile`, `module.Release` → `module.Instance`); ~100+ refs. |
 | `cli/internal/{inventory,kubernetes}/*.go`, `cli/pkg/ownership/ownership.go`, `cli/pkg/core/labels.go` | `LabelModuleRelease*` → instance domain (mirrors operator) + dependent selectors. |
 | `cli/examples/releases/**/release.cue`, `cli/tests/**` (`integration/rel-*` → `inst-*`, `e2e/testdata/vet-errors/release/`), `cli/openspec/specs/**` (25+ dirs), ADRs/RFCs/docs | **git mv** to instance names (D9/D10); example, integration, e2e fixtures and spec dirs. `.goreleaser.yml` is binary-release tooling — not a target. |
+
+### catalog (`affects: catalog`) — pin new `core` only; runs parallel with library (D14)
+
+Three independent CUE-module repos, no OpenSpec workspace, no cross-catalog imports. Each bumps its own module `@v0 → @v1` and pins `opmodel.dev/core@v1` (`v1.0.0-alpha.1`). The only compile-required core-driven change is `#moduleReleaseMetadata` → `#moduleInstanceMetadata`; the rest is the full-consistency sweep (D14 §2) and the `@v0` → `@v1` import bump on every file.
+
+| Path | Change |
+| ---- | ------ |
+| `catalog_opm/src/cue.mod/module.cue` | `module:` `@v0` → `@v1`; dep `opmodel.dev/core@v0` (`v0.5.0`) → `@v1` (`v1.0.0-alpha.1`). |
+| `catalog_opm/src/transformers/*.cue` (11 files) | `#context.#moduleReleaseMetadata` → `#moduleInstanceMetadata` (50 refs); catalog-local `#releasePrefix` → `#instancePrefix` (33 refs, incl. `container_helpers.cue` defs); `"test-release"` fixture in `sa_resource_transformer.cue`. |
+| `catalog_opm/src/**/*.cue` (~50 files) | `c "opmodel.dev/core@v0"` import → `@v1`. |
+| `catalog_opm/src/resources/{configmap,secret}.cue`, `src/transformers/{configmap,secret}_transformer.cue` | 6 "release" prose comments → "instance". |
+| `catalog_opm/release-please-config.json`, `.release-please-manifest.json` | Prerelease block (mirror `core/release-please-config.json`); target tag `v1.0.0-alpha.1` (`feat!`). |
+| `catalog_kubernetes/src/cue.mod/module.cue` | `module:` `@v0` → `@v1`; dep `core@v0` (`v0.5.0`) → `@v1` (`v1.0.0-alpha.1`). |
+| `catalog_kubernetes/src/transformers/*.cue` (26 files) | `#context.#moduleReleaseMetadata` → `#moduleInstanceMetadata` (44 refs). |
+| `catalog_kubernetes/src/**/*.cue` (~56 files), `src/CLAUDE.md` | `core@v0` import → `@v1`; consistency prose. |
+| `catalog_kubernetes/release-please-config.json`, `.release-please-manifest.json` | Prerelease block; **forward-alpha** target tag `v1.1.0-alpha.1` (`feat`, forward of existing `v1.0.0`). |
+| `catalog_opm_experimental/src/cue.mod/module.cue`, `src/catalog.cue` | `module:` `@v0` → `@v1`; dep `core@v0` (`v0.4.0`) → `@v1` (`v1.0.0-alpha.1`); import bump. |
+| `catalog_opm_experimental/src/identity/identity.cue` | Verify for `ReleaseIdentity`/`#release`; rename if present (skeleton — likely none). |
+| `catalog_opm_experimental/{README.md,CLAUDE.md,Taskfile.yml}`, `src/INDEX.md` | Doc `@v0` → `@v1` refs; regenerate INDEX. |
+| `catalog_opm_experimental/release-please-config.json`, `.release-please-manifest.json` | Prerelease block; **forward-alpha** target tag `v1.2.0-alpha.1` (`feat`, forward of existing `v1.1.0`). |
+| `modules/**`, `releases/**` (`catalog_opm@v0` consumers) | **Out of scope** — old `@v0` catalog tags stay published; re-pin tracked separately (same exclusion as the D9 sweep). |
