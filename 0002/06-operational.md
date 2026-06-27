@@ -20,7 +20,7 @@ Breaking on every layer (`semver: major`, D8):
 - **label domain** (D4) — breaks selectors keyed on `module-release.opmodel.dev/*`.
 - **API group + CRDs** (D2, D5) — breaks every CR, RBAC rule, and manifest scoped to `releases.opmodel.dev`; requires a CRD reinstall.
 
-`core` is pre-`v1` (`@v0`) and stays there: per `core/CLAUDE.md` (`bump-minor-pre-major: true`), the break ships as a `feat!:` **minor** `v0.x` tag, not a `@v0`→`@v1` jump. Design-impact field is `major`. Plan: hard rename, no alias (D8); sequence core → library → (opm-operator ‖ cli).
+Release mechanics (D13, revising D8): every affected artifact ships as a **v1 prerelease** — `v1.0.0-alpha.N` (`v1.x.x-alpha.x`) — including the `opm-operator` artifact that bundles the CRDs. For `core` this advances the CUE module from `opmodel.dev/core@v0` to `opmodel.dev/core@v1` (the `@v0→@v1` break the earlier D8 mechanics had avoided): an additional import-path break for every downstream that imports `opmodel.dev/core`, and core's release-please `bump-minor-pre-major: true` no longer governs the v1-alpha line. The Kubernetes CRD served apiVersion (`v1alpha1`) is a separate K8s axis and is unchanged. Design-impact field stays `major`. Plan: hard rename, no alias (D8); sequence core → library → (opm-operator ‖ cli), each repo advancing to its v1-prerelease tag in that order.
 
 ## Deprecation
 
