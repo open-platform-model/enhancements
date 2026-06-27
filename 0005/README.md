@@ -10,9 +10,7 @@ source of metadata; no parallel metadata table lives in this README.
 
 ## Summary
 
-{One to three sentences describing what this enhancement introduces and why
-it matters. Write this last — once the design has settled the summary writes
-itself. Keep it free of jargon that requires reading further documents.}
+OPM refocuses on Kubernetes as a first-class, lowest-common-denominator platform: the Kubernetes OpenAPI becomes the single generated source of type truth that both the native mirror (`catalog_kubernetes`) and the opinionated abstractions (`catalog_opm`) consume, ending schema drift between them. The same generator produces the mirror and typed catalogs from any CRD bundle, stamps each resource with Kubernetes lifecycle metadata (scope, apply order, readiness, prune policy) the operator reconciles against, and gives abstractions a faithful trapdoor down to any native field. Catalog-on-catalog composition is supported — for provider golden-path catalogs layered on top — but not forced, and no change is made to `opmodel.dev/core@v0`.
 
 <!--
 When implementation lands (status → implemented, or implementation.status → partial+),
@@ -32,8 +30,8 @@ exists only when implementation.status reaches `complete`).
 The six split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
-1. [01-problem.md](01-problem.md) — {One-line description of the problem being solved}
-2. [02-design.md](02-design.md) — {One-line description of the proposed design}
+1. [01-problem.md](01-problem.md) — Two catalogs encode Kubernetes from divergent, hand-maintained schema sources that drift and do not scale
+2. [02-design.md](02-design.md) — Generate everything from the k8s OpenAPI; shared types, generated mirror + CRD catalogs, lifecycle metadata, optional composition
 3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
@@ -50,11 +48,18 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### In scope
 
-- {Bulleted boundary of what this enhancement covers.}
+- Generation tooling that ingests the Kubernetes OpenAPI (and CRD `openAPIV3Schema`) and emits CUE type schemas, resources, pass-through transformers, catalog manifests, and lifecycle metadata.
+- Two projections from the one source: strict (for `catalog_opm`) and open (for `catalog_kubernetes`).
+- Regenerating `catalog_kubernetes` as generated output; re-pointing `catalog_opm` at the shared strict types and adding the trapdoor/override field.
+- Per-resource lifecycle metadata (scope, apply phase, readiness, prune/ownership) and the library/operator changes to consume it.
+- Documentation of the generation workflow and the provider golden-path composition pattern.
 
 ### Out of scope
 
-- {Items deliberately deferred, owned by other enhancements, or out of scope by intent.}
+- Any change to `opmodel.dev/core@v0` (see D3). The transformation model stays single-pass.
+- Multi-phase / fixpoint lowering where transformer outputs re-enter matching — staged as a separate, evidence-gated `core` enhancement (OQ6).
+- Non-Kubernetes platforms (Nomad, Docker Compose, Swarm).
+- A runtime reconcile engine; this enhancement produces lifecycle *metadata*, the operator slice consumes it.
 
 ## Experiments
 
@@ -107,7 +112,7 @@ Update the per-experiment README in place as the experiment evolves. Once conclu
 `experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
 
 ```markdown
-# Experiments — {Enhancement Title}
+# Experiments — Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
 | # | Concept | Status |
 | - | ------- | ------ |
@@ -116,29 +121,6 @@ Update the per-experiment README in place as the experiment evolves. Once conclu
 ```
 
 The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
-
-## Research
-
-Research is **optional** and holds the external evidence a design rests on — most importantly **deep-research reports**, but also benchmark write-ups, vendor-doc summaries, comparison matrices, and curated link collections. When the design of an enhancement is grounded in research (a `/deep-research` run, a literature sweep, a prior-art survey), drop the cited findings under `research/` so the evidence travels with the design instead of evaporating into a chat log.
-
-Research differs from `experiments/`: research is **gathered and synthesised** (read-only evidence — what is true in the world), whereas experiments are **authored and executed** (runnable proofs we wrote — what holds in our model). A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`.
-
-### Rules
-
-- **Cited.** Every non-obvious claim carries its source (URL, doc, file path). A deep-research dossier reproduces its source list and, where it has them, confidence levels and verification verdicts — distinguish verified facts from design recommendations.
-- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `Source:` line of the relevant decisions in `03-decisions.md`, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
-- **Snapshot, not canon.** Research reflects what was true when gathered; date it. It is not a maintained spec — supersede with a new file rather than silently editing conclusions.
-- **Not gated.** `task vet` does not require or validate `research/`; add it only when an enhancement actually has external evidence worth preserving.
-
-### Layout
-
-```
-NNNN/research/
-├── findings.md                     # primary dossier (e.g. a deep-research report): summary, cited findings, caveats, sources
-└── {topic}.md                      # optional further write-ups (benchmark-x-vs-y.md, prior-art-survey.md, …)
-```
-
-`findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task — `research/` is hand-authored prose.
 
 ## Deviations from Design
 
@@ -151,8 +133,13 @@ deliberate divergences from the design need to be documented. The validator
 
 | Document | Purpose |
 | -------- | ------- |
-| `CONSTITUTION.md` (workspace root, or target-repo local) | Core design principles governing changes in the touched repo(s) |
-| {path} | {purpose} |
+| `catalog_kubernetes/CLAUDE.md` | Pass-through mirror catalog — the open-projection generation target |
+| `catalog_opm/CLAUDE.md` | Opinionated abstraction catalog — strict-projection consumer + trapdoor host |
+| `catalog_opm/src/blueprints/workload/stateless_workload.cue` | Existing pure-CUE projection pattern that composition builds on |
+| `catalog_kubernetes/src/transformers/deployment_transformer.cue` | Reference pass-through transformer shape the generator templates |
+| `core/src/transformer.cue` | `#ComponentTransformer` contract — unchanged here; output convention kept multi-phase-friendly |
+| `library/` (`pkg/resourceorder`) | Apply-order adapter to be generalized onto generated `applyPhase` metadata |
+| `opm-operator/CLAUDE.md` | Reconcile loop that consumes the generated lifecycle metadata |
 
 <!--
 ## Agent Instructions

@@ -13,7 +13,7 @@ affects:
   - cli
 
 created: "2026-05-23"
-updated: "2026-06-12"
+updated: "2026-06-22"
 
 authors:
   - OPM Contributors
@@ -26,7 +26,7 @@ semver: minor
 
 implementation:
   status: in-progress
-  notes: "core/ landed + published (opmodel.dev/core@v0). library/ landed + published v0.3.0 (v0.17 recontract, OCI schema loader, Materialize, concurrent render, SynthesizeRelease/SynthesizePlatform). Catalog repackaged + published from its own catalog_opm repo (opmodel.dev/catalogs/opm@v0). opm-operator rewrite COMPLETE 2026-06-12 (10 OpenSpec slices, 2026-06-06..2026-06-12: kernel wired, Platform CRD + reconciler + generation-keyed store, kernel renderers cut over for ModuleRelease + Release, materialize self-heal, pre-0001 fork fully deleted incl. provider plumbing + v1.3.4 pin). Remaining for graduation: cli/ rewrite onto the kernel (cli imports zero library code, still carries its own pkg/render fork) + workspace modules/* rewire to core@v0/catalogs shape (D23 wave — modules/*/cue.mod still pin legacy opmodel.dev/core/v1alpha1@v1, verified 2026-06-12)."
+  notes: "core/ landed + published (opmodel.dev/core@v0). library/ landed + published v0.3.0 (v0.17 recontract, OCI schema loader, Materialize, concurrent render, SynthesizeRelease/SynthesizePlatform). Catalog repackaged + published from its own catalog_opm repo (opmodel.dev/catalogs/opm@v0). opm-operator rewrite COMPLETE 2026-06-12 (10 OpenSpec slices, 2026-06-06..2026-06-12: kernel wired, Platform CRD + reconciler + generation-keyed store, kernel renderers cut over for ModuleRelease + Release, materialize self-heal, pre-0001 fork fully deleted incl. provider plumbing + v1.3.4 pin). Remaining for graduation: cli/ rewrite onto the kernel (cli imports zero library code, still carries its own pkg/render fork) + workspace modules/* rewire to core@v0/catalogs shape (D23 wave — modules/*/cue.mod still pin legacy opmodel.dev/core/v1alpha1@v1, verified 2026-06-12). | 2026-06-22 re-scope: the cli/ rewrite remainder is carved into enhancement 0006 (CLI library-kernel adoption, D9) — 0001 graduates to implemented when 0006's kernel-adoption slice lands. Workspace modules/* mass-rewire is reclassified as consumer maintenance (each module migrates on its own cadence), NOT a 0001 graduation blocker; the e2e fixtures (jellyfin/seerr/web_app) are already on core@v0 (verified 2026-06-22: 3/28 migrated). Sole remaining 0001 design blocker: cli kernel adoption via 0006."
 
 history:
   - {date: "2026-05-23", event: "Drafted — umbrella scope (registry/materialize/matcher + #ctx.runtime)"}
@@ -70,7 +70,9 @@ history:
   - {date: "2026-06-08", event: "Platform materialize self-heal landed — materialize failures now requeue on a bounded interval instead of stalling until a spec edit (materialize resolves against a mutable external registry, so no failure is terminal); transient causes (net/timeout via MaterializeError.Cause) retry on a short interval, semantic/unknown on StalledRecheckInterval; observedGeneration recorded on failure; events transition-gated. Closed the availability hole where a transient registry blip would silently block every gated release. Upstream option noted: a typed Transient signal on the library's MaterializeError would replace best-effort cause matching.", slice: "opm-operator/2026-06-08-platform-materialize-retry"}
   - {date: "2026-06-08", event: "Dead render fork deleted (fork removal 5a) — old RegistryRenderer/PackageReleaseRenderer impls, pkg/render, pkg/module, pkg/validate, internal/synthesis (with its hardcoded CatalogVersion v1.3.4 pin) removed; shared pieces preserved in place (RenderResult, buildInventoryEntries, kind consts, ErrUnsupportedKind, renderer interfaces); nil-renderer fallback dropped; fork-based integration tests removed. Specs: cue-rendering capability removed whole; module-release-synthesis 'Release synthesis' and module-renderer-interface 'Production wiring' requirements removed.", slice: "opm-operator/2026-06-08-remove-dead-render-fork"}
   - {date: "2026-06-12", event: "Provider plumbing removed (fork removal 5b) — prov *provider.Provider dropped from the ModuleRenderer/ReleaseRenderer interfaces and kernel renderers, Provider fields off reconcilers/params, catalog.LoadProvider + --catalog-path/--provider-name flags out of main.go (--registry and --cue-cache-dir retained for the kernel), pkg/provider + pkg/loader + internal/catalog + the root catalog/ composition module + its Dockerfile/.dockerignore plumbing deleted. OPERATOR REWRITE COMPLETE: opm-operator consumes only the library kernel + materialized platform; zero pre-0001 fork code remains (pkg/ is down to core/errors/resourceorder — the intentional K8s adapter tail). First half of the final accepted→implemented criterion (opm-operator + cli rewritten onto the kernel) satisfied; cli/ rewrite remains.", slice: "opm-operator/2026-06-12-remove-provider-plumbing"}
+  - {date: "2026-06-22", event: "Re-scope toward graduation: cli/ rewrite remainder delegated to enhancement 0006 (CLI library-kernel adoption, D9). accepted→implemented gate amended — the cli criterion is now tracked in 0006; the workspace modules/* mass-rewire is reclassified as consumer maintenance (only e2e fixtures gate 0001, and jellyfin/seerr/web_app are already on core@v0; verified 3/28 migrated). Sole remaining 0001 blocker: 0006's kernel-adoption slice. related += 0006. Status stays accepted/in-progress until then."}
   
-related: []
+related:
+  - "0006"
 supersedes: []
 superseded_by: null

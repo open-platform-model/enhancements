@@ -50,6 +50,7 @@ Sibling skills to load when applicable:
   schemas/                  Pure CUE target schemas (no fenced-code substitutes)
 NNNN/                       One per enhancement (id-only directory name)
   experiments/              Optional — runnable validations under enhancement-experiments skill
+  research/                 Optional — external evidence (deep-research dossiers, benchmarks, prior-art surveys)
 CLAUDE.md                   This file — orientation
 README.md                   How to read enhancements
 INDEX.md                    Generated browse aid (run `task index` after config.yaml edits)
@@ -97,6 +98,7 @@ Each phase has gating criteria and a concrete checklist. The `enhancements` skil
 ## Working Style for Agents
 
 - **Always load the `enhancements` skill** before doing workflow work (create, edit `config.yaml`, promote status, append history, add cross-refs, run any `task` other than read-only `list`/`show`).
+- **Preserve research evidence under `NNNN/research/`.** When an enhancement's design rests on external research — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — write the cited findings to `NNNN/research/` (primary dossier as `research/findings.md`; topic-named files for further write-ups) so the evidence travels with the design rather than living only in a chat transcript. Keep it cited and dated, distinguish verified facts from recommendations, and reference it back from the `Source:` lines in `03-decisions.md` (and from `01-problem.md` / `05-risks.md` where it drives a claim). `research/` is for *gathered* evidence (read-only synthesis); `experiments/` is for *authored* runnable proofs — keep the two distinct. `research/` is optional and not gated by `task vet`. See `0000/README.md ## Research` for the full convention.
 - If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `06-operational.md`.
 - Run `task vet` after any `config.yaml` or `schemas/` edit — hard gate, PR-blocking.
 - Run `task index` after any `config.yaml` change; `task graph` after any cross-ref change.

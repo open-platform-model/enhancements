@@ -9,22 +9,31 @@
 
 id: "0002"
 slug: module-instance-rename
-title: 'Rename #ModuleRelease to #ModuleInstance'
-status: draft
+title: 'Rename the Release artifact family to Instance vocabulary (cross-cutting)'
+status: accepted
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: core
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
 affects:
   - core
+  - library
+  - opm-operator
+  - cli
+  - catalog
 created: "2026-06-17"
-updated: "2026-06-17"
+updated: "2026-06-27"
 authors:
   - emil@jacero.se
+# Design-impact semver. A definition + CRD + wire rename is breaking for every
+# consumer that names the old identifiers. Release mechanics (D13, revising D8):
+# every affected artifact ships as a v1 prerelease (v1.0.0-alpha.N), including
+# the opm-operator/CRD bundle; core advances opmodel.dev/core@v0 -> @v1.
+semver: major
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
-  status: not-started
+  status: in-progress
 # Append-only timeline of milestones. The validator (future) enforces
 # append-only via git diff against HEAD~1. Free-form `event` strings;
 # `slice` + `semver` are optional structured fields for events that carry
@@ -32,6 +41,28 @@ implementation:
 history:
   - date: "2026-06-17"
     event: Drafted
+  - date: "2026-06-22"
+    event: "Scope expanded to cross-cutting (affects core, library, opm-operator, cli); D1 reversed by D2 — the GitOps Release CRD is renamed to ModulePackage; OQ1-OQ4 resolved by D3-D8; semver set to major"
+    semver: major
+  - date: "2026-06-22"
+    event: "Accepted — design frozen, ready for per-repo slicing (core → library → opm-operator ‖ cli)"
+    semver: major
+  - date: "2026-06-26"
+    event: "Pre-implementation: decisions D9–D11 added (D9 release.cue→instance.cue file convention; D10 rename every release-named file/dir, extends D8 to the filesystem; D11 Go // Was: docstring breadcrumb on renamed exported identifiers). README Cross-References rebuilt from an exhaustive re-scan of core/library/opm-operator/cli — the original draft table was materially incomplete."
+    semver: major
+  - date: "2026-06-26"
+    event: "Decision D12 added — generalizes the D11 old-name breadcrumb to every rename site across code, docs, and specs (CUE definitions, markdown, SPEC.md, OpenSpec spec.md deltas) and to every renamed definition regardless of visibility, at declaration/section granularity. Spec-change catalog drafted (9 spec changes: core×1 regular SPEC.md, library×1, opm-operator×3, cli×4, plus the enhancements-wording closing step)."
+    semver: major
+  - date: "2026-06-26"
+    event: "Decision D13 added — revises D8 release mechanics: every affected artifact ships as a v1 prerelease (v1.0.0-alpha.N / v1.x.x-alpha.x), including the opm-operator/CRD bundle; core advances opmodel.dev/core@v0 -> @v1 (additional import-path break D8 had avoided; release-please bump-minor-pre-major no longer governs). K8s CRD served apiVersion v1alpha1 unchanged. D8's hard-rename/no-alias conclusion stands. planned-changes.md also notes branch-per-change implementation policy."
+    semver: major
+  - date: "2026-06-26"
+    event: "C1 (core) slice landed — #ModuleRelease family → #ModuleInstance (kind string, label domain, SPEC.md/INDEX/docs co-update, // Was: breadcrumbs) merged via PR #17 and published as opmodel.dev/core@v1 v1.0.0-alpha.1 (D13 prerelease line; release-please configured with versioning: prerelease + bootstrap-sha). First of nine slices; implementation.status → in-progress. L1 (library) is next and pins the new core tag."
+    slice: "core#17"
+    semver: major
+  - date: "2026-06-27"
+    event: "Scope expanded to the catalog family — decision D14 adds `catalog` to affects and folds catalog_opm, catalog_kubernetes, catalog_opm_experimental into 0002 as slices K1–K3 (they consume core's #TransformerContext and break on the @v1 pin). Full-consistency rename (incl catalog-local #releasePrefix); each catalog CUE module bumps @v0 → @v1; forward-alpha tag reconciliation for the two repos already past v1.0.0 (catalog_opm v1.0.0-alpha.1, catalog_kubernetes v1.1.0-alpha.1, catalog_opm_experimental v1.2.0-alpha.1). modules/ + releases/ re-pin stays separately-tracked out of scope."
+    semver: major
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

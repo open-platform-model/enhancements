@@ -1,18 +1,11 @@
-# Enhancement Template (id 0000, reserved)
-
-This directory is the canonical copy-from template for OPM enhancements. To
-create a new enhancement, copy the entire directory to `enhancements/NNNN/`
-(the next available four-digit id) and fill in every `{Capitalised}` placeholder
-across the README and the six split documents.
+# Manifest Passthrough: Side-Channel Raw and Kustomize Manifests
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole
 source of metadata; no parallel metadata table lives in this README.
 
 ## Summary
 
-{One to three sentences describing what this enhancement introduces and why
-it matters. Write this last — once the design has settled the summary writes
-itself. Keep it free of jargon that requires reading further documents.}
+OPM gains a first-class side-channel for **extra manifests** — plain YAML and/or a Kustomize directory declared on a release — that the CLI and operator apply alongside rendered output and own identically: stamped with OPM ownership labels, recorded in `status.inventory`, staged, drift-detected, and pruned as one set. The feature lives entirely at the **apply layer**: `opmodel.dev/core@v0` and the library kernel are untouched (the kernel is pure by constitution and cannot read a filesystem or run Kustomize), Kustomize is rendered by the embedded `krusty` library rather than a shelled-out binary, and the whole thing exists to lower OPM's adoption cliff for teams who already have manifests without diluting the typed component happy path.
 
 <!--
 When implementation lands (status → implemented, or implementation.status → partial+),
@@ -32,8 +25,8 @@ exists only when implementation.status reaches `complete`).
 The six split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
-1. [01-problem.md](01-problem.md) — {One-line description of the problem being solved}
-2. [02-design.md](02-design.md) — {One-line description of the proposed design}
+1. [01-problem.md](01-problem.md) — No supported way to ship arbitrary/Kustomize manifests through OPM's managed apply path; out-of-band apply leaks and drifts
+2. [02-design.md](02-design.md) — Apply-layer side-channel: declare `extraManifests`, render (embedded krusty) into `[]Unstructured`, fold into the existing label/inventory/SSA/prune set; core + kernel untouched
 3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
@@ -50,11 +43,17 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### In scope
 
-- {Bulleted boundary of what this enhancement covers.}
+- A release-spec side-channel (`extraManifests`) on the operator's `ModuleRelease`/`Release` CRDs and an equivalent CLI input, declaring `raw` (plain YAML) and/or `kustomize` (a kustomization directory) sources.
+- A shared passthrough renderer embedding `sigs.k8s.io/kustomize/api/krusty` (no shelled-out binary), with a hardened default options set for operator use.
+- Folding passthrough output into the existing apply path so side objects are labeled, inventoried, staged, drift-detected, and pruned identically to rendered output — one ownership model.
+- Identical semantics across the CLI (`opm release build`/`apply`) and the operator.
 
 ### Out of scope
 
-- {Items deliberately deferred, owned by other enhancements, or out of scope by intent.}
+- Any change to `opmodel.dev/core@v0` or the library kernel (D1). Side manifests never become components or transformer output.
+- Typing arbitrary Kubernetes objects inside the CUE pipeline — that is enhancement [0005](../0005/README.md)'s `#Objects` redesign (relationship tracked as OQ2).
+- A general external-renderer plugin system (Helm, jsonnet, cdk8s, …). Only Kustomize + raw YAML in this pass.
+- Templating/interpolating release values into side manifests (verbatim passthrough only; possible follow-up, OQ4).
 
 ## Experiments
 
@@ -107,7 +106,7 @@ Update the per-experiment README in place as the experiment evolves. Once conclu
 `experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
 
 ```markdown
-# Experiments — {Enhancement Title}
+# Experiments — Manifest Passthrough: Side-Channel Raw and Kustomize Manifests
 
 | # | Concept | Status |
 | - | ------- | ------ |
@@ -151,8 +150,21 @@ deliberate divergences from the design need to be documented. The validator
 
 | Document | Purpose |
 | -------- | ------- |
-| `CONSTITUTION.md` (workspace root, or target-repo local) | Core design principles governing changes in the touched repo(s) |
-| {path} | {purpose} |
+| `library/CONSTITUTION.md` | Principle I (kernel purity: no I/O, no shell, no exec) — the constraint that forces passthrough to the apply layer (D1) |
+| `opm-operator/api/v1alpha1/modulerelease_types.go` | Add optional `spec.extraManifests []ExtraManifestSource` |
+| `opm-operator/api/v1alpha1/release_types.go` | Add optional `spec.extraManifests []ExtraManifestSource` |
+| `opm-operator/api/v1alpha1/common_types.go` | Inventory entry — side objects record here unchanged; verify provenance marker fits |
+| `opm-operator/internal/render/` | Fold passthrough renderer output into the rendered resource list |
+| `opm-operator/pkg/core/labels.go` | Stamp OPM ownership labels + passthrough provenance on side objects |
+| `opm-operator/internal/apply/apply.go` | Staged SSA — verify passed-through CRDs/namespaces stage correctly (no logic change expected) |
+| `opm-operator/internal/apply/prune.go` | Inventory-based prune — confirm side objects prune under the ownership guard |
+| `opm-operator/internal/inventory/` | Confirm passthrough objects record and diff like rendered ones |
+| `opm-operator/internal/source/fetch.go` | Artifact extraction tree — the path root for `Release` side-manifest sources |
+| `opm-operator/config/crd` | Regenerated CRDs after the `extraManifests` field addition |
+| `cli/internal/cmd/release/build.go` | Accept `extraManifests`; serialize passthrough objects with rendered output |
+| `cli/internal/cmd/release/apply.go` | Accept `extraManifests`; apply passthrough objects in the same SSA set |
+| `cli/internal/cmdutil/manifest_output.go` | Ensure passthrough objects serialize alongside rendered output |
+| `enhancements/0005/README.md` | Related — the in-pipeline `#Objects` redesign; relationship tracked as OQ2 |
 
 <!--
 ## Agent Instructions

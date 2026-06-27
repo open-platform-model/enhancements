@@ -1,0 +1,47 @@
+# Template config.yaml — id 0000 is reserved for this template.
+#
+# When creating a new enhancement, copy this directory to enhancements/NNNN/
+# (next available four-digit id) and overwrite every value below.
+#
+# This file is itself a valid #EnhancementConfig — running
+# `cue vet -d '#EnhancementConfig' enhancements/schema.cue enhancements/0000/config.yaml`
+# passes. The "placeholder-ness" lives in the slug, title, and markdown bodies.
+
+id: "0005"
+slug: kubernetes-native-refocus
+title: 'Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions'
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cross-cutting
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - cross-cutting
+  - catalog
+  - library
+  - opm-operator
+  - opmodel.dev
+created: "2026-06-20"
+updated: "2026-06-20"
+authors:
+  - Emil
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones. The validator (future) enforces
+# append-only via git diff against HEAD~1. Free-form `event` strings;
+# `slice` + `semver` are optional structured fields for events that carry
+# machine-readable detail.
+history:
+  - date: "2026-06-20"
+    event: Drafted
+  - date: "2026-06-20"
+    event: "Design direction set from research synthesis — Model B (sugar composes onto generated mirror) chosen; single cross-cutting umbrella; core change ruled out as not required"
+# Peer enhancements this one builds on or interacts with.
+# Accepts new four-digit ids ("0042") and legacy three-digit refs
+# ("legacy:003") that point at frozen library/enhancements/ predecessors.
+related: []
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null

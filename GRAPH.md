@@ -11,12 +11,21 @@ graph LR
   classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   N0001["0001: #Platform Redesign Umbrella"]:::accepted
-  N0002["0002: Rename #ModuleRelease to #ModuleInstance"]:::draft
+  N0002["0002: Rename the Release artifact family to Instance vo…"]:::accepted
   N0003["0003: OPM Module Publishing Workflow"]:::draft
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
+  N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
+  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::draft
+  N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
+  N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
 
   N0001 ---|related| N0002
+  N0001 ---|related| N0006
   N0002 ---|related| N0004
+  N0002 ---|related| N0006
+  N0003 ---|related| N0006
+  N0005 ---|related| N0007
+  N0006 ---|related| N0008
 ```
 
 ## Legend
