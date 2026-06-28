@@ -52,13 +52,25 @@ Pin the new `core`, then rename the Go surface: `Release` → `Instance` (type +
 
 CRD `ModuleRelease` → `ModuleInstance`: `ModuleRelease[Spec/Status/List]` → `ModuleInstance*`, status `ReleaseUUID` → `InstanceUUID`, reconciler, render const `KindModuleRelease` → `KindModuleInstance`, CRD shortName `mr` → `mi`, samples/fixtures, aggregated RBAC role files. `git mv` `modulerelease_types.go` → `moduleinstance_types.go`, the controller, and `internal/reconcile/modulerelease.go` → `moduleinstance.go`. Capabilities (MODIFIED): `module-release-synthesis` → `module-instance-synthesis`, `module-renderer-interface` (`ModuleReleaseParams`), `kernel-module-renderer`, `reconcile-loop-assembly`, `platform-gated-rendering`, `history-tracking`. Depends on L1. (D3, D10, D11, D12.)
 
+**✅ Implemented (2026-06-28).** Landed with O2 + O3 as one atomic opm-operator PR #37 (`refactor(api)!: adopt library v1 — rename Release→ModuleInstance & gitops Release→ModulePackage`), merged to `main` as `280f7a1`. The CRD/types/status/render-const/shortName renames and the three `git mv`s are done; specs applied (`module-instance-synthesis`, `module-renderer-interface`, `kernel-module-renderer`, `reconcile-loop-assembly`, `platform-gated-rendering`, `history-tracking`). The same PR also pinned the published L1 gate — library `v1.0.0-alpha.3` — and migrated the acquire path to source-carrying `Kernel.AcquireModuleFromRegistry`. `task dev:test` + Kind e2e green. See the shared **Pending bookkeeping** note under O3.
+
 ### O2 — opm-operator `rename-gitops-release-crd-to-modulepackage`
 
 GitOps `Release` CRD → `ModulePackage` (D2): `Release[Spec/Status/List]` → `ModulePackage*`, CRD shortName `rel` → `mpkg`, kind detection, source resolution. `git mv` `release_types.go` → `modulepackage_types.go`, `release_controller.go` → `modulepackage_controller.go`, `internal/reconcile/release.go` → `modulepackage.go`, `internal/render/kernel_release_renderer.go`. Capabilities (MODIFIED): `release-reconcile-loop` → `modulepackage-reconcile-loop`, `release-artifact-loading`, `release-depends-on`, `release-kind-detection`, `release-kernel-rendering`. Depends on L1. (D2, D10, D11, D12.)
 
+**✅ Implemented (2026-06-28).** Same atomic PR #37 (`280f7a1`). GitOps `Release` CRD → `ModulePackage` (`ModulePackage[Spec/Status/List]`, shortName `rel` → `mpkg`, kind detection + source resolution); the four `git mv`s are done; specs applied (`modulepackage-reconcile-loop`, `modulepackage-artifact-loading`, `modulepackage-depends-on`, `modulepackage-kind-detection`, `modulepackage-kernel-rendering`). See the shared **Pending bookkeeping** note under O3.
+
 ### O3 — opm-operator `migrate-api-group-and-label-domain`
 
 API group `releases.opmodel.dev` → `opmodel.dev` (D5) across all three CRDs (`groupversion_info.go` `+groupName`, every `//+kubebuilder:rbac` marker, `PROJECT`, kustomize bases); finalizer `releases.opmodel.dev/cleanup` → `opmodel.dev/cleanup` (`common_types.go` + consumers); label domain `module-release.opmodel.dev/*` → `module-instance.opmodel.dev/*` (D4, `pkg/core/labels.go` + prune/inventory selectors). The `Platform` CRD moves group (kind unchanged). Regenerate CRD bases, `role.yaml`, `zz_generated.deepcopy.go`, `dist/install.yaml` (`make manifests generate` + installer task); hand-edit `PROJECT`; move `test/fixtures/releases/` → `modulepackages/`. Capabilities (MODIFIED): `finalizer-and-deletion`, `prune-stale-resources`, `inventory-bridge`, `ssa-apply`, `platform-crd` + cross-cutting RBAC. Depends on O1, O2 (rename the kinds before moving them all to the new group). (D4, D5, D10, D12.)
+
+**✅ Implemented (2026-06-28).** Same atomic PR #37 (`280f7a1`). API group `releases.opmodel.dev` → `opmodel.dev` across all three CRDs (and `Platform`), finalizer → `opmodel.dev/cleanup`, label domain → `module-instance.opmodel.dev/*`; CRD bases / `role.yaml` / `zz_generated.deepcopy.go` / `dist/install.yaml` regenerated, `PROJECT` hand-edited, `test/fixtures/releases/` → `modulepackages/`. Spec `migrate-api-group-and-label-domain` applied.
+
+**✅ Verified + archived (2026-06-28).** After the PR #37 merge, `openspec-verify-change` was run across all three O-slices (completeness / correctness / coherence / cleanliness): no critical issues — every CRD surface (`ModuleInstance`/`ModulePackage`), the group/finalizer/label migration, the spec-dir renames, and all three reconciler registrations are present and consistent on `main`; no stale `ModuleRelease`/`releases.opmodel.dev` types or literals survive outside `// Was:` breadcrumbs; no dead code. Build + `dev:test:local` (unit + integration, real `core@v1` materialization) + **Kind `dev:e2e:local` green (4 passed / 0 failed)** — the e2e flake the earlier note assumed was root-caused to two *environmental* blockers (a polluted local registry holding empty `core@v1.0.x` tags that shadowed the valid `v1.0.0-alpha.1` and crashed the controller's startup `verifyCoreSchema`; and the `make deploy → kubectl patch --registry` rollout churning the controller mid-test), fixed by purging the bogus tags and adding a rollout-settle wait in `test/e2e/e2e_test.go` — *not* a rename defect. The three changes were then **bulk-archived** to `opm-operator/openspec/changes/archive/2026-06-28-{rename-modulerelease-crd-to-moduleinstance,rename-gitops-release-crd-to-modulepackage,migrate-api-group-and-label-domain}` via `openspec archive --skip-specs`.
+
+**Verify-surfaced cleanup (D10/D12, branch `enh0002-cleanup-d10-filenames` off `main`).** Verification flagged residual cosmetic stragglers the merge missed, fixed on a follow-up branch (uncommitted as of this note): `git mv internal/render/release.go → kind.go`; the four `config/samples/releases_v1alpha1_*.yaml` → `opmodel.dev_v1alpha1_*` (+ `kustomization.yaml`, `.tasks/operator.yaml`, `podinfo_test.go` refs); `ErrUnsupportedKind` message and ~10 stale "release"→"instance" comments (preserving the legitimate verb "release it" and breadcrumbs). All gates green on the branch.
+
+**Pending bookkeeping (O1–O3).** What remains is process state, not code: (1) **`config.yaml` history events** for the O-wave (with optional `slice:` fields) are not yet recorded; (2) **the published operator gate** — the D13 `v1.0.0-alpha` opm-operator tag — is in flight (release-please PR for the release; a separate PR moves its release-please config onto the v1 prerelease line, since it was defaulting to `0.8.0`); (3) **main-spec hygiene (pre-existing, not from this rename)** — the `openspec archive` spec-sync was skipped (`--skip-specs`) because ~17 of 36 `opm-operator/openspec/specs/*/spec.md` carry malformed delta-style headers (`## ADDED Requirements` in a main spec) that block the validator; repairing those (and reflecting the rename in the synced main specs) is tracked as a separate spec-hygiene pass.
 
 ### X1 — cli `rename-module-instance-types-and-loader`
 
@@ -96,7 +108,7 @@ C1 (core, SPEC.md)  ──publish core@v1 v1.0.0-alpha tag──▶
      opm-operator:  O1 → O2 → O3              (one PR, bulk-archive)
      cli:           X1 → { X2, X3, X4 }       (one PR, bulk-archive)    [operator ‖ cli]
   catalog:          { K1, K2, K3 }            (one PR each)              [catalog wave ‖ L1]
-        ──▶ Part B: enhancements wording  (0008 → 0006 → 0007)
+        ──▶ Part B: enhancements wording  (0008 → 0006 → 0007 → 0003)
 ```
 
 - **C1 is the root.** Nothing downstream starts until the `core` `feat!:` tag is **published**, not merely merged — every other slice pins it.
@@ -108,6 +120,29 @@ C1 (core, SPEC.md)  ──publish core@v1 v1.0.0-alpha tag──▶
 
 ## Closing step (not a spec change)
 
-### Part B — enhancements `0002` wording cleanup of draft entries
+### Part B — enhancements `0002` wording cleanup of affected entries
 
-After the four code slices land, update the **draft** enhancements' old-vocabulary prose **and** their `schemas/target.cue` (which must still compile), in this order: **0008** first (its `schemas/target.cue` is a codegen input — must consume `#ModuleInstance` / group `opmodel.dev` before any 0008 work), then **0006** (clean its narrative + the `planned-changes.md` task `operator-modulerelease-owner-marker`), then **0007** (extends 0006). Leave **0001** as historical record (per decision); `0000` template and `0003`–`0005` are already clean. Load the `enhancements` skill; run `task vet` after each edit. The `modules/` + `releases/` `release.cue` sweep (the D9 ripple into out-of-`affects` repos) is intentionally **out of scope** here and tracked separately.
+After the four code slices land, update every affected enhancement's old-vocabulary prose **and** its `schemas/target.cue`, in the order **0008 → 0006 → 0007 → 0003**. Load the `enhancements` skill; run `task vet` after each edit, and `task index` + `task graph` after any `config.yaml` change.
+
+This list is the result of auditing **all** entries (`0001`, `0003`–`0008`) against the rename, not the original shallow pass:
+
+- **Compile note.** Each enhancement's `schemas/target.cue` is a self-contained CUE module (`enhancements.opmodel.dev/NNNN@v0`) that does **not** import `core`, so all of them already compile under `task vet` regardless of this rename. The cleanup is for **accuracy/consistency** — *except* **0008**, whose `target.cue` is a real CUE→CRD/Go codegen input that models the CRD shapes, so its renamed kinds/group/types are load-bearing (hence it goes first).
+
+| ID | Status | Cleanup scope |
+| -- | ------ | ------------- |
+| 0008 | draft | **First — codegen input.** `schemas/target.cue`: `#ModuleReleaseSpec`/`#ModuleReleaseStatus`/`#ModuleReleaseCRD` → `#ModuleInstance*`, `group: "releases.opmodel.dev"` (×2) → `"opmodel.dev"`, `kind: "ModuleRelease"` → `"ModuleInstance"`, GitOps `Release` CRD → `ModulePackage`. Plus ~31 prose refs across `01-06`/`README.md` (`#ModuleRelease`, `releases.opmodel.dev/v1alpha1`, `modulerelease_types.go`, CRD-base paths). |
+| 0006 | draft | Narrative (`ModuleRelease` → `ModuleInstance` across `01-06`/`README.md`, ~50 refs); `schemas/target.cue` type `#ModuleReleaseSpec` → `#ModuleInstanceSpec` + comment refs; the `planned-changes.md` task `operator-modulerelease-owner-marker` → `operator-moduleinstance-owner-marker`. |
+| 0007 | draft | Narrative `ModuleRelease`/`Release` → `ModuleInstance`/`ModulePackage`; label key `module-release.opmodel.dev/uuid` → `module-instance.opmodel.dev/uuid`; `schemas/target.cue` comment-only refs (lines ~5/35/39). |
+| 0003 | draft | **Newly added — the prior "already clean" claim was wrong.** Prose-only (its `target.cue` is clean): `synth.Release` → `synth.Instance` (~4×), `synth.ReleaseInput` → `synth.InstanceInput`, authored-`release.cue` → authored-`instance.cue`. Tracks the L1 (`synth` rename) + X1 (instance-file convention) surfaces; only needs those published for its prose to be accurate, so it runs independently/last. |
+
+**Metadata-graph fixes** (in the same pass; regen `task index` + `task graph` after):
+
+- `0007/config.yaml.related` += `"0006"` — Part B states 0007 extends 0006, but the cross-ref is missing today.
+- `0003`/`0006`/`0007`/`0008` `config.yaml.related` += `"0002"` — these drafts are reshaped by this rename; record the dependency.
+
+**Excluded:**
+
+- **0001** — left as historical record. 0001 is `accepted`/in-progress and originated the `#ctx.release` wiring (D1/D3/D4); its `schemas/target.cue` still defines `#ModuleRelease`/`#ReleaseIdentity`/`kind: "ModuleRelease"`/`#ctx.release`. Per the 0002 decision recorded in `05-risks.md` (Churned cross-references mitigation) and `README.md` Cross-References ("do not edit 0001"), its append-only decisions stand under their original names as the origin record.
+- **0004**, **0005**, and the **0000** template — audited clean (no stale vocabulary).
+
+The `modules/` + `releases/` `release.cue` sweep (the D9 ripple into out-of-`affects` repos) is intentionally **out of scope** here and tracked separately.
