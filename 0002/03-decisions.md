@@ -96,6 +96,8 @@ This document records every significant design choice with its reasoning and the
 
 ### D7: `BundleRelease` is renamed to `BundleInstance`
 
+> **Superseded by D15 (2026-06-28).** The bundle path is unreachable dead code with no bundle support planned, so X2 **removes** it rather than renaming it. `BundleInstance` is reintroduced only if/when bundle rendering is actually built. The decision below stands as the original record.
+
 **Decision:** The parallel `BundleRelease` construct (CLI: `pkg/bundle/release.go`, `ProcessBundleRelease`, the `"BundleRelease"` arm of `DetectReleaseKind`) → `BundleInstance` / `"BundleInstance"`. If a bundle kind exists in `core`/`catalog`, it renames there too (to be confirmed during the implementing slice — inventory found `BundleRelease` only in `cli`).
 
 **Alternatives considered:**
@@ -232,6 +234,31 @@ The `modules/` and `releases/` re-pin onto `catalog_opm@v1` stays **out of scope
 **Rationale:** The catalogs are the first real downstream consumers of the renamed core context; bringing them in now (rather than discovering the break at `task update-deps` time) keeps the rename atomic per repo and the design contract complete. The forward-alpha reconciliation respects published history while still graduating every catalog to the `@v1` baseline that D13 set for the rest of the family.
 
 **Source:** User decisions 2026-06-27 (scope: "add to enhancement 0002"; rename depth: "full consistency rename"; versioning: "bump catalogs @v0 → @v1 … tag is v1.0.0-alpha.x"; reconciliation: "align module @v0 → @v1, forward alpha").
+
+---
+
+### D15: The `BundleRelease` stub is removed, not renamed (supersedes D7)
+
+**Decision:** The `cli` X2 slice **deletes the entire bundle path** rather than renaming `BundleRelease` → `BundleInstance`. Investigation during X2 planning established that the bundle surface is unreachable dead code: no `internal/cmd` command targets it, and the live render path (`internal/workflow/render/render.go`) parses a bundle file into a `*bundle.Release` struct only to reject it one line later with "bundle releases are not yet supported." The struct's consumers — `pkg/render/bundle_renderer.go` (`NewBundle`/`Bundle.Execute`/`BundleResult`) and `pkg/render/process_bundlerelease.go` (`ProcessBundleRelease`, a validate-then-`not implemented yet` stub) — have **zero production callers** (referenced only from `pkg/render/{matchplan,process}_test.go`). The only CUE producer of `kind: "BundleRelease"` is the **deprecated** `catalog/core/v1alpha1/bundlerelease` module — it does **not** exist in `core`, `catalog_opm`, or `catalog_kubernetes` — so D7's "if a bundle kind exists in core/catalog, it renames there too (to be confirmed during the implementing slice)" is now resolved: **no live bundle kind exists anywhere to rename.**
+
+Removal is total ("Option B" — no residual bundle awareness):
+
+- **Delete** `pkg/bundle/` (whole package), `pkg/render/bundle_renderer.go`, `pkg/render/process_bundlerelease.go`, `internal/cmd/release/testdata/bundle_release.cue`, and the bundle-only tests.
+- **Remove** the bundle parse arm + helpers (`bareBundleRelease`, `mustBundleReleaseMetadata`, `bestEffortBundleMetadata`, the `Bundle *bundle.Release` field) from `internal/instancefile/get_instance_file.go`; the `kindBundleRelease` arm from `pkg/loader/instance_kind.go`'s `DetectInstanceKind` accept-list; the redundant reject branch at `render.go`; and `rejectBundleShape`/`bundleNotSupported`/`kindBundleRelease` from `pkg/loader/synth.go`.
+- **Remove** the `bundle-release-processing` OpenSpec capability (`openspec/specs/bundle-release-processing/`) — a REMOVED capability, not a MODIFIED-rename.
+- A `kind: "BundleRelease"` file consequently falls through `DetectInstanceKind`'s `default` arm to `unknown instance kind: "BundleRelease"` (a clear error; no dedicated friendly message is retained). X1's `// TODO(0002 X2)` breadcrumbs in `instancefile`/`synth`/`instance_file` are deleted rather than flipped.
+
+`BundleInstance` is reintroduced — as a real, rendered construct — only if and when bundle support is actually built (a future enhancement), at which point it lands under the Instance vocabulary by default. OQ1's "kind strings move, including `BundleInstance`" (resolved-by-D3) is narrowed accordingly: no `BundleInstance` wire string ships in 0002.
+
+**Alternatives considered:**
+
+- **Rename `BundleRelease` → `BundleInstance` (the original D7).** Rejected: it is cosmetic work on dead code, and a renamed-but-still-dead `BundleInstance` is a maintenance trap — it reads as a working construct and invites someone to wire it up against machinery that returns "not implemented yet."
+- **Option A — delete the machinery but keep one friendly "bundle not supported" rejection.** Rejected in favor of full removal: the user opted for zero residual bundle awareness; the generic `unknown instance kind` error is acceptable, and keeping detection would preserve a `release`-tokened code path 0002 exists to retire.
+- **Leave the stub untouched (skip X2).** Rejected: it leaves `release`-vocabulary symbols (`bundle.Release`, `ProcessBundleRelease`, `KindBundleRelease`) contradicting the post-rename codebase, the exact split D10/D12 exist to prevent.
+
+**Rationale:** Removing an unreachable, never-rendered surface is strictly better than renaming it — the diff shrinks, a future dead-code trap is eliminated, and the rename's vocabulary goal (no surviving `release` lexeme) is met by deletion just as well as by rename. Since no bundle support is planned, there is nothing to preserve.
+
+**Source:** User decision 2026-06-28 (X2 planning: "Can we remove BundleRelease and its code altogether instead? I don't plan on adding Bundle support just yet anyways" → Option B, full removal).
 
 ---
 

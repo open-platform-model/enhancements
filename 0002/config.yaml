@@ -22,7 +22,7 @@ affects:
   - cli
   - catalog
 created: "2026-06-17"
-updated: "2026-06-27"
+updated: "2026-06-28"
 authors:
   - emil@jacero.se
 # Design-impact semver. A definition + CRD + wire rename is breaking for every
@@ -62,6 +62,9 @@ history:
     semver: major
   - date: "2026-06-27"
     event: "Scope expanded to the catalog family — decision D14 adds `catalog` to affects and folds catalog_opm, catalog_kubernetes, catalog_opm_experimental into 0002 as slices K1–K3 (they consume core's #TransformerContext and break on the @v1 pin). Full-consistency rename (incl catalog-local #releasePrefix); each catalog CUE module bumps @v0 → @v1; forward-alpha tag reconciliation for the two repos already past v1.0.0 (catalog_opm v1.0.0-alpha.1, catalog_kubernetes v1.1.0-alpha.1, catalog_opm_experimental v1.2.0-alpha.1). modules/ + releases/ re-pin stays separately-tracked out of scope."
+    semver: major
+  - date: "2026-06-28"
+    event: "Decision D15 added (supersedes D7) — the cli X2 slice REMOVES the BundleRelease stub instead of renaming it to BundleInstance. X2 planning found the bundle path is unreachable dead code (no command targets it; render.go parses a bundle only to reject it; bundle_renderer/process_bundlerelease have zero prod callers) and that no live bundle kind exists in core/catalog_opm/catalog_kubernetes (only the deprecated catalog/), resolving D7's open 'confirm during slice' clause. Full removal (Option B): delete pkg/bundle, bundle_renderer.go, process_bundlerelease.go, the bundle parse arm/helpers, rejectBundleShape, and the bundle-release-processing capability; X2 slug flips rename-bundlerelease-to-bundleinstance → remove-bundle-stub. BundleInstance reintroduced only if bundle support is built."
     semver: major
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
