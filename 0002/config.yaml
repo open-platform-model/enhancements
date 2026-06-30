@@ -22,7 +22,7 @@ affects:
   - cli
   - catalog
 created: "2026-06-17"
-updated: "2026-06-28"
+updated: "2026-06-29"
 authors:
   - emil@jacero.se
 # Design-impact semver. A definition + CRD + wire rename is breaking for every
