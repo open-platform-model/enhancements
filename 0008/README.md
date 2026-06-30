@@ -4,7 +4,7 @@ See [`config.yaml`](config.yaml) for metadata. This README is the index of the s
 
 ## Summary
 
-OPM defines its Kubernetes custom resources twice. The canonical domain schema lives in `core/` as pure CUE (`#ModuleRelease`, `#Platform`, `#Subscription`, …); the operator's API types live independently in `opm-operator/api/v1alpha1/*_types.go` as hand-authored Go structs from which controller-gen generates the CRD YAML and deepcopy. The two are kept in sync by hand, and the CLI now consumes those same Go types — so drift between the CUE contract and the Go/CRD shape is a cross-repo correctness hazard, not a cosmetic one.
+OPM defines its Kubernetes custom resources twice. The canonical domain schema lives in `core/` as pure CUE (`#ModuleInstance`, `#Platform`, `#Subscription`, …); the operator's API types live independently in `opm-operator/api/v1alpha1/*_types.go` as hand-authored Go structs from which controller-gen generates the CRD YAML and deepcopy. The two are kept in sync by hand, and the CLI now consumes those same Go types — so drift between the CUE contract and the Go/CRD shape is a cross-repo correctness hazard, not a cosmetic one.
 
 This enhancement makes the **CUE schema in `core/` the single source of truth** for the CRD-shaped types, and generates the downstream artefacts from it: the Kubernetes CRD YAML (via CUE's `encoding/openapi` structural-schema encoder), and the Go API types the operator and CLI compile against. The pieces CUE provably cannot own — `runtime.Object`/deepcopy boilerplate and CEL `x-kubernetes-validations` — are handled honestly: deepcopy stays controller-gen's job over the generated Go, and CEL rules are carried as CUE-expressed verbatim strings injected at assembly time. The non-schema CRD facets (scope, subresources, printer columns, short names) become **CUE data** alongside the schema, and a single Go assembler — consuming the *published* `opmodel.dev/core` module, never reaching into core's build — emits both outputs.
 
@@ -26,7 +26,7 @@ Pure-CUE schema definitions live under [`schemas/`](schemas/) as compilable file
 ### In scope
 
 - A CUE-native way to declare a Kubernetes CRD in `core/`: a `#CRD` construct bundling group/kind/names/scope, per-version served/storage flags, the OpenAPIv3-compatible spec/status schema (which `core` already mandates), subresources, printer columns, short names, and verbatim CEL rules. Sketched end-to-end in [`schemas/target.cue`](schemas/target.cue).
-- Re-expressing the three existing CRDs — `ModuleRelease` (namespaced), `Release` (namespaced), `Platform` (cluster singleton) — as `#CRD` instances in `core/`, reusing the existing domain definitions for the schema bodies.
+- Re-expressing the three existing CRDs — `ModuleInstance` (namespaced), `ModulePackage` (namespaced), `Platform` (cluster singleton) — as `#CRD` instances in `core/`, reusing the existing domain definitions for the schema bodies.
 - A generation pipeline that consumes the **published** `opmodel.dev/core` module and emits (a) the CRD YAML in `opm-operator/config/crd/bases/` and (b) the Go API types in `opm-operator/api/v1alpha1/`.
 - Retaining controller-gen for `runtime.Object`/deepcopy generation over the generated Go structs; the generated structs carry the `+kubebuilder:object:root=true` marker so this keeps working unchanged.
 - Carrying CEL `x-kubernetes-validations` (today: the Platform `metadata.name == 'cluster'` singleton rule) as CUE-expressed verbatim strings injected into the assembled CRD.
@@ -43,7 +43,7 @@ Pure-CUE schema definitions live under [`schemas/`](schemas/) as compilable file
 
 ## Relationship to 0006
 
-[0006](../0006/) made the operator's `ModuleRelease` CR types a shared contract that the CLI imports directly (D13: CLI imports `library`; the operator owns the CRD types). That sharing is exactly what raises the stakes here: a single hand-maintained Go definition is now a multi-consumer contract, and its drift from the canonical `core/` CUE is felt in two repos at once. 0008 does not change 0006's runtime contract or handoff design — it changes where the `ModuleRelease`/`Platform` *type definitions* originate (CUE in `core/`, generated into Go) so the contract 0006 relies on cannot silently diverge from `core`.
+[0006](../0006/) made the operator's `ModuleInstance` CR types a shared contract that the CLI imports directly (D13: CLI imports `library`; the operator owns the CRD types). That sharing is exactly what raises the stakes here: a single hand-maintained Go definition is now a multi-consumer contract, and its drift from the canonical `core/` CUE is felt in two repos at once. 0008 does not change 0006's runtime contract or handoff design — it changes where the `ModuleInstance`/`Platform` *type definitions* originate (CUE in `core/`, generated into Go) so the contract 0006 relies on cannot silently diverge from `core`.
 
 ## Cross-References
 
@@ -51,10 +51,10 @@ Pure-CUE schema definitions live under [`schemas/`](schemas/) as compilable file
 | -------- | ------- |
 | `/CLAUDE.md` (workspace root) | Cross-repo routing + the area vocabulary the `area` / `affects` fields validate against. |
 | `core/CLAUDE.md`, `core/CONSTITUTION.md`, `core/SPEC.md` | Core repo principles; the pure-CUE rule and the SPEC.md co-update gate the `core/` slice must honour (load `core-schema-edit` before editing `core/*.cue`). |
-| `core/src/module_release.cue`, `core/src/platform.cue` | The canonical `#ModuleRelease` / `#Platform` / `#Subscription` definitions the `#CRD` instances reuse for their schema bodies. |
+| `core/src/module_instance.cue`, `core/src/platform.cue` | The canonical `#ModuleInstance` / `#Platform` / `#Subscription` definitions the `#CRD` instances reuse for their schema bodies. |
 | `core/src/resource.cue`, `core/src/trait.cue`, `core/src/module.cue` | The existing "spec MUST be OpenAPIv3-compatible" constraint this design depends on for clean structural-schema emission. |
 | `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Operator repo principles governing the generator + API-type slice. |
-| `opm-operator/api/v1alpha1/modulerelease_types.go`, `release_types.go`, `platform_types.go`, `common_types.go` | The hand-authored Go types this enhancement replaces with generated output. |
+| `opm-operator/api/v1alpha1/moduleinstance_types.go`, `modulepackage_types.go`, `platform_types.go`, `common_types.go` | The hand-authored Go types this enhancement replaces with generated output. |
 | `opm-operator/api/v1alpha1/zz_generated.deepcopy.go` | controller-gen deepcopy output; stays controller-gen's, now run over generated structs. |
 | `opm-operator/config/crd/bases/*.yaml` | The CRD YAML this enhancement generates from `core` instead of from Go markers. |
 | `opm-operator/.tasks/dev.yaml` (`controller-gen … crd` / `object` targets), `Taskfile.yml` | The generation targets the new pipeline slots into. |

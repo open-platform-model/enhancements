@@ -2,6 +2,8 @@
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives here.
 
+> **Implementation status (2026-06-30).** Implemented. All twelve code slices shipped and published — C1 (`core@v1` v1.0.0-alpha.1), L1 (`library` v1.0.0-alpha.3), O1–O3 (`opm-operator` v1.0.0-alpha, PR #37), X1–X4 (`opm` v1.0.0-alpha, PR #97), K1–K3 (`catalog_opm` v1.0.0-alpha, `catalog_kubernetes` v1.1.0-alpha, `catalog_opm_experimental` v1.2.0-alpha) — and the closing Part B vocabulary cleanup of downstream enhancements (0008/0006/0007/0003) has landed. See [`## Deviations from Design`](#deviations-from-design). The out-of-scope `modules/`+`releases/` re-pin onto `core@v1`/`catalog_opm@v1` (with the `release.cue → instance.cue` sweep) and the opm-operator main-spec hygiene pass remain separately tracked.
+
 ## Summary
 
 OPM's deployable artifact is `#ModuleRelease` today. "Release" is Helm's word for the same construct and foregrounds a shipping event, when the construct's defining property is *multiplicity* — one `#Module` materialized as many concrete deployments. The word recurs, inconsistently, all the way down the stack: a CUE definition family in `core`, Go identifiers in `library`, two Kubernetes CRDs in `opm-operator`, and a command group in `cli`.
@@ -42,7 +44,16 @@ Pure-CUE schema in [`schemas/target.cue`](schemas/target.cue).
 
 ## Deviations from Design
 
-None at this stage. Updated when implementation lands.
+Divergences between the frozen-accepted design (2026-06-22) and what shipped. Most are captured as post-acceptance decisions (D9–D15) in [`03-decisions.md`](03-decisions.md); listed here for traceability.
+
+- **Scope grew to the catalog family (D14, 2026-06-27).** Accepted `affects` was `[core, library, opm-operator, cli]` (nine slices). The three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) were folded in as K1–K3 because they consume core's `#TransformerContext` and break on the `@v1` pin — `affects` became five repos / twelve slices.
+- **Release mechanics: v0.x-minor (D8) → v1-prerelease (D13).** The accepted design shipped each artifact as a `v0.x` `feat!` minor. D13 moved everything to a v1 prerelease line and advanced `opmodel.dev/core@v0 → @v1` — an additional import-path break D8 had deliberately avoided. D8's hard-rename / no-alias conclusion stands.
+- **`BundleRelease` removed, not renamed (D15 supersedes D7).** The accepted cli design renamed `BundleRelease → BundleInstance`. X2 planning established the bundle path is unreachable dead code with no live bundle kind in `core`/`catalog_opm`/`catalog_kubernetes`, so D15 deleted it outright (the `bundle-release-processing` capability is removed). `BundleInstance` is reintroduced only if bundle support is actually built.
+- **Published tag form vs D13's `v1.0.0-alpha.N`.** Tags settled as `v1.0.0-alpha` (no numeric suffix) for `opm-operator`, `cli`, and `catalog_opm`; forward-alpha `v1.1.0-alpha` / `v1.2.0-alpha` for `catalog_kubernetes` / `catalog_opm_experimental`; `library` iterated `v1.0.0-alpha.1..3` (operator pinned `alpha.3`); `core` published `v1.0.0-alpha.1`.
+- **L1 (library) shipped six capability deltas, not the planned four** — adding `schema-dispatch` and `config-validation` (both materially named renamed symbols). The CUE language floor was bumped to `v0.17.0-alpha.1`, and one obsolete `core@v0.4.0` synth negative-control test was retired (incompatible with `core@v1`-only targeting).
+- **opm-operator main-spec sync deferred.** The O-wave OpenSpec changes were bulk-archived with `--skip-specs` because ~17 of 36 `opm-operator/openspec/specs/*/spec.md` carry malformed delta-style headers that block the validator. Repairing them (and reflecting the rename in the synced main specs) is a separate spec-hygiene pass — a pre-existing condition, not a rename defect.
+- **Known cli carryover.** `cli/pkg/loader/synth.go` (`loadSynthWrapper`) still applies `#ModuleRelease` — the sole remaining production `#ModuleRelease` reference in `cli`, intentionally deferred to enhancement [0006](../0006/)'s kernel adoption (a bidirectional 0002↔0006 link).
+- **Part B expanded beyond its planned identifier-only scope.** The closing wording cleanup also renamed `opm release <subcmd>` → `opm instance <subcmd>` command references in the affected drafts (the command group shipped as `opm instance`, X3/D6); bare-noun "release" prose and legacy-Secret descriptions were left intact. Two plan corrections surfaced: 0006 already carried the `related: "0002"` link (one fewer graph fix than planned), and 0003 was confirmed *not* clean (its `synth.Release` / `release.cue` prose was stale and was updated).
 
 ## Cross-References
 

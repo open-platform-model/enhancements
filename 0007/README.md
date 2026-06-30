@@ -43,10 +43,10 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### In scope
 
-- A release-spec side-channel (`extraManifests`) on the operator's `ModuleRelease`/`Release` CRDs and an equivalent CLI input, declaring `raw` (plain YAML) and/or `kustomize` (a kustomization directory) sources.
+- A release-spec side-channel (`extraManifests`) on the operator's `ModuleInstance`/`ModulePackage` CRDs and an equivalent CLI input, declaring `raw` (plain YAML) and/or `kustomize` (a kustomization directory) sources.
 - A shared passthrough renderer embedding `sigs.k8s.io/kustomize/api/krusty` (no shelled-out binary), with a hardened default options set for operator use.
 - Folding passthrough output into the existing apply path so side objects are labeled, inventoried, staged, drift-detected, and pruned identically to rendered output — one ownership model.
-- Identical semantics across the CLI (`opm release build`/`apply`) and the operator.
+- Identical semantics across the CLI (`opm instance build`/`apply`) and the operator.
 
 ### Out of scope
 
@@ -159,7 +159,7 @@ deliberate divergences from the design need to be documented. The validator
 | `opm-operator/internal/apply/apply.go` | Staged SSA — verify passed-through CRDs/namespaces stage correctly (no logic change expected) |
 | `opm-operator/internal/apply/prune.go` | Inventory-based prune — confirm side objects prune under the ownership guard |
 | `opm-operator/internal/inventory/` | Confirm passthrough objects record and diff like rendered ones |
-| `opm-operator/internal/source/fetch.go` | Artifact extraction tree — the path root for `Release` side-manifest sources |
+| `opm-operator/internal/source/fetch.go` | Artifact extraction tree — the path root for `ModulePackage` side-manifest sources |
 | `opm-operator/config/crd` | Regenerated CRDs after the `extraManifests` field addition |
 | `cli/internal/cmd/release/build.go` | Accept `extraManifests`; serialize passthrough objects with rendered output |
 | `cli/internal/cmd/release/apply.go` | Accept `extraManifests`; apply passthrough objects in the same SSA set |

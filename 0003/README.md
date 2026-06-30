@@ -27,7 +27,7 @@ Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable files.
 
 - The canonical mapping from a module's `metadata` to its CUE registry reference (path leaf, package name, version + major), anchored on `core`'s `metadata.nameSnakeCase`.
 - The `opm publish` workflow in `cli`: validate (and/or generate) a module's `cue.mod/module.cue` `module:` path and CUE package name against the canonical mapping before pushing to a registry.
-- A `library` helper that computes the canonical import reference from a `*module.Module` (consumed by `synth.Release` and by the publish command), so the render path resolves imported modules from metadata.
+- A `library` helper that computes the canonical import reference from a `*module.Module` (consumed by `synth.Instance` and by the publish command), so the render path resolves imported modules from metadata.
 - The migration story for in-repo modules whose published path does not yet follow the convention.
 
 ### Out of scope

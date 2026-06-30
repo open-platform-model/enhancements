@@ -6,7 +6,7 @@ This document answers the question: "What is the proposed solution and how does 
 
 - Given a module's `metadata` alone, the canonical CUE registry reference (path, package name, version, major) is **deterministically derivable** — no guessing, no per-transform special cases.
 - A module's registry coordinates are **enforced at publish time** (cli), so a module that violates the convention never reaches a registry.
-- The kernel (library) computes the canonical reference from a `*module.Module` and uses it to import the module in the single-build render path, so the synthesized-CR and authored-`release.cue` paths converge.
+- The kernel (library) computes the canonical reference from a `*module.Module` and uses it to import the module in the single-build render path, so the synthesized-CR and authored-`instance.cue` paths converge.
 - The convention unifies the three names: `metadata.nameSnakeCase` is simultaneously the registry-path leaf and the CUE package name, collapsing the "three independent spellings" problem to "one identity, one canonical projection."
 - Existing in-repo modules migrate to the convention with a clear, mechanical path; non-conforming third-party modules degrade with a legible error rather than a silent wrong-address fetch.
 
@@ -32,7 +32,7 @@ Anchor the convention on a single canonical identifier and enforce it where modu
 
 3. **Publish enforcement (cli).** `opm publish` checks the module's `cue.mod/module.cue` `module:` path and its `package` clause against the canonical mapping before pushing, failing fast on mismatch (and/or generating the conformant `cue.mod` from metadata). This is where the registry path — which the schema cannot see — is bound to identity.
 
-4. **Kernel consumption (library).** A helper computes the canonical reference from a `*module.Module` (reading `metadata.modulePath`, `metadata.nameSnakeCase`, `metadata.version`). `synth.Release` uses it to write the `import` and the synthesized `cue.mod` dependency, replacing the unreconstructable `modulePath/name` guess. The registry loader is the natural place to additionally *verify* the resolved coordinates match the canonical mapping at load time.
+4. **Kernel consumption (library).** A helper computes the canonical reference from a `*module.Module` (reading `metadata.modulePath`, `metadata.nameSnakeCase`, `metadata.version`). `synth.Instance` uses it to write the `import` and the synthesized `cue.mod` dependency, replacing the unreconstructable `modulePath/name` guess. The registry loader is the natural place to additionally *verify* the resolved coordinates match the canonical mapping at load time.
 
 The relationship between the names becomes: one identity (`name`) → one canonical projection (`nameSnakeCase`) → one registry leaf and one package name. Enforcement lives at publish (the only point that controls the `cue.mod` path), and resolution at consume (derivable, because the rule is fixed).
 

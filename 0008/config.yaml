@@ -12,7 +12,7 @@ affects:
   - opm-operator
   - cli
 created: "2026-06-25"
-updated: "2026-06-25"
+updated: "2026-06-30"
 authors:
   - OPM Contributors
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -25,6 +25,7 @@ history:
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0006"
+  - "0002"
 # Lifecycle relationships.
 supersedes: []
 superseded_by: null

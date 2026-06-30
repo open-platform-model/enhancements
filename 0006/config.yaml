@@ -11,7 +11,7 @@ affects:
   - opm-operator
   - library
 created: "2026-06-22"
-updated: "2026-06-29"
+updated: "2026-06-30"
 authors:
   - OPM Contributors
 # Implementation tracking. status: not-started | in-progress | partial | complete.

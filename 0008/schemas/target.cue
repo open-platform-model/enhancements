@@ -9,7 +9,7 @@
 // both the CRD YAML and the Go API types from one source (D1, D2, D3).
 //
 // The spec/status BODIES are not re-authored here — in core/ they are the
-// existing #ModuleRelease / #Platform definitions. The mirrored shapes in this
+// existing #ModuleInstance / #Platform definitions. The mirrored shapes in this
 // file are illustrative locals so the file compiles standalone for review
 // (same convention as 0006's target.cue); they are not the authoritative
 // bodies.
@@ -64,7 +64,7 @@ package schema
 	storage: bool | *true
 
 	// OpenAPIv3-compatible body. In core/ these reference the domain
-	// definitions (#ModuleRelease, #Platform); the encoder turns them into the
+	// definitions (#ModuleInstance, #Platform); the encoder turns them into the
 	// structural openAPIV3Schema (D3).
 	schema!: {
 		spec!:   {...}
@@ -77,7 +77,7 @@ package schema
 }
 
 #CRD: {
-	group!:    string // e.g. "releases.opmodel.dev"
+	group!:    string // e.g. "opmodel.dev"
 	names!:    #CRDNames
 	scope!:    #Scope
 	versions!: [#CRDVersion, ...#CRDVersion]
@@ -94,7 +94,7 @@ package schema
 	message?: string
 }
 
-#ModuleReleaseSpec: {
+#ModuleInstanceSpec: {
 	suspend?: bool
 	module!: {
 		path!:    string
@@ -106,9 +106,9 @@ package schema
 	owner?:              "cli" | "operator" // from 0006
 }
 
-#ModuleReleaseStatus: {
+#ModuleInstanceStatus: {
 	observedGeneration?: int
-	releaseUUID?:        string
+	instanceUUID?:       string
 	conditions?: [...#Condition]
 	...
 }
@@ -136,20 +136,20 @@ package schema
 
 // Worked instances are definitions: a CRD's `schema` field holds a type (the
 // domain schema), not concrete data, so these are intentionally non-concrete.
-#ModuleReleaseCRD: #CRD & {
-	group: "releases.opmodel.dev"
+#ModuleInstanceCRD: #CRD & {
+	group: "opmodel.dev"
 	names: {
-		kind:       "ModuleRelease"
-		plural:     "modulereleases"
-		singular:   "modulerelease"
-		shortNames: ["mr"]
+		kind:       "ModuleInstance"
+		plural:     "moduleinstances"
+		singular:   "moduleinstance"
+		shortNames: ["mi"]
 	}
 	scope: "Namespaced"
 	versions: [{
 		name: "v1alpha1"
 		schema: {
-			spec:   #ModuleReleaseSpec
-			status: #ModuleReleaseStatus
+			spec:   #ModuleInstanceSpec
+			status: #ModuleInstanceStatus
 		}
 		subresources: status: true
 		additionalPrinterColumns: [
@@ -161,7 +161,7 @@ package schema
 }
 
 #PlatformCRD: #CRD & {
-	group: "releases.opmodel.dev"
+	group: "opmodel.dev"
 	names: {
 		kind:       "Platform"
 		plural:     "platforms"

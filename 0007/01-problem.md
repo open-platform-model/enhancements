@@ -11,7 +11,7 @@ Both consumers of the kernel converge on the same final artifact — a stream of
 - The **CLI** renders a release and either prints YAML/JSON or server-side-applies it (`cli/internal/cmd/release/build.go`, `cli/internal/cmd/release/apply.go`).
 - The **operator** renders, then applies via the Flux `ResourceManager.ApplyAllStaged()` (server-side apply with staging), then prunes stale resources by diffing the recorded inventory (`opm-operator/internal/apply/apply.go`, `opm-operator/internal/apply/prune.go`).
 
-The operator stamps every applied object with ownership labels (`app.kubernetes.io/managed-by`, `module-release.opmodel.dev/{name,namespace,uuid}`) and records each object in `status.inventory`, which is the authoritative source for drift detection and pruning (`opm-operator/pkg/core/labels.go`, `opm-operator/api/v1alpha1/common_types.go`).
+The operator stamps every applied object with ownership labels (`app.kubernetes.io/managed-by`, `module-instance.opmodel.dev/{name,namespace,uuid}`) and records each object in `status.inventory`, which is the authoritative source for drift detection and pruning (`opm-operator/pkg/core/labels.go`, `opm-operator/api/v1alpha1/common_types.go`).
 
 Everything that reaches the cluster must therefore originate as a typed component matched by a transformer. There is no supported way to feed an arbitrary Kubernetes manifest — or a `kustomization.yaml` overlay — through the same managed apply path. The only escape hatch that exists today is `catalog_kubernetes`'s generic `#Objects` blob, which lives *inside* the CUE/transformer pipeline (the author writes the object as CUE) and is the subject of a separate redesign in enhancement 0005.
 

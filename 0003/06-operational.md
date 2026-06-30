@@ -18,7 +18,7 @@ The `core` contribution (`nameSnakeCase`) is observability-neutral — a derived
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
 - `core`: `nameSnakeCase` is an **additive** field on `#Module.metadata` (a `feat:` minor within `@v0`), already shipped. Adding a derived field does not break existing modules — they gain the field on re-evaluation against the new schema.
-- `library`: changing how `synth.Release` derives the import path is an internal mechanism change; the public Go signatures are preserved (the render change's own SemVer note). If OQ3 lands on recording a reference, that adds a field to `*module.Module` (additive, minor).
+- `library`: changing how `synth.Instance` derives the import path is an internal mechanism change; the public Go signatures are preserved (the render change's own SemVer note). If OQ3 lands on recording a reference, that adds a field to `*module.Module` (additive, minor).
 - `cli`: `opm publish` gains a validation/generation step — new behavior, not a break to an existing flag contract (confirm at accept once the command surface is pinned).
 - The migration of non-conforming **published module identities** (OQ4) is the only consumer-visible break, and it is to specific in-repo modules, not to a shared schema or API.
 
@@ -42,7 +42,7 @@ No CUE definitions or Go functions are removed. What is retired is the *practice
 **Which repos must coordinate, and in what order?**
 
 1. **core** (done) — publish `opmodel.dev/core@v0` carrying `metadata.nameSnakeCase`. Downstream consumes it as a published dep.
-2. **library** — re-pin `core` to the version carrying `nameSnakeCase`; rewire `synth.Release` (and optionally the registry loader / module type) onto `#CanonicalModuleRef`. Produces the helper the cli reuses.
+2. **library** — re-pin `core` to the version carrying `nameSnakeCase`; rewire `synth.Instance` (and optionally the registry loader / module type) onto `#CanonicalModuleRef`. Produces the helper the cli reuses.
 3. **cli** — re-pin `core`; add the `opm publish` validation/generation, reusing the library helper so the publish check and the render resolution share one mapping.
 4. **migration** — republish non-conforming in-repo modules at canonical coordinates; update the fixtures/releases that import them, in the same change that flips them.
 

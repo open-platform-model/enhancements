@@ -24,7 +24,7 @@ Runtime observability is unchanged: the same CRDs, the same operator conditions/
 **Is this a breaking change for any consumer? If so, what's the
 backwards-compatibility plan?**
 
-- **`opmodel.dev/core`:** adding `#CRD`, `#CRDVersion`, `#PrinterColumn`, `#CELValidation` and the per-kind `#CRD` instances is **additive → minor** within `@v0`, *provided* anchoring the CRDs does not force a change to the existing `#ModuleRelease`/`#Platform` field shapes. Whether any such change is needed is OQ5 and must be resolved before `accepted`; if a field shape must change, that portion is breaking and rides its own enhancement. The intent is zero field-shape change.
+- **`opmodel.dev/core`:** adding `#CRD`, `#CRDVersion`, `#PrinterColumn`, `#CELValidation` and the per-kind `#CRD` instances is **additive → minor** within `@v0`, *provided* anchoring the CRDs does not force a change to the existing `#ModuleInstance`/`#Platform` field shapes. Whether any such change is needed is OQ5 and must be resolved before `accepted`; if a field shape must change, that portion is breaking and rides its own enhancement. The intent is zero field-shape change.
 - **`opm-operator`:** no API change for *users* — the CRDs and Go types serialise identically. Internally, the hand-authored types are replaced by generated ones; the goal is byte-compatible CRDs for unchanged fields (an accepted→implemented gate).
 - **`cli`:** no change required; it imports the operator's `api/v1alpha1` (per 0006) and must build unchanged against the generated types.
 - **Cluster (CRDs already applied):** the regenerated CRDs must be schema-compatible with what is deployed; the byte-compatibility gate is what prevents an accidental live-cluster API change.
@@ -38,7 +38,7 @@ Shipping sequence: `core` (publish the new definitions) → `opm-operator` (gene
 - The hand-authored Go API structs in `opm-operator/api/v1alpha1/*_types.go` are **deleted** (not deprecated) and replaced by generated output, in the same release that lands the generator. No transition window — the generated types are drop-in replacements with identical serialization.
 - The controller-gen `crd` invocation in `.tasks/dev.yaml` is removed and replaced by `crdgen`; controller-gen `object` (deepcopy) stays.
 - The kubebuilder marker comments that encoded scope/printer-columns/CEL/validation move from Go comments into CUE `#CRD` data (D4); the markers themselves are removed from the (now generated) Go.
-- No CUE definitions are removed — `#ModuleRelease`/`#Platform` are reused as the schema bodies.
+- No CUE definitions are removed — `#ModuleInstance`/`#Platform` are reused as the schema bodies.
 
 ## Rollback
 
@@ -48,7 +48,7 @@ Clean and low-stakes, because the artefacts are byte-compatible by gate:
 
 - **Code rollback:** revert the `opm-operator` slice — the previous commit restores the hand-authored types and the controller-gen `crd` target. The generated and hand-authored CRDs are byte-compatible for unchanged fields, so the deployed CRDs need no change.
 - **`core` rollback:** the new `#CRD` definitions are additive; consumers that don't use them are unaffected, so `core` need not be rolled back even if the operator slice is.
-- **No data-plane state:** this changes type *definitions*, not stored resources. Existing `ModuleRelease`/`Platform`/`Release` objects on the cluster are untouched and remain valid under both the old and new (byte-compatible) CRDs.
+- **No data-plane state:** this changes type *definitions*, not stored resources. Existing `ModuleInstance`/`Platform`/`ModulePackage` objects on the cluster are untouched and remain valid under both the old and new (byte-compatible) CRDs.
 
 ## Cross-Repo Coordination
 

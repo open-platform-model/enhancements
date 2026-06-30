@@ -2,7 +2,7 @@
 //
 // This models the APPLY-LAYER surface only. There is intentionally NO
 // definition under opmodel.dev/core here: passthrough is an operator-CRD +
-// CLI feature (D1), so the canonical shape is the ModuleRelease/Release spec
+// CLI feature (D1), so the canonical shape is the ModuleInstance/ModulePackage spec
 // addition plus a provenance marker — not a core-schema primitive.
 //
 // As decisions land in ../03-decisions.md, tighten the fields marked with
@@ -32,12 +32,12 @@ package schema
 }
 
 // #ExtraManifestsSpec — the new optional field on the operator's
-// ModuleRelease and Release CRD specs (and the CLI release-file equivalent).
+// ModuleInstance and ModulePackage CRD specs (and the CLI instance-file equivalent).
 //
 //   spec.extraManifests: [...#ExtraManifestSource]
 //
-// OQ3: for ModuleRelease (CUE-native OCI acquisition) the path root is
-// unresolved; for Release it is the extracted Flux artifact tree.
+// OQ3: for ModuleInstance (CUE-native OCI acquisition) the path root is
+// unresolved; for ModulePackage it is the extracted Flux artifact tree.
 #ExtraManifestsSpec: {
 	extraManifests?: [...#ExtraManifestSource]
 }

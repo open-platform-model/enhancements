@@ -8,7 +8,7 @@ deep implementation knowledge. All trade-off reasoning lives in
 
 ## Design Goals
 
-- One authored definition per CRD type. The `ModuleRelease`, `Release`, and `Platform` shapes are written once, in CUE, in `core/`; the Go API types and the CRD YAML are generated artefacts, never hand-edited.
+- One authored definition per CRD type. The `ModuleInstance`, `ModulePackage`, and `Platform` shapes are written once, in CUE, in `core/`; the Go API types and the CRD YAML are generated artefacts, never hand-edited.
 - The generated CRD's `openAPIV3Schema` reflects the CUE contract's validations, so the API server rejects at `kubectl apply` what the kernel would reject at evaluation time.
 - The operator and the CLI compile against generated Go types that are, by construction, consistent with the published `core` contract — closing the 0006 cross-repo drift.
 - `core/` stays a pure-CUE module with no Go and no build-time codegen, honouring its constitution; all generation lives downstream and consumes the *published* `core`.
@@ -25,7 +25,7 @@ deep implementation knowledge. All trade-off reasoning lives in
 
 ## High-Level Approach
 
-Define each CRD natively in `core/` as a `#CRD` value: a small envelope that pairs the **Kubernetes object metadata of the CRD itself** (group, kind, plural/singular, scope, short names, per-version served/storage flags) with the **schema body** (the existing `#ModuleRelease` / `#Platform` domain definitions, whose `spec`/`status` are already OpenAPIv3-compatible) and the **non-schema facets that controller-gen expresses as markers today** (status subresource, printer columns, CEL validations) — but expressed as plain CUE *data* rather than Go comments.
+Define each CRD natively in `core/` as a `#CRD` value: a small envelope that pairs the **Kubernetes object metadata of the CRD itself** (group, kind, plural/singular, scope, short names, per-version served/storage flags) with the **schema body** (the existing `#ModuleInstance` / `#Platform` domain definitions, whose `spec`/`status` are already OpenAPIv3-compatible) and the **non-schema facets that controller-gen expresses as markers today** (status subresource, printer columns, CEL validations) — but expressed as plain CUE *data* rather than Go comments.
 
 Generation happens **downstream of `core`**, in a Go tool that lives in `opm-operator` (or a shared `cmd/`), and imports `opmodel.dev/core` as a published module dependency — it never reaches into core's source tree. The tool runs three transforms over each `#CRD`:
 
@@ -39,19 +39,19 @@ A `task` target regenerates all three; a CI check re-runs it and fails on any di
 
 The new surface is the `#CRD` envelope and its sub-shapes, defined in full in [`schemas/target.cue`](schemas/target.cue). Headline shapes:
 
-- `#CRD` — one per custom resource. Carries `group`, `names` (`kind`/`plural`/`singular`/`shortNames`), `scope` (`Namespaced | Cluster`), and `versions: [...#CRDVersion]`. The `ModuleRelease`/`Release`/`Platform` definitions become `#CRD` instances.
+- `#CRD` — one per custom resource. Carries `group`, `names` (`kind`/`plural`/`singular`/`shortNames`), `scope` (`Namespaced | Cluster`), and `versions: [...#CRDVersion]`. The `ModuleInstance`/`ModulePackage`/`Platform` definitions become `#CRD` instances.
 - `#CRDVersion` — `name` (e.g. `v1alpha1`), `served`/`storage` flags, the `schema` (a reference to the domain definition whose `spec`/`status` form the body), `subresources` (status on/off + scale if ever needed), `additionalPrinterColumns: [...#PrinterColumn]`, and `validations: [...#CELValidation]`.
 - `#PrinterColumn` — `name`, `type`, `jsonPath`, optional `priority` — a direct, lossless model of `+kubebuilder:printcolumn`.
 - `#CELValidation` — `rule` (the CEL expression, carried verbatim), `message`/`messageExpression`, optional `reason`/`fieldPath`/`optionalOldSelf` — a direct model of `+kubebuilder:validation:XValidation`. The design never parses or rewrites `rule`.
 
-The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here — they are the existing `#ModuleRelease` / `#Platform` definitions in `core/src/`. `#CRD` references them, so there is exactly one definition of each field. `schemas/target.cue` mirrors the existing shapes locally only so the file compiles standalone for review (the same convention 0006 used).
+The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here — they are the existing `#ModuleInstance` / `#Platform` definitions in `core/src/`. `#CRD` references them, so there is exactly one definition of each field. `schemas/target.cue` mirrors the existing shapes locally only so the file compiles standalone for review (the same convention 0006 used).
 
 ## Integration Points
 
 **core/** (load `core-schema-edit` before editing — SPEC.md co-update is gated):
 
 - `core/src/crd.cue` *(new)* — the `#CRD`, `#CRDVersion`, `#PrinterColumn`, `#CELValidation` definitions. SPEC.md gains a matching section.
-- `core/src/module_release.cue`, `core/src/platform.cue`, `core/src/release.cue` *(release CRD may need a domain definition if one does not yet exist)* — add the `#CRD` instances binding each kind's metadata + version + body. Existing field shapes are reused unchanged.
+- `core/src/module_instance.cue`, `core/src/platform.cue`, `core/src/modulepackage.cue` *(ModulePackage CRD may need a domain definition if one does not yet exist)* — add the `#CRD` instances binding each kind's metadata + version + body. Existing field shapes are reused unchanged.
 - `core/SPEC.md` — new section documenting the `#CRD` envelope (co-update gate).
 
 **opm-operator/**:
@@ -67,8 +67,8 @@ The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here 
 
 ## Before / After
 
-**Before** — the `spec.values` example from `01-problem.md`. `#ModuleRelease` in `core/` says `values` is a struct; `ModuleReleaseSpec.Values` in Go is a `*RawValues` JSON passthrough; the CRD admits `values: [1,2,3]`; the error surfaces at reconcile time as a CUE evaluation failure. Two definitions, silent disagreement.
+**Before** — the `spec.values` example from `01-problem.md`. `#ModuleInstance` in `core/` says `values` is a struct; `ModuleInstanceSpec.Values` in Go is a `*RawValues` JSON passthrough; the CRD admits `values: [1,2,3]`; the error surfaces at reconcile time as a CUE evaluation failure. Two definitions, silent disagreement.
 
-**After** — `values: {...}` is authored once in `core/src/module_release.cue`. `cmd/crdgen` emits an `openAPIV3Schema` where `values` has `type: object`, and a Go `Values` field typed accordingly. `kubectl apply` of `values: [1,2,3]` is rejected at admission with a structural-schema error naming the field. The Go type, the CRD YAML, and the CUE contract cannot disagree, because two of the three are generated from the first — and CI fails if anyone commits a stale copy.
+**After** — `values: {...}` is authored once in `core/src/module_instance.cue`. `cmd/crdgen` emits an `openAPIV3Schema` where `values` has `type: object`, and a Go `Values` field typed accordingly. `kubectl apply` of `values: [1,2,3]` is rejected at admission with a structural-schema error naming the field. The Go type, the CRD YAML, and the CUE contract cannot disagree, because two of the three are generated from the first — and CI fails if anyone commits a stale copy.
 
 **Authoring workflow** — before: edit CUE in `core/`, separately edit Go in `opm-operator/`, run controller-gen, review both, hope. After: edit CUE in `core/`, publish; in `opm-operator/` run `task crdgen`, commit the regenerated artefacts; CI re-runs `crdgen` and blocks the merge if the committed output is stale.

@@ -16,12 +16,12 @@ Conventions:
 | A1 | opm-operator | `operator-bump-k8s-stable` | — | Problem 3 (k8s line) |
 | A2 | cli | `cli-rename-module` | — | D15 |
 | A3 | library | `library-inventory-pkg` | — | D13 |
-| A4 | opm-operator | `operator-modulerelease-owner-marker` | — | D3 |
+| A4 | opm-operator | `operator-moduleinstance-owner-marker` | — | D3 |
 | B1 | opm-operator | `operator-adopt-library-inventory` | A3 | D13 |
 | B2 | cli | `cli-operator-install-command` | A2, A4 | D5 |
 | C1 | cli | `cli-cr-inventory-backend` | A2, A3, A4, B1, B2 | D1, D2, D3 (consume), D8, D13, D14 |
 | C2 | cli | `cli-kernel-adoption` | C1, **gate: 0001 library slice** | D9, D11, D12, D17, D14 |
-| C3 | cli | `cli-release-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16 |
+| C3 | cli | `cli-instance-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16 |
 
 ## Change descriptions
 
@@ -37,9 +37,9 @@ Mechanical rename of the CLI Go module `github.com/opmodel/cli` → `github.com/
 
 New `library/opm/inventory` package: build inventory entries from kernel-rendered resources, identity equality (`IdentityEqual` / `K8sIdentityEqual`), `ComputeStaleSet`, `ComputeDigest`, over a runtime-neutral entry type — no controller-runtime, no Flux, no k8s-typed dependency beyond apimachinery identity primitives. This is the shared implementation both CLI and operator consume so handoff prune-set parity is structural. No dependency. (D13.)
 
-### A4 — opm-operator `operator-modulerelease-owner-marker`
+### A4 — opm-operator `operator-moduleinstance-owner-marker`
 
-Add `spec.owner: "cli" | "operator"` (default `"operator"`) to `ModuleRelease`; add the reconciler skip path for `spec.owner: cli` with a single `Ready: Unknown` / `ManagedExternally` condition that never touches CLI-written status; regenerate the CRD (`config/crd/bases/`). Additive, backward-compatible. No dependency. Produces the CRD the CLI later embeds (B2) and reads/writes (C1). (D3.)
+Add `spec.owner: "cli" | "operator"` (default `"operator"`) to `ModuleInstance`; add the reconciler skip path for `spec.owner: cli` with a single `Ready: Unknown` / `ManagedExternally` condition that never touches CLI-written status; regenerate the CRD (`config/crd/bases/`). Additive, backward-compatible. No dependency. Produces the CRD the CLI later embeds (B2) and reads/writes (C1). (D3.)
 
 ### B1 — opm-operator `operator-adopt-library-inventory`
 
@@ -51,17 +51,17 @@ New `opm install crds | operator` and `opm uninstall operator`: SSA install (man
 
 ### C1 — cli `cli-cr-inventory-backend`
 
-Replace the Secret inventory with the `ModuleRelease` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set via `library/opm/inventory` (D13); one-time Secret→CR migration with no deprecation window (D8/D14); delete `cli/internal/inventory` and `cli/pkg/inventory`. Render still uses the CLI's current pipeline at this point. Depends on A2, A3, A4, B1, B2. (D1, D2, D8, D13, D14; OQ3/OQ9 decided here.)
+Replace the Secret inventory with the `ModuleInstance` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set via `library/opm/inventory` (D13); one-time Secret→CR migration with no deprecation window (D8/D14); delete `cli/internal/inventory` and `cli/pkg/inventory`. Render still uses the CLI's current pipeline at this point. Depends on A2, A3, A4, B1, B2. (D1, D2, D8, D13, D14; OQ3/OQ9 decided here.)
 
 ### C2 — cli `cli-kernel-adoption`
 
 Delete `cli/pkg/render` and the match path in `cli/pkg/loader`; render every release through the `library` kernel (D9) so the CLI's render digest equals the operator's by construction. Add platform resolution by precedence — `--platform` flag > cluster `Platform` CR > local/embedded default — materialized via the same kernel calls the operator uses, with write-if-absent of the solo-cluster singleton `Platform` (D11/D12); both Platform sources first-class, no cluster-admin required on non-`handoff` paths (D17). Migrate the CLI's CUE usage to v0.17.0-alpha.1 (D14). Depends on C1 **and the cross-enhancement gate: enhancement 0001's `library` kernel match/materialize slice must have shipped.** This is the one edge that cannot start until 0001 lands. (D9, D11, D12, D14, D17; OQ10/OQ12/OQ13/OQ14 decided here.)
 
-**Carryover from enhancement [0002](../0002/) (CLI `Release` → `Instance` rename) — retire the last `#ModuleRelease`.** Beyond the render/match deletion above, C2 MUST also reconcile the module-package *synthesis* path in `cli/pkg/loader/synth.go` (`loadSynthWrapper`), which still imports `opmodel.dev/core/v1alpha1/modulerelease@v1` and applies `#ModuleRelease` (not `#ModuleInstance`). This is a deliberately-deferred catalog-pin from 0002 slice X1 — its `FLAG (0002, out of X1 scope)` breadcrumb marks the site, and after the 0002 CLI sweep it is the **sole remaining production-code reference to the old `#ModuleRelease` definition** in `cli/` (every example, fixture, and the operator already moved to `#ModuleInstance`). Whatever replaces synthesis under kernel adoption MUST apply `#ModuleInstance` so `opm module build` / `opm instance build <dir>` emit `kind: "ModuleInstance"`, and MUST resolve the `…/modulerelease@v1` import-path drift against the catalog the kernel resolves. 0002's X1 description already names 0006 kernel adoption as the resolving effort; closing it here makes the bidirectional link complete.
+**Carryover from enhancement [0002](../0002/) (CLI `Release` → `Instance` rename) — retire the last `#ModuleInstance`.** Beyond the render/match deletion above, C2 MUST also reconcile the module-package *synthesis* path in `cli/pkg/loader/synth.go` (`loadSynthWrapper`), which still imports `opmodel.dev/core/v1alpha1/moduleinstance@v1` and applies `#ModuleInstance` (not `#ModuleInstance`). This is a deliberately-deferred catalog-pin from 0002 slice X1 — its `FLAG (0002, out of X1 scope)` breadcrumb marks the site, and after the 0002 CLI sweep it is the **sole remaining production-code reference to the old `#ModuleInstance` definition** in `cli/` (every example, fixture, and the operator already moved to `#ModuleInstance`). Whatever replaces synthesis under kernel adoption MUST apply `#ModuleInstance` so `opm module build` / `opm instance build <dir>` emit `kind: "ModuleInstance"`, and MUST resolve the `…/moduleinstance@v1` import-path drift against the catalog the kernel resolves. 0002's X1 description already names 0006 kernel adoption as the resolving effort; closing it here makes the bidirectional link complete.
 
-### C3 — cli `cli-release-handoff`
+### C3 — cli `cli-instance-handoff`
 
-New `opm release handoff <release>`, forward-only (CLI → operator), no reverse mode (D16): verify operator ready → CR is `owner: cli` → `spec.module` resolvable (D6) → render digest matches `status.lastAppliedRenderDigest`, then patch `spec.owner: operator` and wait for a bounded no-op reconcile (0 changed, 0 pruned). Depends on C1. Its digest check is only *structurally* meaningful once C2 has landed (shared kernel); whether handoff ships before then is OQ5. (D6, D7, D16; OQ11 decided here.)
+New `opm instance handoff <release>`, forward-only (CLI → operator), no reverse mode (D16): verify operator ready → CR is `owner: cli` → `spec.module` resolvable (D6) → render digest matches `status.lastAppliedRenderDigest`, then patch `spec.owner: operator` and wait for a bounded no-op reconcile (0 changed, 0 pruned). Depends on C1. Its digest check is only *structurally* meaningful once C2 has landed (shared kernel); whether handoff ships before then is OQ5. (D6, D7, D16; OQ11 decided here.)
 
 ## Ordering and waves
 

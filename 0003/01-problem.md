@@ -20,7 +20,7 @@ Because the registry path is author-chosen and not retained on the loaded module
 
 Attempting to derive the path as `metadata.modulePath + "/" + metadata.name` fails for real modules: the path leaf is sometimes the kebab name, sometimes a snake-cased name, and the package name is independently sometimes a third spelling. There is no deterministic rule, so the render path either resolves the wrong address (`module not found`) or cannot be made correct for a whole class of modules.
 
-This blocks the convergence the render change exists to deliver (one construction mechanism for both the synthesized-CR path and the authored-`release.cue` path), and more broadly there is no enforced, machine-checkable relationship between a module's identity and where it lives — so the ecosystem cannot rely on "given a module's metadata, here is how to import it."
+This blocks the convergence the render change exists to deliver (one construction mechanism for both the synthesized-CR path and the authored-`instance.cue` path), and more broadly there is no enforced, machine-checkable relationship between a module's identity and where it lives — so the ecosystem cannot rely on "given a module's metadata, here is how to import it."
 
 ## Concrete Example
 
@@ -48,4 +48,4 @@ So neither "use `name`" nor "use a single fixed transform" reconstructs every mo
 
 ## Why Existing Workarounds Fail
 
-The render path's only metadata-based workaround — guessing the path from `modulePath` + `name` (optionally snake-casing it) — is provably wrong for some real modules (zot needs the snake form, web-app needs the hyphen form) and cannot be made right by any single transform, because the registry path lives in `cue.mod/module.cue`, a file the schema and metadata cannot see or constrain. Threading the reference manually through every `synth.Release` caller pushes a correctness burden onto callers and still leaves third-party modules unconstrained. The durable fix is a *convention* on what the registry coordinates must be — derivable from metadata and enforced where modules are published — rather than a guess applied where they are consumed.
+The render path's only metadata-based workaround — guessing the path from `modulePath` + `name` (optionally snake-casing it) — is provably wrong for some real modules (zot needs the snake form, web-app needs the hyphen form) and cannot be made right by any single transform, because the registry path lives in `cue.mod/module.cue`, a file the schema and metadata cannot see or constrain. Threading the reference manually through every `synth.Instance` caller pushes a correctness burden onto callers and still leaves third-party modules unconstrained. The durable fix is a *convention* on what the registry coordinates must be — derivable from metadata and enforced where modules are published — rather than a guess applied where they are consumed.

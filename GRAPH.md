@@ -18,13 +18,18 @@ graph LR
   N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::draft
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
+  N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
 
   N0001 ---|related| N0002
   N0001 ---|related| N0006
+  N0002 ---|related| N0003
   N0002 ---|related| N0004
   N0002 ---|related| N0006
+  N0002 ---|related| N0007
+  N0002 ---|related| N0008
   N0003 ---|related| N0006
   N0005 ---|related| N0007
+  N0006 ---|related| N0007
   N0006 ---|related| N0008
 ```
 

@@ -10,7 +10,7 @@
 id: "0002"
 slug: module-instance-rename
 title: 'Rename the Release artifact family to Instance vocabulary (cross-cutting)'
-status: accepted
+status: implemented
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: core
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -22,7 +22,7 @@ affects:
   - cli
   - catalog
 created: "2026-06-17"
-updated: "2026-06-29"
+updated: "2026-06-30"
 authors:
   - emil@jacero.se
 # Design-impact semver. A definition + CRD + wire rename is breaking for every
@@ -33,7 +33,9 @@ semver: major
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
-  status: in-progress
+  status: complete
+  date: "2026-06-30"
+  notes: "All 12 code slices (C1, L1, O1-O3, X1-X4, K1-K3) shipped + published; Part B downstream-enhancement cleanup landed. See README Deviations. modules/+releases/ re-pin and opm-operator spec-hygiene tracked separately (out of scope)."
 # Append-only timeline of milestones. The validator (future) enforces
 # append-only via git diff against HEAD~1. Free-form `event` strings;
 # `slice` + `semver` are optional structured fields for events that carry
@@ -65,6 +67,25 @@ history:
     semver: major
   - date: "2026-06-28"
     event: "Decision D15 added (supersedes D7) — the cli X2 slice REMOVES the BundleRelease stub instead of renaming it to BundleInstance. X2 planning found the bundle path is unreachable dead code (no command targets it; render.go parses a bundle only to reject it; bundle_renderer/process_bundlerelease have zero prod callers) and that no live bundle kind exists in core/catalog_opm/catalog_kubernetes (only the deprecated catalog/), resolving D7's open 'confirm during slice' clause. Full removal (Option B): delete pkg/bundle, bundle_renderer.go, process_bundlerelease.go, the bundle parse arm/helpers, rejectBundleShape, and the bundle-release-processing capability; X2 slug flips rename-bundlerelease-to-bundleinstance → remove-bundle-stub. BundleInstance reintroduced only if bundle support is built."
+    semver: major
+  - date: "2026-06-27"
+    event: "K-wave (catalog) landed — K1/K2/K3 pin opmodel.dev/core@v1 and rename transformer-context #moduleReleaseMetadata → #moduleInstanceMetadata plus the full-consistency sweep (catalog-local #releasePrefix, prose, fixtures; D14/D12). Each catalog CUE module bumped @v0 → @v1 and published: catalog_opm v1.0.0-alpha, catalog_kubernetes v1.1.0-alpha (forward-alpha), catalog_opm_experimental v1.2.0-alpha (forward-alpha). Three independent per-repo PRs, hang off C1 only (no L1 dependency). modules/ + releases/ re-pin onto catalog_opm@v1 stays out of scope."
+    slice: "catalog_opm#10; catalog_kubernetes#3; catalog_opm_experimental#4"
+    semver: major
+  - date: "2026-06-28"
+    event: "L1 (library) landed — Go Release→Instance surface rename (type + ReleaseName/ReleaseUUID/NewReleaseFromValue methods, ReleaseMetadata/View/Input, synth.Release, kernel Process/Synthesize/Load/ValidateReleaseValues*, Resource.Release()/Compiled.Release, shape ExpectedKind, ~24 kind fixtures, label literals); the core@v0→@v1 pin folded into the same PR. OpenSpec change archived (6 capability deltas — added schema-dispatch + config-validation beyond the planned 4); rebased onto main @ 0.7.0 reconciling PR #25 materialize federation; CUE language floor → v0.17.0-alpha.1. Published opmodel.dev/library through v1.0.0-alpha.3 — the gate O*/X* pin."
+    slice: "library/2026-06-27-rename-release-to-instance"
+    semver: major
+  - date: "2026-06-28"
+    event: "O-wave (opm-operator) landed — O1/O2/O3 as one atomic PR #37 (280f7a1): ModuleRelease CRD → ModuleInstance, GitOps Release CRD → ModulePackage (D2), API group releases.opmodel.dev → opmodel.dev (D5), finalizer opmodel.dev/cleanup, label domain → module-instance.opmodel.dev/* (D4); CRD bases/RBAC/PROJECT/dist regenerated; test/fixtures/releases → modulepackages. Three OpenSpec changes verified + bulk-archived (--skip-specs); Kind e2e green (4/0). Pinned library v1.0.0-alpha.3; published opm-operator v1.0.0-alpha. Follow-up D10/D12 filename/comment cleanup branch landed. Known debt: ~17 malformed delta-style main spec.md headers blocked the spec-sync (separate hygiene pass, pre-existing)."
+    slice: "opm-operator#37"
+    semver: major
+  - date: "2026-06-30"
+    event: "X-wave (cli) landed — X1/X2/X3/X4 as one atomic PR #97 (a54b5d4): module/loader types Release→Instance + instance.cue file convention (X1, D9); BundleRelease stub REMOVED as dead code (X2, D15); opm release → opm instance command group + alias inst (X3, D6); label domain + inventory + examples/tests migration (X4, D4). OpenSpec changes bulk-archived; release-please cut the tag. Pinned core@v1 + library v1.0.0-alpha.3; published opm v1.0.0-alpha. All twelve code slices (C1, L1, O1-O3, X1-X4, K1-K3) now shipped + published → implementation.status: partial. Remaining before `implemented`: Part B enhancements-wording cleanup (0008 → 0006 → 0007 → 0003) + the out-of-scope modules/ + releases/ re-pin and release.cue→instance.cue sweep."
+    slice: "cli#97"
+    semver: major
+  - date: "2026-06-30"
+    event: "Part B (closing enhancements-wording cleanup) landed and 0002 promoted accepted → implemented. Downstream entries renamed to instance vocabulary: 0008 (target.cue codegen surface — #ModuleInstanceSpec/Status/CRD, instanceUUID, group opmodel.dev, kind/plural/singular/shortName mi, Platform CRD group; prose), 0006 (ModuleRelease→ModuleInstance narrative + target.cue, operator-moduleinstance-owner-marker task), 0007 (ModuleRelease→ModuleInstance and GitOps Release→ModulePackage), 0003 (synth.Release→synth.Instance, release.cue→instance.cue prose). Approved scope-extension also renamed opm release→opm instance command refs across the drafts (bare-noun release left). Metadata graph repaired (related += 0002 on 0003/0007/0008; 0007 += 0006; 0006 already linked); INDEX+GRAPH regenerated; whole-repo task vet green. 0001 left as historical record; 0004/0005/0009/0000 confirmed clean. implementation.status → complete (date 2026-06-30). Still separately tracked (out of 0002 scope): modules/+releases/ re-pin onto core@v1/catalog_opm@v1 with the release.cue→instance.cue sweep, and the opm-operator main-spec hygiene pass."
     semver: major
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs

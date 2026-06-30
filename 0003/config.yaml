@@ -20,7 +20,7 @@ affects:
   - library
   - core
 created: "2026-06-17"
-updated: "2026-06-17"
+updated: "2026-06-30"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -37,7 +37,7 @@ history:
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.
-related: []
+related: ["0002"]
 # Lifecycle relationships.
 supersedes: []
 superseded_by: null

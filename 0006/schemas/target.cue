@@ -8,7 +8,7 @@
 // the operator CRD and constrains which status fields the CLI writes.
 package schema
 
-// Ownership marker added to ModuleRelease.spec (D3). Default "operator" keeps
+// Ownership marker added to ModuleInstance.spec (D3). Default "operator" keeps
 // existing CRs reconciled by the controller; "cli" makes the operator skip.
 #Owner: "cli" | "operator"
 
@@ -17,8 +17,8 @@ package schema
 	version?: string // best-effort when applying from a local path (D6)
 }
 
-// ModuleRelease.spec — only the fields 0006 reads or adds are modelled here.
-#ModuleReleaseSpec: {
+// ModuleInstance.spec — only the fields 0006 reads or adds are modelled here.
+#ModuleInstanceSpec: {
 	owner:  #Owner | *"operator" // NEW (D3); the CLI may edit spec when owner=="operator" but defers execution to the operator (D18)
 	module: #ModuleReference
 	values?: {...} // sole authoritative render input — the CLI unifies ALL value inputs into this blob and renders its own apply from it (D19, resolves OQ10)
@@ -50,14 +50,14 @@ package schema
 	message?: string
 }
 
-// Full ModuleReleaseStatus is operator-owned. The CLI writes only the subset
+// Full ModuleInstanceStatus is operator-owned. The CLI writes only the subset
 // below (D2, amended by D25); every other field stays unset by the CLI and
 // owned by the controller's reconcile loop. Notably the CLI writes NO
 // status.conditions — conditions are operator-exclusive (D25), so this subset
 // carries no Ready entry; in a solo cluster status.conditions is simply absent.
 #CLIStatusSubset: {
 	inventory:               #Inventory
-	releaseUUID:             string
+	instanceUUID:            string
 	lastAppliedRenderDigest: string
 	lastAppliedSourceDigest: string
 	lastAppliedConfigDigest: string
@@ -81,7 +81,7 @@ _exampleCLIStatus: #CLIStatusSubset & {
 		count:    1
 		entries: [{kind: "Deployment", namespace: "media", name: "jellyfin", component: "server"}]
 	}
-	releaseUUID:             "a3b8f2e1-1234-5678-9abc-def012345678"
+	instanceUUID:            "a3b8f2e1-1234-5678-9abc-def012345678"
 	lastAppliedRenderDigest: "sha256:1111"
 	lastAppliedSourceDigest: "sha256:2222"
 	lastAppliedConfigDigest: "sha256:3333"
@@ -92,11 +92,11 @@ _exampleCLIStatus: #CLIStatusSubset & {
 // (--platform flag > cluster Platform CR > local/embedded default), then calls
 // the same kernel path the operator uses (SynthesizePlatform -> Materialize ->
 // Compile). This is Go/kernel wiring, not a CRD field, so it has no CUE shape
-// here. The one CRD-shaped fact worth recording: unlike ModuleRelease, the
+// here. The one CRD-shaped fact worth recording: unlike ModuleInstance, the
 // Platform CR gets NO owner marker — the operator always owns/materializes the
 // singleton; the CLI only reads it (and writes it write-if-absent in solo
 // clusters). The sketch below is the Platform spec the CLI reads/writes; note
-// the deliberate ABSENCE of an `owner` field (contrast #ModuleReleaseSpec).
+// the deliberate ABSENCE of an `owner` field (contrast #ModuleInstanceSpec).
 #Subscription: {
 	enable?: bool
 	filter?: {

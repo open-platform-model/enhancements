@@ -15,8 +15,8 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
 - **`opmodel.dev/core@v0`: no change.** Per D1 the core schema and library kernel are untouched, so `semver: none` for core. No `@v0`→`@v1` pressure from this enhancement.
-- **opm-operator CRDs: additive.** `spec.extraManifests` is a new optional field on `ModuleRelease`/`Release`; existing CRs without it are unaffected. Backward-compatible CRD revision.
-- **cli: additive.** A new optional release-file field / flag; existing release files render unchanged.
+- **opm-operator CRDs: additive.** `spec.extraManifests` is a new optional field on `ModuleInstance`/`ModulePackage`; existing CRs without it are unaffected. Backward-compatible CRD revision.
+- **cli: additive.** A new optional instance-file field / flag; existing release files render unchanged.
 - No downstream consumer must update to keep working; updating unlocks the feature.
 
 ## Deprecation
@@ -39,7 +39,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 1. **Shared renderer package first** (location per OQ5) — embeds `krusty`, exposes `Render(sources, fsRoot)` with hardened options. Nothing else can integrate until this exists.
 2. **opm-operator** — add the CRD field, regenerate CRDs, wire the renderer into the render path, extend label stamping, verify staging/inventory/prune. This is the primary slice and the one that proves the end-to-end ownership story.
-3. **cli** — add the release-file field/flag, fold renderer output into `build`/`apply`. Can land in parallel with the operator once the shared package exists, but should match the operator's resolved semantics (D4).
+3. **cli** — add the instance-file field/flag, fold renderer output into `build`/`apply`. Can land in parallel with the operator once the shared package exists, but should match the operator's resolved semantics (D4).
 4. **core / library** — no landing. Their non-involvement is itself a checked outcome (the non-goal held).
 
 No published-artifact hand-off is required between repos (no OCI tag or regenerated fixture gates another repo); the only shared dependency is the renderer package, consumed as a normal Go import.

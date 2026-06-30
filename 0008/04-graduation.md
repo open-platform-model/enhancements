@@ -11,8 +11,8 @@ not as implementation milestones — implementation progress lives in
 The enhancement is ready to be implemented when:
 
 - Design Goals and Non-Goals in `02-design.md` are final and reviewed.
-- Every decision recorded in `03-decisions.md` (D1..D8) is locked, and every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`) — in particular OQ2 (status ownership), OQ4 (`Release` domain anchor), and OQ5 (`core` semver impact), which gate whether the first slice is well-formed.
-- `schemas/target.cue` compiles (`cue vet ./...` from the directory passes) and captures the `#CRD` / `#CRDVersion` / `#PrinterColumn` / `#CELValidation` surface plus at least one worked instance (`ModuleRelease` and `Platform`) end-to-end.
+- Every decision recorded in `03-decisions.md` (D1..D8) is locked, and every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`) — in particular OQ2 (status ownership), OQ4 (`ModulePackage` domain anchor), and OQ5 (`core` semver impact), which gate whether the first slice is well-formed.
+- `schemas/target.cue` compiles (`cue vet ./...` from the directory passes) and captures the `#CRD` / `#CRDVersion` / `#PrinterColumn` / `#CELValidation` surface plus at least one worked instance (`ModuleInstance` and `Platform`) end-to-end.
 - A throwaway spike has demonstrated, against the real `opmodel.dev/core` and CUE v0.17, that `encoding/openapi` with `ExpandReferences` produces a structural schema the API server accepts for at least one of the three kinds — i.e. the central feasibility claim (D3) is validated, ideally captured as an `experiments/` entry.
 - `related`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve to existing enhancements.
 - `semver` in `config.yaml` is set (major / minor / none), informed by OQ5.
@@ -23,7 +23,7 @@ The enhancement is ready to be implemented when:
 
 The enhancement is shipped when:
 
-- `core/` carries `#CRD` (and friends) and the `#CRD` instances for every in-scope kind, with the matching `core/SPEC.md` section co-committed (via the `core-schema-edit` protocol); the existing `#ModuleRelease`/`#Platform` field shapes are reused, not forked.
+- `core/` carries `#CRD` (and friends) and the `#CRD` instances for every in-scope kind, with the matching `core/SPEC.md` section co-committed (via the `core-schema-edit` protocol); the existing `#ModuleInstance`/`#Platform` field shapes are reused, not forked.
 - `opm-operator/cmd/crdgen` exists, consumes the published `opmodel.dev/core`, and emits both the CRD YAML (`config/crd/bases/*.yaml`) and the Go API types (`api/v1alpha1/*_types.go`), with controller-gen `object` producing `zz_generated.deepcopy.go` over the generated structs.
 - The hand-authored API structs are deleted (not aliased); non-type helpers (`conditions.go`, `groupversion_info.go`, `GetConditions`/`SetConditions`) are relocated to clearly non-generated files.
 - `opm-operator` builds and its controller tests pass against the generated types; `cli` builds unchanged against the generated `api/v1alpha1` types (the 0006 consumer contract).

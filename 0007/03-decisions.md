@@ -43,7 +43,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D3: Side manifests reuse the existing ownership, inventory, and prune machinery
 
-**Decision:** Passed-through objects are folded into the resource list *before* labeling, inventory recording, staging, SSA, and prune. They are stamped with the same OPM ownership labels (including `module-release.opmodel.dev/uuid`), recorded in `status.inventory`, and pruned on removal exactly like rendered output — one ownership model, one inventory, one prune. A provenance marker records that an object came from the side-channel.
+**Decision:** Passed-through objects are folded into the resource list *before* labeling, inventory recording, staging, SSA, and prune. They are stamped with the same OPM ownership labels (including `module-instance.opmodel.dev/uuid`), recorded in `status.inventory`, and pruned on removal exactly like rendered output — one ownership model, one inventory, one prune. A provenance marker records that an object came from the side-channel.
 
 **Alternatives considered:**
 
@@ -58,11 +58,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D4: Available in both the CLI and the operator with identical semantics
 
-**Decision:** Passthrough is wired into both `opm release build`/`apply` and the operator reconcile, sharing one renderer so a release behaves identically whether driven from a laptop or a controller.
+**Decision:** Passthrough is wired into both `opm instance build`/`apply` and the operator reconcile, sharing one renderer so a release behaves identically whether driven from a laptop or a controller.
 
 **Alternatives considered:**
 
-- *Operator-only.* Rejected: the CLI is a first-class apply path (`cli/internal/cmd/release/apply.go`); divergent behavior between `opm release apply` and the operator would surprise users and break local-then-promote workflows.
+- *Operator-only.* Rejected: the CLI is a first-class apply path (`cli/internal/cmd/release/apply.go`); divergent behavior between `opm instance apply` and the operator would surprise users and break local-then-promote workflows.
 
 **Rationale:** Single source of truth for passthrough semantics; consistent UX across drivers.
 
@@ -72,7 +72,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D5: Passthrough is declared via a release-spec side-channel, not woven into the component model
 
-**Decision:** Extra manifests are declared on the release surface — an `extraManifests` field on the operator's `ModuleRelease`/`Release` CRD specs and an equivalent CLI input — as an explicit, labeled side-channel. They are not expressed through `#Component`/`#Trait`/transformer constructs.
+**Decision:** Extra manifests are declared on the release surface — an `extraManifests` field on the operator's `ModuleInstance`/`ModulePackage` CRD specs and an equivalent CLI input — as an explicit, labeled side-channel. They are not expressed through `#Component`/`#Trait`/transformer constructs.
 
 **Alternatives considered:**
 
@@ -88,7 +88,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 - **OQ1: Full `kustomize build` vs raw-only for the first cut.** Status: open. The design models both `raw` and `kustomize` sources. Raw-only (a directory/glob of plain YAML, no overlay semantics) is roughly a third of the work and already covers much of the "extra manifests on the side" need; full Kustomize adds the embedded `krusty` dependency, the hardening surface (OQ6), and overlay-path semantics. Resolve by deciding the v1 scope. Would resolve to a `DN` narrowing `#ExtraManifestSource` or confirming both.
 - **OQ2: Relationship to enhancement 0005's `#Objects` hatch.** Status: open. 0005 redesigns the *in-pipeline, CUE-authored* untyped object hatch (typed K8s mirror + retained `#Objects`). This enhancement is the *apply-layer, file-based* side-channel. Are they complementary (CUE-native for "I author in OPM"; passthrough for "I already have manifests/kustomize"), or does one subsume the other? Resolve with 0005's author to avoid two accidental doors with overlapping intent. Would resolve to a `DN` plus a `related` cross-ref note.
-- **OQ3: Path root for `ModuleRelease` (CUE-native acquisition) sources.** Status: open. `Release` consumes a Flux artifact the operator already extracts to disk (`internal/source/fetch.go`), so side-manifest paths resolve within that tree. `ModuleRelease` uses CUE-native OCI module acquisition (`internal/moduleacquire/`), which has no equivalent on-disk "release working tree." Where do its `extraManifests` paths resolve from — packaged into the module artifact, a separate referenced source, or `ModuleRelease`-not-supported in v1? Would resolve to a `DN`.
+- **OQ3: Path root for `ModuleInstance` (CUE-native acquisition) sources.** Status: open. `ModulePackage` consumes a Flux artifact the operator already extracts to disk (`internal/source/fetch.go`), so side-manifest paths resolve within that tree. `ModuleInstance` uses CUE-native OCI module acquisition (`internal/moduleacquire/`), which has no equivalent on-disk "release working tree." Where do its `extraManifests` paths resolve from — packaged into the module artifact, a separate referenced source, or `ModuleInstance`-not-supported in v1? Would resolve to a `DN`.
 - **OQ4: Templating side manifests against release values.** Status: open (leaning deferred). Should OPM interpolate release config/values into raw/kustomize inputs, or is passthrough strictly verbatim (Kustomize does its own overlaying)? Current design says verbatim (Non-Goal). Confirm deferral or open as a follow-up enhancement.
 - **OQ5: Home repo for the shared passthrough renderer.** Status: open. `library/` is ruled out by purity (D1). Options: a small standalone Go module vendored by both `cli` and `opm-operator`; live in one repo and import from the other; or deliberate duplication. Would resolve to a `DN` naming the package location.
 - **OQ6: Security/determinism posture for Kustomize in the operator.** Status: open. Kustomize supports exec plugins, `helmCharts` inflation, and generators that read arbitrary files — a footgun inside a controller reconcile loop. Proposal: disable exec plugins by default and likely disable Helm inflation; decide whether any are opt-in via a trusted-mode flag. Would resolve to a `DN` fixing the default `krusty.Options`.
