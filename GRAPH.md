@@ -11,7 +11,7 @@ graph LR
   classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   N0001["0001: #Platform Redesign Umbrella"]:::accepted
-  N0002["0002: Rename the Release artifact family to Instance vo…"]:::accepted
+  N0002["0002: Rename the Release artifact family to Instance vo…"]:::implemented
   N0003["0003: OPM Module Publishing Workflow"]:::draft
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
