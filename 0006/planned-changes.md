@@ -13,7 +13,7 @@ Conventions:
 
 | ID | Repo | Change name | Depends on | Implements | Status |
 | -- | ---- | ----------- | ---------- | ---------- | ------ |
-| A1 | opm-operator | `operator-bump-k8s-stable` | — | Problem 3 (k8s line) | planned |
+| A1 | opm-operator | `operator-bump-k8s-stable` | — | Problem 3 (k8s line, widened) | ✅ implemented (2026-07-01) |
 | A2 | cli | `cli-rename-module` | — | D15 | planned |
 | A3 | library | `library-inventory-pkg` | — | D13 | ❌ reverted (D31, 2026-07-01) |
 | A4 | opm-operator | `operator-moduleinstance-owner-marker` | — | D3 | ✅ implemented (2026-06-30) |
@@ -22,12 +22,17 @@ Conventions:
 | C1 | cli | `cli-cr-inventory-backend` | A2, A4, B2 | D1, D2, D3 (consume), D8, D14 | planned |
 | C2 | cli | `cli-kernel-adoption` | C1, **gate: 0001 library slice** | D9, D11, D12, D17, D14 | planned |
 | C3 | cli | `cli-instance-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16 | planned |
+| A5 | opm-kind-demo (+ audit other consumers) | `downstream-flux-k8s-compat-audit` | A1 | Problem 3 (widened) | planned (A1 ready — unblocked 2026-07-01) |
 
 ## Change descriptions
 
 ### A1 — opm-operator `operator-bump-k8s-stable`
 
-Bump `k8s.io/*` and `sigs.k8s.io/controller-runtime` to the CLI's latest-stable k8s line and align the `go` directive, so the two repos stay on one k8s line once they share `library`. No dependency; pure prep. (Problem 3, `research/findings.md`.)
+Bump `k8s.io/*` and `sigs.k8s.io/controller-runtime` to the CLI's latest-stable k8s line, so the two repos stay on one k8s line once they share `library`. No dependency; pure prep. (Problem 3, `research/findings.md`.)
+
+**Widened during implementation (2026-07-01):** `k8s.io/api` v0.36.x deletes `scheduling/v1alpha1`/`autoscaling/v2beta2`, which `opm-operator`'s pinned Flux libraries (`fluxcd/cli-utils`, `fluxcd/pkg/ssa`) still reference — the k8s.io bump cannot land without a coupled bump of `cli-utils`, `pkg/apis/meta`, `pkg/runtime`, `pkg/ssa`, and `source-controller/api` to the version set the `flux2` v2.9.0 distribution itself ships (chosen over hand-picked minimums — see the change's `design.md` D4). No `go` directive change is actually needed (`opm-operator`'s directive already exceeds every new requirement) — correcting this description's original wording. **Warning:** this widens the change's blast radius beyond "pure prep" — downstream consumers that pin their own Flux/`opm-operator` versions (e.g. `opm-kind-demo`, confirmed) are not automatically compatible just because this slice's own verification gates pass; see the new A5 slice below and `05-risks.md`.
+
+**Status: ✅ implemented (2026-07-01).** Shipped as the opm-operator OpenSpec change `operator-bump-k8s-stable` (archived `opm-operator/openspec/changes/archive/2026-07-01-operator-bump-k8s-stable/`), commit `d724ac3` (PR [#44](https://github.com/open-platform-model/opm-operator/pull/44), squash-merged). Landed exactly the widened scope above, plus one further discovery mid-implementation (D8 in `design.md`): `task dev:lint` failed on `controller-runtime/pkg/scheme.Builder`'s deprecation (introduced in the same v0.24.0 that carries the k8s.io bump), fixed by migrating `api/v1alpha1`'s scheme registration to apimachinery's `runtime.NewSchemeBuilder` — 4 files, mechanical, behavior-preserving. `task dev:manifests dev:generate` produced zero diff except one benign import-alias line. e2e verification needed a correction of its own: the change's `design.md` originally (wrongly) claimed `prune_test.go`/`finalizer_test.go` provide live coverage of the bumped `pkg/ssa`/`cli-utils/pkg/kstatus/polling` — actually running the suite showed those files are *also* pre-existing `Skip()` TODOs never checked before that claim was written. The real proof came from PR #44's CI run, where `podinfo_test.go` executed for real (CI publishes example modules; the local run had skipped it for lack of registry credentials) and passed — the one spec in the whole suite that exercises that surface. Unblocks A5 (downstream audit).
 
 ### A2 — cli `cli-rename-module`
 
@@ -73,17 +78,28 @@ Delete `cli/pkg/render` and the match path in `cli/pkg/loader`; render every rel
 
 New `opm instance handoff <release>`, forward-only (CLI → operator), no reverse mode (D16): verify operator ready → CR is `owner: cli` → `spec.module` resolvable (D6) → render digest matches `status.lastAppliedRenderDigest`, then patch `spec.owner: operator` and wait for a bounded no-op reconcile (0 changed, 0 pruned). Depends on C1. Its digest check is only *structurally* meaningful once C2 has landed (shared kernel); whether handoff ships before then is OQ5. (D6, D7, D16; OQ11 decided here.)
 
+### A5 — opm-kind-demo (+ audit other consumers) `downstream-flux-k8s-compat-audit`
+
+**New, added 2026-07-01, arising from A1's widened scope.** A1's coupled Flux/k8s.io/controller-runtime bump changes what `opm-operator` expects from a live cluster's Flux installation (specifically `source-controller/api` v1.9.1's types) and what version of `opm-operator` itself downstream consumers run — but A1's own verification (its own `go.mod`, its own e2e suite) cannot verify compatibility with anything outside `opm-operator`'s own repo. Two concrete things this slice covers:
+
+1. **`opm-kind-demo`** explicitly pins both "Flux toolkit version" and "opm-operator version" (currently `v1.0.0-alpha`) per its own `README.md` ("Pinned, reproducible toolchain... No surprise upgrades"). Once A1 ships a new `opm-operator` version, this pin needs a coordinated bump plus a real bootstrap (`task kind:bootstrap`) to confirm the demo cluster still comes up clean — this is the closest thing to a live-Flux-source-controller integration test available anywhere in the workspace, since `opm-operator`'s own e2e suite's Flux-facing tests (`test/e2e/lifecycle_test.go`, `concurrent_test.go`) are `Skip()`-stubbed TODOs with no real coverage (see A1's `design.md` D7).
+2. **Audit for any other repo pinning a specific `opm-operator` release or a specific Flux toolkit version** that this bump would move underneath (grep `releases/`, other demo/example repos, and anything referencing `open-platform-model/opm-operator` release tags or a `flux` version string). `opm-kind-demo` is the only one confirmed so far; this slice's first task is confirming whether it's the only one.
+
+Depends on A1 (needs the actual shipped version set to audit against, not a hypothetical). No further downstream dependents identified yet — this is discovery + verification work, not expected to gate anything else in this enhancement. (Problem 3, widened; see A1's `design.md` and `05-risks.md` for the discovery.)
+
 ## Ordering and waves
 
 ```
-Wave 0 (parallel, no inter-deps):  A1   A2   A3 ❌(reverted)   A4 ✅
-Then:                              B2 (after A2, A4)
+Wave 0 (parallel, no inter-deps):  A1 ✅   A2   A3 ❌(reverted)   A4 ✅
+Then:                              A5 (after A1 ✅ — unblocked)
+                                   B2 (after A2, A4)
 Then:                              C1 (after A2,A4,B2)
 Then:                              C2 (after C1 AND 0001 library slice)   ← cross-enhancement gate
 Then:                              C3 (after C1; structural parity after C2)
 ```
 
 - **A1–A4 are independent** and can be drafted/applied in parallel. B2 joins its prerequisites. B1 is cancelled (D31) — no operator slice joins A3, because A3 itself is reverted.
+- **A5 follows A1** but gates nothing else in this enhancement — it's downstream verification, not a prerequisite for B2/C1/C2/C3.
 - **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D14–D15).
 - **C2 carries the only cross-enhancement gate** — it consumes 0001's kernel materialize/match. Track 0001's status; C2 cannot begin until that slice is in `library`.
 - **OQ5 (one wave or two) decides where C3 sits.** Wave 1 = ship CR inventory + install + handoff (C1, B2, C3) against the CLI's current render pipeline, with best-effort digest parity. Wave 2 = kernel adoption (C2) makes that parity structural. If 0006 ships as a single wave, C3 follows C2 and parity is structural from the start. Resolve OQ5 before drafting C3.
