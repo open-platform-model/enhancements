@@ -15,7 +15,7 @@ graph LR
   N0003["0003: OPM Module Publishing Workflow"]:::draft
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
-  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::draft
+  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::accepted
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft

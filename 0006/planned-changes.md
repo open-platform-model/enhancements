@@ -15,11 +15,11 @@ Conventions:
 | -- | ---- | ----------- | ---------- | ---------- | ------ |
 | A1 | opm-operator | `operator-bump-k8s-stable` | — | Problem 3 (k8s line) | planned |
 | A2 | cli | `cli-rename-module` | — | D15 | planned |
-| A3 | library | `library-inventory-pkg` | — | D13 | ✅ implemented (2026-06-30) |
+| A3 | library | `library-inventory-pkg` | — | D13 | ❌ reverted (D31, 2026-07-01) |
 | A4 | opm-operator | `operator-moduleinstance-owner-marker` | — | D3 | ✅ implemented (2026-06-30) |
-| B1 | opm-operator | `operator-adopt-library-inventory` | A3 | D13 | planned (A3 ready) |
+| B1 | opm-operator | ~~`operator-adopt-library-inventory`~~ | ~~A3~~ | ~~D13~~ | ❌ cancelled (D31) — premise removed |
 | B2 | cli | `cli-operator-install-command` | A2, A4 | D5 | planned (A4 ready; awaits A2) |
-| C1 | cli | `cli-cr-inventory-backend` | A2, A3, A4, B1, B2 | D1, D2, D3 (consume), D8, D13, D14 | planned |
+| C1 | cli | `cli-cr-inventory-backend` | A2, A4, B2 | D1, D2, D3 (consume), D8, D14 | planned |
 | C2 | cli | `cli-kernel-adoption` | C1, **gate: 0001 library slice** | D9, D11, D12, D17, D14 | planned |
 | C3 | cli | `cli-instance-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16 | planned |
 
@@ -37,7 +37,9 @@ Mechanical rename of the CLI Go module `github.com/opmodel/cli` → `github.com/
 
 New `library/opm/inventory` package: build inventory entries from kernel-rendered resources, identity equality (`IdentityEqual` / `K8sIdentityEqual`), `ComputeStaleSet`, `ComputeDigest`, over a runtime-neutral entry type — no controller-runtime, no Flux, no k8s-typed dependency beyond apimachinery identity primitives. This is the shared implementation both CLI and operator consume so handoff prune-set parity is structural. No dependency. (D13.)
 
-**Status: ✅ implemented (2026-06-30).** Shipped as the library OpenSpec change `library-inventory-pkg` (archived `library/openspec/changes/archive/2026-06-30-library-inventory-pkg/`), commit `4558ed9` on branch `feat/library-inventory-pkg`. The package also homes the pure prune-safety logic (`ApplyComponentRenameSafetyCheck` + a pure pre-apply collision predicate, D26) and reconciles the prior CLI/operator stale-set drift onto one canonical `K8sIdentityEqual` base. New main spec `library/openspec/specs/inventory/spec.md` (6 requirements). One new direct dep `k8s.io/apimachinery`; import-graph guard test enforces no controller-runtime/Flux. Adoption is now unblocked for B1 (operator) and C1 (CLI).
+**Status: ❌ reverted (D31, 2026-07-01).** Shipped 2026-06-30 as the library OpenSpec change `library-inventory-pkg` (archived `library/openspec/changes/archive/2026-06-30-library-inventory-pkg/`), commit `4558ed9` on branch `feat/library-inventory-pkg` — see the original implementation note below, kept for record. An explore-mode design session investigating B1 traced which of the package's functions are actually cross-actor-critical and found only the `InventoryEntry` shape + `NewEntryFromResource` qualify; that surface is already anchored by the CRD schema and kernel-render-parity (D9), not by package-sharing, so a separate cross-repo dependency wasn't earning its coordination cost (see D31 in `03-decisions.md` for the full trace). **The code revert landed** via the library OpenSpec change `revert-library-inventory-pkg` (archived `library/openspec/changes/archive/2026-07-01-revert-library-inventory-pkg/`), commit `738a694` (PR #36, merged 2026-07-01) — `opm/inventory` is deleted in full, `go.mod`/`go.sum` cleanly reverted (dropped `k8s.io/apimachinery` + its transitive closure), `MIGRATIONS.md` carries the BREAKING entry. Unblocks nothing further — B1 is cancelled below and C1 no longer depends on this slice.
+>
+> Original implementation note (2026-06-30, superseded by D31): "New `library/opm/inventory` package shipped: runtime-neutral `InventoryEntry`, identity relations, `ComputeDigest`, `ComputeStaleSet` on a canonical `K8sIdentityEqual` base (reconciled the prior CLI/operator stale-set drift), plus pure prune-safety (`ApplyComponentRenameSafetyCheck` + a pure pre-apply collision predicate, D26). No controller-runtime/Flux (import-graph guard test); adds `k8s.io/apimachinery`. New main spec `library/openspec/specs/inventory/spec.md` (6 requirements)."
 
 ### A4 — opm-operator `operator-moduleinstance-owner-marker`
 
@@ -45,9 +47,13 @@ Add `spec.owner: "cli" | "operator"` (default `"operator"`) to `ModuleInstance`;
 
 **Status: ✅ implemented (2026-06-30).** Shipped as the opm-operator OpenSpec change `operator-moduleinstance-owner-marker` (archived `opm-operator/openspec/changes/archive/2026-06-30-operator-moduleinstance-owner-marker/`), branch `feat/moduleinstance-owner-marker`. The marker is a typed `OwnerType` enum (`OwnerCLI` / `OwnerOperator`), `+optional` + `omitempty`, with **no `+kubebuilder:default`** — the reconciler carries the operator-managed default semantics (absent / empty / `operator` all reconcile normally; only an explicit `owner: cli` skips), per D1. The owner-skip gate sits at the top of `ReconcileModuleInstance` **before** finalizer registration (D2), so a CLI-owned instance never receives the `opmodel.dev/cleanup` finalizer and the operator runs no render/apply/prune/deletion-cleanup; it records one idempotent `Ready: Unknown / ManagedExternally` acknowledgement (new `status.ManagedExternallyReason` + `MarkManagedExternally` helper) and writes no `observedGeneration` and no CLI-owned status (`inventory`, `lastApplied*`, `instanceUUID`) — guaranteed by snapshotting the serial patcher before the condition mutation (D3). Deleting a CLI-owned instance is a no-op; flipping `owner` to `operator` falls through to a normal reconcile that adds the finalizer and overwrites the condition (handoff fall-through). Regenerated CRD + DeepCopy + `dist/install.yaml`; new main spec `opm-operator/openspec/specs/module-instance-ownership/spec.md` (4 requirements). `task dev:test`/`dev:lint` clean. Unblocks B2 (embeds this CRD) and C1 (writes/reads `spec.owner: cli`).
 
-### B1 — opm-operator `operator-adopt-library-inventory`
+### B1 — opm-operator ~~`operator-adopt-library-inventory`~~ (cancelled)
 
-Migrate the operator's `internal/inventory` pure logic to consume `library/opm/inventory` (A3), replacing the in-repo copy; `api/v1alpha1.InventoryEntry` stays as the CRD serialization shape and maps to/from the `library` type. No external behaviour change — this is what guarantees the operator and CLI compute identical entry identity/digests. Depends on A3. (D13. Optionally OQ6 — whether the CLI-only prune-safety checks also move into the shared package — is decided here.)
+**Status: ❌ cancelled (D31, 2026-07-01).** This slice's entire premise — migrating the operator's `internal/inventory` to consume `library/opm/inventory` — no longer applies now that the shared package is reverted (D31). The operator's existing `internal/inventory` package is already correct local policy and needs no adoption step. There is nothing to slice here.
+
+D31 does surface a genuinely separate, real finding from the same investigation: the operator's apply path has no equivalent of the CLI's `PreApplyExistenceCheck` (foreign/terminating-object collision guard before a first-time claim), despite both actors' apply paths forcing SSA field-ownership unconditionally. Whether and how to build that is **OQ16** (open, `03-decisions.md`) — it is not scoped as a slice here because it hasn't been decided yet, and if built it would be a new, operator-local, independently-designed capability, not an "adopt the shared package" step. A future slice may pick this up once OQ16 resolves.
+
+Original description (superseded by D31, kept for record): "Migrate the operator's `internal/inventory` pure logic to consume `library/opm/inventory` (A3), replacing the in-repo copy; `api/v1alpha1.InventoryEntry` stays as the CRD serialization shape and maps to/from the `library` type. No external behaviour change — this is what guarantees the operator and CLI compute identical entry identity/digests. Depends on A3. (D13. Optionally OQ6 — whether the CLI-only prune-safety checks also move into the shared package — is decided here.)"
 
 ### B2 — cli `cli-operator-install-command`
 
@@ -55,7 +61,7 @@ New `opm install crds | operator` and `opm uninstall operator`: SSA install (man
 
 ### C1 — cli `cli-cr-inventory-backend`
 
-Replace the Secret inventory with the `ModuleInstance` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set via `library/opm/inventory` (D13); one-time Secret→CR migration with no deprecation window (D8/D14); delete `cli/internal/inventory` and `cli/pkg/inventory`. Render still uses the CLI's current pipeline at this point. Depends on A2, A3, A4, B1, B2. (D1, D2, D8, D13, D14; OQ3/OQ9 decided here.)
+Replace the Secret inventory with the `ModuleInstance` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set with the CLI's own existing local inventory logic. Delete only the Secret-specific CRUD/marshaling (`cli/internal/inventory/secret.go`, `crud.go`, `discover.go`, `list.go`) — the entry-identity/stale-set/digest/rename-safety/collision-check logic (`cli/pkg/inventory`, `cli/internal/inventory/stale.go`) stays and is ported onto the CR-backed flow as-is; D31 reverted the `library/opm/inventory` import this slice was originally scoped to consume instead (see D13/D31). One-time Secret→CR migration with no deprecation window (D8/D14). Render still uses the CLI's current pipeline at this point. Depends on A2, A4, B2 (A3 and B1 dropped per D31). (D1, D2, D8, D14; OQ3/OQ9 decided here.)
 
 ### C2 — cli `cli-kernel-adoption`
 
@@ -70,15 +76,14 @@ New `opm instance handoff <release>`, forward-only (CLI → operator), no revers
 ## Ordering and waves
 
 ```
-Wave 0 (parallel, no inter-deps):  A1   A2   A3 ✅   A4 ✅
-Then:                              B1 (after A3 ✅ — unblocked)
-                                   B2 (after A2, A4)
-Then:                              C1 (after A2,A3,A4,B1,B2)
+Wave 0 (parallel, no inter-deps):  A1   A2   A3 ❌(reverted)   A4 ✅
+Then:                              B2 (after A2, A4)
+Then:                              C1 (after A2,A4,B2)
 Then:                              C2 (after C1 AND 0001 library slice)   ← cross-enhancement gate
 Then:                              C3 (after C1; structural parity after C2)
 ```
 
-- **A1–A4 are independent** and can be drafted/applied in parallel. B1 and B2 join their respective prerequisites.
-- **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D13–D15).
+- **A1–A4 are independent** and can be drafted/applied in parallel. B2 joins its prerequisites. B1 is cancelled (D31) — no operator slice joins A3, because A3 itself is reverted.
+- **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D14–D15).
 - **C2 carries the only cross-enhancement gate** — it consumes 0001's kernel materialize/match. Track 0001's status; C2 cannot begin until that slice is in `library`.
 - **OQ5 (one wave or two) decides where C3 sits.** Wave 1 = ship CR inventory + install + handoff (C1, B2, C3) against the CLI's current render pipeline, with best-effort digest parity. Wave 2 = kernel adoption (C2) makes that parity structural. If 0006 ships as a single wave, C3 follows C2 and parity is structural from the start. Resolve OQ5 before drafting C3.

@@ -19,16 +19,16 @@
 - CLI users: **breaking operationally** — CRDs become a prerequisite (D5) and the inventory store changes (D1). Because the CLI has a single user and owes no backwards-compat (D14), the Secret → CR migration (D8) is a single best-effort one-time conversion on next apply; there is no deprecation window.
 - The CLI render pipeline change (D9) is internal — no user-facing schema change — but render diagnostics and pipeline behaviour shift to the kernel's. The CLI also moves to `cuelang.org/go` v0.17.0-alpha.1 (forced by importing `library`); accepted under D14.
 - The CLI Go module path changes `github.com/opmodel/cli` → `github.com/open-platform-model/cli` (D15) — a breaking import-path change for any Go importer, but the CLI has no library consumers and a single user (D14), so no compatibility shim is owed; it lands as a mechanical prep slice.
-- `opm-operator`: alongside the additive `spec.owner`, this enhancement bumps the operator's `k8s.io/*` + `controller-runtime` to the CLI's latest-stable k8s line and migrates its inventory pure-logic to `library` (D13) — both backward-compatible at the CRD level.
+- `opm-operator`: alongside the additive `spec.owner`, this enhancement bumps the operator's `k8s.io/*` + `controller-runtime` to the CLI's latest-stable k8s line (Problem 3) — backward-compatible at the CRD level. The inventory pure-logic migration to `library` (originally D13) is reverted by D31; `opm-operator/internal/inventory` is unaffected by this enhancement.
 
 ## Deprecation
 
 **What gets removed and when? What replaces it?**
 
-- `cli/internal/inventory` (Secret CRUD/marshaling) and `cli/pkg/inventory` (CLI's entry-identity copy) — removed by the CR-inventory slice; replaced by the CR + the shared `library/opm/inventory` package (D1, D13). No deprecation window (D14).
+- `cli/internal/inventory`'s Secret CRUD/marshaling — removed by the CR-inventory slice; replaced by the CR (D1). Its entry-identity/stale-set logic, and `cli/pkg/inventory` (CLI's entry-identity copy), are **not** removed — D31 reverted the D13 plan to replace them with a shared `library/opm/inventory` import; they stay as the CLI's local implementation, ported onto the CR-backed flow. No deprecation window (D14).
 - `cli/pkg/render` and the `cli/pkg/loader` match path — removed by the kernel-adoption slice; replaced by `library` kernel calls (D9).
 - The Secret inventory format (`opm.<releaseName>.<releaseID>`) — read-fallback for one minor release with a deprecation warning, then removed (D8).
-- `opm-operator/internal/inventory` — moved (not deleted) to `pkg/inventory` (D4).
+- `opm-operator/internal/inventory` — **stays in place**, unchanged (D31; supersedes D13's plan to migrate it to `library`, which itself had superseded D4's original "promote to operator `pkg/`" — neither move happens).
 
 ## Rollback
 
@@ -45,12 +45,12 @@
 Landing order follows the slice dependency chain:
 
 0. **opm-operator — `bump-k8s-latest-stable`** (`k8s.io/*` + `controller-runtime` to the CLI's latest-stable line; `go` directive). No dependency. Keeps the two repos on one k8s line (Problem 3).
-0a. **cli — `module-rename`** (`github.com/opmodel/cli` → `github.com/open-platform-model/cli`: `go.mod` module line + every internal import path + doc/CI references). No dependency. Mechanical prep; MUST land before the `library` edge (slice 5) so kernel/inventory imports are written under the final module name (D15).
-1. **library — `inventory-pkg`** (new `library/opm/inventory`: entry-building + identity + `ComputeStaleSet` + `ComputeDigest`, runtime-neutral). No dependency. Produces: the shared inventory package both CLI and operator import (D13). The operator migrates `internal/inventory` to consume it; its `api/v1alpha1.InventoryEntry` becomes the serialization shape.
+0a. **cli — `module-rename`** (`github.com/opmodel/cli` → `github.com/open-platform-model/cli`: `go.mod` module line + every internal import path + doc/CI references). No dependency. Mechanical prep; MUST land before the `library` edge (slice 4) so kernel imports are written under the final module name (D15).
+1. ~~**library — `inventory-pkg`**~~ — **cancelled (D31).** Originally: new `library/opm/inventory`, consumed by both CLI and operator. Reverted — see D31 in `03-decisions.md`. Both actors keep their own local inventory implementation; nothing lands here.
 2. **opm-operator — `cli-ownership-marker`** (`spec.owner` field, skip path, `ManagedExternally`, CRD regen). No dependency. Produces: the CRD the CLI embeds, including `spec.owner`.
 3. **cli — `operator-install-command`** (`opm install crds|operator`, embedded manifests). Consumes: slice 2's regenerated CRD/`dist/install.yaml`.
-4. **cli — `cr-inventory-backend`** (CR replaces Secret; status subset; Secret migration; delete CLI inventory code). Consumes: slices 1, 2, 3.
+4. **cli — `cr-inventory-backend`** (CR replaces Secret; status subset; Secret migration; delete Secret-specific CLI inventory code, keep the entry-identity/stale-set code in place). Consumes: slices 2, 3 (no longer slice 1 — reverted).
 5. **cli — `kernel-adoption`** (delete `pkg/render`; render via `library` kernel; implement the D11/D12 platform source — flag > cluster `Platform` CR > local default, write-if-absent solo Platform). Consumes: **enhancement 0001's `library` slice** (the gating cross-enhancement dependency) plus slice 4.
 6. **cli — `instance-handoff`** (`opm instance handoff`, forward-only CLI → operator; no reverse mode — D16). Consumes: slice 4 (and, for structural digest parity, slice 5 — see OQ5 on whether handoff ships in wave 1 or waits for wave 2).
 
-Slices 0a and 1–2 run in parallel (0a is independent and lands ahead of slice 5). The cross-enhancement edge (slice 5 → 0001) is the one to watch: it cannot start until 0001's kernel materialize/match has shipped to `library`.
+Slice 0a and slice 2 run in parallel (0a is independent and lands ahead of slice 5). The cross-enhancement edge (slice 5 → 0001) is the one to watch: it cannot start until 0001's kernel materialize/match has shipped to `library`.

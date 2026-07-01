@@ -29,7 +29,7 @@ On `opm instance apply`, the CLI creates or updates a `ModuleInstance` named aft
 
 `instance delete` resolves inventory from the CR, deletes resources in reverse weight order, then deletes the CR last (mirroring today's "Secret deleted last"). `instance list` lists `ModuleInstance` objects; `instance status` and `instance diff` read `status.inventory`. The CLI field manager for CR writes is `opm-cli`.
 
-`cli/internal/inventory` (Secret marshaling, CRUD) and `cli/pkg/inventory` (the CLI's own entry-identity/stale-set copy) are deleted, replaced by imports from the operator's promoted `pkg/inventory` (D4).
+`cli/internal/inventory`'s Secret-specific marshaling/CRUD is deleted; its entry-identity/stale-set logic, and `cli/pkg/inventory` (the CLI's own entry-identity/stale-set copy), are kept as the CLI's local implementation — not replaced by an import (D31 reverted the D4/D13 plan to source this from a shared package; see D31 in `03-decisions.md`).
 
 ### 2. Render/match moves to the `library` kernel
 
@@ -60,7 +60,7 @@ The new and changed shapes live in [`schemas/target.cue`](schemas/target.cue) (C
 
 - `ModuleInstance.spec.owner: "cli" | "operator"` (default `"operator"`) — the new ownership marker (D3).
 - The **CLI status subset** (D2): the CLI writes only `inventory`, `instanceUUID`, `lastAppliedRenderDigest`, `lastAppliedSourceDigest`, `lastAppliedConfigDigest`, `lastAppliedAt`, and one `Ready` condition (reason `AppliedByCLI`). Everything else in `ModuleInstanceStatus` stays operator-owned and unset by the CLI.
-- The **shared inventory surface** (D13) in the new `library/opm/inventory` package — runtime-neutral entry type, `NewEntryFromResource` (from kernel-rendered resources), `IdentityEqual` / `K8sIdentityEqual`, `ComputeStaleSet`, `ComputeDigest` — consumed by both CLI and operator. The operator's `api/v1alpha1.InventoryEntry` remains the CRD serialization shape and maps to/from the `library` type.
+- **Inventory logic stays local to each actor (D31, reverses D13's shared-package clause and D26).** The operator keeps its existing `internal/inventory` (entry type, `NewEntryFromResource`, `IdentityEqual`/`K8sIdentityEqual`, `ComputeStaleSet`, `ComputeDigest`); the CLI keeps its existing `cli/pkg/inventory` equivalent, ported onto the CR-backed flow. Only the `InventoryEntry` *wire shape* persisted to `status.inventory.entries[]` must agree across actors — that's the operator's `api/v1alpha1.InventoryEntry` CRD serialization shape, which is already the single source of truth for the field set. See D31 for why a shared `library` package for the algorithm turned out not to be load-bearing: the one cross-actor-critical moment (the operator's first post-handoff stale-set read of CLI-written entries) is already gated by D7.4's render-digest check.
 
 ## Integration Points
 
@@ -68,26 +68,26 @@ The new and changed shapes live in [`schemas/target.cue`](schemas/target.cue) (C
 
 - `api/v1alpha1/moduleinstance_types.go` — add `spec.owner: cli|operator` field with defaulting; regenerate CRD (`config/crd/bases/`).
 - Reconciler — add the `spec.owner: cli` skip path and the `ManagedExternally` condition (D3).
-- `internal/inventory/` (pure logic) → migrates to `library` (D13, supersedes D4's "promote to operator `pkg/`"); the operator then consumes the `library` package. `api/v1alpha1.InventoryEntry` stays as the CRD serialization shape and maps to/from the `library` type. Decide via OQ6 whether CLI-only prune-safety checks (component-rename detection, pre-apply existence check) move into the shared `library` package.
+- `internal/inventory/` (pure logic) → **stays in place, unchanged** (D31 reverted D13's plan to migrate it to `library`; D4's original "promote to operator `pkg/`" is also not pursued). `api/v1alpha1.InventoryEntry` stays the CRD serialization shape. OQ6's question (whether CLI-only prune-safety checks move into a shared package) is resolved-no by D31; the successor question — whether the operator should gain its own, independently-designed apply-time collision guard — is OQ16 (open).
 - `go.mod` — bump `k8s.io/*` and `controller-runtime` to the CLI's latest-stable k8s line, and the `go` directive to match (Problem 3, `research/findings.md`). A small prep slice, independent of the rest.
 - `dist/install.yaml`, `config/crd/bases/*.yaml` — consumed (embedded) by the CLI's `opm install`; no change beyond the CRD regen.
 
 ### library
 
-- New `library/opm/inventory/` package (D13) — the shared, runtime-neutral inventory logic: build entries from kernel-rendered resources, `IdentityEqual` / `K8sIdentityEqual`, `ComputeStaleSet`, `ComputeDigest`. Consumed by both the CLI and the operator so handoff prune-set parity is structural. No k8s-typed dependency beyond `apimachinery` identity primitives; no controller-runtime, no Flux.
+- No inventory package (D31 reverted `library/opm/inventory`, shipped as slice A3 then walked back — the code revert itself is a separate, not-yet-done session). `library`'s role in this enhancement is the kernel only (D9) — render/match, consumed by the CLI the same way the operator already consumes it.
 
 ### cli
 
-- `internal/inventory/` (Secret marshaling, CRUD) — **deleted** (D1).
-- `pkg/inventory/` (CLI's entry-identity/stale-set copy) — **deleted**, replaced by the `library/opm/inventory` import (D13).
+- `internal/inventory/` — its Secret-specific marshaling/CRUD is **deleted** (D1); its entry-identity/stale-set/rename-safety/collision-check logic (`stale.go`) **stays**, ported onto the CR-backed flow (D31 reverses D13's plan to delete it in favor of a `library` import).
+- `pkg/inventory/` (CLI's entry-identity/stale-set copy) — **stays** (D31 reverses D13's plan to delete it in favor of the `library/opm/inventory` import).
 - `pkg/render/`, match path in `pkg/loader/` — **deleted**, replaced by `library` kernel calls (D9).
-- `internal/workflow/apply/apply.go` — rewired as a one-shot reconcile (D13): render via kernel, compute stale set via `library/opm/inventory`, SSA apply via the CLI engine (D10), prune with the ownership guard, write the CR status subset (D2) as `unstructured`, Secret migration (D8/D14). Borrows the operator's phase order; runs no controller-runtime loop.
+- `internal/workflow/apply/apply.go` — rewired as a one-shot reconcile (D13/D31): render via kernel, compute stale set via the CLI's own `pkg/inventory`/`internal/inventory` logic (unchanged in place, not an import), SSA apply via the CLI engine (D10), prune with the ownership guard, write the CR status subset (D2) as `unstructured`, Secret migration (D8/D14). Borrows the operator's phase order; runs no controller-runtime loop.
 - `internal/kubernetes/` — the SSA apply/delete path that stays CLI-owned; ensure it uses server-side apply with manager `opm-cli` (D10).
 - `internal/cmd/instance/{apply,delete,status,list,diff}.go` — read/write the CR instead of the Secret.
 - New `internal/cmd/install/` (or equivalent) — `opm install crds|operator`, `opm uninstall operator`, embedded manifests, `--version` (D5).
 - New `internal/cmd/instance/handoff.go` — `opm instance handoff` with D7 verification; **forward-only** (CLI → operator), no reverse mode (D16).
 - **Module rename (D15)** — `cli/go.mod` `module` line and every internal `github.com/opmodel/cli/...` import path renamed to `github.com/open-platform-model/cli`; a mechanical prep slice landed before the `library` edge is added, so the kernel/inventory imports are written against the final name.
-- `go.mod` — add `github.com/open-platform-model/library` **only** (kernel + the new shared inventory package). Do **not** add `opm-operator` (D13 — it drags controller-runtime + Flux). The `ModuleInstance` CR is read/written as `unstructured` via the CLI's existing client-go. The CUE bump to v0.17.0-alpha.1 is forced by importing `library` and is accepted (D14).
+- `go.mod` — add `github.com/open-platform-model/library` **only** (kernel — D31 removed inventory from this import's scope). Do **not** add `opm-operator` (D13 — it drags controller-runtime + Flux). The `ModuleInstance` CR is read/written as `unstructured` via the CLI's existing client-go. The CUE bump to v0.17.0-alpha.1 is forced by importing `library` and is accepted (D14).
 - New platform-resolution code (D11/D12/D17): resolve the platform spec by precedence (`--platform` flag > cluster `Platform` CR > local/embedded default), call `SynthesizePlatform` → `Materialize`, and on a solo cluster write the singleton `cluster` Platform CR write-if-absent (SSA, manager `opm-cli`). `handoff` forces the cluster-CR source; every other path stays usable against a local Platform with no cluster-admin (D17). Concrete flag surface across commands is OQ14; `diff`'s source is OQ12; write-if-absent atomicity is OQ13.
 
 ## Before / After
