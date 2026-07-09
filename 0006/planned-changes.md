@@ -14,15 +14,16 @@ Conventions:
 | ID | Repo | Change name | Depends on | Implements | Status |
 | -- | ---- | ----------- | ---------- | ---------- | ------ |
 | A1 | opm-operator | `operator-bump-k8s-stable` | — | Problem 3 (k8s line, widened) | ✅ implemented (2026-07-01) |
-| A2 | cli | `cli-rename-module` | — | D15 | planned |
+| A2 | cli | `cli-rename-module` | — | D15 | ✅ implemented (2026-07-01) |
 | A3 | library | `library-inventory-pkg` | — | D13 | ❌ reverted (D31, 2026-07-01) |
 | A4 | opm-operator | `operator-moduleinstance-owner-marker` | — | D3 | ✅ implemented (2026-06-30) |
 | B1 | opm-operator | ~~`operator-adopt-library-inventory`~~ | ~~A3~~ | ~~D13~~ | ❌ cancelled (D31) — premise removed |
-| B2 | cli | `cli-operator-install-command` | A2, A4 | D5 | planned (A4 ready; awaits A2) |
-| C1 | cli | `cli-cr-inventory-backend` | A2, A4, B2 | D1, D2, D3 (consume), D8, D14 | planned |
+| B2 | cli | `cli-operator-install-command` | A2, A4 | D5, D32, D33, D34, D35 | ✅ implemented (2026-07-03) |
+| C1 | cli | `cli-cr-inventory-backend` | A2, A4, B2, A6 | D1, D2, D3 (consume), D8, D14, D24, D27, D33 | planned |
 | C2 | cli | `cli-kernel-adoption` | C1, **gate: 0001 library slice** | D9, D11, D12, D17, D14 | planned |
 | C3 | cli | `cli-instance-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16 | planned |
 | A5 | opm-kind-demo (+ audit other consumers) | `downstream-flux-k8s-compat-audit` | A1 | Problem 3 (widened) | planned (A1 ready — unblocked 2026-07-01) |
+| A6 | opm-operator | `operator-platform-status-operator-version` | — | D24 (operator half) | planned (added 2026-07-02) |
 
 ## Change descriptions
 
@@ -37,6 +38,8 @@ Bump `k8s.io/*` and `sigs.k8s.io/controller-runtime` to the CLI's latest-stable 
 ### A2 — cli `cli-rename-module`
 
 Mechanical rename of the CLI Go module `github.com/opmodel/cli` → `github.com/open-platform-model/cli`: the `go.mod` `module` line, every internal `github.com/opmodel/cli/...` import path, and doc/CI references. No behaviour change. Must land before any CLI change that adds the `library` edge, so kernel/inventory imports are written under the final name. (D15.)
+
+**Status: ✅ implemented (2026-07-01).** Shipped as the cli OpenSpec change `cli-rename-module` (archived `cli/openspec/changes/archive/2026-07-01-cli-rename-module/`); `cli/go.mod` now declares `github.com/open-platform-model/cli`. Unblocks B2 (with A4, already ✅).
 
 ### A3 — library `library-inventory-pkg`
 
@@ -62,11 +65,13 @@ Original description (superseded by D31, kept for record): "Migrate the operator
 
 ### B2 — cli `cli-operator-install-command`
 
-New `opm install crds | operator` and `opm uninstall operator`: SSA install (manager `opm-cli`) of the embedded (`go:embed`) CRD manifests and `dist/install.yaml`, with `--version` fetch fallback; `uninstall` never deletes CRDs; missing-CRD on apply fails with a clear hint. Depends on A4 (the regenerated CRD/`dist` it embeds) and A2 (the rename). Makes the CRD a hard prerequisite for every CLI apply. (D5; OQ7/OQ8 decided here.)
+**Rescoped 2026-07-02 (D32–D35).** New noun-first `opm operator` command group: `opm operator install` (full operator), `opm operator install --crds-only` (just the CRDs — the CLI-solo path; hosts D23's opt-in `--rbac`), `opm operator uninstall` (never deletes CRDs or the Namespace). SSA with field manager `opm-cli`; B2 also renames the CLI's existing `opm` field-manager constant to `opm-cli` (D33). One embedded artifact — the pinned opm-operator release's `dist/install.yaml` (`go:embed`), CRDs derived by filtering, pin refreshed via a cli Taskfile sync task, `--version` fetching the GitHub release asset (D35). Install waits for completion (CRDs `Established`, Deployment rollout), building the readiness machinery C3's handoff precondition reuses (D35). Uninstall refuses while `ModuleInstance`s carry the operator's `opmodel.dev/cleanup` finalizer, with `--remove-finalizers` as the explicit orphaning override (D34). **Nothing on the apply path** — the missing-CRD hint and D24's skew gates move to C1 (D33). Depends on A4 (the CRD/`dist` it embeds, ✅) and A2 (the rename, ✅) — unblocked. First pin: opm-operator v1.0.0-alpha.2 (contains A1 + A4). (D5, D32, D33, D34, D35; OQ7/OQ8 were decided here — OQ8's D28 since superseded by D32.)
+
+**Status: ✅ implemented (2026-07-03).** Shipped as the cli OpenSpec change `cli-operator-install-command` (archived `cli/openspec/changes/archive/2026-07-03-cli-operator-install-command/`), commit `3387278`, all 14 tasks complete. Landed as designed: new `internal/cmd/operator/` (thin cobra) + `internal/operator/` (embed of pinned `dist/install.yaml` v1.0.0-alpha.2, parse/plan by filtering, `--version` fetch, RBAC emission, bounded readiness waits, finalizer guard), field-manager constant renamed `opm` → `opm-cli` across `internal/kubernetes`, `task operator:sync` added, new main specs `operator-lifecycle` + `cmd-structure` delta. With B2 done, C1 waits only on A6.
 
 ### C1 — cli `cli-cr-inventory-backend`
 
-Replace the Secret inventory with the `ModuleInstance` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set with the CLI's own existing local inventory logic. Delete only the Secret-specific CRUD/marshaling (`cli/internal/inventory/secret.go`, `crud.go`, `discover.go`, `list.go`) — the entry-identity/stale-set/digest/rename-safety/collision-check logic (`cli/pkg/inventory`, `cli/internal/inventory/stale.go`) stays and is ported onto the CR-backed flow as-is; D31 reverted the `library/opm/inventory` import this slice was originally scoped to consume instead (see D13/D31). One-time Secret→CR migration with no deprecation window (D8/D14). Render still uses the CLI's current pipeline at this point. Depends on A2, A4, B2 (A3 and B1 dropped per D31). (D1, D2, D8, D14; OQ3/OQ9 decided here.)
+Replace the Secret inventory with the `ModuleInstance` CR (handled as `unstructured`): write the CLI status subset (D2) and `spec.owner: cli` (D3); rewire `apply/delete/status/list/diff` to read/write the CR; one-shot apply/prune that ports the operator's reconcile concepts (phase order, ownership guard, never-prune Namespaces/CRDs) and computes the stale set with the CLI's own existing local inventory logic. Delete only the Secret-specific CRUD/marshaling (`cli/internal/inventory/secret.go`, `crud.go`, `discover.go`, `list.go`) — the entry-identity/stale-set/digest/rename-safety/collision-check logic (`cli/pkg/inventory`, `cli/internal/inventory/stale.go`) stays and is ported onto the CR-backed flow as-is; D31 reverted the `library/opm/inventory` import this slice was originally scoped to consume instead (see D13/D31). One-time Secret→CR migration with no deprecation window (D8/D14). Render still uses the CLI's current pipeline at this point. **This slice is where the CRD becomes a hard prerequisite for CLI apply (D33):** the missing-CRD fail-with-hint (`ModuleInstance CRD not found — run 'opm operator install --crds-only'`, D5/D27/D32) and D24's version-skew gates (CRD field-presence floor; operator-version ceiling read from `Platform.status.operatorVersion`, published by A6) land here, not in B2. Depends on A2, A4, B2, A6 (A3 and B1 dropped per D31). (D1, D2, D8, D14, D24, D27, D33; OQ3/OQ9 decided here.)
 
 ### C2 — cli `cli-kernel-adoption`
 
@@ -87,18 +92,23 @@ New `opm instance handoff <release>`, forward-only (CLI → operator), no revers
 
 Depends on A1 (needs the actual shipped version set to audit against, not a hypothetical). No further downstream dependents identified yet — this is discovery + verification work, not expected to gate anything else in this enhancement. (Problem 3, widened; see A1's `design.md` and `05-risks.md` for the discovery.)
 
+### A6 — opm-operator `operator-platform-status-operator-version`
+
+**New, added 2026-07-02, closing a scheduling gap in D24.** D24's version-skew contract has two halves: the CLI-side gates (CRD field-presence floor + operator-version ceiling — C1's scope per D33) and the operator-side write those gates read — the operator self-publishing its own version into `Platform.status.operatorVersion` on the singleton `cluster` Platform it reconciles. The write half was decided in D24 ("the operator must self-publish") but never assigned to any slice; `opm-operator/api/v1alpha1` has no `operatorVersion` field today. This slice adds the status field to the `Platform` types, has the `PlatformReconciler` stamp it each reconcile (from the operator's build-time version info), and regenerates CRD/DeepCopy/`dist/install.yaml`. Additive, backward-compatible, no dependency on other slices. C1 depends on it: without the field, C1's ceiling check would read absence as "solo cluster, check skipped" (D24's semantics) even on operator-managed clusters, silently disabling the one gate that guards the unsafe CLI-older-than-operator direction. (D24, operator half.)
+
 ## Ordering and waves
 
 ```
-Wave 0 (parallel, no inter-deps):  A1 ✅   A2   A3 ❌(reverted)   A4 ✅
+Wave 0 (parallel, no inter-deps):  A1 ✅   A2 ✅   A3 ❌(reverted)   A4 ✅   A6
 Then:                              A5 (after A1 ✅ — unblocked)
-                                   B2 (after A2, A4)
-Then:                              C1 (after A2,A4,B2)
+                                   B2 ✅ (after A2 ✅, A4 ✅)
+Then:                              C1 (after A2,A4,B2 ✅ — waits only on A6)
 Then:                              C2 (after C1 AND 0001 library slice)   ← cross-enhancement gate
 Then:                              C3 (after C1; structural parity after C2)
 ```
 
-- **A1–A4 are independent** and can be drafted/applied in parallel. B2 joins its prerequisites. B1 is cancelled (D31) — no operator slice joins A3, because A3 itself is reverted.
+- **A1–A4 and A6 are independent** and can be drafted/applied in parallel. B2 joins its prerequisites. B1 is cancelled (D31) — no operator slice joins A3, because A3 itself is reverted.
+- **A6 (added 2026-07-02)** is dependency-free operator work that only C1 waits on; it can land any time before C1 — in parallel with B2.
 - **A5 follows A1** but gates nothing else in this enhancement — it's downstream verification, not a prerequisite for B2/C1/C2/C3.
 - **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D14–D15).
 - **C2 carries the only cross-enhancement gate** — it consumes 0001's kernel materialize/match. Track 0001's status; C2 cannot begin until that slice is in `library`.

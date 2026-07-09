@@ -7,7 +7,7 @@
 - A CLI-deployed release becomes visible as a `ModuleInstance` CR (`kubectl get moduleinstances`) instead of an opaque Secret — a net observability gain; CLI and operator releases now show in one list.
 - New CR condition: `Ready` with reason `AppliedByCLI` (CLI-written, D2) and `Ready: Unknown` / `ManagedExternally` (operator-written for CLI-owned CRs, D3).
 - `opm instance handoff` reports a structured outcome: preconditions checked, digest-comparison result (match / mismatch with diff under `--force`), and the post-flip reconcile result (resources changed, resources pruned — both expected zero).
-- New error surfaces: missing-CRD hint on apply (`ModuleInstance CRD not found — run 'opm install crds'`, D5); handoff precondition failures (operator not ready, `spec.module` not resolvable, digest mismatch — each actionable, D7); missing `status` RBAC error (OQ3).
+- New error surfaces: missing-CRD hint on apply (`ModuleInstance CRD not found — run 'opm operator install --crds-only'`, D5/D32; lands with the CR-inventory slice, D33); `opm operator uninstall`'s refuse-while-finalizers-armed warning naming the affected instances (D34); handoff precondition failures (operator not ready, `spec.module` not resolvable, digest mismatch — each actionable, D7); missing `status` RBAC error (OQ3).
 - Render diagnostics now come from the `library` kernel (D9), so CLI render errors gain whatever structured diagnostics 0001's kernel emits (e.g. `MissingFQN`, `UnifyError`) — replacing the CLI's own pipeline errors.
 
 ## Semver Impact
@@ -48,8 +48,9 @@ Landing order follows the slice dependency chain:
 0a. **cli — `module-rename`** (`github.com/opmodel/cli` → `github.com/open-platform-model/cli`: `go.mod` module line + every internal import path + doc/CI references). No dependency. Mechanical prep; MUST land before the `library` edge (slice 4) so kernel imports are written under the final module name (D15).
 1. ~~**library — `inventory-pkg`**~~ — **cancelled (D31).** Originally: new `library/opm/inventory`, consumed by both CLI and operator. Reverted — see D31 in `03-decisions.md`. Both actors keep their own local inventory implementation; nothing lands here.
 2. **opm-operator — `cli-ownership-marker`** (`spec.owner` field, skip path, `ManagedExternally`, CRD regen). No dependency. Produces: the CRD the CLI embeds, including `spec.owner`.
-3. **cli — `operator-install-command`** (`opm install crds|operator`, embedded manifests). Consumes: slice 2's regenerated CRD/`dist/install.yaml`.
-4. **cli — `cr-inventory-backend`** (CR replaces Secret; status subset; Secret migration; delete Secret-specific CLI inventory code, keep the entry-identity/stale-set code in place). Consumes: slices 2, 3 (no longer slice 1 — reverted).
+2a. **opm-operator — `platform-status-operator-version`** (`Platform.status.operatorVersion` self-publish — D24's operator half; slice A6, added 2026-07-02). No dependency. Produces: the field slice 4's version-skew ceiling reads.
+3. **cli — `operator-install-command`** (`opm operator install [--crds-only]` / `opm operator uninstall`, embedded `dist/install.yaml` — D32–D35). Consumes: slice 2's regenerated CRD/`dist/install.yaml`. Install/uninstall only; no apply-path change (D33).
+4. **cli — `cr-inventory-backend`** (CR replaces Secret; status subset; Secret migration; delete Secret-specific CLI inventory code, keep the entry-identity/stale-set code in place; missing-CRD hint + D24 skew gates land here — D33). Consumes: slices 2, 2a, 3 (no longer slice 1 — reverted).
 5. **cli — `kernel-adoption`** (delete `pkg/render`; render via `library` kernel; implement the D11/D12 platform source — flag > cluster `Platform` CR > local default, write-if-absent solo Platform). Consumes: **enhancement 0001's `library` slice** (the gating cross-enhancement dependency) plus slice 4.
 6. **cli — `instance-handoff`** (`opm instance handoff`, forward-only CLI → operator; no reverse mode — D16). Consumes: slice 4 (and, for structural digest parity, slice 5 — see OQ5 on whether handoff ships in wave 1 or waits for wave 2).
 

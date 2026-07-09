@@ -11,8 +11,8 @@ This enhancement promotes the storage/handoff design of `cli/docs/rfc/0007` (and
 ## Documents
 
 1. [01-problem.md](01-problem.md) — Why two disjoint inventory stores (CLI Secret vs operator CR) and two divergent render pipelines (CLI `pkg/render` vs library kernel) make the learner-to-operator path impossible and handoff unsafe
-2. [02-design.md](02-design.md) — CR-backed inventory, full library-kernel adoption for render/match, CLI-side SSA apply, `spec.owner` marker, `opm install`, `opm instance handoff`
-3. [03-decisions.md](03-decisions.md) — Append-only decision log (D1–D31) and Open Questions
+2. [02-design.md](02-design.md) — CR-backed inventory, full library-kernel adoption for render/match, CLI-side SSA apply, `spec.owner` marker, `opm operator install`, `opm instance handoff`
+3. [03-decisions.md](03-decisions.md) — Append-only decision log (D1–D35) and Open Questions
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
@@ -30,7 +30,7 @@ Pure-CUE / Go-shape sketches live under [`schemas/`](schemas/).
 - CLI imports `library` only — **not** `opm-operator` (D13, supersedes D4). The CLI handles the `ModuleInstance` CR as `unstructured`, avoiding controller-runtime + Flux, and keeps its own local inventory logic (entry-building, identity, stale set, digest) rather than importing it from a shared package — D31 reverted D13's original plan to home that logic in `library`; see D31 in [`03-decisions.md`](03-decisions.md) for why the shared-package premise didn't hold up. The CLI's apply/prune is a one-shot design borrowing the operator's reconcile concepts, not its machinery. See [`research/findings.md`](research/findings.md) for the dependency analysis.
 - No backwards-compatibility or deprecation burden — the CLI has a single user; refactor freely (D14). The CUE v0.16.1 → v0.17.0-alpha.1 bump that D9 forces (via `library`) is accepted; D8's Secret-format fallback window collapses to a one-time migration.
 - `spec.owner: cli | operator` marker on `ModuleInstance`; the operator skips reconcile of CLI-owned CRs with a `ManagedExternally` condition (D3). Operator-side change, documented here.
-- `opm install crds | operator`, `opm uninstall operator`; CRDs become a hard prerequisite for every CLI apply; embedded operator manifests with a `--version` fetch fallback (D5).
+- `opm operator install [--crds-only]`, `opm operator uninstall` (D5; noun-first surface per D32, uninstall semantics per D34); CRDs become a hard prerequisite for every CLI apply (gate lands with the CR-inventory slice — D33); one embedded operator artifact (`dist/install.yaml`) with a `--version` fetch fallback (D35).
 - `spec.module` contents when applying from a local path vs a published reference (D6).
 - `opm instance handoff` with digest verification — forward-only, CLI → operator (D7); reverse mode is out of scope (D16).
 - Rename the CLI Go module `github.com/opmodel/cli` → `github.com/open-platform-model/cli`, aligning it with `library` and `opm-operator`; a mechanical prep slice landed before the `library` edge is added (D15).
@@ -44,7 +44,7 @@ Pure-CUE / Go-shape sketches live under [`schemas/`](schemas/).
 - **`Release` / `BundleRelease` handoff.** This enhancement covers `ModuleInstance` only; the Flux-sourced CRs have no CLI-side equivalent.
 - **Rollback / `status.history`.** Remains operator-only; the CLI does not gain rollback here.
 - **The library-kernel match/materialize redesign itself.** That is enhancement [0001](../0001/); 0006 *consumes* it. 0006 does not modify `core/` or the kernel's match algorithm.
-- **Operator lifecycle beyond install/uninstall** (upgrade orchestration, HA) — `opm install` applies manifests; it is not a package manager.
+- **Operator lifecycle beyond install/uninstall** (upgrade orchestration, HA) — `opm operator install` applies manifests; it is not a package manager.
 
 ## Relationship to 0001
 
@@ -65,7 +65,7 @@ Pure-CUE / Go-shape sketches live under [`schemas/`](schemas/).
 | `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Operator repo principles governing the `cli-ownership-marker` slice. |
 | `opm-operator/api/v1alpha1/moduleinstance_types.go`, `common_types.go` | `ModuleInstance` + `Inventory` + `InventoryEntry` types — the CRD serialization shape the CLI's CR fields must agree with (D3 adds `spec.owner` here). Not imported by the CLI (D13) — the CLI reads/writes the CR as `unstructured`. |
 | `opm-operator/internal/inventory/` | Stays in place, unchanged by this enhancement (D31 reverted the D13/D4 plans to migrate or promote it elsewhere). |
-| `opm-operator/dist/install.yaml`, `opm-operator/config/crd/bases/` | Install artefacts the CLI embeds for `opm install` (D5). |
+| `opm-operator/dist/install.yaml` | The one install artefact the CLI embeds for `opm operator install` (D5/D35; CRDs are a filtered subset — `config/crd/bases/` is not separately embedded). |
 | `opm-operator/openspec/changes/archive/2026-04-12-01-cli-dependency-and-inventory-bridge/` | The original copy of CLI inventory code into the operator; historical context only — D31 keeps both actors' inventory code independent rather than sharing in either direction. |
 | `library/opm/` (kernel) | The CLI imports `library` for the kernel only (D9) — no inventory package (D31 reverted `library/opm/inventory`). |
 | `enhancements/0001/` | The library-kernel redesign D9 consumes; gates the kernel-adoption strand. |

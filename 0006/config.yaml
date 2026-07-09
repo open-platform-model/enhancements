@@ -11,7 +11,7 @@ affects:
   - opm-operator
   - library
 created: "2026-06-22"
-updated: "2026-07-01"
+updated: "2026-07-03"
 authors:
   - OPM Contributors
 # Design impact on the published contract. none = no core schema change;
@@ -56,7 +56,14 @@ history:
   - date: "2026-07-01"
     event: "Slice A1 implemented (Problem 3, widened) — opm-operator bumped k8s.io/* v0.35.2->v0.36.2, sigs.k8s.io/controller-runtime v0.23.3->v0.24.1, and the coupled Flux package set (cli-utils v1.2.2, pkg/apis/meta v1.30.1, pkg/runtime v0.110.1, pkg/ssa v0.76.1, source-controller/api v1.9.1) matching the flux2 v2.9.0 distribution's own pins (D4). Also migrated api/v1alpha1's scheme registration off the newly-deprecated controller-runtime/pkg/scheme.Builder to apimachinery's runtime.NewSchemeBuilder (D8, discovered via task dev:lint, behavior-preserving, 4 files). No go directive change needed; zero diff in generated CRDs/RBAC/dist/install.yaml except one benign import-alias line. Real e2e verification required a self-correction: design.md's first-drafted D7 wrongly claimed prune_test.go/finalizer_test.go provide live coverage (they are also pre-existing Skip() TODOs, not checked before that claim was written); the actual empirical proof came from PR #44's CI run, where podinfo_test.go executed for real (unlike the local run) and passed, confirming the bumped pkg/ssa apply path and cli-utils/pkg/kstatus/polling readiness detection. Merged to main as commit d724ac3 (PR #44, squash-merged). A5 (opm-kind-demo downstream audit) is now unblocked."
     slice: "opm-operator/2026-07-01-operator-bump-k8s-stable"
-# Peer enhancements this one builds on or interacts with.
+  - date: "2026-07-01"
+    event: "Slice A2 implemented (D15) — CLI Go module renamed github.com/opmodel/cli -> github.com/open-platform-model/cli (go.mod module line, every internal import path, doc/CI references; no behaviour change). Recorded retroactively 2026-07-02. With A4 already shipped, unblocks B2."
+    slice: "cli/2026-07-01-cli-rename-module"
+  - date: "2026-07-02"
+    event: "D32-D35 — B2 (cli-operator-install-command) design firmed in an explore-mode session. D32 supersedes D28 (and OQ8's resolution): noun-first `opm operator` command group — `opm operator install [--crds-only]` / `opm operator uninstall`; no install/uninstall verb groups; D27's hint text respelled. D33: B2 ships install/uninstall only — the missing-CRD apply gate and D24's version-skew gates move to C1, where the CR write gives them a referent; B2 also renames the CLI's existing SSA field-manager constant `opm` -> `opm-cli` (D10's naming). D34: uninstall preserves the Namespace as well as CRDs, and refuses while ModuleInstances carry the operator's opmodel.dev/cleanup finalizer (warn naming each instance), overridable via --remove-finalizers (strips only the operator's finalizer; orphaning stated). D35: one embedded artifact — the pinned release's dist/install.yaml (first pin v1.0.0-alpha.2), CRDs derived by filtering, pin refreshed via a cli Taskfile sync task, --version fetching the GitHub release asset (checksum verification deferred), install waits for completion (CRDs Established + Deployment rollout; machinery reused by C3's readiness precondition). Also discovered and scheduled: D24's operator half (Platform.status.operatorVersion self-publish) was never assigned to any slice and the field exists nowhere in opm-operator — new slice A6 (operator-platform-status-operator-version) added to planned-changes.md; C1 now depends on it (absence would silently disable the skew ceiling as 'solo cluster'). planned-changes.md B2/C1 rescoped; 02-design.md, README.md, 05-risks.md, 06-operational.md command spellings updated."
+  - date: "2026-07-03"
+    event: "Slice B2 implemented (D5, D32-D35) — new `opm operator` command group in cli: `operator install [--crds-only] [--rbac [--user|--group]] [--version] [--timeout]` and `operator uninstall [--remove-finalizers]`. Single embedded artifact (pinned opm-operator v1.0.0-alpha.2 dist/install.yaml, go:embed) with plans derived by filtering (install all / CRDs-only subset / uninstall = all minus CRDs minus Namespace); `task operator:sync VERSION=<tag>` refresh task; `--version` fetches the GitHub release asset; bounded readiness waits (CRD Established + Deployment rollout, machinery reusable by C3's handoff precondition); uninstall finalizer guard (refuse naming instances armed with opmodel.dev/cleanup, --remove-finalizers strips only that finalizer, fails closed on list errors). CLI-wide SSA field manager renamed opm -> opm-cli (D33/D10). New cli main spec operator-lifecycle + cmd-structure delta. Commit 3387278, archived change, 14/14 tasks. C1 (cli-cr-inventory-backend) now waits only on A6 (Platform.status.operatorVersion)."
+    slice: "cli/2026-07-03-cli-operator-install-command"
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.
 related:
