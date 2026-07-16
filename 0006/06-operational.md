@@ -17,7 +17,7 @@
 - `opmodel.dev/core`: **no change.** This enhancement touches no `core/*.cue`. Expected `config.yaml.semver: none` for core.
 - `opm-operator` `ModuleInstance` CRD: additive `spec.owner` field within `v1alpha1` (default `operator`), backward compatible with existing CRs (D3).
 - CLI users: **breaking operationally** — CRDs become a prerequisite (D5) and the inventory store changes (D1). Because the CLI has a single user and owes no backwards-compat (D14), the Secret → CR migration (D8) is a single best-effort one-time conversion on next apply; there is no deprecation window.
-- The CLI render pipeline change (D9) is internal — no user-facing schema change — but render diagnostics and pipeline behaviour shift to the kernel's. The CLI also moves to `cuelang.org/go` v0.17.0-alpha.1 (forced by importing `library`); accepted under D14.
+- The CLI render pipeline change (D9) is internal — no user-facing schema change — but render diagnostics and pipeline behaviour shift to the kernel's. The CLI also moves to `cuelang.org/go` v0.17.1 — in C1, ahead of the `library` import (D36); accepted under D14.
 - The CLI Go module path changes `github.com/opmodel/cli` → `github.com/open-platform-model/cli` (D15) — a breaking import-path change for any Go importer, but the CLI has no library consumers and a single user (D14), so no compatibility shim is owed; it lands as a mechanical prep slice.
 - `opm-operator`: alongside the additive `spec.owner`, this enhancement bumps the operator's `k8s.io/*` + `controller-runtime` to the CLI's latest-stable k8s line (Problem 3) — backward-compatible at the CRD level. The inventory pure-logic migration to `library` (originally D13) is reverted by D31; `opm-operator/internal/inventory` is unaffected by this enhancement.
 
