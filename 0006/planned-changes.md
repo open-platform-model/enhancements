@@ -22,7 +22,7 @@ Conventions:
 | C1 | cli | `cli-cr-inventory-backend` | A2, A4, B2, A6 | D1, D2, D3 (consume), D6 (write-side), D8, D14, D24, D27, D33, D36, D37, D38 (write side) | ✅ implemented (2026-07-18) |
 | C2 | cli | `cli-kernel-adoption` | C1, **gate: 0001 library slice** | D9, D11, D12, D17, D39 | ✅ implemented + merged (2026-07-18, cli#112 squash 2ba7c40; released cli 1.0.0-alpha.2) |
 | C3 | cli | `cli-instance-handoff` | C1 (wave 1) or C2 (wave 2) — see OQ5 | D6, D7, D16, D18, D38, D40 | ✅ implemented + archived (2026-07-20) |
-| A5 | opm-kind-demo (+ audit other consumers) | `downstream-flux-k8s-compat-audit` | A1 | Problem 3 (widened) | planned (A1 ready — unblocked 2026-07-01) |
+| A5 | opm-kind-demo (+ audit other consumers) | `downstream-flux-k8s-compat-audit` | A1 | Problem 3 (widened) | ✅ implemented (2026-07-20, opm-kind-demo#1) |
 | A6 | opm-operator | `operator-platform-status-operator-version` | — | D24 (operator half) | ✅ implemented + released (PR #47; v1.0.0-alpha.3, in latest alpha.4) |
 
 ## Change descriptions
@@ -114,6 +114,8 @@ New `opm instance handoff <release>`, forward-only (CLI → operator), no revers
 
 Depends on A1 (needs the actual shipped version set to audit against, not a hypothetical). No further downstream dependents identified yet — this is discovery + verification work, not expected to gate anything else in this enhancement. (Problem 3, widened; see A1's `design.md` and `05-risks.md` for the discovery.)
 
+**Status: ✅ implemented (2026-07-20).** Executed as a direct PR ([opm-kind-demo#1](https://github.com/fabled-se/opm-kind-demo/pull/1), squash `86a6d10` — the repo has no OpenSpec workspace) plus a cli cosmetic commit (`13022e8`, two stale help-text version examples). **Audit answer: opm-kind-demo was indeed the only pinning consumer** — the workspace sweep found no other Flux pin anywhere and no other deployable operator pin beyond the CLI's embedded manifest (already at alpha.4 since C1); `releases/`, `modules/`, docs all clean. Landed: `OPM_OPERATOR_VERSION` v1.0.0-alpha → v1.0.0-alpha.4, `FLUX_VERSION` v2.8.6 → v2.9.0 (A1/D4's distribution set; QUICKSTART gains the `flux` CLI ≥ toolkit prereq, discovered live when the v2.8.6 CLI refused to install the v2.9.0 toolkit), and the Platform's catalog subscription changed from the open `>=1.0.0-alpha` range to the exact pin `1.0.0-alpha.1` with `web_app`'s catalog dep aligned — the open range was resolving CI `-dev.*` tags (semver orders `dev` above `alpha`), the new **OQ18** (`research/dev-tag-range-pollution.md`; the CLI's seeded ranges remain exposed, fix deferred). **Verified live from scratch**: bootstrap → publish → apply on a clean kind cluster; Platform `Ready/Materialized` with `status.operatorVersion: v1.0.0-alpha.4` (A6 live); jellyfin + seerr `Ready` with healthy pods; **web_app ModulePackage `Ready` — the first live verification of A1's Flux bump against a running source-controller anywhere in the workspace** (the operator's own Flux-facing e2e specs remain `Skip()` stubs); idempotent re-bootstrap and two-command teardown both clean. Closes the last open slice of 0006.
+
 ### A6 — opm-operator `operator-platform-status-operator-version`
 
 **New, added 2026-07-02, closing a scheduling gap in D24.** D24's version-skew contract has two halves: the CLI-side gates (CRD field-presence floor + operator-version ceiling — C1's scope per D33) and the operator-side write those gates read — the operator self-publishing its own version into `Platform.status.operatorVersion` on the singleton `cluster` Platform it reconciles. The write half was decided in D24 ("the operator must self-publish") but never assigned to any slice; `opm-operator/api/v1alpha1` has no `operatorVersion` field today. This slice adds the status field to the `Platform` types, has the `PlatformReconciler` stamp it each reconcile (from the operator's build-time version info), and regenerates CRD/DeepCopy/`dist/install.yaml`. Additive, backward-compatible, no dependency on other slices. C1 depends on it: without the field, C1's ceiling check would read absence as "solo cluster, check skipped" (D24's semantics) even on operator-managed clusters, silently disabling the one gate that guards the unsafe CLI-older-than-operator direction. (D24, operator half.)
@@ -124,7 +126,7 @@ Depends on A1 (needs the actual shipped version set to audit against, not a hypo
 
 ```
 Wave 0 (parallel, no inter-deps):  A1 ✅   A2 ✅   A3 ❌(reverted)   A4 ✅   A6 ✅
-Then:                              A5 (after A1 ✅ — unblocked)
+Then:                              A5 ✅ (after A1 ✅ — landed 2026-07-20, last slice)
                                    B2 ✅ (after A2 ✅, A4 ✅)
 Then:                              C1 ✅ (after A2,A4,B2,A6 ✅)
 Then:                              C2 ✅ (after C1 ✅ AND 0001 library slice)   ← cross-enhancement gate
@@ -134,6 +136,6 @@ Then:                              C3 ✅ (after C1 ✅; structural parity after
 - **A1–A4 and A6 are independent** and can be drafted/applied in parallel. B2 joins its prerequisites. B1 is cancelled (D31) — no operator slice joins A3, because A3 itself is reverted.
 - **A6 (added 2026-07-02)** is dependency-free operator work that only C1 waits on; it can land any time before C1 — in parallel with B2. ✅ merged + released (v1.0.0-alpha.3, in latest alpha.4); C1 pinned alpha.4.
 - **A5 follows A1** but gates nothing else in this enhancement — it's downstream verification, not a prerequisite for B2/C1/C2/C3.
-- **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D14–D15). ✅ implemented 2026-07-18 — the whole A/B strand (A1, A2, A4, A6, B2) plus C1 has now landed. C2 followed (2026-07-18, merged + released) and C3 closed the feature work (2026-07-20, archived), so **every feature slice in 0006 has shipped**; only A5 (downstream demo audit, `planned`) is outstanding, and it gates nothing here. `implementation.status` stays `in-progress` until A5 lands.
+- **C1 is the convergence point** for the inventory/CR/install strand (D1–D8, D14–D15). ✅ implemented 2026-07-18 — the whole A/B strand (A1, A2, A4, A6, B2) plus C1 has now landed. C2 followed (2026-07-18, merged + released) and C3 closed the feature work (2026-07-20, archived), so **every feature slice in 0006 has shipped**. A5 (downstream demo audit) landed 2026-07-20 as the final slice — **the plan is fully executed** and `implementation.status` is `complete`.
 - **C2 carries the only cross-enhancement gate** — it consumes 0001's kernel materialize/match. Track 0001's status; C2 cannot begin until that slice is in `library`.
 - **OQ5 (one wave or two) decides where C3 sits.** Wave 1 = ship CR inventory + install + handoff (C1, B2, C3) against the CLI's current render pipeline, with best-effort digest parity. Wave 2 = kernel adoption (C2) makes that parity structural. If 0006 ships as a single wave, C3 follows C2 and parity is structural from the start. Resolve OQ5 before drafting C3.

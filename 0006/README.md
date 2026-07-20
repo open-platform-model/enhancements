@@ -1,5 +1,7 @@
 # Enhancement 0006 — CLI CR Inventory, Library Kernel Adoption, and Operator Handoff
 
+> **Implementation status (2026-07-20).** Complete — all nine planned slices resolved: A1/A2/A4/A6/B2/C1/C2/C3/A5 implemented (A3 reverted by D31, B1 cancelled with it; see [`planned-changes.md`](planned-changes.md) for per-slice landing notes). The headline path works end-to-end and is live-verified: `opm operator install` → CR-backed inventory apply → kernel render parity → `opm instance handoff` with zero workload disruption, plus the operator-managed thin-editor/delete modes. Shipped across cli 1.0.0-alpha.4, opm-operator v1.0.0-alpha.4, and opm-kind-demo#1. Open questions OQ15/OQ16/OQ18 are deferred follow-ons, not gaps in this scope — see Deviations below.
+
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the six split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
 ## Summary
@@ -72,4 +74,14 @@ Pure-CUE / Go-shape sketches live under [`schemas/`](schemas/).
 
 ## Deviations from Design
 
-None at this stage. Update when implementation lands.
+Every deviation is decision-logged; this is the index. The accepted design (2026-06-30, D1–D30) shipped with these reversals and refinements:
+
+- **Shared inventory package reverted (A3/D31, supersedes D13's shared-logic clause and D26 in full).** `library/opm/inventory` shipped, then was deleted after tracing showed only the `InventoryEntry` wire shape crosses the actor boundary — and that is anchored by the CRD schema, not package-sharing. Both actors keep independent local inventory logic; slice B1 was cancelled with it.
+- **Install surface reversed to noun-first (D32, supersedes D28).** `opm operator install [--crds-only]` / `opm operator uninstall` replaced the accepted verb-first `opm install crds` / `opm install operator`, once D35 established the CRDs are a filtered subset of one embedded artifact.
+- **CUE bump retargeted and relocated (D36, amends D14).** v0.17.0-alpha.1-in-C2 became v0.17.1-in-C1 after upstream shipped the fix line and a trial proved the migration cost was zero. Side decisions D37/D38 (local-module.cue workflow, provenance annotation as a fail-closed handoff pre-gate, strict-registry verification render) emerged from the same investigation.
+- **Handoff's "zero changed" no-op redefined (D40, amends D7.5).** The kernel stamps runtime identity into `app.kubernetes.io/managed-by`, so the operator's first post-handoff reconcile relabels every resource by construction. Success became the *inventory-stable reconcile* (Ready, entry set unchanged, revision incremented, zero pruned), cross-actor digest comparison is forbidden, and the relabel is reported, not hidden.
+- **C3's single-field SSA patches reversed pre-merge (C3 correction, 2026-07-20).** `PatchOwner`/`PatchSpecEdit` inverted server-side-apply semantics (a manager's document is its complete declared intent; omitted owned fields are released and pruned) and were deleted; `ApplySpec` is the single spec writer, with the flip and the thin editor carrying the full current spec.
+- **C3 gained D18 in full at drafting (user decision).** The plan's C3 row listed handoff only; the shipped slice also replaced C1's refusal arms with the thin-editor apply and finalizer-delegating delete.
+- **Two cross-actor bugs surfaced only by live verification (C3):** bare (un-v-prefixed) `spec.module.version` made every CLI-written CR unresolvable by the operator; operator-owned delete over-claimed pruning that `spec.prune`-less CRs never perform. Plus **LD4a**, the flip's stale-snapshot race (concurrent apply inside the verification window silently reverted by the flip's restated spec), fixed by re-read + generation-abort — detect-and-retry, not atomicity.
+- **A5 grew a registry-hygiene finding (OQ18, deferred):** CI dev tags on the consumer registry path satisfy prerelease-tolerant subscription ranges (`dev` sorts above `alpha`), so open ranges resolve CI builds; the demo now pins its catalog exactly, and the systemic fix (publish-channel separation and/or filter default-deny) is an open question for a follow-on.
+- **Left open at graduation:** OQ15 (CLI/operator stale-set base-relation consistency — product-consistency, not safety), OQ16 (operator apply-time collision guard — a real, pre-existing exposure deserving its own slice), OQ18 (above).
