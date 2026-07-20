@@ -41,11 +41,51 @@ import "strings"
 	// depVersion: the exact version string for a cue.mod dep entry ("vX.Y.Z").
 	depVersion: "v" + version
 
-	// importQualified: the always-safe import spelling that names the package
-	// explicitly. OQ2 (../03-decisions.md) decides whether the library helper
-	// emits the bare importPath or this qualified form against the
-	// kernel-pinned CUE toolchain.
+	// importQualified: the import spelling that names the package explicitly.
+	// OQ2 is resolved (D5): the bare importPath binds, because D1 makes the
+	// path leaf equal the package name. This form is retained for diagnostics
+	// and for reporting a non-conforming module's actual coordinates.
 	importQualified: importPath + ":" + packageName
+}
+
+// #PublishedModuleRef is a #CanonicalModuleRef bound to the artifact a module
+// was actually published as or fetched from. It states D3's invariant as a
+// constraint rather than a convention: the version declared inside the module
+// and the version of the artifact carrying it are the SAME value, so unifying
+// a mismatched pair is an error rather than a silently accepted disagreement.
+//
+// Consumers unify the coordinates they resolved by; producers unify the
+// coordinates they are about to push to. Both fail the same way.
+// The `self=` alias is required: embedded fields are unified into the value but
+// are not in lexical scope, so the constraints below reach them through it.
+#PublishedModuleRef: self={
+	#CanonicalModuleRef
+
+	// artifactPath and artifactVersion are the OCI coordinates in hand — the
+	// reference passed to the registry loader, or the tag a publish is about
+	// to write.
+	artifactPath!:    string
+	artifactVersion!: string
+
+	// The invariant. artifactVersion is the v-prefixed release tag, so it must
+	// equal depVersion, which is "v" + metadata.version. A module whose
+	// metadata says 0.1.3 cannot be the artifact published as v0.2.0.
+	artifactVersion: self.depVersion
+
+	// The addressing half of the same idea (D1): the artifact must live where
+	// the metadata says it lives.
+	artifactPath: self.importPath
+}
+
+// _publishedExample pins the invariant: podinfo declaring metadata.version
+// "0.1.3" is the artifact at .../podinfo@v0 tagged v0.1.3, and nothing else.
+_publishedExample: #PublishedModuleRef & {
+	modulePath:    "opmodel.dev/modules/test"
+	nameSnakeCase: "podinfo"
+	version:       "0.1.3"
+
+	artifactPath:    "opmodel.dev/modules/test/podinfo@v0"
+	artifactVersion: "v0.1.3"
 }
 
 // _example pins the zot case from 01-problem.md so the mapping stays honest:

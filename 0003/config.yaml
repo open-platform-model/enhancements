@@ -20,13 +20,13 @@ affects:
   - library
   - core
 created: "2026-06-17"
-updated: "2026-06-30"
+updated: "2026-07-20"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
-  status: not-started
+  status: partial
 # Append-only timeline of milestones. The validator (future) enforces
 # append-only via git diff against HEAD~1. Free-form `event` strings;
 # `slice` + `semver` are optional structured fields for events that carry
@@ -34,10 +34,12 @@ implementation:
 history:
   - date: "2026-06-17"
     event: Drafted
+  - date: "2026-07-20"
+    event: "Rescoped to cover version agreement, and refreshed against what enhancement 0006 landed in the meantime. D1's mapping is no longer a proposal — it shipped in 0006's C1 slice as cli/pkg/module/module.go CanonicalModuleRef, but in its weakest form: the consumer derives and nothing binds, with no publish enforcement and no library helper (implementation.status not-started -> partial). NEW SCOPE: metadata.version must equal the release tag of the artifact carrying it (D3). This was previously unaddressed and is the more dangerous half — the addressing drift fails loudly as 'module not found', whereas a stale version fails silently: the CLI deploys the artifact it fetched but records a different version in spec.module.version, so after a handoff the operator reconciles a DIFFERENT artifact indefinitely with Ready=True and every gate green. metadata.version is load-bearing in three places (fqn -> module.uuid -> instance.uuid -> the identity label on every rendered resource; spec.module.version; and synth/render.go:62's major() for the synthesized import), so none of them are sound while it may lie. Publishing today is raw `cue mod publish` with the tag read from a separate versions.yml in the modules repo — a third source of truth, and there is no `opm module publish` at all. NEW DECISIONS: D3 (version agreement, expressed in schemas/target.cue as #PublishedModuleRef, which unifies the derived depVersion with the artifact coordinates in hand so a mismatch is a type error — verified: a mismatched example yields `conflicting values \"v0.1.3\" and \"v0.2.0\"`); D4 (publish DERIVES coordinates from metadata, never STAMPS them into the artifact — stamping would make published bytes differ from source, breaking reproducibility and the local-vs-registry byte identity that 0006's render-parity D30 proves and the handoff digest gate rests on); D5 (closes OQ2 — a bare import binds, verified empirically via 0006 C2's fixture work rather than assumed); D6 (closes OQ5 — the invariant is enforced at ACQUIRE in library, not only at publish, because `cue mod publish` exists and every module published to date bypassed OPM tooling; placing the check on kernel.AcquireModuleFromRegistry means the CLI and operator inherit it from one implementation). This inverts 02-design's centre of gravity: publish-side derivation is the ergonomic half, acquire-side verification is the guarantee. NEW OPEN QUESTIONS: OQ6 (what a --version override means under D4 — assertion / rewrite-source-then-publish / tag-only, the last ruled out as reintroducing exactly the drift D3 removes) and OQ7 (whether #Catalog's identical exposure — version! with a *\"0.0.0-dev\" default, feeding catalog FQNs and therefore transformer matching — is specified here and implemented in 0001, or moves wholesale). EVIDENCE recorded in 01-problem.md: this enhancement's own target.cue always specified `depVersion: \"v\" + version`, yet the C1 implementation returned metadata.version verbatim; CUE rejects a bare version and the operator passes spec.module.version straight to the registry loader, so EVERY CLI-written ModuleInstance was unresolvable by the operator until 2026-07-20. It survived because the CLI never reads that field back, the operator was only tested against hand-written YAML fixtures, and the unit test asserted the bare form as expected — a mapping that is merely derivable-by-convention drifts from its implementations."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.
-related: ["0002"]
+related: ["0002", "0006"]
 # Lifecycle relationships.
 supersedes: []
 superseded_by: null

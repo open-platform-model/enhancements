@@ -5,7 +5,9 @@ This document answers the question: "What is the proposed solution and how does 
 ## Design Goals
 
 - Given a module's `metadata` alone, the canonical CUE registry reference (path, package name, version, major) is **deterministically derivable** — no guessing, no per-transform special cases.
-- A module's registry coordinates are **enforced at publish time** (cli), so a module that violates the convention never reaches a registry.
+- A module's declared `metadata.version` and the version of the artifact carrying it are **the same value**, so `metadata` can be trusted as a statement about the artifact in hand rather than about the author's intent at some earlier time.
+- The convention is **verified where modules are consumed**, not only where they are produced, so it holds for every module regardless of how it was published.
+- A module's registry coordinates are **derived at publish time** (cli), so a conformant module is the default outcome rather than something the author has to get right by hand.
 - The kernel (library) computes the canonical reference from a `*module.Module` and uses it to import the module in the single-build render path, so the synthesized-CR and authored-`instance.cue` paths converge.
 - The convention unifies the three names: `metadata.nameSnakeCase` is simultaneously the registry-path leaf and the CUE package name, collapsing the "three independent spellings" problem to "one identity, one canonical projection."
 - Existing in-repo modules migrate to the convention with a clear, mechanical path; non-conforming third-party modules degrade with a legible error rather than a silent wrong-address fetch.
@@ -30,15 +32,34 @@ Anchor the convention on a single canonical identifier and enforce it where modu
    - import path = `<registry path>@<major>`; dep version = `v<version>`
    - CUE package name = `metadata.nameSnakeCase`
 
-3. **Publish enforcement (cli).** `opm publish` checks the module's `cue.mod/module.cue` `module:` path and its `package` clause against the canonical mapping before pushing, failing fast on mismatch (and/or generating the conformant `cue.mod` from metadata). This is where the registry path — which the schema cannot see — is bound to identity.
+3. **Version agreement (this enhancement, D3).** `metadata.version` and the artifact's release tag are the same value. `schemas/target.cue` states this as `#PublishedModuleRef`, which unifies the derived `depVersion` with the artifact coordinates actually in hand — so a mismatched pair is a type error, not a tolerated disagreement.
 
-4. **Kernel consumption (library).** A helper computes the canonical reference from a `*module.Module` (reading `metadata.modulePath`, `metadata.nameSnakeCase`, `metadata.version`). `synth.Instance` uses it to write the `import` and the synthesized `cue.mod` dependency, replacing the unreconstructable `modulePath/name` guess. The registry loader is the natural place to additionally *verify* the resolved coordinates match the canonical mapping at load time.
+4. **Verification at acquire (library) — the primary enforcement point.** The registry loader checks the fetched artifact's metadata against the coordinates it was fetched by, and refuses on mismatch with both values named. This is the guarantee that cannot be bypassed: it holds for modules published by `cue mod publish`, by other tooling, or before this enhancement existed, and the CLI and operator inherit it together because both reach the registry through `kernel.AcquireModuleFromRegistry`.
 
-The relationship between the names becomes: one identity (`name`) → one canonical projection (`nameSnakeCase`) → one registry leaf and one package name. Enforcement lives at publish (the only point that controls the `cue.mod` path), and resolution at consume (derivable, because the rule is fixed).
+5. **Derivation at publish (cli).** `opm module publish` reads `metadata` and derives *both* the registry path and the release tag from it, so a conformant artifact is produced by construction. This removes `versions.yml` as a competing source of truth: the module file becomes the single place a version is declared.
+
+6. **Kernel consumption (library).** A helper computes the canonical reference from a `*module.Module` (reading `metadata.modulePath`, `metadata.nameSnakeCase`, `metadata.version`). `synth.Instance` uses it to write the `import` and the synthesized `cue.mod` dependency, replacing the unreconstructable `modulePath/name` guess.
+
+The relationship between the names becomes: one identity (`name` + `version`) → one canonical projection (`nameSnakeCase`, `vMAJOR`) → one registry leaf, one package name, one release tag. Publish makes conformance the default; **acquire makes it a guarantee**.
+
+### Why verification at acquire rather than only at publish
+
+An earlier revision of this design put enforcement solely at publish, treating load-time verification as optional. That is not sufficient, for a reason that is structural rather than incidental: `cue mod publish` exists, will keep working, and every module published to date used it. Enforcement that a publisher can route around does not give a *consumer* anything to rely on — and it is the consumer (the render path, the handoff verification, the operator's reconcile) that suffers when the invariant is false.
+
+Publish-side derivation is still worth building; it is what makes the invariant true going forward and removes a class of author error. But it is the ergonomic half, not the guarantee.
 
 ## Schema / API Surface
 
-The headline shape is the canonical-reference computation, expressed in CUE in [`schemas/target.cue`](schemas/target.cue) as `#CanonicalModuleRef` — a pure function from `#Module.metadata` to `{registryPath, packageName, major, importPath, depVersion}`. It is the single normative source both the cli publish check and the library helper mirror. Open Questions in `03-decisions.md` mark the fields still under design (notably enforce-vs-generate and package-name qualification); their `// OQN:` markers live alongside the corresponding fields in `target.cue`.
+Two shapes in [`schemas/target.cue`](schemas/target.cue):
+
+- **`#CanonicalModuleRef`** — a pure function from `#Module.metadata` to `{registryPath, packageName, major, importPath, depVersion}`. The single normative source both the cli publish command and the library helper mirror.
+- **`#PublishedModuleRef`** — the same reference bound to the artifact coordinates in hand (`artifactPath`, `artifactVersion`), with the D3 invariant expressed as unification. A publisher unifies the tag it is about to write; a consumer unifies the reference it fetched by. Both fail identically, and the failure is a conflict naming the two values:
+
+  ```
+  _mismatch.artifactVersion: conflicting values "v0.1.3" and "v0.2.0"
+  ```
+
+Open Questions in `03-decisions.md` mark the fields still under design; their `// OQN:` markers live alongside the corresponding fields in `target.cue`.
 
 `core`'s contribution (`#Module.metadata.nameSnakeCase`) has already landed; this enhancement does not change `core` further beyond depending on that field.
 
@@ -52,13 +73,18 @@ The headline shape is the canonical-reference computation, expressed in CUE in [
 
 **library**:
 
-- `library/opm/helper/synth/render.go` — replace the `modulePath + "/" + name` import-path derivation with the canonical `modulePath + "/" + nameSnakeCase` reference; qualify the import with the package name per the resolved OQ.
-- `library/opm/helper/loader/registry/module.go` — optionally verify the resolved `modPath@version` matches `#CanonicalModuleRef` for the loaded metadata; surface a typed mismatch error.
-- `library/opm/module/module.go` — if the resolution OQ lands on "record the fetched reference," add a field carrying the registry reference the module was loaded by.
+- `library/opm/helper/synth/render.go` — replace the `modulePath + "/" + name` import-path derivation with the canonical `modulePath + "/" + nameSnakeCase` reference. (`render.go:62` also derives the import's major line from `major(Metadata.Version)`, which D3's invariant is what makes trustworthy.)
+- `library/opm/kernel` / `library/opm/helper/loader/registry/module.go` — **the primary enforcement point.** After decoding, assert the acquired module's `metadata` agrees with the coordinates it was fetched by (`#PublishedModuleRef`); refuse with a typed error naming both. Placing it on the `AcquireModuleFromRegistry` path means the CLI and the operator inherit it from one implementation.
+- `library/opm/module/module.go` — if OQ3 lands on "record the fetched reference," add a field carrying the reference the module was loaded by. Note that `AcquireModuleFromRegistry` already retains a staged `module.Source`, which narrows this question since the load-time context is no longer wholly discarded.
 
 **cli**:
 
-- The `opm publish` command — validate (and/or generate) `cue.mod/module.cue` `module:` and the package clause against `#CanonicalModuleRef`; refuse to push on mismatch.
+- A new `opm module publish` command — derive `cue.mod/module.cue` `module:`, the package clause, **and the release tag** from `metadata` via `#CanonicalModuleRef`; refuse to push on mismatch. It does not exist today; publishing is raw `cue mod publish`.
+- `cli/pkg/module/module.go` — `CanonicalModuleRef()` already implements the D1 mapping (shipped in enhancement 0006's C1). It should be reconciled with, or replaced by, the library helper so the mapping has one implementation rather than two.
+
+**modules** (repo, not listed in `affects` — no code ships there, but the rollout touches it):
+
+- `modules/Taskfile.yml` — retire the `versions.yml` lookup once publish derives the tag from `metadata.version`, or the third source of truth persists.
 
 ## Before / After
 
