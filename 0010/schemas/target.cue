@@ -32,6 +32,18 @@ import (
 // constrained, and it is constrained by #ModuleIdentity rather than by regex.
 #ModulePathType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*@v[0-9]+$"
 
+// #PackagePathType: the path a PRIMITIVE declares (D20). A package path
+// inside a module, NOT a module path — no "@vN" suffix.
+//
+// This is what core types primitive modulePath as today, and D20 keeps it
+// that way. D1's widening applies to #Module and #Catalog only. The major
+// is inert on a primitive: a "@vN" module publishes vN.* tags, so a
+// primitive carrying version "1.2.0" already states its catalog is @v1.
+// It is also not a path anyone writes — a consumer imports
+// "opmodel.dev/catalogs/opm/resources" with no suffix and CUE resolves the
+// major from the deps block.
+#PackagePathType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*$"
+
 // #MajorVersionType: the identity-bearing version component, as it appears in
 // a module path. Declared in core today and used nowhere; D1 is the design its
 // doc comment describes.
@@ -113,7 +125,8 @@ import (
 // every FQN the catalog ships, so it is a KEY COMPONENT rather than a
 // compatibility signal sitting beside the keys.
 //
-// OQ1: whether a `name` field joins this shape is unresolved.
+// No `name` field: nothing reads one, in Go or in CUE (D16). Catalog
+// identity and address are the module path alone.
 #CatalogIdentity: {
 	modulePath!: #ModulePathType
 	version!:    #VersionType
@@ -121,20 +134,40 @@ import (
 	_ref: #ArtifactRef & {"modulePath": modulePath}
 
 	fqn: #ModulePathType & modulePath
+}
 
-	// The prefix every primitive this catalog ships hangs off. The major must
-	// be split OUT and re-appended, because under D1 "@v1" sits mid-string and
-	// plain concatenation would yield ".../opm@v1/resources".
+// #IdentityPackage is the catalog's committed identity/identity.cue (D5),
+// the single source every leaf imports as `id`.
+//
+// Tooling writes exactly the two @opm()-marked fields; RegistryPath and
+// Major are DERIVED from ModulePath, so the split happens once here rather
+// than at every definition site (D20, D21). `strings` is a CUE builtin, so
+// the package keeps its invariant of carrying no INTRA-MODULE import and
+// stays at the bottom of the graph with no cycle.
+#IdentityPackage: {
+	// @opm(identity, owner=publish) — byte-identical to cue.mod's `module:`.
+	ModulePath!: #ModulePathType
+
+	// @opm(identity, owner=publish) — the build every FQN interpolates.
+	Version!: #VersionType
+
+	_ref: #ArtifactRef & {modulePath: ModulePath}
+
+	RegistryPath: _ref.registryPath // "opmodel.dev/catalogs/opm"
+	Major:        _ref.major        // "v1"
+
+	// The prefix every primitive this catalog ships hangs off. Under D20 the
+	// major is NOT re-appended — a primitive declares a package path.
 	//
 	// Enumerated rather than a pattern constraint: `[Kind=string]: …` is
-	// unusable at the call site (`id.Prefix.resources` → `undefined field`,
-	// because a pattern constrains keys that exist rather than generating
-	// them). Measured in experiments/01, finding (b).
+	// unusable at the call site (`id.primitivePrefix.resources` → `undefined
+	// field`, because a pattern constrains keys that exist rather than
+	// generating them). Measured in experiments/01, finding (b).
 	primitivePrefix: {
-		resources:    _ref.registryPath + "/resources@" + _ref.major
-		traits:       _ref.registryPath + "/traits@" + _ref.major
-		blueprints:   _ref.registryPath + "/blueprints@" + _ref.major
-		transformers: _ref.registryPath + "/transformers@" + _ref.major
+		resources:    RegistryPath + "/resources"
+		traits:       RegistryPath + "/traits"
+		blueprints:   RegistryPath + "/blueprints"
+		transformers: RegistryPath + "/transformers"
 	}
 }
 
@@ -148,17 +181,53 @@ import (
 // this key gets exactly the definition it was authored against, permanently,
 // and a catalog release cannot alter what an installed module renders.
 //
-// `version` is the value the FQN interpolates. Whether it also survives as a
-// separate required field is OQ6 — D12 gave it a reader (the matcher's catalog
-// lookup) and D13 deleted that reader, leaving it derivable from `fqn`.
+// `version` stays REQUIRED (D21, resolving OQ6). It is the key's source
+// component, not a duplicate of the key: removing it leaves nothing to
+// interpolate and nothing to stamp, and a stale authored fqn then vets clean
+// (measured, exit 0). Deriving it back OUT of fqn is a CUE cycle (measured:
+// `cycle with field: version`).
+//
+// `fqn` is AUTHORED, not derived (D21). core stops computing it; each catalog
+// writes it at the primitive's own definition site, interpolated from the
+// identity package:
+//
+//	fqn: "\(id.RegistryPath)/resources/\(name)@\(id.Version)"
+//
+// So all three of modulePath, version and fqn reference identity/identity.cue
+// and move together on a release. Enforcement MOVES rather than disappearing:
+// core's unification made a wrong value inexpressible; 0011's publish gate
+// (#PrimitiveFQNGate) catches it before it ships, which is where D17 already
+// put the primitive-path rule.
+//
+// `modulePath` is a PACKAGE path under D20 — no "@vN".
 #PrimitiveIdentity: {
 	name!:       #NameType
-	modulePath!: #ModulePathType
+	modulePath!: #PackagePathType
 	version!:    #VersionType
+	fqn!:        #FQNType
+}
 
-	_ref: #ArtifactRef & {"modulePath": modulePath}
+// #PrimitiveFQNGate states what 0011's publish gate asserts for one
+// primitive. It is deliberately NOT part of #PrimitiveIdentity: expressing it
+// there would re-derive the value and undo D21. Unifying it is the check.
+//
+// The kind segment is retained (D21) — a flat FQN would make primitive names
+// globally unique across all four kinds within a catalog, and catalog_opm
+// already ships a resource named `secrets`.
+#PrimitiveFQNGate: {
+	identity!: #IdentityPackage
+	kind!:     "resources" | "traits" | "blueprints" | "transformers"
+	name!:     #NameType
 
-	fqn: #FQNType & (_ref.registryPath + "/" + name + "@" + version)
+	// What the catalog actually authored.
+	declaredFQN!:        #FQNType
+	declaredModulePath!: #PackagePathType
+	declaredVersion!:    #VersionType
+
+	// What identity/identity.cue implies it must be.
+	declaredModulePath: identity.primitivePrefix[kind]
+	declaredVersion:    identity.Version
+	declaredFQN:        identity.primitivePrefix[kind] + "/" + name + "@" + identity.Version
 }
 
 // ─── Read-side invariant (D11) ──────────────────────────────────────────────
@@ -231,7 +300,8 @@ import (
 // from a build the platform did not materialize is simply absent.
 //
 // The diagnostic that replaces `no matching transformer` is computed WITHOUT a
-// catalog lookup, which is why this does not depend on OQ3: strip the version
+// catalog lookup, which is why this does not depend on the
+// primitive-under-catalog-path convention (D17): strip the version
 // off the demanded FQN and collect every supplied key sharing that
 // path-and-name. That set is exactly "which builds of this primitive the
 // platform has", so the message names the subscription gap directly:
@@ -285,23 +355,106 @@ _moduleExample: #ModuleIdentity & {
 //   modulePath: "opmodel.dev/m/acme/something_else@v2"
 //  }
 
-// A catalog's identity: full path, full version, and a primitive prefix with
-// the major re-appended after the kind segment.
+// A catalog's identity: the full module path, major included.
 _catalogExample: #CatalogIdentity & {
 	modulePath: "opmodel.dev/catalogs/opm@v1"
 	version:    "1.2.0"
 	fqn:        "opmodel.dev/catalogs/opm@v1"
-
-	primitivePrefix: resources: "opmodel.dev/catalogs/opm/resources@v1"
 }
 
-// A primitive: the key carries the build it came from (D13).
-_primitiveExample: #PrimitiveIdentity & {
+// The identity package every leaf imports as `id`. Two authored fields; the
+// rest derived, so no leaf splits a major (D20, D21).
+_identityExample: #IdentityPackage & {
+	ModulePath:   "opmodel.dev/catalogs/opm@v1"
+	Version:      "1.2.0"
+	RegistryPath: "opmodel.dev/catalogs/opm"
+	Major:        "v1"
+
+	primitivePrefix: {
+		resources:    "opmodel.dev/catalogs/opm/resources"
+		traits:       "opmodel.dev/catalogs/opm/traits"
+		blueprints:   "opmodel.dev/catalogs/opm/blueprints"
+		transformers: "opmodel.dev/catalogs/opm/transformers"
+	}
+}
+
+// One primitive of each kind, exactly as a catalog leaf authors them (D21).
+// modulePath carries no major (D20); the key carries the build (D13).
+_resourceExample: #PrimitiveIdentity & {
 	name:       "config-maps"
-	modulePath: "opmodel.dev/catalogs/opm/resources@v1"
+	modulePath: "opmodel.dev/catalogs/opm/resources"
 	version:    "1.2.0"
 	fqn:        "opmodel.dev/catalogs/opm/resources/config-maps@1.2.0"
 }
+
+_traitExample: #PrimitiveIdentity & {
+	name:       "scaling"
+	modulePath: "opmodel.dev/catalogs/opm/traits"
+	version:    "1.2.0"
+	fqn:        "opmodel.dev/catalogs/opm/traits/scaling@1.2.0"
+}
+
+_transformerExample: #PrimitiveIdentity & {
+	name:       "configmap-transformer"
+	modulePath: "opmodel.dev/catalogs/opm/transformers"
+	version:    "1.2.0"
+	fqn:        "opmodel.dev/catalogs/opm/transformers/configmap-transformer@1.2.0"
+}
+
+// The publish gate accepting all three.
+_gateResource: #PrimitiveFQNGate & {
+	identity:           _identityExample
+	kind:               "resources"
+	name:               "config-maps"
+	declaredFQN:        _resourceExample.fqn
+	declaredModulePath: _resourceExample.modulePath
+	declaredVersion:    _resourceExample.version
+}
+
+_gateTrait: #PrimitiveFQNGate & {
+	identity:           _identityExample
+	kind:               "traits"
+	name:               "scaling"
+	declaredFQN:        _traitExample.fqn
+	declaredModulePath: _traitExample.modulePath
+	declaredVersion:    _traitExample.version
+}
+
+_gateTransformer: #PrimitiveFQNGate & {
+	identity:           _identityExample
+	kind:               "transformers"
+	name:               "configmap-transformer"
+	declaredFQN:        _transformerExample.fqn
+	declaredModulePath: _transformerExample.modulePath
+	declaredVersion:    _transformerExample.version
+}
+
+// MUST FAIL — the failure D21 accepts and delegates to the publish gate: an
+// author left a stale build in the FQN while the catalog moved to 1.2.0.
+// core no longer derives fqn, so nothing catches this at the catalog's own
+// cue vet (measured: exit 0). The gate does. Uncommenting yields:
+//   declaredFQN: conflicting values ".../secrets@1.1.0" and ".../secrets@1.2.0"
+//
+//  _gateStale: #PrimitiveFQNGate & {
+//   identity:           _identityExample
+//   kind:               "resources"
+//   name:               "secrets"
+//   declaredFQN:        "opmodel.dev/catalogs/opm/resources/secrets@1.1.0"
+//   declaredModulePath: "opmodel.dev/catalogs/opm/resources"
+//   declaredVersion:    "1.2.0"
+//  }
+//
+// MUST FAIL — a primitive sitting outside its own catalog's path (D17's rule,
+// enforced at publish). Uncommenting yields a declaredModulePath conflict.
+//
+//  _gateForeignPath: #PrimitiveFQNGate & {
+//   identity:           _identityExample
+//   kind:               "resources"
+//   name:               "config-maps"
+//   declaredFQN:        "opmodel.dev/elsewhere/resources/config-maps@1.2.0"
+//   declaredModulePath: "opmodel.dev/elsewhere/resources"
+//   declaredVersion:    "1.2.0"
+//  }
 
 // The read-side check passing.
 _fetchedExample: #FetchedArtifact & {

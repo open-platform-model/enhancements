@@ -21,6 +21,7 @@ graph LR
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
   N0010["0010: Module and Catalog Identity"]:::draft
   N0011["0011: Module and Catalog Publishing"]:::draft
+  N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003
@@ -35,7 +36,11 @@ graph LR
   N0005 ---|related| N0007
   N0006 ---|related| N0007
   N0006 ---|related| N0008
+  N0006 ---|related| N0012
+  N0008 ---|related| N0012
+  N0009 ---|related| N0012
   N0010 ---|related| N0011
+  N0010 ---|related| N0012
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003
 ```

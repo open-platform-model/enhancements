@@ -47,7 +47,7 @@ The relationship that results: one identity string per artifact (`modulePath`, a
 
 | | `#Module` | `#Catalog` |
 | --- | --- | --- |
-| Identity fields | `modulePath` + `name` | `modulePath` + `version` (no `name` — see OQ1) |
+| Identity fields | `modulePath` + `name` | `modulePath` + `version` (no `name` — D16) |
 | Version in source | none | full SemVer, concrete |
 | What the version is for | — | the key component every primitive FQN interpolates (D13) |
 | `fqn` | `modulePath` | `modulePath` |
@@ -88,7 +88,9 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 - **`#ArtifactRef`** — splits a complete module path into `registryPath` + `major`, the operation that replaces every "compose an address from a prefix and a name" site.
 - **`#ModuleIdentity`** / **`#CatalogIdentity`** — the metadata shapes after the change, with `fqn` bound to `modulePath` and the module-side leaf constraint expressed over one field.
-- **`#PrimitiveIdentity`** — the `fqn` = `registryPath/name@version` derivation shared by resources, traits, blueprints, and transformers. Whether `version` also survives as a separate required field is OQ6; the FQN interpolates it either way.
+- **`#IdentityPackage`** — the catalog's committed `identity/identity.cue`. Two `@opm()`-marked fields the tooling writes (`ModulePath`, `Version`), plus `RegistryPath`, `Major` and `primitivePrefix` derived from them, so the major is split once here rather than at every definition site (D20, D21).
+- **`#PrimitiveIdentity`** — `name` + `modulePath` + `version` + `fqn`, shared by resources, traits, blueprints, and transformers. `modulePath` is a **package path** with no `@vN` (D20), `version` stays required (D21, resolving OQ6), and `fqn` is **authored** at the leaf from the identity package rather than derived by `core`.
+- **`#PrimitiveFQNGate`** — what 0011's publish gate asserts, kept deliberately outside `#PrimitiveIdentity` because expressing it there would re-derive the value and undo D21. This is where the FQN-versus-identity agreement is enforced.
 - **`#FetchedArtifact`** — the read-side invariant: an artifact lives where its metadata says it lives. The resolved tag is recorded alongside, not checked against anything, because nothing inside the artifact claims one.
 - **`#SubscriptionSelection`** — what a subscription resolves to under D14: every published build whose major matches the subscription key's, gated by D15's `includePrereleases`. The worked cases pin the default, the opt-in, and the live regime where today's default selects nothing.
 - **`#PrimitiveDemand`** — the matcher's whole check for one demanded primitive, which under D13 is exact-key containment plus the diagnostic set. `availableVersions` is computed whether or not the demand matched, so a failure can name what the platform does carry; `matched` is constrained to `true` so a miss is a unification failure rather than a value someone must remember to inspect.
@@ -99,7 +101,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 **core** — the breaking half. Load the `core-schema-edit` skill before touching any of these; the SPEC.md co-update is gated by a pre-commit hook and CI.
 
-- `core/src/types.cue:20` — `#ModulePathType` gains the `@vN` suffix and must accept underscores. Today's `=~"^[a-z0-9.-]+(/[a-z0-9.-]+)*$"` has no underscore, which was harmless while `modulePath` was a bare prefix and is not once the path ends in the module's own snake_case name (`media_server`, `cert_manager`, `zot_registry_ttl`).
+- `core/src/types.cue:20` — `#ModulePathType` gains the `@vN` suffix and must accept underscores. Today's `=~"^[a-z0-9.-]+(/[a-z0-9.-]+)*$"` has no underscore, which was harmless while `modulePath` was a bare prefix and is not once the path ends in the module's own snake_case name (`media_server`, `cert_manager`, `zot_registry_ttl`). **Only `#Module` and `#Catalog` use the widened type** — a new `#PackagePathType`, which is today's regex unchanged, is what primitives declare (D20). Widening one shared type was what dragged the major onto primitives that have no use for it.
 - `core/src/types.cue:26-28` — `#ModuleFQNType` (the `:semver` tail) retired or redefined as `#ModulePathType`.
 - `core/src/types.cue:37-46` — `#FQNType` keeps its SemVer tail (D13); only the underscore widening on its path portion applies. The doc comment recording enhancement 0001 D5's major→SemVer lift stays true and should gain a pointer to D13, since D4 briefly reversed it.
 - `core/src/types.cue:22-24` — `#MajorVersionType` is declared today and used nowhere. This is the design its doc comment describes.
@@ -113,8 +115,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - `core/src/catalog.cue:10` — `#CatalogFQNType` retired or redefined.
 - `core/src/catalog.cue:63` — `version!` kept; the `*"0.0.0-dev"` default removed.
 - `core/src/catalog.cue:64` — `fqn: modulePath`.
-- `core/src/catalog.cue:70-76` — the pattern constraint keeps stamping **both** `modulePath` and `version` onto every `#transformers` entry. `modulePath` now splits the major out and re-appends it, since `@v1` sits mid-string; `version` is unchanged and now feeds the FQN directly.
-- `core/src/{resource,trait,blueprint,transformer}.cue` — `fqn` derived from `registryPath/name@version`. Whether `version!` stays a separate required field or becomes derived from `fqn` is OQ6.
+- `core/src/catalog.cue:70-76` — the pattern constraint keeps stamping **both** `modulePath` and `version` onto every `#transformers` entry. `modulePath` splits the major out and **stops** — it is not re-appended, because a primitive declares a package path (D20); `version` is unchanged.
+- `core/src/{resource,trait,blueprint,transformer}.cue` — `modulePath` retyped to `#PackagePathType`, which leaves the values every catalog ships today unchanged (D20). `version!` stays required (D21, resolving OQ6). **`fqn` stops being derived** and becomes an authored `#FQNType` the catalog writes from its identity package — the one place `core` gives up a constraint, with the agreement re-established at publish (`#PrimitiveFQNGate`, D21).
 - `core/src/platform.cue:16-20` — `#SubscriptionFilter` gains D15's prerelease opt-in. This is a **new** integration point: the filter schema was untouched by the pre-D13 design.
 - `core/src/platform.cue:70` — `#registry`'s key becomes a `#ModulePathType` carrying `@vN`, which is what makes "every build in the major" (D14) the literal reading of the key and lets one platform subscribe to two majors of one catalog as distinct entries.
 - `core/SPEC.md` — `#Module` and `#Catalog` Shape / Constraints / Rationale, including the semver-with-colon rationale and the `SHA1(fqn)` determinism argument.
@@ -142,9 +144,9 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 **catalog repos** (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`)
 
-- `src/identity/identity.cue` — `ModulePath` gains `@vN`; `Version` becomes a committed concrete SemVer or an open field; both gain `@opm()` markers. The `version_override.cue` stamping generator and the `0.0.0-dev` sentinel are retired.
+- `src/identity/identity.cue` — `ModulePath` gains `@vN`; `Version` becomes a committed concrete SemVer or an open field; both gain `@opm()` markers. The `version_override.cue` stamping generator and the `0.0.0-dev` sentinel are retired. The package also gains `RegistryPath` and `Major`, derived from `ModulePath` via `strings.SplitN`, so no leaf splits a major (D21). Its "import-free" doc comment becomes "free of intra-module imports" — `strings` is a CUE builtin and adds no edge to the module graph.
 - `src/catalog.cue` — `metadata: modulePath: id.ModulePath` and `metadata: version: id.Version`.
-- Leaf files are **unchanged**. Intra-module imports omit the major suffix (verified: `catalog_opm/cue.mod/module.cue` is `opmodel.dev/catalogs/opm@v1` while every leaf imports `opmodel.dev/catalogs/opm/identity` with no suffix), so a major bump churns no import statement.
+- Leaf files gain one line and change one reference (D21): `modulePath` reads `id.RegistryPath` instead of `id.ModulePath` — a one-token edit forced by `ModulePath` now carrying `@v1` — and each primitive authors `fqn: "\(id.RegistryPath)/<kind>/\(name)@\(id.Version)"`. Import statements are untouched: intra-module imports omit the major suffix (verified — `catalog_opm/cue.mod/module.cue` is `opmodel.dev/catalogs/opm@v1` while every leaf imports `opmodel.dev/catalogs/opm/identity` with no suffix), so a major bump churns no import.
 
 **modules**
 
