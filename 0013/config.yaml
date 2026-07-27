@@ -1,0 +1,88 @@
+# Metadata for enhancement 0013 — sole source of metadata for this entry.
+# No parallel metadata table lives in README.md.
+
+id: "0013"
+slug: secret-field-attributes
+title: Attribute-Declared Secret Fields
+status: draft
+
+# Primary owner is nobody in particular, which is why this is cross-cutting:
+# core loses a dead construct and gains one context field, library gains the
+# whole mechanism, catalog_opm loses a duplicated one, and the module authoring
+# surface changes. No single repo dominates.
+area: cross-cutting
+
+# Every repo that ships code/schema/content changes driven by this enhancement.
+affects:
+  - cross-cutting
+  - core
+  - library
+  - catalog
+  - modules
+  - cli
+
+created: "2026-07-27"
+updated: "2026-07-27"
+
+authors:
+  - Emil
+
+implementation:
+  status: not-started
+
+history:
+  - date: "2026-07-27"
+    event: Drafted
+  - date: "2026-07-27"
+    event: >-
+      Design recorded as D1-D9 with one open question. The entry replaces the
+      `#Secret` contract type with an inert `@opm(secret, …)` field attribute on
+      the declaring `#config` field, moves discovery from 240 lines of unrolled
+      CUE comprehension into a bounded Go walk in the library kernel, and
+      substitutes an opaque handle for every marked value before any component
+      is built — so plaintext never enters the component graph and a secret that
+      lands somewhere the target cannot express as a reference becomes
+      detectable instead of silently rendered. Secret object naming collapses
+      from three disagreeing derivations to one kernel-owned computation
+      delivered through `#TransformerContext.secrets`, which makes the currently
+      live env-vs-volume name mismatch unrepresentable. Experiment 01 measured
+      the mechanism against the real `opmodel.dev/core@v1` schema: attributes
+      survive definition-to-value unification, the `#Module`/`#ModuleInstance`
+      shape, cross-CUE-module imports, 12+ nesting levels, lists, and pattern
+      constraints, and are discoverable before values exist. OQ1 — which surface
+      chooses between the supplied and referenced fulfilment kinds — is the sole
+      blocker to acceptance.
+
+  - date: "2026-07-27"
+    event: >-
+      Design revised on review: D10 supersedes D1, D11 supersedes D4, D12 amends
+      D9, and OQ1 is closed. D1 had removed the `#Secret` contract type AND the
+      disjunction inside it, when only the routing metadata needed to move to the
+      attribute — leaving the deployer no slot in which to say "this Secret
+      already exists", and forcing the handle-plus-context-map machinery of D4 to
+      compensate. D10 restores `#Secret` narrowed to `#SecretLiteral |
+      #SecretRef`, so the ATTRIBUTE carries routing (author intent, static, in
+      the published module) and the TYPE carries fulfilment (deployer choice,
+      per environment, type-checked by CUE). D11 replaces handle substitution
+      with resolve-in-place: the kernel rewrites every secret to its `#SecretRef`
+      form, so both arms converge before render, a transformer reads two fields
+      from one branch, and the whole handle format, the `#TransformerContext`
+      addition, the `owned` flag and the output scanner are all deleted. Three
+      properties fall out that the first draft lacked: instance files for
+      supplied secrets do not change at all, plaintext in the render is
+      structurally unrepresentable rather than stripped, and a secret
+      interpolated into a rendered string fails at plain `cue vet` at authoring
+      time. Experiment 02 rebuilt as `02-resolve-in-place` and re-run: all five
+      claims held, and its Go content hash agrees with the CUE one in
+      examples.cue. OQ2 opened — whether the arm rewrite survives the real
+      kernel build path — and is now the sole blocker to acceptance.
+
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0009"
+  - "0010"
+  - "0011"
+
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
