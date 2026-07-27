@@ -1,0 +1,47 @@
+# Metadata for enhancement 0012 — sole source of metadata for this entry.
+# No parallel metadata table lives in README.md.
+
+id: "0012"
+slug: kubernetes-first-class-kernel-platform
+title: Kubernetes as a First-Class Kernel Platform
+status: draft
+
+# Primary owner: the kernel. The deletion protocol, the ownership vocabulary,
+# and the K8s object model all land in library/opm/; the frontends adopt.
+area: library
+
+# Every repo that ships code changes driven by this enhancement.
+affects:
+  - library
+  - opm-operator
+  - cli
+
+created: "2026-07-27"
+updated: "2026-07-27"
+
+authors:
+  - OPM Contributors
+
+implementation:
+  status: not-started
+
+history:
+  - date: "2026-07-27"
+    event: Drafted
+
+# 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
+#        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).
+# 0008 — CUE-native CRD types; overlaps on where the shared K8s type vocabulary lives.
+# 0009 — the execution half of the kernel; the other non-render kernel surface.
+# 0010 — OQ10 (ownership through deletion) surfaced this entry's scope.
+related:
+  - "0006"
+  - "0008"
+  - "0009"
+  - "0010"
+
+# NOT a supersession of 0006 as an entry — 0006 is implemented and stands.
+# This entry supersedes exactly one of its decisions (D31), recorded in
+# 03-decisions.md rather than via this field.
+supersedes: []
+superseded_by: null
