@@ -12,16 +12,20 @@ graph LR
 
   N0001["0001: #Platform Redesign Umbrella"]:::implemented
   N0002["0002: Rename the Release artifact family to Instance vo…"]:::implemented
-  N0003["0003: OPM Module Publishing Workflow"]:::draft
+  N0003["0003: OPM Module Publishing Workflow"]:::superseded
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
   N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::implemented
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
+  N0010["0010: Module and Catalog Identity"]:::draft
+  N0011["0011: Module and Catalog Publishing"]:::draft
 
   N0001 ---|related| N0002
+  N0001 ---|related| N0003
   N0001 ---|related| N0006
+  N0001 ---|related| N0010
   N0002 ---|related| N0003
   N0002 ---|related| N0004
   N0002 ---|related| N0006
@@ -31,6 +35,9 @@ graph LR
   N0005 ---|related| N0007
   N0006 ---|related| N0007
   N0006 ---|related| N0008
+  N0010 ---|related| N0011
+  N0010 -->|supersedes| N0003
+  N0011 -->|supersedes| N0003
 ```
 
 ## Legend
