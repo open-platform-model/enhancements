@@ -1,0 +1,41 @@
+id: "0011"
+slug: artifact-publishing
+title: Module and Catalog Publishing
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cli
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+#
+# NOTE on `catalog`: the #Area vocabulary predates the catalog split. Here it
+# means the live catalog repos — catalog_opm, catalog_kubernetes,
+# catalog_opm_experimental — not the deprecated `catalog/` tree.
+affects:
+  - cli
+  - catalog
+  - modules
+created: "2026-07-26"
+updated: "2026-07-26"
+authors:
+  - emil@jacero.se
+# Design impact: new commands and a namespace move. Additive for the CLI's own
+# surface; the namespace move rewrites every published coordinate, which is a
+# migration rather than a schema break.
+semver: minor
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones.
+history:
+  - date: "2026-07-26"
+    event: Drafted
+  - date: "2026-07-26"
+    event: "Initial design recorded as D1-D7 with six open questions. The entry defines how an OPM artifact reaches a registry: one publish pipeline serving two artifact types (D1), which DERIVES its coordinates from the artifact and never rewrites the artifact to fit a coordinate (D2); version authoring split from version publishing, so a commit can sit between deciding a version and pushing one (D3); a refusal to publish an artifact whose identity is not concrete, closing the measured gap that `cue mod publish` will happily push a tree with unfilled identity fields (D4); a central registry that HOSTS rather than indexes, with owner-scoped module paths under reserved namespace segments (D5); and a local-override gate that never honours cue.mod/local-module.cue, with an explicit escape hatch for modules and none at all for catalogs, because a catalog's divergence propagates into the key space of everything built against it (D6). The four questions that block promotion are the ones this entry cannot answer from inside itself: publishing credentials, tag immutability, what replaces the modules repo's checksum-driven bump, and how the published fleet moves to the owner-scoped namespace."
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0010"
+# Lifecycle relationships.
+supersedes:
+  - "0003"
+superseded_by: null
