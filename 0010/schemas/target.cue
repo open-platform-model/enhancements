@@ -1,17 +1,16 @@
 // Target schema for enhancement 0010 (Module and Catalog Identity).
 //
 // These shapes state the identity contract: what an artifact's identity IS
-// (D1, D2, D3), what a primitive's match key IS (D13), what a subscription
-// selects (D14, D15), and the invariant a reader enforces (D11's addressing
-// check).
+// (D1, D2, D3), what a primitive's match key IS (D24), what a build promises
+// across a release (D27), what a subscription selects (D14, D15), and the
+// invariant a reader enforces (D11's addressing check).
 //
-// They are a specification, not an implementation. D13 removed the SemVer
-// COMPARISON that earlier revisions modelled here — under full-SemVer keys a
-// demand either finds its exact build or does not, so there is no ordering to
-// evaluate and no prerelease-ordering simplification left to paper over. The
-// one place ordering still matters is subscription selection (#Subscription-
-// Selection), where the production implementation is Go and
-// library/opm/materialize/filter.go already uses a real semver library.
+// They are a specification, not an implementation. There is no version
+// ORDERING modelled here: under D24 a contract key carries an API version that
+// is compared for equality, and a transformer key carries a build that is
+// never compared at all. The one place ordering still matters is subscription
+// selection (#SubscriptionSelection), where the production implementation is
+// Go and library/opm/materialize/filter.go already uses a real semver library.
 package schema
 
 import (
@@ -49,6 +48,16 @@ import (
 // doc comment describes.
 #MajorVersionType: string & =~"^v[0-9]+$"
 
+// #APIVersionType: a PRIMITIVE's contract major (D24, D25) — the value an
+// author moves when that primitive's shape breaks, independent of the
+// catalog's module major and of its release SemVer.
+//
+// Spelled with the pre-stable forms admitted, on the expectation that OQ14
+// lands on the Kubernetes convention (v1alpha1 -> v1beta1 -> v1). If OQ14
+// resolves the other way this narrows to #MajorVersionType and nothing else
+// moves.
+#APIVersionType: string & =~"^v[0-9]+((alpha|beta)[0-9]+)?$"
+
 // #SnakeNameType: a CUE-identifier-safe name. Under D8 this is what an author
 // writes and what the module path's leaf must equal.
 #SnakeNameType: string & =~"^[a-z0-9]([a-z0-9_]*[a-z0-9])?$"
@@ -62,14 +71,35 @@ import (
 // version numerically any more, so it costs nothing here.
 #VersionType: string & =~"^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
-// #FQNType: a primitive's fully-qualified name — the full SemVer of the
-// catalog build the definition came from (D13).
+// #ContractFQNType: what a module DEMANDS — path/name@vN, where vN is the
+// primitive's own apiVersion (D24). A catalog release does not move it; only a
+// breaking change to that primitive's shape does.
 //
-// NOTE the deliberate asymmetry with #ModulePathType. A module path carries
-// "@v1" — CUE's own spelling, and an ADDRESS. An FQN carries "@1.2.0" — bare
-// SemVer, and a KEY. The two are never the same string and must not look
-// alike.
-#FQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+// This is the key a #Resource, #Trait or #Blueprint carries, and the key a
+// transformer's requiredResources / requiredTraits map is keyed by. It is what
+// lets a contract defined in one catalog be fulfilled by a transformer in
+// another, on independent release cadences.
+#ContractFQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+((alpha|beta)[0-9]+)?$"
+
+// #ImplFQNType: what a platform EXECUTES — path/name@1.2.0, the full SemVer of
+// the build the transformer shipped in (D24). Unchanged from the form core
+// carries today.
+//
+// Transformers keep the build in their key for two reasons. It is provenance
+// an operator needs — which bytes are running — and it is what keeps
+// materialize/index.go's invariant true: two builds of one catalog must not
+// collide on one composed-map key, which is the failure that made a
+// major-keyed transformer unworkable.
+#ImplFQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+
+// #FQNType: either form, for the map shapes in core that hold both.
+//
+// NOTE the deliberate asymmetry with #ModulePathType, which survives D24
+// intact: a module path carries "@v1" as an ADDRESS. A contract FQN now also
+// ends "@v1" — but it is a KEY, and the two namespaces never meet in one
+// field. What must stay visually distinct is a contract key from an
+// implementation key, and "@v1" versus "@1.2.0" does that.
+#FQNType: #ContractFQNType | #ImplFQNType
 
 // ─── Address decomposition (D1) ─────────────────────────────────────────────
 
@@ -120,10 +150,10 @@ import (
 
 // #CatalogIdentity is #Catalog.metadata after this enhancement.
 //
-// It keeps a full SemVer (D3) which #ModuleIdentity does not. Under D13 that
-// version is load-bearing in a way D3 did not intend: it is interpolated into
-// every FQN the catalog ships, so it is a KEY COMPONENT rather than a
-// compatibility signal sitting beside the keys.
+// It keeps a full SemVer (D3) which #ModuleIdentity does not. Under D24 that
+// version keys the catalog's TRANSFORMERS and stamps every primitive's
+// catalogVersion as provenance; it does NOT key the contracts, which carry
+// their own apiVersion and do not move when the catalog releases (D25).
 //
 // No `name` field: nothing reads one, in Go or in CUE (D16). Catalog
 // identity and address are the module path alone.
@@ -139,16 +169,18 @@ import (
 // #IdentityPackage is the catalog's committed identity/identity.cue (D5),
 // the single source every leaf imports as `id`.
 //
-// Tooling writes exactly the two @opm()-marked fields; RegistryPath and
+// Tooling writes exactly ModulePath and Version, located by THIS schema's
+// field names rather than by a marker attribute (D22); RegistryPath and
 // Major are DERIVED from ModulePath, so the split happens once here rather
 // than at every definition site (D20, D21). `strings` is a CUE builtin, so
 // the package keeps its invariant of carrying no INTRA-MODULE import and
 // stays at the bottom of the graph with no cycle.
 #IdentityPackage: {
-	// @opm(identity, owner=publish) — byte-identical to cue.mod's `module:`.
+	// Written by publish. Byte-identical to cue.mod's `module:`.
 	ModulePath!: #ModulePathType
 
-	// @opm(identity, owner=publish) — the build every FQN interpolates.
+	// Written by `version set` / `publish --version`. The build every FQN
+	// interpolates.
 	Version!: #VersionType
 
 	_ref: #ArtifactRef & {modulePath: ModulePath}
@@ -171,41 +203,53 @@ import (
 	}
 }
 
-// ─── Primitive identity (D13) ───────────────────────────────────────────────
+// ─── Primitive identity (D24, D25) ──────────────────────────────────────────
 
 // #PrimitiveIdentity is shared by #Resource, #Trait, #Blueprint and
 // #ComponentTransformer.
 //
-// Under D13 the FQN carries the FULL SemVer of the catalog build this
-// definition came from, so the key names its own bytes: a module demanding
-// this key gets exactly the definition it was authored against, permanently,
-// and a catalog release cannot alter what an installed module renders.
+// TWO versions, and the split is the whole of D24. `apiVersion` is the
+// CONTRACT major — what this primitive promises, moved only when its shape
+// breaks. `catalogVersion` is the BUILD it shipped in — provenance, which no
+// contract key interpolates and which D26 excludes from the match comparison
+// entirely.
 //
-// `version` stays REQUIRED (D21, resolving OQ6). It is the key's source
-// component, not a duplicate of the key: removing it leaves nothing to
-// interpolate and nothing to stamp, and a stale authored fqn then vets clean
-// (measured, exit 0). Deriving it back OUT of fqn is a CUE cycle (measured:
-// `cycle with field: version`).
+// `apiVersion` is the one identity value on a primitive that is NOT derivable
+// from identity/identity.cue. It is a judgement its author makes, which is why
+// it is a field rather than an interpolation, and it is what a compatibility
+// gate keys its comparison on: "compare this against the last published build
+// shipping this name at this apiVersion" (D27).
 //
-// `fqn` is AUTHORED, not derived (D21). core stops computing it; each catalog
-// writes it at the primitive's own definition site, interpolated from the
-// identity package:
+// `catalogVersion` is the D21 field under its D25 name. It stays REQUIRED for
+// the reason D21 recorded — it is a key's source component for transformers
+// and the provenance both ends of a match read — and it keeps its two supply
+// routes: `id.Version` at the leaf, and #Catalog's pattern constraint stamping
+// every #transformers entry structurally.
 //
-//	fqn: "\(id.RegistryPath)/resources/\(name)@\(id.Version)"
+// `fqn` is AUTHORED, not derived (D21), and which type it takes depends on the
+// kind:
 //
-// So all three of modulePath, version and fqn reference identity/identity.cue
-// and move together on a release. Enforcement MOVES rather than disappearing:
-// core's unification made a wrong value inexpressible; 0011's publish gate
-// (#PrimitiveFQNGate) catches it before it ships, which is where D17 already
-// put the primitive-path rule.
+//	resource / trait / blueprint  fqn: "\(id.RegistryPath)/resources/\(name)@\(apiVersion)"
+//	transformer                   fqn: "\(id.RegistryPath)/transformers/\(name)@\(id.Version)"
+//
+// Enforcement MOVES rather than disappearing: core's unification made a wrong
+// value inexpressible; 0011's publish gate (#PrimitiveFQNGate) catches it
+// before it ships, which is where D17 already put the primitive-path rule.
 //
 // `modulePath` is a PACKAGE path under D20 — no "@vN".
 #PrimitiveIdentity: {
-	name!:       #NameType
-	modulePath!: #PackagePathType
-	version!:    #VersionType
-	fqn!:        #FQNType
+	name!:           #NameType
+	modulePath!:     #PackagePathType
+	apiVersion!:     #APIVersionType
+	catalogVersion!: #VersionType
+	fqn!:            #FQNType
 }
+
+// #ContractIdentity / #ImplIdentity narrow `fqn` by kind. A resource, trait or
+// blueprint carries a contract key; a transformer carries an implementation
+// key. Both keep both versions.
+#ContractIdentity: #PrimitiveIdentity & {fqn!: #ContractFQNType}
+#ImplIdentity:     #PrimitiveIdentity & {fqn!: #ImplFQNType}
 
 // #PrimitiveFQNGate states what 0011's publish gate asserts for one
 // primitive. It is deliberately NOT part of #PrimitiveIdentity: expressing it
@@ -220,14 +264,59 @@ import (
 	name!:     #NameType
 
 	// What the catalog actually authored.
-	declaredFQN!:        #FQNType
-	declaredModulePath!: #PackagePathType
-	declaredVersion!:    #VersionType
+	declaredFQN!:            #FQNType
+	declaredModulePath!:     #PackagePathType
+	declaredAPIVersion!:     #APIVersionType
+	declaredCatalogVersion!: #VersionType
 
-	// What identity/identity.cue implies it must be.
-	declaredModulePath: identity.primitivePrefix[kind]
-	declaredVersion:    identity.Version
-	declaredFQN:        identity.primitivePrefix[kind] + "/" + name + "@" + identity.Version
+	// What identity/identity.cue implies. The provenance must name THIS build;
+	// the path must sit under THIS catalog (D17).
+	declaredModulePath:     identity.primitivePrefix[kind]
+	declaredCatalogVersion: identity.Version
+
+	// The key is interpolated from the contract for the three demand-side
+	// kinds and from the build for a transformer (D24). apiVersion is NOT
+	// checked against identity — nothing implies it, which is the point of it.
+	_keyVersion: [
+		if kind == "transformers" {identity.Version},
+		declaredAPIVersion,
+	][0]
+
+	declaredFQN: identity.primitivePrefix[kind] + "/" + name + "@" + _keyVersion
+}
+
+// ─── The compatibility promise (D27) ────────────────────────────────────────
+
+// #ContractCompatibility states the relation a publish gate asserts between
+// the build being published and the last build that shipped this primitive at
+// this apiVersion. It is a SPECIFICATION of the check, not the check: the
+// comparison is structural and belongs in Go, where cue.Value.Subsume is the
+// candidate primitive (0011 D9; still to be measured).
+//
+// The three clauses are separate because they fail differently. Subsumption
+// covers added fields and widened options. `newRequiredFields` is called out
+// on its own because adding a REQUIRED field passes a naive "nothing was
+// removed" reading and breaks every component authored earlier. Default
+// stability is called out because it is invisible to subsumption AND to the
+// match rung: measured in experiments/02, two builds disagreeing on a
+// default unify to a NON-CONCRETE value, so the match passes and the render
+// fails later on an incomplete value, naming a field rather than a build.
+#ContractCompatibility: {
+	apiVersion!:  #APIVersionType
+	fromVersion!: #VersionType // the previously published build
+	toVersion!:   #VersionType // the build being published
+
+	// Every value valid under `from` is valid under `to`.
+	subsumes!: bool
+	subsumes:  true
+
+	// No field required by `to` that was absent or optional in `from`.
+	newRequiredFields!: [...#NameType]
+	newRequiredFields: []
+
+	// No field present in both whose default value changed.
+	changedDefaults!: [...#NameType]
+	changedDefaults: []
 }
 
 // ─── Read-side invariant (D11) ──────────────────────────────────────────────
@@ -258,10 +347,15 @@ import (
 // ─── Subscription selection (D14, D15) ──────────────────────────────────────
 
 // #SubscriptionSelection is what a #Platform's subscription resolves to under
-// D13. It replaces "the highest published stable version" (filter.go:43-47)
-// with EVERY published build in the subscribed major, because a single build
-// supplies a single key space and every module authored against any other
-// build would miss (D14).
+// D14: EVERY published build in the subscribed major, replacing "the highest
+// published stable version" (filter.go:43-47).
+//
+// D24 REMOVES THIS SHAPE'S ORIGINAL JOB. Breadth existed because a single
+// build supplied a single key space and every module authored against another
+// build would miss; contract keys make that false. Whether the default reverts
+// to one build, keeps breadth with a tie-break, or errors on two builds
+// supplying one contract is OQ15 — the shape is kept unchanged here rather
+// than guessed at, because D15's prerelease opt-in holds either way.
 //
 // The subscription key already names the major under D1, so "every build in
 // this major" is the literal reading of a key that says @v1 rather than a new
@@ -291,42 +385,47 @@ import (
 		if includePrereleases || !strings.Contains(v, "-") {v}]
 }
 
-// ─── The matcher's lookup (D13) ─────────────────────────────────────────────
+// ─── The matcher's lookup (D24, D26, D27) ───────────────────────────────────
 //
 // #PrimitiveDemand is the whole check the matcher performs for one demanded
-// primitive, and under D13 it is exact-key containment: the composed
-// transformer map either carries the demanded key or it does not. There is no
-// floor, no owning-catalog derivation, and no longest-prefix match — a key
-// from a build the platform did not materialize is simply absent.
+// contract, and under D24 it is exact-key containment on a CONTRACT key: the
+// #matchers reverse index either carries the demanded key or it does not.
+// There is no floor, no ordering, no range and no owning-catalog derivation.
 //
-// The diagnostic that replaces `no matching transformer` is computed WITHOUT a
-// catalog lookup, which is why this does not depend on the
-// primitive-under-catalog-path convention (D17): strip the version
-// off the demanded FQN and collect every supplied key sharing that
-// path-and-name. That set is exactly "which builds of this primitive the
-// platform has", so the message names the subscription gap directly:
+// What D24 changes is what a hit MEANS. Under SemVer keys a hit guaranteed
+// byte-identical definitions, so nothing further was checked. Under a contract
+// key the two sides may come from different builds, so the hit is followed by
+// the always-unify rung (match.go:243-278) comparing their bodies — which is
+// where D27's promise is enforced and D26's exclusion applies.
 //
-//   demanded .../config-maps@1.2.0
-//   platform carries 1.1.0, 1.3.0 for .../config-maps
+// The diagnostic on a miss needs no catalog lookup and is sharper than the
+// SemVer-keyed one, because the version noise is gone:
+//
+//	availableApiVersions empty     nothing on this platform implements this
+//	                               contract — the PLATFORM lacks a provider
+//	availableApiVersions ["v2"]    implemented, at an apiVersion this module
+//	                               does not speak
+//
+// Under D28 either outcome fails the render rather than being collected.
 #PrimitiveDemand: {
-	demanded!: #FQNType
+	demanded!: #ContractFQNType
 
-	// The composed transformer map's key set (materialize's indexCatalogs
-	// output), flattened to the keys themselves.
-	supplied!: [...#FQNType]
+	// The #matchers reverse index key set: every contract FQN some transformer
+	// on this platform requires or optionally consumes.
+	supplied!: [...#ContractFQNType]
 
 	_d: strings.SplitN(demanded, "@", 2)
 
-	// The version-free identity of the primitive: path + name.
-	primitivePath:   _d[0]
-	demandedVersion: _d[1]
+	// The version-free identity of the contract: path + name.
+	primitivePath:      _d[0]
+	demandedAPIVersion: _d[1]
 
-	// Every build of THIS primitive the platform materialized.
-	availableVersions: [for k in supplied
+	// Every apiVersion of THIS contract the platform implements.
+	availableApiVersions: [for k in supplied
 		let _k = strings.SplitN(k, "@", 2)
 		if _k[0] == primitivePath {_k[1]}]
 
-	matched: list.Contains(availableVersions, demandedVersion)
+	matched: list.Contains(availableApiVersions, demandedAPIVersion)
 	matched: true
 }
 
@@ -379,26 +478,31 @@ _identityExample: #IdentityPackage & {
 }
 
 // One primitive of each kind, exactly as a catalog leaf authors them (D21).
-// modulePath carries no major (D20); the key carries the build (D13).
-_resourceExample: #PrimitiveIdentity & {
-	name:       "config-maps"
-	modulePath: "opmodel.dev/catalogs/opm/resources"
-	version:    "1.2.0"
-	fqn:        "opmodel.dev/catalogs/opm/resources/config-maps@1.2.0"
+// modulePath carries no major (D20). Note the two contracts and the
+// transformer come from the SAME build and key differently (D24): the
+// contracts on what they promise, the transformer on the bytes that run.
+_resourceExample: #ContractIdentity & {
+	name:           "config-maps"
+	modulePath:     "opmodel.dev/catalogs/opm/resources"
+	apiVersion:     "v1"
+	catalogVersion: "1.2.0"
+	fqn:            "opmodel.dev/catalogs/opm/resources/config-maps@v1"
 }
 
-_traitExample: #PrimitiveIdentity & {
-	name:       "scaling"
-	modulePath: "opmodel.dev/catalogs/opm/traits"
-	version:    "1.2.0"
-	fqn:        "opmodel.dev/catalogs/opm/traits/scaling@1.2.0"
+_traitExample: #ContractIdentity & {
+	name:           "scaling"
+	modulePath:     "opmodel.dev/catalogs/opm/traits"
+	apiVersion:     "v1"
+	catalogVersion: "1.2.0"
+	fqn:            "opmodel.dev/catalogs/opm/traits/scaling@v1"
 }
 
-_transformerExample: #PrimitiveIdentity & {
-	name:       "configmap-transformer"
-	modulePath: "opmodel.dev/catalogs/opm/transformers"
-	version:    "1.2.0"
-	fqn:        "opmodel.dev/catalogs/opm/transformers/configmap-transformer@1.2.0"
+_transformerExample: #ImplIdentity & {
+	name:           "configmap-transformer"
+	modulePath:     "opmodel.dev/catalogs/opm/transformers"
+	apiVersion:     "v1"
+	catalogVersion: "1.2.0"
+	fqn:            "opmodel.dev/catalogs/opm/transformers/configmap-transformer@1.2.0"
 }
 
 // The publish gate accepting all three.
@@ -406,27 +510,30 @@ _gateResource: #PrimitiveFQNGate & {
 	identity:           _identityExample
 	kind:               "resources"
 	name:               "config-maps"
-	declaredFQN:        _resourceExample.fqn
-	declaredModulePath: _resourceExample.modulePath
-	declaredVersion:    _resourceExample.version
+	declaredFQN:            _resourceExample.fqn
+	declaredModulePath:     _resourceExample.modulePath
+	declaredAPIVersion:     _resourceExample.apiVersion
+	declaredCatalogVersion: _resourceExample.catalogVersion
 }
 
 _gateTrait: #PrimitiveFQNGate & {
 	identity:           _identityExample
 	kind:               "traits"
 	name:               "scaling"
-	declaredFQN:        _traitExample.fqn
-	declaredModulePath: _traitExample.modulePath
-	declaredVersion:    _traitExample.version
+	declaredFQN:            _traitExample.fqn
+	declaredModulePath:     _traitExample.modulePath
+	declaredAPIVersion:     _traitExample.apiVersion
+	declaredCatalogVersion: _traitExample.catalogVersion
 }
 
 _gateTransformer: #PrimitiveFQNGate & {
 	identity:           _identityExample
 	kind:               "transformers"
 	name:               "configmap-transformer"
-	declaredFQN:        _transformerExample.fqn
-	declaredModulePath: _transformerExample.modulePath
-	declaredVersion:    _transformerExample.version
+	declaredFQN:            _transformerExample.fqn
+	declaredModulePath:     _transformerExample.modulePath
+	declaredAPIVersion:     _transformerExample.apiVersion
+	declaredCatalogVersion: _transformerExample.catalogVersion
 }
 
 // MUST FAIL — the failure D21 accepts and delegates to the publish gate: an
@@ -503,49 +610,53 @@ _selectionLiveRegime: #SubscriptionSelection & {
 	selected: []
 }
 
-// THE PAYOFF (D13). Two modules built against different minors of one catalog,
-// on a platform that materialized the whole v1 major. Each demands the exact
-// build it was authored against, and each finds it — cross-minor installs
-// without collapsing the key space, and without either module's render moving
-// when 1.2.0 was published.
+// THE PAYOFF (D24). A contract defined in one catalog, fulfilled by a
+// transformer in another, with the two compiled against different builds of
+// the defining catalog. Both arrive at one key.
+//
+// This is the case D13's SemVer keys could not express: catalog_opm defines
+// `backup` and ships no transformer for it, a k8up provider catalog ships the
+// transformer, and neither release cadence is coupled to the other.
 _supply: [
-	"opmodel.dev/catalogs/opm/resources/config-maps@1.0.0",
-	"opmodel.dev/catalogs/opm/resources/config-maps@1.1.0",
-	"opmodel.dev/catalogs/opm/resources/config-maps@1.2.0",
+	"opmodel.dev/catalogs/opm/resources/backup@v1",
+	"opmodel.dev/catalogs/opm/resources/config-maps@v1",
+	"opmodel.dev/catalogs/opm/traits/scaling@v1",
 ]
 
-_demandOldModule: #PrimitiveDemand & {
-	demanded: "opmodel.dev/catalogs/opm/resources/config-maps@1.0.0"
+// The module compiled against catalog_opm 1.3.0; the provider against 1.0.0.
+// Neither version appears in either key, so the demand lands.
+_demandFulfilledContract: #PrimitiveDemand & {
+	demanded: "opmodel.dev/catalogs/opm/resources/backup@v1"
 	supplied: _supply
 
-	availableVersions: ["1.0.0", "1.1.0", "1.2.0"]
-	matched: true
+	availableApiVersions: ["v1"]
+	matched:              true
 }
 
-_demandNewModule: #PrimitiveDemand & {
-	demanded: "opmodel.dev/catalogs/opm/resources/config-maps@1.2.0"
+// Whether the two BODIES agree is the always-unify rung's job, not this
+// shape's — see #ContractCompatibility and experiments/02.
+_demandOrdinary: #PrimitiveDemand & {
+	demanded: "opmodel.dev/catalogs/opm/resources/config-maps@v1"
 	supplied: _supply
 	matched:  true
 }
 
-// MUST FAIL — the platform's subscription does not cover the build this module
-// was authored against. Uncommenting yields, and ONLY yields:
+// MUST FAIL — nothing on this platform implements the contract at any API
+// version. availableApiVersions is EMPTY, which is what distinguishes "you
+// have no provider for this" from "your provider speaks a different version".
+// Uncommenting yields, and ONLY yields:
 //   matched: conflicting values false and true
 //
-// availableVersions is still computed, so the error message can name what the
-// platform DOES carry: "demanded ...@1.3.0; platform carries 1.0.0, 1.1.0,
-// 1.2.0". That is the subscription gap named directly.
-//
-//  _demandUncovered: #PrimitiveDemand & {
-//   demanded: "opmodel.dev/catalogs/opm/resources/config-maps@1.3.0"
+//  _demandNoProvider: #PrimitiveDemand & {
+//   demanded: "opmodel.dev/catalogs/opm/resources/nonexistent@v1"
 //   supplied: _supply
 //  }
 //
-// MUST FAIL — the primitive is absent entirely (a catalog that never shipped
-// it, or a typo). availableVersions is empty, so the message distinguishes
-// "wrong build" from "no such primitive" without a catalog lookup.
+// MUST FAIL — implemented, but at an apiVersion this module does not speak.
+// availableApiVersions is ["v1"], so the message names the gap: "this module
+// demands backup@v2; this platform implements backup@v1".
 //
-//  _demandAbsent: #PrimitiveDemand & {
-//   demanded: "opmodel.dev/catalogs/opm/resources/nonexistent@1.2.0"
+//  _demandWrongAPIVersion: #PrimitiveDemand & {
+//   demanded: "opmodel.dev/catalogs/opm/resources/backup@v2"
 //   supplied: _supply
 //  }

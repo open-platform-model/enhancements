@@ -33,6 +33,8 @@ Four commands over one pipeline, plus a namespace that makes the coordinates wor
 
 **4. `opm catalog registry check`.** Verify a *published* catalog out of band: pull it, decode it, and confirm its identity is concrete and agrees with the coordinates it was fetched by. This is the same check a consumer performs, run deliberately against the registry rather than incidentally during a render — so a broken publish can be found without waiting for someone to trip over it.
 
+**5. The compatibility gate on `opm catalog publish` (D9).** For each primitive being published, pull the last published build shipping that `name` at that `apiVersion` and refuse if the new definition is not backwards-compatible with it — enhancement 0010 D27's additive-only rule. It reuses the pull-and-decode the command above already performs. This is the gate that makes 0010's contract keys trustworthy: a key that outlives a catalog release is only as good as the promise that what stands behind it did not change shape.
+
 Around those, three properties:
 
 **Gates that reflect blast radius.** A `cue.mod/local-module.cue` in the tree being published is never honoured — a local path is unresolvable for any consumer, and CUE strips the file anyway. Its *presence* refuses the push. For a module, an explicit flag overrides, because the divergence is scoped to one artifact and its direct consumers, and each replacement is reported next to the registry version that will supersede it. For a catalog, there is no override: a catalog's divergence propagates into the key space of everything built against it, which is not a scope any publisher can assess at the moment they would press the flag.
@@ -51,6 +53,7 @@ Around those, three properties:
 | Registry path | `opmodel.dev/m/<owner>/<name>` | `opmodel.dev/catalogs/<name>` |
 | Package-name rule | must equal `metadata.name`, so a bare import binds | not applicable — a catalog is imported by subpackage |
 | `local-module.cue` present | refuse; explicit flag overrides | refuse, unconditionally |
+| Compatibility with the last published build | not applicable — a module ships no contracts | refuse on a non-additive change within an `apiVersion` (D9) |
 | Out-of-band verification | — | `opm catalog registry check` |
 
 ### What publish does not do
@@ -78,8 +81,9 @@ The shapes in [`schemas/target.cue`](schemas/target.cue) describe a publish *dec
 **cli** — the bulk of the work; none of these commands exist today.
 
 - `opm module publish` / `opm catalog publish` — one implementation, two entry points differing in which artifact is decoded and which gates run.
-- `opm catalog version set <semver>` — writes `identity/identity.cue`'s `Version`, idempotently, preserving the `@opm()` marker. The editing mechanics are unresolved (see OQ1's neighbour question in `03-decisions.md`): a surgical AST rewrite preserves formatting and comments where a reformatting round-trip does not.
+- `opm catalog version set <semver>` — writes `identity/identity.cue`'s `Version`, idempotently, locating it by the path `#IdentityPackage` fixes rather than by a marker attribute (D8). The editing mechanics are unresolved (see OQ1's neighbour question in `03-decisions.md`): a surgical AST rewrite preserves formatting and comments where a reformatting round-trip does not.
 - `opm catalog registry check` — pull, decode, verify.
+- The compatibility gate (D9) — for each primitive, resolve the last published build at the same `apiVersion`, pull it, and compare structurally. `cue.Value.Subsume` is the candidate primitive and is **unmeasured**; `enhancements/0010/experiments/02-primitive-closedness-skew/` already carries the four builds a correct gate must classify, so the measurement is mostly harness.
 - `cli/pkg/loader/provenance.go` — `HasLocalModuleReplacement` already detects the file for render provenance; publish reads the same detector for a different purpose, so it is reused rather than rewritten.
 - `cli/pkg/module/module.go` — the coordinate derivation collapses into a read once `modulePath` is the full address; `majorVersionTag()` / `ensureVPrefix()` lose their caller.
 - Credential handling — nothing exists today (OQ2).

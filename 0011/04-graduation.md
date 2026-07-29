@@ -20,7 +20,7 @@ The design is ready to be sliced when:
 The design is shipped when:
 
 - `opm module publish` and `opm catalog publish` exist as one implementation with two entry points, with test coverage on every refusal path, not only the happy path.
-- `opm catalog version set` writes `identity/identity.cue` idempotently, preserving the `@opm()` marker, formatting, and comments — with real catalog repos as fixtures rather than synthetic ones.
+- `opm catalog version set` writes `identity/identity.cue` idempotently, preserving formatting, comments, and any type assertion on the field — with real catalog repos as fixtures rather than synthetic ones.
 - `opm catalog registry check` verifies a published catalog against the registry, and the same verification runs when a catalog is added to a `#Platform` registry.
 - The identity-completeness gate is exercised against a tree with an unfilled field and refuses, with a message naming the field and its file.
 - The local-override gate is exercised in all four states: module clean, module blocked, module allowed by flag, catalog blocked with the flag passed and ignored.

@@ -8,8 +8,12 @@
 //
 // It is a DEMONSTRATION, not production code. In particular it reads identity
 // from the artifact's identity FILE rather than decoding the whole artifact
-// through core; that is enough for every gate here, and experiment 01 in
-// enhancement 0010 shows why the file is where the marker lives.
+// through core; that is enough for every gate here, and the production command
+// would decode the artifact as well.
+//
+// Identity fields are located by their SCHEMA-FIXED path — 0010 D22 dropped the
+// @opm() marker and 0011 D8 fixes the lookup at the names #IdentityPackage and
+// #Module define. There is nothing to search for.
 package main
 
 import (
@@ -23,8 +27,6 @@ import (
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 )
-
-const marker = "opm"
 
 func main() {
 	kind := flag.String("kind", "catalog", `artifact kind: "catalog" or "module"`)
@@ -79,7 +81,7 @@ func plan(dir, kind, versionFlag string, allowLocal bool) (publishPlan, []string
 	if kind == "catalog" {
 		idDir = "./identity"
 	}
-	identity, loadErr := readIdentity(dir, idDir)
+	identity, loadErr := readIdentity(dir, idDir, kind)
 	p.Identity = identity
 	if loadErr != "" {
 		// Surfaced rather than swallowed: an artifact that will not load has no
@@ -111,7 +113,13 @@ func plan(dir, kind, versionFlag string, allowLocal bool) (publishPlan, []string
 	for _, f := range p.Identity {
 		switch f.State {
 		case "absent":
-			refuse("identity field %s is not declared at all — malformed artifact", f.Name)
+			// D8: the schema names the field, so a field that is not at its
+			// schema-fixed path is a malformed artifact rather than a field to
+			// go looking for under another name.
+			refuse("identity field %s is not declared at its schema-fixed path — malformed artifact", f.Name)
+			if f.Role == "version" {
+				versionUnfilled = true // the tag rule would only say it again
+			}
 		case "open":
 			if f.Role == "version" {
 				if versionFlag != "" {
@@ -171,18 +179,33 @@ func plan(dir, kind, versionFlag string, allowLocal bool) (publishPlan, []string
 
 // ─── Reading identity ───────────────────────────────────────────────────────
 
-// readIdentity finds the artifact's tool-owned fields by their @opm() marker
-// and classifies each. `absent` comes from the expected-role list rather than
-// from the scan, because a field that was never declared carries no attribute.
-func readIdentity(dir, pkg string) ([]identityField, string) {
-	want := []string{"modulePath", "version"}
-	if strings.HasPrefix(pkg, ".") && pkg == "." {
-		want = []string{"modulePath"} // a module carries no version in source
+// identitySpecs is where each field the publisher writes lives, per artifact
+// kind. This IS the lookup: 0010 D22 drops the @opm() marker, so there is no
+// attribute to scan for and no `role` to read off one — the role is what the
+// schema calls the field, and the path is where the schema puts it. A tree
+// whose identity file disagrees with this table is a schema failure (D8),
+// which is why `absent` is a refusal rather than a search widened.
+func identitySpecs(kind string) []struct{ Role, Path string } {
+	if kind == "module" {
+		// 0010 D7: a module's identity file writes metadata directly, and D2
+		// leaves it no version in source at all.
+		return []struct{ Role, Path string }{{"modulePath", "metadata.modulePath"}}
 	}
+	// 0010 #IdentityPackage: two exported constants the catalog's leaves import.
+	return []struct{ Role, Path string }{
+		{"modulePath", "ModulePath"},
+		{"version", "Version"},
+	}
+}
+
+// readIdentity looks each expected field up by path and classifies it as
+// concrete, open, or absent.
+func readIdentity(dir, pkg, kind string) ([]identityField, string) {
+	specs := identitySpecs(kind)
 
 	ctx := cuecontext.New()
 	insts := load.Instances([]string{pkg}, &load.Config{Dir: dir})
-	found := map[string]identityField{}
+	var root cue.Value
 	loadErr := ""
 	switch {
 	case len(insts) == 0:
@@ -190,51 +213,27 @@ func readIdentity(dir, pkg string) ([]identityField, string) {
 	case insts[0].Err != nil:
 		loadErr = insts[0].Err.Error()
 	default:
-		v := ctx.BuildInstance(insts[0])
-		if v.Err() != nil {
-			loadErr = v.Err().Error()
+		root = ctx.BuildInstance(insts[0])
+		if root.Err() != nil {
+			loadErr = root.Err().Error()
 		}
-		v.Walk(func(x cue.Value) bool {
-			for _, at := range x.Attributes(cue.FieldAttr) {
-				if at.Name() != marker {
-					continue
-				}
-				f := identityField{
-					Name:  x.Path().String(),
-					Role:  role(at),
-					State: "open",
-					Pos:   shorten(x.Pos().String()),
-				}
+	}
+
+	out := make([]identityField, 0, len(specs))
+	for _, sp := range specs {
+		f := identityField{Name: sp.Path, Role: sp.Role, State: "absent"}
+		if loadErr == "" {
+			x := root.LookupPath(cue.ParsePath(sp.Path))
+			if x.Exists() {
+				f.State, f.Pos = "open", shorten(x.Pos().String())
 				if s, err := x.String(); err == nil {
 					f.State, f.Value = "concrete", s
 				}
-				if f.Role != "" {
-					found[f.Role] = f
-				}
 			}
-			return true
-		}, nil)
-	}
-
-	var out []identityField
-	for _, r := range want {
-		if f, ok := found[r]; ok {
-			out = append(out, f)
-			continue
 		}
-		out = append(out, identityField{Name: "(" + r + ")", Role: r, State: "absent"})
+		out = append(out, f)
 	}
 	return out, loadErr
-}
-
-func role(a cue.Attribute) string {
-	for i := 0; i < a.NumArgs(); i++ {
-		k, v := a.Arg(i)
-		if k == "role" {
-			return v
-		}
-	}
-	return ""
 }
 
 // cueModPath reads the `module:` line the way CUE itself would.
