@@ -1,0 +1,62 @@
+id: "0014"
+slug: instance-gitops-export
+title: Export a Deployed Instance as GitOps Manifests
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cli
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+#
+# `cli` alone: the export reads an existing CR through an existing read path and
+# writes files. core/, library/, and opm-operator/ ship nothing for this;
+# opmodel.dev regenerates its CLI reference mechanically from the Cobra
+# definitions, which follows the landing rather than gating it.
+affects:
+  - cli
+created: "2026-07-29"
+updated: "2026-07-29"
+authors:
+  - emil@jacero.se
+# Design impact on the published contract. none = no core schema change and no
+# CRD change; the ModuleInstance spec is read, not extended. Additive CLI
+# surface only (a minor bump on the CLI's own version). Matches 0006's
+# precedent, which added a command group and recorded `none`.
+semver: none
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones. The validator (future) enforces
+# append-only via git diff against HEAD~1. Free-form `event` strings;
+# `slice` + `semver` are optional structured fields for events that carry
+# machine-readable detail.
+history:
+  - date: "2026-07-29"
+    event: >-
+      Drafted. 0006 shipped the handoff that moves an instance's manager to the operator; nothing moves its
+      definition out of the cluster, so a CLI-first user who now wants GitOps hand-assembles four YAML documents
+      per instance from a `kubectl get -o yaml` dump. Three decisions came from the user on the day: the exported
+      unit is the CR plus its apply envelope rather than a bare CR (D1), export refuses to write unless the
+      published module reproduces `status.lastAppliedRenderDigest` (D2, reusing handoff's gate chain and
+      `VerificationDigest`), and `spec.values` is written verbatim with a warning rather than redacted or refused,
+      because OPM cannot yet identify which values are secret (D3). D4 records the live CR as the sole input.
+      Two findings from reading the code shaped the design. `ApplySpec` (cli/internal/inventory/store.go:119)
+      writes only `spec.module`, `spec.owner`, and `spec.values`, so every CLI-written CR lacks
+      `spec.serviceAccountName` and `spec.prune` — meaning a dump-and-strip export applies under the controller's
+      own identity and orphans its workloads on delete, a behaviour difference invisible in the YAML. And the
+      render-bearing / apply-bearing partition resolves the tension that finding creates: the fields the digest
+      gate verifies are copied untouched, while the fields governing apply identity and deletion sit outside the
+      render digest and can be completed without weakening the guarantee, provided every completion is reported.
+      The partition is enforced in schemas/target.cue rather than asserted in prose. Six open questions;
+      OQ4 (field-manager collision when Flux's kustomize-controller applies over fields owned by opm-cli and the
+      operator) is the load-bearing one and is gated on a runnable experiment, because it decides whether the
+      adoption is as quiet as D2's guarantee implies.
+# Peer enhancements this one builds on or interacts with.
+# Accepts new four-digit ids ("0042") and legacy three-digit refs
+# ("legacy:003") that point at frozen library/enhancements/ predecessors.
+related:
+  - "0006"
+  - "0013"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
