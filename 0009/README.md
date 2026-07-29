@@ -32,7 +32,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — OPM renders but cannot execute operations; side scripts and Helm-style hooks are the anti-pattern
 2. [02-design.md](02-design.md) — A second kernel half (planner + orchestrator) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)

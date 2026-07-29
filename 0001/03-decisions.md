@@ -2,7 +2,7 @@
 
 ## Summary
 
-Decision log for the umbrella. Each architectural and design choice is numbered sequentially (D1, D2, D3, …) and recorded as it is made. The log is **append-only** — never remove or renumber existing entries. If a decision is reversed, add a new decision that supersedes it (e.g. "D9 supersedes D3") and leave D3 in place as historical context.
+Decision log for the umbrella. Each architectural and design choice is numbered sequentially (D1, D2, D3, …) and recorded as it is made. **This entry is `implemented` — the log is frozen.** Numbers are permanent and the text is closed: no compaction, no merging, no rewriting. Corrections go in a new enhancement.
 
 Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, a file path, or an experiment outcome — so the provenance of a choice never gets lost.
 

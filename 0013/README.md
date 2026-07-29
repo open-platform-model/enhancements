@@ -31,7 +31,7 @@ Two properties fall out that the first draft of this design did not have: **inst
 
 1. [01-problem.md](01-problem.md) — Routing stated twice with nothing checking it, three disagreeing name derivations, an unused discovery pyramid, and plaintext in the render
 2. [02-design.md](02-design.md) — Routing in an inert `@opm(secret, …)` attribute, fulfilment in a narrowed `#Secret` disjunction, and a kernel that resolves both arms in place
-3. [03-decisions.md](03-decisions.md) — Append-only decision log (D1–D12; D10 supersedes D1, D11 supersedes D4) + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D12; D10 supersedes D1, D11 supersedes D4) + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)

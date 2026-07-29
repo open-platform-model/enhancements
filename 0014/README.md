@@ -27,7 +27,7 @@ exists only when implementation.status reaches `complete`).
 
 1. [01-problem.md](01-problem.md) — Handoff moves the manager, not the definition; why a CR dump is incomplete in ways that change apply identity and deletion behaviour
 2. [02-design.md](02-design.md) — Read the live CR, run handoff's gate chain, complete the apply-bearing fields, compose a per-instance directory
-3. [03-decisions.md](03-decisions.md) — Append-only decision log (D1–D4) and six Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D4) and six Open Questions
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination

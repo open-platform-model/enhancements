@@ -27,7 +27,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — No supported way to ship arbitrary/Kustomize manifests through OPM's managed apply path; out-of-band apply leaks and drifts
 2. [02-design.md](02-design.md) — Apply-layer side-channel: declare `extraManifests`, render (embedded krusty) into `[]Unstructured`, fold into the existing label/inventory/SSA/prune set; core + kernel untouched
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)

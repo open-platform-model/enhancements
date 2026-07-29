@@ -1,6 +1,6 @@
 # Design Decisions — Rename #ModuleRelease to #ModuleInstance
 
-This document records every significant design choice with its reasoning and the alternatives that were ruled out. Decisions are append-only (`D1`, `D2`, …); reversed conclusions get a new `DN`, never a renumber.
+This document records every significant design choice with its reasoning and the alternatives that were ruled out. **This entry is `implemented` — the log is frozen.** Numbers are permanent and the text is closed: no compaction, no merging, no rewriting. Corrections go in a new enhancement.
 
 ---
 

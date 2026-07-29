@@ -25,6 +25,7 @@ Sibling skills carry parallel protocols you may also need to load:
 
 - **`enhancement-experiments`** — when creating, updating, or validating experiments under `enhancements/NNNN/experiments/`.
 - **`enhancement-open-questions`** — when resolving an enhancement's Open Questions interactively (one OQ at a time, with context + alternatives + a decision write-back). The walk drafts the `### DN:` block, rewrites the OQ's `Status:` line, optionally tightens `// OQN:` markers in `schemas/target.cue`, and appends a single rolled-up `history` event.
+- **`enhancement-compaction`** — when an entry has accreted reversals and needs them woven in: merging an amending decision into the decision it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load it before merging or deleting anything under an existing `DN` / `OQN`. Never applies to `implemented` entries.
 - **`core-schema-edit`** (at `core/.claude/skills/core-schema-edit/`) — when implementing a slice that touches `core/*.cue`. The enhancement's accepted-to-implemented work routes there.
 
 If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `06-operational.md`, and inspect `schemas/target.cue`. The skill matters when you are about to *change* something.
@@ -36,11 +37,12 @@ These hold across every enhancement in the repo. Violations fail PR review even 
 1. **`config.yaml` is the sole source of metadata.** Do not reintroduce a metadata table to `README.md`. The table was removed by design; `config.yaml` is canonical.
 2. **Folder names are id-only.** `0001/`, `0042/` — four digits, zero-padded, no slug suffix. The slug lives in `config.yaml.slug` and surfaces in `INDEX.md`. `0000` is reserved for the template; never repurpose it.
 3. **Schemas are pure CUE files.** Never write CUE inside a markdown fence longer than a few illustrative lines. The target schema lives in `NNNN/schemas/target.cue`, validated via `cue vet ./...` from that directory.
-4. **History is append-only.** Never delete or reorder past events in `config.yaml.history`. Reversed conclusions get a new event recording the reversal; the original event stays.
-5. **Decisions are append-only.** `D1`, `D2`, … never renumber. Reversed decisions get a new `DN` that supersedes the old one (e.g. "D9 supersedes D3"); D3 stays in place.
-6. **Don't hard-wrap prose in `.md` files.** Workspace convention.
-7. **Don't reference `library/enhancements/` content directly** when writing new entries. Those are frozen predecessors. Use the `legacy:NNN` cross-ref form in `related` / `supersedes` if the historical link matters.
-8. **Don't fork content from the legacy library enhancements.** Fresh prose. The frozen predecessors are reference material for *why* the new design exists, not source code to copy.
+4. **`config.yaml.history` is append-only.** Never delete or reorder past events. Reversed conclusions get a new event recording the reversal; the original event stays. This is the only strictly append-only structure in the repo — it is short, structured, and it is where provenance is supposed to live.
+5. **Decision and OQ *numbers* are immutable; their *bodies* are not.** `D1`, `D2`, `OQ1`, … are never reused and never renumbered — other repos cite them from commit messages and OpenSpec changes. The prose under a number is mutable: a reversal may be merged into what it reverses, and a number vacated by that merge keeps a one-line tombstone (`### D18: (merged into D3, YYYY-MM-DD)`) so the citation still resolves. Merging is governed by the `enhancement-compaction` skill — do not do it ad hoc mid-edit.
+6. **`implemented` entries are frozen.** No compaction, no merging, no rewriting. The design shipped; the record is closed. Corrections go in a new enhancement.
+7. **Don't hard-wrap prose in `.md` files.** Workspace convention.
+8. **Don't reference `library/enhancements/` content directly** when writing new entries. Those are frozen predecessors. Use the `legacy:NNN` cross-ref form in `related` / `supersedes` if the historical link matters.
+9. **Don't fork content from the legacy library enhancements.** Fresh prose. The frozen predecessors are reference material for *why* the new design exists, not source code to copy.
 
 ## The workflow
 
@@ -123,6 +125,7 @@ Before promoting:
 - `05-risks.md` has concrete content (not placeholders) for Risks / Drawbacks / Alternatives.
 - `06-operational.md` answers the five PRR prompts.
 - Cross-References table in `README.md` lists every file path the implementation will touch (verify each exists today).
+- **Run a compaction pass** (`task compact:plan ID=NNNN`, then the `enhancement-compaction` skill) as a separate commit before the flip. This is the natural moment: the gate already forces you to touch every Open Question, so collapsing resolved OQ prose costs nothing extra, and reversals accumulated during drafting get woven into the decisions they reverse while the design is fresh.
 
 Append a history event:
 
@@ -145,11 +148,13 @@ As code ships:
   - {date: <today>, event: "Library kernel rewired", slice: "library/2026-06-15-add-materialize-step"}
   ```
 - For slices that land in `core/*.cue`: **load `core-schema-edit` first.** That skill enforces the SPEC.md co-update protocol. Skipping it gets the commit rejected by the pre-commit hook + CI gate.
+- Decisions keep accruing here while the entry is `accepted` — slices routinely reveal that an earlier choice was wrong. Weave those reversals in as they land (`enhancement-compaction`, own commit) rather than stacking them. **This is the last chance:** the flip to `implemented` freezes the entry permanently, so anything left stacked stays stacked.
 - When everything in scope has shipped:
+  - Run a final compaction pass **before** the flip, while the entry is still `accepted`.
   - Set `implementation.status: complete` with `date` matching the final landing date.
   - Add the `> **Implementation status (YYYY-MM-DD).**` quote block to `README.md` with the same date.
   - Fill `## Deviations from Design` in `README.md` (or write "None").
-  - Flip `status: implemented`.
+  - Flip `status: implemented`. **The entry is now frozen** — no further compaction, ever. Corrections go in a new enhancement.
 
 ### Phase 5 — Supersede
 
@@ -162,7 +167,7 @@ When a newer enhancement fully replaces this one, both sides record the link:
   > **Superseded by MMMM (YYYY-MM-DD).** Brief migration paragraph: what the new entry changes, where to look for the replacement design, whether any of this entry's decisions carry forward.
   ```
 
-Terminal state. Don't re-edit the rest of the file; the design intent is now `MMMM`'s.
+Terminal state — the design intent is now `MMMM`'s. Don't keep developing the entry, but do **compact it** (`enhancement-compaction`): the narrative documents collapse to pointers at the successor, while the decision log keeps its numbers and its *Alternatives considered* so `MMMM` does not re-litigate ground this entry already settled. `experiments/` and `research/` stay untouched — the measurements are usually the expensive part and they remain valid evidence.
 
 ## Cross-references between entries
 
@@ -241,6 +246,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task experiments:list ID=NNNN` | Browsing experiments for one entry; parses `Status:` from each per-experiment README. |
 | `task questions:list ID=NNNN` | Listing `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial). Consumed by the `enhancement-open-questions` skill walk. |
+| `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Consumed by the `enhancement-compaction` skill. Read-only; it proposes nothing and writes nothing. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
 | `task graph` | After any cross-reference edit. `GRAPH.md` is generated, not hand-edited. |
 
@@ -263,7 +269,8 @@ Workflow:
 - **Forgetting to re-run `task index` after editing `config.yaml`.** `INDEX.md` is generated. Stale `INDEX.md` is the most common drift; run `task index` whenever any `config.yaml` changes.
 - **Forgetting to re-run `task graph` after editing cross-references.** Same story for `GRAPH.md`.
 - **Writing CUE inside a markdown fence instead of `schemas/target.cue`.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in `schemas/target.cue` with a one-line markdown reference.
-- **Filling decisions speculatively.** The append-only log means a wrong decision lives forever in the history. Only record decisions after they are made, with their alternatives and source. If unsure, leave it as an Open Question.
+- **Filling decisions speculatively.** A wrong decision costs a compaction pass to clean up, and until then it misleads whoever reads the log next. Only record decisions after they are made, with their alternatives and source. If unsure, leave it as an Open Question.
+- **Merging or deleting decision content ad hoc.** Compaction is a deliberate act with its own protocol and its own commit — load `enhancement-compaction`. Rewriting a `DN` in the middle of an unrelated edit is exactly how a design record gets quietly laundered to agree with whatever was just built.
 - **Half-filling Open Questions.** Each OQ should be a specific question with enough context that someone unfamiliar can answer it. "How does X work?" is too vague — name the design surface, the constraint, and what would resolve it.
 - **Editing `library/enhancements/`.** Those entries are frozen predecessors. Any new design intent goes here in `enhancements/NNNN/`.
 - **Forking content from the frozen library entries.** Fresh prose. The frozen predecessors are reference material for *why* the new design exists, not source code to copy.
@@ -288,5 +295,6 @@ When guidance conflicts, the most-specific source wins: target repo skill > this
 - `enhancements/Taskfile.yml` — workflow tasks source.
 - `enhancement-experiments` skill (sibling, under `enhancements/.claude/skills/`) — the experiments protocol.
 - `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — the interactive OQ-walk protocol; load when resolving Open Questions one at a time, especially before promoting `draft → accepted`.
+- `enhancement-compaction` skill (sibling, under `enhancements/.claude/skills/`) — the compaction protocol; load before merging a reversal into the decision it reverses, collapsing resolved OQ prose, or stubbing a superseded entry.
 - `core-schema-edit` skill (`core/.claude/skills/core-schema-edit/`) — the SPEC.md co-update protocol for slices that touch `core/*.cue`.
 - `openspec-*` skills (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — the slice lifecycle in each target repo.

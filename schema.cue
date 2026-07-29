@@ -41,8 +41,16 @@ import "strings"
 // History event — append-only timeline of milestones. The `event` string is
 // free-form prose ("Drafted", "Accepted", "Slice <id> archived", etc.);
 // `slice` and `semver` are optional structured fields for events that carry
-// machine-readable detail. `vet` enforces append-only via git diff against
-// HEAD~1 (see Taskfile, future).
+// machine-readable detail.
+//
+// This list is the repo's *only* strictly append-only structure. Never delete
+// or reorder past events; a reversal is a new event, not an edit. Everything
+// else in an entry — decision bodies, Open Question prose, the narrative
+// documents — is mutable and compactable under the `enhancement-compaction`
+// protocol, because git already holds that provenance and duplicating it
+// in-band is what made these documents unreadable. What stays immutable
+// outside this list is the *numbering*: `DN` and `OQN` are never reused and
+// never renumbered, so citations from other repos keep resolving.
 #HistoryEvent: {
 	date!:   #DateStr
 	event!:  string & strings.MinRunes(1)

@@ -32,7 +32,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — Two catalogs encode Kubernetes from divergent, hand-maintained schema sources that drift and do not scale
 2. [02-design.md](02-design.md) — Generate everything from the k8s OpenAPI; shared types, generated mirror + CRD catalogs, lifecycle metadata, optional composition
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
