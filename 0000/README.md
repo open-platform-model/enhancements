@@ -34,7 +34,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — {One-line description of the problem being solved}
 2. [02-design.md](02-design.md) — {One-line description of the proposed design}
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — DN decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
@@ -185,6 +185,28 @@ To create a new enhancement from this template:
 - **implemented** — design has been realized in code
 - **superseded** — replaced by a newer enhancement (paired with
   `superseded_by` on this entry and `supersedes` on the replacement)
+
+### Compaction
+
+These documents state what is true *now*. Reversals get woven into what they
+reverse rather than stacked on top, so the entry stays safe to read linearly.
+Provenance lives in git and in `config.yaml.history` — the one strictly
+append-only structure. `DN` and `OQN` numbers are never reused or renumbered
+(other repos cite them); a number vacated by a merge keeps a one-line
+tombstone.
+
+- **draft** — merge reversals; leave Open Question prose alone, it is the
+  active work surface.
+- **accepted** — the same, plus resolved Open Questions collapse to a
+  one-line `Status: resolved-by-DN`. Available right up to the flip.
+- **implemented** — frozen. Nothing is compacted, ever.
+- **superseded** — narrative documents collapse to pointers at the successor;
+  the decision log keeps its numbers and its *Alternatives considered*.
+  `experiments/` and `research/` are never touched.
+
+Run `task compact:plan ID=NNNN` for the candidate list and load the
+`enhancement-compaction` skill to act on it. Compaction lands in its own
+commit — never folded into a content change.
 
 ### Cross-refs to legacy library enhancements
 

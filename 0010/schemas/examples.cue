@@ -69,12 +69,12 @@ _catalogBefore: {
 	}
 }
 
-// AFTER (D1, D3, D5, D13). The version stays and is committed rather than
+// AFTER (D1, D3, D5, D24, D25). The version stays and is committed rather than
 // stamped — which is the whole fix, because the local checkout and the
-// published artifact now interpolate the SAME value into every FQN. The keys
-// still carry the full SemVer (D13), so a key names the exact bytes it came
-// from; what changed versus BEFORE is that the value is honest, not that it
-// left the key.
+// published artifact now interpolate the SAME value everywhere it appears.
+// Under D24 that value keys the catalog's TRANSFORMERS and stamps every
+// primitive's catalogVersion; the CONTRACTS key on their own apiVersion and do
+// not move when the catalog releases.
 _catalogAfter: {
 	identityPkg: {
 		ModulePath: "opmodel.dev/catalogs/opm@v1" // full path, major included
@@ -83,82 +83,103 @@ _catalogAfter: {
 	generatedAtPublish: "nothing"
 	derived: {
 		catalogFQN:     "opmodel.dev/catalogs/opm@v1"                            // an ADDRESS: @vN
-		transformerFQN: "opmodel.dev/catalogs/opm/transformers/deployment@1.2.0" // a KEY: @SemVer
-		resourceFQN:    "opmodel.dev/catalogs/opm/resources/config-maps@1.2.0"
+		transformerFQN: "opmodel.dev/catalogs/opm/transformers/deployment@1.2.0" // an IMPL key: @SemVer
+		resourceFQN:    "opmodel.dev/catalogs/opm/resources/config-maps@v1"      // a CONTRACT key: @vN
 		sameFromLocal:  "opmodel.dev/catalogs/opm/transformers/deployment@1.2.0" // identical — D5/D6
 	}
-	// Whether this survives as a separate required field is OQ6: under D13 it
-	// is derivable from the FQN that interpolates it.
-	stampedOnEachPrimitive: version: "1.2.0"
+	// Provenance, on every primitive of every kind (D25). Never a contract key;
+	// excluded from the match comparison entirely (D26); read by the matcher to
+	// say which build each side of a match came from.
+	stampedOnEachPrimitive: catalogVersion: "1.2.0"
+	// The one value that is NOT derived from identity/identity.cue — an
+	// author's judgement about the contract, per primitive (D25).
+	authoredPerPrimitive: apiVersion: "v1"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. The payoff — cross-minor installs, which do not work today
+// 3. The payoff — a contract fulfilled by a catalog that does not define it
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Two modules authored against different minors of one catalog, installed on a
-// platform subscribed to the v1 major. Under D13 the platform materializes
-// EVERY published v1 build (D14), so its key space is the union of theirs and
-// each module matches the exact build it was authored against.
+// catalog_opm defines a generic `backup` resource and ships NO transformer for
+// it: the contract is meant to be fulfilled by whatever provider a platform
+// installs. A k8up provider catalog ships the transformer that requires it.
 //
-// The mechanism is subscription breadth, not key collapse — which is why
-// publishing 1.2.0 does not change what moduleA renders.
-_crossMinor: {
-	platform: {
-		subscribedTo: "opmodel.dev/catalogs/opm@v1"
-		// D14: the whole major, not `highestStable()`.
-		materializedBuilds: ["1.0.0", "1.1.0", "1.2.0"]
+// The two catalogs are compiled against different builds of catalog_opm and
+// release on independent cadences. Under D24 they still meet, because the key
+// names the contract rather than either build.
+_providerFulfilled: {
+	module: {
+		builtAgainstCatalogOpm: "1.3.0"
+		demands:                "opmodel.dev/catalogs/opm/resources/backup@v1"
+	}
+	provider: {
+		catalog:                "opmodel.dev/catalogs/k8up@v1"
+		builtAgainstCatalogOpm: "1.0.0"
+		transformerFQN:         "opmodel.dev/catalogs/k8up/transformers/k8up-backup@2.4.0"
+		requires:               "opmodel.dev/catalogs/opm/resources/backup@v1"
 	}
 
-	moduleA: demands: "opmodel.dev/catalogs/opm/resources/config-maps@1.0.0"
-	moduleB: demands: "opmodel.dev/catalogs/opm/resources/config-maps@1.1.0"
+	// Equal by construction — neither build appears in the key.
+	keysMeet: module.demands == provider.requires
+	keysMeet: true
 
-	// The composed transformer map carries one key set per materialized build.
-	// Distinct versions produce distinct keys, so the builds never collide —
-	// the invariant library/opm/materialize/index.go:57-64 already documents.
-	platformSupplies: [
-		"opmodel.dev/catalogs/opm/resources/config-maps@1.0.0",
-		"opmodel.dev/catalogs/opm/resources/config-maps@1.1.0",
-		"opmodel.dev/catalogs/opm/resources/config-maps@1.2.0",
-	]
+	// What the always-unify rung then decides, measured in
+	// experiments/02-primitive-closedness-skew (D27):
+	outcomes: {
+		moduleUsesOnlySharedFields: "renders — the provider is older and it does not matter"
+		moduleUsesFieldAddedIn_1_1: "fails: spec.backup.retention: field not allowed"
+		providerBuildNarrowedAType: "fails: conflicting values, both arms named"
+	}
 
-	moduleAOK: #PrimitiveDemand & {demanded: moduleA.demands, supplied: platformSupplies}
-	moduleBOK: #PrimitiveDemand & {demanded: moduleB.demands, supplied: platformSupplies}
-
-	// TODAY both fail, and the cause is the SUBSCRIPTION rather than the key:
-	// an unfiltered subscription resolves one build (filter.go:43-47), so the
-	// platform supplies only ...@1.2.0 and every older module misses with
-	// `no matching transformer`, which names neither the build nor the gap.
-	todaysDefaultSupply: ["opmodel.dev/catalogs/opm/resources/config-maps@1.2.0"]
+	// UNDER D13, for contrast: the module demanded ...backup@1.3.0 and the
+	// provider supplied ...backup@1.0.0, so the keys never met and the demand
+	// missed — regardless of whether the shapes were compatible. Coverage was
+	// the set of catalog_opm builds the provider's release history happened to
+	// pin, one per provider build.
+	underD13: {
+		moduleDemanded:   "opmodel.dev/catalogs/opm/resources/backup@1.3.0"
+		providerSupplied: "opmodel.dev/catalogs/opm/resources/backup@1.0.0"
+		result:           "no matching transformer"
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3b. What the matcher says when a demand misses (D13)
+// 3b. What the matcher says when a demand misses (D24, D28)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Under exact-key matching there is one failure, not D12's two, and it is
-// diagnosable without deriving an owning catalog: strip the version off the
-// demanded FQN, collect every supplied key sharing that path-and-name, and
-// report the difference. Checked live in target.cue's commented MUST-FAIL
-// cases; here they are the messages a user actually reads.
+// Two failures, distinguished by whether ANY apiVersion of the contract is
+// implemented — and with the build noise gone, each names the party that can
+// fix it. Checked live in target.cue's commented MUST-FAIL cases; here they
+// are the messages a user actually reads. Under D28 both fail the render.
 _matcherDiagnostics: {
-	// The primitive exists, but not at the build this module was authored
-	// against — the platform's subscription does not cover it.
-	uncoveredBuild: {
-		demanded: "opmodel.dev/catalogs/opm/resources/config-maps@1.3.0"
-		platformCarries: ["1.0.0", "1.1.0", "1.2.0"]
-		message: "component \"web\" demands opmodel.dev/catalogs/opm/resources/config-maps@1.3.0; this platform materialized 1.0.0, 1.1.0, 1.2.0 for that primitive — widen the subscription to opmodel.dev/catalogs/opm@v1"
+	// Nothing on this platform implements the contract. This is a statement
+	// about the PLATFORM: it has no provider for something a module asked for.
+	noProvider: {
+		demanded: "opmodel.dev/catalogs/opm/resources/backup@v1"
+		platformImplements: []
+		message: "component \"web\" demands opmodel.dev/catalogs/opm/resources/backup@v1; no catalog subscribed by this platform implements that contract at any API version"
+		today:   "no matching transformer — and only if the component matched nothing else at all"
+	}
+
+	// Implemented, at an API version this module does not speak. This is a
+	// statement about the MODULE: it is on an older contract than the
+	// platform's provider.
+	wrongAPIVersion: {
+		demanded: "opmodel.dev/catalogs/opm/resources/backup@v2"
+		platformImplements: ["v1"]
+		message: "component \"web\" demands opmodel.dev/catalogs/opm/resources/backup@v2; this platform implements opmodel.dev/catalogs/opm/resources/backup@v1"
 		today:   "no matching transformer"
 	}
 
-	// No build of the platform's supplies that primitive at all: a catalog
-	// that never shipped it, a typo, or an unsubscribed catalog. The empty
-	// available set is what distinguishes this from the case above.
-	absentPrimitive: {
-		demanded: "opmodel.dev/catalogs/opm/resources/nonexistent@1.2.0"
-		platformCarries: []
-		message: "component \"web\" demands opmodel.dev/catalogs/opm/resources/nonexistent@1.2.0; this platform supplies no build of opmodel.dev/catalogs/opm/resources/nonexistent"
-		today:   "no matching transformer"
+	// Compatible keys, incompatible bodies — the failure that only exists once
+	// a key spans several builds (D27, measured in experiments/02).
+	providerTooOld: {
+		demanded: "opmodel.dev/catalogs/opm/resources/backup@v1"
+		platformImplements: ["v1"]
+		moduleBuiltOn:   "1.3.0"
+		providerBuiltOn: "1.0.0"
+		message:         "component \"web\" sets spec.backup.retention, which opmodel.dev/catalogs/opm/resources/backup@v1 as built against catalog_opm 1.0.0 does not declare; this platform's provider predates that field"
+		today:           "does not arise — the keys never met"
 	}
 }
 
@@ -172,7 +193,7 @@ _matcherDiagnostics: {
 _unfilled: {
 	// D6: an open field. `cue vet -c` names the file and line; nothing renders.
 	open: {
-		declared: "Version: string @opm(identity, owner=publish)"
+		declared: "Version: string"
 		vetC:     "Version: incomplete value string  ./identity/identity.cue:7:10"
 		renders:  false
 		// ModulePath stays concrete, so every FQN still evaluates and the match

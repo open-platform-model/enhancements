@@ -28,6 +28,9 @@ run "--version AGAINST A CONCRETE FIELD, disagreeing. Publish asserts; it does n
 run "--version AGAINST A CONCRETE FIELD, agreeing." \
   --kind=catalog --version=1.2.0 variants/ok-catalog
 
+run "RENAMED FIELD. Right values, wrong name — the case the rejected role= marker existed to find (D8)." \
+  --kind=catalog variants/renamed-catalog
+
 run "CUE.MOD SKEW. The artifact's identity and its module: line disagree." \
   --kind=catalog variants/skew-catalog
 

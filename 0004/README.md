@@ -26,7 +26,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
 2. [02-design.md](02-design.md) — Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)

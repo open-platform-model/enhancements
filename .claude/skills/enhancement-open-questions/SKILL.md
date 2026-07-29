@@ -6,7 +6,7 @@ user-invocable: true
 
 # Enhancement Open Questions Walk
 
-This skill walks an enhancement's `## Open Questions` block interactively. It is a thin interactive layer on top of the canonical `enhancements` workflow protocol — that skill defines the four-field decision block format, the append-only invariants, and the per-status gates; this skill defines how to *resolve OQs one at a time* without skipping steps.
+This skill walks an enhancement's `## Open Questions` block interactively. It is a thin interactive layer on top of the canonical `enhancements` workflow protocol — that skill defines the four-field decision block format, the numbering invariants, and the per-status gates; this skill defines how to *resolve OQs one at a time* without skipping steps.
 
 ## When this skill applies
 
@@ -55,7 +55,7 @@ Read `config.yaml.status` first thing. Behavior by status:
 
 1. Read `$ID/config.yaml`, `$ID/02-design.md`, `$ID/03-decisions.md`, `$ID/schemas/target.cue`. Cache in session context. **Do not re-read on each OQ** — token discipline matters across long walks.
 2. Capture mtimes of `$ID/03-decisions.md`, `$ID/schemas/target.cue`, `$ID/config.yaml`. Used for race detection before each per-OQ write.
-3. Compute next decision number: highest `^### D[0-9]+:` in `03-decisions.md` plus 1. Append-only — never reuse, never backfill.
+3. Compute next decision number: highest `^### D[0-9]+:` in `03-decisions.md` plus 1 — counting tombstone stubs, which hold numbers that are retired but never reusable. Never reuse, never backfill.
 4. Run `task questions:open ID=$ID`. Filter the resulting TSV by `OQ=` / `ONLY=` if provided. This is the walk queue.
 5. If the queue is empty, report and exit. Do not invent OQs.
 
@@ -75,7 +75,7 @@ Read `config.yaml.status` first thing. Behavior by status:
    - **Answer** — the OQ does not need a decision; it just needs clarification (canonical example: OQ17 in 0001, `Status: answered`). Ask the user for the short explanation. Write `Status: answered. {explanation}` on the bullet's status line.
    - **Skip** — no edits. Move on. The OQ stays `open`.
 4. **Write.** Before any write:
-   - Re-stat the file. If mtime has advanced since the preflight capture and the skill did not write, surface "external edit detected — re-read or abort?" and stop. The append-only invariant is impossible to honour blindly through a stale view.
+   - Re-stat the file. If mtime has advanced since the preflight capture and the skill did not write, surface "external edit detected — re-read or abort?" and stop. Number allocation is impossible to get right through a stale view — the file may have grown a `DN` you are about to collide with.
    - For a Decide outcome: insert the new `### DN:` block immediately before `^## Open Questions$` with a trailing `---\n\n` separator (matches the cadence used in `0001`). Rewrite the OQ's `Status:` line in place — keep the bullet text identical except for the `Status:` span.
    - For Defer / Answer: rewrite the `Status:` line only. No new DN block.
 5. **Schema markers.** After a Decide outcome only: if `grep -nE "OQ$K\\b" schemas/target.cue` returned any matches, prompt:
@@ -147,8 +147,8 @@ After the queue is exhausted (or the user exits early):
 - **Fabricating recommendations.** When evidence is thin, the model will be tempted to rank A and B confidently. Resist. "No strong recommendation; both are live" is a valid output and the right one when the user has nuanced context the cached files don't carry.
 - **Pushing back after the user decides.** The decision is ground truth once made. If the user picks the option the skill didn't recommend, write the decision as stated. Do not re-argue.
 - **Summarizing the user's reasoning instead of echoing it.** Auto-drafted Rationale should reproduce the user's words. Paraphrase loses the specific framing that makes the decision interpretable in three months.
-- **Renumbering or reordering decisions.** `### D1:`, `### D2:` are append-only. The walk only ever inserts new `### DN:` blocks at the end of `## Decisions` (immediately before `## Open Questions`). Never touch existing decisions.
-- **Editing OQ bullet text.** The walk rewrites only the `Status:` span. The bullet's title and context paragraph stay verbatim — they are historical record.
+- **Renumbering, reordering, or rewriting existing decisions.** `D1`, `D2`, … are stable identifiers that other repos cite. The walk only ever *inserts* new `### DN:` blocks at the end of `## Decisions` (immediately before `## Open Questions`). Existing decision bodies are mutable in principle, but not from here — merging a reversal into what it reverses is the `enhancement-compaction` skill's job, with its own manifest and its own commit. Doing it mid-walk hides a rewrite inside an unrelated change.
+- **Editing OQ bullet text.** The walk rewrites only the `Status:` span; the bullet's title and context paragraph stay verbatim. Collapsing a resolved bullet's prose is a compaction operation, not a walk operation — leave it for `enhancement-compaction`.
 - **Re-reading the whole decisions file per OQ.** Cache once at preflight. The mtime check is what catches external edits; re-reading mid-walk is wasted tokens.
 - **Touching `library/enhancements/`.** Frozen predecessors. Never edited from this skill or any other.
 - **Auto-running `task index` / `task graph`.** Recommend, don't run. The diff belongs in the user's PR.
@@ -159,7 +159,7 @@ After the queue is exhausted (or the user exits early):
 | Artefact | Path | Authority |
 | --- | --- | --- |
 | Open Questions block | `enhancements/NNNN/03-decisions.md ## Open Questions` (canonical) or `enhancements/NNNN/README.md ## Open Questions` (fallback) | Source of truth for what's unresolved. Walk modifies only the `Status:` line of each bullet. |
-| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Append-only. Walk appends `### DN:` blocks immediately before `## Open Questions`. |
+| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Walk only appends `### DN:` blocks immediately before `## Open Questions`. Numbers are never reused; rewriting existing bodies belongs to `enhancement-compaction`. |
 | Decision block format | `.claude/skills/enhancements/SKILL.md ## Phase 2 — Iterate` | Four-field shape. This skill defers to that one verbatim. |
 | Schema markers | `enhancements/NNNN/schemas/target.cue` | `// OQN:` comments. Walk edits these only with user confirmation; validates via `cue vet`. |
 | Metadata + history | `enhancements/NNNN/config.yaml` | `updated` bumps at end of walk. `history` event appended at end. |
@@ -172,4 +172,5 @@ After the queue is exhausted (or the user exits early):
 - `enhancements/CLAUDE.md` — repo guide; lists this skill under sibling skills.
 - `enhancements/.claude/skills/enhancements/SKILL.md` — the canonical workflow protocol. `## Phase 2 — Iterate` defines the decision block format this skill follows; `## Phase 3 — Promote` defines the OQ-resolved gate this skill exists to satisfy.
 - `enhancements/.claude/skills/enhancement-experiments/SKILL.md` — experiment outcomes feed `informed-by-exp-NN` / `supported-by-exp-NN` partial OQs; the walk reads experiment READMEs when presenting those.
+- `enhancements/.claude/skills/enhancement-compaction/SKILL.md` — sister skill that cleans up after this one: collapses the resolved OQ bullets this walk produces, and weaves in reversals when a later decision overturns one written here.
 - `core/.claude/skills/core-schema-edit/SKILL.md` — sister skill governing SPEC.md co-update when a decision from this walk lands as a real schema change in `core/*.cue`.

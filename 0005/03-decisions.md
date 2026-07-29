@@ -1,6 +1,6 @@
 # Design Decisions — Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-This document records every significant design choice with its reasoning and the alternatives ruled out. The log is **append-only** — never remove or renumber. A reversed decision gets a new `DN` that supersedes the old one; the original stays.
+This document records every significant design choice with its reasoning and the alternatives ruled out. **Numbers are permanent** — never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now: a reversal is recorded as its own `DN` while the design is in motion, then woven into the decision it changes at the next compaction pass — the merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
 
 Each decision uses the four-field shape: Decision, Alternatives considered, Rationale, Source.
 

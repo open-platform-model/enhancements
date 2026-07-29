@@ -33,7 +33,8 @@ These invariants hold across every enhancement; violations fail PR review even i
 - **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`.
 - **Folder names are id-only.** `0001/`, `0042/` — no slug suffix. `0000` is reserved for the template.
 - **Schemas are pure CUE files** under `NNNN/schemas/`, never fenced code blocks longer than a few illustrative lines.
-- **History and decisions are append-only.** Reversed conclusions get a new entry; the original stays.
+- **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge keeps a one-line tombstone.
+- **Decision bodies, Open Question prose, and the narrative documents are mutable.** Compaction (merging a reversal into what it reverses, gutting a resolved OQ's prose, stubbing a superseded entry) is a deliberate act gated by status and governed by the `enhancement-compaction` skill. It never applies to `implemented` entries — those are frozen.
 - **Don't hard-wrap prose in `.md` files.**
 - **Don't reference `library/enhancements/` content directly** in new entries. Use the `legacy:NNN` cross-ref form when historical link matters.
 - **Don't fork content from the frozen library entries.** Fresh prose.
@@ -54,6 +55,7 @@ Sibling skills to load when applicable:
 
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — when creating, updating, validating, or concluding experiments under `enhancements/NNNN/experiments/`. Load whenever you are about to invoke `task new:experiment` or `task experiments:list`, or edit any file under `experiments/`.
 - **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — when walking an enhancement's `## Open Questions` block interactively (one OQ at a time, with context + alternatives + a decision write-back). Load before invoking `/enhancement-open-questions ID=NNNN`, or when `task questions:open ID=NNNN` returns rows that need resolution.
+- **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — when an entry has accreted reversals: merging an amending decision into the one it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before merging or deleting anything under an existing `DN` / `OQN`, or when `task compact:plan ID=NNNN` returns candidates. Refuses on `implemented` entries.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — when implementing a slice that touches `core/*.cue`. Enforces the SPEC.md co-update protocol. Required reading before editing the core schema; the pre-commit hook and CI gate will refuse the commit otherwise.
 - **`openspec-*`** (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — when slicing the enhancement's accepted design into per-repo OpenSpec changes for execution.
 
@@ -65,7 +67,7 @@ Sibling skills to load when applicable:
   config.yaml               Sole metadata source (id, status, area, semver, history, refs)
   01-problem.md             Problem statement + scope
   02-design.md              Design + open questions
-  03-decisions.md           Append-only decision log (D1, D2, …)
+  03-decisions.md           Decision log (D1, D2, …) — numbers immutable, prose compactable
   04-graduation.md          Promotion gates per status transition
   05-risks.md               Risks, mitigations, blast radius
   06-operational.md         Migration, rollout, observability
@@ -98,6 +100,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task experiments:list ID=NNNN` | List experiments for one entry; parses `Status:` from each per-experiment README. |
 | `task questions:list ID=NNNN` | List `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial buckets only). Consumed by the `enhancement-open-questions` skill. |
+| `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Read-only; consumed by the `enhancement-compaction` skill. |
 | `task index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
 | `task graph` | Regenerate `GRAPH.md` with a Mermaid relationship diagram. Run after any cross-ref edit. |
 
@@ -113,7 +116,9 @@ new → fill problem + design → accrete decisions → freeze (accepted) → sh
 | 2. Iterate | Edit `01..06`, `schemas/target.cue`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
 | 3. Promote `draft → accepted` | `task vet:one` + `task check`; resolve every OQ; set `semver` | `enhancements ## Phase 3 — Promote` |
 | 4. Implement | Slice into target repos; append `history` events; set `implementation.status: complete` | `enhancements ## Phase 4 — Implement` |
-| 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded` | `enhancements ## Phase 5 — Supersede` |
+| 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
+
+Compaction runs alongside phases 2–3 and 5, never in phase 4's aftermath: the flip to `implemented` freezes an entry permanently, so the last chance to weave in accumulated reversals is while it is still `accepted`.
 
 Each phase has gating criteria and a concrete checklist. The `enhancements` skill is the authoritative source; load it before promoting any status.
 

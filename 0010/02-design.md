@@ -6,7 +6,8 @@ This document answers the question: "What is the proposed solution and how does 
 
 - **One statement of identity per artifact**, held in the artifact's own committed bytes, so CUE's own dependency resolution carries it to every consumer without OPM in the loop.
 - **Identity is stable across compatible releases.** A patch or minor upgrade of a module keeps one identity; two majors are distinct identities. The owner label on deployed resources therefore survives ordinary upgrades.
-- **A module built against one catalog build installs on a platform tracking that catalog's major**, without either side rebuilding — supplied by the platform materializing the major's builds rather than by the key discarding the build (D13, D14).
+- **A module built against one catalog build installs on a platform tracking that catalog's major**, without either side rebuilding — supplied by a contract key that does not move on a catalog release, plus an additive-only promise inside that key (D24, D27). Under D13/D14 this came from the platform materializing every build of the major; that mechanism worked within one catalog and could not reach across two.
+- **A contract may be fulfilled by a catalog other than the one that defines it**, on independent release cadences. A generic primitive whose transformer lives in a provider catalog is the case the identity model must support, not an edge of it (D24).
 - **What a module renders does not change unless the module changes.** A catalog release adds a key space; it never alters the one an installed module is already matching against.
 - **A local checkout and its published artifact compute identical identity and identical match keys.** Development cannot validate against a key space no consumer will see.
 - **A missed demand names the gap.** "This platform materialized 1.0.0 and 1.1.0 of that primitive; you asked for 1.3.0" is an error that says what to do, not a missing key that names nothing.
@@ -31,17 +32,17 @@ Split what an artifact *is* from what was *resolved*, and put only the first in 
 
 3. **`#Catalog` keeps a full SemVer `metadata.version`** — declared concretely in committed source, and interpolated into every FQN the catalog ships. What changes versus today is not where the value goes but whether it is honest: it is committed rather than stamped into a copy of the tree at publish, so a checkout and the published artifact produce the same keys.
 
-4. **Every primitive FQN carries the full SemVer of the build it came from** — `path/name@1.2.0` for resources, traits, blueprints, and transformers alike, which is the form `core` carries today. A key therefore names its own bytes. Note the deliberate asymmetry with point 1: a *module path* ends in `@v1` because that is CUE's spelling for an address; an *FQN* ends in `@1.2.0` because it is a key. The two are never the same string.
+4. **A contract is keyed by its own API version; an implementation is keyed by its build** (D24). `#Resource`, `#Trait` and `#Blueprint` FQNs read `path/name@v1`, where `v1` is that primitive's `apiVersion` — a contract major the author moves when the shape breaks, independent of the catalog's module major and of its release SemVer. `#ComponentTransformer` FQNs keep the full build SemVer, `path/name@1.2.0`. The split follows the demand direction: a module demands resources and traits and never demands a transformer, so the contract surface is the one that must survive a catalog release and the implementation surface is the one that should name its own bytes. Every primitive additionally carries `catalogVersion` — the build it shipped in — as provenance that never enters a key (D25).
 
-5. **A subscription supplies every published build in the major it names.** This is what makes a module built against `1.0.0` work on a platform that also carries `1.2.0`: the composed transformer map is the union of the materialized builds' key spaces, so both demands are present and each module matches exactly what it was authored against. `library` already does this — `materialize/filter.go` returns every survivor of a filter and `materialize.go` pulls each as its own build — but its *default* selects a single build, which is the half that changes (D14). Prereleases become an explicit opt-in rather than a property of constraint syntax (D15).
+5. **Inside one API version a contract is additive-only, and both ends enforce it** (D27). A build may add fields and options, never remove them; a new field is optional or defaulted; an existing field's default is immutable. Removal means a new `apiVersion`, which may ship beside the old one in the same catalog build — the migration path SemVer keys could not express. Publish checks the promise against the previous build (0011 D9); the matcher's always-unify rung checks it against the module actually in hand, and CUE's closedness makes a field the provider's build never declared a hard failure rather than a silent drop (measured, `experiments/02`). Prereleases stay an explicit subscription opt-in (D15); whether a subscription still materializes several builds at all is now OQ15.
 
-6. **Identity is supplied by a committed, visible `identity.cue`.** Tool-owned fields carry an inert `@opm()` marker so a reader can see the field is managed and tooling can locate what it owns without hardcoding names. The file is committed, diffable, and reviewable; OPM edits a file you can read rather than generating one you cannot.
+6. **Identity is supplied by a committed, visible `identity.cue`.** Tooling locates the fields it writes by their schema-fixed path — `#IdentityPackage`'s `ModulePath` and `Version` for a catalog, `#Module`'s `metadata.modulePath` for a module — and carries no marker attribute to find them by (D22). The file is committed, diffable, and reviewable; OPM edits a file you can read rather than generating one you cannot.
 
 7. **An identity field may be left open (`string`), and an open field is an absent value rather than a placeholder one.** An author who wants to manage the version by hand writes a concrete value and commits it; an author who wants tooling to supply it leaves the declaration open. Either way the published artifact carries a concrete value. Where a value is missing, CUE refuses to build on it and names the field — it never yields a wrong-but-plausible string.
 
 8. **Identity is verified where artifacts are read**, not only where they are written: at module acquire, at catalog materialize, and when a platform adds a catalog subscription. A check a publisher can route around gives a consumer nothing.
 
-The relationship that results: one identity string per artifact (`modulePath`, an address ending `@vN`), one match key per primitive (`…@1.2.0`, naming the build it came from), and one subscription per catalog major that supplies every build a module might demand.
+The relationship that results: one identity string per artifact (`modulePath`, an address ending `@vN`), one contract key per primitive (`…@v1`, naming what it promises), one implementation key per transformer (`…@1.2.0`, naming the bytes that run), and a provenance value on both sides that says which build each came from without either side having to agree on it.
 
 ### Where the two artifact types differ
 
@@ -49,7 +50,7 @@ The relationship that results: one identity string per artifact (`modulePath`, a
 | --- | --- | --- |
 | Identity fields | `modulePath` + `name` | `modulePath` + `version` (no `name` — D16) |
 | Version in source | none | full SemVer, concrete |
-| What the version is for | — | the key component every primitive FQN interpolates (D13) |
+| What the version is for | — | the `catalogVersion` every primitive stamps as provenance (D25); no key interpolates it |
 | `fqn` | `modulePath` | `modulePath` |
 | Identity file | one file in the artifact's own root package | `identity/` subpackage, imported by the leaves |
 | Why that placement | single-package; no cycle to break, and CUE has no relative intra-module import | the leaves compute their own FQNs at their own definition sites, and a root-supplied constant creates an import cycle |
@@ -57,26 +58,25 @@ The relationship that results: one identity string per artifact (`modulePath`, a
 
 The identity-file asymmetry is forced by package topology, not chosen. Removing a catalog's `identity/` subpackage makes the catalog root and its transformer subpackage import each other, which CUE rejects with `package import cycle not allowed`.
 
-### Matching, and where cross-minor compatibility actually comes from
+### Matching, and where compatibility actually comes from
 
-Matching is exact-key containment: the composed transformer map either carries the demanded FQN or it does not. There is no floor to evaluate, no owning catalog to derive, and no version ordering anywhere on the match path — a demand for a build the platform did not materialize is simply absent.
+Matching stays exact-key containment: the `#matchers` reverse index either carries the demanded contract key or it does not. There is no floor, no ordering, no range, and no owning-catalog derivation on the match path. What changes under D24 is that the key names a *contract* rather than a build, so a demand and a supply compiled against different builds arrive at the same key and the comparison of their **bodies** is what decides compatibility.
 
-Compatibility comes from the *supply* side instead. A platform subscribed to `opmodel.dev/catalogs/opm@v1` materializes every published build in that major, so its key space is the union of those builds':
+That comparison is the always-unify rung `library` already runs (`compile/match.go:243-278`), and D26 fixes what it may compare: contract surfaces only, with provenance excluded from the operands before unification. Measured in `experiments/02-primitive-closedness-skew/`, that combination produces exactly the behaviour the model needs:
 
 ```
-platform supplies   …/config-maps@1.0.0   …/config-maps@1.1.0   …/config-maps@1.2.0
-module A demands    …/config-maps@1.0.0                                        ✓
-module B demands                          …/config-maps@1.1.0                  ✓
+contract key      …/opm/resources/backup@v1
+module built on   catalog_opm 1.3.0        provider built on   catalog_opm 1.0.0
+module sets only fields both builds share                      → unify PASSES, renders
+module sets a field 1.1.0 added                                → field not allowed, named
+provider's build narrowed a type inside v1                     → conflict, both arms named
 ```
 
-Two properties follow, and the second is the reason for the design. Modules built against different minors coexist without either being rebuilt. And publishing `1.2.0` **adds** a key space rather than replacing one, so what module A renders does not move — the catalog release is inert until module A is itself rebuilt against a newer catalog.
+Two properties follow. A provider catalog and the catalog defining the contract release on **independent cadences** — the case a provider-fulfilled primitive requires and the one D13's keys could not express. And a lagging provider fails **exactly when it matters**: loudly when the module uses something the provider cannot honour, silently-and-correctly when it does not.
 
-**Diagnosis needs no catalog lookup.** On a miss, strip the version off the demanded FQN and collect every supplied key sharing that path-and-name. That set is exactly "which builds of this primitive the platform has", which separates the two cases a user cares about:
+**Diagnosis without a catalog lookup, and it gets sharper.** A demanded contract key that no transformer supplies now means one of two things, and the version noise that used to obscure them is gone. If the index carries no key at all for that path-and-name, nothing on this platform implements the contract — the platform is missing a provider, which is a statement about the platform rather than the module. If it carries the same path-and-name at a different `apiVersion`, the module is on `v1` and the platform's provider implements `v2`. Distinguishing "unimplemented contract on a subscribed catalog" from "unknown path entirely" still wants the prefix match against subscribed catalog paths that OQ3 left on the table; that is now the one diagnostic worth the derivation.
 
-- **Uncovered build** — the primitive exists, at other versions. The error names what was demanded, what the platform materialized, and the subscription to widen.
-- **Absent primitive** — no build supplies it at all: an unsubscribed catalog, a removed primitive, or a typo. The empty set is what distinguishes it.
-
-Both replace `no matching transformer`, which names neither, and neither depends on OQ3 — the derivation is over the demanded FQN itself rather than over a relationship between a primitive's path and its catalog's.
+**A demand nothing supplies is an error** (D28). Every resource a component declares is required; traits carry an explicit opt-out. Today the structured `MissingFQN` diagnostic is produced and dropped — `plan.Missing` has no reader outside tests, there is no `UnhandledResources` counterpart to `UnhandledTraits`, and only a component matching *nothing at all* stops a render. Under a model where contracts are routinely fulfilled by someone else, that silence is the failure mode, not an edge of it.
 
 ### What stays out of identity, and why it still exists
 
@@ -88,14 +88,15 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 - **`#ArtifactRef`** — splits a complete module path into `registryPath` + `major`, the operation that replaces every "compose an address from a prefix and a name" site.
 - **`#ModuleIdentity`** / **`#CatalogIdentity`** — the metadata shapes after the change, with `fqn` bound to `modulePath` and the module-side leaf constraint expressed over one field.
-- **`#IdentityPackage`** — the catalog's committed `identity/identity.cue`. Two `@opm()`-marked fields the tooling writes (`ModulePath`, `Version`), plus `RegistryPath`, `Major` and `primitivePrefix` derived from them, so the major is split once here rather than at every definition site (D20, D21).
-- **`#PrimitiveIdentity`** — `name` + `modulePath` + `version` + `fqn`, shared by resources, traits, blueprints, and transformers. `modulePath` is a **package path** with no `@vN` (D20), `version` stays required (D21, resolving OQ6), and `fqn` is **authored** at the leaf from the identity package rather than derived by `core`.
-- **`#PrimitiveFQNGate`** — what 0011's publish gate asserts, kept deliberately outside `#PrimitiveIdentity` because expressing it there would re-derive the value and undo D21. This is where the FQN-versus-identity agreement is enforced.
+- **`#IdentityPackage`** — the catalog's committed `identity/identity.cue`. Two fields the tooling writes (`ModulePath`, `Version`), located by name against this schema rather than by a marker (D22), plus `RegistryPath`, `Major` and `primitivePrefix` derived from them, so the major is split once here rather than at every definition site (D20, D21).
+- **`#PrimitiveIdentity`** — `name` + `modulePath` + `apiVersion` + `catalogVersion` + `fqn`, shared by resources, traits, blueprints, and transformers. `modulePath` is a **package path** with no `@vN` (D20); `apiVersion` is the contract major an author decides and the only identity value not derivable from the identity package (D25); `catalogVersion` is the build it shipped in, provenance only; `fqn` is **authored** at the leaf (D21) and interpolates `apiVersion` for a contract, `catalogVersion` for a transformer (D24).
+- **`#PrimitiveFQNGate`** — what 0011's publish gate asserts, kept deliberately outside `#PrimitiveIdentity` because expressing it there would re-derive the value and undo D21. This is where the FQN-versus-identity agreement is enforced: a contract key must read `primitivePrefix[kind]/name@apiVersion`, a transformer key `…@catalogVersion`, and `catalogVersion` must equal `identity.Version` in both cases (D25).
 - **`#FetchedArtifact`** — the read-side invariant: an artifact lives where its metadata says it lives. The resolved tag is recorded alongside, not checked against anything, because nothing inside the artifact claims one.
-- **`#SubscriptionSelection`** — what a subscription resolves to under D14: every published build whose major matches the subscription key's, gated by D15's `includePrereleases`. The worked cases pin the default, the opt-in, and the live regime where today's default selects nothing.
-- **`#PrimitiveDemand`** — the matcher's whole check for one demanded primitive, which under D13 is exact-key containment plus the diagnostic set. `availableVersions` is computed whether or not the demand matched, so a failure can name what the platform does carry; `matched` is constrained to `true` so a miss is a unification failure rather than a value someone must remember to inspect.
+- **`#SubscriptionSelection`** — what a subscription resolves to under D14: every published build whose major matches the subscription key's, gated by D15's `includePrereleases`. **D24 removes this shape's original job** — breadth was the compatibility mechanism and is not any more — so whether it survives at all is OQ15. It is kept here unchanged rather than deleted, because D15's prerelease opt-in is orthogonal and holds either way.
+- **`#PrimitiveDemand`** — the matcher's whole check for one demanded contract, which under D24 is exact-key containment on a contract key. `matched` is constrained to `true` so a miss is a unification failure rather than a value someone must remember to inspect (and under D28 a miss is a hard error, not a collected diagnostic). `availableApiVersions` is computed whether or not the demand matched, so a failure can distinguish "nothing implements this contract" from "your platform implements a different API version of it".
+- **`#ContractCompatibility`** — the additive-only promise (D27) stated as the relation a publish gate asserts between two builds of one primitive at one `apiVersion`, and the boundary condition the match rung enforces.
 
-`schemas/examples.cue` carries worked before/after values for a module and a catalog, the cross-minor scenario as supply-side union, and the two diagnostics a miss produces. It vets, so a wrong example is a build failure rather than a documentation bug.
+`schemas/examples.cue` carries worked before/after values for a module and a catalog, and the diagnostics a miss produces. It vets, so a wrong example is a build failure rather than a documentation bug.
 
 ## Integration Points
 
@@ -103,8 +104,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 - `core/src/types.cue:20` — `#ModulePathType` gains the `@vN` suffix and must accept underscores. Today's `=~"^[a-z0-9.-]+(/[a-z0-9.-]+)*$"` has no underscore, which was harmless while `modulePath` was a bare prefix and is not once the path ends in the module's own snake_case name (`media_server`, `cert_manager`, `zot_registry_ttl`). **Only `#Module` and `#Catalog` use the widened type** — a new `#PackagePathType`, which is today's regex unchanged, is what primitives declare (D20). Widening one shared type was what dragged the major onto primitives that have no use for it.
 - `core/src/types.cue:26-28` — `#ModuleFQNType` (the `:semver` tail) retired or redefined as `#ModulePathType`.
-- `core/src/types.cue:37-46` — `#FQNType` keeps its SemVer tail (D13); only the underscore widening on its path portion applies. The doc comment recording enhancement 0001 D5's major→SemVer lift stays true and should gain a pointer to D13, since D4 briefly reversed it.
-- `core/src/types.cue:22-24` — `#MajorVersionType` is declared today and used nowhere. This is the design its doc comment describes.
+- `core/src/types.cue:37-46` — **`#FQNType` splits in two (D24).** A `#ContractFQNType` ends `@vN` and types resource / trait / blueprint FQNs; an `#ImplFQNType` keeps today's SemVer tail and types transformer FQNs. The doc comment recording enhancement 0001 D5's major→SemVer lift needs rewriting rather than annotating: the lift is now correct for implementations and wrong for contracts, and the entry should say which failure each choice prefers rather than reading as a straight reversal.
+- `core/src/types.cue:22-24` — `#MajorVersionType` is declared today and used nowhere. This is the design its doc comment describes, and D24 gives it a second caller: an `#APIVersionType` for contract keys, which is this regex widened to admit the pre-stable forms if OQ14 lands on `v1alpha1`.
 - `core/src/types.cue:56-72` — `#KebabToSnake` removed; `#KebabToPascal` keeps its other callers but stops being applied to a module name.
 - `core/src/module.cue:12` — `name!` retyped to `#SnakeNameType`.
 - `core/src/module.cue:15-19` — `nameSnakeCase` removed.
@@ -115,10 +116,10 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - `core/src/catalog.cue:10` — `#CatalogFQNType` retired or redefined.
 - `core/src/catalog.cue:63` — `version!` kept; the `*"0.0.0-dev"` default removed.
 - `core/src/catalog.cue:64` — `fqn: modulePath`.
-- `core/src/catalog.cue:70-76` — the pattern constraint keeps stamping **both** `modulePath` and `version` onto every `#transformers` entry. `modulePath` splits the major out and **stops** — it is not re-appended, because a primitive declares a package path (D20); `version` is unchanged.
-- `core/src/{resource,trait,blueprint,transformer}.cue` — `modulePath` retyped to `#PackagePathType`, which leaves the values every catalog ships today unchanged (D20). `version!` stays required (D21, resolving OQ6). **`fqn` stops being derived** and becomes an authored `#FQNType` the catalog writes from its identity package — the one place `core` gives up a constraint, with the agreement re-established at publish (`#PrimitiveFQNGate`, D21).
+- `core/src/catalog.cue:70-76` — the pattern constraint keeps stamping **both** `modulePath` and the build version onto every `#transformers` entry, the latter under its new name `catalogVersion` (D25). `modulePath` splits the major out and **stops** — it is not re-appended, because a primitive declares a package path (D20). This stays the only *structural* guarantee in the system: it is what makes a transformer's provenance unforgeable, while resources and traits reach a catalog only transitively and rely on the publish gate.
+- `core/src/{resource,trait,blueprint,transformer}.cue` — `modulePath` retyped to `#PackagePathType`, which leaves the values every catalog ships today unchanged (D20). **`version!` is renamed `catalogVersion!` and a required `apiVersion!` is added** (D25); the rename touches every leaf in every catalog and is mechanical. **`fqn` stops being derived** and becomes an authored value the catalog writes from its identity package — `#ContractFQNType` interpolating `apiVersion` for the first three kinds, `#ImplFQNType` interpolating `catalogVersion` for a transformer — with the agreement re-established at publish (`#PrimitiveFQNGate`, D21, D24).
 - `core/src/platform.cue:16-20` — `#SubscriptionFilter` gains D15's prerelease opt-in. This is a **new** integration point: the filter schema was untouched by the pre-D13 design.
-- `core/src/platform.cue:70` — `#registry`'s key becomes a `#ModulePathType` carrying `@vN`, which is what makes "every build in the major" (D14) the literal reading of the key and lets one platform subscribe to two majors of one catalog as distinct entries.
+- `core/src/platform.cue:70` — `#registry`'s key becomes a `#ModulePathType` carrying `@vN`, which lets one platform subscribe to two majors of one catalog as distinct entries. Under D14 this also made "every build in the major" the literal reading of the key; whether that reading survives is OQ15.
 - `core/SPEC.md` — `#Module` and `#Catalog` Shape / Constraints / Rationale, including the semver-with-colon rationale and the `SHA1(fqn)` determinism argument.
 
 **library**
@@ -129,12 +130,14 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - `library/opm/helper/synth/render.go:62` — stops parsing a SemVer for a major the module path states literally. A reduction.
 - `library/opm/schema/metadata.go:18`, `context.go:17` — `Version` removed or repurposed to the resolved coordinate; `FQN` doc comment updated.
 - `library/opm/materialize` — the catalog read-side check. `materialize.go:93` already builds `catalogBuild{Subscription, Version, Value}`; the resolved version keeps its diagnostic role, and `Resolved` becomes per-major-set rather than a single string (`materialize.go:96` records only the highest survivor today).
-- `library/opm/materialize/filter.go:43-47` — **D14.** The empty-filter default changes from `highestStable(published)` to every published build in the subscription key's major. `filterVersions` already returns a list and every caller already handles N builds, so this is a change to one branch rather than to the shape.
+- `library/opm/materialize/filter.go:43-47` — **D14, now contingent on OQ15.** D14 changed the empty-filter default from `highestStable(published)` to every published build in the major, because breadth was the compatibility mechanism. D24 removes that job. Whether the default reverts, stays, or grows a tie-break is OQ15; `filterVersions` returns a list either way, so the shape is unaffected by the answer.
 - `library/opm/materialize/filter.go:31-42` — **D15.** Prerelease inclusion reads the new `#SubscriptionFilter` flag instead of being inferred from whether a `range` constraint happens to carry a prerelease identifier. The `highestStable` fallback ("a path that has published only pre-releases falls back to the highest of them") is superseded by the flag and should go, not be kept as a second rule.
-- `library/opm/materialize/index.go:57-64` — the comment stating that distinct versions yield distinct FQNs is **correct under D13** and should be kept, promoted from a defensive aside to a stated invariant: it is what makes multi-build subscriptions safe, and D4 would have falsified it.
-- `library/opm/compile/match.go` — the diagnostic. On a missed demand, split the version off the demanded FQN, collect the supplied keys sharing that path-and-name, and report either "the platform materialized these builds, not that one" or "no build supplies this primitive at all", in place of a bare `no matching transformer`. No catalog lookup and no version ordering are involved.
+- `library/opm/materialize/index.go:57-64` — the comment stating that distinct versions yield distinct FQNs stays **true for transformers under D24**, which is why transformer keys keep the build: it is what stops two builds of one catalog colliding in the composed map, and it is the mechanism that made D4 unworkable. It becomes **false for contract keys**, which is the point of them — several builds legitimately supply one contract key in the reverse index, and OQ15 asks what happens when they do.
+- `library/opm/compile/match.go:243-278` — **the always-unify rung becomes load-bearing (D26, D27).** It must exclude provenance from both operands before unifying, and it must keep the closed definition in the comparison; `experiments/02` measures that cutting at `spec` instead silently drops a field the module set whenever the catalog wrote its spec body inline. Mechanism is OQ12.
+- `library/opm/compile/match.go:130` — the diagnostic. A missed contract key reports either "nothing on this platform implements this contract" or "this platform implements it at a different apiVersion", in place of a bare `no matching transformer`. `alternativesFor` (`:275`) keeps its shape and changes what it enumerates.
+- `library/opm/compile/match.go:130`, `module.go:124` — **D28.** `plan.Missing` gains its first production consumer and a miss fails the render; resources gain the `UnhandledResources` counterpart that `UnhandledTraits` has had all along, with the trait opt-out as the only path back to a warning.
 - `library/opm/kernel` — stamp `module.opmodel.dev/version` on the render path from the resolved coordinate.
-- `library/opm/compile/module.go:137` — **must keep consuming `mp.Transformers` as read-only input from a separate resolver.** A module's primitive definitions have to resolve through the module's own dependency graph. Under D13 this stops being a precondition for a diagnostic and becomes the reproducibility guarantee itself: if a single-build render put the module and the platform in one CUE build, minimal version selection would pick the maximum, so the module's own copy of a definition would carry the *platform's* catalog version and it would demand `…@1.2.0` where it was authored against `…@1.0.0`. The platform supplies that key, so the demand would **match** — silently, against a definition the module was never built on. See `05-risks.md`.
+- `library/opm/compile/module.go:137` — **must keep consuming `mp.Transformers` as read-only input from a separate resolver.** A module's primitive definitions have to resolve through the module's own dependency graph. Under D24 the failure this prevents changes shape but not severity: a single-build render would put the module and the platform in one CUE build, minimal version selection would pick the maximum, and the module's own copy of every contract definition would silently become the platform's — so the always-unify rung, which under D26/D27 is the only thing checking that the two agree, would be comparing a value against itself and could never fail. See `05-risks.md`.
 
 **cli**
 
@@ -144,9 +147,9 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 **catalog repos** (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`)
 
-- `src/identity/identity.cue` — `ModulePath` gains `@vN`; `Version` becomes a committed concrete SemVer or an open field; both gain `@opm()` markers. The `version_override.cue` stamping generator and the `0.0.0-dev` sentinel are retired. The package also gains `RegistryPath` and `Major`, derived from `ModulePath` via `strings.SplitN`, so no leaf splits a major (D21). Its "import-free" doc comment becomes "free of intra-module imports" — `strings` is a CUE builtin and adds no edge to the module graph.
-- `src/catalog.cue` — `metadata: modulePath: id.ModulePath` and `metadata: version: id.Version`.
-- Leaf files gain one line and change one reference (D21): `modulePath` reads `id.RegistryPath` instead of `id.ModulePath` — a one-token edit forced by `ModulePath` now carrying `@v1` — and each primitive authors `fqn: "\(id.RegistryPath)/<kind>/\(name)@\(id.Version)"`. Import statements are untouched: intra-module imports omit the major suffix (verified — `catalog_opm/cue.mod/module.cue` is `opmodel.dev/catalogs/opm@v1` while every leaf imports `opmodel.dev/catalogs/opm/identity` with no suffix), so a major bump churns no import.
+- `src/identity/identity.cue` — `ModulePath` gains `@vN`; `Version` becomes a committed concrete SemVer or an open field; neither carries a marker attribute (D22). The `version_override.cue` stamping generator and the `0.0.0-dev` sentinel are retired. The package also gains `RegistryPath` and `Major`, derived from `ModulePath` via `strings.SplitN`, so no leaf splits a major (D21). Its "import-free" doc comment becomes "free of intra-module imports" — `strings` is a CUE builtin and adds no edge to the module graph.
+- `src/catalog.cue` — `metadata: modulePath: id.ModulePath` and `metadata: version: id.Version`. `#Catalog.metadata.version` keeps its name: it is the catalog's own release version, and it is `catalogVersion`'s source rather than a second spelling of it.
+- Leaf files change three lines (D21, D24, D25): `modulePath` reads `id.RegistryPath` instead of `id.ModulePath` — a one-token edit forced by `ModulePath` now carrying `@v1`; `version: id.Version` becomes `catalogVersion: id.Version`; and each primitive authors its own `apiVersion` plus an `fqn` interpolating it, `fqn: "\(id.RegistryPath)/<kind>/\(name)@\(apiVersion)"` for a contract and `…@\(id.Version)` for a transformer. `apiVersion` is the one value that is **not** mechanical — every existing primitive needs a judgement about what its contract major is, which under OQ14 is plausibly `v1alpha1` across the board on day one. Import statements are untouched: intra-module imports omit the major suffix (verified — `catalog_opm/cue.mod/module.cue` is `opmodel.dev/catalogs/opm@v1` while every leaf imports `opmodel.dev/catalogs/opm/identity` with no suffix), so a major bump churns no import.
 
 **modules**
 
@@ -166,7 +169,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 After, `modules/jellyfin/identity.cue` holds one line:
 
 ```cue
-metadata: modulePath: "opmodel.dev/m/acme/jellyfin@v2" @opm(identity, owner=publish)
+// written by opm module publish
+metadata: modulePath: "opmodel.dev/m/acme/jellyfin@v2"
 ```
 
 `module.cue` declares `name: "jellyfin"` and nothing else about identity. `fqn` is that path; the UUID is stable across every 2.x release and distinct from any v3. The tag is the only version in the system, and it is what the CLI records in `spec.module.version`.
@@ -176,8 +180,13 @@ metadata: modulePath: "opmodel.dev/m/acme/jellyfin@v2" @opm(identity, owner=publ
 After, `src/identity/identity.cue` holds:
 
 ```cue
-ModulePath: "opmodel.dev/catalogs/opm@v1" @opm(identity, owner=publish)
-Version:    "1.2.0"                       @opm(identity, owner=publish)
+// written by opm catalog publish / opm catalog version set
+ModulePath: "opmodel.dev/catalogs/opm@v1"
+Version:    "1.2.0"
 ```
 
-Every FQN it ships reads `…@1.2.0`, identically from a checkout and from the registry — which is the divergence D5/D6 remove, and it is what makes a SemVer key trustworthy enough to keep. A module built against `1.0.0` installs on a platform subscribed to `opmodel.dev/catalogs/opm@v1`, because that subscription materializes `1.0.0` alongside `1.2.0` and the module's exact key is present (D14). Publishing `1.2.0` does not change what that module renders. A module demanding a build the subscription does not cover fails with an error naming the demanded version and the versions the platform actually has, instead of a missing key naming nothing.
+Every value it ships is computed from those two lines, identically from a checkout and from the registry — which is the divergence D5/D6 remove. Its transformers key on the build (`…/transformers/deployment@1.2.0`); its resources, traits and blueprints key on their own contract majors (`…/resources/config-maps@v1`), which do not move when `1.2.0` is published.
+
+**Contract.** Before, a generic `backup` resource in `catalog_opm` and a `k8up` provider catalog implementing it can only meet if both were compiled against the *same* `catalog_opm` build — so every `catalog_opm` release breaks backups until the provider re-releases and every module is rebuilt to match.
+
+After, the module demands `opmodel.dev/catalogs/opm/resources/backup@v1` and the provider requires that same string, whichever `catalog_opm` build either was compiled against. The two catalogs release independently. If the provider is older than the contract the module uses, the render fails naming the field the provider cannot honour; if the module stays inside what both builds share, it renders (D27, measured in `experiments/02`). If no subscribed catalog implements the contract at all, the render fails naming the platform's missing provider rather than silently producing no backup (D28).

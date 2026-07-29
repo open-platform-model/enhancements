@@ -106,7 +106,7 @@ _tagOK: #TagRef & {
 #IdentityState: {
 	field!: string
 
-	// open: declared but unfilled (`Version: string @opm(...)`). Publishable
+	// open: declared but unfilled (`Version: string`). Publishable
 	// only once --version supplies a value (D3).
 	// concrete: holds a value. Publishable.
 	// absent: not declared at all. Never publishable — this is a malformed

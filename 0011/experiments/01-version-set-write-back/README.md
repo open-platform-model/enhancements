@@ -2,6 +2,8 @@
 
 Status: Running
 
+> **The marker was dropped by 0010 D22 (noted 2026-07-29).** The observations below are unedited and still reproduce. Everything this run established about the *edit* stands and is now specified behaviour: the surgical AST rewrite, the conjunction-preserving `replaceConcrete()`, the no-write-when-unchanged idempotency, and the whole-file `format.Node` caveat. What changed is the **locator**. The "Design gap" section below identified that `@opm(identity, owner=publish)` cannot say *which* field it marks and recommended a `role` argument; that recommendation is **rejected**. Instead the marker goes entirely, and the `name == "Version"` path this run reported as a fallback becomes the specified lookup — against the location `#IdentityPackage` fixes, per 0011 D8. The `catalog_role.cue` and `catalog_unmarked.cue` fixtures now demonstrate rejected forms rather than proposed ones.
+
 Pins: D3's version writer, and the editing-mechanics question `02-design.md` leaves open ("a surgical AST rewrite preserves formatting and comments where a reformatting round-trip does not"). Also exercises D5's `@opm()` marker from the WRITE side, which is where its one real gap shows.
 
 ## Hypothesis

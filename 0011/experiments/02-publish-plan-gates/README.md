@@ -2,7 +2,7 @@
 
 Status: Running
 
-Pins: D1's one-pipeline-two-kinds, D2's derive-never-compose, D3's `--version` semantics, D4's identity-completeness gate, and D6's local-override asymmetry — as `schemas/target.cue`'s `#PublishPlan` executed rather than unified.
+Pins: D1's one-pipeline-two-kinds, D2's derive-never-compose, D3's `--version` semantics, D4's identity-completeness gate, D6's local-override asymmetry, and D8's schema-path lookup — as `schemas/target.cue`'s `#PublishPlan` executed rather than unified.
 
 ## Hypothesis
 
@@ -17,16 +17,17 @@ Self-contained; nothing outside this directory is read or modified. No registry 
 - **`variants/`** — six complete little CUE modules, each isolating one condition. They are separate modules rather than packages in one, because half the gates compare the artifact's declared identity against its **own `cue.mod/module.cue`**, which only exists per module.
   - `ok-catalog` — concrete identity, `cue.mod` agrees, no override.
   - `unfilled-catalog` — `Version` open.
+  - `renamed-catalog` — every value right, the version field named `CatalogVersion`. This is the case the rejected `role=` marker existed to find; it vets clean on its own, so only the schema-path lookup catches it (D8).
   - `skew-catalog` — `cue.mod` declares `…/other@v1`, identity declares `…/demo@v1`.
   - `override-catalog`, `override-module` — carry `cue.mod/local-module.cue`.
   - `ok-module` — a module, which under 0010 D2 declares no version at all.
 - **`local/core/`** — a stub module that exists only so the overrides in the two `override-*` variants resolve. The gate is about the file's **presence** (D6), so the override has to be a working one; a broken override would test "the tree does not load" instead.
 - **`main.go`** — the planner. `plan()` is `#PublishPlan` as Go: same fields, same gates, and a refusal list in place of a failed unification. `go.mod` requires `cuelang.org/go v0.17.1`, matching `cli`.
-- **`run.sh`** — thirteen invocations plus the three CUE-native measurements the gates exist for.
+- **`run.sh`** — fourteen invocations plus the three CUE-native measurements the gates exist for.
 
-Identity is read from the artifact's **identity file** rather than by decoding the whole artifact through `core`. That is enough for every gate here and keeps the variants small; enhancement 0010's experiment 01 shows why the file is where the marker lives, and the production command would decode the artifact as well.
+Identity is read from the artifact's **identity file** rather than by decoding the whole artifact through `core`. That is enough for every gate here and keeps the variants small; the production command would decode the artifact as well.
 
-The fixtures use the **proposed** marker form `@opm(identity, role=…, owner=publish)` rather than the form D5 records. Experiment 01 explains why: without a role the tool has to fall back to matching the field's name.
+Identity fields are located by their **schema-fixed path** (0010 D22, D8): `ModulePath` and `Version` for a catalog, `metadata.modulePath` for a module. There is no marker attribute to scan for — `identitySpecs()` is the whole lookup, and it is a transcription of what `#IdentityPackage` and `#Module` name. A field that is not at its path is `absent`, which is a refusal rather than a cue to search wider.
 
 ## Run
 
@@ -38,15 +39,16 @@ Requires `cue` v0.17.1 and Go 1.26 on PATH. First run resolves CUE dependencies 
 
 ## Outcome
 
-Observed 2026-07-26 with cue v0.17.1, Go 1.26.2.
+Observed 2026-07-26 with cue v0.17.1, Go 1.26.2. **Re-run 2026-07-29** after D22/D8 replaced the marker lookup with the schema-path lookup: every verdict below reproduced unchanged, and the `renamed-catalog` row is new.
 
 | Invocation | Verdict |
 | --- | --- |
 | clean catalog | **GO** — `example.com/catalogs/demo:v1.2.0`, tag from the artifact's own `Version` |
-| unfilled catalog | REFUSED — `Version` unfilled, at `identity/identity.cue:6:1` |
+| unfilled catalog | REFUSED — `Version` unfilled, at `identity/identity.cue:9:1` |
 | unfilled catalog, `--version 1.2.0` | **GO** — tag from `--version` |
 | clean catalog, `--version 9.9.9` | REFUSED — disagrees with the declared `1.2.0`; publish asserts, it does not overwrite |
 | clean catalog, `--version 1.2.0` | **GO** — assertion holds |
+| renamed field (`CatalogVersion`) | REFUSED — `Version` not declared at its schema-fixed path |
 | `cue.mod` skew | REFUSED — both paths named |
 | catalog + local override | REFUSED |
 | catalog + local override + `--allow-local-override` | REFUSED — the flag does not apply to catalogs |
@@ -57,6 +59,14 @@ Observed 2026-07-26 with cue v0.17.1, Go 1.26.2.
 | clean module, `--version 2.1.0` | **GO** — `example.com/m/acme/media_server:v2.1.0` |
 
 **Hypothesis held.**
+
+### Dropping the marker cost the planner nothing and made one refusal sharper
+
+The 2026-07-29 re-run replaced an attribute walk (`Value.Walk` + `Attributes(cue.FieldAttr)` + a `role` argument to read off each one, ~35 lines) with a two-entry table and a `LookupPath` per field (~15 lines). Every one of the thirteen original verdicts reproduced identically, which is the expected result and worth stating: the gates read identity *values*, and how a field was located never entered any of them.
+
+What changed is what happens to a field that is not where the schema says. Under the marker, an unmarked-but-correct field read as `absent` and a *renamed* field could be found if it carried `role=version` — that accommodation was the marker's whole remaining justification. `renamed-catalog` measures what replaces it: a catalog whose values are all correct and whose version field is named `CatalogVersion` **vets clean on its own** (`cue vet -c ./...`, exit 0) and is refused by the planner naming the schema-fixed path it failed to find. So the condition is caught, it is caught by the publisher rather than by a consumer, and the diagnosis names a contract rather than a missing attribute.
+
+That variant also exposed an asymmetry in the refusal list. The `open` case already carried a guard against the tag rule restating the same problem (`already refused above; do not say it twice`); the `absent` case had none, so a renamed field produced two refusals for one cause — the missing field, then "no version available from the artifact or from `--version`". Fixed rather than recorded, because the intent was clearly present in the `open` path already. One cause, one refusal.
 
 ### D4's gate is necessary, and its evidence needs correcting on one point
 
@@ -99,7 +109,7 @@ The `cue.mod` agreement check is worth keeping separate from the derivation even
 
 Reducing D1's table to code, the whole difference is:
 
-1. **Where identity lives** — a module's root package vs a catalog's `identity/` subpackage.
+1. **Where identity lives** — a module's root package vs a catalog's `identity/` subpackage, which under D8 is two rows of a table rather than two code paths (0010 D23 keeps that asymmetry deliberately).
 2. **Whether a version exists in source** — a catalog's `Version` is a field to read or fill; a module has none, so `--version` is mandatory rather than optional.
 3. **Whether the local-override flag applies** — modules yes, catalogs never.
 

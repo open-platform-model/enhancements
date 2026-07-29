@@ -2,7 +2,7 @@
 
 ## Summary
 
-Decisions are numbered sequentially (D1, D2, …) and recorded as they are made. The log is **append-only** — never remove or renumber. A reversed decision gets a new entry that supersedes it; the original stays.
+Decisions are numbered sequentially (D1, D2, …) and recorded as they are made. **This entry is `implemented` — the log is frozen.** Numbers are permanent and the text is closed: no compaction, no merging, no rewriting. Corrections go in a new enhancement.
 
 D1–D8 are promoted from `cli/docs/rfc/0007`, which is the design rehearsal for this work; their Source lines cite the RFC. D9 and D10 are decisions taken when this enhancement was created (user direction, 2026-06-22) and they extend the RFC: D9 pulls render/match into scope (the RFC had left the whole engine question to "future work"), and D10 fixes the precise render-vs-apply cut.
 

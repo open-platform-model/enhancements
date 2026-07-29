@@ -173,6 +173,64 @@ tasks:
           esac
         }
 
+        # Reference integrity. Every DN / OQN cited from a *structured*
+        # surface must resolve to a heading in the same entry — a live
+        # decision or a tombstone left behind by a compaction merge. This is
+        # the gate that replaces the old (never-implemented) append-only
+        # check: decision bodies may now be rewritten, so what has to hold
+        # is that nothing cites a number that stopped existing.
+        #
+        # Scanned surfaces, all of them machine-written or convention-fixed:
+        #   - `Status: resolved-by-D##` on Open Question bullets
+        #   - `**Supersedes:** / **Amends:** / **Resolves:**` relation fields
+        #   - `// OQ##` markers in schemas/*.cue
+        #
+        # NOT scanned: free-form decision prose and `history` events. Both
+        # carry cross-entry citations in the house style ("enhancement 0006
+        # D31", "0010 OQ9") which no regex separates from local ones. Schema
+        # comments get the same rule applied line-by-line — a comment naming
+        # another entry's id is a cross-entry citation and is skipped.
+        dangling_refs() {
+          local dir="$1"
+          local dec="$dir/03-decisions.md"
+          [ -f "$dec" ] || return 0
+
+          local oqfile="" c
+          for c in "$dir/03-decisions.md" "$dir/README.md"; do
+            if [ -f "$c" ] && grep -q '^## Open Questions' "$c" 2>/dev/null; then
+              oqfile="$c"; break
+            fi
+          done
+
+          # Every grep below may legitimately match nothing; `set -e` would
+          # otherwise abort the whole substitution on the first empty result.
+          local id_alt
+          id_alt=$(echo "$EXISTING_IDS" | tr -s ' ' '\n' | grep -E '.' | paste -sd'|' - || true)
+
+          local declared="" cited="" markers=""
+          declared=$( { grep -hoE '^### D[0-9]+:' "$dec" 2>/dev/null | grep -oE 'D[0-9]+' || true
+                        if [ -n "$oqfile" ]; then
+                          grep -hoE '^-[[:space:]]+\*\*OQ[0-9]+:' "$oqfile" 2>/dev/null | grep -oE 'OQ[0-9]+' || true
+                        fi
+                      } | sort -u )
+
+          if [ -d "$dir/schemas" ]; then
+            markers=$( { find "$dir/schemas" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
+                       | { if [ -n "$id_alt" ]; then grep -vE "\b(${id_alt})\b" || true; else cat; fi; } \
+                       | { grep -oE '\bOQ[0-9]+\b' || true; } )
+          fi
+
+          cited=$( { grep -hoE 'resolved-by-D[0-9]+' "$dec" ${oqfile:+"$oqfile"} 2>/dev/null | grep -oE 'D[0-9]+' || true
+                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | grep -oE '\b(OQ|D)[0-9]+\b' || true
+                     printf '%s\n' "$markers"
+                   } | { grep -E '.' || true; } | sort -u )
+
+          # Nothing cited means nothing can dangle. Also avoids comm(1) seeing
+          # a lone blank line and reporting it as an unresolved reference.
+          [ -n "$cited" ] || return 0
+          comm -23 <(printf '%s\n' "$cited") <(printf '%s\n' "$declared")
+        }
+
         check() {
           local cfg="$1"
           local dir; dir=$(dirname "$cfg")
@@ -241,6 +299,12 @@ tasks:
               [ -f "$exp/README.md" ] \
                 || errors="${errors}\n    $(basename "$exp"): missing README.md (per-experiment doc with Hypothesis/Setup/Run/Outcome)"
             done
+          fi
+
+          # 8. Reference integrity — no citation of a DN/OQN that does not exist.
+          local dangling; dangling=$(dangling_refs "$dir")
+          if [ -n "$dangling" ]; then
+            errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
           fi
 
           if [ -n "$errors" ]; then
@@ -354,6 +418,50 @@ tasks:
           esac
         }
 
+        # Reference integrity — see the long comment on the same function in
+        # `vet`. Structured surfaces only; prose and history are excluded
+        # because they carry cross-entry citations.
+        dangling_refs() {
+          local dir="$1"
+          local dec="$dir/03-decisions.md"
+          [ -f "$dec" ] || return 0
+
+          local oqfile="" c
+          for c in "$dir/03-decisions.md" "$dir/README.md"; do
+            if [ -f "$c" ] && grep -q '^## Open Questions' "$c" 2>/dev/null; then
+              oqfile="$c"; break
+            fi
+          done
+
+          # Every grep below may legitimately match nothing; `set -e` would
+          # otherwise abort the whole substitution on the first empty result.
+          local id_alt
+          id_alt=$(echo "$EXISTING_IDS" | tr -s ' ' '\n' | grep -E '.' | paste -sd'|' - || true)
+
+          local declared="" cited="" markers=""
+          declared=$( { grep -hoE '^### D[0-9]+:' "$dec" 2>/dev/null | grep -oE 'D[0-9]+' || true
+                        if [ -n "$oqfile" ]; then
+                          grep -hoE '^-[[:space:]]+\*\*OQ[0-9]+:' "$oqfile" 2>/dev/null | grep -oE 'OQ[0-9]+' || true
+                        fi
+                      } | sort -u )
+
+          if [ -d "$dir/schemas" ]; then
+            markers=$( { find "$dir/schemas" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
+                       | { if [ -n "$id_alt" ]; then grep -vE "\b(${id_alt})\b" || true; else cat; fi; } \
+                       | { grep -oE '\bOQ[0-9]+\b' || true; } )
+          fi
+
+          cited=$( { grep -hoE 'resolved-by-D[0-9]+' "$dec" ${oqfile:+"$oqfile"} 2>/dev/null | grep -oE 'D[0-9]+' || true
+                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | grep -oE '\b(OQ|D)[0-9]+\b' || true
+                     printf '%s\n' "$markers"
+                   } | { grep -E '.' || true; } | sort -u )
+
+          # Nothing cited means nothing can dangle. Also avoids comm(1) seeing
+          # a lone blank line and reporting it as an unresolved reference.
+          [ -n "$cited" ] || return 0
+          comm -23 <(printf '%s\n' "$cited") <(printf '%s\n' "$declared")
+        }
+
         errors=""
         dir="$ID"
         dir_id="$ID"
@@ -405,6 +513,12 @@ tasks:
             [ -f "$exp/README.md" ] \
               || errors="${errors}\n    $(basename "$exp"): missing README.md (per-experiment doc with Hypothesis/Setup/Run/Outcome)"
           done
+        fi
+
+        # 8. Reference integrity — no citation of a DN/OQN that does not exist.
+        dangling=$(dangling_refs "$dir")
+        if [ -n "$dangling" ]; then
+          errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
         fi
 
         if [ -n "$errors" ]; then
@@ -1314,3 +1428,170 @@ tasks:
             printf "%s\t%s\t%s\t%s\n", $1, $2, $4, $5
           }
         '
+
+  compact:plan:
+    desc: Emit TSV of compaction candidates (ID=NNNN) — for the enhancement-compaction skill
+    summary: |
+      Usage:
+        task compact:plan ID=0004
+
+      Read-only. Finds candidates; exercises no judgement about which ones
+      should actually merge — that is the `enhancement-compaction` skill's
+      job, and it reads whole documents before deciding.
+
+      Columns: KIND  TARGET  DETAIL
+
+      KIND values:
+        STATUS    the entry's status + which operations that status allows
+        NEXT      next free decision number (tombstones counted, never reused)
+        WEAVE     a decision body says it supersedes/amends/refines another;
+                  candidate for merging into the lower number
+        TRAILER   relation metadata stranded in a `### DN:` heading; belongs
+                  in a **Supersedes:** / **Amends:** / **Resolves:** field
+        COLLAPSE  a resolved/deferred Open Question still carrying prose after
+                  its `Status:` token — the answer is restated in its decision
+        KEEP      an `answered` OQ, whose status line IS the answer; never
+                  collapse it, the content exists nowhere else
+
+      Lines citing another enhancement by id ("enhancement 0006 D31") are
+      skipped — those are cross-entry references, not local reversals.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task compact:plan ID=<4-digit-id>'
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -uo pipefail
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        DEC="$ID/03-decisions.md"
+        [ -f "$DEC" ] || { echo "No 03-decisions.md in $ID" >&2; exit 1; }
+
+        STATUS=$(yq -r '.status' "$ID/config.yaml")
+
+        case "$STATUS" in
+          draft)       ALLOWED="WEAVE,TOMBSTONE (Open Question prose is the active work surface — do not collapse)" ;;
+          accepted)    ALLOWED="WEAVE,TOMBSTONE,COLLAPSE-OQ" ;;
+          implemented) ALLOWED="NONE — frozen, compaction refused" ;;
+          superseded)  ALLOWED="STUB,COLLAPSE-OQ,TOMBSTONE" ;;
+          *)           ALLOWED="unknown status" ;;
+        esac
+        printf "STATUS\t%s\t%s\n" "$STATUS" "$ALLOWED"
+
+        if [ "$STATUS" = "implemented" ]; then
+          exit 0
+        fi
+
+        # Next free decision number. Tombstones still occupy their number, and
+        # `^### D[0-9]+:` matches them, so they are counted here by design.
+        NEXT=$(grep -hoE '^### D[0-9]+:' "$DEC" 2>/dev/null | grep -oE '[0-9]+' | sort -n | tail -1 || true)
+        printf "NEXT\tD%s\tnext free decision number\n" "$(( ${NEXT:-0} + 1 ))"
+
+        # Other entries' ids — a line naming one is a cross-entry citation.
+        ID_ALT=$(ls -d [0-9][0-9][0-9][0-9] 2>/dev/null | grep -v "^${ID}$" | paste -sd'|' - || true)
+
+        # WEAVE + TRAILER: walk the ## Decisions section tracking the current DN.
+        awk -v ids="$ID_ALT" -v status_gate="$STATUS" '
+          /^## Decisions/ { indec = 1; next }
+          indec && /^## /  { indec = 0 }
+          !indec           { next }
+          /^### D[0-9]+:/ {
+            cur = $0
+            sub(/^###[[:space:]]+/, "", cur)
+            curid = cur
+            sub(/:.*$/, "", curid)
+            head = cur
+            sub(/^D[0-9]+:[[:space:]]*/, "", head)
+            # A relation trailer always names the number it relates to.
+            # Requiring a D##/OQ## token keeps ordinary prose out ("the
+            # kernel resolves in place — it rewrites each secret value").
+            if (head ~ /(—|--)/ && head ~ /(D|OQ)[0-9]+/) {
+              printf "TRAILER\t%s\trelation stranded in heading: %s\n", curid, head
+            }
+            next
+          }
+          curid == "" { next }
+          {
+            line = $0
+            if (ids != "" && line ~ ids) next
+            s = line
+            while (match(s, /(supersedes|superseded|supersede|amends|amended|amend|refines|refine|reverses|reverse|replaces|replace|revises|revise) D[0-9]+/)) {
+              tok = substr(s, RSTART, RLENGTH)
+              verb = tok; sub(/ D[0-9]+$/, "", verb)
+              tgt  = tok; sub(/^.*[[:space:]]/, "", tgt)
+              # A superseded entry does not weave — its decision log collapses
+              # to an index instead. The pair still needs marking so a reader
+              # of the dead entry is not misled by the earlier decision.
+              if (status_gate == "superseded")
+                printf "MARK\t%s->%s\t%s %s — note the supersession on %s; no merge (entry is superseded)\n", curid, tgt, verb, tgt, tgt
+              else
+                printf "WEAVE\t%s->%s\t%s says it %s %s — merge into the lower number\n", curid, tgt, curid, verb, tgt
+              s = substr(s, RSTART + RLENGTH)
+            }
+          }
+        ' "$DEC" | sort -u
+
+        # COLLAPSE / KEEP: resolved OQs still carrying prose after Status:.
+        OQ_FILE=""
+        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
+          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
+            OQ_FILE="$candidate"; break
+          fi
+        done
+        [ -n "$OQ_FILE" ] || exit 0
+
+        # Same bullet state machine as questions:list, extended to measure the
+        # prose payload sitting after the status token.
+        awk -v status_gate="$STATUS" '
+          function trim(s) {
+            sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s
+          }
+          function flush(   search, bold_end, title, after, dot, status, payload, kind, note) {
+            if (oq_id == "") return
+            search = oq_line
+            sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", search)
+            bold_end = index(search, "**")
+            if (bold_end == 0) { oq_id = ""; oq_line = ""; return }
+            after = substr(search, bold_end + 2)
+            sub(/^[[:space:]]*Status:[[:space:]]*/, "", after)
+            dot = index(after, ".")
+            if (dot > 0) { status = substr(after, 1, dot - 1); payload = trim(substr(after, dot + 1)) }
+            else         { status = after; payload = "" }
+            status = trim(status)
+            if (status == "answered") {
+              printf "KEEP\t%s\tanswered — the status line IS the answer; never collapse\n", oq_id
+            } else if ((status ~ /^resolved-by-D/ || status ~ /^deferred/) && length(payload) > 0) {
+              # Collapsing is gated on status. On a draft these are reported
+              # as future work, not as something to act on now: the context
+              # paragraphs are still the surface the design is being argued on.
+              if (status_gate == "draft") { kind = "COLLAPSE-LATER"; note = " (gated until accepted)" }
+              else                        { kind = "COLLAPSE";       note = "" }
+              printf "%s\t%s\t%s; %d chars of prose after the status token%s\n", kind, oq_id, status, length(payload), note
+            }
+            oq_id = ""; oq_line = ""
+          }
+          BEGIN { inblock = 0; oq_id = ""; oq_line = "" }
+          /^## Open Questions[[:space:]]*$/ { flush(); inblock = 1; next }
+          inblock && /^## / { flush(); inblock = 0; next }
+          !inblock { next }
+          /^### / { flush(); next }
+          /^-[[:space:]]+\*\*OQ[0-9]+:/ {
+            flush()
+            oq_line = $0
+            tmp = $0
+            sub(/^-[[:space:]]+\*\*OQ/, "", tmp)
+            oq_id = "OQ"
+            i = 1
+            while (i <= length(tmp) && substr(tmp, i, 1) ~ /[0-9]/) {
+              oq_id = oq_id substr(tmp, i, 1); i++
+            }
+            next
+          }
+          oq_id != "" && /^[[:space:]]+[^[:space:]]/ { oq_line = oq_line " " trim($0); next }
+          oq_id != "" && /^$/ { flush(); next }
+          oq_id != "" && /^- / { flush(); next }
+          END { flush() }
+        ' "$OQ_FILE"

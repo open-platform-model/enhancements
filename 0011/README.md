@@ -18,7 +18,7 @@ The six split documents below are mandatory and always present.
 
 1. [01-problem.md](01-problem.md) — No publish command; three answers to "what version is this"; publish is silent about a divergence it can see
 2. [02-design.md](02-design.md) — One pipeline, two artifact types, coordinates derived and gates that reflect blast radius
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
