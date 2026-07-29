@@ -1,6 +1,8 @@
 # Enhancement 0003 — OPM Module Publishing Workflow
 
-> **Superseded by 0010 (2026-07-26), together with 0011.** This entry accumulated four problems on one id — a naming convention, version agreement, whether a version belongs in identity at all, and how identity reaches an artifact — and its narrative documents stopped tracking its decision log along the way, so `02-design.md` still describes a design that later decisions retired. The work continues, split along the boundary that was always there: **[0010 — Module and Catalog Identity](../0010/)** owns what an artifact's identity *is* and how it gets into the artifact's own bytes (a breaking `core` change), and **[0011 — Module and Catalog Publishing](../0011/)** owns the commands that write it and the registry it goes to (a `cli` feature that depends on 0010). Both successors start fresh decision logs at D1 carrying only current answers, and they restate this entry's measurements inline rather than referencing them — so neither requires reading this one. What stays here is the record of how the design arrived where it did, plus `experiments/` and `research/`, which are the expensive part and the reason this entry was superseded rather than deleted. Nothing below this line has been edited to match the successors; read it as history.
+> **Superseded by 0010 (2026-07-26), together with 0011.** This entry accumulated four problems on one id — a naming convention, version agreement, whether a version belongs in identity at all, and how identity reaches an artifact — and its narrative documents stopped tracking its decision log along the way, so `02-design.md` still describes a design that later decisions retired. The work continues, split along the boundary that was always there: **[0010 — Module and Catalog Identity](../0010/)** owns what an artifact's identity *is* and how it gets into the artifact's own bytes (a breaking `core` change), and **[0011 — Module and Catalog Publishing](../0011/)** owns the commands that write it and the registry it goes to (a `cli` feature that depends on 0010). Both successors start fresh decision logs at D1 carrying only current answers, and they restate this entry's measurements inline rather than referencing them — so neither requires reading this one. What stays here is the record of how the design arrived where it did, plus `experiments/` and `research/`, which are the expensive part and the reason this entry was superseded rather than deleted. Read it as history, not as a live design.
+
+> **Compacted 2026-07-29.** The narrative documents (`01`, `02`, `04`, `05`, `06`) were collapsed to stubs describing what each covered and where it went, and the Open Questions block was reduced to one line per question naming the successor that inherited it. The decision log keeps every number, decision, and *Alternatives considered*, with supersessions now marked in place so it is safe to read linearly. Two things were deliberately kept in full: `05-risks.md`'s per-site **Blast Radius** audit, which was measured against real code and is reproduced nowhere else, and everything under `experiments/` and `research/`. The prior text of every collapsed document is in git history.
 
 A module's OPM identity (`metadata.modulePath`, `metadata.name`, `metadata.version`) and the CUE registry coordinates it is actually published under (the `cue.mod/module.cue` `module:` path and the CUE package name) are chosen independently today. The two drift, so code holding a loaded `*module.Module` cannot turn it back into an importable registry reference. This enhancement defines a publishing convention — anchored on the new `metadata.nameSnakeCase` field in `core` — that makes a module's registry path derivable from its metadata, plus the `opm publish` workflow (cli) and kernel helpers (library) that enforce and consume it.
 
@@ -16,14 +18,14 @@ This enhancement establishes the canonical mapping `registry path = metadata.mod
 
 ## Documents
 
-The six split documents below are mandatory and always present.
+The six split documents below are mandatory and always present. All but `03-decisions.md` are stubs after the 2026-07-29 compaction.
 
-1. [01-problem.md](01-problem.md) — Module identity and registry coordinates drift; the import path is not recoverable from a loaded module
-2. [02-design.md](02-design.md) — Canonical `modulePath/nameSnakeCase` mapping, enforced at publish and consumed by the kernel
-3. [03-decisions.md](03-decisions.md) — Append-only decision log + Open Questions
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
-5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
+1. [01-problem.md](01-problem.md) — *Stub.* Identity and registry coordinates drift; the measurements that gave the entry its urgency, restated in both successors
+2. [02-design.md](02-design.md) — *Stub.* Canonical `modulePath/nameSnakeCase` mapping — and why it stopped being accurate before supersession
+3. [03-decisions.md](03-decisions.md) — **Kept in full.** D1–D27 with alternatives, supersessions marked in place; Open Questions collapsed to successor pointers
+4. [04-graduation.md](04-graduation.md) — *Stub.* Gates that were never met
+5. [05-risks.md](05-risks.md) — *Partly kept.* Risk narrative stubbed; the per-site **Blast Radius** audit retained in full
+6. [06-operational.md](06-operational.md) — *Stub.* PRR-lite answers against the retired design
 
 Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable files.
 
