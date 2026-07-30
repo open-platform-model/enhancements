@@ -12,19 +12,30 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ## Decisions
 
-### D1: `metadata.modulePath` is the artifact's complete CUE module path, and `fqn` is that path
+### D1: An artifact's `modulePath` is its complete CUE module path; a primitive's is a package path
 
 **Decision:** `#Module.metadata.modulePath` and `#Catalog.metadata.modulePath` carry the artifact's full CUE module path **including the major suffix** — `opmodel.dev/m/acme/jellyfin@v2`, `opmodel.dev/catalogs/opm@v1` — rather than a bare prefix that must be recombined with a name. `metadata.fqn` is that same string. `uuid: SHA1(OPMNamespace, fqn)` keeps its formula with a version-free, major-bearing input, and `instance.uuid` is unchanged.
 
+`#Resource`, `#Trait`, `#Blueprint` and `#ComponentTransformer` type `metadata.modulePath` as a **package path** — a plain path with no `@vN` suffix, which is what `core` types it as today. Artifacts and primitives take separate types, `#ModulePathType` and `#PackagePathType`, rather than sharing one widened type.
+
+Three facts force that split rather than taste. A primitive's major is **structurally redundant**: a `@vN` module publishes `vN.*` tags, so a primitive carrying a build SemVer already states its catalog's major, and no collision is admitted by dropping it — a `@v1` build and a `@v2` build cannot publish the same SemVer. It is **not a module path**: `opmodel.dev/catalogs/opm/resources@v1` is a string nothing writes, because a consumer imports `opmodel.dev/catalogs/opm-experimental/resources` with no suffix (`modules/metallb/components.cue:23`, `modules/cert_manager/components.cue:31`) and CUE resolves the major from the `deps` block. And **nothing read it**: `schemas/target.cue`'s `#PrimitiveIdentity` once typed `modulePath!: #ModulePathType`, built `_ref: #ArtifactRef`, then derived `fqn` from `_ref.registryPath` — stripping the major straight back off, with `_ref.major` computed and never consumed.
+
 **Alternatives considered:**
 
+- **One widened `#ModulePathType` shared by artifacts and primitives — originally adopted here, then amended.** This is how the decision was first implemented, and the defect was that every field typed with it inherited a requirement it has no use for: a major nothing reads, that the build SemVer already encodes, and that makes a primitive's declared path a string no `import` statement uses. Typing a package path as a module path is a category error the single-type widening introduced by accident.
 - **A bare prefix plus a separate `major` field.** The smallest change, and it does put the major back in identity. Rejected: it adds a *second* identity fragment that must be kept in step with `cue.mod` while leaving the prefix-plus-name recombination intact — paying for the major without simplifying anything else.
 - **`modulePath/name` with no version component at all.** Rejected: it collapses two incompatible majors into one identity, which is the collision major suffixes exist to prevent. Go states the reasoning outright — the suffix is what lets a toolchain treat two majors as genuinely distinct modules.
+- **Drop the major from artifact paths too, for uniformity with primitives.** Rejected on each artifact's own grounds. For a module, D2 removed the version field entirely, so the path is the only thing distinguishing `@v1` from `@v2`. For a catalog, the path *is* the registry address and the `#registry` subscription key the major is read from.
 - **Deriving the major inside CUE from the artifact's own `cue.mod/module.cue`.** Measured 2026-07-26 (cue v0.17.1): `@extern(embed)` plus `_raw: _ @embed(file="cue.mod/module.cue", type=text)` plus `regexp.FindSubmatch` yields `"v2"`, and it survives publishing because `cue.mod/module.cue` ships inside the artifact zip (confirmed by unzipping `opmodel.dev/modules/jellyfin@v2` tag `v2.0.2`). Rejected on user decision, and independently constrained: `@embed` resolves relative to the *embedding file's own directory* and cannot escape upward (`../cue.mod/module.cue` fails with `@embed: cannot refer to parent directory`), so `core` cannot do it on a consumer's behalf and every artifact would carry attribute-and-regex boilerplate.
 
-**Rationale:** This is the only candidate that makes something else *simpler* rather than only paying for the major. The declared path already is the registry address, so the address becomes recoverable by reading one field; the "path leaf equals the artifact's name" constraint becomes a statement about a single field rather than a relationship between two independently-authored ones; and the value an author sees is the string CUE, the registry, and the `import` statement already agree on.
+**Rationale:** For the artifact half, this is the only candidate that makes something else *simpler* rather than only paying for the major. The declared path already is the registry address, so the address becomes recoverable by reading one field; the "path leaf equals the artifact's name" constraint becomes a statement about a single field rather than a relationship between two independently-authored ones; and the value an author sees is the string CUE, the registry, and the `import` statement already agree on.
+
+For the primitive half, the major belongs where it is load-bearing and nowhere else. It is load-bearing on an artifact's path, because that path is an address and, for modules, the sole carrier of major identity. It is inert on a primitive, whose key carries a version that already implies it.
+
+**Consequences of the primitive half, all reductions.** Primitive `modulePath` values are unchanged from what ships today, so the migration touches two fields rather than every field sharing a type. `primitivePrefix` loses its major re-append. `#Catalog`'s `#transformers` pattern constraint splits the major out and stops, rather than splitting it out and re-appending it. D17's publish gate compares a primitive's path against the catalog's `RegistryPath` rather than its `ModulePath`, which it must do or the check compares a plain path against one ending `@v1` and never matches.
 
 **Source:** User decision 2026-07-26.
+**Revised:** 2026-07-30 — absorbed D20 (2026-07-27), which narrowed the type widening to artifacts only.
 
 ### D2: `#Module` declares no version
 
@@ -42,20 +53,23 @@ It also removes a latent failure that *fixing* the drift would have activated. B
 
 **Source:** User decision 2026-07-26.
 
-### D3: `#Catalog` keeps a full SemVer `metadata.version` — as a compatibility signal, never a key
+### D3: `#Catalog` keeps a full SemVer `metadata.version`, declared concretely in committed source
 
-**Decision:** `#Catalog.metadata.version` is a full SemVer, declared concretely in committed source, with no default. It is **not** part of any FQN (D4). Its single job is to let a consumer state and the kernel check a compatibility floor: a module records which catalog build it was authored against, and the kernel compares that against the build a platform actually materialized.
+**Decision:** `#Catalog.metadata.version` is a full SemVer, declared concretely in committed source, with no default.
 
-`#Module` and `#Catalog` are therefore **not symmetric**, and the asymmetry is principled. A catalog is a *vocabulary provider* whose consumers must be able to express a minimum, because a module can genuinely require a primitive that only exists from some catalog build onward. A module is a leaf artifact that nothing depends on, so no consumer needs to express a floor against it. D2 stands for `#Module` and does not extend here.
+**What the value is *for* changed twice; the current answer is the third.** As originally decided it was a compatibility *signal* feeding a floor — a module recorded which catalog build it was authored against and the kernel compared that against what a platform materialized. D13 removed the floor's reader and D24 removed its reason; D10 records the retirement. What the value does now is supply **build keys and provenance**: it is interpolated into every transformer FQN as D24's implementation key, and it is stamped onto every primitive as `catalogVersion` under its D25 name. That is also what makes D6's refusal to give it a default load-bearing rather than fastidious — a sentinel version would be interpolated straight into a published key.
+
+`#Module` and `#Catalog` remain **not symmetric**, though not for the reason first given. A catalog's version names bytes that other artifacts key against; a module is a leaf artifact that nothing depends on and needs no such value, which is what D2 removes.
 
 **Alternatives considered:**
 
-- **Remove the catalog version too, for symmetry with D2.** Rejected: it leaves D4's residual failure unaddressed. With major-only keys, a module built against `1.2.0` matches a platform on `1.0.0` right up until it demands a primitive `1.0.0` never shipped — and then fails with a missing FQN that names nothing useful. The version is what turns that into a legible error.
-- **Let each primitive declare its own version.** Rejected: it turns one catalog-level fact into N author-maintained ones and reintroduces per-primitive drift inside a single published artifact.
+- **Remove the catalog version too, for symmetry with D2.** Rejected originally because it left the floor unfed, and the rejection survives on stronger grounds: under D24 a transformer's FQN interpolates this value, so removing it would leave implementation keys with nothing to name their own bytes.
+- **Let each primitive declare its own version.** Rejected: it turns one catalog-level fact into N author-maintained ones and reintroduces per-primitive drift inside a single published artifact. Worth distinguishing from what D24 later adopted deliberately — `apiVersion` *is* authored per primitive, but it is a different value with a different job (a contract major, not a build), and `catalogVersion` stayed catalog-level exactly as decided here.
 
-**Rationale:** D4 takes the version out of the key so compatible releases match; something still has to catch the case where they match but should not have. Splitting the two jobs — `@vN` is the key, the full SemVer is the signal — gives each one a value shaped for it.
+**Rationale:** A catalog's declared version is the one identity value on a catalog that a consumer can key against, so it has to be concrete, committed, and honest about the bytes it names. Whether it also served as a compatibility floor turned out to be separable from that, and the floor did not survive; the concreteness requirement did, and D24 made it load-bearing in a way the original decision did not anticipate.
 
 **Source:** User decision 2026-07-26.
+**Revised:** 2026-07-30 — the floor role this decision was originally taken for was retired by D13 and D24; restated to what the value carries under D24/D25. No content merged in; D3 survives in its own right.
 
 ### D4: Every primitive FQN is major-keyed
 
@@ -77,32 +91,35 @@ It reverses a prior position deliberately, and that is worth stating plainly: `c
 
 **Source:** User decision 2026-07-26.
 
-### D5: Identity lives in a committed, visible `identity.cue` that OPM tooling writes into
+### D5: Identity lives in a committed, visible `identity.cue`, located by schema path
 
-**Decision:** An artifact's identity file is **committed to git and visible to developers**. OPM tooling *writes into it* — the way `npm version` writes `package.json` — rather than generating it behind the developer's back. Fields OPM owns carry an inert marker attribute:
+**Decision:** An artifact's identity file is **committed to git and visible to developers**. OPM tooling *writes into it* — the way `npm version` writes `package.json` — rather than generating it behind the developer's back.
 
-```cue
-ModulePath: "opmodel.dev/catalogs/opm@v1" @opm(identity, owner=publish)
-Version:    "1.2.0"                       @opm(identity, owner=publish)
-```
+Tooling locates the fields it writes by their **schema-fixed path**, and identity fields carry no marker attribute. For a catalog that is `identity/identity.cue`'s `ModulePath` and `Version`, which `#IdentityPackage` defines; for a module it is `metadata.modulePath`, which `#Module` defines. A field whose name or location disagrees with the schema is a `cue vet` failure, not a case for tooling to accommodate.
 
-Placement differs by artifact type, and the difference is forced by package topology rather than chosen. A **module** keeps identity in a file in its own root package — modules are single-package, so there is no cycle to break, and CUE has no relative intra-module import to make a subpackage reachable anyway. A **catalog** keeps `identity/identity.cue` as a shared constant its `resources/` and `transformers/` leaves import, because those leaves compute their own FQNs at their own definition sites and a root-supplied constant makes root and leaves import each other (`package import cycle not allowed`, measured).
+Placement differs by artifact type, and the difference is forced by package topology rather than chosen. A **module** keeps identity in a file in its own root package — modules are single-package, so there is no cycle to break, and CUE has no relative intra-module import to make a subpackage reachable anyway. A **catalog** keeps `identity/identity.cue` as a shared constant its `resources/` and `transformers/` leaves import, because those leaves compute their own FQNs at their own definition sites and a root-supplied constant makes root and leaves import each other (`package import cycle not allowed`, measured). D23 re-affirms this placement after both directions of symmetry were re-examined.
 
 **Alternatives considered:**
 
+- **An inert `@opm(identity, owner=publish)` marker on every identity field — originally adopted here, then dropped.** Its stated job was that tooling could locate what it owns without hardcoding names, and that job was measured not to exist: `0011/experiments/01-version-set-write-back` found 7 of 8 cases resolving `found by name-fallback`, because the attribute says a field *is* identity and who owns it, never *which* field it is. `experiments/01-identity-marker-discovery` finding 3 established that a consumer can never see it in any case — a reference does not carry the attribute of the declaration it points at. `owner=publish` was separately contradicted by D6, which supports an author managing the version by hand, making publish *an* owner rather than *the* owner. And nothing ever depended on it: `#IdentityPackage` carried it only in comments, so no gate validated it and `task vet` could not have noticed its absence.
+- **Adding a `role` argument** — `@opm(identity, role=version|modulePath, owner=publish)`, recommended as load-bearing by both entries' experiment 01. Rejected: its only advantage over a schema-path lookup is tolerating a field the author renamed, and a renamed identity field should fail `vet` rather than be found anyway. It pays a permanent attribute on every identity field to accommodate a state the schema forbids.
+- **Keeping the marker as documentation only.** Rejected as an *attribute* and accepted as a *comment*. A line reading `// written by opm catalog version set` tells the reader the same thing and costs nothing to anyone else.
 - **`@tag()` injection at build time.** Rejected on measurement (2026-07-26, cue v0.17.1), and the failure is worse than predicted. Injection does not propagate into an imported package **at all**: `cue eval ./mod -t modulePath=example.com/real-module@v2` sets the module's own value and leaves the imported catalog reading its uninjected default, identical to the uninjected run. The anticipated failure was a *collision* — two artifacts declaring the same tag both receiving one string. That does not happen, because injection never reaches that far. The real failure is quieter: the transitive dependency keeps its placeholder, every FQN it derives is built from it, and nothing reports that an injection was ignored. Since a module always reaches its catalog through CUE's own resolution, the kernel can never supply a catalog's identity this way however well it knows the coordinates.
 - **Gitignored generation into the artifact's own package.** Technically sound; the value resolves correctly when the file is present, and its absence fails legibly (`ModulePath: incomplete value string`). Rejected on transparency: the value lives in a file the developer never wrote and cannot see in git. It also makes a fresh clone unvettable by plain `cue` until an `opm` command has run.
 - **A committed marker with a gitignored value.** Same rejection with less benefit: it makes the *field* visible without making the *value* visible.
 
 **Rationale:** The reason is transparency, not mechanics. A committed file is documentable, diffable, reviewable in a PR, and greppable. A developer reading an artifact can see where its identity comes from and open the file that supplies it.
 
-The technical constraint that rules the alternatives out is separate and was measured: identity must be present in the artifact's **own bytes**, because CUE's dependency resolution is what carries it to consumers and OPM does not mediate that. A committed value resolves correctly through a transitive import under plain `cue eval` with no flags and no OPM tooling in the loop; `cue vet -c` passes; and `cue def` preserves `@opm()` attributes verbatim, so tooling can locate the fields it owns without hardcoding names.
+The technical constraint that rules the alternatives out is separate and was measured: identity must be present in the artifact's **own bytes**, because CUE's dependency resolution is what carries it to consumers and OPM does not mediate that. A committed value resolves correctly through a transitive import under plain `cue eval` with no flags and no OPM tooling in the loop, and `cue vet -c` passes.
+
+Locating a field by its schema-fixed path is not the hardcoding a marker would have avoided. The file path and the field names *are* the contract this entry defines; reading them is honouring it rather than guessing at it. `experiments/01-identity-marker-discovery`'s own closing sentence is the argument: "What a reader relies on is the schema."
 
 **Source:** User decision 2026-07-26.
+**Revised:** 2026-07-30 — absorbed D22 (2026-07-29), which dropped the `@opm()` marker. D5's committed-and-visible half is unchanged; its placement half is re-affirmed by D23.
 
 ### D6: An identity field may be left open, and an open field is an absent value rather than a placeholder one
 
-**Decision:** An identity field may be declared **open** (`ModulePath: string @opm(…)`) or **concrete** (`Version: "1.2.0" @opm(…)`), at the author's choice. Both forms are committed. `opm … version set <semver>` and `opm … publish --version <semver>` write a concrete value into the field either way, so the choice is a workflow preference rather than a mode the tooling must track: what matters is whether the field holds a value right now.
+**Decision:** An identity field may be declared **open** (`ModulePath: string`) or **concrete** (`Version: "1.2.0"`), at the author's choice. Both forms are committed. `opm … version set <semver>` and `opm … publish --version <semver>` write a concrete value into the field either way, so the choice is a workflow preference rather than a mode the tooling must track: what matters is whether the field holds a value right now.
 
 The published artifact always carries concrete values. In a working tree, an unfilled field is an **absent value**, not a placeholder one — there is no `0.0.0-dev`, no sentinel, and nothing that renders successfully while being wrong.
 
@@ -184,20 +201,24 @@ Consequently `nameSnakeCase` and `#KebabToSnake` are removed from `core`. They e
 
 **Source:** User decision 2026-07-26.
 
-### D10: A module's built-against catalog version is read from its own `cue.mod` deps
+### D10: The built-against catalog version has no reader — the floor mechanism is retired
 
-**Decision:** The D3 floor's "what was this module built against" value is **not a new field and is not generated**. It is read from the module's own `cue.mod/module.cue` `deps` block, which already records the exact catalog version resolved at build time, already ships inside the published artifact, and is already staged by the registry loader.
+**Decision:** Nothing records or reads "which catalog build was this module authored against". The compatibility floor D3 was originally taken for was retired by D13 and never returned: under D24 a contract key names an API version rather than a build, and compatibility is carried instead by D27's additive-only promise plus the matcher's unify rung. There is no floor to feed, so there is no carrier to choose.
 
-**Evidence (2026-07-26):** `modules/jellyfin/cue.mod/module.cue` carries `deps: "opmodel.dev/catalogs/opm@v1": {v: "v1.0.0-alpha.1"}`, and `cue.mod/module.cue` was confirmed present inside the published artifact zip for `opmodel.dev/modules/jellyfin@v2` tag `v2.0.2`. `LoadModulePackageWithSource` documents that the module's own `cue.mod/module.cue` drives transitive resolution, so the data is in hand at the read point with no new plumbing. The deps block is also *semantically* a floor already, since minimal version selection records a lower bound — which is exactly the comparison D3 wants.
+**One invariant survives the retirement, and it must be preserved deliberately.** A module's primitive definitions must resolve through the **module's own dependency graph**, not through a graph shared with the platform. That holds today — `library/opm/compile/module.go` consumes `mp.Transformers` from `materialize` as read-only input built by a separate resolver, so a module's own `cue.mod` pins supply its primitive definitions. A future single-build render putting the module and the platform in one CUE build would let minimal version selection pick the maximum, and a module would silently render against the platform's catalog rather than its own. Recorded in `05-risks.md` and gated in `04-graduation.md`; it is a constraint on the render path, not an open choice.
 
 **Alternatives considered:**
 
-- **Generate a record at publish** into the identity file or a new `#Module` field. Rejected as redundant and less trustworthy: it states a fact `cue.mod` already holds authoritatively, and a generated copy can drift from the deps that actually resolved.
-- **Read it from the stamped `metadata.version` on the primitives a module references.** Rejected on soundness. The value is not frozen into the module — it is recomputed from whichever catalog wins dependency resolution at load. Today the module and the platform resolve in separate builds, so it happens to be the module's own pin; under a single-build render the two share one resolution, minimal version selection picks the maximum, and the module reports the *platform's* catalog version. The floor would then compare a value against itself and could never fail.
+- **Read the value from the module's own `cue.mod/module.cue` `deps` block — originally adopted here.** Measured sound and still true as a *fact*: `modules/jellyfin/cue.mod/module.cue` carries `deps: "opmodel.dev/catalogs/opm@v1": {v: "v1.0.0-alpha.1"}`; `cue.mod/module.cue` was confirmed present inside the published artifact zip for `opmodel.dev/modules/jellyfin@v2` tag `v2.0.2`; and the deps block is semantically a floor already, since minimal version selection records a lower bound. Superseded as a *carrier* by the per-primitive field below, then retired along with the floor itself.
+- **A required `metadata.version` on every primitive, read as the matcher's catalog lookup — subsequently adopted, then retired.** From a demanded FQN plus the primitive's own `modulePath` and `version`, the matcher would find the owning catalog by longest-prefix match over the platform's subscribed paths and report *not subscribed* or *too old* in place of a bare missing key. It was chosen over the `cue.mod` route on fit rather than correctness: the deps block gives one version per catalog *dependency*, so the matcher would have to join back from a demanded primitive to the dependency that supplied it, which needs precisely the OQ3 constraint the primitive-carried route avoids. D13 then removed its reader — once a demanded key named its own build there was no "matched but too old" state left to detect. The field itself survives under a different name and a different job: `catalogVersion`, provenance rather than lookup (D21, D25).
+- **Generate a record at publish**, into the identity file or a new `#Module` field. Rejected as redundant and less trustworthy: it states a fact `cue.mod` already holds authoritatively, and a generated copy can drift from the deps that actually resolved.
+- **Read it from the stamped version on the primitives a module references, with no floor.** Rejected on soundness, and the reasoning is what became the invariant above: the value is recomputed from whichever catalog wins dependency resolution at load, so under a shared build the comparison would be a value against itself and could never fail.
+- **Drop the diagnostic entirely** and let the kernel report only the missing FQN. Rejected when the per-primitive lookup was adopted, on the ground that `no matching transformer` naming neither the catalog nor the version was the worst diagnostic in the system. It did not survive as the answer either: D24's contract keys let the matcher distinguish "nothing implements this contract" from "your platform implements a different API version of it", and D28 makes the miss fail loudly — without any per-primitive version field to say it.
 
-**Rationale:** The requirement is not to *record* the value but to stop discarding it. The dependency block is versioned with the module, frozen at publish, and shipped in the artifact.
+**Rationale:** The requirement was never to *record* the value but to stop discarding it, and the design moved past needing it at all. D13 removed the floor's reader; D24 removed the floor's reason by making a contract key stable across catalog builds; D27 replaced what the floor protected with a promise both ends enforce. What is left is the render-path invariant, which is about *where definitions resolve* rather than about what version they report.
 
 **Source:** User decision 2026-07-26, refined by the finding that `cue.mod` deps already record it.
+**Revised:** 2026-07-30 — absorbed D12 (2026-07-26), which had reversed the carrier choice. Both are retired by D13's removal of the floor's reader and D24's removal of its reason; D12's render-path invariant is preserved above.
 
 ### D11: Identity is verified where artifacts are read
 
@@ -218,40 +239,9 @@ Publishing an incomplete artifact is not prevented by CUE: measured 2026-07-26, 
 
 **Source:** User decision 2026-07-26.
 
-### D12: Every primitive carries `version`, and it is the matcher's catalog lookup
+### D12: (merged into D10, 2026-07-30)
 
-**Decision:** `metadata.version` is **required on every primitive kind** — `#Resource`, `#Trait`, `#Blueprint`, and `#ComponentTransformer` alike — and holds the full SemVer of the catalog build that primitive definition came from. It is not optional, not advisory, and not display-only.
-
-Its job is the matcher's. When a component demands a primitive, the matcher has the demanded FQN (major-keyed, per D4) and the primitive's own `modulePath` and `version`. From those it works out **which catalog build to look for in the platform's registry**, and produces one of two specific failures instead of a bare missing key:
-
-- **Not subscribed.** The platform's registry carries no subscription to the catalog that primitive belongs to. The error names the catalog, not just the primitive.
-- **Too old.** The catalog is subscribed, but the build the platform resolved predates the build the module was authored against — so the primitive genuinely is not in it. The error names the catalog, the version the module needs, and the version the platform has.
-
-Both replace `no matching transformer`, which names neither.
-
-**How the owning catalog is found.** By **longest-prefix match** of the primitive's `modulePath` against the subscribed catalog paths, with majors required to agree — not by stripping a fixed number of segments. That holds for the flat convention (`…/opm/resources@v1`) and for any nested one (`…/opm/resources/workload@v1`, which `core/src/resource.cue`'s own doc example shows), so this decision does not depend on OQ3 being resolved first. OQ3 remains live for the separate question of answering "which catalog ships this FQN?" *without* a platform in hand.
-
-**How each primitive gets the value.** Two mechanisms, and both stay:
-
-- Every primitive reads `id.Version` from the catalog's identity package at its own definition site. This is what `catalog_opm` already does — `resources/configmap.cue:15` and `transformers/configmap_transformer.cue:14` both carry `version: id.Version`.
-- `#Catalog`'s pattern constraint **also** stamps `version: M.version` onto every `#transformers` entry, exactly as `core/src/catalog.cue:70-76` does today. It is kept rather than dropped, because it is the only *structural* guarantee available: the pattern constraint owns the `#transformers` map, so a transformer cannot omit the field or disagree with the catalog. Resources, traits, and blueprints are reached only transitively through each transformer's `required`/`optional` maps, so there is no map for a constraint to attach to and they rely on the author writing the line.
-
-The two agree by construction and unify silently. Where they could not — a transformer whose author wrote a different version — the stamp wins and the disagreement is a unification failure at the catalog's own `cue vet`.
-
-**This supersedes D10's choice of carrier.** D10 ruled that the built-against catalog version is read from the module's own `cue.mod/module.cue` `deps` block. D12 reverses that: the value is read from the demanded primitive. D10's other holding survives untouched — no new record is generated, because the value already exists in the artifact.
-
-**Alternatives considered:**
-
-- **Keep D10's `cue.mod` deps as the carrier.** Rejected on fit rather than on correctness. The deps block gives one version per catalog *dependency*, so the matcher would have to join back from a demanded primitive to the catalog dependency that supplied it before it could say anything — which needs precisely the OQ3 constraint this route avoids. The primitive already carries the answer at the point the question is asked.
-- **Drop `version` from primitives entirely** and let the kernel report only the missing FQN. Rejected: that is today's behaviour, and `no matching transformer` naming neither the catalog nor the version is the single worst diagnostic in the system.
-- **Keep it on transformers only**, since those are the entries the matcher looks up. Rejected: the demand originates from a *resource* or *trait* in a component, so that is where the version has to be readable. A transformer-only field would be legible at the wrong end of the lookup.
-- **Make it optional, defaulting to absent.** Rejected: an optional field is one the matcher cannot rely on, so every diagnostic would need a degraded path, and the degraded path is the bad message this decision exists to remove.
-
-**Rationale:** D4 takes the exact version out of the match key so that compatible catalog builds match. That is right for *matching* and it removes information from *diagnosis* — under major-only keys, a demand that misses could mean the platform is on a different catalog, or on an older build of the right one, and the key alone cannot distinguish them. `version` on the primitive is what restores that distinction, carried on the object the matcher is already holding.
-
-**One invariant this imposes, and it must be preserved deliberately.** The value is only meaningful if a module's primitive definitions resolve through the **module's own dependency graph**, not through a graph shared with the platform. That holds today: `library/opm/compile/module.go:137` consumes `mp.Transformers` from `materialize` as read-only input built by a separate resolver, so a module's own `cue.mod` pins supply its primitive definitions. If a future single-build render put the module and the platform in one CUE build, minimal version selection would pick the maximum and a module would report the *platform's* catalog version — the floor would compare a value against itself and could never fail. Recorded in `05-risks.md`; it is a constraint on the render path, not an open choice.
-
-**Source:** User decision 2026-07-26. Resolves OQ6; supersedes D10's carrier choice. Lookup and both failure modes verified in `schemas/target.cue` as `#PrimitiveDemand` — an unsubscribed catalog yields `subscribed: conflicting values false and true` and an out-of-date one yields `satisfied: conflicting values false and true`, each as the only error reported.
+Every primitive carries `version`, and it is the matcher's catalog lookup — content now in D10. Number retired.
 
 ### D13: Primitive FQNs carry the full SemVer, and cross-minor installs come from subscription breadth
 
@@ -394,28 +384,9 @@ What remains after both findings is narrow: a developer who deliberately wires t
 
 **Source:** User decision 2026-07-27. Publish-gate behaviour from `enhancements/0011/experiments/02-publish-plan-gates` (2026-07-26); chain-hop resolution from `enhancements/0003/experiments/04-local-module-chain-hops` (2026-07-25).
 
-### D20: A primitive's `modulePath` is a package path, not a module path
+### D20: (merged into D1, 2026-07-30)
 
-**Decision:** `#Resource`, `#Trait`, `#Blueprint` and `#ComponentTransformer` type `metadata.modulePath` as a **package path** — a plain path with no `@vN` suffix, which is what `core` types it as today. Only `#Module.metadata.modulePath` and `#Catalog.metadata.modulePath` carry D1's complete module path with the major. The two get separate types rather than sharing one.
-
-**This amends D1.** D1 is right about what it decided — an *artifact's* declared path is its complete CUE module path including the major — but it was implemented by widening a single type, `#ModulePathType`, and every field typed with it inherited a requirement it has no use for. D1's holding stands for modules and catalogs; its type widening does not reach primitives.
-
-**The target schema already discarded the major, which is the evidence.** `schemas/target.cue`'s pre-amendment `#PrimitiveIdentity` read `modulePath!: #ModulePathType`, built `_ref: #ArtifactRef & {modulePath}`, and then derived `fqn` from `_ref.registryPath` — stripping the major straight back off. `_ref.major` was computed and never read. Nothing on a primitive consumes it.
-
-**It is structurally redundant, not merely unused.** A `@vN` module publishes `vN.*` tags, so a primitive carrying `version: "1.2.0"` already states that its catalog is `@v1`. The major in the path is the same fact written twice, which is the pattern D2 deleted for `#Module.version` one level up. No collision is admitted by dropping it either: a `@v1` build keys `…@1.2.0` and a `@v2` build keys `…@2.0.0`, and two majors cannot publish the same SemVer.
-
-**And it is not a module path.** `opmodel.dev/catalogs/opm/resources@v1` is a string nothing writes: a consumer in another module imports `opmodel.dev/catalogs/opm-experimental/resources` with no suffix (`modules/metallb/components.cue:23`, `modules/cert_manager/components.cue:31`), because CUE resolves the major from the `deps` block. Typing a package path as a module path is a category error that D1's single-type widening introduced by accident.
-
-**Alternatives considered:**
-
-- **Keep D1's single widened type.** Rejected: it imposes a major that nothing reads, that `version` already encodes, and that makes a primitive's declared path a string no `import` statement uses.
-- **Drop the major from module and catalog paths too, for uniformity.** Rejected on each artifact's own grounds. For a module, D2 removed the version field entirely, so the path is the only thing distinguishing `@v1` from `@v2`. For a catalog, the path *is* the registry address and the `#registry` subscription key that D14 reads the major from.
-
-**Rationale:** The major belongs where it is load-bearing and nowhere else. It is load-bearing on an artifact's path because that path is an address and, for modules, the sole carrier of major identity. It is inert on a primitive because the primitive's key carries a full SemVer that already implies it.
-
-**Consequences, all reductions.** Primitive `modulePath` values are unchanged from what ships today, so D1's migration touches two fields rather than every field sharing a type. `primitivePrefix` loses its major re-append. `#Catalog`'s `#transformers` pattern constraint splits the major out and stops, rather than splitting it out and re-appending it as `02-design.md` previously specified. D17's publish gate compares a primitive's path against the catalog's `RegistryPath` rather than its `ModulePath`, which it must do or the check compares a plain path against one ending `@v1` and never matches.
-
-**Source:** User decision 2026-07-27.
+A primitive's `modulePath` is a package path, not a module path — content now in D1. Number retired.
 
 ### D21: A primitive's `fqn` is authored from the identity package, and `version` stays required
 
@@ -435,7 +406,7 @@ RegistryPath: _p[0]   // "opmodel.dev/catalogs/opm"
 Major:        _p[1]   // "v1"
 ```
 
-Tooling still writes exactly the two fields D5 marks with `@opm()` — `ModulePath` and `Version` — and the derived pair follows from them, so the publisher gains nothing new to keep in step. The `identity` package's "import-free" invariant is preserved: `strings` is a CUE builtin, not a module import, and adds no edge to the module graph. Its doc comment should say "free of intra-module imports" to stay accurate.
+Tooling still writes exactly the two fields D5 locates by schema path — `ModulePath` and `Version` — and the derived pair follows from them, so the publisher gains nothing new to keep in step. The `identity` package's "import-free" invariant is preserved: `strings` is a CUE builtin, not a module import, and adds no edge to the module graph. Its doc comment should say "free of intra-module imports" to stay accurate.
 
 **The property this buys, in the author's words:** "Both FQN and metadata.modulePath and metadata.version all are referencing identity/identity.cue this ensures consistency." All three fields have one source, and a catalog release moves all of them by one edit.
 
@@ -463,23 +434,9 @@ A transformer's `requiredResources` key is the resource's own `metadata.fqn`, so
 
 **Source:** User decision 2026-07-27. Resolves OQ6. Derivation, removal and inversion each measured against cue v0.17.1 on 2026-07-27.
 
-### D22: Identity fields carry no marker attribute — D5's `@opm()` is dropped
+### D22: (merged into D5, 2026-07-30)
 
-**Decision:** The `@opm(identity, owner=publish)` attribute is removed from every identity field. `identity.cue` stays committed and visible; what goes away is the inert attribute on the fields inside it. Tooling locates what it writes by the **schema-fixed path**: for a catalog, `identity/identity.cue`'s `ModulePath` and `Version`, which `#IdentityPackage` defines; for a module, `metadata.modulePath`, which `#Module` defines. A field whose name or location disagrees with the schema is a `cue vet` failure, not a case for tooling to accommodate.
-
-This supersedes **D5's marker half only**. D5's committed-and-visible half stands unchanged, and its placement half is re-affirmed by D23.
-
-**Alternatives considered:**
-
-- **Keep the marker as D5 records it.** Rejected on its own evidence. Its stated job is that "tooling can locate what it owns without hardcoding names" (`02-design.md:38`), and `0011/experiments/01-version-set-write-back` measured 7 of 8 cases resolving `found by name-fallback` — the attribute says a field is identity and who owns it, never *which* field it is. `owner=publish` is separately contradicted by D6, which supports an author managing the version by hand; publish is then not the owner but *an* owner.
-- **Add the `role` argument** — `@opm(identity, role=version|modulePath, owner=publish)`, recommended as load-bearing by both entries' experiment 01. Rejected: its only advantage over a schema-path lookup is tolerating a field the author renamed, and a renamed identity field should fail `vet` rather than be found anyway. It pays a permanent attribute on every identity field to accommodate a state the schema forbids.
-- **Keep it as documentation only.** Rejected as an *attribute* and accepted as a *comment*. A line reading `// written by opm catalog version set` tells the reader the same thing and costs nothing to anyone else.
-
-**Rationale:** Nothing depends on it. `#IdentityPackage` (`schemas/target.cue`) carries the marker only in comments — the declarations themselves are bare — so no gate in either entry validates it and `task vet` cannot notice its absence. No read-side check consumes it, and `experiments/01-identity-marker-discovery` finding 3 established that a consumer can never see it in any case, because a reference does not carry the attribute of the declaration it points at. That experiment's own closing sentence is the argument for this decision: "What a reader relies on is the schema."
-
-Locating a field by its schema-fixed path is not the hardcoding the marker was introduced to avoid. The file path and the field names *are* the contract this entry defines; reading them is honouring it rather than guessing at it.
-
-**Source:** User decision 2026-07-29, on the write-side outcome in `enhancements/0011/experiments/01-version-set-write-back/` (2026-07-26) and finding 3 of `experiments/01-identity-marker-discovery/`.
+Identity fields carry no marker attribute — content now in D5. Number retired.
 
 ### D23: Module and catalog identity files keep different placement and shape
 

@@ -31,10 +31,10 @@ import (
 // constrained, and it is constrained by #ModuleIdentity rather than by regex.
 #ModulePathType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*@v[0-9]+$"
 
-// #PackagePathType: the path a PRIMITIVE declares (D20). A package path
+// #PackagePathType: the path a PRIMITIVE declares (D1). A package path
 // inside a module, NOT a module path — no "@vN" suffix.
 //
-// This is what core types primitive modulePath as today, and D20 keeps it
+// This is what core types primitive modulePath as today, and D1 keeps it
 // that way. D1's widening applies to #Module and #Catalog only. The major
 // is inert on a primitive: a "@vN" module publishes vN.* tags, so a
 // primitive carrying version "1.2.0" already states its catalog is @v1.
@@ -170,9 +170,9 @@ import (
 // the single source every leaf imports as `id`.
 //
 // Tooling writes exactly ModulePath and Version, located by THIS schema's
-// field names rather than by a marker attribute (D22); RegistryPath and
+// field names rather than by a marker attribute (D5); RegistryPath and
 // Major are DERIVED from ModulePath, so the split happens once here rather
-// than at every definition site (D20, D21). `strings` is a CUE builtin, so
+// than at every definition site (D1, D21). `strings` is a CUE builtin, so
 // the package keeps its invariant of carrying no INTRA-MODULE import and
 // stays at the bottom of the graph with no cycle.
 #IdentityPackage: {
@@ -188,7 +188,7 @@ import (
 	RegistryPath: _ref.registryPath // "opmodel.dev/catalogs/opm"
 	Major:        _ref.major        // "v1"
 
-	// The prefix every primitive this catalog ships hangs off. Under D20 the
+	// The prefix every primitive this catalog ships hangs off. Under D1 the
 	// major is NOT re-appended — a primitive declares a package path.
 	//
 	// Enumerated rather than a pattern constraint: `[Kind=string]: …` is
@@ -236,7 +236,7 @@ import (
 // value inexpressible; 0011's publish gate (#PrimitiveFQNGate) catches it
 // before it ships, which is where D17 already put the primitive-path rule.
 //
-// `modulePath` is a PACKAGE path under D20 — no "@vN".
+// `modulePath` is a PACKAGE path under D1 — no "@vN".
 #PrimitiveIdentity: {
 	name!:           #NameType
 	modulePath!:     #PackagePathType
@@ -472,7 +472,7 @@ _catalogExample: #CatalogIdentity & {
 }
 
 // The identity package every leaf imports as `id`. Two authored fields; the
-// rest derived, so no leaf splits a major (D20, D21).
+// rest derived, so no leaf splits a major (D1, D21).
 _identityExample: #IdentityPackage & {
 	ModulePath:   "opmodel.dev/catalogs/opm@v1"
 	Version:      "1.2.0"
@@ -488,7 +488,7 @@ _identityExample: #IdentityPackage & {
 }
 
 // One primitive of each kind, exactly as a catalog leaf authors them (D21).
-// modulePath carries no major (D20). Note the two contracts and the
+// modulePath carries no major (D1). Note the two contracts and the
 // transformer come from the SAME build and key differently (D24): the
 // contracts on what they promise, the transformer on the bytes that run.
 _resourceExample: #ContractIdentity & {
