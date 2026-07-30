@@ -347,21 +347,28 @@ import (
 // ─── Subscription selection (D29) ───────────────────────────────────────────
 
 // #SubscriptionSelection is what a #Platform's subscription resolves to under
-// D29: exactly the builds the platform named, and nothing else.
+// D31: the ONE build the platform named, and nothing else.
 //
-// `versions` is REQUIRED and non-empty. There is no range to solve, no deny to
-// subtract, no highest-stable default to fall through to (D14, superseded) and
-// no maturity inference (D15, superseded) — a prerelease is selected by being
-// written down. Resolution is therefore total and offline: `selected` is a
-// projection of committed source rather than a query whose answer depends on
-// what the registry holds today. That is what makes a render reproducible from
-// a commit without a lockfile, and it is the whole of OQ11's answer.
+// `version` is REQUIRED and SCALAR. There is no range to solve, no deny to
+// subtract, no highest-stable default to fall through to (D14, superseded), no
+// maturity inference (D15, superseded) and no list to arbitrate over (D29,
+// superseded by D31) — a prerelease is selected by being written down.
+// Resolution is therefore total and offline: the field IS the answer rather
+// than a query whose result depends on what the registry holds today. That is
+// what makes a render reproducible from a commit without a lockfile, and it is
+// the whole of OQ11's answer.
 //
-// D24 is what makes a ONE-ELEMENT list the normal case: a contract key no
-// longer names a build, so a single build satisfies every module in the major
-// and breadth is no longer needed to cover a fleet's authorship history. The
-// field stays a LIST because breadth remains legitimate when an author wants
-// it — what happens when two named builds ship the same transformer is OQ15.
+// D31 removed the list. D24 had already made a one-element list the normal
+// case — a contract key does not name a build, so a single build serves every
+// module in the major — and the residual breadth D29 kept "because it remains
+// legitimate" turned out to have no surviving use case: a module cannot demand
+// a transformer, so there is no per-module migration to stage, and the one
+// scenario breadth uniquely served (a build that DROPPED a transformer) is a
+// catalog bug that D28 now fails loudly on. Two builds of one catalog is two
+// platforms.
+//
+// Note there is no `selected` field. Under D29 it was the projection of the
+// list; with a scalar the projection is the value itself.
 //
 // `published` is retained as a diagnostic input only. Selection never reads
 // it; a read-side gate uses it to report a named build that does not exist.
@@ -369,10 +376,8 @@ import (
 	// The subscription's own key, which carries the major.
 	catalogPath!: #ModulePathType
 
-	// D29: the exact builds this subscription materializes. Required and
-	// non-empty — a subscription that names nothing does not resolve to a
-	// default, it fails to unify.
-	versions!: [#VersionType, ...#VersionType]
+	// D31: the single build this subscription materializes.
+	version!: #VersionType
 
 	// Bare SemVers published under catalogPath's registry path, any major.
 	// Diagnostic surface; not an input to selection.
@@ -384,12 +389,10 @@ import (
 	// numeric ordering.
 	_wantMajor: strings.TrimPrefix(_ref.major, "v")
 
-	// Every named build must sit in the subscription key's major. This is the
-	// only rule left, and it is a consistency check on what the author wrote
-	// rather than a selection step.
-	_majorAgrees: [for v in versions {strings.SplitN(v, ".", 2)[0] & _wantMajor}]
-
-	selected: versions
+	// The named build must sit in the subscription key's major. This is the
+	// only rule left in the shape, and it is a consistency check on what the
+	// author wrote rather than a selection step.
+	_majorAgrees: strings.SplitN(version, ".", 2)[0] & _wantMajor
 }
 
 // ─── The matcher's lookup (D24, D26, D27) ───────────────────────────────────
@@ -586,60 +589,68 @@ _fetchedExample: #FetchedArtifact & {
 //   artifactVersion: "v2.1.0"
 //  }
 
-// D29: the platform names one build, and that is the normal case under D24 —
+// D31: the platform names one build, and under D24 that is not a compromise —
 // a contract key does not name a build, so one build serves the whole fleet.
 // Note what is NOT consulted: 1.2.0 is published and newer, and is not
 // selected, because nothing here resolves anything.
 _selectionSingle: #SubscriptionSelection & {
 	catalogPath: "opmodel.dev/catalogs/opm@v1"
 	published: ["0.9.0", "1.0.0", "1.1.0", "1.2.0-rc.1", "1.2.0", "2.0.0"]
-	versions: ["1.1.0"]
-
-	selected: ["1.1.0"]
-}
-
-// D29: breadth stays expressible — it is just never implied. Two builds of one
-// catalog in one subscription is exactly the case OQ15 still owns.
-_selectionMulti: #SubscriptionSelection & {
-	catalogPath: "opmodel.dev/catalogs/opm@v1"
-	published: ["0.9.0", "1.0.0", "1.1.0", "1.2.0-rc.1", "1.2.0", "2.0.0"]
-	versions: ["1.0.0", "1.1.0"]
-
-	selected: ["1.0.0", "1.1.0"]
+	version: "1.1.0"
 }
 
 // The live regime: catalogs/opm publishes only prereleases (measured
 // 2026-07-27). Under D14+D15 this selected NOTHING without an opt-in flag;
-// under D29 a prerelease is selected by being written down.
+// from D29 on, a prerelease is selected by being written down.
 _selectionLiveRegime: #SubscriptionSelection & {
 	catalogPath: "opmodel.dev/catalogs/opm@v1"
 	published: ["1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.2"]
-	versions: ["1.0.0-alpha.2"]
-
-	selected: ["1.0.0-alpha.2"]
+	version: "1.0.0-alpha.2"
 }
 
 // MUST FAIL — a named build outside the subscription key's major. The only
-// rule D29 leaves in the shape, and it catches an author, not a registry.
+// rule D31 leaves in the shape, and it catches an author, not a registry.
 //
 //	_selectionWrongMajor: #SubscriptionSelection & {
 //	 catalogPath: "opmodel.dev/catalogs/opm@v1"
 //	 published: ["1.1.0", "2.0.0"]
-//	 versions: ["2.0.0"]
+//	 version: "2.0.0"
 //	}
 //
-// → _majorAgrees.0: conflicting values "1" and "2"
+// → _majorAgrees: conflicting values "1" and "2"
+
+// MUST FAIL — two builds of one catalog. Under D14 this was the implied
+// default and under D29 it was legal-but-unresolved (OQ15); under D31 the
+// field is scalar, so the shape itself refuses it. There is no subscription
+// that materializes two builds — that is two platforms.
+//
+//	_selectionMulti: #SubscriptionSelection & {
+//	 catalogPath: "opmodel.dev/catalogs/opm@v1"
+//	 published: ["1.0.0", "1.1.0"]
+//	 version: ["1.0.0", "1.1.0"]
+//	}
+//
+// → version: conflicting values ["1.0.0","1.1.0"] and string (mismatched types list and string)
 
 // MUST FAIL — an empty subscription. Under D14 this was the ergonomic default;
-// under D29 there is nothing for it to mean.
+// from D29 on there is nothing for it to mean, and under D31 there is no list
+// to be empty — the field is simply absent.
 //
 //	_selectionEmpty: #SubscriptionSelection & {
 //	 catalogPath: "opmodel.dev/catalogs/opm@v1"
 //	 published: ["1.1.0"]
-//	 versions: []
 //	}
 //
-// → versions: incompatible list lengths (0 and 1)
+// → version: field is required but not present
+//
+// NOTE the detection strength changed here, and it is worth knowing which flag
+// catches it. D29's empty list failed under plain `cue vet` as a length
+// conflict ("versions: incompatible list lengths (0 and 1)"). An ABSENT
+// required field is an incompleteness, not a conflict, so it needs
+// `cue vet -c` — plain `cue vet` reports "some instances are incomplete" for a
+// visible field and says nothing at all for a hidden one. The publish-side
+// identity gate (0011 D4) already rests on exactly this distinction: it exists
+// because `cue vet` without -c exits 0 on a tree with unfilled identity.
 
 // THE PAYOFF (D24). A contract defined in one catalog, fulfilled by a
 // transformer in another, with the two compiled against different builds of

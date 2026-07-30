@@ -41,8 +41,10 @@ Removed in the same release, with no transition window:
 | `#ModuleFQNType`, `#CatalogFQNType` | `#ModulePathType` — both artifacts' `fqn` is their module path |
 | `#Catalog.metadata.version`'s `*"0.0.0-dev"` default | a committed value, or an open field (D6) |
 | `filterVersions`' empty-filter default (`highestStable`) | deleted — there is no filterless subscription under D29 |
-| `#SubscriptionFilter.range` and `.deny`, and Masterminds constraint solving | deleted — a required, non-empty `versions` list (D29) |
+| `#SubscriptionFilter` entire, including `range`, `deny`, `allow` and Masterminds constraint solving | deleted — `#Subscription` carries a required scalar `version` (D29, D31) |
+| `filter.go` as a file | deleted — what D29 left as a validation pass is one major-agreement check under D31 |
 | prerelease inclusion inferred from `range` constraint syntax | deleted — a prerelease is selected by being named (D29) |
+| `#definitionName` on `#Module` and `#ComponentTransformer` | deleted — neither has a reader (D33); it stays on `#Resource`, `#Trait`, `#Blueprint` |
 | `identity/version_override.cue` and the copy-and-stamp publish task in every catalog repo | a committed `identity.cue` OPM writes into (D5) |
 | the `module.opmodel.dev/version` label declaration in `core` | the same label, stamped by the kernel (D9) |
 | `cli`'s `majorVersionTag()` / `ensureVPrefix()` and the address composition at `cli/pkg/module/module.go:74` | reading `modulePath` directly |
@@ -60,6 +62,21 @@ Code rollback is clean; data-plane rollback is not, and that asymmetry is the th
 Reverting `core` to the previous major and re-pinning `library`, `cli`, the catalogs, and the module fleet restores the previous behaviour, and previously-published artifacts remain consumable because they were never modified — the migration republishes rather than rewrites. Both majors can coexist in the registry indefinitely.
 
 What does not roll back is the identity label on already-deployed resources. Instances applied under the new identity carry the new `module-instance.opmodel.dev/uuid`; rolling the code back makes the operator compute the old UUID again, and `prune.go:107` will then skip deletes for those resources rather than adopting them. So a rollback after any instance has been reconciled under the new identity needs the same adoption path the forward migration needs (OQ4), run in reverse. Treat the migration as one-way in practice and rehearse it on a non-production cluster first.
+
+## Migration Inventory
+
+The full enumeration is [`research/migration-inventory.md`](research/migration-inventory.md), measured 2026-07-30 against the workspace registry (`localhost:5000`) and the live cluster. It exists because D18 rejected an operator-side tolerance window on the ground that the fleet is *enumerable* — so the enumeration is a gate, not a convenience.
+
+Headline counts: **12 live `ModuleInstance`s** across 10 distinct modules (two modules carry two instances each), **1 `Platform` with 3 subscriptions** — the entire D29/D31 rewrite surface in production is three `range` lines — **39 published module repositories**, **4 catalog repositories**, and **17 non-module artifacts sharing the namespace** (the `library/testdata/modules/web-app` fixture with 11 tags, 10 legacy `…/v1alpha1` paths, `kubernetes/v1`, 4 `releases/*` repositories, and one empty repository).
+
+Four findings from the measurement change what the migration has to do, and each is load-bearing:
+
+1. **The live fleet does not resolve against the registry this workspace publishes to.** `opm-operator-controller-manager` carries no `CUE_REGISTRY` env, no registry argument and no mounted config, so it resolves through CUE's default central registry — and six of the twelve live instances name coordinates absent from `localhost:5000` (`radarr`, `sonarr` and `sabnzbd` have no repository there at all; `jellyfin`, `k8up`, `cert_manager`, `istio_ambient` and `seerr` are published at lower versions than the ones deployed). **The migration spans two registries.** The central one was not reachable at measurement time and remains an open collection task — closing it is a prerequisite to scheduling the migration, not a detail of running it.
+2. **`opmodel.dev/catalogs/opm_experimental` and `opmodel.dev/catalogs/opm-experimental` both exist**, both holding a `v1.3.0-alpha`. Under D24 a catalog path is the permanent prefix of every contract FQN, so two spellings are two key spaces and a module built against one cannot match a platform subscribed to the other. This is the failure D1 and D8 exist to prevent, already live in the registry. Canonicalise before migrating, not during.
+3. **`opmodel.dev/modules/opm-platform` is in module space and is probably not a module** — which defeats 0011 D5's premise that module, catalog and schema space are distinguishable by path alone. It needs classifying before the namespace move.
+4. **The source tree and the registry are neither a subset nor a superset of each other.** `modules/` holds 12 module directories; three of them (`radarr`, `sabnzbd`, `sonarr`) are deployed but unpublished on the dev registry, and two (`cdi`, `snapshot_controller`) have source with no artifact measured anywhere. A published artifact with no source cannot be republished under the new identity; a source with no artifact does not need migrating. Both lists reconcile before step 6 below.
+
+Two smaller items the runbook should not rediscover: `default/podinfo` is the only `@v0` module and the only test artifact in the live fleet, making it the cheapest subject for D18's positive check; and `nzb/radarr` + `nzb/radarr-uhd` (likewise `sonarr`) share a module UUID and differ only by instance name, so they are the pair that exercises `SHA1(module-uuid : name : namespace)` rather than the module path alone.
 
 ## Cross-Repo Coordination
 
