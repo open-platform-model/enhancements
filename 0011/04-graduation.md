@@ -11,7 +11,7 @@ The design is ready to be sliced when:
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/`), and every commented MUST-FAIL case has been confirmed to fail with the error recorded beside it.
 - Enhancement 0010 is `accepted`, because this entry writes the fields that entry defines and cannot be finalised while their shape is still moving.
 - The joint migration window with 0010 is written down and owned. Both entries change identity values across the whole published fleet; landing them separately moves every artifact's identity twice.
-- The command surface is fixed: exact names, exact flags, and what each refuses. Specifically, whether `opm module version set` exists at all, given a module has no version to write (OQ4).
+- The command surface is fixed: exact names, exact flags, and what each refuses. Two specifics sit under this bullet. Whether `opm module version set` exists at all — it does not, because enhancement 0010 D2 leaves a module with no version field to write, so what OQ4 must settle is what replaces `publish:smart` for modules rather than which command writes it. And whether `--version` stays one flag with two meanings (OQ8), since its catalog form writes and asserts while its module form only names a tag.
 - The refusal messages are drafted, not deferred. Every gate in this design is a refusal, so the message *is* the feature — each one names the offending value, the file that declares it, and the action that clears it.
 - Cross-References in `README.md` names every file path the implementation will touch, and each one exists today.
 
