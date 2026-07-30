@@ -40,8 +40,9 @@ Removed in the same release, with no transition window:
 | `#Module.metadata.nameSnakeCase`, `#KebabToSnake` | `name`, authored snake_case (D8) |
 | `#ModuleFQNType`, `#CatalogFQNType` | `#ModulePathType` — both artifacts' `fqn` is their module path |
 | `#Catalog.metadata.version`'s `*"0.0.0-dev"` default | a committed value, or an open field (D6) |
-| `filterVersions`' empty-filter default (`highestStable`) | D14 made it every published build in the major; D24 removes that mechanism's reason, so the landing value is OQ15 |
-| prerelease inclusion inferred from `range` constraint syntax | an explicit `#SubscriptionFilter` flag (D15) |
+| `filterVersions`' empty-filter default (`highestStable`) | deleted — there is no filterless subscription under D29 |
+| `#SubscriptionFilter.range` and `.deny`, and Masterminds constraint solving | deleted — a required, non-empty `versions` list (D29) |
+| prerelease inclusion inferred from `range` constraint syntax | deleted — a prerelease is selected by being named (D29) |
 | `identity/version_override.cue` and the copy-and-stamp publish task in every catalog repo | a committed `identity.cue` OPM writes into (D5) |
 | the `module.opmodel.dev/version` label declaration in `core` | the same label, stamped by the kernel (D9) |
 | `cli`'s `majorVersionTag()` / `ensureVPrefix()` and the address composition at `cli/pkg/module/module.go:74` | reading `modulePath` directly |
@@ -67,7 +68,7 @@ What does not roll back is the identity label on already-deployed resources. Ins
 Strictly ordered, because each step consumes a published artifact from the one before:
 
 1. **`core`** — publish the new major. Nothing else can move until this tag exists.
-2. **`library`** — retarget to the new `core` major; land the D11 read-side checks, D15's prerelease flag in `materialize/filter.go`, D26's provenance exclusion and D27's promise in the match rung, D28's hard failure on an unresolved demand, the D24 diagnostics, and the D9 kernel label stamp. Ships the behaviour every frontend inherits. D26 is the one that cannot be deferred: without it every build skew fails on provenance and contract keys deliver nothing.
+2. **`library`** — retarget to the new `core` major; land the D11 read-side checks, D29's collapse of `materialize/filter.go` from resolution to validation, D26's provenance exclusion in D30's denylist form and D27's promise in the match rung, D28's hard failure on an unresolved demand, the D24 diagnostics, and the D9 kernel label stamp. Ships the behaviour every frontend inherits. D26 is the one that cannot be deferred: without it every build skew fails on provenance and contract keys deliver nothing.
 3. **`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`** — commit `identity/identity.cue` in the D5 shape, delete the stamping task, republish. Modules cannot migrate until a conforming catalog exists to build against.
 4. **`cli`** — retarget to the new `library`; delete the address-composition helpers; write the resolved coordinate into `spec.module.{path,version}`.
 5. **`opm-operator`** — retarget to the new `library`. No feature change, but this is where the OQ4 adoption path ships if it lands as operator tolerance rather than as a migration script.

@@ -344,35 +344,39 @@ import (
 	artifactPath: self.importPath
 }
 
-// ─── Subscription selection (D14, D15) ──────────────────────────────────────
+// ─── Subscription selection (D29) ───────────────────────────────────────────
 
 // #SubscriptionSelection is what a #Platform's subscription resolves to under
-// D14: EVERY published build in the subscribed major, replacing "the highest
-// published stable version" (filter.go:43-47).
+// D29: exactly the builds the platform named, and nothing else.
 //
-// D24 REMOVES THIS SHAPE'S ORIGINAL JOB. Breadth existed because a single
-// build supplied a single key space and every module authored against another
-// build would miss; contract keys make that false. Whether the default reverts
-// to one build, keeps breadth with a tie-break, or errors on two builds
-// supplying one contract is OQ15 — the shape is kept unchanged here rather
-// than guessed at, because D15's prerelease opt-in holds either way.
+// `versions` is REQUIRED and non-empty. There is no range to solve, no deny to
+// subtract, no highest-stable default to fall through to (D14, superseded) and
+// no maturity inference (D15, superseded) — a prerelease is selected by being
+// written down. Resolution is therefore total and offline: `selected` is a
+// projection of committed source rather than a query whose answer depends on
+// what the registry holds today. That is what makes a render reproducible from
+// a commit without a lockfile, and it is the whole of OQ11's answer.
 //
-// The subscription key already names the major under D1, so "every build in
-// this major" is the literal reading of a key that says @v1 rather than a new
-// concept an author must know to ask for.
+// D24 is what makes a ONE-ELEMENT list the normal case: a contract key no
+// longer names a build, so a single build satisfies every module in the major
+// and breadth is no longer needed to cover a fleet's authorship history. The
+// field stays a LIST because breadth remains legitimate when an author wants
+// it — what happens when two named builds ship the same transformer is OQ15.
 //
-// includePrereleases is D15's explicit opt-in. It exists because prereleases
-// are the live regime — catalogs/opm publishes only v1.0.0-alpha* — and
-// because a default of "everything in the major" and a rule of "prereleases
-// need opt-in" cannot both hold without a field to reconcile them.
+// `published` is retained as a diagnostic input only. Selection never reads
+// it; a read-side gate uses it to report a named build that does not exist.
 #SubscriptionSelection: {
 	// The subscription's own key, which carries the major.
 	catalogPath!: #ModulePathType
 
-	// Bare SemVers published under catalogPath's registry path, any major.
-	published!: [...#VersionType]
+	// D29: the exact builds this subscription materializes. Required and
+	// non-empty — a subscription that names nothing does not resolve to a
+	// default, it fails to unify.
+	versions!: [#VersionType, ...#VersionType]
 
-	includePrereleases!: bool | *false
+	// Bare SemVers published under catalogPath's registry path, any major.
+	// Diagnostic surface; not an input to selection.
+	published!: [...#VersionType]
 
 	_ref: #ArtifactRef & {modulePath: catalogPath}
 
@@ -380,9 +384,12 @@ import (
 	// numeric ordering.
 	_wantMajor: strings.TrimPrefix(_ref.major, "v")
 
-	selected: [for v in published
-		if strings.SplitN(v, ".", 2)[0] == _wantMajor
-		if includePrereleases || !strings.Contains(v, "-") {v}]
+	// Every named build must sit in the subscription key's major. This is the
+	// only rule left, and it is a consistency check on what the author wrote
+	// rather than a selection step.
+	_majorAgrees: [for v in versions {strings.SplitN(v, ".", 2)[0] & _wantMajor}]
+
+	selected: versions
 }
 
 // ─── The matcher's lookup (D24, D26, D27) ───────────────────────────────────
@@ -579,36 +586,60 @@ _fetchedExample: #FetchedArtifact & {
 //   artifactVersion: "v2.1.0"
 //  }
 
-// D14: the whole major is selected, and only that major. 2.0.0 and the
-// prerelease are both excluded — the first by major, the second by D15's
-// default.
-_selectionDefault: #SubscriptionSelection & {
+// D29: the platform names one build, and that is the normal case under D24 —
+// a contract key does not name a build, so one build serves the whole fleet.
+// Note what is NOT consulted: 1.2.0 is published and newer, and is not
+// selected, because nothing here resolves anything.
+_selectionSingle: #SubscriptionSelection & {
 	catalogPath: "opmodel.dev/catalogs/opm@v1"
 	published: ["0.9.0", "1.0.0", "1.1.0", "1.2.0-rc.1", "1.2.0", "2.0.0"]
-	includePrereleases: false
+	versions: ["1.1.0"]
 
-	selected: ["1.0.0", "1.1.0", "1.2.0"]
+	selected: ["1.1.0"]
 }
 
-// D15: the same subscription with prereleases opted in.
-_selectionPrerelease: #SubscriptionSelection & {
+// D29: breadth stays expressible — it is just never implied. Two builds of one
+// catalog in one subscription is exactly the case OQ15 still owns.
+_selectionMulti: #SubscriptionSelection & {
 	catalogPath: "opmodel.dev/catalogs/opm@v1"
 	published: ["0.9.0", "1.0.0", "1.1.0", "1.2.0-rc.1", "1.2.0", "2.0.0"]
-	includePrereleases: true
+	versions: ["1.0.0", "1.1.0"]
 
-	selected: ["1.0.0", "1.1.0", "1.2.0-rc.1", "1.2.0"]
+	selected: ["1.0.0", "1.1.0"]
 }
 
 // The live regime: catalogs/opm publishes only prereleases (measured
-// 2026-07-27). Without D15's flag the default selects NOTHING, which is the
-// concrete reason the flag exists.
+// 2026-07-27). Under D14+D15 this selected NOTHING without an opt-in flag;
+// under D29 a prerelease is selected by being written down.
 _selectionLiveRegime: #SubscriptionSelection & {
 	catalogPath: "opmodel.dev/catalogs/opm@v1"
 	published: ["1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.2"]
-	includePrereleases: false
+	versions: ["1.0.0-alpha.2"]
 
-	selected: []
+	selected: ["1.0.0-alpha.2"]
 }
+
+// MUST FAIL — a named build outside the subscription key's major. The only
+// rule D29 leaves in the shape, and it catches an author, not a registry.
+//
+//	_selectionWrongMajor: #SubscriptionSelection & {
+//	 catalogPath: "opmodel.dev/catalogs/opm@v1"
+//	 published: ["1.1.0", "2.0.0"]
+//	 versions: ["2.0.0"]
+//	}
+//
+// → _majorAgrees.0: conflicting values "1" and "2"
+
+// MUST FAIL — an empty subscription. Under D14 this was the ergonomic default;
+// under D29 there is nothing for it to mean.
+//
+//	_selectionEmpty: #SubscriptionSelection & {
+//	 catalogPath: "opmodel.dev/catalogs/opm@v1"
+//	 published: ["1.1.0"]
+//	 versions: []
+//	}
+//
+// → versions: incompatible list lengths (0 and 1)
 
 // THE PAYOFF (D24). A contract defined in one catalog, fulfilled by a
 // transformer in another, with the two compiled against different builds of
