@@ -52,11 +52,23 @@ import (
 // author moves when that primitive's shape breaks, independent of the
 // catalog's module major and of its release SemVer.
 //
-// Spelled with the pre-stable forms admitted, on the expectation that OQ14
-// lands on the Kubernetes convention (v1alpha1 -> v1beta1 -> v1). If OQ14
-// resolves the other way this narrows to #MajorVersionType and nothing else
-// moves.
+// The Kubernetes ladder (resolved-by-D34): vNalphaM -> vNbetaM -> vN. The
+// form is not decoration — D34 keys D27's additive-only promise to the level,
+// so the string states whether the contract behind it promises anything.
 #APIVersionType: string & =~"^v[0-9]+((alpha|beta)[0-9]+)?$"
+
+// #APIVersionGated reports whether D27's additive-only promise binds at a
+// given apiVersion (D34). Alpha promises nothing, so 0011 D9's publish gate
+// does not run against it and #ContractCompatibility asserts nothing; beta
+// and GA are gated in full.
+//
+// This is the only place the ladder is INTERPRETED rather than matched. There
+// is still no ordering here — the level is read off the string, never
+// compared against another level.
+#APIVersionGated: {
+	apiVersion!: #APIVersionType
+	gated:       !strings.Contains(apiVersion, "alpha")
+}
 
 // #SnakeNameType: a CUE-identifier-safe name. Under D8 this is what an author
 // writes and what the module path's leaf must equal.
@@ -301,22 +313,55 @@ import (
 // match rung: measured in experiments/02, two builds disagreeing on a
 // default unify to a NON-CONCRETE value, so the match passes and the render
 // fails later on an incomplete value, naming a field rather than a build.
+// D34 keys the relation to the API version's level. At alpha the promise does
+// not bind, so every clause below is left unasserted and the gate does not run
+// — which is what "no promise" MEANS, rather than a hole in the check.
 #ContractCompatibility: {
 	apiVersion!:  #APIVersionType
 	fromVersion!: #VersionType // the previously published build
 	toVersion!:   #VersionType // the build being published
 
+	// Whether D27's rule binds here at all (D34).
+	gated: (#APIVersionGated & {"apiVersion": apiVersion}).gated
+
 	// Every value valid under `from` is valid under `to`.
 	subsumes!: bool
-	subsumes:  true
 
 	// No field required by `to` that was absent or optional in `from`.
 	newRequiredFields!: [...#NameType]
-	newRequiredFields: []
 
 	// No field present in both whose default value changed.
 	changedDefaults!: [...#NameType]
-	changedDefaults: []
+
+	if gated {
+		subsumes:          true
+		newRequiredFields: []
+		changedDefaults:   []
+	}
+}
+
+// MUST FAIL — a beta contract that removed a field. The promise binds at beta,
+// so the gate refuses.
+//   _betaBreak.subsumes: conflicting values true and false
+//
+//  _betaBreak: #ContractCompatibility & {
+//   apiVersion:        "v1beta1"
+//   fromVersion:       "1.0.0"
+//   toVersion:         "1.1.0"
+//   subsumes:          false
+//   newRequiredFields: []
+//   changedDefaults:   []
+//  }
+
+// PASSES, and must — the same break at alpha. D34 carves alpha out of D27, so
+// nothing here asserts and the publish gate does not run.
+_alphaBreak: #ContractCompatibility & {
+	apiVersion:        "v1alpha1"
+	fromVersion:       "1.2.0"
+	toVersion:         "1.3.0"
+	subsumes:          false
+	newRequiredFields: ["retention"]
+	changedDefaults: ["mode"]
 }
 
 // ─── Read-side invariant (D11) ──────────────────────────────────────────────

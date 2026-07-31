@@ -19,9 +19,42 @@ The live cluster references module coordinates that **do not exist** in `localho
 | `istio-system/istio` | `opmodel.dev/modules/istio_ambient@v1` `v1.1.0` | repo exists, tags are `v0.0.3`, `v0.0.4` |
 | `seerr/seerr` | `opmodel.dev/modules/seerr@v1` `v1.2.0` | repo exists, highest tag is `v1.0.2` |
 
-The cause is visible in the operator's own deployment: `opm-operator-controller-manager` in namespace `opm-operator-system` carries **no `CUE_REGISTRY` environment variable, no registry argument, and no mounted registry config** — env is `[]`, args are the three kubebuilder defaults, the only volume mount is `/tmp`. With nothing configured, CUE resolves `opmodel.dev/*` through its default central registry. The workspace's `localhost:5000` is a developer-side registry that the cluster has never read.
+The cause is visible in the operator's own deployment: `opm-operator-controller-manager` in namespace `opm-operator-system` carries **no `CUE_REGISTRY` environment variable, no registry argument, and no mounted registry config** — env is `[]`, args are the three kubebuilder defaults, the only volume mount is `/tmp`. The workspace's `localhost:5000` is a developer-side registry that the cluster has never read.
 
-So **the migration spans two registries**, and only one of them was enumerable from this environment (no egress to the central registry at measurement time — connection failed). Everything below is complete for `localhost:5000` and complete for the live cluster; the central registry's contents are **not** inventoried and remain an open collection task. This does not weaken D18's enumerability argument — the *fleet* is enumerable and is enumerated below — but it does mean a migration runbook written only against `localhost:5000` would silently skip every artifact the cluster actually consumes.
+So **the migration spans two registries**, and a migration runbook written only against `localhost:5000` would silently skip every artifact the cluster actually consumes.
+
+> **Corrected 2026-07-31 — the second registry is GHCR, and it is fully enumerable.** The observations above are accurate; the inference originally drawn from them was not. This section first concluded that with nothing configured CUE resolves through *its own* default central registry, and that the registry was therefore un-enumerable from this environment (no egress; connection failed). Both halves were wrong, and the reason the Deployment carries no configuration is that it does not need any: `opm-operator/cmd/main.go:94-98` gives the `--registry` flag a **compiled-in default** of `testing.opmodel.dev=ghcr.io/open-platform-model,opmodel.dev=ghcr.io/open-platform-model,registry.cue.works`. The fleet resolves `opmodel.dev/*` against **`ghcr.io/open-platform-model`**, with `registry.cue.works` only as a trailing fallback. Nothing in the cluster object could have shown this — the value is in the binary.
+>
+> **A latent surprise found while confirming it, worth its own line.** `resolveRegistry` (`main.go:334-342`) documents its precedence as *`--registry` flag > `OPM_REGISTRY` env > CUE's built-in default*, and returns the flag value whenever it is non-empty. Because the flag's default is non-empty, **the two lower tiers are unreachable**: setting `OPM_REGISTRY` on the operator does nothing, and CUE's own default resolution is never used, unless a caller explicitly passes `--registry=""`. The comment describes a precedence chain the flag default silently truncates.
+>
+> **The collection gap this section opened is closed, by data rather than by a stated absence.** GHCR enumerates through `gh api --paginate "/orgs/open-platform-model/packages?package_type=container"` — **53 packages**, in §3b below. Every coordinate in §1 exists there at the deployed version, **including all three the table above reports as having no repository at all**: `radarr`, `sabnzbd` and `sonarr` each carry `v1.0.0`–`v1.0.2` on GHCR. The table remains correct about `localhost:5000`; it was measuring a registry the fleet does not use. The two-registry finding survives intact and is the operative one — but both are now inventoried, so it constrains the runbook rather than blocking it from being written.
+>
+> A dedicated central registry on **Zot** is planned to replace the GHCR arrangement. It does not change this inventory, but it does mean the 0011 D5 namespace migration should not be scheduled without knowing which registry it republishes *into* — see `06-operational.md`.
+
+### 3b. The fleet-facing registry — `ghcr.io/open-platform-model`, 53 packages
+
+Read 2026-07-31 via `gh api --paginate`. Every live-fleet module is present at the deployed version:
+
+| Module | GHCR tags | Deployed |
+| --- | --- | --- |
+| `cert_manager` | `v0.0.7`–`v0.0.9`, `v0.1.0`, `v1.0.0`, `v1.1.0` | `v1.1.0` ✓ |
+| `istio_ambient` | `v0.0.2`–`v0.0.4`, `v1.0.0`, `v1.0.1`, `v1.1.0` | `v1.1.0` ✓ |
+| `jellyfin` | `v1.0.29`–`v1.0.32`, `v2.0.2`, `v2.1.0`, `v2.2.0`, `v2.3.0`, `v2.4.0` | `v2.3.0` ✓ (not at head) |
+| `k8up` | `v1.0.18`–`v1.0.21`, `v2.0.0` | `v2.0.0` ✓ |
+| `metallb` | `v0.0.6`–`v0.0.8`, `v1.0.0` | `v1.0.0` ✓ |
+| `radarr` | `v1.0.0`–`v1.0.2` | `v1.0.2` ✓ |
+| `sabnzbd` | `v1.0.0`–`v1.0.2` | `v1.0.2` ✓ |
+| `sonarr` | `v1.0.0`–`v1.0.2` | `v1.0.2` ✓ |
+| `seerr` | `v0.0.6`–`v0.0.9`, `v1.0.2`, `v1.1.0`, `v1.2.0` | `v1.2.0` ✓ |
+| `test/podinfo` | `v0.1.0`, `v0.1.2`, `v0.1.3` **plus ~70 `-e2e.g<sha>` prereleases** | `v0.1.2` ✓ |
+
+Three things the GHCR read changes about the defect list:
+
+1. **The spelling collision exists in *both* registries.** `opmodel.dev/catalogs/opm-experimental` and `opmodel.dev/catalogs/opm_experimental` are both published to GHCR as well as to `localhost:5000`, so the canonicalisation recorded in `06-operational.md` is a two-registry cleanup.
+2. **`opmodel.dev/modules/opm-platform` is absent from GHCR** — it exists only on `localhost:5000`, as does the `opmodel.dev/library/testdata/modules/web-app` fixture. Both are therefore workspace-local rather than fleet-facing, which shrinks them from migration inputs to dev-registry hygiene.
+3. **`test/podinfo` carries roughly seventy `-e2e.g<sha>` prerelease tags in module space.** This is enhancement 0006 OQ18's dev-tag pollution in a namespace that entry did not examine. Under D14 a platform names one build, so nothing can select them by accident — but they are noise the 0011 D5 namespace move has to carry or drop deliberately.
+
+The two registries are neither subset nor superset: **74 repositories on `localhost:5000` against 53 packages on GHCR.** Most of the local-only excess is developer detritus that should never be migrated — `pagero.com/*`, `repro4423/*`, `testing.opmodel.dev/exp0003*`, `test/cleanmod` — alongside the `mc_*` module family, `releases/*`, and the two workspace-local defects above.
 
 ## 1. Live `ModuleInstance` fleet — 12 instances, 10 distinct modules
 
