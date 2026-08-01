@@ -257,6 +257,51 @@ import (
 	fqn!:            #FQNType
 }
 
+// #Fulfilment (D37) is how a CONTRACT declares where its implementation comes
+// from. It exists because the answer is not derivable: D17 records that
+// "which catalog ships FQN X?" cannot be answered from the FQN alone, since
+// the kind-segment count is not fixed (…/opm/resources vs
+// …/opm/blueprints/workload). So the contract author states it.
+//
+//	catalog   the declaring catalog implements this itself. Today's behaviour
+//	          and the default, so every existing primitive is unchanged.
+//	provider  fulfilment comes from a transformer in ANOTHER catalog, and the
+//	          platform admits exactly one such provider.
+//
+// It is carried by #Resource and #Trait only. A #Blueprint composes resources
+// and traits and is never demanded by a transformer — core/src/transformer.cue
+// has requiredResources and requiredTraits and no blueprint equivalent — so
+// the field would be unreachable there.
+#Fulfilment: *"catalog" | "provider"
+
+// #ContractSupply is D37's guard, stated as a shape that fails to unify when
+// the rule is broken. For a provider-fulfilled contract the platform must
+// carry EXACTLY ONE transformer requiring it: zero is D28's unresolved demand,
+// two is two providers competing.
+//
+// `providers` counts transformers that REQUIRE the contract. Optional
+// consumption is tolerance, not fulfilment — which is also why bucket arity
+// could never be the test (D37's correction to D32): materialize/index.go
+// indexes required ∪ optional, so catalog_opm's own #ContainerResource bucket
+// holds 8 transformers from one catalog.
+#ContractSupply: {
+	contract!:   #ContractFQNType
+	fulfilment!: #Fulfilment
+
+	// Catalog paths of the transformers REQUIRING this contract.
+	providers!: [...#PackagePathType]
+
+	_n: len(providers)
+
+	// A catalog-fulfilled contract is unconstrained here: many transformers may
+	// consume one contract and produce different outputs.
+	_ok: {
+		if fulfilment == "catalog" {true}
+		if fulfilment == "provider" {_n == 1}
+	}
+	_ok: true
+}
+
 // #ContractIdentity / #ImplIdentity narrow `fqn` by kind. A resource, trait or
 // blueprint carries a contract key; a transformer carries an implementation
 // key. Both keep both versions.
@@ -750,3 +795,46 @@ _demandOrdinary: #PrimitiveDemand & {
 //   demanded: "opmodel.dev/catalogs/opm/resources/backup@v2"
 //   supplied: _supply
 //  }
+
+// D37's guard passing: one provider fulfils a provider-declared contract.
+_supplyProviderOK: #ContractSupply & {
+	contract:   "opmodel.dev/catalogs/opm/resources/backup@v1"
+	fulfilment: "provider"
+	providers: ["opmodel.dev/catalogs/k8up/transformers"]
+}
+
+// A catalog-fulfilled contract with many consumers is fine, and this is the
+// case D32's bucket-arity invariant would have refused: measured 2026-08-01,
+// catalog_opm's own #ContainerResource is consumed by 8 of its transformers.
+_supplyCatalogMany: #ContractSupply & {
+	contract:   "opmodel.dev/catalogs/opm/resources/container@v1"
+	fulfilment: "catalog"
+	providers: [
+		"opmodel.dev/catalogs/opm/transformers",
+		"opmodel.dev/catalogs/opm/transformers",
+	]
+}
+
+// MUST FAIL — two providers for one provider-declared contract. This is the
+// rule D37 states: k8up or velero, never both. Uncommenting yields
+//   _ok: conflicting values false and true
+//
+//	_supplyTwoProviders: #ContractSupply & {
+//	 contract:   "opmodel.dev/catalogs/opm/resources/backup@v1"
+//	 fulfilment: "provider"
+//	 providers: [
+//	  "opmodel.dev/catalogs/k8up/transformers",
+//	  "opmodel.dev/catalogs/velero/transformers",
+//	 ]
+//	}
+
+// MUST FAIL — a provider-declared contract nothing supplies. D28 already makes
+// an unresolved demand an error; this states the other end of "exactly one".
+// Uncommenting yields
+//   _ok: conflicting values false and true
+//
+//	_supplyNoProvider: #ContractSupply & {
+//	 contract:   "opmodel.dev/catalogs/opm/resources/backup@v1"
+//	 fulfilment: "provider"
+//	 providers: []
+//	}
