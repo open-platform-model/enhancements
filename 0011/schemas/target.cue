@@ -122,12 +122,74 @@ _tagOK: #TagRef & {
 	// suppliedByFlag: whether `--version` (or an equivalent) is filling this
 	// field on this invocation.
 	suppliedByFlag: bool | *false
+
+	// D12: `--version` means ONE thing on both artifact types — fill an open
+	// field, ASSERT a concrete one. The assert half is expressed here so a
+	// disagreement is a unification failure rather than a check someone has
+	// to remember to write.
+	//
+	// suppliedValue: what `--version` carries on this invocation ("" = absent).
+	// declaredValue: what the artifact itself holds when state is concrete.
+	suppliedValue: string | *""
+	declaredValue: string | *""
+
+	_asserted: [
+		if state == "concrete" && suppliedValue != "" {declaredValue == suppliedValue},
+		true,
+	][0]
+	_asserted: true
 }
 
 _identityConcrete: #IdentityState & {field: "Version", state: "concrete", publishable: true}
 _identityFilled:   #IdentityState & {field: "Version", state: "open", suppliedByFlag: true, publishable: true}
 _identityUnfilled: #IdentityState & {field: "Version", state: "open", publishable: false}
 _identityAbsent:   #IdentityState & {field: "ModulePath", state: "absent", publishable: false}
+
+// D12: `--version` agreeing with a concrete field is a no-op, not a refusal.
+_identityAssertOK: #IdentityState & {
+	field: "Version", state: "concrete"
+	declaredValue: "1.3.0", suppliedValue: "1.3.0"
+	publishable: true
+}
+
+// MUST FAIL — `--version` disagrees with a concrete declared value (D12).
+//   _asserted: conflicting values false and true
+//
+//  _identityAssertSkew: #IdentityState & {
+//   field: "Version", state: "concrete"
+//   declaredValue: "1.3.0", suppliedValue: "1.4.0"
+//  }
+
+// ─── Identity derivation (D12) ──────────────────────────────────────────────
+
+// #IdentityDerivation: the module's root package wires `metadata.version` to
+// its identity package's `Version` (likewise `modulePath` / `ModulePath`), and
+// publish verifies the two agree.
+//
+// The check exists because `core` CANNOT enforce the wiring: `#Module` has no
+// way to reference an arbitrary module's identity package, so the template
+// establishes the derivation and CUE enforces it only while the derivation is
+// still written. A developer who REPLACES `id.Version` with a literal leaves
+// nothing to conflict, and this is what catches that.
+#IdentityDerivation: {
+	field!:             "ModulePath" | "Version"
+	inMetadata!:        string
+	inIdentityPackage!: string
+
+	agrees: inMetadata == inIdentityPackage
+	agrees: true
+}
+
+_derivationOK: #IdentityDerivation & {
+	field: "Version", inMetadata: "2.1.0", inIdentityPackage: "2.1.0"
+}
+
+// MUST FAIL — the derivation was replaced by a stale literal (D12).
+//   agrees: conflicting values false and true
+//
+//  _derivationSkew: #IdentityDerivation & {
+//   field: "Version", inMetadata: "2.0.0", inIdentityPackage: "2.1.0"
+//  }
 
 // ─── Local-override gate (D6) ───────────────────────────────────────────────
 

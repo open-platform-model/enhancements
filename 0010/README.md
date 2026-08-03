@@ -74,12 +74,14 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `/CLAUDE.md` (workspace root) | Cross-repo routing + area vocabulary governing this multi-repo enhancement |
 | `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the `core/*.cue` slice; SPEC.md co-update is gated by a pre-commit hook and CI |
 | `core/src/types.cue` | `#ModulePathType`, `#FQNType`, `#ModuleFQNType`, `#MajorVersionType`, `#KebabToSnake` — the type surface this entry rewrites |
-| `core/src/module.cue` | `#Module.metadata` — `version` deleted, `modulePath` reshaped, `fqn` redefined, the version label removed |
+| `core/src/module.cue` | `#Module.metadata` — `version` **retained and barred from every key** (D38), `modulePath` reshaped, `fqn` redefined, the version label removed |
 | `core/src/catalog.cue` | `#Catalog.metadata` + the `#transformers` pattern constraint that stamps identity onto every transformer |
 | `core/src/resource.cue`, `core/src/trait.cue`, `core/src/blueprint.cue`, `core/src/transformer.cue` | Primitive identity — `apiVersion` added, `version` renamed `catalogVersion` (D25); `fqn` keys on the contract for the first three kinds and on the build for a transformer (D4) |
 | `core/SPEC.md` | Normative `#Module` / `#Catalog` spec; the semver-with-colon rationale and the `SHA1(fqn)` determinism argument both change |
 | `library/opm/helper/loader/registry/module.go` | Module read point — where the address check lands |
-| `library/opm/helper/loader/internal/shape/shape.go` | `RequiredConcreteFields` still lists `metadata.version` |
+| `library/opm/helper/loader/internal/shape/shape.go` | `RequiredConcreteFields` lists `metadata.version` — unchanged under D38 |
+| `core/src/transformer.cue` | `#moduleInstanceMetadata.version` (`:105`) — the consumer that made D38 necessary; fed by `Instance.ModuleVersion()` |
+| `library/opm/module/instance.go` | `ModuleVersion()` (`:110`) — reads the module's `metadata.version`; the instance declares none of its own |
 | `library/opm/kernel/wrappers.go` | `AcquireModuleFromRegistry` — the single call the CLI and the operator both reach the registry through |
 | `library/opm/materialize/materialize.go` | `catalogBuild{Subscription, Version, Value}` — the kernel already holds the resolved catalog version |
 | `library/opm/materialize/filter.go` | `filterVersions` + `highestStable` — the resolution D14 deletes outright, leaving one major-agreement check on a single string |

@@ -52,6 +52,7 @@ For the primitive half, the major belongs where it is load-bearing and nowhere e
 It also removes a latent failure that *fixing* the drift would have activated. Because `fqn` interpolates `version`, a genuinely-moving version changes `module.uuid` → `instance.uuid` → the owner label on every rendered resource, and `opm-operator/internal/apply/prune.go:107` skips any delete whose live label disagrees with `Status.InstanceUUID` — which `reconcile/moduleinstance.go:308` repopulates from each new render. Every upgrade would have silently orphaned whatever it removed.
 
 **Source:** User decision 2026-07-26.
+**Revised:** 2026-08-03 — **amended by D38**, which restores `#Module.metadata.version` from a module identity subpackage. The deletion's second reason, quoted above, is what D38 turns into a permanent invariant rather than a reason to keep the field out: `fqn` no longer interpolates `version` (D1), so the orphaning path is closed structurally, and the field returns barred from `fqn` and `uuid`. The drift argument is answered by 0011 D12's publish assertion rather than by absence.
 
 ### D3: `#Catalog` keeps a full SemVer `metadata.version`, declared concretely in committed source
 
@@ -177,6 +178,7 @@ A hidden `_modulePath` and a direct `metadata:` write both pass both checks.
 **Rationale:** The `#Module` definition is closed, and the closure is only enforced at the point of re-unification. A design that puts a stray field in the module's own package is a design whose defect is invisible to the person who would introduce it.
 
 **Source:** Measured 2026-07-26; recorded as a design constraint on D5's module half.
+**Revised:** 2026-08-03 — **partially superseded by D38**. The *measurement* stands and is load-bearing: a top-level field beside the embedded `#Module` in the module's root package still fails at re-unification with `field not allowed`. What changes is the conclusion drawn from it — D38 gives modules a catalog-style `identity/` subpackage, which is the shape that avoids the failure, so `metadata:` is now written from an imported package rather than authored directly.
 
 ### D8: `metadata.name` is snake_case, and the module path's leaf equals it
 
@@ -437,6 +439,7 @@ Identity fields carry no marker attribute — content now in D5. Number retired.
 **Rationale:** The two files answer to different consumers. A catalog's identity is *read by its own leaves*, so it has to be an exported constant in an importable package. A module's identity *is* its metadata, so the shortest correct thing is to write the metadata. Converging them would mean giving one of them a structure its own use does not call for, and paying for that structure at every migration.
 
 **Source:** User decision 2026-07-29, re-affirming D5's placement half and D7 after both directions of symmetry were re-examined.
+**Revised:** 2026-08-03 — **reversed by D38**, which converges the two placements: a module now carries an importable `identity/` subpackage exporting `ModulePath` and `Version`, as a catalog does. The premise this decision rested on — that the module half of the writer "has nothing to decide", because under D2 a module declares no version — is what D38 removes by restoring the version. The self-import cost recorded here is real and unchanged; what changed is who pays it, since `opm module init` generates the import rather than an author writing it.
 
 ### D24: (merged into D4, 2026-07-30)
 
@@ -742,6 +745,34 @@ The declaration has to be explicit because it cannot be inferred, and the contra
 The single-provider guard is the other half of the same intent. Two providers for one contract both unify, both satisfy the predicate and both render, so the failure without a guard is duplicate output rather than an error — the class OQ15 was filed about and D28 refused to tolerate elsewhere. Bounding it to exactly one keeps the arity `compile/match.go` already assumes, without arbitration and without the matcher learning to choose.
 
 **Source:** User decision 2026-08-01. Bucket arity and transformer predicates measured across `catalog_opm`, and cross-catalog import closure re-verified, the same day; index construction read at `library/opm/materialize/index.go:76-95`, candidate loop at `library/opm/compile/match.go:138-157`, transformer demand surface at `core/src/transformer.cue:54-64`.
+
+---
+
+### D38: A module declares a version again, supplied by an identity subpackage
+
+**Decision:** `#Module.metadata.version` exists, required, typed `#VersionType`. **It is never an input to `fqn` or to `uuid`** — `fqn` remains the module path per D1, and `uuid` keeps its version-free formula. That exclusion is the whole of what makes this safe, and it is stated as an invariant of the identity design rather than as a property of this decision.
+
+A module gets a catalog-style identity subpackage: `identity/identity.cue`, `package identity`, exporting **both** `ModulePath` and `Version`. The module's root package consumes it — `metadata: {modulePath: id.ModulePath, version: id.Version}` — so a release moves both values by one edit, exactly as a catalog's does.
+
+This **amends D2** (which deleted the field), **amends D23** (which kept the two artifact types' identity files at different placements), and **leaves D7's measurement intact and load-bearing**: a top-level `Version` beside the embedded `#Module` in the module's *root* package still fails at re-unification into the closed `#ModuleInstance.#module` slot with `field not allowed`, vetting clean standalone. The subpackage is precisely the shape that avoids it — a separate package is never unified into `#Module`.
+
+**`core` cannot enforce the wiring, so publish does.** `#Module` has no way to reference an arbitrary module's identity package, so the derivation is established by the template `opm module init` generates. CUE then enforces it for free while the derivation is written — an author who edits the literal gets `conflicting values` at `cue vet`. An author who *replaces* `id.Version` with a literal leaves nothing to conflict with, and that case is caught by enhancement 0011 D12's publish check comparing `metadata.version` against `id.Version`.
+
+**Deliberately not decided here: whether D11's read-side check extends to the version.** With a declared version present, an acquired artifact's `metadata.version` *can* be compared against the tag it was fetched by, which D2 recorded as impossible. Doing so would close the drift for artifacts published outside `opm publish`; not doing so keeps D11 checking only the address, as it does today. The argument runs both ways and the decision belongs with whoever specifies the read path. What is fixed here is that the comparison became *available*.
+
+**Alternatives considered:**
+
+- **Keep D2 as written — no module version at all.** Rejected on a consumer this entry had not accounted for. An instance derives its version from the module and declares none of its own (`library/opm/module/instance.go:110`'s `ModuleVersion()`; `core/src/module_instance.cue`), and `core/src/transformer.cue:105` declares `version: string` non-optionally inside `#moduleInstanceMetadata`. Under D2 a registry-acquired module could have that filled from the resolved coordinate, but a module rendered **from disk** has no coordinate — which is D2's own reason for rejecting its second alternative, that "a module read from disk has no identity". Recorded so the case is not overstated: measured 2026-08-03, **no shipped transformer reads `.version`** (117 uses of `#moduleInstanceMetadata` across the three catalogs, all `.name` or `.namespace`), so nothing breaks either way. The choice is about which design leaves a declared field with no filler.
+- **A hidden `_version` in the module's root package,** which D7 sanctions as an indirection. Rejected: it delivers an authoring seam while keeping the version out of the published artifact, and the published artifact is where the instance reads it from.
+- **A top-level `Version` in the module's root package,** mirroring the catalog's exported constant without a package boundary. Rejected on D7's measurement, unchanged and still the reason the subpackage is the shape.
+- **A subpackage exporting only `Version`,** leaving `modulePath` written directly per D7. Rejected as the worst of both: it pays the self-import cost without buying the consistency that justifies paying it.
+- **Restore the field but derive it in `core` from the fetched coordinate.** This is D2's rejected alternative 2 and it is still rejected, for its original reason: a value that exists only after a registry fetch leaves a disk-read module with no identity.
+
+**Rationale:** D2 deleted the field because a module's version was drifting from its tag, and because `fqn` interpolated `version` so a moving version silently orphaned resources on every upgrade. The second reason is what made deletion urgent, and D1 has since removed it independently — `fqn` is the module path, with no version in it. What deletion also removed, unintentionally, was the only place a module's version could be *seen before it became permanent*: catalogs kept `version set` and a reviewable diff, and modules were left with a flag on a command.
+
+Restoring the field with the orphaning path structurally closed keeps the property D2 wanted — the tag and the declared value cannot drift, because publish asserts them equal — while giving modules the authoring seam catalogs never lost. D23's placement asymmetry does not survive the change: it rested on a module having no cross-package reader for its identity constant, which is still true, and on the self-import being authored duplication, which `opm module init` makes generated.
+
+**Source:** User decision 2026-08-03. Instance-derives-from-module verified at `library/opm/module/instance.go:110` and `core/src/module_instance.cue`; transformer-context exposure at `core/src/transformer.cue:101-109`; catalog reader set measured across `catalog_opm`, `catalog_kubernetes` and `catalog_opm_experimental` on 2026-08-03. Command surface and publish check are enhancement 0011 D12.
 
 ---
 

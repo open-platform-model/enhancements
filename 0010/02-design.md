@@ -28,7 +28,7 @@ Split what an artifact *is* from what was *resolved*, and put only the first in 
 
 1. **`metadata.modulePath` is the artifact's complete CUE module path, major suffix included** — `opmodel.dev/m/acme/jellyfin@v2`, not the prefix `opmodel.dev/modules`. `metadata.fqn` is that same string, and `uuid: SHA1(OPMNamespace, fqn)` keeps its formula with a version-free, major-bearing input. The declared path *is* the registry address, so nothing is recombined from parts and the address is recoverable by reading one field.
 
-2. **`#Module` declares no version.** A module's full version exists only as the coordinate an artifact was published at and resolved by. The major, which is the one version component both CUE and Go treat as identity-bearing, arrives inside the module path. With one version in the system there is no second value to drift from it.
+2. **`#Module` declares a version, and it is never part of identity.** A module states its version in an identity subpackage alongside its path, and the root package derives `metadata.version` from it (D38, amending D2). What the version is *not* is an input to `fqn` or `uuid`: the major, which is the one version component both CUE and Go treat as identity-bearing, arrives inside the module path, and the full version stays out of every key. The two values cannot drift, because publish asserts the declared version against the tag it publishes at (0011 D12) — which is what makes keeping the field safe now that `fqn` no longer interpolates it.
 
 3. **`#Catalog` keeps a full SemVer `metadata.version`** — declared concretely in committed source, and interpolated into every FQN the catalog ships. What changes versus today is not where the value goes but whether it is honest: it is committed rather than stamped into a copy of the tree at publish, so a checkout and the published artifact produce the same keys.
 
@@ -113,7 +113,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - `core/src/types.cue:56-72` — `#KebabToSnake` removed; `#KebabToPascal` keeps its other callers but stops being applied to a module name.
 - `core/src/module.cue:12` — `name!` retyped to `#SnakeNameType`.
 - `core/src/module.cue:15-19` — `nameSnakeCase` removed.
-- `core/src/module.cue:22` — `version!` deleted.
+- `core/src/module.cue:22` — `version!` **retained** (D38); the module's identity subpackage supplies it and `fqn`/`uuid` must not read it.
 - `core/src/module.cue:23` — `fqn: modulePath`.
 - `core/src/module.cue:27` — **`#definitionName` is deleted (D33).** It computes `(#KebabToPascal & {in: name}).out`, which under a snake `name` yields `Media_server` — and nothing reads it. No snake-aware projection is needed anywhere, because the three kinds that *do* consume `#definitionName` (`resource.cue:35`, `trait.cue:34`, `blueprint.cue:42`) keep kebab-case names under `#NameType`.
 - `core/src/module.cue:36` — the `module.opmodel.dev/version` label loses its source and moves to the kernel.
@@ -141,7 +141,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - `:87-88` (§2.1 Rationale) — "Why `fqn` is computed, not stored" and "Why `version` is exact SemVer, not a MAJOR-only prefix" are the two arguments D21 and D4 overturn. Both need rewriting to state which failure the new choice prefers, not deleting: the old reasoning was correct for the problem it was solving.
 - `:116-118`, `:126`, `:138`, `:146` (§2.2 `#Trait`) — same changes as §2.1; `:138` and `:146` cross-reference `#Resource`'s shape and must move with it.
 - `:216`, `:222` (§3.1 `#Component` Constraints + Rationale) — **"`metadata.labels` and `metadata.annotations` unify from every attached primitive. Conflicts MUST fail at unification."** The union claim D26's correction found has **no implementing code**: `component.cue`'s `_allFields` comprehension unions primitive `spec` bodies only. **Settled by D36** — the claim is *restated against `matchLabels`*, not deleted and not implemented for `metadata.labels`. `experiments/04` measured that implementing it as written breaks the catalog outright, since primitive categorisation labels collide. `metadata.labels` and `metadata.annotations` stop claiming to unify; `matchLabels` does, wholesale, and its conflicts genuinely do fail at unification.
-- `:252-256` (§3.2 `#Module` Shape) — `nameSnakeCase` and `#KebabToSnake` deleted (D8), `version!` deleted (D2), `modulePath!` regains the major suffix (D1), `fqn` becomes `modulePath` and `#ModuleFQNType`'s semver-with-colon form retires (D1), `uuid`'s `SHA1(OPMNamespace, fqn)` formula is unchanged but its **input changes**, so every module's UUID moves once.
+- `:252-256` (§3.2 `#Module` Shape) — `nameSnakeCase` and `#KebabToSnake` deleted (D8), `version!` **retained** with the never-in-a-key invariant stated beside it (D38), `modulePath!` regains the major suffix (D1), `fqn` becomes `modulePath` and `#ModuleFQNType`'s semver-with-colon form retires (D1), `uuid`'s `SHA1(OPMNamespace, fqn)` formula is unchanged but its **input changes**, so every module's UUID moves once.
 - `:290-293` (§3.2 Constraints) — the `nameSnakeCase` derivation, the author-supplied `version`, the semver-with-colon `fqn`, and the `uuid` determinism statement. Three of the four go; the `uuid` statement stays true and its example changes.
 - `:304-307` (§3.2 Rationale) — four arguments, three overturned. `:304` "Why `modulePath` / `version` are author-supplied" (records the closed-struct failure that rules out self-reference — **keep**, D5's alternatives depend on it); `:305` "Why `nameSnakeCase` exists as a derived field" (deleted with the field); `:306` "Why `fqn` uses semver-with-colon while `#Resource` uses `@vN`" (the entry's central reversal — three suffixes now, and this is where they get distinguished); `:307` "Why `uuid` is computed via `SHA1(OPMNamespace, fqn)`" (holds, with a new input).
 - `:339-341`, `:352`, `:361`, `:368` (§3.3 `#Blueprint`) — same as §2.1.
@@ -159,7 +159,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 
 **library**
 
-- `library/opm/helper/loader/internal/shape/shape.go:66` — drop `metadata.version` from `RequiredConcreteFields`.
+- `library/opm/helper/loader/internal/shape/shape.go:66` — `metadata.version` **stays** in `RequiredConcreteFields` (D38); no change.
 - `library/opm/helper/loader/registry/module.go` — the module read-side check: the fetched artifact's `metadata.modulePath` must equal the path it was fetched by. Placing it on the `kernel.AcquireModuleFromRegistry` path means the CLI and the operator inherit one implementation.
 - `library/opm/helper/synth/instance.go:152` — drop the version clause from the precondition.
 - `library/opm/helper/synth/render.go:62` — stops parsing a SemVer for a major the module path states literally. A reduction.

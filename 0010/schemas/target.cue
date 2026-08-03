@@ -141,17 +141,32 @@ import (
 
 // #ModuleIdentity is #Module.metadata after this enhancement.
 //
-// Note what is ABSENT: no version (D2), and no nameSnakeCase (D8) — name is
-// already the constrained form, so there is no projection left to make.
+// Note what is ABSENT: no nameSnakeCase (D8) — name is already the constrained
+// form, so there is no projection left to make.
+//
+// `version` IS present (D38, amending D2), supplied by the module's identity
+// SUBPACKAGE alongside modulePath. THE INVARIANT that makes it safe: it is
+// never an input to fqn or to uuid. D2 deleted this field partly because fqn
+// interpolated it, so a moving version changed module.uuid -> instance.uuid ->
+// the owner label on every rendered resource, and prune.go:107 then skipped
+// every delete while reporting success. D1 removed that path independently by
+// making fqn the module path. Wiring version back into either derivation
+// restores the silent orphaning.
 #ModuleIdentity: {
 	name!:       #SnakeNameType
 	modulePath!: #ModulePathType
 
+	// version: the module's own declared version (D38). Read by
+	// Instance.ModuleVersion() and thence by #moduleInstanceMetadata.version,
+	// which core/src/transformer.cue:105 declares non-optionally. NOT part of
+	// any key.
+	version!: #VersionType
+
 	_ref: #ArtifactRef & {"modulePath": modulePath}
 
-	// fqn IS the module path (D1). uuid keeps its formula with a version-free,
-	// major-bearing input, so it is stable across every release in the major
-	// and distinct between majors.
+	// fqn IS the module path (D1) — version deliberately absent. uuid keeps its
+	// formula with a version-free, major-bearing input, so it is stable across
+	// every release in the major and distinct between majors.
 	fqn: #ModulePathType & modulePath
 
 	// leafMatchesName: D8's constraint, expressible over ONE field. Today the
@@ -417,8 +432,15 @@ _alphaBreak: #ContractCompatibility & {
 //
 // Only the ADDRESS is checked. artifactVersion is RECORDED — it is what the
 // kernel stamps into the D9 label and writes to spec.module.version — and is
-// not compared against anything, because under D2 nothing inside a module
-// claims a version for it to be checked against.
+// not compared against anything here.
+//
+// D38 CHANGES WHAT IS POSSIBLE, not what this shape does. A module now declares
+// a version, so an acquired artifact's metadata.version COULD be compared
+// against the tag it was fetched by — which D2 had made impossible. Whether the
+// read path performs that comparison is deliberately left open by D38: doing it
+// closes the drift for artifacts published outside `opm publish`, not doing it
+// keeps this check purely about the address. This shape records today's
+// behaviour; if the comparison is adopted, it lands here.
 //
 // The `self=` alias is required: embedded fields are unified into the value
 // but are not in lexical scope, so the constraint reaches them through it.
@@ -541,12 +563,31 @@ _refExample: #ArtifactRef & {
 	importPath:   "opmodel.dev/m/acme/media_server@v2"
 }
 
-// A module's identity. No version anywhere; fqn is the path.
+// A module's identity. A version is declared (D38) but fqn is still the path —
+// note that fqn carries "@v2" and not "2.4.1". That is the invariant, visible.
 _moduleExample: #ModuleIdentity & {
 	name:       "media_server"
 	modulePath: "opmodel.dev/m/acme/media_server@v2"
+	version:    "2.4.1"
 	fqn:        "opmodel.dev/m/acme/media_server@v2"
 }
+
+// MUST FAIL — the version leaking into fqn, which is what D2 deleted the field
+// over and what D38 permits it back only on condition of avoiding. Confirmed
+// 2026-08-03 (cue v0.17.1). The invariant is enforced STRUCTURALLY, not merely
+// by the regex, so uncommenting yields TWO errors and the first is the one that
+// matters — `fqn: #ModulePathType & modulePath` admits no other value:
+//   _moduleFqnLeak.fqn: conflicting values
+//     "opmodel.dev/m/acme/media_server@v2" and "opmodel.dev/m/acme/media_server@2.4.1"
+//   _moduleFqnLeak.fqn: invalid value "opmodel.dev/m/acme/media_server@2.4.1"
+//     (out of bound =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*@v[0-9]+$")
+//
+//  _moduleFqnLeak: #ModuleIdentity & {
+//   name:       "media_server"
+//   modulePath: "opmodel.dev/m/acme/media_server@v2"
+//   version:    "2.4.1"
+//   fqn:        "opmodel.dev/m/acme/media_server@2.4.1"
+//  }
 
 // MUST FAIL — a path leaf that disagrees with the name. Uncommenting yields
 //   leafMatchesName: conflicting values false and true
