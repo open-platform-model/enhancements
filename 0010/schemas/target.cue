@@ -164,7 +164,7 @@ import (
 	// version: the module's own declared version (D38). Read by
 	// Instance.ModuleVersion() and thence by #moduleInstanceMetadata.version,
 	// which core/src/transformer.cue:105 declares non-optionally, and by the
-	// module.opmodel.dev/version label D39 returns to this schema. NOT part of
+	// module.opmodel.dev/version label D9 keeps in this schema. NOT part of
 	// any key.
 	version!: #VersionType
 
@@ -576,13 +576,13 @@ _alphaBreak: #ContractCompatibility & {
 // was actually fetched by. Unifying it is the check; a violation is a conflict
 // naming both values.
 //
-// TWO checks now, not one (D39 resolving what D38 left open).
+// TWO checks now, not one (D9 resolving what D38 left open).
 //
 // The ADDRESS check is D11's and unchanged: the artifact lives where its
 // metadata says it lives.
 //
 // The VERSION check is new. D2 had made it impossible — a module declared no
-// version — and D38 made it available. D39 adopts it, because D39 returns the
+// version — and D38 made it available. D9 adopts it, because D9 keeps the
 // module.opmodel.dev/version label to `core` sourced from the DECLARED value,
 // and a declared value that reaches a rendered resource has to be one a reader
 // refused to accept when it disagreed with the tag. Without this, the label can
@@ -610,7 +610,7 @@ _alphaBreak: #ContractCompatibility & {
 	// D11: the artifact lives where its metadata says it lives.
 	artifactPath: self.importPath
 
-	// D39: and it is the version it says it is.
+	// D9: and it is the version it says it is.
 	declaredVersion: strings.TrimPrefix(artifactVersion, "v")
 }
 
@@ -1030,8 +1030,8 @@ _fetchedExample: #FetchedArtifact & {
 //  }
 //
 // MUST FAIL — an artifact whose declared version is not the tag it was fetched
-// by (D39). This is the live defect measured in 01-problem.md: jellyfin v2.0.1
-// and v2.0.2 both shipped metadata.version "2.0.0". Under D39 the declared
+// by (D9). This is the live defect measured in 01-problem.md: jellyfin v2.0.1
+// and v2.0.2 both shipped metadata.version "2.0.0". Under D9 the declared
 // value reaches the module.opmodel.dev/version label on every rendered
 // resource, so a reader that accepts this ships a label that lies.
 // Uncommenting yields, confirmed 2026-08-03 (cue v0.17.1):

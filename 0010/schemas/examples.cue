@@ -79,7 +79,7 @@ _moduleAfter: {
 	}
 
 	// The tag, asserted equal to identity Version at publish (0011 D12) and
-	// re-checked against it at acquire (D39), which is what lets the
+	// re-checked against it at acquire (D9), which is what lets the
 	// module.opmodel.dev/version label come from the declared value.
 	publishedAs: "v2.4.1"
 }

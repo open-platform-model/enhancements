@@ -39,7 +39,7 @@ Removed in the same release, with no transition window:
 
 | Removed | Replaced by |
 | --- | --- |
-| ~~`#Module.metadata.version`~~ | **not removed** — D38 keeps it, supplied by the module's `identity/` subpackage, asserted equal to the tag at publish (0011 D12) and re-checked against it at acquire (D39). Neither `fqn` nor `uuid` reads it, and instance identity is reached by neither it nor the major (D41) — that pair is what makes keeping it safe |
+| ~~`#Module.metadata.version`~~ | **not removed** — D38 keeps it, supplied by the module's `identity/` subpackage, asserted equal to the tag at publish (0011 D12) and re-checked against it at acquire (D9). Neither `fqn` nor `uuid` reads it, and instance identity is reached by neither it nor the major (D41) — that pair is what makes keeping it safe |
 | `#Module.metadata.nameSnakeCase`, `#KebabToSnake` | `name`, authored snake_case (D8) |
 | `#ModuleFQNType`, `#CatalogFQNType` | `#ModulePathType` — both artifacts' `fqn` is their module path |
 | `#Catalog.metadata.version`'s `*"0.0.0-dev"` default | a committed value, or an open field (D6) |

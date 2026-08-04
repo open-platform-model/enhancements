@@ -502,7 +502,7 @@ The check runs in the CLI, in `opm module publish` and `opm catalog publish`, an
 
 The rule itself is the last unjoined pair in the plan. Every other coordinate publish resolves is already tied to the artifact: the path to `cue.mod`, the major to the path, the identity to concreteness. The version was tied to nothing.
 
-**Source:** User decision 2026-08-04. Gap probed against `schemas/target.cue` 2026-08-03; constraint implemented and the MUST-FAIL case measured against `cue v0.17.1` 2026-08-04. Detectability at read from enhancement 0010 D39.
+**Source:** User decision 2026-08-04. Gap probed against `schemas/target.cue` 2026-08-03; constraint implemented and the MUST-FAIL case measured against `cue v0.17.1` 2026-08-04. Detectability at read from enhancement 0010 D9.
 
 ---
 
