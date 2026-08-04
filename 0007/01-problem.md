@@ -27,15 +27,15 @@ The consequence is an adoption cliff. OPM asks a team to convert *everything* to
 
 ## Concrete Example
 
-A team runs a `jellyfin` module via the operator. They also need a `monitoring.coreos.com/v1 ServiceMonitor` for it and a small Kustomize overlay that patches resource limits per cluster. Neither is modeled in the OPM catalog yet.
+A team runs a `web-app` module via the operator. They also need a `monitoring.coreos.com/v1 ServiceMonitor` for it and a small Kustomize overlay that patches resource limits per cluster. Neither is modeled in the OPM catalog yet.
 
-Today they would apply the `ServiceMonitor` and run `kustomize build overlays/prod | kubectl apply -f -` by hand. When they later `kubectl delete modulerelease jellyfin`, OPM prunes only what it rendered — the `ServiceMonitor` and the kustomize output are orphaned, because OPM never knew about them. Inventory-based pruning (`opm-operator/internal/apply/prune.go`) can only remove what it recorded, and it recorded nothing for the side manifests.
+Today they would apply the `ServiceMonitor` and run `kustomize build overlays/prod | kubectl apply -f -` by hand. When they later `kubectl delete modulerelease web-app`, OPM prunes only what it rendered — the `ServiceMonitor` and the kustomize output are orphaned, because OPM never knew about them. Inventory-based pruning (`opm-operator/internal/apply/prune.go`) can only remove what it recorded, and it recorded nothing for the side manifests.
 
 With this enhancement, the team declares the extra manifests on the release:
 
 ```yaml
 spec:
-  module: { path: opmodel.dev/modules/jellyfin, version: "1.2.0" }
+  module: { path: opmodel.dev/modules/web_app, version: "1.2.0" }
   extraManifests:
     - raw: { path: ./extra/servicemonitor.yaml }
     - kustomize: { path: ./overlays/prod }

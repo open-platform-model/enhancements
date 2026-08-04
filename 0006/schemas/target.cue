@@ -79,7 +79,7 @@ _exampleCLIStatus: #CLIStatusSubset & {
 		revision: 1
 		digest:   "sha256:deadbeef"
 		count:    1
-		entries: [{kind: "Deployment", namespace: "media", name: "jellyfin", component: "server"}]
+		entries: [{kind: "Deployment", namespace: "prod", name: "postgres", component: "server"}]
 	}
 	instanceUUID:            "a3b8f2e1-1234-5678-9abc-def012345678"
 	lastAppliedRenderDigest: "sha256:1111"

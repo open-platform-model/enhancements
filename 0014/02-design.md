@@ -102,23 +102,23 @@ All in `cli/`. No `core/`, `library/`, or `opm-operator/` change is required —
 
 ## Before / After
 
-The home-cluster operator from `01-problem.md`, at the point where the path stops today.
+The platform team from `01-problem.md`, at the point where the path stops today.
 
 **Before** — five instances, five `kubectl get -o yaml` dumps, and for each one: delete `status` and six metadata fields, decide `prune`, decide `serviceAccountName`, write a `Namespace`, a `ServiceAccount`, a `ClusterRoleBinding`, a `kustomization.yaml`, and hand-copy a twenty-line values block. Checked by applying it and watching a StatefulSet.
 
 **After:**
 
 ```
-$ opm instance export jellyfin -n jellyfin --out-dir ./gitops
+$ opm instance export postgres -n prod --out-dir ./gitops
 [x] published module reproduces the deployed state
-    opmodel.dev/modules/jellyfin@v2 v2.1.0
+    opmodel.dev/modules/postgres@v2 v2.1.0
 [x] spec.module and spec.values copied verbatim from the live instance
  !  completed spec.serviceAccountName (absent on the live instance)
  !  completed spec.prune (absent on the live instance — the operator
     currently orphans this instance's resources on delete)
  !  spec.values written verbatim to disk; review before committing —
     OPM cannot yet tell which values are secret
--> wrote ./gitops/jellyfin/jellyfin/ (5 files)
+-> wrote ./gitops/prod/postgres/ (5 files)
 ```
 
 and, for the whole cluster:

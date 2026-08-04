@@ -24,7 +24,7 @@ affects:
 created: "2026-06-20"
 updated: "2026-06-20"
 authors:
-  - Emil
+  - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:

@@ -6,11 +6,11 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 
 ## Summary
 
-Four commands over one pipeline. `opm module publish` and `opm catalog publish` decode an artifact, **derive** its coordinates from what it declares, run the gates, and push — never rewriting the artifact to fit a coordinate someone typed. `opm catalog version set` writes the version, separately, so a commit can sit between deciding a version and pushing one; `--version` on publish is the only other writer, filling a field the author left open or asserting one they made concrete. `opm catalog registry check` verifies a published catalog out of band.
+Five commands over one pipeline. `opm module publish` and `opm catalog publish` decode an artifact, **derive** its coordinates from what it declares, run the gates, and push — never rewriting the artifact to fit a coordinate someone typed. `opm module version set` and `opm catalog version set` write the version, separately, so a commit can sit between deciding a version and pushing one; `--version` on publish is the only other writer, meaning one thing on both artifact types — fill a field the author left open, assert one they made concrete. `opm catalog registry check` verifies a published catalog out of band, and `opm login` authenticates against whichever registry the CLI resolves.
 
 Two gates carry the weight. Publish **refuses an artifact whose identity is not concrete** — measured, `cue mod publish` will happily push a tree with unfilled identity fields, and `cue vet` without `-c` exits 0 on the same tree. And publish **never honours `cue.mod/local-module.cue`**: a module may override that with an explicit flag, a catalog may not, because a module's divergence is scoped to one artifact while a catalog's propagates into the key space of everything built against it.
 
-Underneath, a central registry that **hosts** rather than indexes — CUE has no per-domain autodiscovery, so a self-hosted path is unresolvable for anyone who has not edited their own configuration first — with owner-scoped module paths (`opmodel.dev/m/<owner>/<name>`) beneath reserved segments that keep module space, catalog space, and schema space distinguishable by path alone.
+Underneath, a central registry that **hosts** rather than indexes — CUE has no per-domain autodiscovery, so an artifact hosted elsewhere is unresolvable for anyone who has not edited their own configuration first. What it does *not* do is dictate names: **path ownership is domain ownership**, so first-party artifacts keep `opmodel.dev/modules/<name>` and `opmodel.dev/catalogs/<name>`, publishers without a domain of their own get `community.opmodel.dev/m/<owner>/<name>`, and anyone with a vanity domain or their own registry uses whatever path they like. A bare host in `CUE_REGISTRY` is a catch-all, so a path's domain never has to match the host serving it.
 
 ## Documents
 
@@ -66,7 +66,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `catalog_opm/Taskfile.yml` | The copy-and-stamp `publish` task this entry deletes; `catalog_kubernetes` and `catalog_opm_experimental` carry the same task |
 | `catalog_opm/CLAUDE.md` | Documents today's publish-time stamping flow, including that the source tree is never mutated |
 | `catalog_opm/src/identity/identity.cue` | The file `opm catalog version set` writes |
-| `modules/Taskfile.yml` | `publish:smart` — the checksum-driven bump this entry retires |
+| `modules/Taskfile.yml` | the checksum-driven `publish` task this entry retires (D15) |
 | `modules/versions.yml` | The external version record this entry deletes |
 | `modules/jellyfin/cue.mod/module.cue` | A published module's `module:` line and `deps` block — what publish checks the declared identity against |
-| `opm-releases/` (sibling repo, not under the workspace root) | Per-environment `ModuleRelease` configs that pin published coordinates; re-pinned by the namespace migration. Lives beside the workspace rather than inside it — the `./releases/` row in the workspace-root directory map is stale |
+| `opm-releases/` (sibling repo, not under the workspace root) | Per-environment `ModuleRelease` configs that pin published coordinates. **No re-pin for a coordinate change** — D13 leaves first-party paths alone, so it re-pins only to pick up new module versions. Lives beside the workspace rather than inside it — the `./releases/` row in the workspace-root directory map is stale |

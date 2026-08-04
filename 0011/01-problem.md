@@ -6,7 +6,7 @@ This document answers the question: "Why does this enhancement need to exist?" L
 
 **There is no OPM publish command.** Neither `opm module publish` nor `opm catalog publish` exists. Every artifact in the registry today was pushed by `cue mod publish`, wrapped in a repo-local task that decides the version by its own rules.
 
-For **modules**, that wrapper is `modules/Taskfile.yml`'s `publish:smart`. It computes a content checksum over each module's `.cue` files excluding `cue.mod/`, compares it against a stored checksum in `modules/versions.yml`, bumps the version recorded there on any difference, publishes at the bumped tag, and stores the new checksum. The module's own source is never read for a version and never written to.
+For **modules**, that wrapper is `modules/Taskfile.yml`'s checksum-driven `publish` task. (This document originally called it `publish:smart`; corrected 2026-08-04 — that is the task name in the sibling `opm-releases` repo, which runs the same pattern against Flux artifacts. `modules/` has `publish`, `publish:one` and `publish:dry`.) It computes a content checksum over each module's `.cue` files excluding `cue.mod/`, compares it against a stored checksum in `modules/versions.yml`, bumps the version recorded there on any difference, publishes at the bumped tag, and stores the new checksum. The module's own source is never read for a version and never written to.
 
 For **catalogs**, the wrapper is `task publish VERSION=vX.Y.Z` in each catalog repo. It copies `src/` to a transient build directory, writes an `identity/version_override.cue` pinning a concrete SemVer into the copy, vets the copy, and publishes it. The committed tree resolves the version to a `0.0.0-dev` sentinel; the artifact carries the real value. As `catalog_opm/CLAUDE.md` puts it: "The source tree is never mutated, and publishing the dev sentinel is refused."
 
@@ -18,7 +18,7 @@ The CLI has no credential surface: no `opm login`, no credential-helper handling
 
 ## Gap / Pain
 
-**The version an artifact ships under is decided by something that never reads the artifact.** `publish:smart` derives a tag from a checksum diff, so the tag advances with every content change while whatever the source says about itself stays put. The result is measurable: `jellyfin` `v2.0.1` and `v2.0.2` both ship metadata claiming `2.0.0`, and `seerr` `v1.0.2` claims `1.0.0`. `versions.yml` is itself wrong on its own terms, recording `v2.1.0`/`v1.2.0` against highest published tags of `v2.0.2`/`v1.0.2`. Three answers to "what version is this", none of them authoritative.
+**The version an artifact ships under is decided by something that never reads the artifact.** the checksum task derives a tag from a checksum diff, so the tag advances with every content change while whatever the source says about itself stays put. The result is measurable: `jellyfin` `v2.0.1` and `v2.0.2` both ship metadata claiming `2.0.0`, and `seerr` `v1.0.2` claims `1.0.0`. `versions.yml` is itself wrong on its own terms, recording `v2.1.0`/`v1.2.0` against highest published tags of `v2.0.2`/`v1.0.2`. Three answers to "what version is this", none of them authoritative.
 
 **Publishing writes bytes into the artifact that do not exist in source.** The catalog flow is explicit about it — a transient file is generated into a copy of the tree. That is a coherent pattern when an artifact is a *build output*; a CUE module's artifact **is** its source, so the consequence is that a local checkout and its published self evaluate differently. Measured 2026-07-25 against a live registry: the same catalog resolves to `…/transformers/foo@0.0.0-dev` from a checkout and `…/transformers/foo@1.0.0` from the registry. Both trees `cue vet` clean.
 
@@ -37,7 +37,7 @@ The dev loop compounds this. Measured (cue v0.17.1, live registry, three-link ch
 Publishing `jellyfin` today:
 
 ```
-$ cd modules && task publish:smart
+$ cd modules && task publish
 # 1. checksum modules/jellyfin/*.cue, excluding cue.mod/
 # 2. differs from versions.yml → bump jellyfin: v2.0.1 → v2.0.2
 # 3. cue mod publish v2.0.2
@@ -57,7 +57,7 @@ modules/jellyfin/cue.mod/local-module.cue
 
 ## User Stories
 
-- As an **application module author**, I want one command that publishes my module correctly, so that I do not have to know how a checksum in another repository decides my version. Today: publishing means understanding `publish:smart`, `versions.yml`, and `cue mod publish`, and the result is an artifact whose declared version is wrong.
+- As an **application module author**, I want one command that publishes my module correctly, so that I do not have to know how a checksum in another repository decides my version. Today: publishing means understanding the checksum task, `versions.yml`, and `cue mod publish`, and the result is an artifact whose declared version is wrong.
 - As a **catalog author**, I want to publish exactly the bytes I committed, so that what I tested is what my consumers evaluate. Today: publish copies my tree and injects a file into the copy, so the artifact has never existed on my disk.
 - As a **platform team operator**, I want a pinned catalog version to name fixed bytes, so that a digest I recorded yesterday still means something today. Today: nothing prevents a tag from being overwritten, and nothing would tell me if it were.
 

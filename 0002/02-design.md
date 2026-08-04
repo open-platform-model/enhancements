@@ -80,19 +80,19 @@ The full per-repo touch-list lives in the README Cross-References table; the rep
 ```cue
 // before
 prod: #ModuleRelease & {
-	#module: minecraft
-	metadata: {name: "mc-prod", namespace: "games-prod"}
+	#module: postgres
+	metadata: {name: "pg-prod", namespace: "data-prod"}
 	values: {...}
 }
-// rendered label: module-release.opmodel.dev/name: mc-prod
+// rendered label: module-release.opmodel.dev/name: pg-prod
 
 // after
 prod: #ModuleInstance & {
-	#module: minecraft
-	metadata: {name: "mc-prod", namespace: "games-prod"}
+	#module: postgres
+	metadata: {name: "pg-prod", namespace: "data-prod"}
 	values: {...}
 }
-// rendered label: module-instance.opmodel.dev/name: mc-prod   (D4)
+// rendered label: module-instance.opmodel.dev/name: pg-prod   (D4)
 // applied as kind ModuleInstance under apiVersion opmodel.dev/v1alpha1 (D2, D5)
 // deployed via:  opm instance apply prod   (D6)
 ```

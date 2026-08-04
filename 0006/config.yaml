@@ -11,9 +11,9 @@ affects:
   - opm-operator
   - library
 created: "2026-06-22"
-updated: "2026-07-20"
+updated: "2026-08-04"
 authors:
-  - OPM Contributors
+  - emil@jacero.se
 # Design impact on the published contract. none = no core schema change;
 # the operator's ModuleInstance CRD gains an additive spec.owner within v1alpha1.
 semver: none
@@ -109,6 +109,8 @@ history:
     slice: "opm-kind-demo/pr-1-bump-operator-alpha4-flux-290"
   - date: "2026-07-20"
     event: "Implemented — all nine resolved slices landed (A1/A2/A4/A6/B2/C1/C2/C3/A5; A3 reverted per D31, B1 cancelled). implementation.status -> complete; status accepted -> implemented. README gains the implementation-status block and the Deviations from Design index (A3/D31 revert, D32 noun-first reversal, D36 CUE retarget/relocation, D40 inventory-stable redefinition, C3 SSA full-intent correction + LD4a race, D18 scope widening into C3, OQ18). Deferred open questions at graduation: OQ15 (stale-set relation consistency), OQ16 (operator apply-time collision guard), OQ18 (dev-tag range pollution) — each a candidate follow-on, none in-scope gaps."
+  - date: "2026-08-04"
+    event: "Illustrative example vocabulary genericised across this entry — a documentation-hygiene pass, cosmetic only. NO decision, gate, open question, measurement or schema constraint changed, and no decision or OQ number moved. The worked examples' application names move to neutral infrastructure names (`postgres`), and example namespaces from `media`/`games-*` to `prod`/`staging`/`data-*`. DELIBERATELY LEFT VERBATIM: dated measurements (the 2026-07-25 byte-for-byte registry read and everything derived from it), live-fleet inventories, and real repository paths — `modules/jellyfin/`, `opm-kind-demo/jellyfin/` and the `modules/*` rewire lists name artifacts that were actually read or must actually be opened, so renaming them would falsify the record or dangle the pointer. Where an entry's problem statement IS the measurement, it stays; where the name was arbitrary, it moved."
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.
 related:

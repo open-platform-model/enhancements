@@ -14,7 +14,7 @@ area: cli
 affects:
   - cli
 created: "2026-07-29"
-updated: "2026-07-29"
+updated: "2026-08-04"
 authors:
   - emil@jacero.se
 # Design impact on the published contract. none = no core schema change and no
@@ -51,6 +51,8 @@ history:
       OQ4 (field-manager collision when Flux's kustomize-controller applies over fields owned by opm-cli and the
       operator) is the load-bearing one and is gated on a runnable experiment, because it decides whether the
       adoption is as quiet as D2's guarantee implies.
+  - date: "2026-08-04"
+    event: "Illustrative example vocabulary genericised across this entry — a documentation-hygiene pass, cosmetic only. NO decision, gate, open question, measurement or schema constraint changed, and no decision or OQ number moved. The worked examples' application names move to neutral infrastructure names (`postgres`, `grafana`, `minio`; the five-module scene loses its home-cluster framing), and example namespaces from `media`/`games-*` to `prod`/`staging`/`data-*`. DELIBERATELY LEFT VERBATIM: dated measurements (the 2026-07-25 byte-for-byte registry read and everything derived from it), live-fleet inventories, and real repository paths — `modules/jellyfin/`, `opm-kind-demo/jellyfin/` and the `modules/*` rewire lists name artifacts that were actually read or must actually be opened, so renaming them would falsify the record or dangle the pointer. Where an entry's problem statement IS the measurement, it stays; where the name was arbitrary, it moved."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

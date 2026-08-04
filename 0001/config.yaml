@@ -16,7 +16,7 @@ created: "2026-05-23"
 updated: "2026-07-24"
 
 authors:
-  - OPM Contributors
+  - emil@jacero.se
 
 # `core` is pre-1.0; per its versioning rules every break — including this
 # umbrella's (FQN regex, `#Module.#defines` removal, `#registry` shape) —

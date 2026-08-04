@@ -149,7 +149,7 @@ The Go package layout it implies, subject to OQ1 and OQ2:
 
 ## Before / After
 
-The `jellyfin` CRD-removal scenario from [`01-problem.md`](01-problem.md):
+The `postgres` CRD-removal scenario from [`01-problem.md`](01-problem.md):
 
 **Before**
 

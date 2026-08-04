@@ -21,7 +21,7 @@ The enhancement is shipped when:
 
 - The operator's `ModuleInstance` and `ModulePackage` CRD specs carry the optional `extraManifests` field; CRDs are regenerated under `opm-operator/config/crd`.
 - The shared passthrough renderer (embedding `sigs.k8s.io/kustomize/api/krusty`) exists at the location chosen by OQ5, with hardened options per OQ6, and unit tests covering raw decode and a kustomize build.
-- The operator render path folds passthrough output into the resource list before labeling/inventory/apply/prune, with tests proving side objects are stamped with the release UUID, recorded in `status.inventory`, and pruned on release deletion (the `01-problem.md` jellyfin scenario, end to end).
+- The operator render path folds passthrough output into the resource list before labeling/inventory/apply/prune, with tests proving side objects are stamped with the release UUID, recorded in `status.inventory`, and pruned on release deletion (the `01-problem.md` web-app scenario, end to end).
 - The CLI `instance build`/`apply` honor the same declaration and serialize/apply passthrough objects alongside rendered output, with test coverage.
 - Collision behavior (OQ7) is enforced and tested.
 - `core/` and `library/` carry **no** changes (verified — the non-goal held).

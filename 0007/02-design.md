@@ -81,14 +81,14 @@ There is intentionally **no CUE definition under `opmodel.dev/core`** here. `sch
 ```bash
 kubectl apply -f extra/servicemonitor.yaml
 kustomize build overlays/prod | kubectl apply -f -
-# kubectl delete modulerelease jellyfin  → ServiceMonitor + overlay output orphaned
+# kubectl delete modulerelease web-app  → ServiceMonitor + overlay output orphaned
 ```
 
 **After** — declared on the release; OPM owns the whole set:
 
 ```yaml
 spec:
-  module: { path: opmodel.dev/modules/jellyfin, version: "1.2.0" }
+  module: { path: opmodel.dev/modules/web_app, version: "1.2.0" }
   extraManifests:
     - raw:       { path: ./extra/servicemonitor.yaml }
     - kustomize: { path: ./overlays/prod }
@@ -100,4 +100,4 @@ render(module) ──┐
 passthrough() ───┘   (rendered + side manifests, one set, one uuid)
 ```
 
-`kubectl delete modulerelease jellyfin` now prunes the `ServiceMonitor` and the overlay output along with the rendered workload, because all three are in `status.inventory` under the release UUID.
+`kubectl delete modulerelease web-app` now prunes the `ServiceMonitor` and the overlay output along with the rendered workload, because all three are in `status.inventory` under the release UUID.

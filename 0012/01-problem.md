@@ -103,7 +103,7 @@ So an ownerReference on a namespaced resource deletes that resource when the `Mo
 
 ## Concrete Example
 
-A platform team runs `jellyfin` in namespace `media`. The module ships a `Deployment`, a `Service`, a `PersistentVolumeClaim`, and — because it registers a custom backup type — a `CustomResourceDefinition`.
+A platform team runs `postgres` in namespace `prod`. The module ships a `Deployment`, a `Service`, a `PersistentVolumeClaim`, and — because it registers a custom backup type — a `CustomResourceDefinition`.
 
 The module author removes the backup feature and republishes. The CRD is no longer rendered, so it becomes a stale inventory entry.
 
@@ -113,7 +113,7 @@ The module author removes the backup feature and republishes. The CRD is no long
 
 Same module, same upgrade, same stale entry. One tool logs a skip; the other takes out a cluster-wide resource type. Nothing in the module, the platform, or the CR expresses which behaviour the user gets — only which binary they happened to run.
 
-Now the same instance, deleted. If it is operator-owned and nobody set `spec.prune`, the finalizer runs, finds prune disabled, removes itself, and all four resources keep running. If it is CLI-owned and someone runs `kubectl delete moduleinstance jellyfin -n media` instead of `opm instance delete`, the CR is removed with no finalizer to stop it, and the four resources keep running with the only record of their existence deleted.
+Now the same instance, deleted. If it is operator-owned and nobody set `spec.prune`, the finalizer runs, finds prune disabled, removes itself, and all four resources keep running. If it is CLI-owned and someone runs `kubectl delete moduleinstance postgres -n prod` instead of `opm instance delete`, the CR is removed with no finalizer to stop it, and the four resources keep running with the only record of their existence deleted.
 
 ## User Stories
 

@@ -12,41 +12,76 @@ package schema
 // ─────────────────────────────────────────────────────────────────────────────
 
 // BEFORE. Four separately-maintained statements of one identity. The declared
-// version drifts from the tag (measured: jellyfin v2.0.1 and v2.0.2 both ship
-// metadata.version "2.0.0"), and modulePath is a prefix that must be
-// recombined with a name to produce an address.
+// version drifts from the tag (measured on the live fleet — see 01-problem.md),
+// and modulePath is a prefix that must be recombined with a name to produce an
+// address.
 _moduleBefore: {
 	moduleCue: metadata: {
-		name:       "jellyfin"
+		name:       "postgres"
 		modulePath: "opmodel.dev/modules" // prefix only
 		version:    "2.0.0"               // authored; drifts from the tag
 	}
-	cueMod: module: "opmodel.dev/modules/jellyfin@v2"
-	versionsYml: jellyfin: version: "v2.1.0" // a third answer
+	cueMod: module: "opmodel.dev/modules/postgres@v2"
+	versionsYml: postgres: version: "v2.1.0" // a third answer
 	derived: {
-		fqn:         "opmodel.dev/modules/jellyfin:2.0.0" // version inside identity
+		fqn:         "opmodel.dev/modules/postgres:2.0.0" // version inside identity
 		publishedAs: "v2.0.2"                             // a fourth
 	}
 }
 
-// AFTER (D1, D2, D5, D8). One identity statement, in a committed file OPM
-// writes into. No version anywhere in source.
+// AFTER (D1, D5, D8, D38, D40, D41). One identity statement, in a committed
+// SUBPACKAGE that OPM writes into.
+//
+// Note this is NOT the shape D7/D23 first specified — those put a module's
+// identity in a root-package file writing `metadata:` directly, on the premise
+// that a module declared no version and so had nothing to decide. D38 restored
+// the version and reversed the premise; a module now carries a catalog-style
+// identity/ subpackage. D7's MEASUREMENT still stands and is why: a top-level
+// field beside the embedded #Module in the ROOT package fails at re-unification
+// into the closed #ModuleInstance.#module slot with `field not allowed`, vetting
+// clean standalone. A separate package is never unified into #Module.
 _moduleAfter: {
-	// identity.cue — sets metadata directly, declares no top-level field (D7).
-	identityCue: metadata: modulePath: "opmodel.dev/m/acme/jellyfin@v2"
+	// identity/identity.cue — an importable package, two authored values.
+	identityCue: {
+		ModulePath: "opmodel.dev/modules/postgres@v2"
+		Version:    "2.4.1"
 
-	// module.cue — the author writes a name and nothing else about identity.
-	moduleCue: metadata: name: "jellyfin"
+		// Derived, never authored (D40), and asserted equal to the path's major.
+		VersionMajor: "v2"
+	}
 
-	cueMod: module: "opmodel.dev/m/acme/jellyfin@v2" // the same string
+	// module.cue — the author writes a name, and wires the two derivations that
+	// `opm module init` templates. CUE enforces the wiring for free while it is
+	// written; an author who REPLACES a derivation with a literal is caught by
+	// 0011 D12's publish check.
+	moduleCue: metadata: {
+		name:       "postgres"
+		modulePath: "id.ModulePath"
+		version:    "id.Version"
+	}
+
+	cueMod: module: "opmodel.dev/modules/postgres@v2" // the same string
 
 	derived: {
-		fqn: "opmodel.dev/m/acme/jellyfin@v2" // == modulePath (D1)
+		fqn: "opmodel.dev/modules/postgres@v2" // == modulePath (D1)
 
-		// uuid: SHA1(OPMNamespace, fqn) — stable across every 2.x release,
-		// distinct from any v3.
+		// registryPath: the major-free lineage identity (D41).
+		registryPath: "opmodel.dev/modules/postgres"
+
+		// uuid: SHA1(OPMNamespace, fqn) — ARTIFACT identity. Stable across every
+		// 2.x release, and it MOVES at v3, because @v2 and @v3 are distinct
+		// modules.
+		//
+		// instanceFqn: SHA1 input for OWNERSHIP identity, derived from
+		// registryPath — so it survives the v3 bump the line above does not
+		// (D41). This is the value the owner label carries and prune.go reads.
+		instanceFqn: "opmodel.dev/modules/postgres:postgres-prod:prod"
 	}
-	publishedAs: "v2.1.0" // the tag, and the only version that exists
+
+	// The tag, asserted equal to identity Version at publish (0011 D12) and
+	// re-checked against it at acquire (D39), which is what lets the
+	// module.opmodel.dev/version label come from the declared value.
+	publishedAs: "v2.4.1"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,10 +104,10 @@ _catalogBefore: {
 	}
 }
 
-// AFTER (D1, D3, D5, D24, D25). The version stays and is committed rather than
+// AFTER (D1, D3, D5, D4, D25). The version stays and is committed rather than
 // stamped — which is the whole fix, because the local checkout and the
 // published artifact now interpolate the SAME value everywhere it appears.
-// Under D24 that value keys the catalog's TRANSFORMERS and stamps every
+// Under D4 that value keys the catalog's TRANSFORMERS and stamps every
 // primitive's catalogVersion; the CONTRACTS key on their own apiVersion and do
 // not move when the catalog releases.
 _catalogAfter: {
@@ -105,7 +140,7 @@ _catalogAfter: {
 // installs. A k8up provider catalog ships the transformer that requires it.
 //
 // The two catalogs are compiled against different builds of catalog_opm and
-// release on independent cadences. Under D24 they still meet, because the key
+// release on independent cadences. Under D4 they still meet, because the key
 // names the contract rather than either build.
 _providerFulfilled: {
 	module: {
@@ -131,12 +166,12 @@ _providerFulfilled: {
 		providerBuildNarrowedAType: "fails: conflicting values, both arms named"
 	}
 
-	// UNDER D13, for contrast: the module demanded ...backup@1.3.0 and the
-	// provider supplied ...backup@1.0.0, so the keys never met and the demand
-	// missed — regardless of whether the shapes were compatible. Coverage was
-	// the set of catalog_opm builds the provider's release history happened to
-	// pin, one per provider build.
-	underD13: {
+	// UNDER THE BUILD-KEYED CONTRACTS D4 REPLACED, for contrast: the module
+	// demanded ...backup@1.3.0 and the provider supplied ...backup@1.0.0, so the
+	// keys never met and the demand missed — regardless of whether the shapes
+	// were compatible. Coverage was the set of catalog_opm builds the provider's
+	// release history happened to pin, one per provider build.
+	underBuildKeyedContracts: {
 		moduleDemanded:   "opmodel.dev/catalogs/opm/resources/backup@1.3.0"
 		providerSupplied: "opmodel.dev/catalogs/opm/resources/backup@1.0.0"
 		result:           "no matching transformer"
@@ -144,7 +179,7 @@ _providerFulfilled: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3b. What the matcher says when a demand misses (D24, D28)
+// 3b. What the matcher says when a demand misses (D4, D28)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Two failures, distinguished by whether ANY apiVersion of the contract is

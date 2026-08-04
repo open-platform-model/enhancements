@@ -18,7 +18,7 @@ The CLI's instance surface is `apply`, `build`, `delete`, `diff`, `events`, `han
 
 **Handoff moves the manager. It does not move the definition.** After a successful handoff the operator owns the instance, and the only complete description of that instance is a live object in etcd. GitOps needs a file. Nothing in OPM produces one.
 
-Reaching for `kubectl get moduleinstance jellyfin -n jellyfin -o yaml` and deleting the parts that look cluster-side does not close the gap, for three reasons that are each verifiable today:
+Reaching for `kubectl get moduleinstance postgres -n prod -o yaml` and deleting the parts that look cluster-side does not close the gap, for three reasons that are each verifiable today:
 
 1. **The output carries state that must not be committed.** `status` (including the entire `status.inventory` entry list, the digest set, and the operator's conditions), `metadata.managedFields`, `resourceVersion`, `uid`, `generation`, `creationTimestamp`. Committing `status` to git means Flux will try to apply it; committing `managedFields` means committing the record of which field manager owns what, which is exactly what the next apply recomputes.
 
@@ -30,15 +30,15 @@ On top of all three: **nothing verifies the result.** The hand-assembled documen
 
 ## Concrete Example
 
-An operator of a home cluster installs the CLI and deploys five modules from local instance files — Jellyfin, Seerr, a Garage node, K8up, and a small web app. Each `opm instance apply` writes a `ModuleInstance` CR with `spec.owner: cli` and applies the rendered workloads directly. Everything runs.
+A platform team installs the CLI and deploys five modules from local instance files — a web app, Postgres, Grafana, a MinIO node, and K8up. Each `opm instance apply` writes a `ModuleInstance` CR with `spec.owner: cli` and applies the rendered workloads directly. Everything runs.
 
 Two weeks in, they decide they want reconciliation and drift correction, so they run `opm operator install` and then `opm instance handoff` five times. Each handoff verifies the published module reproduces the deployed state, flips `spec.owner` to `operator`, and reports an inventory-stable reconcile: the operator adopted the resources, relabelled `app.kubernetes.io/managed-by`, and changed no workload. The cluster is now operator-managed. This is the path 0006 built, and it works.
 
 Then they decide they want git to be the source of truth, and the path stops.
 
-The five CRs in the cluster are the only record of what is deployed. To move them into a repo, the operator must, for each instance: dump the CR, delete `status` and the six metadata fields that must not be committed, notice that `prune` is absent and decide whether to add it, notice that `serviceAccountName` is absent and decide whether to add it, write a `Namespace` (the namespace already exists in the cluster and is not represented anywhere as YAML), write a `ServiceAccount`, write a `ClusterRoleBinding` and pick what to bind it to, write a `kustomization.yaml`, and hand-copy the `spec.values` block — which for Jellyfin alone is a nested twenty-line structure covering ports, storage classes, mount paths, and resource limits.
+The five CRs in the cluster are the only record of what is deployed. To move them into a repo, the operator must, for each instance: dump the CR, delete `status` and the six metadata fields that must not be committed, notice that `prune` is absent and decide whether to add it, notice that `serviceAccountName` is absent and decide whether to add it, write a `Namespace` (the namespace already exists in the cluster and is not represented anywhere as YAML), write a `ServiceAccount`, write a `ClusterRoleBinding` and pick what to bind it to, write a `kustomization.yaml`, and hand-copy the `spec.values` block — which for Postgres alone is a nested twenty-line structure covering ports, storage classes, mount paths, and resource limits.
 
-Nothing in that sequence is checked. If they mistype a storage class in the values block, the first thing that tells them is Flux applying the CR, the operator re-rendering the module against the mistyped value, and a PVC being replaced under a running StatefulSet. The original `jellyfin_instance.cue` on their laptop is not a safety net either: it is a different artifact (a CUE `#ModuleInstance`, not a `ModuleInstance` CR), it may have drifted from what is deployed if any apply used `-f` overrides, and re-authoring from it means trusting a file they last touched two weeks ago over the CR the handoff gate just verified.
+Nothing in that sequence is checked. If they mistype a storage class in the values block, the first thing that tells them is Flux applying the CR, the operator re-rendering the module against the mistyped value, and a PVC being replaced under a running StatefulSet. The original `postgres_instance.cue` on their laptop is not a safety net either: it is a different artifact (a CUE `#ModuleInstance`, not a `ModuleInstance` CR), it may have drifted from what is deployed if any apply used `-f` overrides, and re-authoring from it means trusting a file they last touched two weeks ago over the CR the handoff gate just verified.
 
 ## User Stories
 

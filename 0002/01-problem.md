@@ -38,12 +38,12 @@ A platform team runs three environments of the same module:
 
 ```cue
 // today — the word "Release" appears for one module deployed three times
-dev:  #ModuleRelease & {#module: minecraft, metadata: {name: "mc-dev",  namespace: "games-dev"},  values: {...}}
-qa:   #ModuleRelease & {#module: minecraft, metadata: {name: "mc-qa",   namespace: "games-qa"},   values: {...}}
-prod: #ModuleRelease & {#module: minecraft, metadata: {name: "mc-prod", namespace: "games-prod"}, values: {...}}
+dev:  #ModuleRelease & {#module: postgres, metadata: {name: "pg-dev",  namespace: "data-dev"},  values: {...}}
+qa:   #ModuleRelease & {#module: postgres, metadata: {name: "pg-qa",   namespace: "data-qa"},   values: {...}}
+prod: #ModuleRelease & {#module: postgres, metadata: {name: "pg-prod", namespace: "data-prod"}, values: {...}}
 ```
 
-Nothing here is a "release" in the version-shipping sense — it is the *same* module materialized three times. The reader has to translate "release" into "instance" mentally on every line, and the rendered objects carry `module-release.opmodel.dev/name: mc-prod`, reinforcing the mistranslation downstream.
+Nothing here is a "release" in the version-shipping sense — it is the *same* module materialized three times. The reader has to translate "release" into "instance" mentally on every line, and the rendered objects carry `module-release.opmodel.dev/name: pg-prod`, reinforcing the mistranslation downstream.
 
 ## User Stories
 

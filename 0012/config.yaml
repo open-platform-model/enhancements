@@ -17,10 +17,10 @@ affects:
   - cli
 
 created: "2026-07-27"
-updated: "2026-07-27"
+updated: "2026-08-04"
 
 authors:
-  - OPM Contributors
+  - emil@jacero.se
 
 implementation:
   status: not-started
@@ -28,6 +28,8 @@ implementation:
 history:
   - date: "2026-07-27"
     event: Drafted
+  - date: "2026-08-04"
+    event: "Illustrative example vocabulary genericised across this entry — a documentation-hygiene pass, cosmetic only. NO decision, gate, open question, measurement or schema constraint changed, and no decision or OQ number moved. The worked examples' application names move to neutral infrastructure names (`postgres`), and example namespaces from `media`/`games-*` to `prod`/`staging`/`data-*`. DELIBERATELY LEFT VERBATIM: dated measurements (the 2026-07-25 byte-for-byte registry read and everything derived from it), live-fleet inventories, and real repository paths — `modules/jellyfin/`, `opm-kind-demo/jellyfin/` and the `modules/*` rewire lists name artifacts that were actually read or must actually be opened, so renaming them would falsify the record or dangle the pointer. Where an entry's problem statement IS the measurement, it stays; where the name was arbitrary, it moved."
 
 # 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
 #        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).

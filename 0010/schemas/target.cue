@@ -25,7 +25,7 @@ import (
 // Widened from core's current form in two ways. The "@vN" suffix is new, and
 // so are underscores in path segments: under D1 a module path ENDS IN the
 // module's own snake_case name (D8), and every multi-word name contains one —
-// media_server, cert_manager, zot_registry_ttl. Hyphens stay legal because
+// postgres, cert_manager, zot_registry_ttl. Hyphens stay legal because
 // CUE accepts them in path segments and OPM must be able to express its own
 // organisation (github.com/open-platform-model/...); only the LEAF is
 // constrained, and it is constrained by #ModuleIdentity rather than by regex.
@@ -145,34 +145,81 @@ import (
 // form, so there is no projection left to make.
 //
 // `version` IS present (D38, amending D2), supplied by the module's identity
-// SUBPACKAGE alongside modulePath. THE INVARIANT that makes it safe: it is
-// never an input to fqn or to uuid. D2 deleted this field partly because fqn
-// interpolated it, so a moving version changed module.uuid -> instance.uuid ->
-// the owner label on every rendered resource, and prune.go:107 then skipped
-// every delete while reporting success. D1 removed that path independently by
-// making fqn the module path. Wiring version back into either derivation
-// restores the silent orphaning.
+// SUBPACKAGE alongside modulePath.
+//
+// THE INVARIANT, HALF ONE (D41). Module ARTIFACT identity distinguishes majors
+// and nothing finer: the major reaches fqn and uuid through the module PATH,
+// and minor and patch reach neither. The other half — that INSTANCE identity is
+// reached by neither the version nor the major — is #InstanceIdentity below,
+// and it is the half that actually protects prune.go:107.
+//
+// D38's original wording ("version is never an input to fqn or to uuid") is
+// superseded by that pair: it was imprecise, since the major IS an input by way
+// of the path, and incomplete, since the value carried in the owner label is
+// the INSTANCE uuid rather than this one.
 #ModuleIdentity: {
 	name!:       #SnakeNameType
 	modulePath!: #ModulePathType
 
 	// version: the module's own declared version (D38). Read by
 	// Instance.ModuleVersion() and thence by #moduleInstanceMetadata.version,
-	// which core/src/transformer.cue:105 declares non-optionally. NOT part of
+	// which core/src/transformer.cue:105 declares non-optionally, and by the
+	// module.opmodel.dev/version label D39 returns to this schema. NOT part of
 	// any key.
 	version!: #VersionType
 
 	_ref: #ArtifactRef & {"modulePath": modulePath}
 
-	// fqn IS the module path (D1) — version deliberately absent. uuid keeps its
-	// formula with a version-free, major-bearing input, so it is stable across
-	// every release in the major and distinct between majors.
+	// fqn IS the module path (D1). uuid keeps its formula over that path, so it
+	// is stable across every release in the major and distinct between majors.
 	fqn: #ModulePathType & modulePath
+
+	// registryPath: the module path with the major stripped — the MAJOR-FREE
+	// identity of the module lineage (D41). Already computed by #ArtifactRef;
+	// exposed here because #InstanceIdentity derives from it and because it is
+	// the OCI repository every address-composition site in cli and library
+	// collapses into (D1).
+	registryPath: _ref.registryPath
+
+	// D40: the declared version's major must equal the path's. Nothing else
+	// compares these two — 0011's #TagRef compares the TAG against the path,
+	// which CUE's own publish already does.
+	versionMajor: "v" + strings.SplitN(version, ".", 2)[0]
+	versionMajor: _ref.major
 
 	// leafMatchesName: D8's constraint, expressible over ONE field. Today the
 	// same rule spans two independently-authored fields with nowhere to live.
+	// Hidden in core (`_leaf`): it is a check, not a value a consumer reads.
 	leafMatchesName: strings.HasSuffix(_ref.registryPath, "/"+name)
 	leafMatchesName: true
+}
+
+// #InstanceIdentity is #ModuleInstance.metadata after D41 — THE INVARIANT,
+// HALF TWO, and the half the owner label depends on.
+//
+// `fqn` is NEW: today the derivation is inline inside uuid, and the `fqn` on
+// #TransformerContext.#moduleInstanceMetadata carries the MODULE's fqn under an
+// instance-shaped name (library/opm/schema/context.go:59). Stating it as a
+// field makes the "custom set of module fields" reviewable in one place and
+// mirrors #ModuleIdentity's own fqn -> uuid shape.
+//
+// It derives from the module's registryPath rather than its fqn, so NEITHER the
+// version NOR the major reaches instance identity. registryPath is owner-scoped
+// under 0011 D5, so two unrelated modules sharing a leaf name stay distinct.
+//
+// What this buys: `module.uuid` answers WHICH MODULE IS THIS and must move
+// across a major; `instance.uuid` answers WHICH RESOURCES DOES THIS MANAGE and
+// must not. Deriving the second from the first forced them to agree.
+#InstanceIdentity: {
+	moduleRegistryPath!: #PackagePathType // #ModuleIdentity.registryPath
+	name!:               #NameType
+	namespace!:          #NameType
+
+	fqn: "\(moduleRegistryPath):\(name):\(namespace)"
+
+	// uuid: SHA1(OPMNamespace, fqn) in core. Not computed here — this file
+	// models the INPUTS to the hash, and the property under test is that the
+	// input string does not move. A uuid that does not move follows.
 }
 
 // #CatalogIdentity is #Catalog.metadata after this enhancement.
@@ -191,6 +238,29 @@ import (
 	_ref: #ArtifactRef & {"modulePath": modulePath}
 
 	fqn: #ModulePathType & modulePath
+
+	// registryPath: the major-free path. #Catalog's #transformers pattern
+	// constraint stamps "\(registryPath)/transformers" onto every entry — the
+	// major is split out here and NOT re-appended, because a primitive declares
+	// a package path (D1).
+	registryPath: _ref.registryPath
+
+	// D40's relation is NOT asserted here (D43). Both `modulePath` and `version`
+	// are WRITTEN in identity/identity.cue, which asserts VersionMajor == Major
+	// between them, so a value reaching this shape has already passed the check
+	// and re-deriving it in `core` tests the same relation one hop downstream.
+	// `core` cannot read id.VersionMajor directly — it cannot import a
+	// consumer's identity package (D38, 0011 D12) — so the reference is the
+	// authored wiring in catalog.cue.
+	//
+	// ACCEPTED EXPOSURE: this shape is what a CONSUMER evaluates
+	// (materialize/pull.go:23 builds the catalog against #Catalog); the identity
+	// package is not. So a catalog with an absent or non-conformant identity
+	// package now carries no major check any consumer can run, and the
+	// disagreement surfaces at #SubscriptionSelection._majorAgrees instead —
+	// in the platform author's file, about someone else's mistake.
+	//
+	// #ModuleIdentity KEEPS its versionMajor: D43 leaves the module half open.
 }
 
 // #IdentityPackage is the catalog's committed identity/identity.cue (D5),
@@ -215,14 +285,32 @@ import (
 	RegistryPath: _ref.registryPath // "opmodel.dev/catalogs/opm"
 	Major:        _ref.major        // "v1"
 
+	// VersionMajor is DERIVED from Version and never authored (D40), and it must
+	// agree with the major the PATH declares. Self-checking, so an artifact vets
+	// its own consistency with no `core` in the loop — which matters because the
+	// two values are WRITTEN here, so a failure names the file the author has
+	// open. `core` asserts the same relation independently, for identity
+	// packages that are absent or non-conformant.
+	VersionMajor: "v" + strings.SplitN(Version, ".", 2)[0]
+	VersionMajor: Major
+
 	// The prefix every primitive this catalog ships hangs off. Under D1 the
 	// major is NOT re-appended — a primitive declares a package path.
 	//
+	// EXACTLY ONE PREFIX PER KIND, and no grouping subdirectory beneath any of
+	// them (D42). This map is a COMPLETE statement of the catalog's key space,
+	// not a convenience for the common case: #CatalogMemberFQNGate unifies a
+	// primitive's declared modulePath with kindPrefix[kind] and builds its
+	// key from the same value, so a primitive one segment deeper is refused at
+	// publish. catalog_opm's five blueprints sit at …/blueprints/workload today
+	// and move up under D42; resources, traits and transformers are already
+	// flat.
+	//
 	// Enumerated rather than a pattern constraint: `[Kind=string]: …` is
-	// unusable at the call site (`id.primitivePrefix.resources` → `undefined
+	// unusable at the call site (`id.kindPrefix.resources` → `undefined
 	// field`, because a pattern constrains keys that exist rather than
 	// generating them). Measured in experiments/01, finding (b).
-	primitivePrefix: {
+	kindPrefix: {
 		resources:    RegistryPath + "/resources"
 		traits:       RegistryPath + "/traits"
 		blueprints:   RegistryPath + "/blueprints"
@@ -232,8 +320,17 @@ import (
 
 // ─── Primitive identity (D4, D25) ──────────────────────────────────────────
 
-// #PrimitiveIdentity is shared by #Resource, #Trait, #Blueprint and
-// #ComponentTransformer.
+// #PrimitiveIdentity is carried by the three PRIMITIVES — #Resource, #Trait
+// and #Blueprint. A #ComponentTransformer is NOT a primitive (D44): core's own
+// SPEC.md:38 classes it an ADAPTER, and :34 states why — "Adapters sit beside
+// the model, not inside it." Its shape is #TransformerIdentity below.
+//
+// There is deliberately NO shared parent (D44). Naming one shape after three
+// kinds and admitting a fourth is how `apiVersion` reached transformers in the
+// first place: a field added to the parent lands on every member for free, and
+// the exclusions (D37's `fulfilment`, D36's `matchLabels`) then have to be made
+// by hand, one at a time, forever. Four repeated field lines is the cheaper
+// side of that trade.
 //
 // TWO versions, and the split is the whole of D4. `apiVersion` is the
 // CONTRACT major — what this primitive promises, moved only when its shape
@@ -260,7 +357,7 @@ import (
 //	transformer                   fqn: "\(id.RegistryPath)/transformers/\(name)@\(id.Version)"
 //
 // Enforcement MOVES rather than disappearing: core's unification made a wrong
-// value inexpressible; 0011's publish gate (#PrimitiveFQNGate) catches it
+// value inexpressible; 0011's publish gate (#CatalogMemberFQNGate) catches it
 // before it ships, which is where D17 already put the primitive-path rule.
 //
 // `modulePath` is a PACKAGE path under D1 — no "@vN".
@@ -269,7 +366,38 @@ import (
 	modulePath!:     #PackagePathType
 	apiVersion!:     #APIVersionType
 	catalogVersion!: #VersionType
-	fqn!:            #FQNType
+	fqn!:            #ContractFQNType
+}
+
+// #TransformerIdentity is #ComponentTransformer.metadata — the ADAPTER, not a
+// primitive (D44).
+//
+// NO apiVersion. Nothing would read one: its own key interpolates
+// catalogVersion (D4), the matcher keys on the CONTRACTS it demands rather than
+// on the transformer, D27's additive promise binds contracts, and D34's ladder
+// assigns levels to contracts only ("Transformers take no apiVersion — they
+// keep the build SemVer (D4), so the ~50 of them are unaffected"). There is no
+// value to assign it either: a transformer's inputs are other people's
+// contracts and its output is platform objects, so "this transformer's contract
+// major" has no referent.
+//
+// The absence is load-bearing, not tidiness. With an apiVersion present, 0011
+// D9's gate — "for every primitive in the tree … pull the last published build
+// that shipped a primitive of that name at that apiVersion" — resolves for
+// transformers too, and the additive-only rule then refuses ORDINARY catalog
+// releases: changing rendering logic, dropping an emitted field and narrowing
+// an output type are all normal transformer edits and all D27 violations. That
+// inverts D4, which keeps the build in this key precisely BECAUSE a transformer
+// is free to change.
+//
+// catalogVersion stays REQUIRED — D25's rename applies to all four kinds, and
+// here it is the key's own source component plus the provenance both ends of a
+// match read (D26).
+#TransformerIdentity: {
+	name!:           #NameType
+	modulePath!:     #PackagePathType
+	catalogVersion!: #VersionType
+	fqn!:            #ImplFQNType
 }
 
 // #Fulfilment (D37) is how a CONTRACT declares where its implementation comes
@@ -317,20 +445,25 @@ import (
 	_ok: true
 }
 
-// #ContractIdentity / #ImplIdentity narrow `fqn` by kind. A resource, trait or
-// blueprint carries a contract key; a transformer carries an implementation
-// key. Both keep both versions.
-#ContractIdentity: #PrimitiveIdentity & {fqn!: #ContractFQNType}
-#ImplIdentity:     #PrimitiveIdentity & {fqn!: #ImplFQNType}
+// D44 retired #ContractIdentity and #ImplIdentity. They were
+// #PrimitiveIdentity plus an `fqn` narrowing, which only existed because the
+// parent straddled the primitive/adapter split. #PrimitiveIdentity and
+// #TransformerIdentity now narrow their own `fqn`, so the pair had nothing
+// left to add.
 
-// #PrimitiveFQNGate states what 0011's publish gate asserts for one
-// primitive. It is deliberately NOT part of #PrimitiveIdentity: expressing it
+// #CatalogMemberFQNGate states what 0011's publish gate asserts for one member
+// of a catalog — primitive OR transformer. Its four-kind scope is CORRECT and
+// survives D44: the gate checks a transformer's package path (D17's rule binds
+// it) and its build-keyed FQN. Only the NAME changed, from #PrimitiveFQNGate,
+// because a transformer is not a primitive.
+//
+// It is deliberately NOT part of #PrimitiveIdentity: expressing it
 // there would re-derive the value and undo D21. Unifying it is the check.
 //
 // The kind segment is retained (D21) — a flat FQN would make primitive names
 // globally unique across all four kinds within a catalog, and catalog_opm
 // already ships a resource named `secrets`.
-#PrimitiveFQNGate: {
+#CatalogMemberFQNGate: {
 	identity!: #IdentityPackage
 	kind!:     "resources" | "traits" | "blueprints" | "transformers"
 	name!:     #NameType
@@ -338,23 +471,36 @@ import (
 	// What the catalog actually authored.
 	declaredFQN!:            #FQNType
 	declaredModulePath!:     #PackagePathType
-	declaredAPIVersion!:     #APIVersionType
 	declaredCatalogVersion!: #VersionType
+
+	// Optional at the top level and REQUIRED for the three primitive kinds
+	// (D44). A transformer declares none, so requiring it unconditionally would
+	// force ~50 leaves to author a value nothing reads.
+	declaredAPIVersion?: #APIVersionType
+	if kind != "transformers" {
+		declaredAPIVersion!: #APIVersionType
+	}
 
 	// What identity/identity.cue implies. The provenance must name THIS build;
 	// the path must sit under THIS catalog (D17).
-	declaredModulePath:     identity.primitivePrefix[kind]
+	declaredModulePath:     identity.kindPrefix[kind]
 	declaredCatalogVersion: identity.Version
 
-	// The key is interpolated from the contract for the three demand-side
-	// kinds and from the build for a transformer (D4). apiVersion is NOT
-	// checked against identity — nothing implies it, which is the point of it.
+	// The key is interpolated from the contract for the three primitive kinds
+	// and from the build for a transformer (D4). apiVersion is NOT checked
+	// against identity — nothing implies it, which is the point of it.
+	//
+	// The transformer branch is selected BEFORE declaredAPIVersion is reached,
+	// so an absent optional costs nothing. Measured 2026-08-03 (cue v0.17.1):
+	// kind "transformers" with the field absent yields the build with no error;
+	// kind "resources" supplying it yields the apiVersion; kind "resources"
+	// omitting it fails "declaredAPIVersion: field is required but not present".
 	_keyVersion: [
 		if kind == "transformers" {identity.Version},
 		declaredAPIVersion,
 	][0]
 
-	declaredFQN: identity.primitivePrefix[kind] + "/" + name + "@" + _keyVersion
+	declaredFQN: identity.kindPrefix[kind] + "/" + name + "@" + _keyVersion
 }
 
 // ─── The compatibility promise (D27) ────────────────────────────────────────
@@ -394,9 +540,9 @@ import (
 	changedDefaults!: [...#NameType]
 
 	if gated {
-		subsumes:          true
+		subsumes: true
 		newRequiredFields: []
-		changedDefaults:   []
+		changedDefaults: []
 	}
 }
 
@@ -416,10 +562,10 @@ import (
 // PASSES, and must — the same break at alpha. D34 carves alpha out of D27, so
 // nothing here asserts and the publish gate does not run.
 _alphaBreak: #ContractCompatibility & {
-	apiVersion:        "v1alpha1"
-	fromVersion:       "1.2.0"
-	toVersion:         "1.3.0"
-	subsumes:          false
+	apiVersion:  "v1alpha1"
+	fromVersion: "1.2.0"
+	toVersion:   "1.3.0"
+	subsumes:    false
 	newRequiredFields: ["retention"]
 	changedDefaults: ["mode"]
 }
@@ -430,17 +576,21 @@ _alphaBreak: #ContractCompatibility & {
 // was actually fetched by. Unifying it is the check; a violation is a conflict
 // naming both values.
 //
-// Only the ADDRESS is checked. artifactVersion is RECORDED — it is what the
-// kernel stamps into the D9 label and writes to spec.module.version — and is
-// not compared against anything here.
+// TWO checks now, not one (D39 resolving what D38 left open).
 //
-// D38 CHANGES WHAT IS POSSIBLE, not what this shape does. A module now declares
-// a version, so an acquired artifact's metadata.version COULD be compared
-// against the tag it was fetched by — which D2 had made impossible. Whether the
-// read path performs that comparison is deliberately left open by D38: doing it
-// closes the drift for artifacts published outside `opm publish`, not doing it
-// keeps this check purely about the address. This shape records today's
-// behaviour; if the comparison is adopted, it lands here.
+// The ADDRESS check is D11's and unchanged: the artifact lives where its
+// metadata says it lives.
+//
+// The VERSION check is new. D2 had made it impossible — a module declared no
+// version — and D38 made it available. D39 adopts it, because D39 returns the
+// module.opmodel.dev/version label to `core` sourced from the DECLARED value,
+// and a declared value that reaches a rendered resource has to be one a reader
+// refused to accept when it disagreed with the tag. Without this, the label can
+// still lie for anything published outside `opm publish` — and 0011 D4 records
+// that `cue mod publish` keeps working, so that is not a hypothetical path.
+//
+// Both are the same class of failure and raise the same typed error, naming
+// both values.
 //
 // The `self=` alias is required: embedded fields are unified into the value
 // but are not in lexical scope, so the constraint reaches them through it.
@@ -448,12 +598,20 @@ _alphaBreak: #ContractCompatibility & {
 	#ArtifactRef
 
 	// The coordinates in hand — what was passed to the registry loader, or
-	// what a publish is about to write.
+	// what a publish is about to write. The tag is "v"-prefixed as CUE writes
+	// it; the declared version is bare.
 	artifactPath!:    #ModulePathType
-	artifactVersion!: string
+	artifactVersion!: =~"^v\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
-	// The invariant: the artifact lives where its metadata says it lives.
+	// What the artifact itself declares (#ModuleIdentity.version /
+	// #CatalogIdentity.version).
+	declaredVersion!: #VersionType
+
+	// D11: the artifact lives where its metadata says it lives.
 	artifactPath: self.importPath
+
+	// D39: and it is the version it says it is.
+	declaredVersion: strings.TrimPrefix(artifactVersion, "v")
 }
 
 // ─── Subscription selection (D14) ───────────────────────────────────────────
@@ -557,20 +715,105 @@ _alphaBreak: #ContractCompatibility & {
 
 // The address decomposition, on a real path.
 _refExample: #ArtifactRef & {
-	modulePath:   "opmodel.dev/m/acme/media_server@v2"
-	registryPath: "opmodel.dev/m/acme/media_server"
+	modulePath:   "opmodel.dev/modules/postgres@v2"
+	registryPath: "opmodel.dev/modules/postgres"
 	major:        "v2"
-	importPath:   "opmodel.dev/m/acme/media_server@v2"
+	importPath:   "opmodel.dev/modules/postgres@v2"
 }
 
 // A module's identity. A version is declared (D38) but fqn is still the path —
-// note that fqn carries "@v2" and not "2.4.1". That is the invariant, visible.
+// note that fqn carries "@v2" and not "2.4.1". That is half one of the
+// invariant, visible.
 _moduleExample: #ModuleIdentity & {
-	name:       "media_server"
-	modulePath: "opmodel.dev/m/acme/media_server@v2"
-	version:    "2.4.1"
-	fqn:        "opmodel.dev/m/acme/media_server@v2"
+	name:         "postgres"
+	modulePath:   "opmodel.dev/modules/postgres@v2"
+	version:      "2.4.1"
+	fqn:          "opmodel.dev/modules/postgres@v2"
+	registryPath: "opmodel.dev/modules/postgres"
+	versionMajor: "v2" // D40: agrees with the path's major
 }
+
+// Half two (D41). The SAME instance identity under four perturbations. Only the
+// last two move it, and both of them should.
+//
+// This is what makes the module/instance split legible: module.uuid answers
+// "which module is this" and MUST move across a major; instance.uuid answers
+// "which resources does this manage" and must NOT.
+_instanceAcrossPatch: #InstanceIdentity & {
+	moduleRegistryPath: "opmodel.dev/modules/postgres" // module at 2.9.9
+	name:               "postgres-prod"
+	namespace:          "prod"
+	fqn:                "opmodel.dev/modules/postgres:postgres-prod:prod"
+}
+
+// A MAJOR bump. #ModuleIdentity.fqn moved from @v2 to @v3 and module.uuid with
+// it; the instance's did not, because registryPath carries no major. This is
+// the case that was silently orphaning resources before D41: prune.go:107 skips
+// any delete whose live owner label disagrees with Status.InstanceUUID, and it
+// skips WITHOUT erroring.
+_instanceAcrossMajor: #InstanceIdentity & {
+	moduleRegistryPath: "opmodel.dev/modules/postgres" // module now @v3 / 3.0.0
+	name:               "postgres-prod"
+	namespace:          "prod"
+	fqn:                "opmodel.dev/modules/postgres:postgres-prod:prod"
+}
+
+// A DIFFERENT module with the same leaf name. First-party paths carry no owner
+// segment (0011 D13), so two first-party modules can never collide on a leaf —
+// the only namespace where "same leaf, different owner" is reachable is the
+// community one, community.opmodel.dev/m/<owner>/<name>. This is what keeps
+// those apart, and why instance identity derives from the PATH rather than
+// from metadata.name.
+_instanceOtherOwner: #InstanceIdentity & {
+	moduleRegistryPath: "community.opmodel.dev/m/otherorg/postgres"
+	name:               "postgres-prod"
+	namespace:          "prod"
+	fqn:                "community.opmodel.dev/m/otherorg/postgres:postgres-prod:prod"
+}
+
+// A different namespace is a different instance.
+_instanceOtherNamespace: #InstanceIdentity & {
+	moduleRegistryPath: "opmodel.dev/modules/postgres"
+	name:               "postgres-prod"
+	namespace:          "staging"
+	fqn:                "opmodel.dev/modules/postgres:postgres-prod:staging"
+}
+
+// The property, asserted rather than described: a major bump does not move it.
+_instanceSurvivesMajor: _instanceAcrossPatch.fqn & _instanceAcrossMajor.fqn
+_instanceSurvivesMajor: "opmodel.dev/modules/postgres:postgres-prod:prod"
+
+// MUST FAIL — instance identity wired to the module's fqn instead of its
+// registryPath, which is the shape D41 replaces. The refusal is STRUCTURAL and
+// fires on the TYPE rather than on the value: moduleRegistryPath is a
+// #PackagePathType, which admits no "@vN" at all, so a module path cannot be
+// substituted for a registry path even by accident. Confirmed 2026-08-03
+// (cue v0.17.1):
+//   _instanceFromFqn.moduleRegistryPath: invalid value
+//     "opmodel.dev/modules/postgres@v2"
+//     (out of bound =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*$")
+//
+// The point is that the @v2 would be present at all — under a @v3 module the
+// same field silently takes a third value and every owner label moves with it.
+//
+//  _instanceFromFqn: #InstanceIdentity & {
+//   moduleRegistryPath: "opmodel.dev/modules/postgres@v2"
+//   name:               "postgres-prod"
+//   namespace:          "prod"
+//   fqn:                "opmodel.dev/modules/postgres:postgres-prod:prod"
+//  }
+
+// MUST FAIL — a declared version whose major disagrees with the path's (D40).
+// Measured 2026-08-03: WITHOUT this constraint the tree vets clean, and the
+// disagreement surfaces only when a platform names the build — reporting one
+// publisher's mistake to a different party. Uncommenting yields
+//   _moduleMajorSkew.versionMajor: conflicting values "v2" and "v3"
+//
+//  _moduleMajorSkew: #ModuleIdentity & {
+//   name:       "postgres"
+//   modulePath: "opmodel.dev/modules/postgres@v2"
+//   version:    "3.0.0"
+//  }
 
 // MUST FAIL — the version leaking into fqn, which is what D2 deleted the field
 // over and what D38 permits it back only on condition of avoiding. Confirmed
@@ -578,30 +821,31 @@ _moduleExample: #ModuleIdentity & {
 // by the regex, so uncommenting yields TWO errors and the first is the one that
 // matters — `fqn: #ModulePathType & modulePath` admits no other value:
 //   _moduleFqnLeak.fqn: conflicting values
-//     "opmodel.dev/m/acme/media_server@v2" and "opmodel.dev/m/acme/media_server@2.4.1"
-//   _moduleFqnLeak.fqn: invalid value "opmodel.dev/m/acme/media_server@2.4.1"
+//     "opmodel.dev/modules/postgres@v2" and "opmodel.dev/modules/postgres@2.4.1"
+//   _moduleFqnLeak.fqn: invalid value "opmodel.dev/modules/postgres@2.4.1"
 //     (out of bound =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*@v[0-9]+$")
 //
 //  _moduleFqnLeak: #ModuleIdentity & {
-//   name:       "media_server"
-//   modulePath: "opmodel.dev/m/acme/media_server@v2"
+//   name:       "postgres"
+//   modulePath: "opmodel.dev/modules/postgres@v2"
 //   version:    "2.4.1"
-//   fqn:        "opmodel.dev/m/acme/media_server@2.4.1"
+//   fqn:        "opmodel.dev/modules/postgres@2.4.1"
 //  }
 
 // MUST FAIL — a path leaf that disagrees with the name. Uncommenting yields
 //   leafMatchesName: conflicting values false and true
 //
 //  _moduleBadLeaf: #ModuleIdentity & {
-//   name:       "media_server"
-//   modulePath: "opmodel.dev/m/acme/something_else@v2"
+//   name:       "postgres"
+//   modulePath: "opmodel.dev/modules/something_else@v2"
 //  }
 
 // A catalog's identity: the full module path, major included.
 _catalogExample: #CatalogIdentity & {
-	modulePath: "opmodel.dev/catalogs/opm@v1"
-	version:    "1.2.0"
-	fqn:        "opmodel.dev/catalogs/opm@v1"
+	modulePath:   "opmodel.dev/catalogs/opm@v1"
+	version:      "1.2.0"
+	fqn:          "opmodel.dev/catalogs/opm@v1"
+	registryPath: "opmodel.dev/catalogs/opm"
 }
 
 // The identity package every leaf imports as `id`. Two authored fields; the
@@ -612,7 +856,7 @@ _identityExample: #IdentityPackage & {
 	RegistryPath: "opmodel.dev/catalogs/opm"
 	Major:        "v1"
 
-	primitivePrefix: {
+	kindPrefix: {
 		resources:    "opmodel.dev/catalogs/opm/resources"
 		traits:       "opmodel.dev/catalogs/opm/traits"
 		blueprints:   "opmodel.dev/catalogs/opm/blueprints"
@@ -624,7 +868,7 @@ _identityExample: #IdentityPackage & {
 // modulePath carries no major (D1). Note the two contracts and the
 // transformer come from the SAME build and key differently (D4): the
 // contracts on what they promise, the transformer on the bytes that run.
-_resourceExample: #ContractIdentity & {
+_resourceExample: #PrimitiveIdentity & {
 	name:           "config-maps"
 	modulePath:     "opmodel.dev/catalogs/opm/resources"
 	apiVersion:     "v1"
@@ -632,7 +876,7 @@ _resourceExample: #ContractIdentity & {
 	fqn:            "opmodel.dev/catalogs/opm/resources/config-maps@v1"
 }
 
-_traitExample: #ContractIdentity & {
+_traitExample: #PrimitiveIdentity & {
 	name:           "scaling"
 	modulePath:     "opmodel.dev/catalogs/opm/traits"
 	apiVersion:     "v1"
@@ -640,42 +884,103 @@ _traitExample: #ContractIdentity & {
 	fqn:            "opmodel.dev/catalogs/opm/traits/scaling@v1"
 }
 
-_transformerExample: #ImplIdentity & {
+// A blueprint, pinning D42's flatness rule. Note the path: …/blueprints/<name>,
+// NOT …/blueprints/workload/<name> as catalog_opm ships today. The grouping
+// segment is what kindPrefix cannot express, and D42 removes it rather
+// than loosening the gate.
+_blueprintExample: #PrimitiveIdentity & {
+	name:           "stateless-workload"
+	modulePath:     "opmodel.dev/catalogs/opm/blueprints"
+	apiVersion:     "v1"
+	catalogVersion: "1.2.0"
+	fqn:            "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1"
+}
+
+// The ADAPTER. Note what is absent: no apiVersion (D44). Its key is its build,
+// and nothing reads a contract major from it.
+_transformerExample: #TransformerIdentity & {
 	name:           "configmap-transformer"
 	modulePath:     "opmodel.dev/catalogs/opm/transformers"
-	apiVersion:     "v1"
 	catalogVersion: "1.2.0"
 	fqn:            "opmodel.dev/catalogs/opm/transformers/configmap-transformer@1.2.0"
 }
 
+// MUST FAIL — apiVersion on a transformer (D44). #TransformerIdentity is a
+// closed definition, so the field is not merely unread, it is inexpressible.
+// Confirmed 2026-08-03 (cue v0.17.1):
+//   _transformerWithAPIVersion.apiVersion: field not allowed
+//
+//  _transformerWithAPIVersion: #TransformerIdentity & {
+//   name:           "configmap-transformer"
+//   modulePath:     "opmodel.dev/catalogs/opm/transformers"
+//   apiVersion:     "v1"
+//   catalogVersion: "1.2.0"
+//   fqn:            "opmodel.dev/catalogs/opm/transformers/configmap-transformer@1.2.0"
+//  }
+
 // The publish gate accepting all three.
-_gateResource: #PrimitiveFQNGate & {
-	identity:           _identityExample
-	kind:               "resources"
-	name:               "config-maps"
+_gateResource: #CatalogMemberFQNGate & {
+	identity:               _identityExample
+	kind:                   "resources"
+	name:                   "config-maps"
 	declaredFQN:            _resourceExample.fqn
 	declaredModulePath:     _resourceExample.modulePath
 	declaredAPIVersion:     _resourceExample.apiVersion
 	declaredCatalogVersion: _resourceExample.catalogVersion
 }
 
-_gateTrait: #PrimitiveFQNGate & {
-	identity:           _identityExample
-	kind:               "traits"
-	name:               "scaling"
+_gateTrait: #CatalogMemberFQNGate & {
+	identity:               _identityExample
+	kind:                   "traits"
+	name:                   "scaling"
 	declaredFQN:            _traitExample.fqn
 	declaredModulePath:     _traitExample.modulePath
 	declaredAPIVersion:     _traitExample.apiVersion
 	declaredCatalogVersion: _traitExample.catalogVersion
 }
 
-_gateTransformer: #PrimitiveFQNGate & {
+// D42: the gate accepts a FLAT blueprint path and refuses a grouped one.
+_gateBlueprint: #CatalogMemberFQNGate & {
+	identity:               _identityExample
+	kind:                   "blueprints"
+	name:                   "stateless-workload"
+	declaredFQN:            _blueprintExample.fqn
+	declaredModulePath:     _blueprintExample.modulePath
+	declaredAPIVersion:     _blueprintExample.apiVersion
+	declaredCatalogVersion: _blueprintExample.catalogVersion
+}
+
+// MUST FAIL — catalog_opm's blueprint path as shipped today, one segment deeper
+// than kindPrefix.blueprints. This is the case D42 exists for: the gate is
+// exact equality by unification, so the grouping segment is refused rather than
+// tolerated. Confirmed 2026-08-03 (cue v0.17.1) — uncommenting yields BOTH
+// conflicts, each naming the extra segment. The FQN one arrives wrapped as
+// "2 errors in empty disjunction" because #FQNType is a disjunction:
+//   _gateGroupedBlueprint.declaredFQN: conflicting values
+//     ".../blueprints/stateless-workload@v1" and
+//     ".../blueprints/workload/stateless-workload@v1"
+//   _gateGroupedBlueprint.declaredModulePath: conflicting values
+//     "opmodel.dev/catalogs/opm/blueprints" and
+//     "opmodel.dev/catalogs/opm/blueprints/workload"
+//
+//  _gateGroupedBlueprint: #CatalogMemberFQNGate & {
+//   identity:               _identityExample
+//   kind:                   "blueprints"
+//   name:                   "stateless-workload"
+//   declaredFQN:            "opmodel.dev/catalogs/opm/blueprints/workload/stateless-workload@v1"
+//   declaredModulePath:     "opmodel.dev/catalogs/opm/blueprints/workload"
+//   declaredAPIVersion:     "v1"
+//   declaredCatalogVersion: "1.2.0"
+//  }
+
+_gateTransformer: #CatalogMemberFQNGate & {
 	identity:           _identityExample
 	kind:               "transformers"
 	name:               "configmap-transformer"
-	declaredFQN:            _transformerExample.fqn
-	declaredModulePath:     _transformerExample.modulePath
-	declaredAPIVersion:     _transformerExample.apiVersion
+	declaredFQN:        _transformerExample.fqn
+	declaredModulePath: _transformerExample.modulePath
+	// no declaredAPIVersion — the gate's conditional requirement does not reach
+	// transformers, and _keyVersion takes identity.Version before it is read (D44).
 	declaredCatalogVersion: _transformerExample.catalogVersion
 }
 
@@ -685,41 +990,58 @@ _gateTransformer: #PrimitiveFQNGate & {
 // cue vet (measured: exit 0). The gate does. Uncommenting yields:
 //   declaredFQN: conflicting values ".../secrets@1.1.0" and ".../secrets@1.2.0"
 //
-//  _gateStale: #PrimitiveFQNGate & {
-//   identity:           _identityExample
-//   kind:               "resources"
-//   name:               "secrets"
-//   declaredFQN:        "opmodel.dev/catalogs/opm/resources/secrets@1.1.0"
-//   declaredModulePath: "opmodel.dev/catalogs/opm/resources"
-//   declaredVersion:    "1.2.0"
+//  _gateStale: #CatalogMemberFQNGate & {
+//   identity:               _identityExample
+//   kind:                   "resources"
+//   name:                   "secrets"
+//   declaredFQN:            "opmodel.dev/catalogs/opm/resources/secrets@1.1.0"
+//   declaredModulePath:     "opmodel.dev/catalogs/opm/resources"
+//   declaredCatalogVersion: "1.2.0"
 //  }
 //
 // MUST FAIL — a primitive sitting outside its own catalog's path (D17's rule,
 // enforced at publish). Uncommenting yields a declaredModulePath conflict.
 //
-//  _gateForeignPath: #PrimitiveFQNGate & {
-//   identity:           _identityExample
-//   kind:               "resources"
-//   name:               "config-maps"
-//   declaredFQN:        "opmodel.dev/elsewhere/resources/config-maps@1.2.0"
-//   declaredModulePath: "opmodel.dev/elsewhere/resources"
-//   declaredVersion:    "1.2.0"
+//  _gateForeignPath: #CatalogMemberFQNGate & {
+//   identity:               _identityExample
+//   kind:                   "resources"
+//   name:                   "config-maps"
+//   declaredFQN:            "opmodel.dev/elsewhere/resources/config-maps@1.2.0"
+//   declaredModulePath:     "opmodel.dev/elsewhere/resources"
+//   declaredCatalogVersion: "1.2.0"
 //  }
 
-// The read-side check passing.
+// The read-side check passing — both halves.
 _fetchedExample: #FetchedArtifact & {
-	modulePath:      "opmodel.dev/m/acme/media_server@v2"
-	artifactPath:    "opmodel.dev/m/acme/media_server@v2"
+	modulePath:      "opmodel.dev/modules/postgres@v2"
+	artifactPath:    "opmodel.dev/modules/postgres@v2"
 	artifactVersion: "v2.1.0"
+	declaredVersion: "2.1.0"
 }
 
-// MUST FAIL — an artifact fetched from a path its metadata does not claim.
-//   artifactPath: conflicting values "...other/media_server@v2" and "...acme/media_server@v2"
+// MUST FAIL — an artifact fetched from a path its metadata does not claim (D11).
+//   artifactPath: conflicting values "...other_server@v2" and ".../postgres@v2"
 //
 //  _fetchedMismatch: #FetchedArtifact & {
-//   modulePath:      "opmodel.dev/m/acme/media_server@v2"
-//   artifactPath:    "opmodel.dev/m/other/media_server@v2"
+//   modulePath:      "opmodel.dev/modules/postgres@v2"
+//   artifactPath:    "opmodel.dev/modules/other_server@v2"
 //   artifactVersion: "v2.1.0"
+//   declaredVersion: "2.1.0"
+//  }
+//
+// MUST FAIL — an artifact whose declared version is not the tag it was fetched
+// by (D39). This is the live defect measured in 01-problem.md: jellyfin v2.0.1
+// and v2.0.2 both shipped metadata.version "2.0.0". Under D39 the declared
+// value reaches the module.opmodel.dev/version label on every rendered
+// resource, so a reader that accepts this ships a label that lies.
+// Uncommenting yields, confirmed 2026-08-03 (cue v0.17.1):
+//   _fetchedVersionDrift.declaredVersion: conflicting values "2.0.2" and "2.0.0"
+//
+//  _fetchedVersionDrift: #FetchedArtifact & {
+//   modulePath:      "opmodel.dev/modules/postgres@v2"
+//   artifactPath:    "opmodel.dev/modules/postgres@v2"
+//   artifactVersion: "v2.0.2"
+//   declaredVersion: "2.0.0"
 //  }
 
 // D14: the platform names one build, and under D4 that is not a compromise —
@@ -806,7 +1128,7 @@ _demandFulfilledContract: #PrimitiveDemand & {
 	supplied: _supply
 
 	availableApiVersions: ["v1"]
-	matched:              true
+	matched: true
 }
 
 // Whether the two BODIES agree is the always-unify rung's job, not this

@@ -96,11 +96,11 @@ The new and changed shapes live in [`schemas/target.cue`](schemas/target.cue) (C
 ### Inventory store
 
 ```diff
-- Secret opm.jellyfin.<uuid>  (type opmodel.dev/release, key "inventory")
+- Secret opm.postgres.<uuid>  (type opmodel.dev/release, key "inventory")
 -   data.inventory = JSON ReleaseInventoryRecord{ CreatedBy, …, Inventory{…} }
-+ ModuleInstance jellyfin (namespace media)
++ ModuleInstance postgres (namespace prod)
 +   spec.owner: cli
-+   spec.module: { path: example.com/modules/jellyfin, version: 1.2.0 }
++   spec.module: { path: example.com/modules/postgres, version: 1.2.0 }
 +   status.inventory: { revision, digest, count, entries[] }
 +   status.lastAppliedRenderDigest: <digest computed by the library kernel>
 +   status.conditions: [ { type: Ready, reason: AppliedByCLI } ]
@@ -120,7 +120,7 @@ The new and changed shapes live in [`schemas/target.cue`](schemas/target.cue) (C
 ```diff
 - (impossible) hand-write a ModuleInstance, kubectl apply, delete the Secret, hope the
 -   operator's first reconcile is a no-op
-+ opm instance handoff jellyfin
++ opm instance handoff postgres
 +   verify operator ready → CR is owner:cli → spec.module resolvable →
 +   render digest == status.lastAppliedRenderDigest  (parity guaranteed by shared kernel)
 +   patch spec.owner: operator → operator reconcile: Ready:True, 0 changed, 0 pruned
