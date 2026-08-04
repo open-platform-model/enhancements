@@ -1,0 +1,81 @@
+# Structured slice plan for this enhancement. Optional — see
+# 0000/README.md ## Slice Plan for the field reference and the
+# workflow this feeds (task vet, task plan:graph, task plan:ready,
+# task slice:seed). Delete this file if the enhancement never
+# grows past one slice.
+#
+# Structural backing for 06-operational.md ## Cross-Repo Coordination,
+# which keeps the narrative rationale. That order is strict because each
+# step consumes a published artifact from the one before.
+#
+# No cross-enhancement depends_on to 0011 is declared, deliberately: both
+# entries record that neither blocks the other, and 0011 D17 dissolved the
+# joint window. 0011 contributes the *mechanism* of this plan's
+# modules-fleet-republish (opm module publish rather than the checksum
+# task) without gating it.
+slices:
+  - id: core-identity-schema
+    repo: core
+    concern: >
+      Publish the new core major: modulePath carries @vN and is the whole
+      address, fqn == modulePath, contract keys split from impl keys (D4),
+      #Subscription takes a scalar version (D14).
+    depends_on: []
+    status: planned
+
+  - id: library-kernel-retarget
+    repo: library
+    concern: >
+      Retarget to the new core major and land the behaviour every frontend
+      inherits: D11 read-side checks, filter.go deleted (D14), D26 provenance
+      denylist, D27 in the match rung, D28, D32/D37, D36, the D9 stamp.
+    depends_on:
+      - core-identity-schema
+    status: planned
+
+  - id: catalogs-identity-republish
+    repo: catalog
+    concern: >
+      Commit identity/identity.cue in the D5 shape across catalog_opm,
+      catalog_kubernetes and catalog_opm_experimental, delete the stamping
+      task, republish.
+    depends_on:
+      - library-kernel-retarget
+    status: planned
+
+  - id: cli-coordinate-adoption
+    repo: cli
+    concern: >
+      Retarget to the new library, delete the address-composition helpers,
+      write the resolved coordinate into spec.module.{path,version}.
+    depends_on:
+      - library-kernel-retarget
+    status: planned
+
+  - id: operator-library-retarget
+    repo: opm-operator
+    concern: >
+      Retarget to the new library. No feature change and no adoption code —
+      D18 rejected an operator-side tolerance window outright.
+    depends_on:
+      - library-kernel-retarget
+    status: planned
+
+  - id: modules-fleet-republish
+    repo: modules
+    concern: >
+      Add identity.cue per module, drop the authored version, rename
+      hyphenated modules, republish the fleet. The only fleet republish in
+      the 0010/0011 pair (0011 D17).
+    depends_on:
+      - catalogs-identity-republish
+    status: planned
+
+  - id: releases-repin
+    repo: releases
+    concern: >
+      Re-pin opm-releases to the republished module coordinates. Sibling
+      repo, not under the workspace root.
+    depends_on:
+      - modules-fleet-republish
+    status: planned

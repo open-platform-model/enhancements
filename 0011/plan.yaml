@@ -1,0 +1,75 @@
+# Structured slice plan for this enhancement. Optional — see
+# 0000/README.md ## Slice Plan for the field reference and the
+# workflow this feeds (task vet, task plan:graph, task plan:ready,
+# task slice:seed). Delete this file if the enhancement never
+# grows past one slice.
+#
+# Structural backing for 06-operational.md ## Cross-Repo Coordination.
+#
+# NOTE — this plan carries two slices that section does not list. Its
+# four steps are cli -> catalogs -> modules -> opm-releases, opening
+# "nothing else moves until opm catalog publish and opm module publish
+# exist". But `affects` also names core and library, and two decisions
+# put work there that the CLI slice CONSUMES rather than follows:
+#
+#   D21 — #IdentityPackage must ship in `core`, because publish validates
+#         identity by unifying against it and surfacing CUE's own error.
+#         It exists today only in 0010's schemas/target.cue.
+#   D9  — the compatibility comparator is pure cue.Value logic and belongs
+#         in `library`, shared by publish, `catalog registry check --compat`
+#         and any CI action; predecessor selection reuses
+#         library/opm/materialize/enumerate.go + filter.go:112.
+#
+# Both are therefore UPSTREAM of cli-publish-commands, not downstream of
+# it. 06-operational.md ## Cross-Repo Coordination should be reconciled
+# against this ordering.
+slices:
+  - id: core-identity-package
+    repo: core
+    concern: >
+      Ship #IdentityPackage in core so publish validates identity/identity.cue
+      by unification and CUE produces the diagnostic (D21), rather than a
+      hand-rolled expected-versus-found comparison.
+    depends_on: []
+    status: planned
+
+  - id: library-compat-comparator
+    repo: library
+    concern: >
+      The D9 subsumption comparator plus predecessor selection, in the kernel
+      so publish, `catalog registry check --compat` and CI share one
+      implementation. Reuses enumerateVersions and highestStable.
+    depends_on: []
+    status: planned
+
+  - id: cli-publish-commands
+    repo: cli
+    concern: >
+      Six commands over one pipeline — module/catalog publish, version set,
+      --version, catalog registry check, mod init repair (D20), login (D11) —
+      with all ten refusal paths rehearsed against a non-production registry.
+    depends_on:
+      - core-identity-package
+      - library-compat-comparator
+    status: planned
+
+  - id: catalogs-publish-cutover
+    repo: catalog
+    concern: >
+      Switch release.yml's publish job to `opm catalog publish` and delete the
+      copy-and-stamp task. Catalogs go first because modules build against
+      them.
+    depends_on:
+      - cli-publish-commands
+    status: planned
+
+  - id: modules-publish-cutover
+    repo: modules
+    concern: >
+      Delete the checksum-driven publish and versions.yml, add each module's
+      identity/identity.cue and the D12 metadata wiring, republish. Coordinates
+      do not change (D13).
+    depends_on:
+      - cli-publish-commands
+      - catalogs-publish-cutover
+    status: planned
