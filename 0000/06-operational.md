@@ -48,4 +48,10 @@ data-plane state changes that survive a code rollback?}
 
 {Sequence the repo landings (core → library → catalog → …). For each
 hand-off, name the artefact the upstream produces that the downstream
-consumes (a published OCI tag, a regenerated fixture, a new task target).}
+consumes (a published OCI tag, a regenerated fixture, a new task target).
+
+If the sequence is more than a couple of hand-offs, or spans more than one
+repo, back this narrative with a structured `plan.yaml` (see
+`README.md ## Slice Plan`) — this section then states *why* the order is
+what it is, while `plan.yaml` / the generated `PLAN.md` are the source of
+truth for the order and per-slice status itself.}

@@ -54,6 +54,7 @@ Read these on entry:
 Sibling skills to load when applicable:
 
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — when creating, updating, validating, or concluding experiments under `enhancements/NNNN/experiments/`. Load whenever you are about to invoke `task new:experiment` or `task experiments:list`, or edit any file under `experiments/`.
+- **`enhancement-slicing`** (`.claude/skills/enhancement-slicing/SKILL.md`) — when planning, tracking, or seeding the per-repo execution of an enhancement via the optional `enhancements/NNNN/plan.yaml`. Load before `task new:plan`, before editing `plan.yaml`, before promoting `draft → accepted` on an entry whose `affects` spans more than one repo, or before `task slice:seed`.
 - **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — when walking an enhancement's `## Open Questions` block interactively (one OQ at a time, with context + alternatives + a decision write-back). Load before invoking `/enhancement-open-questions ID=NNNN`, or when `task questions:open ID=NNNN` returns rows that need resolution.
 - **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — when an entry has accreted reversals: merging an amending decision into the one it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before merging or deleting anything under an existing `DN` / `OQN`, or when `task compact:plan ID=NNNN` returns candidates. Refuses on `implemented` entries.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — when implementing a slice that touches `core/*.cue`. Enforces the SPEC.md co-update protocol. Required reading before editing the core schema; the pre-commit hook and CI gate will refuse the commit otherwise.
@@ -75,6 +76,8 @@ Sibling skills to load when applicable:
 NNNN/                       One per enhancement (id-only directory name)
   experiments/              Optional — runnable validations under enhancement-experiments skill
   research/                 Optional — external evidence (deep-research dossiers, benchmarks, prior-art surveys)
+  plan.yaml                 Optional — structured slice plan under enhancement-slicing skill
+  PLAN.md                   Generated from plan.yaml (task plan:graph) — do not hand-edit
 CLAUDE.md                   This file — orientation
 README.md                   How to read enhancements
 INDEX.md                    Generated browse aid (run `task index` after config.yaml edits)
@@ -98,6 +101,10 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffold a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffold an experiment inside an entry. Load `enhancement-experiments` skill first. |
 | `task experiments:list ID=NNNN` | List experiments for one entry; parses `Status:` from each per-experiment README. |
+| `task new:plan ID=NNNN` | Scaffold `plan.yaml` (structured slice plan) inside an entry. Load `enhancement-slicing` skill first. |
+| `task plan:graph ID=NNNN` | Regenerate `NNNN/PLAN.md` — Mermaid DAG + table of the slice plan. |
+| `task plan:ready ID=NNNN` | TSV of slices whose dependencies are all `done` and aren't themselves done/cancelled — the order-of-procedure answer. |
+| `task slice:seed ID=NNNN SLICE=id` | Print a seed stub for one slice, sized to hand to the target repo's own OpenSpec `new` flow. |
 | `task questions:list ID=NNNN` | List `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial buckets only). Consumed by the `enhancement-open-questions` skill. |
 | `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Read-only; consumed by the `enhancement-compaction` skill. |
@@ -129,6 +136,7 @@ Each phase has gating criteria and a concrete checklist. The `enhancements` skil
 - If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `06-operational.md`.
 - Run `task vet` after any `config.yaml` or `schemas/` edit — hard gate, PR-blocking.
 - Run `task index` after any `config.yaml` change; `task graph` after any cross-ref change.
+- **Track cross-repo sequencing in `plan.yaml`, not only in `06-operational.md` prose**, once an enhancement's `affects` spans more than one repo. Load `enhancement-slicing` before scaffolding it (`task new:plan`) or editing an existing one; run `task vet:one` after every edit and `task plan:graph` to refresh `PLAN.md`. Optional — `task check` nudges (does not block) when an `accepted` multi-repo entry has none yet.
 - When a slice touches `core/`, the `core-schema-edit` skill is the binding protocol for SPEC.md co-updates.
 
 ### Source of truth precedence

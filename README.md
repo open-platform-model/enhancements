@@ -39,9 +39,11 @@ enhancements/
     ├── experiments/        (optional) self-contained proofs-of-concept
     │   ├── README.md       hand-maintained index of experiments
     │   └── NN-{concept}/   one directory per experiment (per-experiment README carries Status:)
-    └── research/           (optional) external evidence — deep-research dossiers, benchmarks, surveys
-        ├── findings.md     primary dossier (cited summary + sources)
-        └── {topic}.md      further write-ups
+    ├── research/           (optional) external evidence — deep-research dossiers, benchmarks, surveys
+    │   ├── findings.md     primary dossier (cited summary + sources)
+    │   └── {topic}.md      further write-ups
+    ├── plan.yaml           (optional) structured slice plan — repo, concern, depends_on, status per slice
+    └── PLAN.md             generated from plan.yaml (task plan:graph) — do not hand-edit
 ```
 
 ## How to read an enhancement
@@ -79,12 +81,30 @@ Creates `0001/experiments/` (with an index README on first invocation), drops a 
 
 Also optional. When an enhancement's design rests on **external evidence** — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — capture the cited findings under `research/` so the evidence travels with the design. The primary dossier is `research/findings.md`; add topic-named files for distinct investigations. Research is *gathered* evidence (read-only synthesis), as distinct from `experiments/`, which are *authored* runnable proofs. Cite every claim, date the snapshot, and reference it back from the `Source:` lines in `03-decisions.md`. There is no scaffold task and `task vet` does not gate it. See `0000/README.md ## Research` for the full convention.
 
+## Slice Plans
+
+Also optional. `06-operational.md ## Cross-Repo Coordination` names the sequence in prose; once that sequence grows past a couple of hand-offs (as it did for enhancement 0006, which ended up hand-numbering slices and their dependencies inline), back it with a structured `plan.yaml`:
+
+```bash
+task new:plan ID=0001
+```
+
+Each entry in `plan.yaml` is a **slice** — a small, single-concern, single-repo landing: an `id`, the target `repo` (must be a member of `config.yaml.affects`), a one-line `concern`, `depends_on` (other slice ids, or `"NNNN:slice-id"` for a cross-enhancement dependency), and a `status` (`planned | in-progress | done | cancelled`). A slice is a table of contents for execution, not the execution itself — the detail lives in that slice's own OpenSpec change in the target repo.
+
+```bash
+task plan:graph ID=0001                    # regenerate NNNN/PLAN.md — Mermaid DAG + table, coloured by status
+task plan:ready ID=0001                    # slices whose dependencies are all done — the order-of-procedure answer
+task slice:seed ID=0001 SLICE=cli-foo      # print a seed stub for one slice, for that repo's own OpenSpec `new`
+```
+
+`task vet` / `task vet:one` validate `plan.yaml` structurally whenever it's present (schema, id uniqueness, `repo ∈ affects`, every `depends_on` resolving, no dependency cycle) — never required when absent. See `0000/README.md ## Slice Plan` for the full field reference and the `enhancement-slicing` skill for the workflow.
+
 ## Validation
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, schemas/ compiles standalone.
-- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings, Open Questions block, implementation snapshot quote block, deviations section. Warns rather than blocks.
+- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, schemas/ compiles standalone, and — when `plan.yaml` is present — its schema, slice id uniqueness, `repo ∈ affects`, `depends_on` resolution, and dependency-cycle freedom.
+- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings, Open Questions block, implementation snapshot quote block, deviations section, and a nudge (not a block) to add `plan.yaml` when an `accepted` entry's `affects` spans more than one repo and none exists yet.
 
 Run `task vet` before any PR that touches an enhancement; run `task check` before promoting a status (draft → accepted, accepted → implemented).
 

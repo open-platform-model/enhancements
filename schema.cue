@@ -128,3 +128,73 @@ import "strings"
 		date?: _|_
 	}
 }
+
+// --- Slice plan ----------------------------------------------------------
+//
+// Schema for the optional enhancements/NNNN/plan.yaml. Validated the same
+// way as config.yaml:
+//   cue vet -d '#SlicePlan' enhancements/schema.cue enhancements/NNNN/plan.yaml
+//
+// A slice plan is the structured layer between a design (this entry) and
+// its execution (one OpenSpec change per slice, in the target repo). It
+// exists only when useful — most enhancements ship as one slice in one
+// repo and never need this file. Scaffold with `task new:plan ID=NNNN`
+// once `affects` spans more than one repo, or a single repo's work is
+// large enough to benefit from an explicit landing order.
+//
+// A slice is deliberately thin: which repo, a one-line concern, what it
+// depends on, and its status. Implementation detail belongs in that
+// slice's own OpenSpec change, not here — this file is a table of
+// contents for execution, not the execution itself.
+//
+// `related`/`supersedes`-style cross-referential integrity (id uniqueness,
+// depends_on resolution, repo ∈ affects, cycle freedom) is enforced by
+// `task vet` / `task vet:one`, not by this schema — the same split already
+// used for config.yaml's `related`/`supersedes` dangling-ref checks, since
+// CUE is a poor fit for graph validation.
+
+// Same shape as #SlugStr — a slice id is a short kebab-case slug, unique
+// within one entry's plan.yaml.
+#SliceIDStr: #SlugStr
+
+// A depends_on entry is either a local slice id (resolved within this same
+// plan.yaml) or a cross-enhancement reference "NNNN:slice-id" pointing at
+// a slice declared in another entry's plan.yaml — e.g. 0006's `cli`
+// slice depending on enhancement 0001's `library` slice.
+#SliceRefStr: #SliceIDStr | =~"^[0-9]{4}:[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+
+#SliceStatus: "planned" | "in-progress" | "done" | "cancelled"
+
+// One line — what this slice is *about*, not how it's built.
+#SliceConcernStr: string & strings.MinRunes(1) & strings.MaxRunes(240)
+
+#Slice: {
+	id!: #SliceIDStr
+
+	// Must be a member of this entry's config.yaml `affects`. Checked by
+	// `task vet`, not expressible here (schema.cue validates plan.yaml and
+	// config.yaml as independent files).
+	repo!: #Area
+
+	concern!: #SliceConcernStr
+
+	depends_on!: [...#SliceRefStr]
+
+	status!: #SliceStatus
+
+	// Set once the real per-repo change exists. Conventionally
+	// "<repo>/<openspec-slug>" — the same free-form shape already used in
+	// config.yaml's history[].slice, so the two cross-reference cleanly.
+	openspec_ref?: string & strings.MinRunes(1)
+
+	// `cancelled` keeps the id — never reused, other slices' depends_on may
+	// already cite it — but must record why, mirroring the tombstone
+	// convention for a vacated DN/OQN.
+	if status == "cancelled" {
+		cancelled_reason!: string & strings.MinRunes(1)
+	}
+}
+
+#SlicePlan: {
+	slices!: [...#Slice]
+}

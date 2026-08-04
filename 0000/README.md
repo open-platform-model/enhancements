@@ -30,7 +30,8 @@ exists only when implementation.status reaches `complete`).
 ## Documents
 
 The six split documents below are mandatory and always present. Add optional
-documents (e.g. `experiments/`) only when a specific need surfaces.
+documents (e.g. `experiments/`, `research/`, `plan.yaml`) only when a
+specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — {One-line description of the problem being solved}
 2. [02-design.md](02-design.md) — {One-line description of the proposed design}
@@ -139,6 +140,49 @@ NNNN/research/
 ```
 
 `findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task — `research/` is hand-authored prose.
+
+## Slice Plan
+
+Also **optional**. A slice plan is the structured layer between this design and its execution: one small, single-concern **slice** per repo landing, with an explicit dependency order and a status. Add `plan.yaml` once `## Cross-Repo Coordination` in `06-operational.md` stops being enough to hold the sequence in your head — typically when `config.yaml.affects` spans more than one repo, or a single repo's work is large enough to need an explicit landing order. A single-repo, single-slice enhancement never needs this file.
+
+`06-operational.md ## Cross-Repo Coordination` keeps the *narrative rationale* — why this order, what each hand-off produces. `plan.yaml` is the *structured backing data* the narrative refers to by slice id — the same relationship `03-decisions.md`'s prose already has to `schemas/target.cue`.
+
+### Scaffold
+
+```bash
+task new:plan ID=NNNN
+```
+
+Creates `NNNN/plan.yaml` with an empty `slices: []`. Add one entry per slice:
+
+```yaml
+slices:
+  - id: cli-kernel-adoption            # stable, short, unique within this entry
+    repo: cli                          # MUST be a member of config.yaml.affects
+    concern: >
+      Delete pkg/render; route render through the library kernel.
+    depends_on:
+      - cli-cr-inventory-backend       # local slice id
+      - "0001:library"                 # cross-enhancement ref: NNNN:slice-id
+    status: in-progress                # planned | in-progress | done | cancelled
+    openspec_ref: cli/2026-07-18-cli-kernel-adoption   # set once it lands
+```
+
+A slice is deliberately thin — `concern` is one line, not a design doc. Implementation detail lives in that slice's own OpenSpec change in the target repo, same as today; `plan.yaml` is a table of contents for execution, not the execution itself. `cancelled` slices keep their id (other slices may already depend on it) and carry `cancelled_reason`, mirroring the tombstone convention for a vacated `DN`/`OQN`.
+
+### Validation and views
+
+`task vet` / `task vet:one` validate `plan.yaml` structurally whenever the file is present (never required): schema conformance, `id` uniqueness, `repo ∈ affects`, every `depends_on` resolving, and no dependency cycles.
+
+```bash
+task plan:graph ID=NNNN   # regenerate NNNN/PLAN.md — Mermaid DAG + table, colored by status
+task plan:ready ID=NNNN   # slices whose depends_on are all `done` and aren't themselves done/cancelled — the order-of-procedure answer
+task slice:seed ID=NNNN SLICE=cli-kernel-adoption   # print a seed stub sized for that repo's own `openspec new`
+```
+
+`slice:seed` only emits the stub — the enhancements repo does not reach into another repo's tooling. Hand the stub to that repo's own OpenSpec workflow.
+
+When a slice lands, update its `status` (and `openspec_ref`) in the same commit that appends the `history` event citing it in `config.yaml` — the two should always agree.
 
 ## Deviations from Design
 
