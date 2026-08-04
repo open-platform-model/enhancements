@@ -23,7 +23,9 @@ pain.}
 
 {Walk through a real or realistic scenario that demonstrates the problem.
 Use actual module names, file paths, or CUE snippets where possible. The
-reader should be able to see the problem, not just read about it.}
+reader should be able to see the problem, not just read about it. An ASCII
+diagram of the current-state architecture or flow is often the fastest way
+to make the problem visible — see the `enhancement-diagrams` skill.}
 
 ## User Stories
 

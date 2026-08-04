@@ -24,7 +24,8 @@ become goals in a follow-up enhancement.}
 {Describe the core idea in plain language. What is the shape of the
 solution? How does it fit into the existing architecture? A reader should
 understand the design direction after this section, even without the details
-that follow.}
+that follow. An ASCII diagram of the shape (layers, components, data flow)
+often lands the idea faster than prose alone — see `enhancement-diagrams`.}
 
 ## Schema / API Surface
 
@@ -39,10 +40,11 @@ to `schemas/target.cue` for the full surface.}
 library, catalog, …). For each target, name the construct or function being
 changed and the nature of the change (new field, renamed field, new
 function, replaced function, removed field, etc.). This is the construction
-roadmap for implementation.}
+roadmap for implementation. An ASCII component/dependency diagram can make
+cross-repo wiring easier to follow than three separate bullet lists.}
 
 ## Before / After
 
 {Show concrete before-and-after comparisons. Use the same scenario(s) from
 `01-problem.md`'s Concrete Example to create a clear narrative arc. CUE
-snippets, YAML fragments, or side-by-side diffs all work.}
+snippets, YAML fragments, an ASCII diagram, or side-by-side diffs all work.}

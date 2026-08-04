@@ -184,6 +184,15 @@ task slice:seed ID=NNNN SLICE=cli-kernel-adoption   # print a seed stub sized fo
 
 When a slice lands, update its `status` (and `openspec_ref`) in the same commit that appends the `history` event citing it in `config.yaml` — the two should always agree.
 
+## Diagrams
+
+Diagrams are welcome throughout this enhancement's documents — the medium depends on what's being shown, never a blanket default:
+
+- **Mermaid** — relationships between enhancements or slices: whether this entry should `related`/`supersedes` another, or whether a slice should `depends_on` another. This is exactly what the generated `GRAPH.md` and `PLAN.md` already render; a live Mermaid sketch during discussion (reusing their `classDef` palette) previews what those files will look like once the edit lands and `task graph` / `task plan:graph` regenerates them. Never hand-authored into these documents — see `enhancement-slicing` for the slice side.
+- **ASCII** — how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later — bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
+
+See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
+
 ## Deviations from Design
 
 None at this stage. Update this section when implementation lands and any

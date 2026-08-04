@@ -23,6 +23,7 @@ Sibling skills:
 
 - **`enhancements`** (`.claude/skills/enhancements/SKILL.md`) — the binding workflow protocol. Decision block format, status gates, history conventions all live there. This skill defers to that one on conflicts.
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — experiments are a primary input for partial OQs (`informed-by-exp-NN` / `supported-by-exp-NN`). When walking such an OQ, read the experiment's `README.md` Outcome section before presenting.
+- **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when presenting an OQ whose subject is a relationship (`related`/`supersedes`/a slice `depends_on`) or a design/mechanism question (architecture, flow, state), sketch the diagram the content shape calls for — Mermaid for the former, ASCII for the latter. See the Present step below.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — load this only when the resulting decision will also land as an edit in `core/*.cue` in the same session. The walk itself doesn't touch `core/`.
 
 ## Invocation
@@ -67,6 +68,11 @@ Read `config.yaml.status` first thing. Behavior by status:
    - Schema markers: `grep -nE "OQ$K\\b" schemas/target.cue`. Show line numbers with two lines of context above and below.
    - Experiment evidence (only if `Status: informed-by-exp-NN` or `supported-by-exp-NN`): read `experiments/NN-*/README.md` and quote the Outcome section.
    - Alternatives the OQ bullet enumerates.
+   - **Diagram** (see `enhancement-diagrams`) — if the OQ is about how this entry relates to
+     others (a `related`/`supersedes` call, or a slice `depends_on`), sketch a small Mermaid
+     relationship preview using the `graph`/`plan:graph` `classDef` palette. If the OQ is about
+     internal architecture, data/control flow, or state, sketch an ASCII diagram. Not every OQ
+     needs one — reach for it when a picture would settle the question faster than prose.
    - **Recommendation** — include a `**Recommendation:** {…}` line *only* when evidence supports it (an experiment outcome, a prior decision that constrains the answer, a principle explicitly stated in `02-design.md`). If no such evidence exists, say so: "No strong recommendation — both A and B are live." Fabricating decisiveness is an anti-pattern; see below.
 2. **Discuss.** Stay in this state until the user picks an outcome. Answer questions, surface additional context from the cached files, do not write anything.
 3. **Decide.** User picks one of:
@@ -172,5 +178,6 @@ After the queue is exhausted (or the user exits early):
 - `enhancements/CLAUDE.md` — repo guide; lists this skill under sibling skills.
 - `enhancements/.claude/skills/enhancements/SKILL.md` — the canonical workflow protocol. `## Phase 2 — Iterate` defines the decision block format this skill follows; `## Phase 3 — Promote` defines the OQ-resolved gate this skill exists to satisfy.
 - `enhancements/.claude/skills/enhancement-experiments/SKILL.md` — experiment outcomes feed `informed-by-exp-NN` / `supported-by-exp-NN` partial OQs; the walk reads experiment READMEs when presenting those.
+- `enhancements/.claude/skills/enhancement-diagrams/SKILL.md` — sketching guidance for the Present step: Mermaid for relationship-shaped OQs, ASCII for design/mechanism-shaped ones.
 - `enhancements/.claude/skills/enhancement-compaction/SKILL.md` — sister skill that cleans up after this one: collapses the resolved OQ bullets this walk produces, and weaves in reversals when a later decision overturns one written here.
 - `core/.claude/skills/core-schema-edit/SKILL.md` — sister skill governing SPEC.md co-update when a decision from this walk lands as a real schema change in `core/*.cue`.

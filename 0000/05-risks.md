@@ -29,7 +29,9 @@ proceeds anyway because the benefit outweighs.}
 fundamentally different shapes the enhancement could have taken. Each
 alternative gets one bullet plus a one-sentence reason it was not
 chosen. Per-decision alternatives (e.g., "why this struct vs that
-struct") belong in `03-decisions.md`, not here.}
+struct") belong in `03-decisions.md`, not here. An ASCII diagram of a
+rejected alternative's shape can help when the shape itself is the reason
+it was ruled out — see `enhancement-diagrams`.}
 
 - **{Alternative title}.** {One-sentence sketch.} **Why not:** {One-
   sentence reason.}
