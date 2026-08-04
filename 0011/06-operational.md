@@ -123,7 +123,7 @@ error: modules/postgres/module.cue states a version its identity package does no
   Derive it:  version: id.Version
 ```
 
-**8. Already published (D19)**
+**8. Already published (D15)**
 
 ```
 error: opmodel.dev/modules/postgres@v2 already holds v2.4.1
@@ -159,7 +159,7 @@ Not a hand-written message. The identity package is unified against `core`'s `#I
 
 **Position information must reach the refusal site.** Messages 1, 2, 5, 6 and 7 print `file:line`, which means the loader has to carry it rather than discarding it after decode. Worth recording now instead of discovering it when the messages come out bare.
 
-**Exit codes need a scheme, and D19 makes it matter.** A sweep must distinguish "the filter selected nothing" from "publish failed". D19 rejected having the sweep tolerate an exit code, so nothing depends on a *specific* number today — but the moment someone reaches for that, D19's rejected alternative is the argument against it.
+**Exit codes need a scheme, and D15 makes it matter.** A sweep must distinguish "the filter selected nothing" from "publish failed". D15 rejected having the sweep tolerate an exit code, so nothing depends on a *specific* number today — but the moment someone reaches for that, that rejected alternative is the argument against it.
 
 Publish also gains a **plan output** — the resolved path, the tag, the registry repository, and the gate outcomes — printable before the push. It is the human-readable form of `#PublishPlan` and doubles as the dry-run.
 
