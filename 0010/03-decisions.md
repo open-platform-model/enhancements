@@ -340,6 +340,7 @@ Recorded explicitly as **not** delivered: answering "which catalog ships FQN X?"
 Measured 2026-07-27: the shipped catalogs follow the convention uniformly, every primitive setting `modulePath: "\(id.ModulePath)/<kind>"`; no cross-catalog reference exists yet; and transformers are *already* bound structurally, because `core/src/catalog.cue:70-76` stamps `modulePath: "\(M.modulePath)/transformers"` by unification, so a foreign transformer placed in a catalog's `#transformers` map fails today with conflicting values. The enforcement gap is exactly resources, traits, and blueprints.
 
 **Source:** User decision 2026-07-27.
+**Revised:** 2026-08-05 — the gate this decision delegates to is specified as **enhancement 0011 D22**, which ships `#CatalogMemberFQNGate` in `core` and has `opm catalog publish` unify every catalog member against it. Until that decision existed, 0011 carried no owner for the rule — no decision, no refusal message, no slice — so this delegation pointed at nothing.
 **Revised:** 2026-08-03 — **the not-delivered claim's evidence is retired by D42**, and this note exists because citing that claim as still-current is the specific error the next reader is likely to make. D42 flattens every primitive kind to exactly one path segment (`…/blueprints/<name>`, not `…/blueprints/workload/<name>`), which is the fixed kind segment this decision names as the missing convention — so with `kindPrefix` admitting one prefix per kind, the owning catalog IS recoverable from a contract FQN by stripping version, name and kind segment. What does **not** change: the decision itself (the rule is a publish gate, not a `core` constraint), and D37's requirement that `fulfilment` be authored rather than inferred, which rests independently on a catalog later adding a transformer silently changing a contract's character. D42 records the same consequence from its own side and declines to reopen either decision on it.
 
 ### D18: The live-instance migration is subsumed by the v0 → v1 fleet migration
@@ -436,6 +437,7 @@ catalog:     "opmodel.dev/catalogs/opm@v1"
 A transformer's `requiredResources` key is the resource's own `metadata.fqn`, so demand and supply are the same string by construction and there is no third place to keep in step. Every existing leaf's edit is mechanical: rename `id.ModulePath` to `id.RegistryPath` in one reference, and add one `fqn` line.
 
 **Source:** User decision 2026-07-27. Resolves OQ6. Derivation, removal and inversion each measured against cue v0.17.1 on 2026-07-27.
+**Revised:** 2026-08-05 — the publish gate this decision moves enforcement to is specified as **enhancement 0011 D22** (`#CatalogMemberFQNGate`, shipped in `core`, unified against at publish). The trade recorded above — an authored `fqn` for one identity source, with a stale key caught before it ships — is only paid for once that gate exists; until 0011 D22 it had no owner in either entry.
 
 ### D22: (merged into D5, 2026-07-30)
 
@@ -932,6 +934,7 @@ For a conformant catalog the `core` copy is provably redundant, which is the who
 **Deliberately not decided here: the `#Module` half.** D40 asserts the same relation on `#Module.metadata`, and D38 gives modules an identity subpackage, so the argument transposes without change. It is left open because the two artifact types having different answers to "where is the major checked" is the asymmetry D38 and 0011 D12 have just spent two decisions removing — so the module half should be settled deliberately rather than inherited. Recommendation on the record: symmetry, and it is free if the `#IdentityPackage` export above lands.
 
 **Source:** User decision 2026-08-03. Consumer-side evaluation point read at `library/opm/materialize/pull.go:23`; the `core`-cannot-import-identity constraint from D38 and 0011 D12; publish-side identity-shape validation from 0011 D8. **Amends D40.**
+**Revised:** 2026-08-05 — the `#Module` half this decision left open is **settled by D45**, which transposes this holding rather than diverging from it. The recommendation recorded here (symmetry, and free if the `#IdentityPackage` export lands) is what D45 takes.
 
 ---
 
@@ -968,6 +971,26 @@ Fixing it as a category rather than as a field is what makes the correction dura
 - **Three wording-only sites**, substantively correct and loose in the same way: D1 (`#PackagePathType` on four kinds — right, a transformer does declare a package path), D21 (`version!` required on "every primitive kind" — right for all four under its `catalogVersion` name), and D17 (whose rule binds primitives *and* transformers). None changes meaning; each says "primitive" where it means "catalog member".
 
 **Source:** User decision 2026-08-03, stating the taxonomy directly — "A primitive is the fundamental building block, so Resource, Trait, Blueprint. A transformer is not a primitive" — and placing `#Blueprint` with the primitives explicitly. Category vocabulary read from `core/SPEC.md:29`, `:34` and `:38` the same day; the D25/D34 conflict from `03-decisions.md:452` against `:644`, with D25 carrying no revision note; closedness refusal and gate laziness both measured against cue v0.17.1. **Amends D25's `apiVersion` clause.**
+
+---
+
+### D45: The version-major agreement is asserted in the identity package alone for `#Module` too
+
+**Decision:** D43's holding transposes to `#Module`. `core` asserts no relation between `#Module.metadata.version`'s major and `modulePath`'s; `identity/identity.cue`'s `VersionMajor: Major` is the only assertion, reaching `metadata` through the wiring D38 establishes (`modulePath: id.ModulePath`, `version: id.Version`). **D40's `#Module` half is superseded**; its identity-package half is untouched, as it was for `#Catalog`.
+
+This settles what D43 left explicitly undecided, and it settles it the way D43 recommended on the record. The two artifact types now answer "where is the major checked" identically, which is the asymmetry D38 and 0011 D12 spent two decisions removing.
+
+**Alternatives considered:**
+
+- **Keep the `core` assertion on `#Module` while `#Catalog` has none — the state D43 leaves behind.** Rejected: nothing distinguishes the two cases. Both write `ModulePath` and `Version` in an identity package that asserts the relation between them; both reach `metadata` by authored wiring; both have that wiring checked at publish by 0011 D12. A rule that binds one artifact type and not the other is a rule the next reader has to look up rather than know.
+- **Drop both assertions.** Rejected on D40's measurement, which is unchanged and is why the identity-package half survives: `ModulePath: ".../jellyfin@v2"` with `Version: "3.0.0"` **vets clean**, and the disagreement then surfaces at `#SubscriptionSelection`'s `_majorAgrees` in a platform author's file, about a publisher's mistake they cannot fix.
+- **Keep both `core` copies and reverse D43 instead.** Genuinely available, and rejected for D43's reason rather than by preference: for a conformant artifact the `core` copy re-derives the same relation over the same two values one hop downstream, and 0011 D8 plus D21 already refuse an identity file that does not match `#IdentityPackage`.
+
+**Rationale:** The exposure this accepts is identical to D43's and is worth restating rather than inheriting silently: a module whose identity package is absent, hand-written or non-conformant carries **no major-agreement check any consumer can run**, because `identity/identity.cue` is never evaluated as a package by a consumer — it reaches them only through the values it produced. `cue mod publish` keeps working (D11), so that artifact class is not hypothetical.
+
+Two things bound it. The residual failure is loud rather than silent — a version whose major disagrees with its path is caught at publish by 0011 D12's `metadata.version == id.Version` check for any artifact that goes through the tool. And D43's recommended follow-on removes the exposure for both artifact types at once: have `core` **export** `#IdentityPackage` and have each `identity/identity.cue` embed it, so `VersionMajor` comes from the definition rather than from an author remembering to write it. That is now cheaper than when D43 recorded it, because 0011 D21 already requires `#IdentityPackage` to ship in `core` and 0011 D22 puts `#CatalogMemberFQNGate` beside it.
+
+**Source:** User decision 2026-08-05, taking D43's recorded recommendation. Measurements are D40's and D43's, unchanged; publish-side wiring check from 0011 D12; identity-file shape validation from 0011 D8 and D21. **Supersedes D40's `#Module` half; completes D43.**
 
 ---
 

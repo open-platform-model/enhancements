@@ -83,7 +83,7 @@ Two properties follow. A provider catalog and the catalog defining the contract 
 
 ### What stays out of identity, and why it still exists
 
-**The resolved module version** is stamped as `module.opmodel.dev/version` by the kernel on the render path, from the coordinate the acquisition used. Only the code that fetched an artifact knows which one it got; the schema states what a module *is*.
+**The declared module version** sources `module.opmodel.dev/version` from the schema, and the kernel **verifies** rather than writes it (D9 as revised 2026-08-04): at acquire, an artifact's `metadata.version` is compared against the tag it was fetched by, and a disagreement raises the same typed error D11 raises for an address mismatch. Stamping from the resolved coordinate was the original design and could not serve both frontends — `cli`'s module apply always renders a local directory, where there is no coordinate to read. The division of labour is that the schema states what the artifact says it is, and the reader refuses an artifact where that is not what it was fetched as.
 
 ## Schema / API Surface
 
@@ -157,6 +157,7 @@ Two structs feed one shared value — the diagram makes the D41 hand-off explici
 - `core/src/component.cue`, `core/src/resource.cue`, `core/src/trait.cue`, `core/src/blueprint.cue` — **D36.** A `matchLabels?: #LabelsAnnotationsType` field is added to all four. `#Component.matchLabels` is the wholesale unification of its attached primitives' — a comprehension that embeds structs rather than iterating fields, which is what preserves a `!` marker (`experiments/04` finding 3). `metadata.labels` keeps its shape and stops claiming to unify.
 - `core/src/resource.cue`, `core/src/trait.cue` — **D37.** `fulfilment: *"catalog" | "provider"` is added to both. `#Blueprint` is deliberately excluded: `core/src/transformer.cue:54-64` demands only resources and traits, so a blueprint can never be the contract a provider fulfils.
 - `library/opm/materialize/index.go:76-95` — **D37.** The single-provider guard lands here, over the composed catalog set: for each contract declaring `fulfilment: "provider"`, count the transformers **requiring** it across subscribed catalogs and fail on anything other than one, naming both catalog paths. It counts required demands only — the reverse index built at `:82-95` is required ∪ optional, which is exactly why D32's bucket-arity test could not work.
+- `core/src/component.cue` — **D28.** The demand-side trait opt-out. Every resource a component declares is required and so is every trait, *unless* the author opts that trait out; the opt-out lives on the demand side, there is exactly one of them, and its absence means required. It is named here because the decision leaves only its *spelling* to the implementing slice — the field itself is a `core` change that no integration point sited until 2026-08-05, while `library`'s half (`plan.Missing` gaining a production consumer, `UnhandledResources` beside `UnhandledTraits`) was already listed below.
 - `core/src/component.cue:4` — **D36.** `#LabelWorkloadType` is deleted. Measured 2026-08-01 it has zero readers workspace-wide; every consumer writes the literal string. Same reader-set argument as D33.
 - `core/src/transformer.cue:46` — **D36.** `requiredLabels` selects on the component's `matchLabels` rather than `metadata.labels`. The field's own shape is unchanged.
 - `core/src/transformer.cue:147-157` — **D36.** `componentLabels` is left as-is: `matchLabels` is deliberately **not** folded into rendered output. The consequence is that rendered objects stop carrying `core.opmodel.dev/workload-type`, which they get today via this block. `experiments/04`'s `v_render` shows the fold costs four lines if it is wanted later.
@@ -193,7 +194,7 @@ Two structs feed one shared value — the diagram makes the D41 hand-off explici
 - `library/opm/helper/synth/instance.go:152` — drop the version clause from the precondition.
 - `library/opm/helper/synth/render.go:62` — stops parsing a SemVer for a major the module path states literally. A reduction.
 - `library/opm/schema/metadata.go:18`, `context.go:17` — `Version` removed or repurposed to the resolved coordinate; `FQN` doc comment updated.
-- `library/opm/materialize` — the catalog read-side check. `materialize.go:93` already builds `catalogBuild{Subscription, Version, Value}`; the resolved version keeps its diagnostic role, and `Resolved` becomes per-major-set rather than a single string (`materialize.go:96` records only the highest survivor today).
+- `library/opm/materialize` — the catalog read-side check. `materialize.go:93` already builds `catalogBuild{Subscription, Version, Value}`, and the resolved version keeps its diagnostic role. `Resolved`'s own shape is settled below under D14, which makes it a record of what the platform *said* rather than of what the kernel chose.
 - `library/opm/materialize/filter.go` — **D14 deletes the file.** `filterVersions` stops resolving: no `highestStable` default (`:43-47`), no Masterminds constraint parsing, no prerelease inference from constraint syntax (`:31-42`), no allow/deny arbitration. What is left is a single major-agreement check on one string, which belongs beside the subscription rather than in a file of its own.
 - `library/opm/materialize/index.go:76-90` — **D32.** The reverse index gains the check: a `{resources,traits}` bucket that ends up holding more than one transformer is a `MaterializeError` naming both catalog paths and the contract key. The provenance needed is already in hand — `indexCatalogs` loops over `catalogBuild{Subscription, Version, Value}` (`:21`), so the owning catalog is structural and never has to be parsed back out of a transformer FQN. That matters because D17 makes "a primitive sits under its owning catalog's path" a publish gate rather than a schema constraint, so FQN-derived provenance is not guaranteed.
 - `library/opm/compile/match.go:138-157` — **D32, by omission.** The candidate loop pairs *every* transformer in a bucket that unifies and satisfies the predicate; `matched` is keyed by transformer FQN, so two build-keyed transformers are two keys and both render. No arbitration is added here. The loop is left as written because D14 and D32 together guarantee the bucket holds at most one entry before it is ever read.
@@ -223,12 +224,13 @@ The undercount mattered because it made D42 read as a bounded catalog-local edit
 
 **modules**
 
-- Each module gains an `identity.cue` setting `metadata: modulePath:`, and loses its authored `modulePath` and `version` lines.
-- Hyphenated names are renamed (`web-app` → `web_app`, `zot-registry-ttl` → `zot_registry_ttl`).
+- Each module gains an `identity/` subpackage exporting `ModulePath` **and** `Version` (D38, reversing D23), and its root package wires `metadata: {modulePath: id.ModulePath, version: id.Version}` — the derivation `opm module init` templates and 0011 D12's publish check covers. The version is **retained**, not dropped: D2 deleted it, D38 restored it, and D41 is what makes that safe.
+- **No renames.** D8's snake_case rule stands for anything hyphenated in future, but measured 2026-08-05 there is nothing left to rename — zero hyphenated directory names or declared module paths on either branch of `modules/`. What stays hyphenated is a different class the rule does not reach: primitive `metadata.name` values, which are `#NameType` by design.
+- Twelve D42 blueprint import sites move, which is every module in the repo.
 
 **opm-operator**
 
-- No feature code. `api/v1alpha1/common_types.go:36-45` already types `ModuleReference` as `{Path with major, Version tag}` and reconcile reads only spec fields. What it needs is an adoption path for live instances whose owner label changes — see OQ4.
+- No feature code, and **no adoption path**. `api/v1alpha1/common_types.go:36-45` already types `ModuleReference` as `{Path with major, Version tag}` and reconcile reads only spec fields, never a module's metadata. D18 resolved OQ4 by measurement — no deployed instance is on the schema this entry changes — and rejected an operator-side tolerance window outright. What does move is three D42 blueprint import sites under `test/fixtures/modules/`.
 
 **testdata** — `library/testdata/modules/`, `cli/tests/e2e/testdata/` regenerated.
 

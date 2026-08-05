@@ -69,4 +69,3 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `modules/Taskfile.yml` | the checksum-driven `publish` task this entry retires (D15) |
 | `modules/versions.yml` | The external version record this entry deletes |
 | `modules/jellyfin/cue.mod/module.cue` | A published module's `module:` line and `deps` block — what publish checks the declared identity against |
-| `opm-releases/` (sibling repo, not under the workspace root) | Per-environment `ModuleRelease` configs that pin published coordinates. **No re-pin for a coordinate change** — D13 leaves first-party paths alone, so it re-pins only to pick up new module versions. Lives beside the workspace rather than inside it — the `./releases/` row in the workspace-root directory map is stale |

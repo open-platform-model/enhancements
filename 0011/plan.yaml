@@ -14,22 +14,33 @@
 #
 #   D21 — #IdentityPackage must ship in `core`, because publish validates
 #         identity by unifying against it and surfacing CUE's own error.
-#         It exists today only in 0010's schemas/target.cue.
+#         It exists today only in 0010's schemas/target.cue. D22 adds
+#         #CatalogMemberFQNGate to the same slice for the same reason.
 #   D9  — the compatibility comparator is pure cue.Value logic and belongs
 #         in `library`, shared by publish, `catalog registry check --compat`
 #         and any CI action; predecessor selection also moves here.
 #
 # Both are therefore UPSTREAM of the CLI slices, not downstream of them.
-# 06-operational.md ## Cross-Repo Coordination should be reconciled
-# against this ordering.
+# 06-operational.md ## Cross-Repo Coordination was reconciled against this
+# ordering on 2026-08-05 and now leads with core and library.
 #
-# EVERY SLICE HERE IS `phase: implementation` — schema, code and docs.
-# This entry contributes no migration work at all: both cutover slices
-# below change a release pipeline's CONFIGURATION and publish nothing
-# themselves. The two acts that change a published artifact are 0010's
-# catalogs-republish and modules-fleet-republish, and 0010's plan header
-# carries the boundary. `task plan:graph` therefore renders one subgraph
-# here, not two.
+# THE CUTOVERS ARE `implementation`, NOT `migration`: both change a release
+# pipeline's CONFIGURATION and publish nothing themselves. The two acts that
+# change a published artifact are 0010's catalogs-republish and
+# modules-fleet-republish, and 0010's plan header carries that boundary.
+#
+# ONE MIGRATION SLICE LIVES HERE — registry-cleanup, D17 items 2-4. It moves
+# and deletes already-published artifacts, so it is migration by purpose even
+# though nothing it touches is a fleet coordinate. It was previously owned by
+# neither plan: 0011's 04-graduation.md required it while this header claimed
+# the entry had no migration work, and 0010's plan header listed it as out of
+# scope. Adding it REVERSES that one item of the 2026-08-05 scope call; the
+# call's other two — the legacy v1alpha1 deletion and the Zot cutover — stand
+# unchanged and stay outside both entries. Its `repo: cli` is a PLACEMENT,
+# not a measurement — the `-e2e` tags
+# come from CLI e2e publishing while `hello-web` is an opm-operator fixture.
+# If the operator's CI publishes them, move the slice and add `opm-operator`
+# to `affects` first.
 #
 # FOUR CROSS-ENHANCEMENT EDGES CONNECT THE TWO PLANS. They are ordering
 # edges, not blocking ones — neither entry blocks the other at the entry
@@ -74,9 +85,9 @@ slices:
     repo: core
     phase: implementation
     concern: >
-      Ship #IdentityPackage in core so publish validates identity/identity.cue
-      by unification and CUE produces the diagnostic (D21), rather than a
-      hand-rolled expected-versus-found comparison.
+      Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish
+      validates identity and every catalog member by unification and CUE
+      produces the diagnostic (D21, D22), not a hand-rolled comparison.
     depends_on: []
     status: planned
 
@@ -106,8 +117,9 @@ slices:
     phase: implementation
     concern: >
       One pipeline, two entry points: decode, read identity, derive
-      coordinates, run the gates, push, with the dry-run plan output. Carries
-      eight of the ten refusals (D1, D2, D4, D6, D12, D15, D16, D18).
+      coordinates, run the gates, push, with the dry-run plan output. Refusals
+      1-8 and 10 (D1, D2, D4, D6, D12, D15, D16, D18, D21), plus the D16/D18
+      checks in `opm module vet`.
     depends_on:
       - core-identity-package
     status: planned
@@ -136,6 +148,18 @@ slices:
       - cli-publish-pipeline
     status: planned
 
+  - id: cli-catalog-member-gate
+    repo: cli
+    phase: implementation
+    concern: >
+      Publish refuses a catalog member whose declared modulePath or fqn does not
+      equal #CatalogMemberFQNGate's derivation (0010 D17, D21, D25, D42),
+      unified against the core-shipped gate with CUE's error surfaced (D22).
+    depends_on:
+      - core-identity-package
+      - cli-publish-pipeline
+    status: planned
+
   - id: cli-mod-init-repair
     repo: cli
     phase: implementation
@@ -158,6 +182,7 @@ slices:
       - cli-publish-pipeline
       - cli-version-set
       - cli-catalog-verify
+      - cli-catalog-member-gate
       - cli-login
       - "0010:catalogs-identity-authoring"
     status: planned
@@ -174,4 +199,14 @@ slices:
       - cli-version-set
       - catalogs-publish-cutover
       - "0010:modules-identity-authoring"
+    status: planned
+
+  - id: registry-cleanup
+    repo: cli
+    phase: migration
+    concern: >
+      D17 items 2-4: rename opmodel.dev/modules/test/hello-web to hello_web,
+      relocate modules/test/* and its -e2e tags to testing.opmodel.dev, delete
+      test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet migration.
+    depends_on: []
     status: planned

@@ -38,11 +38,14 @@
 #     (04-graduation.md gate; see 05-risks.md for why it is a recreate)
 #   - rewriting a live Platform's subscriptions from `range` to the D14
 #     scalar `version`
-#   - 0011 D17's registry cleanup; its item 1 (legacy v1alpha1) stays
-#     gated on the v0 -> v1 fleet migration
 #   - opm-releases' own v0 -> v1 migration (see releases-repin below)
 #   - the Zot registry cutover, which gates 0011 D10 (tag immutability)
 #     and D11 (authenticated writes) and has no owner or date
+#
+# 0011 D17's registry cleanup was on that list until 2026-08-05 and has
+# MOVED: items 2-4 are now 0011's own `registry-cleanup` slice, since its
+# 04-graduation.md required them while both plans disowned them. Item 1
+# (legacy v1alpha1) stays out, gated on the v0 -> v1 fleet migration.
 #
 # ---------------------------------------------------------------------
 # NO CORE MAJOR BUMP
@@ -88,7 +91,7 @@ slices:
       Module, instance and catalog identity: #ModulePathType gains @vN and
       underscores, #PackagePathType splits off, fqn == modulePath,
       registryPath, snake name, instance fqn/uuid (D1, D6, D8, D38, D40,
-      D41, D43).
+      D41, D43, D45).
     depends_on: []
     status: planned
 
@@ -110,7 +113,8 @@ slices:
     concern: >
       Platform and match surface: #SubscriptionFilter deleted for a scalar
       version (D14), matchLabels on the four kinds with #LabelWorkloadType
-      deleted (D36), fulfilment on #Resource and #Trait (D37).
+      deleted (D36), fulfilment on #Resource and #Trait (D37), and D28's
+      demand-side trait opt-out.
     depends_on:
       - core-identity-shape
     status: planned
@@ -133,9 +137,9 @@ slices:
     repo: library
     phase: implementation
     concern: >
-      Re-pin to v1.0.0-alpha.4 and fix the compile breakage. No behaviour
-      change and no new check — this slice exists so the three behaviour
-      slices below start from a building tree.
+      Re-pin to v1.0.0-alpha.4, fix the compile breakage, regenerate testdata
+      including the two D42 import sites (one written as a string at
+      synth/instance_integration_test.go:154). No behaviour change.
     depends_on:
       - core-alpha-release
     status: planned
@@ -175,12 +179,36 @@ slices:
       - library-core-retarget
     status: planned
 
+  - id: library-match-labels
+    repo: library
+    phase: implementation
+    concern: >
+      Matching reads matchLabels, not metadata.labels (D36) — match.go:111,
+      module.go:197, schema/paths.go:71, context.go:68. Plus D34's kube-aware
+      transitive FQN comparator and D10's own-dependency-graph test.
+    depends_on:
+      - library-core-retarget
+    status: planned
+
+  - id: docs-catalog-contract
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      Publish the catalog-author contract: the additive-only rule keyed to
+      level (D27, D34), that OPM verifies it only for catalogs published
+      through `opm catalog publish` (D35), and the three version-shaped
+      values (D4).
+    depends_on:
+      - core-alpha-release
+    status: planned
+
   - id: cli-coordinate-adoption
     repo: cli
     phase: implementation
     concern: >
       Retarget to the new library, delete the address-composition helpers,
-      write the resolved coordinate into spec.module.{path,version}.
+      write the resolved coordinate into spec.module.{path,version}. Plus D19's
+      local-module.cue render warning and the two D42 import sites in tests.
     depends_on:
       - library-core-retarget
     status: planned
@@ -189,8 +217,9 @@ slices:
     repo: opm-operator
     phase: implementation
     concern: >
-      Retarget to the new library. No feature change and no adoption code —
-      D18 rejected an operator-side tolerance window outright.
+      Retarget to the new library. No feature code and no adoption code — D18
+      rejected an operator-side tolerance window outright. Three D42 blueprint
+      import sites in test/fixtures/modules move with it.
     depends_on:
       - library-core-retarget
     status: planned
@@ -206,16 +235,16 @@ slices:
     depends_on:
       - library-subscription-collapse
       - library-contract-match
+      - library-match-labels
     status: planned
 
   - id: modules-identity-authoring
     repo: modules
     phase: implementation
     concern: >
-      Add identity/identity.cue per module and the D12 metadata derivation,
-      validated against local catalog checkouts. No hyphen renames —
-      measured 2026-08-05, none exist on either branch. Source only,
-      nothing published.
+      Add identity/identity.cue per module (D38, 0011 D12) and the metadata
+      wiring, plus the twelve D42 blueprint import moves. No hyphen renames —
+      none exist, measured 2026-08-05. Source only, nothing published.
     depends_on:
       - catalogs-identity-authoring
     status: planned

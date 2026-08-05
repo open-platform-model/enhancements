@@ -155,6 +155,15 @@ The path-located violation lines are measured rather than invented — `experime
 
 Not a hand-written message. The identity package is unified against `core`'s `#IdentityPackage` and **CUE's own error is surfaced**, because a procedural expected-versus-found check is a second statement of the contract and the two drift. A renamed `Version` field, a wrong type, and a wrong constraint are three different failures and CUE distinguishes them; a field-presence check reports only the first.
 
+**11. Catalog member off its own key space (D22)**
+
+Also not hand-written, and for the same reason. Each resource, trait, blueprint and transformer is unified against `core`'s `#CatalogMemberFQNGate`, which asserts `declaredModulePath: identity.kindPrefix[kind]` and rebuilds the key as `kindPrefix[kind]/name@<apiVersion|catalogVersion>`. The two failures it catches are the ones enhancement 0010 traded enforcement away for:
+
+- a primitive filed under the wrong kind, or one segment too deep — 0010 D42's grouped blueprint, which yields **both** a `declaredModulePath` conflict naming the extra segment and a `declaredFQN` conflict arriving as `2 errors in empty disjunction`, because `#FQNType` is a disjunction;
+- a stale authored `fqn` — the case 0010 D21 measured passing `cue vet -c` with exit 0, which under 0010 D4 is a key modules match against permanently.
+
+Surfacing CUE's error rather than recomputing the strings in Go is what keeps both of those legible; a string comparison collapses the disjunction error to one line and loses which arm failed.
+
 ### Two implementation constraints these impose
 
 **Position information must reach the refusal site.** Messages 1, 2, 5, 6 and 7 print `file:line`, which means the loader has to carry it rather than discarding it after decode. Worth recording now instead of discovering it when the messages come out bare.
@@ -209,10 +218,14 @@ An earlier revision of this section described rolling back a namespace migration
 
 **Which repos must coordinate, and in what order?**
 
-1. **`cli`** — build the commands and the gates. Nothing else moves until `opm catalog publish` and `opm module publish` exist and have been rehearsed against a non-production registry, including every refusal path.
-2. **`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`** — switch `release.yml`'s publish job to the new command, delete the copy-and-stamp task. Catalogs go first because modules build against them, so a module cannot be republished correctly until a conforming catalog exists.
-3. **`modules`** — delete the checksum-driven `publish` and `versions.yml`, add each module's `identity/identity.cue` and the `metadata` wiring that derives from it (D12), and republish the fleet. Coordinates do **not** change (D13).
-4. **`opm-releases`** (sibling repo, not under the workspace root) — no re-pin is needed for a coordinate change, because there is none. It re-pins only to pick up new module versions, which is an ordinary release rather than a migration step.
+1. **`core`** — ship `#IdentityPackage` (D21) and `#CatalogMemberFQNGate` (D22), into the same `v1.0.0-alpha.4` enhancement 0010 cuts. Publish validates both by unification, so neither command can be built against a schema that exists only in a design document.
+2. **`library`** — the D9 compatibility comparator, plus predecessor selection **moved** out of `materialize/filter.go` before 0010 D14 deletes it. It lands here rather than in `cli` so publish, `opm catalog registry check --compat` and any CI action share one implementation.
+3. **`cli`** — build the commands and the gates over those two. Nothing downstream moves until `opm catalog publish` and `opm module publish` exist and have been rehearsed against a non-production registry, including every refusal path.
+4. **`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`** — switch `release.yml`'s publish job to the new command, delete the copy-and-stamp task. Catalogs go first because modules build against them, so a module cannot be republished correctly until a conforming catalog exists.
+5. **`modules`** — delete the checksum-driven `publish` and `versions.yml`, and cut over to `opm module publish`. Coordinates do **not** change (D13). The `identity/identity.cue` files and the `metadata` wiring are **0010's** `modules-identity-authoring` slice, not this entry's (D17): the file is created once, and what this entry contributes is the command the republish runs through.
+6. **`opm-releases`** (sibling repo, not under the workspace root) — no re-pin is needed for a coordinate change, because there is none. It re-pins only to pick up new module versions, which is an ordinary release rather than a migration step.
+
+Steps 1 and 2 were absent from this list until 2026-08-05, which read as though `cli` were the first mover; [`plan.yaml`](plan.yaml) had the ordering right and its header recorded the discrepancy. Step 5's identity files were likewise claimed here and by 0010 at once — D17 settles that they are 0010's.
 
 **The joint window with enhancement 0010 has dissolved into a single operation.** An earlier revision recorded step 3 and 0010's step 6 as two fleet-wide coordinate rewrites needing one shared window, to avoid moving every artifact's identity — and therefore every deployed resource's owner label — twice. D13 removed the coordinate rewrite from this entry, so what remains is 0010's step 6 republishing the fleet with its new identity shape, with this entry contributing only that those republishes go through `opm module publish` rather than the checksum task. One event, one pass, nothing to schedule against anything.
 

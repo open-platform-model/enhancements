@@ -322,7 +322,7 @@ The subpackage is adopted for consistency rather than for a structural need, and
 - **Keep the flat namespace curated and add an owner-scoped space beside it under the same domain** (OQ7 candidate (b)). Rejected in favour of the subdomain, which states the same separation in the address rather than in a path segment a reader has to know the convention for, and which is repointable to a different registry deployment by one `CUE_REGISTRY` entry where a path segment is not.
 - **Keep it flat and arbitrate by hand** (OQ7 candidate (c)). Rejected: OPM as registrar, explicitly.
 - **Make a domain the price of entry** — first-party plus proven vanity domains, no community space. Rejected: it makes an unbuilt vanity-domain mechanism a hard prerequisite for every third-party publisher, and turns "no domain" into "no OPM".
-- **Adopt `m` for first-party as well.** Rejected on cost against benefit: it rewrites every published module coordinate and every pin in `opm-releases/` for a spelling change D5 itself calls cosmetic, now that the owner segment that motivated the reserved-segment shape is gone from that space.
+- **Adopt `m` for first-party as well.** Rejected on cost against benefit: it rewrites every published module coordinate and every pin in the deployment repositories for a spelling change D5 itself calls cosmetic, now that the owner segment that motivated the reserved-segment shape is gone from that space.
 - **Drop the kind segment inside `community.` and go owner-first** (`community.opmodel.dev/<owner>/<name>`). Rejected by the author in favour of mirroring the first-party layout, which keeps one vocabulary across both spaces and leaves room for kinds beyond modules and catalogs — the gap OQ9 is open on.
 
 **Rationale:** In the author's words — "OPM should not impose anything on other developers regarding this." A developer who proves they own `example.com`, or who points their registry configuration at their own deployment, uses whatever paths they like. OPM registers names under `opmodel.dev` because it owns that domain, and for no other reason.
@@ -339,11 +339,11 @@ The first-party half is decided on migration cost rather than taste. With third 
 
 **Decision:** `opmodel.dev/platforms/<name>` is reserved for `#Platform` artifacts, with `community.opmodel.dev/p/<owner>/<name>` in community space, following D13's long/short split. The reservation is **forward-looking**: no platform is published or fetched from a registry today. The CLI reads its platform from `~/.opm/platform.cue` (`cli/internal/config/platform.go`), and `materialize` resolves a platform's *subscriptions* against the registry while never fetching the platform spec itself.
 
-Instance artifacts get **no segment and no reservation**. Nobody publishes an instance, and OQ9's premise — that `opmodel.dev/releases/*` sits under a segment D5 failed to reserve — is wrong: they are not in the namespace D5 partitions. Measured 2026-08-04: `opm-releases/Taskfile.yml` publishes with `flux push artifact` to `oci://…/opmodel.dev/releases`, and `ModulePackageSpec.SourceRef` fetches a Flux source (`OCIRepository`/`GitRepository`/`Bucket`) and loads `instance.cue` off the unpacked tree. Nothing resolves them through CUE's module resolver, imports them, or lists them in a `deps` block. They are OCI repository paths that share a spelling convention with module paths and nothing else. (`releases` is also pre-enhancement-0002 vocabulary for `instances`; renaming the artifact path belongs to that vocabulary sweep, not to this decision.)
+Instance artifacts get **no segment and no reservation**. Nobody publishes an instance, and OQ9's premise — that `opmodel.dev/releases/*` sits under a segment D5 failed to reserve — is wrong: they are not in the namespace D5 partitions. Measured 2026-08-04: the deployment repository's Taskfile publishes with `flux push artifact` to `oci://…/opmodel.dev/releases`, and `ModulePackageSpec.SourceRef` fetches a Flux source (`OCIRepository`/`GitRepository`/`Bucket`) and loads `instance.cue` off the unpacked tree. Nothing resolves them through CUE's module resolver, imports them, or lists them in a `deps` block. They are OCI repository paths that share a spelling convention with module paths and nothing else. (`releases` is also pre-enhancement-0002 vocabulary for `instances`; renaming the artifact path belongs to that vocabulary sweep, not to this decision.)
 
 **No collision guard is needed, because D13 makes a collision unrepresentable.** `#FirstPartyPath.kind` is a closed disjunction, so no first-party artifact can land under `opmodel.dev/releases/*`, and no third party publishes under `opmodel.dev` at all — they are on `community.opmodel.dev` or their own domain.
 
-The Flux repositories are in scope for **D10**, which binds immutability to "every repository that registry hosts" and explicitly does not scope by path. They satisfy it already: `opm-releases` bumps to a fresh tag on every publish, so every push is a `create` and never an `update` — the pattern D10's own alternatives section argues is the normal case.
+The Flux repositories are in scope for **D10**, which binds immutability to "every repository that registry hosts" and explicitly does not scope by path. They satisfy it already: that publisher bumps to a fresh tag on every publish, so every push is a `create` and never an `update` — the pattern D10's own alternatives section argues is the normal case.
 
 `opmodel.dev/modules/opm-platform` (`v1.0.0`, `v1.0.1`, `localhost:5000` only, absent from GHCR) is a **defect to delete**, not an artifact to migrate. `library/modules/opm_platform/platform.cue`'s own header declares it "an unpublished in-repo fixture… not part of any publish path", so the artifact contradicts its source.
 
@@ -358,7 +358,7 @@ The Flux repositories are in scope for **D10**, which binds immutability to "eve
 
 Platforms are the opposite case. Nothing publishes one today, but a platform is plausibly publishable later — an organisation depending on a published platform spec is a coherent thing to want — and the segment is costless to reserve now and expensive to retrofit once `opmodel.dev/platforms/*` could already mean something else.
 
-**Source:** User decision 2026-08-04. Flux publish path read from `opm-releases/Taskfile.yml:111-232` (`flux push artifact`, `RELEASE_REGISTRY: oci://localhost:5000/opmodel.dev/releases`); read side from `opm-operator/api/v1alpha1/modulepackage_types.go:26-40`; platform loading from `cli/internal/config/platform.go` and `library/opm/materialize/`; fixture header at `library/modules/opm_platform/platform.cue:1-9`. **Resolves OQ9**; extends D13's namespace.
+**Source:** User decision 2026-08-04. Flux publish path read the same day from the deployment repository's Taskfile, named out of band (`flux push artifact`, `RELEASE_REGISTRY: oci://localhost:5000/opmodel.dev/releases`); read side from `opm-operator/api/v1alpha1/modulepackage_types.go:26-40`; platform loading from `cli/internal/config/platform.go` and `library/opm/materialize/`; fixture header at `library/modules/opm_platform/platform.cue:1-9`. **Resolves OQ9**; extends D13's namespace.
 
 ---
 
@@ -377,7 +377,7 @@ Platforms are the opposite case. Nothing publishes one today, but a platform is 
 - **`branch-tag.sh` is retained unchanged.** The `-dev` prerelease path already derives a correct, deterministic version with no clock and no network, and OQ4 filed it as an open case that shipped code had in fact already closed.
 - **Catalogs keep release-please, and nothing requires modules to adopt it.** Release-please decides a version and hands it to `version set` / `--version`; it must **not** write `identity.cue` directly through an `x-release-please-version` annotation, which would make it a second writer beside D3's and reintroduce the drift this design removes. Conventional commits stay a catalog convention rather than a requirement this decision imposes on `modules/`.
 
-**Measured 2026-08-04, and this is why the checksum is deleted rather than kept.** `modules/versions.yml` lists twelve modules and **two** carry a `checksum` (`seerr`, `web_app`). `modules/Taskfile.yml`'s `publish` treats a missing checksum as changed — `if [ -z "$stored" ]; then … changed+=("$module")` — so ten of twelve are blind patch-bumped on every run. The mechanism presents as change detection and behaves as an unconditional bump. (The task is named `publish`. Several documents called it `publish:smart`, which is the name of the equivalent task in the sibling `opm-releases` repo; corrected across `01-problem.md`, `02-design.md`, `06-operational.md` and `README.md` on 2026-08-04. OQ4's own prose still carries it and is left for compaction.)
+**Measured 2026-08-04, and this is why the checksum is deleted rather than kept.** `modules/versions.yml` lists twelve modules and **two** carry a `checksum` (`seerr`, `web_app`). `modules/Taskfile.yml`'s `publish` treats a missing checksum as changed — `if [ -z "$stored" ]; then … changed+=("$module")` — so ten of twelve are blind patch-bumped on every run. The mechanism presents as change detection and behaves as an unconditional bump. (The task is named `publish`. Several documents called it `publish:smart`, which is the name of the equivalent task in a deployment repository outside the workspace; corrected across `01-problem.md`, `02-design.md`, `06-operational.md` and `README.md` on 2026-08-04. OQ4's own prose still carries it and is left for compaction.)
 
 **Alternatives considered:**
 
@@ -563,6 +563,32 @@ The invention boundary is what keeps this from undermining the gates it serves. 
 **Rationale:** In the author's words — "validate the user's `identity.cue` with our official SCHEMA and utilize CUE as the backend, throwing errors on invalid file." The schema is the contract, CUE is the engine that checks contracts, and every line of Go that re-states the contract is a line that can disagree with it. D8 already framed the refusal as "this tree is not a conformant catalog" rather than "this field lacks an attribute"; this supplies the mechanism that makes that sentence true.
 
 **Source:** User decision 2026-08-04. `#IdentityPackage`'s absence from shipped code recorded in enhancement 0010 D40's alternatives; the dependency in 0010 D43's rationale; the import-free invariant read from `catalog_opm/src/identity/identity.cue` the same day. Supplies the mechanism D8 requires.
+
+---
+
+### D22: A catalog member's declared path and FQN are validated by unifying against a shipped `#CatalogMemberFQNGate`
+
+**Decision:** `#CatalogMemberFQNGate` ships in `core` beside `#IdentityPackage` (D21), and `opm catalog publish` unifies **every** member of the tree — resource, trait, blueprint and transformer — against it, surfacing CUE's own error. This is refusal 11.
+
+The gate is the enforcement point four separate enhancement 0010 decisions delegate here, and none of them had an owner until now:
+
+- **D17** — a primitive's `metadata.modulePath` must sit under the `modulePath` of the catalog that defines it. 0010 put the rule in a publish gate rather than in `core`, because `core` cannot express it where the primitives live without forbidding enhancement 0001 D16's cross-catalog references.
+- **D21** — a primitive's `fqn` is authored rather than derived, so `core` can no longer refuse a wrong one. This decision is what 0010 traded that derivation away for.
+- **D25** — a contract FQN must equal `kindPrefix[kind]/name@apiVersion`, a transformer's `…@catalogVersion`, and `catalogVersion` must equal `identity.Version`.
+- **D42** — exactly one path segment per kind, no grouping subdirectory. The gate is what makes `kindPrefix` a rule rather than a description.
+
+**The mechanism is D21's, not a second one.** The same argument applies unchanged: the schema is the contract, CUE is the engine that checks contracts, and a hand-rolled expected-versus-found comparison is a second statement that drifts from the first. Both shapes therefore ship in the same `core` release and both are checked the same way — the CLI loads the value and unifies, and what the author reads is CUE's error.
+
+**Alternatives considered:**
+
+- **A procedural check in Go** — recompute the expected path and FQN per member and compare strings. Rejected for D21's reason. It also produces a worse diagnostic on the interesting case: a blueprint one segment too deep fails on *both* `declaredModulePath` and `declaredFQN`, and 0010 D42 measured that CUE reports the second wrapped as `2 errors in empty disjunction` because `#FQNType` is a disjunction — information a string comparison discards.
+- **Leave it unimplemented and rely on catalog-author discipline.** Rejected as the state this decision was filed to fix. 0010 D21 accepted a *measured* loss of enforcement — a catalog on `1.2.0` shipping `fqn: "…/secrets@1.1.0"` passes `cue vet -c` with exit 0 — explicitly on the promise that publish would catch it, and 0010 D4 makes a wrong key permanent: modules match against it forever.
+- **Ship the gate in `cli` rather than in `core`.** Rejected on D21's placement argument, which transposes without change: a catalog need not depend on any particular catalog, `core` is the only module everything already depends on, and a gate living in one consumer's binary cannot be run by anyone else. It also splits one validation route into two.
+- **Check only the primitives and skip transformers.** Rejected: 0010 D44 records that the gate's four-kind scope is correct and survives the primitive/adapter split — D17's rule binds a transformer's package path, and a transformer's build-keyed FQN is exactly what D21's stale-literal failure applies to. Only the shape's *name* changed (`#PrimitiveFQNGate` → `#CatalogMemberFQNGate`).
+
+**Rationale:** 0010 states this rule four times and implements it nowhere. The gate exists as CUE in that entry's `schemas/target.cue` and, as 0010 D40's own alternative records of `#IdentityPackage`, "a schema that lives only in a design document cannot validate anything." This decision does for the member gate exactly what D21 does for the identity package, at the same moment and by the same mechanism, so the two ship as one piece of work rather than one shipping and the other being rediscovered later.
+
+**Source:** User decision 2026-08-05, on an audit of enhancement 0010's decisions against both entries' slice plans. Gate shape read from `enhancements/0010/schemas/target.cue`'s `#CatalogMemberFQNGate` (`:466-503`); the delegating claims at 0010 D17, D21, D25, D42 and `0010/05-risks.md:41`. Extends D21's mechanism; supplies the gate 0010 D21 trades `core`'s FQN derivation for.
 
 ---
 

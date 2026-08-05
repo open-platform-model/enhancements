@@ -11,25 +11,32 @@ graph LR
   classDef other       fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   subgraph PHASE_IMPL["Implementation — schema, code, docs"]
-    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage in core so publish validate…"]:::planned
+    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::planned
     S_library-compat-comparator["library-compat-comparator (library)\nThe D9 three-rule field-wise walk — NOT cue.Val…"]:::planned
     S_cli-login["cli-login (cli)\nopm login [registry] — resolves its target thro…"]:::planned
     S_cli-publish-pipeline["cli-publish-pipeline (cli)\nOne pipeline, two entry points: decode, read iden…"]:::planned
     S_cli-version-set["cli-version-set (cli)\nopm module|catalog version set and --version — …"]:::planned
     S_cli-catalog-verify["cli-catalog-verify (cli)\nThe compatibility gate on opm catalog publish (D9…"]:::planned
+    S_cli-catalog-member-gate["cli-catalog-member-gate (cli)\nPublish refuses a catalog member whose declared m…"]:::planned
     S_cli-mod-init-repair["cli-mod-init-repair (cli)\nopm mod init becomes scaffold AND repair behind a…"]:::planned
     S_catalogs-publish-cutover["catalogs-publish-cutover (catalog)\nSwitch release.yml's publish job to opm catalog p…"]:::planned
     S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::planned
+  end
+  subgraph PHASE_MIGR["Migration — catalogs, modules, releases"]
+    S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: rename opmodel.dev/modules/test/he…"]:::planned
   end
 
   S_core-identity-package -->|depends_on| S_cli-publish-pipeline
   S_core-identity-package -->|depends_on| S_cli-version-set
   S_library-compat-comparator -->|depends_on| S_cli-catalog-verify
   S_cli-publish-pipeline -->|depends_on| S_cli-catalog-verify
+  S_core-identity-package -->|depends_on| S_cli-catalog-member-gate
+  S_cli-publish-pipeline -->|depends_on| S_cli-catalog-member-gate
   S_core-identity-package -->|depends_on| S_cli-mod-init-repair
   S_cli-publish-pipeline -->|depends_on| S_catalogs-publish-cutover
   S_cli-version-set -->|depends_on| S_catalogs-publish-cutover
   S_cli-catalog-verify -->|depends_on| S_catalogs-publish-cutover
+  S_cli-catalog-member-gate -->|depends_on| S_catalogs-publish-cutover
   S_cli-login -->|depends_on| S_catalogs-publish-cutover
   X_0010_catalogs-identity-authoring["0010:catalogs-identity-authoring"]:::other
   X_0010_catalogs-identity-authoring -->|depends_on| S_catalogs-publish-cutover
@@ -42,12 +49,14 @@ graph LR
 
 | ID | Phase | Repo | Status | Depends on | Concern |
 | -- | ----- | ---- | ------ | ---------- | ------- |
-| core-identity-package | implementation | core | planned | - | Ship #IdentityPackage in core so publish validates identity/identity.cue by unification and CUE produces the diagnostic (D21), rather than a hand-rolled expected-versus-found comparison.   |
+| core-identity-package | implementation | core | planned | - | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic (D21, D22), not a hand-rolled comparison.   |
 | library-compat-comparator | implementation | library | planned | - | The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured 10/14 and 8/14 on disjoint sets — plus predecessor selection moved out of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.   |
 | cli-login | implementation | cli | planned | - | `opm login [registry]` — resolves its target through the existing ResolveRegistry precedence and writes to the credential store CUE itself reads, because CUE performs the push (D11). Independent of everything else here.   |
-| cli-publish-pipeline | implementation | cli | planned | core-identity-package | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Carries eight of the ten refusals (D1, D2, D4, D6, D12, D15, D16, D18).   |
+| cli-publish-pipeline | implementation | cli | planned | core-identity-package | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10 (D1, D2, D4, D6, D12, D15, D16, D18, D21), plus the D16/D18 checks in `opm module vet`.   |
 | cli-version-set | implementation | cli | planned | core-identity-package | `opm module|catalog version set` and `--version` — the surgical AST rewrite that preserves the & chain, located by schema path rather than by a marker (D3, D8, D12). Measured in experiments/01.   |
 | cli-catalog-verify | implementation | cli | planned | library-compat-comparator, cli-publish-pipeline | The compatibility gate on `opm catalog publish` (D9) plus `opm catalog registry check [--compat]` (D7), whose help text must call it an aid rather than a gate (0010 D35). Both over the library comparator.   |
+| cli-catalog-member-gate | implementation | cli | planned | core-identity-package, cli-publish-pipeline | Publish refuses a catalog member whose declared modulePath or fqn does not equal #CatalogMemberFQNGate's derivation (0010 D17, D21, D25, D42), unified against the core-shipped gate with CUE's error surfaced (D22).   |
 | cli-mod-init-repair | implementation | cli | planned | core-identity-package | `opm mod init` becomes scaffold AND repair behind a second confirmation naming every file and value change, and never invents identity (D20). What makes D16's refusal actionable.   |
-| catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-version-set, cli-catalog-verify, cli-login, 0010:catalogs-identity-authoring | Switch release.yml's publish job to `opm catalog publish` and delete the copy-and-stamp task. Catalogs go first because modules build against them.   |
+| catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-version-set, cli-catalog-verify, cli-catalog-member-gate, cli-login, 0010:catalogs-identity-authoring | Switch release.yml's publish job to `opm catalog publish` and delete the copy-and-stamp task. Catalogs go first because modules build against them.   |
 | modules-publish-cutover | implementation | modules | planned | cli-publish-pipeline, cli-version-set, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity-authoring (D17); coordinates do not change (D13).   |
+| registry-cleanup | migration | cli | planned | - | D17 items 2-4: rename opmodel.dev/modules/test/hello-web to hello_web, relocate modules/test/* and its -e2e tags to testing.opmodel.dev, delete test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet migration.   |

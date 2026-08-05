@@ -59,7 +59,7 @@ Pure-CUE definitions live in [`schemas/`](schemas/): [`target.cue`](schemas/targ
 - Where matching labels live (D36): a dedicated `matchLabels` field on `#Resource`, `#Trait`, `#Blueprint` and `#Component`, unified upward from the attached primitives, with `metadata.labels` no longer unified and no longer carrying the matching vocabulary. In scope because OQ16 was filed against D26's label mechanism and because `core/SPEC.md` states the upward union normatively three times without any implementing code. Carries two riders: `#LabelWorkloadType` is deleted from `core` (zero readers, the D33 argument), and the key is renamed `opm.opmodel.dev/workload-type` under `catalog_opm` ownership.
 - Where identity lives and how it gets there: a committed `identity.cue`, in the module's own root package or in a catalog's `identity/` subpackage — an asymmetry kept deliberately (D23) — with fields that may be open or concrete.
 - Read-side verification of identity — at module acquire, at catalog materialize, and at platform subscription — and the typed errors it produces.
-- The `module.opmodel.dev/version` label's move from the schema to the kernel.
+- The `module.opmodel.dev/version` label: retained in the schema, sourced from the module's declared version, and verified by the kernel against the tag the artifact was fetched by (D9).
 - The identity migration: every artifact's UUID changes once, and every live instance's owner label with it.
 
 ### Out of scope
