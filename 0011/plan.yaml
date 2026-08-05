@@ -10,22 +10,69 @@
 # four steps are cli -> catalogs -> modules -> opm-releases, opening
 # "nothing else moves until opm catalog publish and opm module publish
 # exist". But `affects` also names core and library, and two decisions
-# put work there that the CLI slice CONSUMES rather than follows:
+# put work there that the CLI slices CONSUME rather than follow:
 #
 #   D21 — #IdentityPackage must ship in `core`, because publish validates
 #         identity by unifying against it and surfacing CUE's own error.
 #         It exists today only in 0010's schemas/target.cue.
 #   D9  — the compatibility comparator is pure cue.Value logic and belongs
 #         in `library`, shared by publish, `catalog registry check --compat`
-#         and any CI action; predecessor selection reuses
-#         library/opm/materialize/enumerate.go + filter.go:112.
+#         and any CI action; predecessor selection also moves here.
 #
-# Both are therefore UPSTREAM of cli-publish-commands, not downstream of
-# it. 06-operational.md ## Cross-Repo Coordination should be reconciled
+# Both are therefore UPSTREAM of the CLI slices, not downstream of them.
+# 06-operational.md ## Cross-Repo Coordination should be reconciled
 # against this ordering.
+#
+# EVERY SLICE HERE IS `phase: implementation` — schema, code and docs.
+# This entry contributes no migration work at all: both cutover slices
+# below change a release pipeline's CONFIGURATION and publish nothing
+# themselves. The two acts that change a published artifact are 0010's
+# catalogs-republish and modules-fleet-republish, and 0010's plan header
+# carries the boundary. `task plan:graph` therefore renders one subgraph
+# here, not two.
+#
+# FOUR CROSS-ENHANCEMENT EDGES CONNECT THE TWO PLANS. They are ordering
+# edges, not blocking ones — neither entry blocks the other at the entry
+# level (D17 dissolved the joint window). Two point from 0010 into here:
+#
+#   0010:core-alpha-release depends on core-identity-package, because
+#     #IdentityPackage ships in `core` and belongs in the same
+#     v1.0.0-alpha.4 the catalogs and the fleet retarget to. There is no
+#     core MAJOR bump — core@v1 has published only prereleases, so the
+#     break lands in the alpha line with the module path unmoved.
+#   0010:library-subscription-collapse depends on library-compat-comparator,
+#     because 0010 D14 DELETES materialize/filter.go while predecessor
+#     selection reuses filter.go:112's highestStable. A move, not a
+#     delete-and-rewrite — so the move happens first.
+#
+# AND TWO POINT FROM HERE INTO 0010, WITHOUT WHICH BOTH CUTOVERS BREAK CI.
+# catalogs-publish-cutover points release.yml at `opm catalog publish`, and
+# modules-publish-cutover points the modules pipeline at `opm module
+# publish`. Both commands validate identity/identity.cue by unifying it
+# against core's #IdentityPackage (D21) and REFUSE a tree where it is
+# absent (refusal 10) or not concrete (D4). On a pre-migration tree that
+# refusal fires, so each cutover depends on the 0010 authoring slice that
+# creates those files:
+#
+#   catalogs-publish-cutover -> 0010:catalogs-identity-authoring
+#   modules-publish-cutover  -> 0010:modules-identity-authoring
+#
+# Neither edge existed until 2026-08-05. Declaring them is also what keeps
+# the category split clean: 0010 had bundled authoring with republishing in
+# one slice each, so the only edge available would have dragged a REPUBLISH
+# into category 1.
+#
+# THE MODULE IDENTITY FILE BELONGS TO 0010, NOT HERE. An earlier revision
+# of this plan gave modules-publish-cutover "add each module's
+# identity/identity.cue and the D12 metadata wiring", which 0010's
+# modules-fleet-republish also claimed. D17 settles it: 0010's step 6 is
+# the only fleet republish and this entry contributes the MECHANISM. So
+# the file is created once, in 0010's slice, and what remains here is the
+# tooling deletion and the cutover to `opm module publish`.
 slices:
   - id: core-identity-package
     repo: core
+    phase: implementation
     concern: >
       Ship #IdentityPackage in core so publish validates identity/identity.cue
       by unification and CUE produces the diagnostic (D21), rather than a
@@ -35,41 +82,96 @@ slices:
 
   - id: library-compat-comparator
     repo: library
+    phase: implementation
     concern: >
-      The D9 subsumption comparator plus predecessor selection, in the kernel
-      so publish, `catalog registry check --compat` and CI share one
-      implementation. Reuses enumerateVersions and highestStable.
+      The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured
+      10/14 and 8/14 on disjoint sets — plus predecessor selection moved out
+      of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.
     depends_on: []
     status: planned
 
-  - id: cli-publish-commands
+  - id: cli-login
     repo: cli
+    phase: implementation
     concern: >
-      Six commands over one pipeline — module/catalog publish, version set,
-      --version, catalog registry check, mod init repair (D20), login (D11) —
-      with all ten refusal paths rehearsed against a non-production registry.
+      `opm login [registry]` — resolves its target through the existing
+      ResolveRegistry precedence and writes to the credential store CUE
+      itself reads, because CUE performs the push (D11). Independent of
+      everything else here.
+    depends_on: []
+    status: planned
+
+  - id: cli-publish-pipeline
+    repo: cli
+    phase: implementation
+    concern: >
+      One pipeline, two entry points: decode, read identity, derive
+      coordinates, run the gates, push, with the dry-run plan output. Carries
+      eight of the ten refusals (D1, D2, D4, D6, D12, D15, D16, D18).
     depends_on:
       - core-identity-package
+    status: planned
+
+  - id: cli-version-set
+    repo: cli
+    phase: implementation
+    concern: >
+      `opm module|catalog version set` and `--version` — the surgical AST
+      rewrite that preserves the & chain, located by schema path rather than
+      by a marker (D3, D8, D12). Measured in experiments/01.
+    depends_on:
+      - core-identity-package
+    status: planned
+
+  - id: cli-catalog-verify
+    repo: cli
+    phase: implementation
+    concern: >
+      The compatibility gate on `opm catalog publish` (D9) plus
+      `opm catalog registry check [--compat]` (D7), whose help text must call
+      it an aid rather than a gate (0010 D35). Both over the library
+      comparator.
+    depends_on:
       - library-compat-comparator
+      - cli-publish-pipeline
+    status: planned
+
+  - id: cli-mod-init-repair
+    repo: cli
+    phase: implementation
+    concern: >
+      `opm mod init` becomes scaffold AND repair behind a second confirmation
+      naming every file and value change, and never invents identity (D20).
+      What makes D16's refusal actionable.
+    depends_on:
+      - core-identity-package
     status: planned
 
   - id: catalogs-publish-cutover
     repo: catalog
+    phase: implementation
     concern: >
       Switch release.yml's publish job to `opm catalog publish` and delete the
       copy-and-stamp task. Catalogs go first because modules build against
       them.
     depends_on:
-      - cli-publish-commands
+      - cli-publish-pipeline
+      - cli-version-set
+      - cli-catalog-verify
+      - cli-login
+      - "0010:catalogs-identity-authoring"
     status: planned
 
   - id: modules-publish-cutover
     repo: modules
+    phase: implementation
     concern: >
-      Delete the checksum-driven publish and versions.yml, add each module's
-      identity/identity.cue and the D12 metadata wiring, republish. Coordinates
-      do not change (D13).
+      Delete the checksum-driven publish and versions.yml, cut over to
+      `opm module publish`. The identity file itself is 0010's
+      modules-identity-authoring (D17); coordinates do not change (D13).
     depends_on:
-      - cli-publish-commands
+      - cli-publish-pipeline
+      - cli-version-set
       - catalogs-publish-cutover
+      - "0010:modules-identity-authoring"
     status: planned

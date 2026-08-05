@@ -142,16 +142,16 @@ import "strings"
 // once `affects` spans more than one repo, or a single repo's work is
 // large enough to benefit from an explicit landing order.
 //
-// A slice is deliberately thin: which repo, a one-line concern, what it
-// depends on, and its status. Implementation detail belongs in that
-// slice's own OpenSpec change, not here — this file is a table of
-// contents for execution, not the execution itself.
+// A slice is deliberately thin: which repo, which phase, a one-line
+// concern, what it depends on, and its status. Implementation detail
+// belongs in that slice's own OpenSpec change, not here — this file is a
+// table of contents for execution, not the execution itself.
 //
 // `related`/`supersedes`-style cross-referential integrity (id uniqueness,
-// depends_on resolution, repo ∈ affects, cycle freedom) is enforced by
-// `task vet` / `task vet:one`, not by this schema — the same split already
-// used for config.yaml's `related`/`supersedes` dangling-ref checks, since
-// CUE is a poor fit for graph validation.
+// depends_on resolution, repo ∈ affects, cycle freedom, phase ordering) is
+// enforced by `task vet` / `task vet:one`, not by this schema — the same
+// split already used for config.yaml's `related`/`supersedes` dangling-ref
+// checks, since CUE is a poor fit for graph validation.
 
 // Same shape as #SlugStr — a slice id is a short kebab-case slug, unique
 // within one entry's plan.yaml.
@@ -165,6 +165,29 @@ import "strings"
 
 #SliceStatus: "planned" | "in-progress" | "done" | "cancelled"
 
+// Which half of the work a slice belongs to. The test is what the slice is
+// FOR, not which files it touches:
+//
+//   implementation — defines the system. Schema, code and docs changes:
+//                    core, library, cli, opm-operator, opmodel.dev.
+//   migration      — moves already-published artifacts onto those
+//                    definitions. The official catalogs, the module fleet,
+//                    the release pins.
+//
+// A slice that edits source files AND republishes is `migration` when
+// republishing is its purpose — 0010's catalogs-identity-republish commits
+// identity/identity.cue and is still migration.
+//
+// NOT the `enhancements` workflow's numbered Phase 1-5 (Create / Iterate /
+// Promote / Implement / Supersede). Those describe the ENTRY's lifecycle;
+// this describes one SLICE's kind.
+//
+// Implementation lands first. `task vet` enforces that as an edge rule —
+// no implementation slice may depend on a migration slice — rather than as
+// a blanket barrier, so unrelated implementation work does not needlessly
+// gate a migration whose real dependencies are already done.
+#SlicePhase: "implementation" | "migration"
+
 // One line — what this slice is *about*, not how it's built.
 #SliceConcernStr: string & strings.MinRunes(1) & strings.MaxRunes(240)
 
@@ -175,6 +198,11 @@ import "strings"
 	// `task vet`, not expressible here (schema.cue validates plan.yaml and
 	// config.yaml as independent files).
 	repo!: #Area
+
+	// See #SlicePhase. Required, so the classification is a deliberate act
+	// rather than a default — and not derivable from `repo`, since a
+	// catalog slice can legitimately be either.
+	phase!: #SlicePhase
 
 	concern!: #SliceConcernStr
 

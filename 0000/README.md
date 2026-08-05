@@ -159,6 +159,7 @@ Creates `NNNN/plan.yaml` with an empty `slices: []`. Add one entry per slice:
 slices:
   - id: cli-kernel-adoption            # stable, short, unique within this entry
     repo: cli                          # MUST be a member of config.yaml.affects
+    phase: implementation              # implementation | migration
     concern: >
       Delete pkg/render; route render through the library kernel.
     depends_on:
@@ -170,13 +171,24 @@ slices:
 
 A slice is deliberately thin — `concern` is one line, not a design doc. Implementation detail lives in that slice's own OpenSpec change in the target repo, same as today; `plan.yaml` is a table of contents for execution, not the execution itself. `cancelled` slices keep their id (other slices may already depend on it) and carry `cancelled_reason`, mirroring the tombstone convention for a vacated `DN`/`OQN`.
 
+### The two phases
+
+Every slice declares which half of the work it is, and the two are ordered — **implementation lands before migration**:
+
+- **`implementation`** — defines the system. Schema, code and docs changes: `core`, `library`, `cli`, `opm-operator`, `opmodel.dev`.
+- **`migration`** — moves already-published artifacts onto those definitions: the official catalogs, the module fleet, the release pins.
+
+The test is what the slice is **for**, not which files it touches, and phase is deliberately *not* derivable from `repo` — a catalog slice can be either. When a slice would straddle the boundary, split it: authoring CUE is a reviewable source change, while pushing bytes is irreversible.
+
+`task vet` enforces the ordering as an edge rule — no `implementation` slice may depend on a `migration` slice — rather than as a blanket barrier, so a migration whose own dependencies are already done is not gated by unrelated implementation work. (This is unrelated to the `enhancements` workflow's numbered Phases 1–5, which describe the *entry's* lifecycle rather than a *slice's* kind.)
+
 ### Validation and views
 
-`task vet` / `task vet:one` validate `plan.yaml` structurally whenever the file is present (never required): schema conformance, `id` uniqueness, `repo ∈ affects`, every `depends_on` resolving, and no dependency cycles.
+`task vet` / `task vet:one` validate `plan.yaml` structurally whenever the file is present (never required): schema conformance, `id` uniqueness, `repo ∈ affects`, every `depends_on` resolving, no dependency cycles, and no `implementation` slice depending on a `migration` slice.
 
 ```bash
-task plan:graph ID=NNNN   # regenerate NNNN/PLAN.md — Mermaid DAG + table, colored by status
-task plan:ready ID=NNNN   # slices whose depends_on are all `done` and aren't themselves done/cancelled — the order-of-procedure answer
+task plan:graph ID=NNNN   # regenerate NNNN/PLAN.md — Mermaid DAG + table, one subgraph per phase
+task plan:ready ID=NNNN   # slices whose depends_on are all `done`, grouped by phase — the order-of-procedure answer
 task slice:seed ID=NNNN SLICE=cli-kernel-adoption   # print a seed stub sized for that repo's own `openspec new`
 ```
 

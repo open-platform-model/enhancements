@@ -264,11 +264,14 @@ tasks:
           local affects; affects=$(yq -r '.affects | join(" ")' "$cfg" 2>/dev/null || echo "")
           local n; n=$(yq -r '.slices | length' "$plan" 2>/dev/null || echo 0)
 
-          local ids="" i id repo
+          local ids="" i id repo phase
+          local -A slice_phase=()
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
             repo=$(yq -r ".slices[$i].repo // \"\"" "$plan" 2>/dev/null)
+            phase=$(yq -r ".slices[$i].phase // \"\"" "$plan" 2>/dev/null)
             ids="${ids} ${id}"
+            slice_phase["$id"]="$phase"
             case " $affects " in
               *" $repo "*) : ;;
               *) out="${out}\n    slice '$id': repo '$repo' not in config.yaml affects[]" ;;
@@ -279,12 +282,14 @@ tasks:
           [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
 
           local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          local edges="" local_deps dep other other_slice
+          local edges="" local_deps dep other other_slice cur_phase dep_phase
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
+            cur_phase="${slice_phase[$id]:-}"
             local_deps=""
             while IFS= read -r dep; do
               [ -z "$dep" ] && continue
+              dep_phase=""
               case "$dep" in
                 [0-9][0-9][0-9][0-9]:*)
                   other="${dep%%:*}"; other_slice="${dep#*:}"
@@ -293,16 +298,31 @@ tasks:
                   elif [ -f "$other/plan.yaml" ]; then
                     if ! yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null | grep -qx "$other_slice"; then
                       out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
+                    else
+                      dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
                     fi
                   fi
                   ;;
                 *)
                   if ! echo "$all_ids" | grep -qx "$dep"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
+                  else
+                    dep_phase="${slice_phase[$dep]:-}"
                   fi
                   local_deps="${local_deps}${local_deps:+,}${dep}"
                   ;;
               esac
+              # Phase ordering (#SlicePhase): implementation lands before
+              # migration, so an implementation slice may never wait on a
+              # migration slice. Checking DIRECT edges is sufficient — any
+              # transitive implementation→…→migration path necessarily
+              # contains at least one direct implementation→migration edge.
+              # Not a blanket barrier: a migration slice whose own deps are
+              # done is free to run while unrelated implementation work is
+              # still open (that grouping is `task plan:ready`'s job).
+              if [ "$cur_phase" = "implementation" ] && [ "$dep_phase" = "migration" ]; then
+                out="${out}\n    slice '$id': implementation slice depends on migration slice '$dep' — migration follows implementation"
+              fi
             done < <(yq -r ".slices[$i].depends_on[]?" "$plan" 2>/dev/null)
             edges="${edges}${id}\t${local_deps}\n"
           done
@@ -595,11 +615,14 @@ tasks:
           local affects; affects=$(yq -r '.affects | join(" ")' "$cfg" 2>/dev/null || echo "")
           local n; n=$(yq -r '.slices | length' "$plan" 2>/dev/null || echo 0)
 
-          local ids="" i id repo
+          local ids="" i id repo phase
+          local -A slice_phase=()
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
             repo=$(yq -r ".slices[$i].repo // \"\"" "$plan" 2>/dev/null)
+            phase=$(yq -r ".slices[$i].phase // \"\"" "$plan" 2>/dev/null)
             ids="${ids} ${id}"
+            slice_phase["$id"]="$phase"
             case " $affects " in
               *" $repo "*) : ;;
               *) out="${out}\n    slice '$id': repo '$repo' not in config.yaml affects[]" ;;
@@ -610,12 +633,14 @@ tasks:
           [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
 
           local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          local edges="" local_deps dep other other_slice
+          local edges="" local_deps dep other other_slice cur_phase dep_phase
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
+            cur_phase="${slice_phase[$id]:-}"
             local_deps=""
             while IFS= read -r dep; do
               [ -z "$dep" ] && continue
+              dep_phase=""
               case "$dep" in
                 [0-9][0-9][0-9][0-9]:*)
                   other="${dep%%:*}"; other_slice="${dep#*:}"
@@ -624,16 +649,31 @@ tasks:
                   elif [ -f "$other/plan.yaml" ]; then
                     if ! yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null | grep -qx "$other_slice"; then
                       out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
+                    else
+                      dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
                     fi
                   fi
                   ;;
                 *)
                   if ! echo "$all_ids" | grep -qx "$dep"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
+                  else
+                    dep_phase="${slice_phase[$dep]:-}"
                   fi
                   local_deps="${local_deps}${local_deps:+,}${dep}"
                   ;;
               esac
+              # Phase ordering (#SlicePhase): implementation lands before
+              # migration, so an implementation slice may never wait on a
+              # migration slice. Checking DIRECT edges is sufficient — any
+              # transitive implementation→…→migration path necessarily
+              # contains at least one direct implementation→migration edge.
+              # Not a blanket barrier: a migration slice whose own deps are
+              # done is free to run while unrelated implementation work is
+              # still open (that grouping is `task plan:ready`'s job).
+              if [ "$cur_phase" = "implementation" ] && [ "$dep_phase" = "migration" ]; then
+                out="${out}\n    slice '$id': implementation slice depends on migration slice '$dep' — migration follows implementation"
+              fi
             done < <(yq -r ".slices[$i].depends_on[]?" "$plan" 2>/dev/null)
             edges="${edges}${id}\t${local_deps}\n"
           done
@@ -1857,6 +1897,20 @@ tasks:
         # workflow this feeds (task vet, task plan:graph, task plan:ready,
         # task slice:seed). Delete this file if the enhancement never
         # grows past one slice.
+        #
+        # Every slice declares a phase:
+        #
+        #   implementation — defines the system. Schema, code and docs:
+        #                    core, library, cli, opm-operator, opmodel.dev.
+        #   migration      — moves already-published artifacts onto those
+        #                    definitions: the official catalogs, the module
+        #                    fleet, the release pins.
+        #
+        # The test is what the slice is FOR, not which files it touches: a
+        # slice that edits source AND republishes is `migration` when
+        # republishing is its purpose. Implementation lands first, and
+        # `task vet` enforces it as an edge rule — no implementation slice
+        # may depend on a migration slice.
         slices: []
         EOF
 
@@ -1921,15 +1975,42 @@ tasks:
         echo
 
         declare -A seen_other
-        for ((i = 0; i < n; i++)); do
-          id=$(yq -r ".slices[$i].id" "$PLAN")
-          status=$(yq -r ".slices[$i].status" "$PLAN")
-          repo=$(yq -r ".slices[$i].repo" "$PLAN")
-          concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr -d '`' | tr '"' "'" | tr '\n' ' ')
-          if [ "${#concern}" -gt 50 ]; then concern="${concern:0:49}…"; fi
-          cls=$(echo "$status" | tr '-' '_')
-          printf '  S_%s["%s (%s)\\n%s"]:::%s\n' "$id" "$id" "$repo" "$concern" "$cls"
-        done
+
+        # Nodes are grouped into one subgraph per phase, so the
+        # implementation-then-migration split is the first thing the diagram
+        # shows. A phase with no slices emits no subgraph at all rather than
+        # an empty box. Cross-enhancement peripheral nodes (X_*) are emitted
+        # later, with the edges, and deliberately sit outside both subgraphs
+        # — they belong to neither phase of THIS plan.
+        emit_phase_subgraph() {
+          local want="$1" label="$2" sgid="$3"
+          local any=0 j
+          for ((j = 0; j < n; j++)); do
+            if [ "$(yq -r ".slices[$j].phase" "$PLAN")" = "$want" ]; then
+              any=1
+              break
+            fi
+          done
+          [ "$any" -eq 1 ] || return 0
+
+          printf '  subgraph %s["%s"]\n' "$sgid" "$label"
+          for ((j = 0; j < n; j++)); do
+            [ "$(yq -r ".slices[$j].phase" "$PLAN")" = "$want" ] || continue
+            local id status repo concern cls
+            id=$(yq -r ".slices[$j].id" "$PLAN")
+            status=$(yq -r ".slices[$j].status" "$PLAN")
+            repo=$(yq -r ".slices[$j].repo" "$PLAN")
+            concern=$(yq -r ".slices[$j].concern" "$PLAN" | tr -d '`' | tr '"' "'" | tr '\n' ' ')
+            if [ "${#concern}" -gt 50 ]; then concern="${concern:0:49}…"; fi
+            cls=$(echo "$status" | tr '-' '_')
+            printf '    S_%s["%s (%s)\\n%s"]:::%s\n' "$id" "$id" "$repo" "$concern" "$cls"
+          done
+          echo '  end'
+        }
+
+        emit_phase_subgraph implementation "Implementation — schema, code, docs" PHASE_IMPL
+        emit_phase_subgraph migration      "Migration — catalogs, modules, releases" PHASE_MIGR
+        echo
 
         for ((i = 0; i < n; i++)); do
           id=$(yq -r ".slices[$i].id" "$PLAN")
@@ -1953,22 +2034,28 @@ tasks:
 
         echo '```'
         echo
-        echo '| ID | Repo | Status | Depends on | Concern |'
-        echo '| -- | ---- | ------ | ---------- | ------- |'
-        for ((i = 0; i < n; i++)); do
-          id=$(yq -r ".slices[$i].id" "$PLAN")
-          repo=$(yq -r ".slices[$i].repo" "$PLAN")
-          status=$(yq -r ".slices[$i].status" "$PLAN")
-          concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
-          deps=$(yq -r ".slices[$i].depends_on | join(\", \")" "$PLAN")
-          printf '| %s | %s | %s | %s | %s |\n' "$id" "$repo" "$status" "${deps:--}" "$concern"
+        echo '| ID | Phase | Repo | Status | Depends on | Concern |'
+        echo '| -- | ----- | ---- | ------ | ---------- | ------- |'
+        # Implementation rows first, then migration — the table reads in
+        # landing order rather than in file order.
+        for want in implementation migration; do
+          for ((i = 0; i < n; i++)); do
+            phase=$(yq -r ".slices[$i].phase" "$PLAN")
+            [ "$phase" = "$want" ] || continue
+            id=$(yq -r ".slices[$i].id" "$PLAN")
+            repo=$(yq -r ".slices[$i].repo" "$PLAN")
+            status=$(yq -r ".slices[$i].status" "$PLAN")
+            concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
+            deps=$(yq -r ".slices[$i].depends_on | join(\", \")" "$PLAN")
+            printf '| %s | %s | %s | %s | %s | %s |\n' "$id" "$phase" "$repo" "$status" "${deps:--}" "$concern"
+          done
         done
         } > "$OUT"
 
         echo "Wrote $OUT"
 
   plan:ready:
-    desc: TSV of slices whose dependencies are all done and aren't themselves done/cancelled
+    desc: Slices whose dependencies are all done, grouped by phase (implementation then migration)
     summary: |
       Usage:
         task plan:ready ID=0009
@@ -1982,7 +2069,16 @@ tasks:
       order-of-procedure answer: what can start right now, without
       hand-tracking the dependency graph.
 
-      Columns: ID  REPO  STATUS  CONCERN
+      Output is grouped into an IMPLEMENTATION section and a MIGRATION
+      section. The MIGRATION header is annotated with how many
+      implementation slices have not yet reached done/cancelled — that is
+      INFORMATIONAL, not a gate. Readiness stays purely DAG-derived, so a
+      migration slice whose own dependencies are satisfied is listed even
+      while unrelated implementation work is still open. The hard rule
+      (no implementation slice may depend on a migration slice) is
+      enforced by `task vet`, not here.
+
+      Rows are tab-separated: ID  REPO  STATUS  CONCERN
     vars:
       ID: '{{.ID | default ""}}'
     preconditions:
@@ -2020,23 +2116,55 @@ tasks:
           esac
         }
 
-        printf 'ID\tREPO\tSTATUS\tCONCERN\n'
+        # Implementation slices not yet done/cancelled. Annotates the
+        # MIGRATION header so the reader sees that migration is running
+        # ahead of unfinished implementation work — informational only; it
+        # never suppresses a row (see the summary above).
+        impl_open=0
         for ((i = 0; i < n; i++)); do
-          id=$(yq -r ".slices[$i].id" "$PLAN")
-          status=$(yq -r ".slices[$i].status" "$PLAN")
-          [ "$status" = "planned" ] || [ "$status" = "in-progress" ] || continue
-
-          all_done=1
-          while IFS= read -r dep; do
-            [ -z "$dep" ] && continue
-            dep_done "$dep" || { all_done=0; break; }
-          done < <(yq -r ".slices[$i].depends_on[]?" "$PLAN")
-          [ "$all_done" -eq 1 ] || continue
-
-          repo=$(yq -r ".slices[$i].repo" "$PLAN")
-          concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
-          printf '%s\t%s\t%s\t%s\n' "$id" "$repo" "$status" "$concern"
+          [ "$(yq -r ".slices[$i].phase" "$PLAN")" = "implementation" ] || continue
+          st=$(yq -r ".slices[$i].status" "$PLAN")
+          case "$st" in done|cancelled) ;; *) impl_open=$((impl_open + 1)) ;; esac
         done
+
+        emit_group() {
+          local want="$1" heading="$2"
+          local rows="" i id status repo concern all_done dep
+
+          for ((i = 0; i < n; i++)); do
+            [ "$(yq -r ".slices[$i].phase" "$PLAN")" = "$want" ] || continue
+            id=$(yq -r ".slices[$i].id" "$PLAN")
+            status=$(yq -r ".slices[$i].status" "$PLAN")
+            [ "$status" = "planned" ] || [ "$status" = "in-progress" ] || continue
+
+            all_done=1
+            while IFS= read -r dep; do
+              [ -z "$dep" ] && continue
+              dep_done "$dep" || { all_done=0; break; }
+            done < <(yq -r ".slices[$i].depends_on[]?" "$PLAN")
+            [ "$all_done" -eq 1 ] || continue
+
+            repo=$(yq -r ".slices[$i].repo" "$PLAN")
+            concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
+            rows="${rows}$(printf '%s\t%s\t%s\t%s' "$id" "$repo" "$status" "$concern")"$'\n'
+          done
+
+          printf '%s\n' "$heading"
+          if [ -z "$rows" ]; then
+            printf '(none ready)\n'
+          else
+            printf 'ID\tREPO\tSTATUS\tCONCERN\n'
+            printf '%s' "$rows"
+          fi
+        }
+
+        emit_group implementation 'IMPLEMENTATION'
+        echo
+        if [ "$impl_open" -gt 0 ]; then
+          emit_group migration "$(printf 'MIGRATION  (%d implementation slice(s) still open)' "$impl_open")"
+        else
+          emit_group migration 'MIGRATION'
+        fi
 
   slice:seed:
     desc: Print a seed stub for one slice, sized to hand to the target repo's own OpenSpec `new` flow
@@ -2077,6 +2205,7 @@ tasks:
         REPO=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .repo" "$PLAN")
         CONCERN=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .concern" "$PLAN")
         STATUS=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .status" "$PLAN")
+        PHASE=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .phase" "$PLAN")
         TITLE=$(yq -r '.title' "$ID/config.yaml")
 
         echo "Unresolved dependencies:"
@@ -2103,6 +2232,7 @@ tasks:
 
         echo "----------------------------------------------------------------"
         printf 'Repo:    %s\n' "$REPO"
+        printf 'Phase:   %s\n' "$PHASE"
         printf 'Status:  %s (enhancements/%s/plan.yaml)\n' "$STATUS" "$ID"
         echo
         printf '%s\n' "$CONCERN"
