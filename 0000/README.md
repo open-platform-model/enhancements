@@ -165,11 +165,25 @@ slices:
     depends_on:
       - cli-cr-inventory-backend       # local slice id
       - "0001:library"                 # cross-enhancement ref: NNNN:slice-id
+    decisions: [D4, D9, 0001:D12]      # which decisions this slice implements
     status: in-progress                # planned | in-progress | done | cancelled
-    openspec_ref: cli/2026-07-18-cli-kernel-adoption   # set once it lands
+    openspec_ref: cli/2026-07-18-cli-kernel-adoption   # set once the change exists
 ```
 
-A slice is deliberately thin — `concern` is one line, not a design doc. Implementation detail lives in that slice's own OpenSpec change in the target repo, same as today; `plan.yaml` is a table of contents for execution, not the execution itself. `cancelled` slices keep their id (other slices may already depend on it) and carry `cancelled_reason`, mirroring the tombstone convention for a vacated `DN`/`OQN`.
+A slice is deliberately thin — `concern` is one line, not a design doc, and the 240-rune cap in `schema.cue` enforces that mechanically. Implementation detail lives in that slice's own OpenSpec change in the target repo, same as today; `plan.yaml` is a table of contents for execution, not the execution itself. `cancelled` slices keep their id (other slices may already depend on it) and carry `cancelled_reason`, mirroring the tombstone convention for a vacated `DN`/`OQN`.
+
+**Decision citations go in `decisions`, never inside `concern`.** Two reasons, and the second is the one that earns the field. Prose budget: measured 2026-08-05, before the field existed, the median concern sat at 205 of 240 runes with up to 41 spent on an inline citation tail — and that pressure only ever grows, since a slice's citation list accretes while its description does not. And checkability: `task vet` verifies every cited number resolves, and `task decisions:uncovered` inverts it to report a decision **no slice carries** — which is the audit `0010` did by hand on 2026-08-05, finding seven pieces of decided work with no slice.
+
+A decision that genuinely needs no slice — one that only *deletes* something, one whose holding was later reversed, one that reserves a namespace nobody publishes to yet — goes in the plan's top-level `unsliced` map with its reason, so the report stays quiet about it without going silent in general:
+
+```yaml
+unsliced:
+  D16: >
+    A decision NOT to add a field. #Catalog gains no `name`, so there is
+    nothing to implement.
+```
+
+That is a claim on the record, reviewed like any other line in the file — not a suppression list. Tombstoned numbers (`### D12: (merged into D10, …)`) need no entry; they are excluded automatically, because the number is retired rather than unimplemented.
 
 ### The two phases
 
@@ -184,13 +198,16 @@ The test is what the slice is **for**, not which files it touches, and phase is 
 
 ### Validation and views
 
-`task vet` / `task vet:one` validate `plan.yaml` structurally whenever the file is present (never required): schema conformance, `id` uniqueness, `repo ∈ affects`, every `depends_on` resolving, no dependency cycles, and no `implementation` slice depending on a `migration` slice.
+`task vet` / `task vet:one` validate `plan.yaml` structurally whenever the file is present (never required): schema conformance, `id` uniqueness, `repo ∈ affects`, every `depends_on` resolving, no dependency cycles, no `implementation` slice depending on a `migration` slice, every `decisions` and `unsliced` reference naming a heading that exists, and nothing both carried by a slice and listed as unsliced.
 
 ```bash
 task plan:graph ID=NNNN   # regenerate NNNN/PLAN.md — Mermaid DAG + table, one subgraph per phase
 task plan:ready ID=NNNN   # slices whose depends_on are all `done`, grouped by phase — the order-of-procedure answer
+task decisions:uncovered ID=NNNN   # decisions no slice implements — the coverage inverse
 task slice:seed ID=NNNN SLICE=cli-kernel-adoption   # print a seed stub sized for that repo's own `openspec new`
 ```
+
+`decisions:uncovered` is deliberately **not** a gate. `vet` checks that every cited number *resolves*; whether every decision is *carried* is a judgement about an entry's readiness, and a hard failure would block any entry whose design is legitimately ahead of its plan. Read it at the `draft → accepted` gate and again before flipping to `implemented`.
 
 `slice:seed` only emits the stub — the enhancements repo does not reach into another repo's tooling. Hand the stub to that repo's own OpenSpec workflow.
 

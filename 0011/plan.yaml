@@ -104,9 +104,10 @@ slices:
     concern: >
       Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish
       validates identity and every catalog member by unification and CUE
-      produces the diagnostic (D21, D22), not a hand-rolled comparison.
+      produces the diagnostic, not a hand-rolled comparison.
     depends_on:
       - "0010:core-identity-shape"
+    decisions: [D21, D22, 0010:D40]
     status: in-progress
     openspec_ref: "core/core-identity-package"
 
@@ -118,6 +119,7 @@ slices:
       10/14 and 8/14 on disjoint sets — plus predecessor selection moved out
       of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.
     depends_on: []
+    decisions: [D9, 0010:D14, 0010:D34]
     status: planned
 
   - id: cli-login
@@ -125,10 +127,11 @@ slices:
     phase: implementation
     concern: >
       `opm login [registry]` — resolves its target through the existing
-      ResolveRegistry precedence and writes to the credential store CUE
-      itself reads, because CUE performs the push (D11). Independent of
-      everything else here.
+      ResolveRegistry precedence and writes to the credential store CUE itself
+      reads, because CUE performs the push. Independent of everything else
+      here.
     depends_on: []
+    decisions: [D11]
     status: planned
 
   - id: cli-publish-pipeline
@@ -137,10 +140,10 @@ slices:
     concern: >
       One pipeline, two entry points: decode, read identity, derive
       coordinates, run the gates, push, with the dry-run plan output. Refusals
-      1-8 and 10 (D1, D2, D4, D6, D12, D15, D16, D18, D21), plus the D16/D18
-      checks in `opm module vet`.
+      1-8 and 10, plus the D16/D18 checks in `opm module vet`.
     depends_on:
       - core-identity-package
+    decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
     status: planned
 
   - id: cli-version-set
@@ -149,34 +152,36 @@ slices:
     concern: >
       `opm module|catalog version set` and `--version` — the surgical AST
       rewrite that preserves the & chain, located by schema path rather than
-      by a marker (D3, D8, D12). Measured in experiments/01.
+      by a marker. Measured in experiments/01.
     depends_on:
       - core-identity-package
+    decisions: [D3, D8, D12]
     status: planned
 
   - id: cli-catalog-verify
     repo: cli
     phase: implementation
     concern: >
-      The compatibility gate on `opm catalog publish` (D9) plus
-      `opm catalog registry check [--compat]` (D7), whose help text must call
-      it an aid rather than a gate (0010 D35). Both over the library
-      comparator.
+      The compatibility gate on `opm catalog publish` plus `opm catalog
+      registry check [--compat]`, whose help text must call it an aid rather
+      than a gate. Both over the library comparator.
     depends_on:
       - library-compat-comparator
       - cli-publish-pipeline
+    decisions: [D7, D9, 0010:D35]
     status: planned
 
   - id: cli-catalog-member-gate
     repo: cli
     phase: implementation
     concern: >
-      Publish refuses a catalog member whose declared modulePath or fqn does not
-      equal #CatalogMemberFQNGate's derivation (0010 D17, D21, D25, D42),
-      unified against the core-shipped gate with CUE's error surfaced (D22).
+      Publish refuses a catalog member whose declared modulePath or fqn does
+      not equal #CatalogMemberFQNGate's derivation, unified against the core-
+      shipped gate with CUE's error surfaced.
     depends_on:
       - core-identity-package
       - cli-publish-pipeline
+    decisions: [D22, 0010:D17, 0010:D21, 0010:D25, 0010:D42]
     status: planned
 
   - id: cli-mod-init-repair
@@ -184,10 +189,11 @@ slices:
     phase: implementation
     concern: >
       `opm mod init` becomes scaffold AND repair behind a second confirmation
-      naming every file and value change, and never invents identity (D20).
-      What makes D16's refusal actionable.
+      naming every file and value change, and never invents identity. What
+      makes D16's refusal actionable.
     depends_on:
       - core-identity-package
+    decisions: [D16, D20]
     status: planned
 
   - id: catalogs-publish-cutover
@@ -210,14 +216,15 @@ slices:
     repo: modules
     phase: implementation
     concern: >
-      Delete the checksum-driven publish and versions.yml, cut over to
-      `opm module publish`. The identity file itself is 0010's
-      modules-identity-authoring (D17); coordinates do not change (D13).
+      Delete the checksum-driven publish and versions.yml, cut over to `opm
+      module publish`. The identity file itself is 0010's modules-identity-
+      authoring; coordinates do not change.
     depends_on:
       - cli-publish-pipeline
       - cli-version-set
       - catalogs-publish-cutover
       - "0010:modules-identity-authoring"
+    decisions: [D13, D17]
     status: planned
 
   - id: registry-cleanup
@@ -228,4 +235,27 @@ slices:
       relocate modules/test/* and its -e2e tags to testing.opmodel.dev, delete
       test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet migration.
     depends_on: []
+    decisions: [D17]
     status: planned
+
+# Decisions this entry implements in no slice, each with the reason. Surfaced
+# by `task decisions:uncovered`, which is quiet about them once they are here.
+# See schema.cue #SlicePlan.unsliced: this is a claim on the record that the
+# decision needs no work, not a suppression list.
+unsliced:
+  D5: >
+    Its namespace half is REVERSED by D13, which is carried by
+    modules-publish-cutover. What survives is the hosts-rather-than-indexes
+    holding — a property of what the registry IS, established by the CUE
+    resolution argument rather than by anything anyone builds.
+  D10: >
+    Tag immutability is enforced by the REGISTRY, not by OPM. It gates on the
+    Zot cutover, which 0010's plan header records as out of scope for both
+    entries with no owner and no date. Nothing in either plan can deliver it,
+    and pretending otherwise by attaching it to a CLI slice would claim an
+    enforcement OPM does not have.
+  D14: >
+    Explicitly forward-looking in its own words: the platform segment is
+    RESERVED and no platform is published or fetched from a registry today,
+    while instances get no segment at all. A reservation with no publisher is
+    a namespace claim, not work.

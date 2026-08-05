@@ -188,7 +188,25 @@ import "strings"
 // gate a migration whose real dependencies are already done.
 #SlicePhase: "implementation" | "migration"
 
+// A decision reference: a local "D34", or "NNNN:D34" pointing into another
+// entry's decision log — the same two forms #SliceRefStr uses, for the same
+// reason. Numbers are immutable per the repo's invariants, so a reference
+// resolves for the life of the repo even after the decision is compacted.
+#DecisionRefStr: =~"^D[0-9]+$" | =~"^[0-9]{4}:D[0-9]+$"
+
 // One line — what this slice is *about*, not how it's built.
+//
+// The 240-rune cap is the "a slice is thin" rule made mechanical. It is
+// deliberately tight: prose growing past one line is the signal that detail
+// belongs in the target repo's OpenSpec change instead.
+//
+// Decision citations DO NOT belong here — they go in `decisions`. Measured
+// 2026-08-05, before that field existed: the median concern sat at 205 of
+// 240 runes with up to 41 spent on an inline citation tail (0011's
+// cli-publish-pipeline, 11 decisions). That pressure was one-directional,
+// since a slice's citation list only accretes, so the cap tightened over
+// time through no authorial fault. Splitting them frees the prose budget
+// and makes the citations checkable.
 #SliceConcernStr: string & strings.MinRunes(1) & strings.MaxRunes(240)
 
 #Slice: {
@@ -208,6 +226,20 @@ import "strings"
 
 	depends_on!: [...#SliceRefStr]
 
+	// Which decisions this slice implements. Structured rather than written
+	// into `concern`, so `task vet` can check every number resolves and
+	// `task decisions:uncovered` can report the inverse — a decision no slice
+	// carries. That inverse is the audit 0010's 2026-08-05 history event
+	// describes doing by hand, which found seven pieces of decided work with
+	// no slice; D36's library half was real code that would otherwise have
+	// shipped a schema whose matching read an emptied field.
+	//
+	// Optional: a slice may legitimately implement no numbered decision
+	// (a release cut, a mechanical retarget). Absent and empty mean the same
+	// thing, and neither is flagged — what `decisions:uncovered` reports is
+	// decisions with no slice, not slices with no decision.
+	decisions?: [...#DecisionRefStr]
+
 	status!: #SliceStatus
 
 	// Set once the real per-repo change exists. Conventionally
@@ -225,4 +257,20 @@ import "strings"
 
 #SlicePlan: {
 	slices!: [...#Slice]
+
+	// Decisions this entry deliberately implements in no slice, each with the
+	// reason. Keys are decision refs, values are why.
+	//
+	// This exists so `task decisions:uncovered` has a way to be quiet about a
+	// decision that genuinely needs no work — one that only DELETES something,
+	// one whose whole content is a documentation holding, one superseded
+	// before any slice carried it. Without it the report cries wolf and stops
+	// being read, which is the failure mode of every coverage check.
+	//
+	// It is not a suppression list. An entry here is a claim on the record
+	// that the decision needs no code, and it is reviewed like any other line
+	// in this file. Tombstoned numbers (`### DN: (merged into DM, …)`) do not
+	// need an entry — those are excluded automatically, since the number is
+	// retired rather than unimplemented.
+	unsliced?: [#DecisionRefStr]: string & strings.MinRunes(1)
 }

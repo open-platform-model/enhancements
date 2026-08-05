@@ -105,6 +105,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task new:plan ID=NNNN` | Scaffold `plan.yaml` (structured slice plan) inside an entry. Load `enhancement-slicing` skill first. |
 | `task plan:graph ID=NNNN` | Regenerate `NNNN/PLAN.md` — Mermaid DAG + table of the slice plan. |
 | `task plan:ready ID=NNNN` | TSV of slices whose dependencies are all `done` and aren't themselves done/cancelled — the order-of-procedure answer. |
+| `task decisions:uncovered ID=NNNN` | Decisions in `03-decisions.md` that no slice implements — coverage inverse of `plan.yaml`'s `decisions`. Counts cross-entry citations. Not a gate. |
 | `task slice:seed ID=NNNN SLICE=id` | Print a seed stub for one slice, sized to hand to the target repo's own OpenSpec `new` flow. |
 | `task questions:list ID=NNNN` | List `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial buckets only). Consumed by the `enhancement-open-questions` skill. |

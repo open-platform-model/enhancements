@@ -109,9 +109,9 @@ slices:
     concern: >
       Module, instance and catalog identity: #ModulePathType gains @vN and
       underscores, #PackagePathType splits off, fqn == modulePath,
-      registryPath, snake name, instance fqn/uuid (D1, D6, D8, D38, D41,
-      D43, D45).
+      registryPath, snake name, instance fqn/uuid.
     depends_on: []
+    decisions: [D1, D3, D6, D8, D38, D41, D43, D45]
     status: in-progress
     openspec_ref: "core/core-identity-shape"
 
@@ -121,10 +121,10 @@ slices:
     concern: >
       Contract keys split from implementation keys: #ContractFQNType /
       #ImplFQNType, #APIVersionType, apiVersion! and catalogVersion! on the
-      primitives, authored fqn, primitive-versus-adapter (D4, D21, D25, D33,
-      D34, D44).
+      primitives, authored fqn, primitive-versus-adapter.
     depends_on:
       - core-identity-shape
+    decisions: [D4, D21, D25, D33, D34, D44]
     status: in-progress
     openspec_ref: "core/core-primitive-keying"
 
@@ -133,11 +133,11 @@ slices:
     phase: implementation
     concern: >
       Platform and match surface: #SubscriptionFilter deleted for a scalar
-      version (D14), matchLabels on the four kinds with #LabelWorkloadType
-      deleted (D36), fulfilment on #Resource and #Trait (D37), and D28's
-      demand-side trait opt-out.
+      version, matchLabels on the four kinds with #LabelWorkloadType deleted,
+      fulfilment on #Resource and #Trait, and D28's demand-side trait opt-out.
     depends_on:
       - core-identity-shape
+    decisions: [D14, D28, D36, D37]
     status: in-progress
     openspec_ref: "core/core-platform-and-match"
 
@@ -165,6 +165,7 @@ slices:
       synth/instance_integration_test.go:154). No behaviour change.
     depends_on:
       - core-alpha-release
+    decisions: [D42]
     status: planned
 
   - id: library-identity-read-checks
@@ -172,10 +173,11 @@ slices:
     phase: implementation
     concern: >
       Identity verified where artifacts are read: modulePath against the
-      fetched coordinate and version against the tag on the acquire path,
-      plus materialize and subscription (D11, D9, D41's instance FQN).
+      fetched coordinate and version against the tag on the acquire path, plus
+      materialize and subscription.
     depends_on:
       - library-core-retarget
+    decisions: [D9, D11, D41]
     status: planned
 
   - id: library-subscription-collapse
@@ -183,11 +185,12 @@ slices:
     phase: implementation
     concern: >
       D14 deletes materialize/filter.go — no highestStable default, no
-      constraint solving, no prerelease inference. What survives is one
-      major-agreement check beside the subscription.
+      constraint solving, no prerelease inference. What survives is one major-
+      agreement check beside the subscription.
     depends_on:
       - library-core-retarget
       - "0011:library-compat-comparator"
+    decisions: [D14]
     status: planned
 
   - id: library-contract-match
@@ -195,22 +198,23 @@ slices:
     phase: implementation
     concern: >
       The match rung becomes load-bearing: provenance denylist before
-      unification (D26/D30), contract-key diagnostics (D4), unresolved
-      demand is an error (D28), single-provider guard at materialize
-      (D32/D37).
+      unification, contract-key diagnostics, unresolved demand is an error,
+      single-provider guard at materialize.
     depends_on:
       - library-core-retarget
+    decisions: [D4, D26, D28, D30, D32, D37]
     status: planned
 
   - id: library-match-labels
     repo: library
     phase: implementation
     concern: >
-      Matching reads matchLabels, not metadata.labels (D36) — match.go:111,
+      Matching reads matchLabels, not metadata.labels — match.go:111,
       module.go:197, schema/paths.go:71, context.go:68. Plus D34's kube-aware
       transitive FQN comparator and D10's own-dependency-graph test.
     depends_on:
       - library-core-retarget
+    decisions: [D10, D34, D36]
     status: planned
 
   - id: docs-catalog-contract
@@ -218,11 +222,11 @@ slices:
     phase: implementation
     concern: >
       Publish the catalog-author contract: the additive-only rule keyed to
-      level (D27, D34), that OPM verifies it only for catalogs published
-      through `opm catalog publish` (D35), and the three version-shaped
-      values (D4).
+      level, that OPM verifies it only for catalogs published through `opm
+      catalog publish`, and the three version-shaped values.
     depends_on:
       - core-alpha-release
+    decisions: [D4, D27, D34, D35]
     status: planned
 
   - id: cli-coordinate-adoption
@@ -230,10 +234,12 @@ slices:
     phase: implementation
     concern: >
       Retarget to the new library, delete the address-composition helpers,
-      write the resolved coordinate into spec.module.{path,version}. Plus D19's
-      local-module.cue render warning and the two D42 import sites in tests.
+      write the resolved coordinate into spec.module.{path,version}. Plus
+      D19's local-module.cue render warning and the two D42 import sites in
+      tests.
     depends_on:
       - library-core-retarget
+    decisions: [D19, D42]
     status: planned
 
   - id: operator-library-retarget
@@ -245,31 +251,34 @@ slices:
       import sites in test/fixtures/modules move with it.
     depends_on:
       - library-core-retarget
+    decisions: [D18, D42]
     status: planned
 
   - id: catalogs-identity-authoring
     repo: catalog
     phase: implementation
     concern: >
-      Commit identity/identity.cue in the D5 shape across the three
-      catalogs, re-key every leaf (apiVersion, catalogVersion, authored
-      fqn), flatten the blueprints (D42), move matching to matchLabels,
-      delete the stamping task. Source only.
+      Commit identity/identity.cue in the D5 shape across the three catalogs,
+      re-key every leaf (apiVersion, catalogVersion, authored fqn), flatten
+      the blueprints, move matching to matchLabels, delete the stamping task.
+      Source only.
     depends_on:
       - library-subscription-collapse
       - library-contract-match
       - library-match-labels
+    decisions: [D5, D42]
     status: planned
 
   - id: modules-identity-authoring
     repo: modules
     phase: implementation
     concern: >
-      Add identity/identity.cue per module (D38, 0011 D12) and the metadata
-      wiring, plus the twelve D42 blueprint import moves. No hyphen renames —
-      none exist, measured 2026-08-05. Source only, nothing published.
+      Add identity/identity.cue per module and the metadata wiring, plus the
+      twelve D42 blueprint import moves. No hyphen renames — none exist,
+      measured 2026-08-05. Source only, nothing published.
     depends_on:
       - catalogs-identity-authoring
+    decisions: [D38, D42, 0011:D12]
     status: planned
 
   - id: catalogs-republish
@@ -289,9 +298,33 @@ slices:
     phase: migration
     concern: >
       Republish the fleet through `opm module publish` against the released
-      catalogs. The only fleet republish in the 0010/0011 pair (0011 D17).
+      catalogs. The only fleet republish in the 0010/0011 pair.
     depends_on:
       - catalogs-republish
       - modules-identity-authoring
       - "0011:modules-publish-cutover"
+    decisions: [0011:D17]
     status: planned
+
+# Decisions this entry implements in no slice, each with the reason. Surfaced
+# by `task decisions:uncovered`, which is quiet about them once they are here.
+# See schema.cue #SlicePlan.unsliced: this is a claim on the record that the
+# decision needs no work, not a suppression list.
+unsliced:
+  D2: >
+    Superseded in its conclusion by D38, which restores #Module.metadata.version
+    from an identity subpackage. D2's REASONING survives in full and is why the
+    restored field reaches neither fqn nor uuid — but the deletion it decided is
+    not work anyone does, so the slice carrying the field is D38's.
+  D7: >
+    Its holding (a module's identity file writes metadata directly, declaring no
+    top-level field) is REVERSED by D38, which gives modules a catalog-style
+    identity subpackage. What survives is the measurement D38 leans on — a
+    top-level Version beside the embedded #Module fails re-unification into the
+    closed #ModuleInstance.#module slot — which is evidence, not work.
+  D16: >
+    A decision NOT to add a field. #Catalog gains no `name`, so there is nothing
+    to implement; the same reader-set argument D33 uses to delete #definitionName.
+  D23: >
+    Reversed by D38. Its holding was the placement asymmetry itself, and nothing
+    of it survives beyond the self-import cost it measured, so no slice carries it.

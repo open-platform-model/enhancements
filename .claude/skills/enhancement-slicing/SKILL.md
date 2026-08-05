@@ -49,7 +49,7 @@ The converse also comes up: 0011's `catalogs-publish-cutover` edits a *catalog* 
 
 ## Core rules
 
-1. **A slice is thin.** `id`, `repo`, `phase`, one-line `concern`, `depends_on`, `status` — that's the whole shape (plus optional `openspec_ref` and, on a cancelled slice, `cancelled_reason`). If you're tempted to add a task breakdown or code-level detail to a slice entry, that belongs in the target repo's OpenSpec change instead.
+1. **A slice is thin.** `id`, `repo`, `phase`, one-line `concern`, `depends_on`, `status` — that's the whole shape (plus optional `decisions`, optional `openspec_ref`, and on a cancelled slice `cancelled_reason`). If you're tempted to add a task breakdown or code-level detail to a slice entry, that belongs in the target repo's OpenSpec change instead. `concern` is capped at 240 runes so that rule is checked rather than remembered.
 2. **`id` is a stable kebab-case slug, unique within the entry's `plan.yaml`.** Never reused, even if the slice is cancelled — other slices' `depends_on` may already cite it. Choose an id that reads well as `<repo>/<id>` once it becomes an `openspec_ref` (e.g. `cli-kernel-adoption`, landing as `cli/2026-07-18-cli-kernel-adoption`).
 3. **`repo` must be a member of `config.yaml.affects`.** `task vet` enforces this. If a slice needs a repo not yet listed in `affects`, add it to `affects` first.
 4. **`depends_on` accepts two forms:** a local slice id (resolved within the same `plan.yaml`), or a cross-enhancement reference `"NNNN:slice-id"` pointing at a slice declared in another entry's `plan.yaml` — e.g. enhancement 0006's `cli-kernel-adoption` depending on enhancement 0001's `library` slice. Cross-enhancement refs are checked against the other entry's `plan.yaml` **only when that file exists**; its absence means the upstream isn't sliced yet, which is a planning gap to flag in review, not a schema violation.
@@ -57,6 +57,7 @@ The converse also comes up: 0011's `catalogs-publish-cutover` edits a *catalog* 
 6. **A cancelled slice keeps its id and records why.** Set `status: cancelled` and `cancelled_reason: "..."` — mirrors the tombstone convention for a vacated `DN`/`OQN`. Do not delete a cancelled slice's entry if anything else's `depends_on` cites it.
 7. **`status` and `openspec_ref` change in the same commit that appends the `history` event citing the same slice.** `config.yaml.history` (append-only, per the main `enhancements` skill) and `plan.yaml` (mutable, current-state) must always agree on what has landed. If they drift, `plan.yaml` is wrong — the history event is the permanent record.
 8. **`phase` is required, deliberate, and ordered.** Classify by what the slice is *for* (see `## The two phases`), never by which repo it lands in — a `catalog` slice can be either. No `implementation` slice may depend on a `migration` slice; `task vet` enforces it. When a slice would straddle the boundary, split it rather than picking a phase for it.
+9. **Decision citations live in `decisions`, not in `concern`.** A slice lists the `DN`s it implements as data — local `D34`, or `NNNN:D34` into another entry's log, the same two forms `depends_on` uses. `task vet` checks every number resolves; `task decisions:uncovered` inverts it and reports a decision **no slice carries**. A decision that genuinely needs no slice goes in the plan's top-level `unsliced` map with its reason. Measured 2026-08-05, before the field existed: the median `concern` was 205 of 240 runes with up to 41 spent on an inline citation tail, and that pressure is one-directional — a citation list accretes, a description does not.
 
 ## Lifecycle
 
@@ -99,8 +100,9 @@ When a slice is cancelled, set `status: cancelled` and `cancelled_reason`, and r
 ## Views
 
 ```bash
-task plan:graph ID=NNNN   # regenerate NNNN/PLAN.md — Mermaid DAG + table, one subgraph per phase
-task plan:ready ID=NNNN   # slices whose depends_on are all `done`, grouped by phase
+task plan:graph ID=NNNN            # regenerate NNNN/PLAN.md — Mermaid DAG + table, one subgraph per phase
+task plan:ready ID=NNNN            # slices whose depends_on are all `done`, grouped by phase
+task decisions:uncovered ID=NNNN   # decisions no slice implements — the coverage inverse
 ```
 
 `plan:graph` is generated — like `INDEX.md`/`GRAPH.md`, it carries a "do not edit by hand" header and regenerates from `plan.yaml` on demand. Run it after any `plan.yaml` edit that changes structure, phase or status; nothing enforces freshness automatically. Nodes are grouped into one Mermaid `subgraph` per phase, so the implementation-then-migration split is the first thing the diagram shows; a phase with no slices emits no subgraph at all rather than an empty box (0011 renders one, not two). Cross-enhancement peripheral nodes sit outside both, since they belong to neither phase of that plan. The table below the diagram carries a `Phase` column and lists implementation rows first.
@@ -122,7 +124,9 @@ The stub is intentionally information-dense but not directive: it names the enha
 ## Anti-patterns
 
 - **Scaffolding `plan.yaml` on every new enhancement.** Don't — same rule as `experiments/`. An empty or single-slice `plan.yaml` is noise; add it only when the coordination need actually surfaces.
-- **Putting implementation detail in `concern`.** A `concern` field bloating past one line is a sign the design belongs in the target repo's OpenSpec change, not in `plan.yaml`.
+- **Putting implementation detail in `concern`.** A `concern` field bloating past one line is a sign the design belongs in the target repo's OpenSpec change, not in `plan.yaml`. The 240-rune cap will tell you.
+- **Writing decision citations into `concern` prose.** They go in `decisions`, where they can be checked and inverted. An inline `(D4, D21, D25)` is unparseable, eats the prose budget, and grows every time the entry takes another decision.
+- **Using `unsliced` to quiet a report you don't want to read.** Each entry is a claim that the decision needs no work, reviewed like any other line. If you cannot write the reason in a sentence, the decision probably does need a slice.
 - **Storing a `blocked` status.** There isn't one. Blocked-ness is computed from `depends_on` + dependency status by `task plan:ready`; a hand-maintained blocked flag drifts the moment a dependency lands.
 - **Letting `plan.yaml` and `config.yaml.history` disagree.** If a slice shows `done` in `plan.yaml` but no `history` event cites its `openspec_ref` (or vice versa), one of them is stale — fix it before moving on, not in a later cleanup pass.
 - **Renumbering or deleting a cancelled slice's id.** Other slices may cite it in `depends_on`. Cancel in place with `cancelled_reason`, same as a vacated `DN`/`OQN` keeps a tombstone.
@@ -141,7 +145,7 @@ The stub is intentionally information-dense but not directive: it names the enha
 | Schema | `enhancements/schema.cue` (`#SlicePlan`, `#Slice`, `#SliceStatus`, `#SliceRefStr`) | CUE contract for `plan.yaml`, same file that validates `config.yaml`. |
 | Rules canonical text | `enhancements/0000/README.md ## Slice Plan` | The field reference and worked example, duplicated into each new entry's template. |
 | Narrative counterpart | `enhancements/NNNN/06-operational.md ## Cross-Repo Coordination` | Prose rationale for the order `plan.yaml` encodes structurally. |
-| Workflow tasks | `enhancements/Taskfile.yml` (`new:plan`, `plan:graph`, `plan:ready`, `slice:seed`, plus the `plan_errors` checks inside `vet`/`vet:one`) | Tooling source. |
+| Workflow tasks | `enhancements/Taskfile.yml` (`new:plan`, `plan:graph`, `plan:ready`, `decisions:uncovered`, `slice:seed`, plus the `plan_errors` checks inside `vet`/`vet:one`) | Tooling source. |
 | This skill | `enhancements/.claude/skills/enhancement-slicing/SKILL.md` | Workflow guidance — the file you are reading. |
 
 ## Cross-references

@@ -365,6 +365,55 @@ tasks:
           ' || true)
           [ -n "$cyc" ] && out="${out}\n    dependency cycle involves: $cyc"
 
+          # Decision references (#DecisionRefStr). A slice cites the decisions
+          # it implements structurally rather than inside `concern`, so the
+          # numbers can be resolved here and inverted by
+          # `task decisions:uncovered`. A local "D34" must exist in THIS
+          # entry's 03-decisions.md; an "NNNN:D34" in that entry's. Numbers are
+          # immutable per the repo's invariants, so a tombstoned heading
+          # (`### D12: (merged into D10, …)`) still RESOLVES — the number is
+          # retired, not absent, and citations to it stay valid.
+          local dref dnum ddir
+          for ((i = 0; i < n; i++)); do
+            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
+            while IFS= read -r dref; do
+              [ -z "$dref" ] && continue
+              case "$dref" in
+                [0-9][0-9][0-9][0-9]:*)
+                  ddir="${dref%%:*}"; dnum="${dref#*:}"
+                  if ! ref_exists "$ddir"; then
+                    out="${out}\n    slice '$id': decisions '$dref' — no such enhancement '$ddir'"
+                    continue
+                  fi
+                  ;;
+                *) ddir="$dir"; dnum="$dref" ;;
+              esac
+              local dlog="$ddir/03-decisions.md"
+              if [ ! -f "$dlog" ]; then
+                out="${out}\n    slice '$id': decisions '$dref' — $ddir has no 03-decisions.md"
+              elif ! grep -qE "^#{2,4} $dnum:" "$dlog"; then
+                out="${out}\n    slice '$id': decisions '$dref' — no '$dnum:' heading in $dlog"
+              fi
+            done < <(yq -r ".slices[$i].decisions[]?" "$plan" 2>/dev/null)
+          done
+
+          # `unsliced` keys must resolve the same way, and must not ALSO be
+          # claimed by a slice — a decision is either carried or deliberately
+          # not, never both.
+          while IFS= read -r dref; do
+            [ -z "$dref" ] && continue
+            case "$dref" in
+              [0-9][0-9][0-9][0-9]:*) ddir="${dref%%:*}"; dnum="${dref#*:}" ;;
+              *) ddir="$dir"; dnum="$dref" ;;
+            esac
+            if [ -f "$ddir/03-decisions.md" ] && ! grep -qE "^#{2,4} $dnum:" "$ddir/03-decisions.md"; then
+              out="${out}\n    unsliced '$dref': no '$dnum:' heading in $ddir/03-decisions.md"
+            fi
+            if yq -r '.slices[].decisions[]?' "$plan" 2>/dev/null | grep -qx "$dref"; then
+              out="${out}\n    unsliced '$dref': also claimed by a slice — a decision is carried or deliberately not, never both"
+            fi
+          done < <(yq -r '.unsliced // {} | keys | .[]' "$plan" 2>/dev/null)
+
           printf '%s' "$out"
         }
 
@@ -724,6 +773,55 @@ tasks:
             }
           ' || true)
           [ -n "$cyc" ] && out="${out}\n    dependency cycle involves: $cyc"
+
+          # Decision references (#DecisionRefStr). A slice cites the decisions
+          # it implements structurally rather than inside `concern`, so the
+          # numbers can be resolved here and inverted by
+          # `task decisions:uncovered`. A local "D34" must exist in THIS
+          # entry's 03-decisions.md; an "NNNN:D34" in that entry's. Numbers are
+          # immutable per the repo's invariants, so a tombstoned heading
+          # (`### D12: (merged into D10, …)`) still RESOLVES — the number is
+          # retired, not absent, and citations to it stay valid.
+          local dref dnum ddir
+          for ((i = 0; i < n; i++)); do
+            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
+            while IFS= read -r dref; do
+              [ -z "$dref" ] && continue
+              case "$dref" in
+                [0-9][0-9][0-9][0-9]:*)
+                  ddir="${dref%%:*}"; dnum="${dref#*:}"
+                  if ! ref_exists "$ddir"; then
+                    out="${out}\n    slice '$id': decisions '$dref' — no such enhancement '$ddir'"
+                    continue
+                  fi
+                  ;;
+                *) ddir="$dir"; dnum="$dref" ;;
+              esac
+              local dlog="$ddir/03-decisions.md"
+              if [ ! -f "$dlog" ]; then
+                out="${out}\n    slice '$id': decisions '$dref' — $ddir has no 03-decisions.md"
+              elif ! grep -qE "^#{2,4} $dnum:" "$dlog"; then
+                out="${out}\n    slice '$id': decisions '$dref' — no '$dnum:' heading in $dlog"
+              fi
+            done < <(yq -r ".slices[$i].decisions[]?" "$plan" 2>/dev/null)
+          done
+
+          # `unsliced` keys must resolve the same way, and must not ALSO be
+          # claimed by a slice — a decision is either carried or deliberately
+          # not, never both.
+          while IFS= read -r dref; do
+            [ -z "$dref" ] && continue
+            case "$dref" in
+              [0-9][0-9][0-9][0-9]:*) ddir="${dref%%:*}"; dnum="${dref#*:}" ;;
+              *) ddir="$dir"; dnum="$dref" ;;
+            esac
+            if [ -f "$ddir/03-decisions.md" ] && ! grep -qE "^#{2,4} $dnum:" "$ddir/03-decisions.md"; then
+              out="${out}\n    unsliced '$dref': no '$dnum:' heading in $ddir/03-decisions.md"
+            fi
+            if yq -r '.slices[].decisions[]?' "$plan" 2>/dev/null | grep -qx "$dref"; then
+              out="${out}\n    unsliced '$dref': also claimed by a slice — a decision is carried or deliberately not, never both"
+            fi
+          done < <(yq -r '.unsliced // {} | keys | .[]' "$plan" 2>/dev/null)
 
           printf '%s' "$out"
         }
@@ -2183,6 +2281,113 @@ tasks:
         else
           emit_group migration 'MIGRATION'
         fi
+
+  decisions:uncovered:
+    desc: Decisions this entry records that no slice implements
+    summary: |
+      Usage:
+        task decisions:uncovered ID=0010
+
+      The inverse of `plan.yaml`'s `decisions` field. Lists every `### DN:`
+      heading in NNNN/03-decisions.md that no slice claims — the audit
+      0010's 2026-08-05 history event describes doing BY HAND, which found
+      seven pieces of decided work with no slice. D36's library half was the
+      significant one: real code (compile/match.go:111 and two further
+      readers) whose absence would have shipped a schema whose matching read
+      a field the design had emptied.
+
+      Coverage is counted ACROSS ENTRIES. A decision here is covered when a
+      slice in this plan cites it as "DN", or when a slice in ANY other
+      entry's plan cites it as "NNNN:DN" — which is the real case: 0011's
+      cli-catalog-member-gate carries 0010's D17, D21, D25 and D42, and
+      those would read as uncovered under a local-only scan.
+
+      Two exclusions, both deliberate. A tombstoned heading
+      (`### D12: (merged into D10, …)`) is a retired NUMBER rather than
+      unimplemented work. A key in `plan.yaml`'s `unsliced` map is a
+      recorded claim that the decision needs no slice, and its reason is
+      printed beside it so the claim is reviewed rather than trusted.
+
+      NOT a gate. `task vet` checks that every cited number RESOLVES;
+      whether every decision is carried is a judgement about an entry's
+      readiness, and a hard failure would block any entry whose design is
+      legitimately ahead of its plan.
+
+      Rows are tab-separated: DN  STATUS  HEADING
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task decisions:uncovered ID=<4-digit-id>'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        LOG="$ID/03-decisions.md"
+        [ -f "$LOG" ] || { echo "No $LOG — nothing to check." >&2; exit 0; }
+        PLAN="$ID/plan.yaml"
+
+        # Covered: cited locally as "DN", or by any other entry as "ID:DN".
+        covered=""
+        if [ -f "$PLAN" ]; then
+          covered=$(yq -r '.slices[].decisions[]?' "$PLAN" 2>/dev/null | grep -E '^D[0-9]+$' || true)
+        fi
+        for other in [0-9][0-9][0-9][0-9]; do
+          [ -f "$other/plan.yaml" ] || continue
+          [ "$other" = "$ID" ] && continue
+          more=$(yq -r '.slices[].decisions[]?' "$other/plan.yaml" 2>/dev/null \
+                 | sed -n "s|^${ID}:\\(D[0-9]\\+\\)$|\\1|p" || true)
+          covered=$(printf '%s\n%s' "$covered" "$more")
+        done
+
+        # Deliberately unsliced, with the recorded reason.
+        declare -A why=()
+        if [ -f "$PLAN" ]; then
+          # Read keys, then look each value up on its own. `yq` here is
+          # mikefarah's Go implementation, which has no jq-style `gsub` and no
+          # `@tsv` — and a folded `>` reason arrives with a trailing newline
+          # that would otherwise break the row. Trim it in bash.
+          while IFS= read -r k; do
+            [ -z "$k" ] && continue
+            # Trim with sed, not the ${v%"${v##*[![:space:]]}"} idiom — Task's
+            # embedded shell (mvdan/sh) mistranslates that bracket expression
+            # into an invalid Go regexp and panics outright.
+            v=$(yq -r ".unsliced[\"$k\"]" "$PLAN" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+            case "$k" in "$ID:"*) k="${k#*:}" ;; esac
+            why["$k"]="$v"
+          done < <(yq -r '.unsliced // {} | keys | .[]' "$PLAN" 2>/dev/null || true)
+        fi
+
+        rows=""; n_tomb=0; n_uns=0
+        while IFS= read -r line; do
+          dn=$(printf '%s' "$line" | sed -E 's/^#{2,4} (D[0-9]+):.*/\1/')
+          rest=$(printf '%s' "$line" | sed -E 's/^#{2,4} D[0-9]+: ?//')
+          case "$rest" in
+            "(merged into"*|"(superseded"*|"(retired"*) n_tomb=$((n_tomb+1)); continue ;;
+          esac
+          if printf '%s\n' "$covered" | grep -qx "$dn"; then continue; fi
+          if [ -n "${why[$dn]:-}" ]; then
+            n_uns=$((n_uns+1))
+            rows="${rows}${dn}\tunsliced\t${why[$dn]}\n"
+            continue
+          fi
+          rows="${rows}${dn}\tUNCOVERED\t${rest}\n"
+        done < <(grep -E '^#{2,4} D[0-9]+:' "$LOG" || true)
+
+        n_unc=$(printf '%b' "$rows" | grep -c 'UNCOVERED' || true)
+        echo "$ID — $n_unc uncovered, $n_uns deliberately unsliced, $n_tomb tombstoned"
+        if [ "$n_unc" -eq 0 ] && [ "$n_uns" -eq 0 ]; then
+          echo "(every decision is carried by a slice)"
+          exit 0
+        fi
+        echo
+        printf 'DN\tSTATUS\tHEADING\n'
+        printf '%b' "$rows"
 
   slice:seed:
     desc: Print a seed stub for one slice, sized to hand to the target repo's own OpenSpec `new` flow
