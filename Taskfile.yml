@@ -2009,7 +2009,7 @@ tasks:
         }
 
         emit_phase_subgraph implementation "Implementation — schema, code, docs" PHASE_IMPL
-        emit_phase_subgraph migration      "Migration — catalogs, modules, releases" PHASE_MIGR
+        emit_phase_subgraph migration      "Migration — published artifacts" PHASE_MIGR
         echo
 
         for ((i = 0; i < n; i++)); do

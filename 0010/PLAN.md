@@ -26,10 +26,9 @@ graph LR
     S_catalogs-identity-authoring["catalogs-identity-authoring (catalog)\nCommit identity/identity.cue in the D5 shape acro…"]:::planned
     S_modules-identity-authoring["modules-identity-authoring (modules)\nAdd identity/identity.cue per module (D38, 0011 D…"]:::planned
   end
-  subgraph PHASE_MIGR["Migration — catalogs, modules, releases"]
+  subgraph PHASE_MIGR["Migration — published artifacts"]
     S_catalogs-republish["catalogs-republish (catalog)\nCut releases of catalog_opm, catalog_kubernetes a…"]:::planned
     S_modules-fleet-republish["modules-fleet-republish (modules)\nRepublish the fleet through opm module publish ag…"]:::planned
-    S_releases-repin["releases-repin (releases)\nRe-pin opm-releases to the republished module coo…"]:::cancelled
   end
 
   S_core-identity-shape -->|depends_on| S_core-primitive-keying
@@ -60,7 +59,6 @@ graph LR
   S_modules-identity-authoring -->|depends_on| S_modules-fleet-republish
   X_0011_modules-publish-cutover["0011:modules-publish-cutover"]:::other
   X_0011_modules-publish-cutover -->|depends_on| S_modules-fleet-republish
-  S_modules-fleet-republish -->|depends_on| S_releases-repin
 ```
 
 | ID | Phase | Repo | Status | Depends on | Concern |
@@ -81,4 +79,3 @@ graph LR
 | modules-identity-authoring | implementation | modules | planned | catalogs-identity-authoring | Add identity/identity.cue per module (D38, 0011 D12) and the metadata wiring, plus the twelve D42 blueprint import moves. No hyphen renames — none exist, measured 2026-08-05. Source only, nothing published.   |
 | catalogs-republish | migration | catalog | planned | catalogs-identity-authoring, 0011:catalogs-publish-cutover | Cut releases of catalog_opm, catalog_kubernetes and catalog_opm_experimental through `opm catalog publish`. The first act that changes a published artifact.   |
 | modules-fleet-republish | migration | modules | planned | catalogs-republish, modules-identity-authoring, 0011:modules-publish-cutover | Republish the fleet through `opm module publish` against the released catalogs. The only fleet republish in the 0010/0011 pair (0011 D17).   |
-| releases-repin | migration | releases | cancelled | modules-fleet-republish | Re-pin opm-releases to the republished module coordinates. Sibling repo, not under the workspace root.   |

@@ -46,7 +46,7 @@ import "strings"
 //
 // `modules` is a GRANDFATHERED spelling, not a second canonical one. D5
 // proposed renaming it to `m`; D13 declined, because the rename rewrites every
-// published module coordinate and every pin in opm-releases/ for a spelling
+// published module coordinate and every deployment-side pin for a spelling
 // change D5 itself calls cosmetic.
 #FirstPartyPath: {
 	space:  "first-party"

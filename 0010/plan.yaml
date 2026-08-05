@@ -38,7 +38,7 @@
 #     (04-graduation.md gate; see 05-risks.md for why it is a recreate)
 #   - rewriting a live Platform's subscriptions from `range` to the D14
 #     scalar `version`
-#   - opm-releases' own v0 -> v1 migration (see releases-repin below)
+#   - the deployment repositories' own v0 -> v1 migration
 #   - the Zot registry cutover, which gates 0011 D10 (tag immutability)
 #     and D11 (authenticated writes) and has no owner or date
 #
@@ -46,6 +46,14 @@
 # MOVED: items 2-4 are now 0011's own `registry-cleanup` slice, since its
 # 04-graduation.md required them while both plans disowned them. Item 1
 # (legacy v1alpha1) stays out, gated on the v0 -> v1 fleet migration.
+#
+# A `releases-repin` slice was cancelled on 2026-08-05 and then DELETED
+# outright, together with the `releases` entry in config.yaml `affects`.
+# It targeted a deployment repository outside the workspace, which is
+# private and does not belong in a public design document; nothing cited
+# it in depends_on, so the tombstone the slicing convention preserves was
+# protecting no reference. Its finding survives in 06-operational.md's
+# step 7: 0011 D13 moves no coordinate, so there is nothing to re-pin.
 #
 # ---------------------------------------------------------------------
 # NO CORE MAJOR BUMP
@@ -272,27 +280,3 @@ slices:
       - modules-identity-authoring
       - "0011:modules-publish-cutover"
     status: planned
-
-  - id: releases-repin
-    repo: releases
-    phase: migration
-    concern: >
-      Re-pin opm-releases to the republished module coordinates. Sibling
-      repo, not under the workspace root.
-    depends_on:
-      - modules-fleet-republish
-    status: cancelled
-    cancelled_reason: >
-      Environments are out of scope (2026-08-05, author's call) —
-      opm-releases holds per-environment ModuleRelease configs and is
-      handled outside these entries. The slice was also never viable as
-      written: measured 2026-08-05, all 31 of its cue.mod/module.cue files
-      pin opmodel.dev/core/v1alpha1@v1.3.10 and opmodel.dev/opm/v1alpha1@v1.5.9
-      on CUE v0.15.x, and the module coordinates they consume
-      (jellyfin@v1, k8up@v1, seerr@v0, cert_manager@v0 and sixteen more)
-      are the v0_legacy fleet, with ZERO overlap with the eleven v1-line
-      modules modules-fleet-republish republishes. So there is nothing here
-      to re-pin in either direction. What opm-releases actually needs is a
-      v0 -> v1 migration — the same one 0011 D17 records as the gate on
-      deleting the legacy v1alpha1 repositories — which is a separate piece
-      of work rather than a step of this entry.

@@ -63,4 +63,4 @@ Two soft dependencies, neither blocking:
 - **`opm-operator/`** ships no code for this, but its `ModuleInstanceSpec` is the contract the exported CR must satisfy. A future field on that spec that the export does not know about would silently drop out of exported documents — the same class of incompleteness `01-problem.md` documents for `serviceAccountName` and `prune` today. The field-class table in `02-design.md` is the place that has to be updated when the spec grows.
 - **`opmodel.dev/`** regenerates its CLI reference from the Cobra definitions; mechanical, and it follows the CLI landing rather than gating it.
 
-`core/`, `library/`, `catalog/`, `modules/`, and `releases/` are uninvolved.
+`core/`, `library/`, `catalog/` and `modules/` are uninvolved.

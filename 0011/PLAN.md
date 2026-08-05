@@ -22,7 +22,7 @@ graph LR
     S_catalogs-publish-cutover["catalogs-publish-cutover (catalog)\nSwitch release.yml's publish job to opm catalog p…"]:::planned
     S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::planned
   end
-  subgraph PHASE_MIGR["Migration — catalogs, modules, releases"]
+  subgraph PHASE_MIGR["Migration — published artifacts"]
     S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: rename opmodel.dev/modules/test/he…"]:::planned
   end
 

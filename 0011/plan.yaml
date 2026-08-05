@@ -6,11 +6,11 @@
 #
 # Structural backing for 06-operational.md ## Cross-Repo Coordination.
 #
-# NOTE — this plan carries two slices that section does not list. Its
-# four steps are cli -> catalogs -> modules -> opm-releases, opening
-# "nothing else moves until opm catalog publish and opm module publish
-# exist". But `affects` also names core and library, and two decisions
-# put work there that the CLI slices CONSUME rather than follow:
+# NOTE — this plan carries two slices that section did not list until
+# 2026-08-05. It opened "nothing else moves until opm catalog publish and
+# opm module publish exist", but `affects` also names core and library, and
+# two decisions put work there that the CLI slices CONSUME rather than
+# follow:
 #
 #   D21 — #IdentityPackage must ship in `core`, because publish validates
 #         identity by unifying against it and surfacing CUE's own error.

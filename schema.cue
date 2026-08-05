@@ -36,7 +36,7 @@ import "strings"
 // map in `/CLAUDE.md`. Add a value here when a new primary repo joins the
 // workspace; do not allow free-text.
 #Area: "core" | "library" | "catalog" | "cli" | "opm-operator" | "opmodel.dev" |
-	"orca" | "modules" | "releases" | "cross-cutting"
+	"orca" | "modules" | "cross-cutting"
 
 // History event — append-only timeline of milestones. The `event` string is
 // free-form prose ("Drafted", "Accepted", "Slice <id> archived", etc.);

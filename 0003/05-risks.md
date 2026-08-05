@@ -16,7 +16,7 @@ Drawbacks and alternatives are omitted: they weigh a design that no longer exist
 
 ## Blast Radius — removing `metadata.version` (D13)
 
-Audited 2026-07-26 across `core`, `library`, `cli`, `opm-operator`, `modules`, and `releases`. Every site below was located by reading the code at the cited line, not inferred. Scope note: `version!` also appears on `#Resource`, `#Trait`, `#Blueprint`, `#ComponentTransformer`, and `#Catalog` — those are *primitive* and *catalog* versions and are **out of scope for D13**, which touches `#Module` only.
+Audited 2026-07-26 across `core`, `library`, `cli`, `opm-operator`, `modules`, and the deployment repositories. Every site below was located by reading the code at the cited line, not inferred. Scope note: `version!` also appears on `#Resource`, `#Trait`, `#Blueprint`, `#ComponentTransformer`, and `#Catalog` — those are *primitive* and *catalog* versions and are **out of scope for D13**, which touches `#Module` only.
 
 ### Sites that must change
 
@@ -46,7 +46,7 @@ Audited 2026-07-26 across `core`, `library`, `cli`, `opm-operator`, `modules`, a
 
 - **The operator needs no code change.** `opm-operator/api/v1alpha1/common_types.go:36-45` types `ModuleReference` as `{Path, Version}` where `Path` already carries the major (`opmodel.dev/modules/cert_manager@v0`) and `Version` is the pinned tag (`v0.2.1`). `internal/reconcile/moduleinstance.go:249,257,279` consume only those spec fields. **The operator never reads `metadata.version`** — it already works in CUE's model and only needs the CLI to write the coordinate it resolved by.
 - **No user-authored CUE breaks.** `core/src/module_context.cue:13-18`'s `#InstanceIdentity` carries `name`, `namespace`, `uuid`, `clusterDomain` — no version. Module authors have never been able to reference the module version from a component, so no template, trait, or resource in any module refers to it.
-- **`releases/` is clean.** No authored module version in any `.cue` file under `releases/`.
+- **The deployment repositories are clean.** No authored module version in any `.cue` file under them.
 - **Primitives are untouched.** `#Resource` / `#Trait` / `#Blueprint` / `#ComponentTransformer` keep their own `version!` and `@semver` FQNs; the matcher keys off those, not off module FQN. Nothing in `library` parses a *module* FQN — `library/opm/module/instance.go:103` returns it as an opaque string.
 - **The catalog side is unaffected by D13** and remains governed by OQ13.
 
