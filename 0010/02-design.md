@@ -92,6 +92,31 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue). The headline definiti
 - **`#ArtifactRef`** — splits a complete module path into `registryPath` + `major`, the operation that replaces every "compose an address from a prefix and a name" site.
 - **`#ModuleIdentity`** / **`#CatalogIdentity`** — the metadata shapes after the change, with `fqn` bound to `modulePath`, the module-side leaf constraint expressed over one field, a `registryPath` projection (D41), and the version-major agreement D40 adds to both.
 - **`#InstanceIdentity`** — `#ModuleInstance.metadata` after D41, and the second half of the identity invariant. It states the instance FQN as an explicit field derived from the module's **`registryPath`**, so neither the module's version nor its major reaches the value the owner label carries. Four pinned examples perturb the module version, the module major, the owner, and the namespace; only the last two move it, and both should.
+
+Two structs feed one shared value — the diagram makes the D41 hand-off explicit where the two bullets above state it in prose:
+
+```
+ #ModuleIdentity  (Module.metadata — WHICH module is this)
+
+   modulePath  "opmodel.dev/m/acme/x@v2"
+       │
+       ├──▶ fqn = modulePath                    (the whole path, incl. @v2)
+       │         │
+       │         ▼
+       │     uuid = SHA1(fqn)   ── MOVES on a major bump (@v2 → @v3)
+       │
+       └──▶ registryPath = fqn, major stripped   ("opmodel.dev/m/acme/x")
+                    │
+                    │  (passed down as moduleRegistryPath)
+                    ▼
+ #InstanceIdentity  (ModuleInstance.metadata — WHICH live resources this owns)
+
+   fqn = "moduleRegistryPath:name:namespace"
+       │
+       ▼
+   uuid = SHA1(fqn)   ── does NOT move on a major bump
+```
+
 - **`#IdentityPackage`** — the catalog's committed `identity/identity.cue`. Two fields the tooling writes (`ModulePath`, `Version`), located by name against this schema rather than by a marker (D5), plus `RegistryPath`, `Major` and `kindPrefix` derived from them, so the major is split once here rather than at every definition site (D1, D21).
 - **`#PrimitiveIdentity`** — `name` + `modulePath` + `apiVersion` + `catalogVersion` + `fqn`, carried by the three **primitives**: resources, traits and blueprints (D44). `modulePath` is a **package path** with no `@vN` (D1); `apiVersion` is the contract major an author decides and the only identity value not derivable from the identity package (D25); `catalogVersion` is the build it shipped in, provenance only; `fqn` is **authored** at the leaf (D21) and interpolates `apiVersion` (D4).
 - **`#TransformerIdentity`** — the **adapter**'s shape (D44), and not a variant of the above: `name` + `modulePath` + `catalogVersion` + an `#ImplFQNType` interpolating the build, with **no `apiVersion`**. There is deliberately no shared parent, because a parent spanning the primitive/adapter split is how `apiVersion` reached transformers in the first place. `core/SPEC.md:38` already classes `#ComponentTransformer` an adapter rather than a primitive; `:29` and `:38` move `#Blueprint` the other way, into the primitives.
