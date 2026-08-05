@@ -107,7 +107,8 @@ slices:
       produces the diagnostic (D21, D22), not a hand-rolled comparison.
     depends_on:
       - "0010:core-identity-shape"
-    status: planned
+    status: in-progress
+    openspec_ref: "core/core-identity-package"
 
   - id: library-compat-comparator
     repo: library

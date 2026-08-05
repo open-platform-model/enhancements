@@ -109,10 +109,11 @@ slices:
     concern: >
       Module, instance and catalog identity: #ModulePathType gains @vN and
       underscores, #PackagePathType splits off, fqn == modulePath,
-      registryPath, snake name, instance fqn/uuid (D1, D6, D8, D38, D40,
-      D41, D43, D45).
+      registryPath, snake name, instance fqn/uuid (D1, D6, D8, D38, D41,
+      D43, D45).
     depends_on: []
-    status: planned
+    status: in-progress
+    openspec_ref: "core/core-identity-shape"
 
   - id: core-primitive-keying
     repo: core
@@ -124,7 +125,8 @@ slices:
       D34, D44).
     depends_on:
       - core-identity-shape
-    status: planned
+    status: in-progress
+    openspec_ref: "core/core-primitive-keying"
 
   - id: core-platform-and-match
     repo: core
@@ -136,7 +138,8 @@ slices:
       demand-side trait opt-out.
     depends_on:
       - core-identity-shape
-    status: planned
+    status: in-progress
+    openspec_ref: "core/core-platform-and-match"
 
   - id: core-alpha-release
     repo: core
@@ -150,7 +153,8 @@ slices:
       - core-primitive-keying
       - core-platform-and-match
       - "0011:core-identity-package"
-    status: planned
+    status: in-progress
+    openspec_ref: "core/core-alpha-release"
 
   - id: library-core-retarget
     repo: library

@@ -11,7 +11,7 @@ graph LR
   classDef other       fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   subgraph PHASE_IMPL["Implementation — schema, code, docs"]
-    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::planned
+    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::in_progress
     S_library-compat-comparator["library-compat-comparator (library)\nThe D9 three-rule field-wise walk — NOT cue.Val…"]:::planned
     S_cli-login["cli-login (cli)\nopm login [registry] — resolves its target thro…"]:::planned
     S_cli-publish-pipeline["cli-publish-pipeline (cli)\nOne pipeline, two entry points: decode, read iden…"]:::planned
@@ -51,7 +51,7 @@ graph LR
 
 | ID | Phase | Repo | Status | Depends on | Concern |
 | -- | ----- | ---- | ------ | ---------- | ------- |
-| core-identity-package | implementation | core | planned | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic (D21, D22), not a hand-rolled comparison.   |
+| core-identity-package | implementation | core | in-progress | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic (D21, D22), not a hand-rolled comparison.   |
 | library-compat-comparator | implementation | library | planned | - | The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured 10/14 and 8/14 on disjoint sets — plus predecessor selection moved out of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.   |
 | cli-login | implementation | cli | planned | - | `opm login [registry]` — resolves its target through the existing ResolveRegistry precedence and writes to the credential store CUE itself reads, because CUE performs the push (D11). Independent of everything else here.   |
 | cli-publish-pipeline | implementation | cli | planned | core-identity-package | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10 (D1, D2, D4, D6, D12, D15, D16, D18, D21), plus the D16/D18 checks in `opm module vet`.   |
