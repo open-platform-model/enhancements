@@ -26,6 +26,8 @@ graph LR
     S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: rename opmodel.dev/modules/test/he…"]:::planned
   end
 
+  X_0010_core-identity-shape["0010:core-identity-shape"]:::other
+  X_0010_core-identity-shape -->|depends_on| S_core-identity-package
   S_core-identity-package -->|depends_on| S_cli-publish-pipeline
   S_core-identity-package -->|depends_on| S_cli-version-set
   S_library-compat-comparator -->|depends_on| S_cli-catalog-verify
@@ -49,7 +51,7 @@ graph LR
 
 | ID | Phase | Repo | Status | Depends on | Concern |
 | -- | ----- | ---- | ------ | ---------- | ------- |
-| core-identity-package | implementation | core | planned | - | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic (D21, D22), not a hand-rolled comparison.   |
+| core-identity-package | implementation | core | planned | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic (D21, D22), not a hand-rolled comparison.   |
 | library-compat-comparator | implementation | library | planned | - | The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured 10/14 and 8/14 on disjoint sets — plus predecessor selection moved out of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.   |
 | cli-login | implementation | cli | planned | - | `opm login [registry]` — resolves its target through the existing ResolveRegistry precedence and writes to the credential store CUE itself reads, because CUE performs the push (D11). Independent of everything else here.   |
 | cli-publish-pipeline | implementation | cli | planned | core-identity-package | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10 (D1, D2, D4, D6, D12, D15, D16, D18, D21), plus the D16/D18 checks in `opm module vet`.   |

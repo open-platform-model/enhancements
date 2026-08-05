@@ -181,11 +181,26 @@ import (
 	// collapses into (D1).
 	registryPath: _ref.registryPath
 
-	// D40: the declared version's major must equal the path's. Nothing else
-	// compares these two — 0011's #TagRef compares the TAG against the path,
-	// which CUE's own publish already does.
-	versionMajor: "v" + strings.SplitN(version, ".", 2)[0]
-	versionMajor: _ref.major
+	// D40's relation is NOT asserted here (D45, transposing D43 to #Module).
+	// Both `modulePath` and `version` are WRITTEN in identity/identity.cue,
+	// which asserts VersionMajor == Major between them, so a value reaching
+	// this shape has already passed the check and re-deriving it in `core`
+	// tests the same relation one hop downstream. `core` cannot read
+	// id.VersionMajor directly — it cannot import a consumer's identity
+	// package (D38, 0011 D12) — so the reference is the authored wiring in
+	// module.cue.
+	//
+	// ACCEPTED EXPOSURE, identical to #CatalogIdentity's and stated rather
+	// than inherited: a module whose identity package is absent, hand-written
+	// or non-conformant carries no major-agreement check any consumer can run.
+	// Bounded by 0011 D12's publish check, and removed outright by D43's
+	// recommended follow-on — core EXPORTS #IdentityPackage (it already must,
+	// under 0011 D21) and each identity.cue embeds it, so VersionMajor comes
+	// from the definition rather than from an author remembering to write it.
+	//
+	// The two artifact types now answer "where is the major checked"
+	// identically, which is the asymmetry D38 and 0011 D12 spent two decisions
+	// removing.
 
 	// leafMatchesName: D8's constraint, expressible over ONE field. Today the
 	// same rule spans two independently-authored fields with nowhere to live.
@@ -260,7 +275,9 @@ import (
 	// disagreement surfaces at #SubscriptionSelection._majorAgrees instead —
 	// in the platform author's file, about someone else's mistake.
 	//
-	// #ModuleIdentity KEEPS its versionMajor: D43 leaves the module half open.
+	// #ModuleIdentity carries the SAME holding (D45, 2026-08-05), which is what
+	// D43 left open here and recommended on the record. Neither artifact type
+	// asserts the relation in `core`.
 }
 
 // #IdentityPackage is the catalog's committed identity/identity.cue (D5),
@@ -289,8 +306,14 @@ import (
 	// agree with the major the PATH declares. Self-checking, so an artifact vets
 	// its own consistency with no `core` in the loop — which matters because the
 	// two values are WRITTEN here, so a failure names the file the author has
-	// open. `core` asserts the same relation independently, for identity
-	// packages that are absent or non-conformant.
+	// open.
+	//
+	// THIS IS THE ONLY ASSERTION OF THE RELATION. D40 had `core` assert it
+	// independently on both artifact types, for identity packages that are
+	// absent or non-conformant; D43 dropped that for #Catalog and D45 for
+	// #Module. What replaces it is publish-side: 0011 D8/D21 refuse a tree
+	// whose identity file does not match this definition, so the check cannot
+	// be omitted by an artifact that goes through the tool.
 	VersionMajor: "v" + strings.SplitN(Version, ".", 2)[0]
 	VersionMajor: Major
 
@@ -730,7 +753,9 @@ _moduleExample: #ModuleIdentity & {
 	version:      "2.4.1"
 	fqn:          "opmodel.dev/modules/postgres@v2"
 	registryPath: "opmodel.dev/modules/postgres"
-	versionMajor: "v2" // D40: agrees with the path's major
+	// No versionMajor: D45 drops the `core`-side assertion for #Module, as D43
+	// did for #Catalog. `version: "2.4.1"` agrees with the path's "@v2", and
+	// identity/identity.cue is where that is checked.
 }
 
 // Half two (D41). The SAME instance identity under four perturbations. Only the
@@ -803,16 +828,41 @@ _instanceSurvivesMajor: "opmodel.dev/modules/postgres:postgres-prod:prod"
 //   fqn:                "opmodel.dev/modules/postgres:postgres-prod:prod"
 //  }
 
-// MUST FAIL — a declared version whose major disagrees with the path's (D40).
-// Measured 2026-08-03: WITHOUT this constraint the tree vets clean, and the
-// disagreement surfaces only when a platform names the build — reporting one
-// publisher's mistake to a different party. Uncommenting yields
-//   _moduleMajorSkew.versionMajor: conflicting values "v2" and "v3"
+// MUST VET CLEAN — and that is the point, under D45. A declared version whose
+// major disagrees with the path's is NOT caught by #ModuleIdentity:
 //
-//  _moduleMajorSkew: #ModuleIdentity & {
-//   name:       "postgres"
-//   modulePath: "opmodel.dev/modules/postgres@v2"
-//   version:    "3.0.0"
+//   _moduleMajorSkew: #ModuleIdentity & {
+//    name:       "postgres"
+//    modulePath: "opmodel.dev/modules/postgres@v2"
+//    version:    "3.0.0"
+//   }
+//
+// Measured 2026-08-03, this vets clean, and D40 added a `core`-side
+// versionMajor assertion to catch it. D43 dropped that assertion for #Catalog
+// and D45 dropped it for #Module, so the clean vet above is now the SPECIFIED
+// behaviour of this shape rather than the gap D40 closed.
+//
+// What catches it instead, in order: identity/identity.cue asserts
+// `VersionMajor: Major` over the two values at the point they are WRITTEN, so
+// the failure names the file the author has open; 0011 D12's publish check
+// compares metadata.version against id.Version for anything going through the
+// tool; and 0011 D8/D21 refuse an identity file that does not match
+// #IdentityPackage, which is what stops the first check being silently omitted.
+//
+// The exposure that survives all three is an artifact whose identity package is
+// absent or non-conformant AND that was published by `cue mod publish` rather
+// than `opm publish` (D11 keeps that path working). For that artifact the skew
+// surfaces at #SubscriptionSelection._majorAgrees — in a platform author's
+// file, about a publisher's mistake. D43 and D45 both record accepting it.
+// _identityMajorSkew below is where the relation IS enforced.
+
+// MUST FAIL — the same skew, one hop upstream, where D45 leaves the only
+// assertion. Uncommenting yields
+//   _identityMajorSkew.VersionMajor: conflicting values "v2" and "v3"
+//
+//  _identityMajorSkew: #IdentityPackage & {
+//   ModulePath: "opmodel.dev/modules/postgres@v2"
+//   Version:    "3.0.0"
 //  }
 
 // MUST FAIL — the version leaking into fqn, which is what D2 deleted the field

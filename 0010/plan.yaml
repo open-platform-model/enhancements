@@ -72,11 +72,22 @@
 # 06-operational.md's "nothing else can move until this tag exists"
 # describes, and it is what every downstream slice depends on.
 #
+# FOUR SLICES LAND IN THAT ALPHA, NOT THREE — 0011:core-identity-package is
+# the fourth, and it is a `core` slice under a different entry's plan. It
+# also sits INSIDE this chain rather than beside it (2026-08-05): it now
+# depends on core-identity-shape, because #IdentityPackage is typed out of
+# #ModulePathType, #VersionType and #ArtifactRef, none of which exist in
+# core/src today in the shape it needs. So core-identity-shape is the single
+# root of the whole core cluster across both entries, and core-alpha-release
+# is still the single cut point. 0011's plan carries the measurement.
+#
 # ---------------------------------------------------------------------
 # CROSS-ENHANCEMENT EDGES TO 0011
 # ---------------------------------------------------------------------
 # These are ORDERING edges, not blocking ones — neither entry blocks the
-# other at the entry level (0011 D17 dissolved the joint window). Four:
+# other at the entry level (0011 D17 dissolved the joint window). Four run
+# OUTBOUND from slices declared here; a fifth runs inbound and is declared
+# in 0011's plan (core-identity-package -> core-identity-shape, above).
 #   core-alpha-release          -> 0011:core-identity-package
 #     #IdentityPackage ships in `core` (0011 D21) and belongs in the same
 #     alpha the catalogs and the fleet retarget to.

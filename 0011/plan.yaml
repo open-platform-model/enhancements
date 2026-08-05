@@ -42,7 +42,7 @@
 # If the operator's CI publishes them, move the slice and add `opm-operator`
 # to `affects` first.
 #
-# FOUR CROSS-ENHANCEMENT EDGES CONNECT THE TWO PLANS. They are ordering
+# FIVE CROSS-ENHANCEMENT EDGES CONNECT THE TWO PLANS. They are ordering
 # edges, not blocking ones — neither entry blocks the other at the entry
 # level (D17 dissolved the joint window). Two point from 0010 into here:
 #
@@ -56,7 +56,24 @@
 #     selection reuses filter.go:112's highestStable. A move, not a
 #     delete-and-rewrite — so the move happens first.
 #
-# AND TWO POINT FROM HERE INTO 0010, WITHOUT WHICH BOTH CUTOVERS BREAK CI.
+# AND THREE POINT FROM HERE INTO 0010. The first is a COMPILE dependency
+# rather than an ordering preference:
+#
+#   core-identity-package -> 0010:core-identity-shape
+#     #IdentityPackage does not stand alone. Its `ModulePath!` is typed
+#     #ModulePathType in the D1 `@vN` form, its `Version!` is #VersionType,
+#     and RegistryPath/Major are projected through `_ref: #ArtifactRef`
+#     (0010 schemas/target.cue:275). Measured 2026-08-05 against core/src:
+#     #ArtifactRef does not exist there at all, and #ModulePathType is still
+#     types.cue:26's no-major regex. So this slice cannot compile — never
+#     mind validate anything — until 0010's identity slice has landed those
+#     three definitions. The two slices read as parallel core roots only
+#     because that edge was missing; there is ONE core root, and it is in
+#     0010. No cycle results: 0010:core-identity-shape -> this slice ->
+#     0010:core-alpha-release is a chain, and the alpha cut is what both
+#     halves of the pair were already waiting on.
+#
+# THE OTHER TWO ARE THE CUTOVERS, WITHOUT WHICH BOTH BREAK CI.
 # catalogs-publish-cutover points release.yml at `opm catalog publish`, and
 # modules-publish-cutover points the modules pipeline at `opm module
 # publish`. Both commands validate identity/identity.cue by unifying it
@@ -88,7 +105,8 @@ slices:
       Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish
       validates identity and every catalog member by unification and CUE
       produces the diagnostic (D21, D22), not a hand-rolled comparison.
-    depends_on: []
+    depends_on:
+      - "0010:core-identity-shape"
     status: planned
 
   - id: library-compat-comparator

@@ -282,7 +282,15 @@ tasks:
           [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
 
           local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          local edges="" local_deps dep other other_slice cur_phase dep_phase
+          # `other_ids` is materialised BEFORE the membership test on purpose.
+          # The obvious form — `yq ... | grep -qx "$other_slice"` — is a race
+          # under `set -o pipefail`: `grep -q` exits on its first match, yq
+          # takes SIGPIPE while still writing, and pipefail turns the killed
+          # producer into a failed pipeline even though the slice WAS found.
+          # Measured 2026-08-05: 36/60 false "no slice" failures on a valid
+          # tree, worst when the target is the first id in the other plan —
+          # which both of the core edges across 0010/0011 are.
+          local edges="" local_deps dep other other_slice cur_phase dep_phase other_ids
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
             cur_phase="${slice_phase[$id]:-}"
@@ -296,7 +304,8 @@ tasks:
                   if ! ref_exists "$other"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such enhancement '$other'"
                   elif [ -f "$other/plan.yaml" ]; then
-                    if ! yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null | grep -qx "$other_slice"; then
+                    other_ids=$(yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null || true)
+                    if ! grep -qx "$other_slice" <<<"$other_ids"; then
                       out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
                     else
                       dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
@@ -304,7 +313,7 @@ tasks:
                   fi
                   ;;
                 *)
-                  if ! echo "$all_ids" | grep -qx "$dep"; then
+                  if ! grep -qx "$dep" <<<"$all_ids"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
                   else
                     dep_phase="${slice_phase[$dep]:-}"
@@ -633,7 +642,15 @@ tasks:
           [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
 
           local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          local edges="" local_deps dep other other_slice cur_phase dep_phase
+          # `other_ids` is materialised BEFORE the membership test on purpose.
+          # The obvious form — `yq ... | grep -qx "$other_slice"` — is a race
+          # under `set -o pipefail`: `grep -q` exits on its first match, yq
+          # takes SIGPIPE while still writing, and pipefail turns the killed
+          # producer into a failed pipeline even though the slice WAS found.
+          # Measured 2026-08-05: 36/60 false "no slice" failures on a valid
+          # tree, worst when the target is the first id in the other plan —
+          # which both of the core edges across 0010/0011 are.
+          local edges="" local_deps dep other other_slice cur_phase dep_phase other_ids
           for ((i = 0; i < n; i++)); do
             id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
             cur_phase="${slice_phase[$id]:-}"
@@ -647,7 +664,8 @@ tasks:
                   if ! ref_exists "$other"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such enhancement '$other'"
                   elif [ -f "$other/plan.yaml" ]; then
-                    if ! yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null | grep -qx "$other_slice"; then
+                    other_ids=$(yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null || true)
+                    if ! grep -qx "$other_slice" <<<"$other_ids"; then
                       out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
                     else
                       dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
@@ -655,7 +673,7 @@ tasks:
                   fi
                   ;;
                 *)
-                  if ! echo "$all_ids" | grep -qx "$dep"; then
+                  if ! grep -qx "$dep" <<<"$all_ids"; then
                     out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
                   else
                     dep_phase="${slice_phase[$dep]:-}"
