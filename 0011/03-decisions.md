@@ -451,7 +451,7 @@ Adding the check to `opm module vet` is worth more than its cost: the condition 
 
 **What remains is a cleanup list, and it is bounded:**
 
-1. **The legacy `v1alpha1` namespace** — eleven `opmodel.dev/<name>/v1alpha1` repositories plus `opmodel.dev/core/v1alpha1` and `opmodel.dev/kubernetes/v1`. **These cannot be removed yet.** 0010 D18 records that `opm-releases/` and `northbyte/deployments/` still pin `opmodel.dev/core/v1alpha1@v1` and `opmodel.dev/opm/v1alpha1@v1`; they are the deprecated `catalog/` tree the v0 fleet runs on. They go when the v0 → v1 fleet migration completes, and not before.
+1. **The legacy `v1alpha1` namespace** — eleven `opmodel.dev/<name>/v1alpha1` repositories plus `opmodel.dev/core/v1alpha1` and `opmodel.dev/kubernetes/v1`. **These cannot be removed yet.** 0010 D18 records that both deployment repositories still pin `opmodel.dev/core/v1alpha1@v1` and `opmodel.dev/opm/v1alpha1@v1`; they are the deprecated `catalog/` tree the v0 fleet runs on. They go when the v0 → v1 fleet migration completes, and not before.
 2. **One hyphenated module** — `opmodel.dev/modules/test/hello-web` → `test/hello_web`. That is the entire snake_case sweep; every other module is already conformant.
 3. **`opmodel.dev/modules/test/*`** (four repositories) and their `-e2e` prerelease tags — moved to `testing.opmodel.dev` or deleted. The separate-domain precedent is the one D13 and D14 both rest on.
 4. **`opmodel.dev/test/cleanmod`** — developer detritus, deleted.

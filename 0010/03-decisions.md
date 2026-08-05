@@ -346,7 +346,9 @@ Measured 2026-07-27: the shipped catalogs follow the convention uniformly, every
 
 **Decision:** This enhancement carries **no live-instance migration burden**. Every deployed OPM instance is on the deprecated v0 schema line, so no running instance carries an identity that this entry's changes would alter. The fleet reaches `opmodel.dev/core@v1` through a separate v0 → v1 migration, and 0010's identity shape is part of that migration's *target state* rather than a delta applied to running v1 instances. OQ4's relabel-versus-recreate choice is therefore not a runbook this entry owns.
 
-**Fleet measured 2026-07-27.** `opm-releases/` (`gon1_nas2`, `kind_opm_dev`, `mr_spel`, `nas1`, `nas2`) and `northbyte/deployments/` (`prod`, `fleet-prod`, `test`, plus eight modules) both pin `opmodel.dev/core/v1alpha1@v1` and `opmodel.dev/opm/v1alpha1@v1` — the deprecated `catalog/` tree. Nothing is on `opmodel.dev/core@v1`. Noted in passing: those modules' `cue.mod` lines already read `module: "opmodel.dev/modules/mc_ops@v0"`, which is D1's shape verbatim — the string D1 wants in `metadata.modulePath` already exists in the fleet's own manifests.
+**Fleet measured 2026-07-27**, across two deployment repositories covering eight environments in total; the repositories and environments are named out of band. Every one pins `opmodel.dev/core/v1alpha1@v1` and `opmodel.dev/opm/v1alpha1@v1` — the deprecated `catalog/` tree. Nothing is on `opmodel.dev/core@v1`. Re-verified 2026-08-05 for the larger of the two repositories: all 31 of its `cue.mod/module.cue` files still pin that pair, on CUE `v0.15.x`. Noted in passing: those modules' `cue.mod` lines already read `module: "opmodel.dev/modules/<name>@v0"`, which is D1's shape verbatim — the string D1 wants in `metadata.modulePath` already exists in the fleet's own manifests.
+
+**Scope note added 2026-08-05.** Clusters and environments are out of scope for this entry and for 0011 (author's call): these entries fix what a published artifact *is*, and moving a running deployment onto it is separate work handled afterwards. That does not change this decision, which already declined the migration burden — but it does mean the two holdings below are the entry's whole contribution to that future work, and that `plan.yaml` deliberately carries no live-instance slice. The `releases-repin` slice was cancelled on the same call.
 
 Two holdings are recorded as **inputs** to that future migration rather than as work here:
 
@@ -361,7 +363,7 @@ Two holdings are recorded as **inputs** to that future migration rather than as 
 
 **Rationale:** OQ4 asked how live instances adopt their new identity, and the answer turned out to be that they do not adopt one — they are not on the schema whose identity changes. Resolving it as subsumed states that plainly instead of writing a runbook against a fleet that cannot execute it. What survives is the part that was genuinely learned: that the operator's resource ownership model makes in-place relabelling the safe direction, and that the failure this migration must guard against is silent rather than loud.
 
-**Source:** User decision 2026-07-27. Fleet inventory read from `opm-releases/` and `northbyte/deployments/` 2026-07-27.
+**Source:** User decision 2026-07-27. Fleet inventory read 2026-07-27 from the two deployment repositories, named out of band; re-verified 2026-08-05.
 
 ### D19: A moved-ahead dev checkout is accepted and warned about, not versioned around
 

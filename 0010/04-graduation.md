@@ -20,7 +20,7 @@ The design is ready to be sliced when:
 
 The design is shipped when:
 
-- `core` carries the new `#Module` / `#Catalog` / primitive shapes, `core/SPEC.md` is co-updated per the `core-schema-edit` protocol, and the major-version event is published.
+- `core` carries the new `#Module` / `#Catalog` / primitive shapes, `core/SPEC.md` is co-updated per the `core-schema-edit` protocol, and `v1.0.0-alpha.4` is published. **Not a major bump** — `core@v1` has published only prereleases and no stable `v1.0.0` (measured 2026-08-05), so the break lands in the alpha line and `opmodel.dev/core@v1` is unmoved. The three `core` slices in [`plan.yaml`](plan.yaml) land into that one unpublished alpha; `core-alpha-release` is the cut point every downstream slice depends on.
 - `library` enforces the D11 address check at module acquire, at catalog materialize, and at platform subscription, each with a typed error naming both values; the kernel stamps the D9 resolved-coordinate label on the render path.
 - **The cross-catalog gate.** A contract defined in one catalog with no transformer of its own, fulfilled by a transformer in a second catalog compiled against a *different* build of the first, renders on a platform subscribed to both. This is what D4 exists to deliver and it is the thing to demonstrate; a fixture pair reproducing `experiments/02`'s cases 1-3 end-to-end through the kernel is the cheapest form of it.
 - **The compatibility promise is enforced at both ends.** A catalog build that removes a field inside an `apiVersion` is refused at publish (0011 D9); a module using a field the platform's provider predates fails the render naming that field. Both measured in `experiments/02` at the CUE level — the gate is that they hold through the kernel.
