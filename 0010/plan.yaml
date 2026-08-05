@@ -112,7 +112,7 @@ slices:
       registryPath, snake name, instance fqn/uuid.
     depends_on: []
     decisions: [D1, D3, D6, D8, D38, D41, D43, D45]
-    status: in-progress
+    status: done
     openspec_ref: "core/core-identity-shape"
 
   - id: core-primitive-keying
