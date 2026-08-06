@@ -24,6 +24,7 @@ graph LR
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0013["0013: Attribute-Declared Secret Fields"]:::draft
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
+  N0015["0015: Catalog Contracts, Provider Classes, and Transfor…"]:::draft
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003
@@ -46,7 +47,9 @@ graph LR
   N0010 ---|related| N0011
   N0010 ---|related| N0012
   N0010 ---|related| N0013
+  N0010 ---|related| N0015
   N0011 ---|related| N0013
+  N0011 ---|related| N0015
   N0013 ---|related| N0014
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003

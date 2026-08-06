@@ -1,0 +1,44 @@
+id: "0015"
+slug: catalog-contracts-and-provider-registration
+title: Catalog Contracts, Provider Classes, and Transformer Registration
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cross-cutting
+# Every repo that ships code/schema/content changes driven by this enhancement.
+affects:
+  - cross-cutting
+  - core
+  - library
+  - opm-operator
+  - cli
+  - catalog
+created: "2026-08-05"
+updated: "2026-08-05"
+authors:
+  - emil@jacero.se
+implementation:
+  status: not-started
+history:
+  - date: "2026-08-05"
+    event: >
+      Drafted from a design conversation grounded in three measurements taken the same day.
+      `core/src/catalog.cue` carries exactly ONE member map, `#transformers`, and
+      `library/opm/materialize/index.go:39-41` skips any catalog build without one — so a
+      contract with no adapter is absent from the materialized world, which is precisely the
+      state 0010 D37's `fulfilment: "provider"` creates on purpose. `compile/match.go:344-360`
+      is SUBSET containment, not equality, so a more-specific transformer never displaces a
+      less-specific one; both pair and both render, and 0010 D32's guard does not reach the
+      case because it fires only for `fulfilment: "provider"` contracts. And the real
+      discriminator across the 8 transformers sharing `catalog_opm`'s `#ContainerResource`
+      bucket is `requiredLabels` (`daemonset_transformer.cue:27-29`), not the resource/trait
+      set — which is what makes 0010 D36's `matchLabels` the lever for provider classes rather
+      than a new matcher concept. Four decisions locked: D1 (explicit contract maps), D2
+      (classes, amending 0010 D37), D3 (RBAC-gated registration CR), D4 (no contract/adapter
+      packaging split, decided now because riding 0010's FQN break is nearly free and a
+      standalone break later is not). Six Open Questions carried.
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0010"
+  - "0011"
+supersedes: []
+superseded_by: null
