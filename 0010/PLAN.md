@@ -13,8 +13,8 @@ graph LR
   subgraph PHASE_IMPL["Implementation — schema, code, docs"]
     S_core-identity-shape["core-identity-shape (core)\nModule, instance and catalog identity: #ModulePat…"]:::done
     S_core-primitive-keying["core-primitive-keying (core)\nContract keys split from implementation keys: #Co…"]:::done
-    S_core-platform-and-match["core-platform-and-match (core)\nPlatform and match surface: #SubscriptionFilter d…"]:::in_progress
-    S_core-alpha-release["core-alpha-release (core)\nThe single cut point. SPEC.md coherence pass acro…"]:::in_progress
+    S_core-platform-and-match["core-platform-and-match (core)\nPlatform and match surface: #SubscriptionFilter d…"]:::done
+    S_core-alpha-release["core-alpha-release (core)\nSPEC.md coherence pass across the three schema sl…"]:::in_progress
     S_library-core-retarget["library-core-retarget (library)\nRe-pin to v1.0.0-alpha.4, fix the compile breakag…"]:::planned
     S_library-identity-read-checks["library-identity-read-checks (library)\nIdentity verified where artifacts are read: modul…"]:::planned
     S_library-subscription-collapse["library-subscription-collapse (library)\nD14 deletes materialize/filter.go — no highestS…"]:::planned
@@ -65,8 +65,8 @@ graph LR
 | -- | ----- | ---- | ------ | ---------- | ------- |
 | core-identity-shape | implementation | core | done | - | Module, instance and catalog identity: #ModulePathType gains @vN and underscores, #PackagePathType splits off, fqn == modulePath, registryPath, snake name, instance fqn/uuid.   |
 | core-primitive-keying | implementation | core | done | core-identity-shape | Contract keys split from implementation keys: #ContractFQNType / #ImplFQNType, #APIVersionType, apiVersion! and catalogVersion! on the primitives, authored fqn, primitive-versus-adapter.   |
-| core-platform-and-match | implementation | core | in-progress | core-identity-shape | Platform and match surface: #SubscriptionFilter deleted for a scalar version, matchLabels on the four kinds with #LabelWorkloadType deleted, fulfilment on #Resource and #Trait, and D46's #Trait.optional plus gate.   |
-| core-alpha-release | implementation | core | in-progress | core-identity-shape, core-primitive-keying, core-platform-and-match, 0011:core-identity-package | The single cut point. SPEC.md coherence pass across the three schema slices, schemas/examples.cue re-vetted, v1.0.0-alpha.4 published. No major bump — the module path does not move.   |
+| core-platform-and-match | implementation | core | done | core-identity-shape | Platform and match surface: #SubscriptionFilter deleted for a scalar version, matchLabels on the four kinds with #LabelWorkloadType deleted, fulfilment on #Resource and #Trait, and D46's #Trait.optional plus gate.   |
+| core-alpha-release | implementation | core | in-progress | core-identity-shape, core-primitive-keying, core-platform-and-match, 0011:core-identity-package | SPEC.md coherence pass across the three schema slices, examples.cue re-vetted, the alpha carrying all four published. NO LONGER THE SINGLE CUT POINT — v2.0.0-alpha.3 shipped three of them; see history.   |
 | library-core-retarget | implementation | library | planned | core-alpha-release | Re-pin to v1.0.0-alpha.4, fix the compile breakage, regenerate testdata including the two D42 import sites (one written as a string at synth/instance_integration_test.go:154). No behaviour change.   |
 | library-identity-read-checks | implementation | library | planned | library-core-retarget | Identity verified where artifacts are read: modulePath against the fetched coordinate and version against the tag on the acquire path, plus materialize and subscription.   |
 | library-subscription-collapse | implementation | library | planned | library-core-retarget, 0011:library-compat-comparator | D14 deletes materialize/filter.go — no highestStable default, no constraint solving, no prerelease inference. What survives is one major- agreement check beside the subscription.   |

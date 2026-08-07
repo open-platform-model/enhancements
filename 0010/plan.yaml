@@ -138,16 +138,16 @@ slices:
     depends_on:
       - core-identity-shape
     decisions: [D14, D28, D32, D36, D37, D46]
-    status: in-progress
+    status: done
     openspec_ref: "core/core-platform-and-match"
 
   - id: core-alpha-release
     repo: core
     phase: implementation
     concern: >
-      The single cut point. SPEC.md coherence pass across the three schema
-      slices, schemas/examples.cue re-vetted, v1.0.0-alpha.4 published. No
-      major bump — the module path does not move.
+      SPEC.md coherence pass across the three schema slices, examples.cue
+      re-vetted, the alpha carrying all four published. NO LONGER THE SINGLE
+      CUT POINT — v2.0.0-alpha.3 shipped three of them; see history.
     depends_on:
       - core-identity-shape
       - core-primitive-keying
