@@ -125,7 +125,7 @@ slices:
     depends_on:
       - core-identity-shape
     decisions: [D4, D21, D25, D33, D34, D44]
-    status: in-progress
+    status: done
     openspec_ref: "core/core-primitive-keying"
 
   - id: core-platform-and-match
