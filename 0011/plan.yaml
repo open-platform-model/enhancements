@@ -175,13 +175,13 @@ slices:
     repo: cli
     phase: implementation
     concern: >
-      Publish refuses a catalog member whose declared modulePath or fqn does
-      not equal #CatalogMemberFQNGate's derivation, unified against the core-
-      shipped gate with CUE's error surfaced.
+      Publish refuses a member whose modulePath or fqn disagrees with
+      #CatalogMemberFQNGate, and a trait whose optional is unstated or
+      pinned. Both unify against core-shipped gates; -c is required.
     depends_on:
       - core-identity-package
       - cli-publish-pipeline
-    decisions: [D22, 0010:D17, 0010:D21, 0010:D25, 0010:D42]
+    decisions: [D22, 0010:D17, 0010:D21, 0010:D25, 0010:D42, 0010:D46]
     status: planned
 
   - id: cli-mod-init-repair

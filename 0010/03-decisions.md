@@ -561,6 +561,8 @@ There is also no `UnhandledResources` counterpart to `UnhandledTraits` (`:167-17
 
 The spelling of the trait opt-out is left to the implementing slice; what this decision fixes is that there is exactly one, that it lives on the demand side, and that its absence means "required".
 
+**The trait half is superseded by D46 (rider added 2026-08-07).** The resource half — every declared resource is required, no demand-side marker, an unsupplied one is a hard failure — stands unchanged, and so does the reasoning above for why an unresolved demand cannot stay soft. What D46 revises is the sentence immediately preceding this one: the opt-out is no longer demand-side-only, and there is no longer an implicit default in either direction. It is stated per-trait by the declaring catalog and overridden per-attachment by the module. The implementing slice built this decision's spelling first, found it wrote the contract FQN twice and gave the trait's own author no way to say whether a trait is advisory, and D46 is what replaced it.
+
 **Source:** User decision 2026-07-29. Current behaviour read from `library/opm/compile/{match,module,errors}.go` and `library/opm/kernel/phases.go` 2026-07-29.
 
 ### D29: (merged into D14, 2026-07-30)
@@ -993,6 +995,35 @@ Two things bound it. The residual failure is loud rather than silent — a versi
 **Source:** User decision 2026-08-05, taking D43's recorded recommendation. Measurements are D40's and D43's, unchanged; publish-side wiring check from 0011 D12; identity-file shape validation from 0011 D8 and D21. **Supersedes D40's `#Module` half; completes D43.**
 
 ---
+
+
+### D46: A trait's optionality is stated by its catalog and overridden by the attachment
+
+**Decision:** `#Trait` carries `optional: bool`, beside `spec`. **`core` gives it no default.** The declaring catalog states the posture and MUST state it as a *default* — `bool | *true` for an advisory trait, `bool | *false` for a load-bearing one — and a `#Component` overrides it at the attachment site:
+
+```cue
+#traits: (BackupFQN): Backup & {optional: true}   // not my data
+```
+
+`#Component` carries no optionality field of its own. **This supersedes D28's trait half**: the opt-out is no longer demand-side-only, and neither `core` nor this decision supplies an implicit default.
+
+**Why the posture is per-trait rather than one global rule.** Optionality is a property of the *(trait, component)* pair, not of the trait alone: `backup` on a throwaway cache is advisory, and on a database it is the entire point. The catalog knows the common case and the module knows its own, so both need a say — which is exactly what a default plus an attachment-site override expresses, and what D28's demand-side-only marker could not.
+
+**Why a default and not a value, and why `core` states none.** A default is what makes the catalog's statement a recommendation rather than a ruling: measured against cue v0.17.1, a module narrowing a default is never a conflict, while narrowing a concrete value always is. And two defaults do not compose — a catalog restating one against a `core` default annihilates both, leaving `bool | true | false`: incomplete, with no default, and a diagnostic (`incomplete value bool`) that never says why. So `core` declares the field and no opinion, which is also the honest position: `core` does not know whether backups are optional.
+
+**The rule the schema cannot carry, and where it went.** CUE has no way to say "this field may be given a default here but not a concrete value" — a field admits a concrete value or it does not, and this one must, because that is what a module writes at the attachment site. What separates the two cases is *who wrote it*, which the schema cannot see. `#TraitOptionalGate` ships in `core` and `opm catalog publish` unifies every published trait's `optional` against it, refusing an unstated posture and a pinned one. That is D22's mechanism in 0011 (unify against a shipped definition, surface CUE's own error) rather than a second one.
+
+**Two properties of the gate worth carrying, both measured 2026-08-07 against cue v0.17.1.** Its two rules fail differently: a pinned posture is a conflict between concrete booleans and plain `cue vet` reports it, while an unstated posture is an *incomplete value* and plain `cue vet` does not — only `-c` does. And the gate must be unified into a **non-hidden** value, because `cue vet -c` does not check hidden fields, so a gate parked in a `_`-prefixed slot passes while checking nothing. A gate run without `-c`, or into a hidden field, enforces half of itself silently.
+
+**Alternatives considered:**
+
+- **D28's demand-side marker set** (`#Component.#optionalTraits`, keyed by contract FQN). Built first, then replaced. It wrote the FQN twice — once to attach, once to mark — and located optionality where the trait's author, who knows whether the trait is advisory, could not state it. Its one advantage was structural: a catalog cannot write a field that lives on `#Component`. D46 buys that back with the gate instead.
+- **A boolean on `#Trait` with a `core` default.** Rejected on the annihilation measured above: a catalog wanting the other posture cannot restate the default without destroying it and forcing every attaching module to answer explicitly.
+- **Two fields — a catalog-side `recommendedOptional` and a demand-side `optional` defaulting to it.** Measured working, and rejected as one field too many for the same guarantee once dropping `core`'s default was found to give it directly.
+- **Making all traits optional by default.** This is D28's own rejected "warn on everything" alternative, and it is rejected again on the same evidence — a skipped operation with no Event and no metric reads as success in the cluster. Under D46 the question does not arise as a default at all: every trait states a posture, and the gate refuses a catalog that does not.
+
+**Source:** User decision 2026-08-07, during implementation of `core/core-platform-and-match`. CUE behaviour measured in `core/src` against cue v0.17.1.
+
 
 ## Open Questions
 

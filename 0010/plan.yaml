@@ -137,7 +137,7 @@ slices:
       fulfilment on #Resource and #Trait, and D28's demand-side trait opt-out.
     depends_on:
       - core-identity-shape
-    decisions: [D14, D28, D32, D36, D37]
+    decisions: [D14, D28, D32, D36, D37, D46]
     status: done
     openspec_ref: "core/core-platform-and-match"
 
