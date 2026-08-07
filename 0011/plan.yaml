@@ -108,7 +108,7 @@ slices:
     depends_on:
       - "0010:core-identity-shape"
     decisions: [D21, D22, 0010:D40]
-    status: in-progress
+    status: done
     openspec_ref: "core/core-identity-package"
 
   - id: library-compat-comparator
