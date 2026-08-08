@@ -11,13 +11,13 @@ graph LR
   classDef other       fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   subgraph PHASE_IMPL["Implementation — schema, code, docs"]
-    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::in_progress
+    S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::done
     S_library-compat-comparator["library-compat-comparator (library)\nThe D9 three-rule field-wise walk — NOT cue.Val…"]:::planned
     S_cli-login["cli-login (cli)\nopm login [registry] — resolves its target thro…"]:::planned
     S_cli-publish-pipeline["cli-publish-pipeline (cli)\nOne pipeline, two entry points: decode, read iden…"]:::planned
     S_cli-version-set["cli-version-set (cli)\nopm module|catalog version set and --version — …"]:::planned
     S_cli-catalog-verify["cli-catalog-verify (cli)\nThe compatibility gate on opm catalog publish plu…"]:::planned
-    S_cli-catalog-member-gate["cli-catalog-member-gate (cli)\nPublish refuses a catalog member whose declared m…"]:::planned
+    S_cli-catalog-member-gate["cli-catalog-member-gate (cli)\nPublish refuses a member whose modulePath or fqn …"]:::planned
     S_cli-mod-init-repair["cli-mod-init-repair (cli)\nopm mod init becomes scaffold AND repair behind a…"]:::planned
     S_catalogs-publish-cutover["catalogs-publish-cutover (catalog)\nSwitch release.yml's publish job to opm catalog p…"]:::planned
     S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::planned
@@ -51,13 +51,13 @@ graph LR
 
 | ID | Phase | Repo | Status | Depends on | Concern |
 | -- | ----- | ---- | ------ | ---------- | ------- |
-| core-identity-package | implementation | core | in-progress | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic, not a hand-rolled comparison.   |
+| core-identity-package | implementation | core | done | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic, not a hand-rolled comparison.   |
 | library-compat-comparator | implementation | library | planned | - | The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured 10/14 and 8/14 on disjoint sets — plus predecessor selection moved out of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.   |
 | cli-login | implementation | cli | planned | - | `opm login [registry]` — resolves its target through the existing ResolveRegistry precedence and writes to the credential store CUE itself reads, because CUE performs the push. Independent of everything else here.   |
 | cli-publish-pipeline | implementation | cli | planned | core-identity-package | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10, plus the D16/D18 checks in `opm module vet`.   |
 | cli-version-set | implementation | cli | planned | core-identity-package | `opm module|catalog version set` and `--version` — the surgical AST rewrite that preserves the & chain, located by schema path rather than by a marker. Measured in experiments/01.   |
 | cli-catalog-verify | implementation | cli | planned | library-compat-comparator, cli-publish-pipeline | The compatibility gate on `opm catalog publish` plus `opm catalog registry check [--compat]`, whose help text must call it an aid rather than a gate. Both over the library comparator.   |
-| cli-catalog-member-gate | implementation | cli | planned | core-identity-package, cli-publish-pipeline | Publish refuses a catalog member whose declared modulePath or fqn does not equal #CatalogMemberFQNGate's derivation, unified against the core- shipped gate with CUE's error surfaced.   |
+| cli-catalog-member-gate | implementation | cli | planned | core-identity-package, cli-publish-pipeline | Publish refuses a member whose modulePath or fqn disagrees with #CatalogMemberFQNGate, and a trait whose optional is unstated or pinned. Both unify against core-shipped gates; -c is required.   |
 | cli-mod-init-repair | implementation | cli | planned | core-identity-package | `opm mod init` becomes scaffold AND repair behind a second confirmation naming every file and value change, and never invents identity. What makes D16's refusal actionable.   |
 | catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-version-set, cli-catalog-verify, cli-catalog-member-gate, cli-login, 0010:catalogs-identity-authoring | Switch release.yml's publish job to `opm catalog publish` and delete the copy-and-stamp task. Catalogs go first because modules build against them.   |
 | modules-publish-cutover | implementation | modules | planned | cli-publish-pipeline, cli-version-set, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity- authoring; coordinates do not change.   |
