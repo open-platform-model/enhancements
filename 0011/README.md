@@ -50,7 +50,11 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue), which s
 
 ## Deviations from Design
 
-None at this stage. This entry is `draft`; deviations are recorded here when implementation lands.
+None in what has been built. One slice of nine has landed — `core-identity-package`, shipping D21's `#IdentityPackage` and D22's `#CatalogMemberFQNGate` in `core` — and it matches its design on every requirement, verified by executing all 20 spec scenarios against the shipped schema.
+
+One assumption underneath D21 and D22 turned out not to hold, and it is recorded here because it changes what protects the fleet *today* rather than what the design says:
+
+- **The consumer-side major-agreement backstop is not built yet.** Enhancement 0010 D43 and D45 each deleted a `core`-side version-major assertion, accepting the residual exposure on the ground that a skew would still surface at the platform's subscription-selection check. That check is library-side — `0010/schemas/target.cue`'s preamble puts subscription selection's production implementation in Go, and 0010's `library-subscription-collapse` slice carries it explicitly ("what survives is one major-agreement check beside the subscription"). That slice is `planned`. So nothing in shipped code checks the relation right now: `#IdentityPackage.VersionMajor` is its only statement, and no shipped code unifies against it until `cli-publish-pipeline` lands. Measured 2026-08-08 — `_majorAgrees` has never existed in `core` at any commit. The window closes from either end and neither end has started; it is an ordering fact with two named owners, not a design change.
 
 ## Cross-References
 

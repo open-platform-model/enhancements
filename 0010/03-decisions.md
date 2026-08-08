@@ -938,6 +938,8 @@ For a conformant catalog the `core` copy is provably redundant, which is the who
 **Source:** User decision 2026-08-03. Consumer-side evaluation point read at `library/opm/materialize/pull.go:23`; the `core`-cannot-import-identity constraint from D38 and 0011 D12; publish-side identity-shape validation from 0011 D8. **Amends D40.**
 **Revised:** 2026-08-05 — the `#Module` half this decision left open is **settled by D45**, which transposes this holding rather than diverging from it. The recommendation recorded here (symmetry, and free if the `#IdentityPackage` export lands) is what D45 takes.
 
+**Revised:** 2026-08-08 — the decision stands; one fact in the exposure paragraph above needs reading in the present tense rather than the future. Both replacements it names are **still unbuilt**. The publish-side one is 0011 D21's unification, which needs `cli-publish-pipeline` (`status: planned`); the consumer-side residual — "surfaces at `#SubscriptionSelection`'s `_majorAgrees`" — is library-side, carried by this entry's own `library-subscription-collapse` slice ("what survives is one major-agreement check beside the subscription"), also `planned`. Measured 2026-08-08 against `core/src`: `_majorAgrees` has never existed in `core` at any commit, and `core-platform-and-match` correctly never claimed it, since `schemas/target.cue`'s preamble puts subscription selection's production implementation in Go. So between 0011's `core-identity-package` landing (2026-08-08) and the first of those two slices, **nothing in shipped code checks the relation at all** — `#IdentityPackage.VersionMajor` is its only statement and no tool runs it. The `recommended follow-on` above (identity files embedding the shipped definition) is now available for the first time, since the definition exists, and would make the assertion live under a plain `cue vet` of the artifact's own tree rather than waiting on either slice.
+
 ---
 
 ### D44: A transformer is an adapter, not a primitive; `apiVersion` is primitive-only
@@ -993,6 +995,8 @@ This settles what D43 left explicitly undecided, and it settles it the way D43 r
 Two things bound it. The residual failure is loud rather than silent — a version whose major disagrees with its path is caught at publish by 0011 D12's `metadata.version == id.Version` check for any artifact that goes through the tool. And D43's recommended follow-on removes the exposure for both artifact types at once: have `core` **export** `#IdentityPackage` and have each `identity/identity.cue` embed it, so `VersionMajor` comes from the definition rather than from an author remembering to write it. That is now cheaper than when D43 recorded it, because 0011 D21 already requires `#IdentityPackage` to ship in `core` and 0011 D22 puts `#CatalogMemberFQNGate` beside it.
 
 **Source:** User decision 2026-08-05, taking D43's recorded recommendation. Measurements are D40's and D43's, unchanged; publish-side wiring check from 0011 D12; identity-file shape validation from 0011 D8 and D21. **Supersedes D40's `#Module` half; completes D43.**
+
+**Revised:** 2026-08-08 — the decision stands. Its exposure paragraph inherits D43's, and so does D43's 2026-08-08 note: both named replacements are still unbuilt, so the relation this decision moved out of `core` is currently checked by nothing that runs. 0011's `core-identity-package` landed the schema on 2026-08-08 and nothing unifies against it yet. See D43.
 
 ---
 
