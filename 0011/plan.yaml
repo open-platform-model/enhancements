@@ -47,10 +47,15 @@
 # level (D17 dissolved the joint window). Two point from 0010 into here:
 #
 #   0010:core-alpha-release depends on core-identity-package, because
-#     #IdentityPackage ships in `core` and belongs in the same
-#     v1.0.0-alpha.4 the catalogs and the fleet retarget to. There is no
-#     core MAJOR bump — core@v1 has published only prereleases, so the
-#     break lands in the alpha line with the module path unmoved.
+#     #IdentityPackage ships in `core` and belongs in the same alpha the
+#     catalogs and the fleet retarget to. That alpha is v2.0.0-alpha.4,
+#     published 2026-08-09, and #IdentityPackage is what it added.
+#     THIS ENTRY PREVIOUSLY READ "v1.0.0-alpha.4 ... there is no core MAJOR
+#     bump", which was true when written and is now false: the identity
+#     reshape moved the module to `opmodel.dev/core@v2` on 2026-08-07 and
+#     retired the v1 line at v1.1.0-alpha.1. Retarget is therefore an
+#     IMPORT REWRITE, not a dependency bump — `task update-deps` cannot
+#     cross a major. 0010's plan header carries the full consequence.
 #   0010:library-subscription-collapse depends on library-compat-comparator,
 #     because 0010 D14 DELETES materialize/filter.go while predecessor
 #     selection reuses filter.go:112's highestStable. A move, not a

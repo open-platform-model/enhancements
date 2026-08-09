@@ -56,30 +56,74 @@
 # step 7: 0011 D13 moves no coordinate, so there is nothing to re-pin.
 #
 # ---------------------------------------------------------------------
-# NO CORE MAJOR BUMP
+# THE CORE MAJOR BUMP HAPPENED — THIS BLOCK REVERSES ITS OWN OLD HEADING
 # ---------------------------------------------------------------------
-# 06-operational.md ## Semver Impact and ## Cross-Repo Coordination step 1
-# have been reconciled, but the reason is worth carrying here too:
-# `opmodel.dev/core@v1` has published only v1.0.0-alpha.1/.2/.3 and no
-# stable v1.0.0, so the compatibility promise has not started and the
-# break lands in v1.0.0-alpha.4 with the module path unmoved. Downstream
-# retarget is an ordinary dep bump (`task update-deps`); rollback is a
-# re-pin to alpha.3.
+# This block read "NO CORE MAJOR BUMP" until 2026-08-09, and it was correct
+# when written on 2026-08-05: `opmodel.dev/core@v1` had published only
+# v1.0.0-alpha.1/.2/.3 and no stable v1.0.0, so the compatibility promise
+# had not started and the break could have landed on the v1 line with the
+# module path unmoved. It did not. The identity reshape moved the module to
+# `opmodel.dev/core@v2` on 2026-08-07, and the v1 line is retired at
+# v1.1.0-alpha.1.
 #
-# THE CORE SLICES ARE ONE RELEASE, NOT THREE. core-identity-shape,
-# core-primitive-keying and core-platform-and-match land into the same
-# unpublished alpha line; core-alpha-release is the single cut point
-# 06-operational.md's "nothing else can move until this tag exists"
-# describes, and it is what every downstream slice depends on.
+# WHAT THAT CHANGES FOR EVERY DOWNSTREAM SLICE — and it is why the stale
+# text was dangerous rather than merely out of date, because it understated
+# the cost of work nobody has started yet: retarget is an IMPORT REWRITE,
+# not a dependency bump. Every `import "opmodel.dev/core@v1"` becomes the v2
+# line alongside the cue.mod edit, and `task update-deps` CANNOT do it —
+# resolving a new major is not the same operation as raising a version
+# within one. Rollback is the same rewrite in reverse, to v1.1.0-alpha.1,
+# and it stays available to each consumer until that consumer's own
+# retarget merges. Both majors stay resolvable indefinitely, because a
+# published tag names fixed bytes permanently — the old line does not rot,
+# it only gets more expensive to return to.
 #
-# FOUR SLICES LAND IN THAT ALPHA, NOT THREE — 0011:core-identity-package is
-# the fourth, and it is a `core` slice under a different entry's plan. It
-# also sits INSIDE this chain rather than beside it (2026-08-05): it now
-# depends on core-identity-shape, because #IdentityPackage is typed out of
-# #ModulePathType, #VersionType and #ArtifactRef, none of which exist in
-# core/src today in the shape it needs. So core-identity-shape is the single
-# root of the whole core cluster across both entries, and core-alpha-release
-# is still the single cut point. 0011's plan carries the measurement.
+# THE REWRITE IS OWNED BY FIVE SLICES, NOT ONE, and it was named in only one
+# of them until 2026-08-09. Measured that day: 213 files across SEVEN repos
+# carry `opmodel.dev/core@v1` — library 22, cli 17, opm-operator 16,
+# catalog_opm 61, catalog_kubernetes 56, catalog_opm_experimental 9,
+# modules 32 — as real `import` statements plus a cue.mod dep in each (the
+# catalogs pin v1.1.0-alpha.1, the Go repos v1.0.0-alpha.1, modules
+# v1.0.0-alpha.3). Only library-core-retarget said so. The rewrite is now
+# named in the concern of every slice that has to perform it:
+# library-core-retarget, cli-coordinate-adoption, operator-library-retarget,
+# catalogs-identity-authoring and modules-identity-authoring. It is stated
+# per-slice rather than only here because an implementer reads their own
+# concern via `task plan:ready`, not this header.
+#
+# `releases/` is NOT in that count and is NOT checked out in this workspace,
+# so its exposure is unmeasured rather than known to be zero. The deleted
+# `releases-repin` slice was cancelled on the ground that 0011 D13 moves no
+# coordinate; a MAJOR move is a different question, and nothing has re-asked
+# it since. Re-measure before assuming the cancellation still holds.
+#
+# THE CORE SLICES DID NOT SHIP AS ONE RELEASE. This block also read "THE
+# CORE SLICES ARE ONE RELEASE, NOT THREE" and named core-alpha-release as
+# the single cut point 06-operational.md's "nothing else can move until this
+# tag exists" describes. That is not what happened. The four shipped across
+# four tags on the v2 line:
+#
+#   v2.0.0-alpha.1   core-identity-shape, plus the major move itself
+#   v2.0.0-alpha.2   core-primitive-keying
+#   v2.0.0-alpha.3   core-platform-and-match
+#   v2.0.0-alpha.4   0011:core-identity-package  <- the only complete tag
+#
+# SO THREE OF THOSE FOUR TAGS ARE PARTIAL AND RESOLVABLE, which is worse
+# than no tag at all: nothing in the registry distinguishes a partial one
+# from a complete one. alpha.3 is the most hazardous of the three, because
+# it carries three of the four slices — it compiles far enough to look
+# right and fails only on the identity package. ONLY v2.0.0-alpha.4 IS A
+# RETARGET TARGET.
+#
+# THE DEPENDENCY STRUCTURE THE BLOCK DESCRIBED IS UNCHANGED and still
+# governs. 0011:core-identity-package is the fourth core slice and sits
+# INSIDE this chain rather than beside it (2026-08-05): it depends on
+# core-identity-shape, because #IdentityPackage is typed out of
+# #ModulePathType, #VersionType and #ArtifactRef. So core-identity-shape is
+# the single root of the whole core cluster across both entries, and every
+# downstream slice still depends on core-alpha-release. What changed is only
+# that core-alpha-release verified and documented the cut instead of being
+# it. 0011's plan carries the measurement.
 #
 # ---------------------------------------------------------------------
 # CROSS-ENHANCEMENT EDGES TO 0011
@@ -90,7 +134,9 @@
 # in 0011's plan (core-identity-package -> core-identity-shape, above).
 #   core-alpha-release          -> 0011:core-identity-package
 #     #IdentityPackage ships in `core` (0011 D21) and belongs in the same
-#     alpha the catalogs and the fleet retarget to.
+#     alpha the catalogs and the fleet retarget to. That alpha is
+#     v2.0.0-alpha.4, and #IdentityPackage is what it added — which is why
+#     no earlier tag on the line is a retarget target.
 #   library-subscription-collapse -> 0011:library-compat-comparator
 #     D14 DELETES materialize/filter.go and 0011's predecessor selection
 #     reuses filter.go:112's highestStable. A move, so it moves first.
@@ -233,10 +279,10 @@ slices:
     repo: cli
     phase: implementation
     concern: >
-      Retarget to the new library, delete the address-composition helpers,
-      write the resolved coordinate into spec.module.{path,version}. Plus
-      D19's local-module.cue render warning and the two D42 import sites in
-      tests.
+      Rewrite core imports to v2, retarget to the new library, delete the
+      address-composition helpers, write the resolved coordinate into
+      spec.module.{path,version}. Plus D19's local-module.cue warning and the
+      two D42 test import sites.
     depends_on:
       - library-core-retarget
     decisions: [D19, D42]
@@ -246,9 +292,9 @@ slices:
     repo: opm-operator
     phase: implementation
     concern: >
-      Retarget to the new library. No feature code and no adoption code — D18
-      rejected an operator-side tolerance window outright. Three D42 blueprint
-      import sites in test/fixtures/modules move with it.
+      Rewrite core imports to v2 and retarget to the new library. No feature
+      code, no adoption code — D18 rejected an operator-side tolerance window.
+      Three D42 blueprint import sites in test/fixtures/modules move with it.
     depends_on:
       - library-core-retarget
     decisions: [D18, D42]
@@ -258,10 +304,10 @@ slices:
     repo: catalog
     phase: implementation
     concern: >
-      Commit identity/identity.cue in the D5 shape across the three catalogs,
-      re-key every leaf (apiVersion, catalogVersion, authored fqn), flatten
-      the blueprints, move matching to matchLabels, delete the stamping task.
-      Source only.
+      Rewrite core imports to v2; commit identity/identity.cue (D5) across the
+      three catalogs, re-key every leaf (apiVersion, catalogVersion, fqn),
+      flatten blueprints, move matching to matchLabels, drop the stamping
+      task. Source only.
     depends_on:
       - library-subscription-collapse
       - library-contract-match
@@ -273,9 +319,9 @@ slices:
     repo: modules
     phase: implementation
     concern: >
-      Add identity/identity.cue per module and the metadata wiring, plus the
-      twelve D42 blueprint import moves. No hyphen renames — none exist,
-      measured 2026-08-05. Source only, nothing published.
+      Rewrite core imports to v2. Add identity/identity.cue per module and the
+      metadata wiring, plus the twelve D42 blueprint import moves. No hyphen
+      renames — none exist, measured 2026-08-05. Source only.
     depends_on:
       - catalogs-identity-authoring
     decisions: [D38, D42, 0011:D12]
