@@ -145,24 +145,24 @@ slices:
     repo: core
     phase: implementation
     concern: >
-      SPEC.md coherence pass across the three schema slices, examples.cue
-      re-vetted, the alpha carrying all four published. NO LONGER THE SINGLE
-      CUT POINT — v2.0.0-alpha.3 shipped three of them; see history.
+      SPEC.md coherence pass across the four schema slices, examples re-vetted,
+      the alpha carrying all four published at v2.0.0-alpha.4. NOT THE SINGLE
+      CUT POINT — the four shipped across alpha.1-alpha.4; see history.
     depends_on:
       - core-identity-shape
       - core-primitive-keying
       - core-platform-and-match
       - "0011:core-identity-package"
-    status: in-progress
+    status: done
     openspec_ref: "core/core-alpha-release"
 
   - id: library-core-retarget
     repo: library
     phase: implementation
     concern: >
-      Re-pin to v1.0.0-alpha.4, fix the compile breakage, regenerate testdata
-      including the two D42 import sites (one written as a string at
-      synth/instance_integration_test.go:154). No behaviour change.
+      Import rewrite to the core v2 line at v2.0.0-alpha.4 — a MAJOR crossing,
+      not a re-pin, so update-deps cannot do it. Fix compile breakage,
+      regenerate testdata incl. two D42 import sites. No behaviour change.
     depends_on:
       - core-alpha-release
     decisions: [D42]
