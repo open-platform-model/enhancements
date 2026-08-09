@@ -21,10 +21,10 @@ graph LR
     S_library-contract-match["library-contract-match (library)\nThe match rung becomes load-bearing: provenance d…"]:::planned
     S_library-match-labels["library-match-labels (library)\nMatching reads matchLabels, not metadata.labels �…"]:::planned
     S_docs-catalog-contract["docs-catalog-contract (opmodel.dev)\nPublish the catalog-author contract: the additive…"]:::planned
-    S_cli-coordinate-adoption["cli-coordinate-adoption (cli)\nRetarget to the new library, delete the address-c…"]:::planned
-    S_operator-library-retarget["operator-library-retarget (opm-operator)\nRetarget to the new library. No feature code and …"]:::planned
-    S_catalogs-identity-authoring["catalogs-identity-authoring (catalog)\nCommit identity/identity.cue in the D5 shape acro…"]:::planned
-    S_modules-identity-authoring["modules-identity-authoring (modules)\nAdd identity/identity.cue per module and the meta…"]:::planned
+    S_cli-coordinate-adoption["cli-coordinate-adoption (cli)\nRewrite core imports to v2, retarget to the new l…"]:::planned
+    S_operator-library-retarget["operator-library-retarget (opm-operator)\nRewrite core imports to v2 and retarget to the ne…"]:::planned
+    S_catalogs-identity-authoring["catalogs-identity-authoring (catalog)\nRewrite core imports to v2; commit identity/ident…"]:::planned
+    S_modules-identity-authoring["modules-identity-authoring (modules)\nRewrite core imports to v2. Add identity/identity…"]:::planned
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
     S_catalogs-republish["catalogs-republish (catalog)\nCut releases of catalog_opm, catalog_kubernetes a…"]:::planned
@@ -73,9 +73,9 @@ graph LR
 | library-contract-match | implementation | library | planned | library-core-retarget | The match rung becomes load-bearing: provenance denylist before unification, contract-key diagnostics, unresolved demand is an error, single-provider guard at materialize.   |
 | library-match-labels | implementation | library | planned | library-core-retarget | Matching reads matchLabels, not metadata.labels — match.go:111, module.go:197, schema/paths.go:71, context.go:68. Plus D34's kube-aware transitive FQN comparator and D10's own-dependency-graph test.   |
 | docs-catalog-contract | implementation | opmodel.dev | planned | core-alpha-release | Publish the catalog-author contract: the additive-only rule keyed to level, that OPM verifies it only for catalogs published through `opm catalog publish`, and the three version-shaped values.   |
-| cli-coordinate-adoption | implementation | cli | planned | library-core-retarget | Retarget to the new library, delete the address-composition helpers, write the resolved coordinate into spec.module.{path,version}. Plus D19's local-module.cue render warning and the two D42 import sites in tests.   |
-| operator-library-retarget | implementation | opm-operator | planned | library-core-retarget | Retarget to the new library. No feature code and no adoption code — D18 rejected an operator-side tolerance window outright. Three D42 blueprint import sites in test/fixtures/modules move with it.   |
-| catalogs-identity-authoring | implementation | catalog | planned | library-subscription-collapse, library-contract-match, library-match-labels | Commit identity/identity.cue in the D5 shape across the three catalogs, re-key every leaf (apiVersion, catalogVersion, authored fqn), flatten the blueprints, move matching to matchLabels, delete the stamping task. Source only.   |
-| modules-identity-authoring | implementation | modules | planned | catalogs-identity-authoring | Add identity/identity.cue per module and the metadata wiring, plus the twelve D42 blueprint import moves. No hyphen renames — none exist, measured 2026-08-05. Source only, nothing published.   |
+| cli-coordinate-adoption | implementation | cli | planned | library-core-retarget | Rewrite core imports to v2, retarget to the new library, delete the address-composition helpers, write the resolved coordinate into spec.module.{path,version}. Plus D19's local-module.cue warning and the two D42 test import sites.   |
+| operator-library-retarget | implementation | opm-operator | planned | library-core-retarget | Rewrite core imports to v2 and retarget to the new library. No feature code, no adoption code — D18 rejected an operator-side tolerance window. Three D42 blueprint import sites in test/fixtures/modules move with it.   |
+| catalogs-identity-authoring | implementation | catalog | planned | library-subscription-collapse, library-contract-match, library-match-labels | Rewrite core imports to v2; commit identity/identity.cue (D5) across the three catalogs, re-key every leaf (apiVersion, catalogVersion, fqn), flatten blueprints, move matching to matchLabels, drop the stamping task. Source only.   |
+| modules-identity-authoring | implementation | modules | planned | catalogs-identity-authoring | Rewrite core imports to v2. Add identity/identity.cue per module and the metadata wiring, plus the twelve D42 blueprint import moves. No hyphen renames — none exist, measured 2026-08-05. Source only.   |
 | catalogs-republish | migration | catalog | planned | catalogs-identity-authoring, 0011:catalogs-publish-cutover | Cut releases of catalog_opm, catalog_kubernetes and catalog_opm_experimental through `opm catalog publish`. The first act that changes a published artifact.   |
 | modules-fleet-republish | migration | modules | planned | catalogs-republish, modules-identity-authoring, 0011:modules-publish-cutover | Republish the fleet through `opm module publish` against the released catalogs. The only fleet republish in the 0010/0011 pair.   |
