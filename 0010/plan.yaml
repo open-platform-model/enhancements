@@ -204,6 +204,19 @@ slices:
     status: done
     openspec_ref: "core/core-alpha-release"
 
+  - id: core-versioned-kindprefix
+    repo: core
+    phase: implementation
+    concern: >
+      The D49 gate amendment: a contract kind's declaredModulePath becomes
+      kindPrefix[kind] + "/" + apiVersion, transformers unchanged, FQN
+      construction untouched; the must-fail filing pin splits in two.
+      SPEC.md co-update.
+    depends_on:
+      - core-alpha-release
+    decisions: [D49]
+    status: planned
+
   - id: library-core-retarget
     repo: library
     phase: implementation
@@ -267,7 +280,7 @@ slices:
       two D42 test import sites.
     depends_on:
       - library-core-retarget
-    decisions: [D19, D42]
+    decisions: [D19, D42, D47]
     status: planned
 
   - id: operator-library-retarget
@@ -295,6 +308,20 @@ slices:
     decisions: [D5, D42]
     status: in-progress
 
+  - id: catalogs-consolidation
+    repo: catalog
+    phase: implementation
+    concern: >
+      catalog_opm absorbs catalog_kubernetes (k8s-* raw family,
+      upstream-mirrored apiVersions) and catalog_opm_experimental (v1alpha1
+      members); version-segment filing, one schema tree, no-downward-dependency
+      vet check, tombstones.
+    depends_on:
+      - catalogs-identity-authoring
+      - core-versioned-kindprefix
+    decisions: [D47, D48, D49]
+    status: planned
+
   - id: modules-identity-authoring
     repo: modules
     phase: implementation
@@ -304,6 +331,7 @@ slices:
       renames — none exist, measured 2026-08-05. Source only.
     depends_on:
       - catalogs-identity-authoring
+      - catalogs-consolidation
     decisions: [D2, D42, 0011:D12]
     status: planned
 
@@ -311,11 +339,12 @@ slices:
     repo: catalog
     phase: migration
     concern: >
-      Cut releases of catalog_opm, catalog_kubernetes and
-      catalog_opm_experimental through `opm catalog publish`. The first act
-      that changes a published artifact.
+      Cut the release of the consolidated catalog_opm through `opm catalog
+      publish`. The first act that changes a published artifact. (Was three
+      catalogs until D47.)
     depends_on:
       - catalogs-identity-authoring
+      - catalogs-consolidation
       - "0011:catalogs-publish-cutover"
     status: planned
 

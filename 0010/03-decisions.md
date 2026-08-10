@@ -995,6 +995,80 @@ Two things bound it. The residual failure is loud rather than silent — a versi
 
 A trait's optionality is stated by its catalog and overridden by the attachment — content now in D28. Number retired.
 
+---
+
+### D47: The first-party catalogs consolidate into one — `catalog_opm` absorbs `catalog_kubernetes` and `catalog_opm_experimental` on the v2 line
+
+**Decision:** On the v2 line there is **one first-party catalog**. `catalog_kubernetes`'s 27 resources and 27 transformers move into `catalog_opm` as a **raw passthrough family** — native Kubernetes APIs implemented as-is, positioned as the last resort for what the abstractions do not model — with every member's name prefixed `k8s-` (`k8s-deployment`, `k8s-object`), files `k8s_*.cue`, definitions `#K8s*`. `catalog_opm_experimental`'s 3 resources and 4 transformers move in as **abstraction-family members at `v1alpha1`**, their D34 level. Each absorbed repo's v2 line **ends at the `v2.0.0-alpha.1` it has already published** (tags read 2026-08-10): the tag stays resolvable permanently, but the line is abandoned with no promise broken — an alpha promises nothing (D34's own semantics at the build level) and no consumer pins either one. Each repo keeps its protected `v1` branch serving the live v1 fleet unchanged, gains a tombstone README on `main`, and is archived once the fleet migrates.
+
+Two rules make the two-family structure hold rather than blur:
+
+- **The abstraction family never depends downward on the raw family.** No blueprint, trait, or abstraction transformer requires a `k8s-*` contract; abstraction transformers keep emitting Kubernetes types directly through the shared `schemas/` tree. This holds today for free — D32's measurement found zero cross-catalog imports — and a repo-local vet check keeps it from regressing. The raw family is a leaf: modules may demand it, nothing inside the catalog builds on it.
+- **The group stays out of the name; collisions are curated.** A raw member takes its bare upstream kind name. On an actual same-name collision across API groups (core/v1 `Event` vs events.k8s.io/v1 `Event` is the live example; none exists among the 27 moved members), the non-core group's member gets a group prefix. A standing rule, not day-one work.
+
+**One stated loss.** D34's rationale used "`catalog_opm_experimental` is a separate subscription a platform takes or declines" as OPM's coarse feature-gate analogue, and D14 deleted `#SubscriptionFilter`, so a subscription names one build with no filtering. After the merge a platform subscribing to `catalog_opm` materializes the alpha transformers too. The remaining protections are the contract key's visible level (`@v1alpha1` in every demand string) and D34's convention against depending on alpha. A platform-level level-gate is deliberately **not** designed here — no platform has asked to decline alpha, and per the D32/D37 pattern the mechanism gets designed against the first real case.
+
+**Alternatives considered:**
+
+- **Keep the three repos (status quo).** Rejected: D34's per-primitive `apiVersion` already carries the stability signal the experimental catalog existed to quarantine at repo granularity, making the repo a duplicate of the mechanism; and the `catalog_opm`/`catalog_kubernetes` split implies a platform separation that does not exist — measured 2026-08-10, `catalog_opm` vendors its own Kubernetes schema tree under `src/schemas/kubernetes/` and its 23 transformers emit Deployments, HPAs, and PDBs directly, so what the split actually maintained was two Kubernetes-emitting catalogs with duplicated vendored schemas and three subscription pins for one surface.
+- **Keep `catalog_kubernetes` separate as a provider catalog.** Rejected: it fulfils no `catalog_opm` contract (D32: 141 self-imports, zero foreign) — it declares its own. D37's provider story is for third-party catalogs on unrelated cadences (the k8up shape), and does not need the raw surface to live in its own repo.
+- **Delete the raw passthrough surface outright.** Rejected: it is the escape hatch for exactly the modules the abstractions cannot yet model — the live fleet's `cert_manager`, `metallb`, and `istio_ambient` are that class — and `k8s-object` is the last resort's last resort.
+- **A `k8s/` FQN path segment instead of a name prefix** (`…/catalogs/opm/k8s/resources/deployment@v1`). Rejected: D42's `kindPrefix` is a complete, flat statement of the key space and the shipped `#CatalogMemberFQNGate` refuses a member filed under an extra segment; a family segment is exactly the arbitrary grouping D42 banned, since nothing in the key derives it. The name prefix costs nothing in `core` and is equally legible.
+
+**Rationale:** The consolidation is what D4 and D25 made cheap and D14 made safe: contract keys no longer pin builds, so merging catalogs moves no module-facing identity, and a subscription names one build, so the merged catalog's release cadence is inert until a platform edits its pin. What remains distinct about the raw family is its *meaning* — as-is passthrough versus intentional abstraction — and that distinction lives in the name prefix, the no-downward-dependency rule, and D48's upstream-mirrored versioning rather than in repo topology. Reversibility is also better than it was: under the contract/build key split, re-extracting the raw family later would move no contract key.
+
+**Source:** User decision 2026-08-10. Catalog contents, the duplicated schema trees, and the consumer inventory (modules `metallb`, `cert_manager`, `istio_ambient` pin `opmodel.dev/catalogs/opm_experimental@v1`; `cli/internal/config/templates.go` and `cli/hack/platform.cue` reference `opmodel.dev/catalogs/kubernetes`) measured 2026-08-10. Cross-family import closure re-cited from D32's 2026-07-30 measurement.
+
+---
+
+### D48: A raw-family contract's `apiVersion` mirrors the upstream Kubernetes API version, assigned at adoption
+
+**Decision:** A `k8s-*` contract's `apiVersion` is the version of the upstream API it passes through: apps/v1 → `k8s-deployment@v1`, autoscaling/v2 → `k8s-hpa@v2`, an upstream beta arrives as `@vNbetaM`. The raw family's ladder is thereby **upstream-owned**: a contract graduates when upstream graduates, and a new upstream version is a new contract — which is D27's semantics by construction, since two upstream versions of one kind are two independent shapes. D34's day-one per-catalog table is superseded for the two absorbed catalogs: the per-catalog assignment survives only for the abstraction family (`v1beta1`; the ex-experimental members `v1alpha1`), and the raw family is assigned per member.
+
+The default is **one version per kind per catalog build** — the version the vendored schema tree carries. Coexistence of two versions of one kind in one build is supported (the matcher keys on the full contract FQN and `availableApiVersions` already diagnoses a level mismatch by name) and reserved for genuine transition windows, such as an upstream deprecation overlap a single platform must straddle; the ordinary skew case — clusters on different Kubernetes versions — is served by different platforms pinning different catalog builds under D14. When two versions do ship, the current version's transformer keeps the bare name and the other suffixes its level (`k8s-hpa-v2beta2`), because a transformer carries no `apiVersion` (D44) and its name is its key.
+
+`#APIVersionType` admits every form this produces unchanged, and `#APIVersionGated` prices the levels correctly without modification: upstream GA and beta carry D27's additive-only promise — which at those levels is precisely upstream's own API guarantee — and an upstream alpha, should one ever be worth vendoring, promises nothing.
+
+**Alternatives considered:**
+
+- **Blanket `v1beta1`, D34's original assignment for `catalog_kubernetes`.** Rejected: it launches GA-mirrored APIs at a level below the promise upstream already makes, and the eventual graduation moves the contract key — every module demanding `k8s-deployment@v1beta1` migrates for a change that changed no shape. Starting where upstream is avoids a scheduled pointless migration.
+- **An OPM-owned per-member stability judgement.** Rejected: it invents a second opinion on a surface whose entire contract is "as upstream". The moment OPM's level and upstream's diverge, the label misleads in one direction or the other.
+- **Mirroring the full upstream coordinate, group included, into the key.** Rejected: the group disambiguates rarely and would be paid for on every demand string (`k8s-apps-deployment`); D47's curation rule covers the rare collision.
+
+**Rationale:** The raw family's one promise is fidelity to upstream, and a version key that mirrors upstream is that promise made structural. It also settles who moves the key: nobody at OPM — upstream does, and the catalog follows at adoption. The corner this backs into — several members at different majors within one kind space, versions coexisting during transitions — is priced by D49's filing scheme rather than left to accumulate as identifier suffixes.
+
+**Source:** User decision 2026-08-10. Matcher coexistence support read from `schemas/target.cue` `#PrimitiveDemand.availableApiVersions`; `#APIVersionType` form coverage checked against `core/src/types.cue` the same day.
+
+---
+
+### D49: Contract kinds file under a version segment — `<kind>/<apiVersion>/` — derived from the key; D42 amended, the FQN unchanged
+
+**Decision:** The three contract kinds file one segment deeper, under their own `apiVersion`: `resources/v1/k8s_deployment.cue`, `resources/v1beta1/container.cue`, `resources/v1alpha1/namespace.cue`, and likewise `traits/v1beta1/`, `blueprints/v1beta1/`. The rule is **uniform across both families** — abstraction members file by their level exactly as raw members do. Transformers stay flat under `…/transformers`: they carry no `apiVersion` (D44), so there is no segment to derive.
+
+The **FQN does not change**: `…/resources/k8s-hpa@v2`, exactly as D4 keys it. The directory segment is *derived from* the key's own `apiVersion` and never authored independently — which is what makes this an amendment to D42 rather than a reversal. D42 banned grouping segments because an arbitrary segment lets filing location and key drift apart. A version segment cannot drift: `#CatalogMemberFQNGate` checks it against the `declaredAPIVersion` it already holds. D42's "no arbitrary grouping" survives in full; "exactly one prefix per kind" becomes "one prefix per kind × apiVersion, derived".
+
+Mechanically, in `core`: `#IdentityPackage.kindPrefix` stays the enumerated per-kind map (the base prefixes are unchanged), and the gate's equality becomes, for the three contract kinds, `declaredModulePath: kindPrefix[kind] + "/" + declaredAPIVersion`, with `kindPrefix.transformers` compared as today. The must-fail pin in `identity_package_pins.cue` splits in two: a member under an *arbitrary* extra segment is still refused; a contract member **without** its apiVersion segment is now refused too. The FQN construction (`kindPrefix[kind] + "/" + name + "@" + _keyVersion`) is untouched — the segment never enters the key.
+
+What the layout buys, stated as the failure it prevents: under flat filing, the first coexistence of two versions of one kind (D48's transition window) forces the version into the CUE identifier — `#K8sHpa` mutates to `#K8sHpaV2` in the shipped package, rippling to every importer for a change that changed no shape. Under versioned filing, a second version is a new file in a new package, the identifier is stable in both (`#K8sHpa` in `resources/v2/` and `resources/v2beta2/`), and an import site names the level it consumes (`k8sv1 "opmodel.dev/catalogs/opm/resources/v1"`) — the same honesty at the import line that the `k8s-` prefix provides at the name.
+
+**Alternatives considered:**
+
+- **Flat filing, version-suffixed identifiers on coexistence** (the zero-amendment option). Rejected for the asymmetry above: the cost lands as an identifier mutation on the already-shipped member at the worst moment, and only multi-version members pay it, so the layout lies about the rule until the rule matters.
+- **The version segment in the FQN as well** (`…/resources/v2/k8s-hpa@v2`, or dropping the `@` suffix for the segment). Rejected: redundant with the key's own `@vN`, and it reshapes `#ContractFQNType`, every demand string, and the matcher's key space for zero information.
+- **`k8s/<group>/<version>/` filing, the full upstream mirror.** Rejected: the group is not in the key, so filing is no longer derivable from it — precisely the drift D42 exists to prevent (also rejected as a name scheme at D47).
+- **Versioned filing for the raw family only.** Rejected: two filing rules and a conditional gate, to save moving ~15 abstraction files on a line nothing has published. Graduation already changes the demand string (a new contract under D27, opted into deliberately), so the import path moving with it adds no migration that was not already happening.
+
+**Rationale:** D42's own rationale is that `kindPrefix` can only gate if it completely predicts where a member lives. Per-member `apiVersion` (D48) is what broke the flat map's completeness — when every member of a kind shared the catalog's level, the segment was redundant; once levels vary per member, the segment is derived content. Extending the derivation by one checkable component preserves exactly the property D42 bought — a member in the wrong place fails at publish — while giving coexisting versions disjoint packages instead of colliding identifiers.
+
+**Consequences:**
+
+- `core/src/identity_package.cue` (gate equality) and `identity_package_pins.cue` (the split must-fail pins) change under the `core-schema-edit` protocol with the SPEC.md co-update; the shipped `#IdentityPackage` field shapes are otherwise untouched.
+- 0011's publish-gate member walk iterates version subdirectories per contract kind; `opm catalog version set` is unaffected — it writes the identity file, which knows nothing of member filing.
+- D42's blueprint flattening composes with this rather than being redone: `src/blueprints/workload/` moves to `src/blueprints/v1beta1/` in one step, since the `catalogs-identity-authoring` slice carrying D42 is still in progress.
+- Import sites change shape once (`…/resources` → `…/resources/<level>`), inside the same blast radius as the D42 import moves already counted.
+
+**Source:** User decision 2026-08-10. Gate shape and `kindPrefix` enumeration read from `core/src/identity_package.cue:94-115` and `identity_package_pins.cue:94-124` the same day.
+
 
 ## Open Questions
 
