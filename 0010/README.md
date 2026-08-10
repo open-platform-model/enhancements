@@ -8,7 +8,7 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 
 `metadata.modulePath` becomes the artifact's **complete CUE module path including the major suffix** (`opmodel.dev/modules/postgres@v2`), and `metadata.fqn` is that string, with the major — the one component CUE and Go both treat as identity-bearing — carried in the path and no full version anywhere in a key.
 
-A module still **declares** a version (D38, amending D2), supplied by a catalog-style identity subpackage; what it no longer does is put one in an identity. The rule that makes that safe has two halves (D41), and both are needed because the value that matters operationally is not the module's:
+A module still **declares** a version (D2), supplied by a catalog-style identity subpackage; what it no longer does is put one in an identity. The rule that makes that safe has two halves (D41), and both are needed because the value that matters operationally is not the module's:
 
 > **Module artifact identity** — `#Module.metadata.fqn` and `.uuid` distinguish majors and nothing finer. The major reaches them through the module path; minor and patch reach them not at all.
 >
@@ -57,7 +57,7 @@ Pure-CUE definitions live in [`schemas/`](schemas/): [`target.cue`](schemas/targ
 - Whether `#definitionName` survives on each primitive kind (D33) — in scope because D8's snake_case module name is what breaks it.
 - How a contract states where its fulfilment comes from (D37): `fulfilment: *"catalog" | "provider"` on `#Resource` and `#Trait`, and the exactly-one-provider guard a `"provider"` contract carries. In scope because it is what makes D4's cross-catalog fulfilment a supported path rather than a tolerated one, and because it corrects the mechanism D32 states. The *arbitration* for a deliberate multi-provider overlap remains out of scope and is explicitly deferred to a later entry.
 - Where matching labels live (D36): a dedicated `matchLabels` field on `#Resource`, `#Trait`, `#Blueprint` and `#Component`, unified upward from the attached primitives, with `metadata.labels` no longer unified and no longer carrying the matching vocabulary. In scope because OQ16 was filed against D26's label mechanism and because `core/SPEC.md` states the upward union normatively three times without any implementing code. Carries two riders: `#LabelWorkloadType` is deleted from `core` (zero readers, the D33 argument), and the key is renamed `opm.opmodel.dev/workload-type` under `catalog_opm` ownership.
-- Where identity lives and how it gets there: a committed `identity.cue`, in the module's own root package or in a catalog's `identity/` subpackage — an asymmetry kept deliberately (D23) — with fields that may be open or concrete.
+- Where identity lives and how it gets there: a committed `identity/identity.cue` subpackage, the same shape for both artifact types (D2, D5), with fields that may be open or concrete.
 - Read-side verification of identity — at module acquire, at catalog materialize, and at platform subscription — and the typed errors it produces.
 - The `module.opmodel.dev/version` label: retained in the schema, sourced from the module's declared version, and verified by the kernel against the tag the artifact was fetched by (D9).
 - The identity migration: every artifact's UUID changes once, and every live instance's owner label with it.
@@ -82,7 +82,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `/CLAUDE.md` (workspace root) | Cross-repo routing + area vocabulary governing this multi-repo enhancement |
 | `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the `core/*.cue` slice; SPEC.md co-update is gated by a pre-commit hook and CI |
 | `core/src/types.cue` | `#ModulePathType`, `#FQNType`, `#ModuleFQNType`, `#MajorVersionType`, `#KebabToSnake` — the type surface this entry rewrites |
-| `core/src/module.cue` | `#Module.metadata` — `version` **retained and in no key** (D38), `modulePath` reshaped, `fqn` redefined, `registryPath` added (D41), **no** version-major agreement — it lives in the identity package alone (D45, transposing D43), the version label **retained**, schema-declared and kernel-verified (D9) |
+| `core/src/module.cue` | `#Module.metadata` — `version` **retained and in no key** (D2), `modulePath` reshaped, `fqn` redefined, `registryPath` added (D41), **no** version-major agreement — it lives in the identity package alone (D45, transposing D43), the version label **retained**, schema-declared and kernel-verified (D9) |
 | `core/src/module_instance.cue` | `#ModuleInstance.metadata` — an explicit `fqn` derived from the module's `registryPath`, and `uuid` derived from that rather than from `module.uuid` (D41). The one shape this entry touches that enhancement 0001 otherwise owns |
 | `cli/internal/workflow/render/module.go` | `:99` — "a module apply always renders a local module directory"; the path with no resolved coordinate, and the reason a kernel stamp cannot cover both frontends (D9) |
 | `library/opm/schema/context.go` | `:59` — `#moduleInstanceMetadata.fqn` is filled with `inst.ModuleFQN()`, the *module's* FQN under an instance-shaped name; D41 settles which one that block carries |
@@ -90,8 +90,8 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `core/src/resource.cue`, `core/src/trait.cue`, `core/src/blueprint.cue`, `core/src/transformer.cue` | Primitive identity — `apiVersion` added, `version` renamed `catalogVersion` (D25); `fqn` keys on the contract for the first three kinds and on the build for a transformer (D4) |
 | `core/SPEC.md` | Normative `#Module` / `#Catalog` spec; the semver-with-colon rationale and the `SHA1(fqn)` determinism argument both change |
 | `library/opm/helper/loader/registry/module.go` | Module read point — where the address check lands |
-| `library/opm/helper/loader/internal/shape/shape.go` | `RequiredConcreteFields` lists `metadata.version` — unchanged under D38 |
-| `core/src/transformer.cue` | `#moduleInstanceMetadata.version` (`:105`) — the consumer that made D38 necessary; fed by `Instance.ModuleVersion()` |
+| `library/opm/helper/loader/internal/shape/shape.go` | `RequiredConcreteFields` lists `metadata.version` — unchanged under D2 |
+| `core/src/transformer.cue` | `#moduleInstanceMetadata.version` (`:105`) — the consumer that made D2's restored version necessary; fed by `Instance.ModuleVersion()` |
 | `library/opm/module/instance.go` | `ModuleVersion()` (`:110`) — reads the module's `metadata.version`; the instance declares none of its own |
 | `library/opm/kernel/wrappers.go` | `AcquireModuleFromRegistry` — the single call the CLI and the operator both reach the registry through |
 | `library/opm/materialize/materialize.go` | `catalogBuild{Subscription, Version, Value}` — the kernel already holds the resolved catalog version |

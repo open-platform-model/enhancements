@@ -37,23 +37,38 @@ For the primitive half, the major belongs where it is load-bearing and nowhere e
 **Source:** User decision 2026-07-26.
 **Revised:** 2026-07-30 — absorbed D20 (2026-07-27), which narrowed the type widening to artifacts only.
 
-### D2: `#Module` declares no version
+### D2: A module declares a version, supplied by an identity subpackage
 
-**Decision:** `#Module.metadata.version` does not exist. A module's source declares `modulePath` and `name` and nothing about its version. The full version exists only as the coordinate an artifact was published at and resolved by — the OCI tag — with the major carried in the module path per D1.
+**Supersedes:** D23
+
+**Decision:** `#Module.metadata.version` exists, required, typed `#VersionType`. **Neither `fqn` nor `uuid` reads it.** That exclusion is the whole of what makes this safe, and D41 states it precisely, split in two because a single sentence about "the version" is both imprecise and incomplete — the *major* does reach `fqn` and `uuid`, through the module path, and the value that actually protects `prune.go` is the **instance** UUID rather than the module's:
+
+> **Module artifact identity** — `#Module.metadata.fqn` and `.uuid` distinguish majors and nothing finer. The major reaches them through the module path; minor and patch reach them not at all.
+>
+> **Instance identity** — `#ModuleInstance.metadata.fqn` and `.uuid`, which carry the owner label `prune.go:107` reads, derive from the module's major-free `registryPath`. Neither the version nor the major reaches them, so an instance survives every upgrade of the module it deploys, a major bump included.
+
+Minor and patch reach neither `fqn` nor `uuid`, and a change wiring them in restores a silent orphaning — `opm-operator/internal/apply/prune.go:107` skips any delete whose live owner label disagrees with `Status.InstanceUUID`, which `reconcile/moduleinstance.go:308` repopulates from each new render.
+
+A module gets a catalog-style identity subpackage: `identity/identity.cue`, `package identity`, exporting **both** `ModulePath` and `Version`. The module's root package consumes it — `metadata: {modulePath: id.ModulePath, version: id.Version}` — so a release moves both values by one edit, exactly as a catalog's does. Module and catalog identity files thereby share placement and shape; the asymmetry D23 held is retired.
+
+**`core` cannot enforce the wiring, so publish does.** `#Module` has no way to reference an arbitrary module's identity package, so the derivation is established by the template `opm module init` generates. CUE then enforces it for free while the derivation is written — an author who edits the literal gets `conflicting values` at `cue vet`. An author who *replaces* `id.Version` with a literal leaves nothing to conflict with, and that case is caught by enhancement 0011 D12's publish check comparing `metadata.version` against `id.Version`.
+
+**The read-side check extends to the version, and D9 owns it.** With a declared version present, an acquired artifact's `metadata.version` can be compared against the tag it was fetched by — a comparison that is impossible while no version is declared. This decision made the comparison available; D9 adopts it.
 
 **Alternatives considered:**
 
-- **Keep the field and enforce that it equals the release tag.** Rejected as policing a problem rather than removing it: it requires a publish-side derivation, a read-side check, a version-authoring command, a migration of every already-published artifact, and a permanent invariant every future tool must respect — all to keep two values equal that need not both exist.
-- **Keep `version` as a declared-but-never-authored field, injected at acquire from the resolved tag.** Genuinely viable, and it makes agreement true by construction while preserving the metadata surface. Rejected because it keeps `fqn`, `uuid`, and the shape gate depending on a value that exists only after a registry fetch — so a module read from disk has no identity — and because a declared field will eventually be written to by someone.
-- **A hidden `_version` written into the artifact at publish.** Rejected on two independent grounds. It puts bytes in the artifact that do not exist in source, which is the mechanism measured producing local-versus-published divergence. And `core/SPEC.md:304` records that a field which is not a declared, permitted member of the closed `#Module` breaks re-unification into `#ModuleInstance.#module` with "field not allowed" — a failure invisible to `cue vet` on a standalone module, because a standalone module is only closed once.
+- **No module version at all — `#Module.metadata.version` does not exist.** **Originally adopted here (2026-07-26), then reversed 2026-08-03.** A module's source declared `modulePath` and `name` and nothing about its version; the full version existed only as the OCI tag, with the major in the module path per D1. Deletion removed the drift by removing the field, and it defused the orphaning failure of its day, because `fqn` then interpolated `version`. Both reasons were later answered structurally rather than by absence — D1 took the version out of `fqn`, D41 took the module's UUID out of instance identity, and 0011 D12's publish assertion answers the drift. What deletion also removed, unintentionally: the only place a module's version could be *seen before it became permanent* (catalogs kept `version set` and a reviewable diff; modules were left with a flag on a command), and any filler for `#moduleInstanceMetadata.version` (`core/src/transformer.cue:105`, non-optional) on a module rendered **from disk**, which has no coordinate. Recorded so the case is not overstated: measured 2026-08-03, no shipped transformer reads `.version` — 117 uses of `#moduleInstanceMetadata` across the three catalogs, all `.name` or `.namespace` — so nothing broke either way; the choice was about which design leaves a declared field with no filler.
+- **Keep module and catalog identity files at different placements** — root-package `identity.cue` writing `metadata:` directly per D7, no subpackage. **Originally adopted as D23 (2026-07-29), then reversed 2026-08-03.** It rested on the module half of the writer having nothing to decide, which was true only while a module declared no version, and on the self-import being authored duplication, which `opm module init` makes generated. The self-import cost D23 measured is real and unchanged: intra-module imports omit the major, so a *major* bump churns no import, but they carry the path prefix, so a namespace migration rewrites one more site in every module. The converse convergence stays structurally unavailable: a catalog cannot move to a root-package file, because leaves importing a root-supplied constant makes root and leaves import each other — `package import cycle not allowed`, measured (D5).
+- **Keep the field with no subpackage and enforce that it equals the release tag.** Rejected at deletion time as policing a problem rather than removing it — a publish-side derivation, a read-side check, a version-authoring command, and a permanent invariant every future tool must respect. That machinery is exactly what enhancement 0011 built for catalogs regardless, which is what made restoring the field cheap: the enforcement (0011 D12, D9) exists whether or not a module declares a version.
+- **Keep `version` as a declared-but-never-authored field, injected at acquire from the resolved tag** — equivalently, restore the field but derive it in `core` from the fetched coordinate. Rejected twice, both times for the same reason: a value that exists only after a registry fetch leaves a disk-read module with no identity — and a declared field will eventually be written to by someone.
+- **A hidden `_version`,** written at publish or authored in the root package. The publish-written form puts bytes in the artifact that do not exist in source — the mechanism measured producing local-versus-published divergence — and `core/SPEC.md:304` records that an undeclared member of the closed `#Module` breaks re-unification into `#ModuleInstance.#module` with "field not allowed", invisible to `cue vet` on a standalone module. The authored form (which D7 sanctions as an indirection) delivers an authoring seam while keeping the version out of the published artifact, and the published artifact is where the instance reads it from.
+- **A top-level `Version` in the module's root package,** mirroring the catalog's exported constant without a package boundary. Rejected on D7's measurement, unchanged and still the reason the subpackage is the shape: it vets clean standalone and fails only at re-unification into the closed `#ModuleInstance.#module` slot.
+- **A subpackage exporting only `Version`,** leaving `modulePath` written directly per D7. Rejected as the worst of both: it pays the self-import cost without buying the consistency that justifies paying it.
 
-**Rationale:** CUE and Go both keep the full version out of source and neither has this class of bug. Removing the field deletes the problem instead of defending against it: no drift to detect, no fleet to migrate for version reasons, no invariant for future tooling to uphold.
-
-It also removes a latent failure that *fixing* the drift would have activated. Because `fqn` interpolates `version`, a genuinely-moving version changes `module.uuid` → `instance.uuid` → the owner label on every rendered resource, and `opm-operator/internal/apply/prune.go:107` skips any delete whose live label disagrees with `Status.InstanceUUID` — which `reconcile/moduleinstance.go:308` repopulates from each new render. Every upgrade would have silently orphaned whatever it removed.
+**Rationale:** The field was first deleted because a module's version was drifting from its tag, and because `fqn` interpolated `version`, so a genuinely-moving version silently orphaned whatever an upgrade removed. The second reason is what made deletion urgent, and D1 removed it independently — `fqn` is the module path, with no version in it. Restoring the field with the orphaning path structurally closed keeps the property deletion wanted — the tag and the declared value cannot drift, because publish asserts them equal — while giving modules the authoring seam catalogs never lost. The consumer that decided it: an instance derives its version from the module and declares none of its own (`library/opm/module/instance.go:110`'s `ModuleVersion()`; `core/src/module_instance.cue`), and a module rendered from disk has no coordinate to fill it from — the deletion's own argument, turned around.
 
 **Source:** User decision 2026-07-26.
-**Revised:** 2026-08-03 — **amended by D38**, which restores `#Module.metadata.version` from a module identity subpackage. The deletion's second reason, quoted above, is what D38 turns into a permanent invariant rather than a reason to keep the field out: `fqn` no longer interpolates `version` (D1), so the orphaning path is closed structurally, and the field returns with neither `fqn` nor `uuid` reading it. The drift argument is answered by 0011 D12's publish assertion rather than by absence.
-**Revised:** 2026-08-03 — **D41 closes the residue this decision's own reasoning leaves.** D1 reduced the orphaning path from *every release* to *every major*; it did not remove it, because `instance.uuid` still derived from `module.uuid`, which still carries the major. D41 derives instance identity from the module's major-free `registryPath` instead, so the failure this decision was taken over is now closed for major bumps too — and `#Module.metadata.version`'s exclusion from `fqn` is no longer the only thing standing between an identity edit and a silent orphaning.
+**Revised:** 2026-08-10 — absorbed D38 (user decision 2026-08-03, which restored the field this decision originally deleted; instance-derives-from-module verified at `library/opm/module/instance.go:110` and `core/src/module_instance.cue`, transformer-context exposure at `core/src/transformer.cue:101-109`, catalog reader set measured across `catalog_opm`, `catalog_kubernetes` and `catalog_opm_experimental` 2026-08-03; command surface and publish check are enhancement 0011 D12) and D23's placement holding, reversed by the same decision. Both numbers tombstoned; the original no-version position survives above as a previously-adopted alternative.
 
 ### D3: `#Catalog` keeps a full SemVer `metadata.version`, declared concretely in committed source
 
@@ -61,7 +76,7 @@ It also removes a latent failure that *fixing* the drift would have activated. B
 
 **What the value is *for* changed twice; the current answer is the third.** As originally decided it was a compatibility *signal* feeding a floor — a module recorded which catalog build it was authored against and the kernel compared that against what a platform materialized. D13 removed the floor's reader and D24 removed its reason; D10 records the retirement. What the value does now is supply **build keys and provenance**: it is interpolated into every transformer FQN as D24's implementation key, and it is stamped onto every primitive as `catalogVersion` under its D25 name. That is also what makes D6's refusal to give it a default load-bearing rather than fastidious — a sentinel version would be interpolated straight into a published key.
 
-`#Module` and `#Catalog` remain **not symmetric**, though not for the reason first given. A catalog's version names bytes that other artifacts key against; a module is a leaf artifact that nothing depends on and needs no such value, which is what D2 removes.
+`#Module` and `#Catalog` remain **not symmetric**, though the asymmetry is now one of *meaning* rather than of shape — both declare a version from an identity subpackage (D2). A catalog's version names bytes that other artifacts key against; a module's version keys nothing at all and is read only by the instance that derives from it.
 
 **Alternatives considered:**
 
@@ -106,9 +121,9 @@ This shape also buys a capability neither predecessor could express: two API ver
 
 **Decision:** An artifact's identity file is **committed to git and visible to developers**. OPM tooling *writes into it* — the way `npm version` writes `package.json` — rather than generating it behind the developer's back.
 
-Tooling locates the fields it writes by their **schema-fixed path**, and identity fields carry no marker attribute. For a catalog that is `identity/identity.cue`'s `ModulePath` and `Version`, which `#IdentityPackage` defines; for a module it is `metadata.modulePath`, which `#Module` defines. A field whose name or location disagrees with the schema is a `cue vet` failure, not a case for tooling to accommodate.
+Tooling locates the fields it writes by their **schema-fixed path**, and identity fields carry no marker attribute. For both artifact types that is `identity/identity.cue`'s `ModulePath` and `Version`, which `#IdentityPackage` defines (D2 converged modules onto the catalog's subpackage shape). A field whose name or location disagrees with the schema is a `cue vet` failure, not a case for tooling to accommodate.
 
-Placement differs by artifact type, and the difference is forced by package topology rather than chosen. A **module** keeps identity in a file in its own root package — modules are single-package, so there is no cycle to break, and CUE has no relative intra-module import to make a subpackage reachable anyway. A **catalog** keeps `identity/identity.cue` as a shared constant its `resources/` and `transformers/` leaves import, because those leaves compute their own FQNs at their own definition sites and a root-supplied constant makes root and leaves import each other (`package import cycle not allowed`, measured). D23 re-affirms this placement after both directions of symmetry were re-examined.
+Placement is the same for both artifact types: `identity/identity.cue` as an importable subpackage. For a **catalog** the shape is forced by package topology — its `resources/` and `transformers/` leaves compute their own FQNs at their own definition sites, and a root-supplied constant makes root and leaves import each other (`package import cycle not allowed`, measured). For a **module** it is chosen for symmetry and for the version-authoring seam (D2); the root package wires `metadata` to the subpackage's exports.
 
 **Alternatives considered:**
 
@@ -126,7 +141,8 @@ The technical constraint that rules the alternatives out is separate and was mea
 Locating a field by its schema-fixed path is not the hardcoding a marker would have avoided. The file path and the field names *are* the contract this entry defines; reading them is honouring it rather than guessing at it. `experiments/01-identity-marker-discovery`'s own closing sentence is the argument: "What a reader relies on is the schema."
 
 **Source:** User decision 2026-07-26.
-**Revised:** 2026-07-30 — absorbed D22 (2026-07-29), which dropped the `@opm()` marker. D5's committed-and-visible half is unchanged; its placement half is re-affirmed by D23.
+**Revised:** 2026-07-30 — absorbed D22 (2026-07-29), which dropped the `@opm()` marker. D5's committed-and-visible half is unchanged.
+**Revised:** 2026-08-10 — the placement half restated: the per-type asymmetry this decision first recorded (module root-package file vs catalog subpackage, later re-affirmed as D23) was reversed by the decision now stated at D2, which converges both types on the `identity/` subpackage.
 
 ### D6: An identity field may be left open, and an open field is an absent value rather than a placeholder one
 
@@ -179,7 +195,7 @@ A hidden `_modulePath` and a direct `metadata:` write both pass both checks.
 **Rationale:** The `#Module` definition is closed, and the closure is only enforced at the point of re-unification. A design that puts a stray field in the module's own package is a design whose defect is invisible to the person who would introduce it.
 
 **Source:** Measured 2026-07-26; recorded as a design constraint on D5's module half.
-**Revised:** 2026-08-03 — **partially superseded by D38**. The *measurement* stands and is load-bearing: a top-level field beside the embedded `#Module` in the module's root package still fails at re-unification with `field not allowed`. What changes is the conclusion drawn from it — D38 gives modules a catalog-style `identity/` subpackage, which is the shape that avoids the failure, so `metadata:` is now written from an imported package rather than authored directly.
+**Revised:** 2026-08-03 — **partially superseded by the decision now stated at D2** (originally recorded as D38). The *measurement* stands and is load-bearing: a top-level field beside the embedded `#Module` in the module's root package still fails at re-unification with `field not allowed`. What changes is the conclusion drawn from it — D2 gives modules a catalog-style `identity/` subpackage (the second alternative above, later adopted), which is the shape that avoids the failure, so `metadata:` is now written from an imported package rather than authored directly.
 
 ### D8: `metadata.name` is snake_case, and the module path's leaf equals it
 
@@ -200,9 +216,9 @@ Consequently `nameSnakeCase` and `#KebabToSnake` are removed from `core`. They e
 
 ### D9: The version label is declared by the schema and verified by the kernel
 
-**Resolves:** the read-side comparison D38 left open
+**Resolves:** the read-side comparison D2 left open
 
-**Decision:** `#Module.metadata.labels` declares `"module.opmodel.dev/version": "\(version)"`, sourced from D38's `metadata.version`. The kernel is the label's *verifier* rather than its *source*: at each read point D11 names, an acquired artifact's `metadata.version` is compared against the tag it was fetched by, and a disagreement raises the same typed error D11 raises for an address mismatch.
+**Decision:** `#Module.metadata.labels` declares `"module.opmodel.dev/version": "\(version)"`, sourced from D2's `metadata.version`. The kernel is the label's *verifier* rather than its *source*: at each read point D11 names, an acquired artifact's `metadata.version` is compared against the tag it was fetched by, and a disagreement raises the same typed error D11 raises for an address mismatch.
 
 **Alternatives considered:**
 
@@ -215,12 +231,12 @@ Consequently `nameSnakeCase` and `#KebabToSnake` are removed from `core`. They e
 - **Two labels under different keys — one declared, one resolved.** Rejected as two spellings of one operational question. If the two values can disagree, the right response is to refuse the artifact, not to render both and leave an operator to reconcile them at a terminal.
 - **Have the kernel overwrite the schema-supplied value wherever a coordinate exists.** Rejected on mechanics: CUE cannot unify a concrete label value to a different one, so this needs either a disjunction default in `core` or a post-render Go rewrite. Both reintroduce the divergence between the two render paths that this decision removes, and the Go form puts a label's value outside the rendered CUE where the digest gates cannot see how it got there.
 
-**Rationale:** D38 removes the drift at the producer — 0011 D12's publish check asserts `metadata.version == id.Version`, and the tag derives from the same value — and this decision removes it at the consumer. Declared and resolved become the same fact, and only the declared one is available on **both** render paths.
+**Rationale:** D2 removes the drift at the producer — 0011 D12's publish check asserts `metadata.version == id.Version`, and the tag derives from the same value — and this decision removes it at the consumer. Declared and resolved become the same fact, and only the declared one is available on **both** render paths.
 
 The division of labour is the point. The schema states what the artifact says it is; the reader refuses an artifact where that is not what it was fetched as. That is a stronger guarantee than stamping the coordinate, because a stamp makes the label true about *this render* while leaving the artifact's own claim about itself unexamined — and it is the artifact's claim that every other consumer reads. The requirement that the two frontends cannot disagree carries forward, met more strongly by both reading one committed value than by both writing the same computed one.
 
 **Source:** User decision 2026-07-26.
-**Revised:** 2026-08-04 — absorbed D39 (taken 2026-08-03), which returned the label to `core` sourced from D38's `metadata.version` and made the kernel its verifier. Local-render path read at `cli/internal/workflow/render/module.go:99` that day; the label chain confirmed at `core/src/module.cue:36`, `core/src/module_instance.cue:28` and `core/src/transformer.cue:131-137`; drift measurement from `01-problem.md`.
+**Revised:** 2026-08-04 — absorbed D39 (taken 2026-08-03), which returned the label to `core` sourced from the declared `metadata.version` (D2) and made the kernel its verifier. Local-render path read at `cli/internal/workflow/render/module.go:99` that day; the label chain confirmed at `core/src/module.cue:36`, `core/src/module_instance.cue:28` and `core/src/transformer.cue:131-137`; drift measurement from `01-problem.md`.
 
 ### D10: The built-against catalog version has no reader — the floor mechanism is retired
 
@@ -443,20 +459,9 @@ A transformer's `requiredResources` key is the resource's own `metadata.fqn`, so
 
 Identity fields carry no marker attribute — content now in D5. Number retired.
 
-### D23: Module and catalog identity files keep different placement and shape
+### D23: (merged into D2, 2026-08-10)
 
-**Decision:** The asymmetry D5 and D7 record is retained deliberately, each side optimised for its own use rather than converged. A catalog keeps `identity/identity.cue` as an importable package exporting `ModulePath` and `Version`, because its leaves compute FQNs across a package boundary. A module keeps a root-package `identity.cue` writing `metadata: modulePath:` directly, with a hidden `_modulePath` available if an indirection is ever wanted (D7). Neither is moved toward the other.
-
-**Alternatives considered:**
-
-- **Catalog moves to a root-package file, module-style.** Structurally unavailable, not merely unattractive: leaves importing a root-supplied constant makes root and leaves import each other — `package import cycle not allowed`, measured (D5).
-- **Module gains a catalog-style `identity/` subpackage.** Already rejected at D7 on the ground that CUE has no relative intra-module import, so the module must restate its own path in an `import` statement. A second cost surfaced on re-examination 2026-07-29 that D7 did not record: `0011` OQ6 moves every module to an owner-scoped path, and a self-import is one more site that migration has to rewrite in every module. `02-design.md` verified that intra-module imports omit the major, so a *major* bump churns no import — but a namespace migration changes the prefix, which those imports do carry.
-- **Symmetry of shape without symmetry of placement** — both files declare a named constant the tooling writes and then reference it, differing only in export-ness (`ModulePath` for the catalog; hidden `_modulePath` for the module, since D7 measured that an exported top-level field fails on unification into the closed `#ModuleInstance.#module` slot). Genuinely available and cheap, and rejected as unpaid-for: under D2 a module declares no version, and under D6 its `modulePath` is derivable from `cue.mod/module.cue` at any time, so the module half of the writer has nothing to decide. It would unify a shape on the side that carries no payload.
-
-**Rationale:** The two files answer to different consumers. A catalog's identity is *read by its own leaves*, so it has to be an exported constant in an importable package. A module's identity *is* its metadata, so the shortest correct thing is to write the metadata. Converging them would mean giving one of them a structure its own use does not call for, and paying for that structure at every migration.
-
-**Source:** User decision 2026-07-29, re-affirming D5's placement half and D7 after both directions of symmetry were re-examined.
-**Revised:** 2026-08-03 — **reversed by D38**, which converges the two placements: a module now carries an importable `identity/` subpackage exporting `ModulePath` and `Version`, as a catalog does. The premise this decision rested on — that the module half of the writer "has nothing to decide", because under D2 a module declares no version — is what D38 removes by restoring the version. The self-import cost recorded here is real and unchanged; what changed is who pays it, since `opm module init` generates the import rather than an author writing it.
+Module and catalog identity files keep different placement and shape — reversed by the decision now stated at D2; the asymmetry and its measured self-import cost survive there as a previously-adopted alternative. Number retired.
 
 ### D24: (merged into D4, 2026-07-30)
 
@@ -539,9 +544,23 @@ Enforcement is split across both ends, deliberately: **at publish** by a compati
 **Source:** User decision 2026-07-29. Every case measured in `experiments/02-primitive-closedness-skew/` against cue v0.17.1.
 **Revised:** 2026-07-31 — absorbed D34's narrowing of scope: the rule binds at beta and GA, not at alpha. D34 stands as its own decision for the API-version ladder it defines.
 
-### D28: An unresolved primitive demand is an error
+### D28: An unresolved primitive demand is an error; a trait's optionality is stated by its catalog and overridden by the attachment
 
-**Decision:** Every resource a component declares is **required**. A demanded resource FQN that no transformer in the platform supplies is an immediate, hard failure of the render — not a diagnostic collected and dropped. Traits carry an explicit **opt-out**; an unhandled trait without one fails the same way, and only the opted-out case degrades to a warning that continues.
+**Decision:** Every resource a component declares is **required**. A demanded resource FQN that no transformer in the platform supplies is an immediate, hard failure of the render — not a diagnostic collected and dropped. Traits carry an explicit **posture** instead of a silent default: `#Trait` has `optional: bool`, beside `spec`, and **`core` gives it no default.** The declaring catalog states the posture and MUST state it as a *default* — `bool | *true` for an advisory trait, `bool | *false` for a load-bearing one — and a `#Component` overrides it at the attachment site:
+
+```cue
+#traits: (BackupFQN): Backup & {optional: true}   // not my data
+```
+
+`#Component` carries no optionality field of its own, and neither `core` nor this decision supplies an implicit default in either direction. An unhandled trait whose effective `optional` is `false` fails the render exactly as an unsupplied resource does; only the effectively-optional case degrades to a warning that continues.
+
+**Why the posture is per-trait rather than one global rule.** Optionality is a property of the *(trait, component)* pair, not of the trait alone: `backup` on a throwaway cache is advisory, and on a database it is the entire point. The catalog knows the common case and the module knows its own, so both need a say — which is exactly what a default plus an attachment-site override expresses, and what a demand-side-only marker could not.
+
+**Why a default and not a value, and why `core` states none.** A default is what makes the catalog's statement a recommendation rather than a ruling: measured against cue v0.17.1, a module narrowing a default is never a conflict, while narrowing a concrete value always is. And two defaults do not compose — a catalog restating one against a `core` default annihilates both, leaving `bool | true | false`: incomplete, with no default, and a diagnostic (`incomplete value bool`) that never says why. So `core` declares the field and no opinion, which is also the honest position: `core` does not know whether backups are optional.
+
+**The rule the schema cannot carry, and where it went.** CUE has no way to say "this field may be given a default here but not a concrete value" — a field admits a concrete value or it does not, and this one must, because that is what a module writes at the attachment site. What separates the two cases is *who wrote it*, which the schema cannot see. `#TraitOptionalGate` ships in `core` and `opm catalog publish` unifies every published trait's `optional` against it, refusing an unstated posture and a pinned one. That is D22's mechanism in 0011 (unify against a shipped definition, surface CUE's own error) rather than a second one.
+
+**Two properties of the gate worth carrying, both measured 2026-08-07 against cue v0.17.1.** Its two rules fail differently: a pinned posture is a conflict between concrete booleans and plain `cue vet` reports it, while an unstated posture is an *incomplete value* and plain `cue vet` does not — only `-c` does. And the gate must be unified into a **non-hidden** value, because `cue vet -c` does not check hidden fields, so a gate parked in a `_`-prefixed slot passes while checking nothing. A gate run without `-c`, or into a hidden field, enforces half of itself silently.
 
 **Today's behaviour, measured 2026-07-29, and it is worse than "quiet".** `Match` produces three outcomes with three different volumes (`compile/match.go`):
 
@@ -554,16 +573,16 @@ There is also no `UnhandledResources` counterpart to `UnhandledTraits` (`:167-17
 **Alternatives considered:**
 
 - **Keep the current soft treatment.** Rejected: it was survivable while every demanded primitive came from a catalog that also shipped its transformer. D4 makes an unsupplied demand a normal condition, and a silent one is indistinguishable from a fulfilled one.
-- **Give resources a demand-side optionality marker too.** Rejected: a component does not attach a resource it can do without. The asymmetry is real — a trait can be advisory (`optionalTraits` already exists on the supply side) while a resource is the thing being asked for.
-- **Warn on everything and let the platform decide.** Rejected: the failure is silent in the cluster, not just in the log — `prune.go:112` is the existing evidence that a skipped operation with no Event and no metric reads as success.
+- **A demand-side marker set** — `#Component.#optionalTraits`, keyed by contract FQN. **Originally adopted here as the trait opt-out's spelling, built by the implementing slice, then replaced (2026-08-07).** It wrote the FQN twice — once to attach, once to mark — and located optionality where the trait's author, who knows whether the trait is advisory, could not state it. Its one advantage was structural: a catalog cannot write a field that lives on `#Component`. The publish gate buys that back.
+- **Give resources a demand-side optionality marker too.** Rejected: a component does not attach a resource it can do without. The asymmetry is real — a trait can be advisory while a resource is the thing being asked for.
+- **A boolean on `#Trait` with a `core` default.** Rejected on the annihilation measured above: a catalog wanting the other posture cannot restate the default without destroying it and forcing every attaching module to answer explicitly.
+- **Two fields — a catalog-side `recommendedOptional` and a demand-side `optional` defaulting to it.** Measured working, and rejected as one field too many for the same guarantee once dropping `core`'s default was found to give it directly.
+- **Warn on everything and let the platform decide** — equivalently, make all traits optional by default. Rejected: the failure is silent in the cluster, not just in the log — `prune.go:112` is the existing evidence that a skipped operation with no Event and no metric reads as success. Under the per-trait posture the question does not arise as a default at all: every trait states one, and the gate refuses a catalog that does not.
 
-**Rationale:** "Required vs optional" had no demand-side expression before this decision, which is why the current behaviour is incoherent rather than lenient. Fixing it means naming the default: everything a component declares is a demand the platform must satisfy, and the exception is written down by the author who wants it.
-
-The spelling of the trait opt-out is left to the implementing slice; what this decision fixes is that there is exactly one, that it lives on the demand side, and that its absence means "required".
-
-**The trait half is superseded by D46 (rider added 2026-08-07).** The resource half — every declared resource is required, no demand-side marker, an unsupplied one is a hard failure — stands unchanged, and so does the reasoning above for why an unresolved demand cannot stay soft. What D46 revises is the sentence immediately preceding this one: the opt-out is no longer demand-side-only, and there is no longer an implicit default in either direction. It is stated per-trait by the declaring catalog and overridden per-attachment by the module. The implementing slice built this decision's spelling first, found it wrote the contract FQN twice and gave the trait's own author no way to say whether a trait is advisory, and D46 is what replaced it.
+**Rationale:** "Required vs optional" had no demand-side expression before this decision, which is why the prior behaviour was incoherent rather than lenient. Fixing it means naming the default: everything a component declares is a demand the platform must satisfy, and the exception is written down — per-trait by the declaring catalog, which knows the common case, and per-attachment by the module, which knows its own. Nothing defaults silently in either direction, and the gate refuses a catalog that leaves a posture unstated.
 
 **Source:** User decision 2026-07-29. Current behaviour read from `library/opm/compile/{match,module,errors}.go` and `library/opm/kernel/phases.go` 2026-07-29.
+**Revised:** 2026-08-10 — absorbed D46 (user decision 2026-08-07, during implementation of `core/core-platform-and-match`; CUE behaviour measured in `core/src` against cue v0.17.1), which replaced this decision's original demand-side-only trait opt-out with the catalog-stated posture above. Number tombstoned; the original spelling survives as a previously-adopted alternative.
 
 ### D29: (merged into D14, 2026-07-30)
 
@@ -773,38 +792,9 @@ The single-provider guard is the other half of the same intent. Two providers fo
 
 ---
 
-### D38: A module declares a version again, supplied by an identity subpackage
+### D38: (merged into D2, 2026-08-10)
 
-**Decision:** `#Module.metadata.version` exists, required, typed `#VersionType`. **Neither `fqn` nor `uuid` reads it** — `fqn` remains the module path per D1, and `uuid` keeps its formula over that path. That exclusion is the whole of what makes this safe, and it is stated as an invariant of the identity design rather than as a property of this decision.
-
-The invariant is stated precisely in **D41**, which splits it in two because a single sentence about "the version" was both imprecise and incomplete — the *major* does reach `fqn` and `uuid`, through the module path, and the value that actually protects `prune.go` is the **instance** UUID rather than the module's:
-
-> **Module artifact identity** — `#Module.metadata.fqn` and `.uuid` distinguish majors and nothing finer. The major reaches them through the module path; minor and patch reach them not at all.
->
-> **Instance identity** — `#ModuleInstance.metadata.fqn` and `.uuid`, which carry the owner label `prune.go:107` reads, derive from the module's major-free `registryPath`. Neither the version nor the major reaches them, so an instance survives every upgrade of the module it deploys, a major bump included.
-
-A module gets a catalog-style identity subpackage: `identity/identity.cue`, `package identity`, exporting **both** `ModulePath` and `Version`. The module's root package consumes it — `metadata: {modulePath: id.ModulePath, version: id.Version}` — so a release moves both values by one edit, exactly as a catalog's does.
-
-This **amends D2** (which deleted the field), **reverses D23** (which kept the two artifact types' identity files at different placements), and **leaves D7's measurement intact and load-bearing**: The two words are not interchangeable and the difference is deliberate — D2's *reasoning* survives in full and only its conclusion about the field moves, whereas D23's holding was the asymmetry itself, and nothing of it survives beyond the self-import cost it measured. D23's own revision note reads `reversed by D38` to match. a top-level `Version` beside the embedded `#Module` in the module's *root* package still fails at re-unification into the closed `#ModuleInstance.#module` slot with `field not allowed`, vetting clean standalone. The subpackage is precisely the shape that avoids it — a separate package is never unified into `#Module`.
-
-**`core` cannot enforce the wiring, so publish does.** `#Module` has no way to reference an arbitrary module's identity package, so the derivation is established by the template `opm module init` generates. CUE then enforces it for free while the derivation is written — an author who edits the literal gets `conflicting values` at `cue vet`. An author who *replaces* `id.Version` with a literal leaves nothing to conflict with, and that case is caught by enhancement 0011 D12's publish check comparing `metadata.version` against `id.Version`.
-
-**Deliberately not decided here: whether D11's read-side check extends to the version.** With a declared version present, an acquired artifact's `metadata.version` *can* be compared against the tag it was fetched by, which D2 recorded as impossible. Doing so would close the drift for artifacts published outside `opm publish`; not doing so keeps D11 checking only the address, as it does today. The argument runs both ways and the decision belongs with whoever specifies the read path. What is fixed here is that the comparison became *available*.
-
-**Alternatives considered:**
-
-- **Keep D2 as written — no module version at all.** Rejected on a consumer this entry had not accounted for. An instance derives its version from the module and declares none of its own (`library/opm/module/instance.go:110`'s `ModuleVersion()`; `core/src/module_instance.cue`), and `core/src/transformer.cue:105` declares `version: string` non-optionally inside `#moduleInstanceMetadata`. Under D2 a registry-acquired module could have that filled from the resolved coordinate, but a module rendered **from disk** has no coordinate — which is D2's own reason for rejecting its second alternative, that "a module read from disk has no identity". Recorded so the case is not overstated: measured 2026-08-03, **no shipped transformer reads `.version`** (117 uses of `#moduleInstanceMetadata` across the three catalogs, all `.name` or `.namespace`), so nothing breaks either way. The choice is about which design leaves a declared field with no filler.
-- **A hidden `_version` in the module's root package,** which D7 sanctions as an indirection. Rejected: it delivers an authoring seam while keeping the version out of the published artifact, and the published artifact is where the instance reads it from.
-- **A top-level `Version` in the module's root package,** mirroring the catalog's exported constant without a package boundary. Rejected on D7's measurement, unchanged and still the reason the subpackage is the shape.
-- **A subpackage exporting only `Version`,** leaving `modulePath` written directly per D7. Rejected as the worst of both: it pays the self-import cost without buying the consistency that justifies paying it.
-- **Restore the field but derive it in `core` from the fetched coordinate.** This is D2's rejected alternative 2 and it is still rejected, for its original reason: a value that exists only after a registry fetch leaves a disk-read module with no identity.
-
-**Rationale:** D2 deleted the field because a module's version was drifting from its tag, and because `fqn` interpolated `version` so a moving version silently orphaned resources on every upgrade. The second reason is what made deletion urgent, and D1 has since removed it independently — `fqn` is the module path, with no version in it. What deletion also removed, unintentionally, was the only place a module's version could be *seen before it became permanent*: catalogs kept `version set` and a reviewable diff, and modules were left with a flag on a command.
-
-Restoring the field with the orphaning path structurally closed keeps the property D2 wanted — the tag and the declared value cannot drift, because publish asserts them equal — while giving modules the authoring seam catalogs never lost. D23's placement asymmetry does not survive the change: it rested on a module having no cross-package reader for its identity constant, which is still true, and on the self-import being authored duplication, which `opm module init` makes generated.
-
-**Source:** User decision 2026-08-03. Instance-derives-from-module verified at `library/opm/module/instance.go:110` and `core/src/module_instance.cue`; transformer-context exposure at `core/src/transformer.cue:101-109`; catalog reader set measured across `catalog_opm`, `catalog_kubernetes` and `catalog_opm_experimental` on 2026-08-03. Command surface and publish check are enhancement 0011 D12.
-**Revised:** 2026-08-03 — the invariant this decision states is **restated by D41** and is no longer the whole of what protects `prune.go`. D38 wrote it as "`version` is never an input to `fqn` or to `uuid`", which reads as a prohibition and is, taken literally, already violated: the *major* reaches both, through the module path. D41 splits the rule in two — artifact identity distinguishes majors and nothing finer; instance identity, which is what the owner label carries, derives from the module's major-free `registryPath` and is reached by neither the version nor the major. The paragraph above is superseded by that pair; what survives unchanged is that **minor and patch reach neither `fqn` nor `uuid`**, and that a change wiring them in restores a silent orphaning. The read-side comparison this decision left open is **resolved by D9**, which adopts it.
+A module declares a version again, supplied by an identity subpackage — content now in D2. Number retired.
 
 ---
 
@@ -877,7 +867,7 @@ Both labels already ship on every rendered resource. The names promised they wer
 
 Stating the derivation as an explicit `fqn` rather than an inline interpolation inside `uuid` is what makes the "custom set of fields" reviewable in one place, and it mirrors `#Module`'s own `fqn → uuid` shape.
 
-**Source:** User decision 2026-08-03, on a worked tree carrying this entry's target shapes; the invariance matrix (version bump, major bump, owner change, namespace change) measured against `cue v0.17.1` the same day. Prune behaviour at `opm-operator/internal/apply/prune.go:107`; `Status.InstanceUUID` repopulation at `opm-operator/internal/reconcile/moduleinstance.go:308`; context fill at `library/opm/schema/context.go:59`. **Restates the invariant D38 recorded**, and touches `#ModuleInstance`, whose shape is otherwise enhancement 0001's.
+**Source:** User decision 2026-08-03, on a worked tree carrying this entry's target shapes; the invariance matrix (version bump, major bump, owner change, namespace change) measured against `cue v0.17.1` the same day. Prune behaviour at `opm-operator/internal/apply/prune.go:107`; `Status.InstanceUUID` repopulation at `opm-operator/internal/reconcile/moduleinstance.go:308`; context fill at `library/opm/schema/context.go:59`. **Restates the identity invariant now stated at D2**, and touches `#ModuleInstance`, whose shape is otherwise enhancement 0001's.
 
 ---
 
@@ -919,7 +909,7 @@ Moving the files rather than only the declared string keeps a primitive's `modul
 
 For a conformant catalog the `core` copy is provably redundant, which is the whole argument: both values are *written* in `identity.cue`, `identity.cue` asserts the relation between them, so any value that reaches `#Catalog.metadata` has already passed it. Re-deriving in `core` checks the same relation on the same two values one hop downstream.
 
-**One mechanical constraint bounds what "assert it in the identity package" can mean.** `core` cannot import a consumer's identity package — the impossibility D38 and 0011 D12 both record for `metadata.version`, since `#Module` and `#Catalog` have no way to name an arbitrary artifact's identity package. So there is no shape in which `#Catalog.metadata` reads `id.VersionMajor` directly; the reference is the authored wiring in `catalog.cue`, exactly as `modulePath` and `version` already are.
+**One mechanical constraint bounds what "assert it in the identity package" can mean.** `core` cannot import a consumer's identity package — the impossibility D2 and 0011 D12 both record for `metadata.version`, since `#Module` and `#Catalog` have no way to name an arbitrary artifact's identity package. So there is no shape in which `#Catalog.metadata` reads `id.VersionMajor` directly; the reference is the authored wiring in `catalog.cue`, exactly as `modulePath` and `version` already are.
 
 **Alternatives considered:**
 
@@ -933,9 +923,9 @@ For a conformant catalog the `core` copy is provably redundant, which is the who
 
 **The follow-on that removes the exposure, recommended and not required by this decision:** have `core` **export** `#IdentityPackage`, and have each `identity/identity.cue` embed it. `VersionMajor` is then supplied by the definition rather than by the author remembering to write it, and the D40 objection above stops applying at authoring time rather than at publish time. This is permitted: the identity package's import-free invariant is scoped to **intra-module** imports (D21 — "free of intra-module imports"), `strings` is a builtin, and `core` imports no catalog, so no cycle exists. It would also let `identity.cue` drop the `#VersionType` it duplicates today for exactly that reason, and give `#IdentityPackage` one home instead of a definition in this entry's `schemas/target.cue` mirrored by hand in four repos.
 
-**Deliberately not decided here: the `#Module` half.** D40 asserts the same relation on `#Module.metadata`, and D38 gives modules an identity subpackage, so the argument transposes without change. It is left open because the two artifact types having different answers to "where is the major checked" is the asymmetry D38 and 0011 D12 have just spent two decisions removing — so the module half should be settled deliberately rather than inherited. Recommendation on the record: symmetry, and it is free if the `#IdentityPackage` export above lands.
+**Deliberately not decided here: the `#Module` half.** D40 asserts the same relation on `#Module.metadata`, and D2 gives modules an identity subpackage, so the argument transposes without change. It is left open because the two artifact types having different answers to "where is the major checked" is the asymmetry D2 and 0011 D12 have just spent two decisions removing — so the module half should be settled deliberately rather than inherited. Recommendation on the record: symmetry, and it is free if the `#IdentityPackage` export above lands.
 
-**Source:** User decision 2026-08-03. Consumer-side evaluation point read at `library/opm/materialize/pull.go:23`; the `core`-cannot-import-identity constraint from D38 and 0011 D12; publish-side identity-shape validation from 0011 D8. **Amends D40.**
+**Source:** User decision 2026-08-03. Consumer-side evaluation point read at `library/opm/materialize/pull.go:23`; the `core`-cannot-import-identity constraint from D2 and 0011 D12; publish-side identity-shape validation from 0011 D8. **Amends D40.**
 **Revised:** 2026-08-05 — the `#Module` half this decision left open is **settled by D45**, which transposes this holding rather than diverging from it. The recommendation recorded here (symmetry, and free if the `#IdentityPackage` export lands) is what D45 takes.
 
 **Revised:** 2026-08-08 — the decision stands; one fact in the exposure paragraph above needs reading in the present tense rather than the future. Both replacements it names are **still unbuilt**. The publish-side one is 0011 D21's unification, which needs `cli-publish-pipeline` (`status: planned`); the consumer-side residual — "surfaces at `#SubscriptionSelection`'s `_majorAgrees`" — is library-side, carried by this entry's own `library-acquire-and-subscription` slice (formerly `library-subscription-collapse`; "one major-agreement check survives beside the subscription"), also `planned`. Measured 2026-08-08 against `core/src`: `_majorAgrees` has never existed in `core` at any commit, and `core-platform-and-match` correctly never claimed it, since `schemas/target.cue`'s preamble puts subscription selection's production implementation in Go. So between 0011's `core-identity-package` landing (2026-08-08) and the first of those two slices, **nothing in shipped code checks the relation at all** — `#IdentityPackage.VersionMajor` is its only statement and no tool runs it. The `recommended follow-on` above (identity files embedding the shipped definition) is now available for the first time, since the definition exists, and would make the assertion live under a plain `cue vet` of the artifact's own tree rather than waiting on either slice.
@@ -980,9 +970,9 @@ Fixing it as a category rather than as a field is what makes the correction dura
 
 ### D45: The version-major agreement is asserted in the identity package alone for `#Module` too
 
-**Decision:** D43's holding transposes to `#Module`. `core` asserts no relation between `#Module.metadata.version`'s major and `modulePath`'s; `identity/identity.cue`'s `VersionMajor: Major` is the only assertion, reaching `metadata` through the wiring D38 establishes (`modulePath: id.ModulePath`, `version: id.Version`). **D40's `#Module` half is superseded**; its identity-package half is untouched, as it was for `#Catalog`.
+**Decision:** D43's holding transposes to `#Module`. `core` asserts no relation between `#Module.metadata.version`'s major and `modulePath`'s; `identity/identity.cue`'s `VersionMajor: Major` is the only assertion, reaching `metadata` through the wiring D2 establishes (`modulePath: id.ModulePath`, `version: id.Version`). **D40's `#Module` half is superseded**; its identity-package half is untouched, as it was for `#Catalog`.
 
-This settles what D43 left explicitly undecided, and it settles it the way D43 recommended on the record. The two artifact types now answer "where is the major checked" identically, which is the asymmetry D38 and 0011 D12 spent two decisions removing.
+This settles what D43 left explicitly undecided, and it settles it the way D43 recommended on the record. The two artifact types now answer "where is the major checked" identically, which is the asymmetry D2 and 0011 D12 spent two decisions removing.
 
 **Alternatives considered:**
 
@@ -1001,32 +991,9 @@ Two things bound it. The residual failure is loud rather than silent — a versi
 ---
 
 
-### D46: A trait's optionality is stated by its catalog and overridden by the attachment
+### D46: (merged into D28, 2026-08-10)
 
-**Decision:** `#Trait` carries `optional: bool`, beside `spec`. **`core` gives it no default.** The declaring catalog states the posture and MUST state it as a *default* — `bool | *true` for an advisory trait, `bool | *false` for a load-bearing one — and a `#Component` overrides it at the attachment site:
-
-```cue
-#traits: (BackupFQN): Backup & {optional: true}   // not my data
-```
-
-`#Component` carries no optionality field of its own. **This supersedes D28's trait half**: the opt-out is no longer demand-side-only, and neither `core` nor this decision supplies an implicit default.
-
-**Why the posture is per-trait rather than one global rule.** Optionality is a property of the *(trait, component)* pair, not of the trait alone: `backup` on a throwaway cache is advisory, and on a database it is the entire point. The catalog knows the common case and the module knows its own, so both need a say — which is exactly what a default plus an attachment-site override expresses, and what D28's demand-side-only marker could not.
-
-**Why a default and not a value, and why `core` states none.** A default is what makes the catalog's statement a recommendation rather than a ruling: measured against cue v0.17.1, a module narrowing a default is never a conflict, while narrowing a concrete value always is. And two defaults do not compose — a catalog restating one against a `core` default annihilates both, leaving `bool | true | false`: incomplete, with no default, and a diagnostic (`incomplete value bool`) that never says why. So `core` declares the field and no opinion, which is also the honest position: `core` does not know whether backups are optional.
-
-**The rule the schema cannot carry, and where it went.** CUE has no way to say "this field may be given a default here but not a concrete value" — a field admits a concrete value or it does not, and this one must, because that is what a module writes at the attachment site. What separates the two cases is *who wrote it*, which the schema cannot see. `#TraitOptionalGate` ships in `core` and `opm catalog publish` unifies every published trait's `optional` against it, refusing an unstated posture and a pinned one. That is D22's mechanism in 0011 (unify against a shipped definition, surface CUE's own error) rather than a second one.
-
-**Two properties of the gate worth carrying, both measured 2026-08-07 against cue v0.17.1.** Its two rules fail differently: a pinned posture is a conflict between concrete booleans and plain `cue vet` reports it, while an unstated posture is an *incomplete value* and plain `cue vet` does not — only `-c` does. And the gate must be unified into a **non-hidden** value, because `cue vet -c` does not check hidden fields, so a gate parked in a `_`-prefixed slot passes while checking nothing. A gate run without `-c`, or into a hidden field, enforces half of itself silently.
-
-**Alternatives considered:**
-
-- **D28's demand-side marker set** (`#Component.#optionalTraits`, keyed by contract FQN). Built first, then replaced. It wrote the FQN twice — once to attach, once to mark — and located optionality where the trait's author, who knows whether the trait is advisory, could not state it. Its one advantage was structural: a catalog cannot write a field that lives on `#Component`. D46 buys that back with the gate instead.
-- **A boolean on `#Trait` with a `core` default.** Rejected on the annihilation measured above: a catalog wanting the other posture cannot restate the default without destroying it and forcing every attaching module to answer explicitly.
-- **Two fields — a catalog-side `recommendedOptional` and a demand-side `optional` defaulting to it.** Measured working, and rejected as one field too many for the same guarantee once dropping `core`'s default was found to give it directly.
-- **Making all traits optional by default.** This is D28's own rejected "warn on everything" alternative, and it is rejected again on the same evidence — a skipped operation with no Event and no metric reads as success in the cluster. Under D46 the question does not arise as a default at all: every trait states a posture, and the gate refuses a catalog that does not.
-
-**Source:** User decision 2026-08-07, during implementation of `core/core-platform-and-match`. CUE behaviour measured in `core/src` against cue v0.17.1.
+A trait's optionality is stated by its catalog and overridden by the attachment — content now in D28. Number retired.
 
 
 ## Open Questions

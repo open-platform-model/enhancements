@@ -159,7 +159,7 @@ slices:
       underscores, #PackagePathType splits off, fqn == modulePath,
       registryPath, snake name, instance fqn/uuid.
     depends_on: []
-    decisions: [D1, D3, D6, D8, D38, D41, D43, D45]
+    decisions: [D1, D2, D3, D6, D8, D41, D43, D45]
     status: done
     openspec_ref: "core/core-identity-shape"
 
@@ -182,10 +182,10 @@ slices:
     concern: >
       Platform and match surface: #SubscriptionFilter deleted for a scalar
       version, matchLabels on the four kinds with #LabelWorkloadType deleted,
-      fulfilment on #Resource and #Trait, and D46's #Trait.optional plus gate.
+      fulfilment on #Resource and #Trait, and D28's #Trait.optional plus gate.
     depends_on:
       - core-identity-shape
-    decisions: [D14, D28, D32, D36, D37, D46]
+    decisions: [D14, D28, D32, D36, D37]
     status: done
     openspec_ref: "core/core-platform-and-match"
 
@@ -305,7 +305,7 @@ slices:
       renames — none exist, measured 2026-08-05. Source only.
     depends_on:
       - catalogs-identity-authoring
-    decisions: [D38, D42, 0011:D12]
+    decisions: [D2, D42, 0011:D12]
     status: planned
 
   - id: catalogs-republish
@@ -338,20 +338,13 @@ slices:
 # See schema.cue #SlicePlan.unsliced: this is a claim on the record that the
 # decision needs no work, not a suppression list.
 unsliced:
-  D2: >
-    Superseded in its conclusion by D38, which restores #Module.metadata.version
-    from an identity subpackage. D2's REASONING survives in full and is why the
-    restored field reaches neither fqn nor uuid — but the deletion it decided is
-    not work anyone does, so the slice carrying the field is D38's.
   D7: >
     Its holding (a module's identity file writes metadata directly, declaring no
-    top-level field) is REVERSED by D38, which gives modules a catalog-style
-    identity subpackage. What survives is the measurement D38 leans on — a
-    top-level Version beside the embedded #Module fails re-unification into the
-    closed #ModuleInstance.#module slot — which is evidence, not work.
+    top-level field) is REVERSED by the decision now stated at D2, which gives
+    modules a catalog-style identity subpackage. What survives is the measurement
+    D2 leans on — a top-level Version beside the embedded #Module fails
+    re-unification into the closed #ModuleInstance.#module slot — which is
+    evidence, not work.
   D16: >
     A decision NOT to add a field. #Catalog gains no `name`, so there is nothing
     to implement; the same reader-set argument D33 uses to delete #definitionName.
-  D23: >
-    Reversed by D38. Its holding was the placement asymmetry itself, and nothing
-    of it survives beyond the self-import cost it measured, so no slice carries it.
