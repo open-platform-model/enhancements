@@ -215,7 +215,8 @@ slices:
     depends_on:
       - core-alpha-release
     decisions: [D42]
-    status: in-progress
+    status: done
+    openspec_ref: "library/library-core-retarget"
 
   - id: library-acquire-and-subscription
     repo: library
