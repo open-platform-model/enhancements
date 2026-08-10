@@ -137,9 +137,11 @@
 #     alpha the catalogs and the fleet retarget to. That alpha is
 #     v2.0.0-alpha.4, and #IdentityPackage is what it added — which is why
 #     no earlier tag on the line is a retarget target.
-#   library-subscription-collapse -> 0011:library-compat-comparator
+#   library-acquire-and-subscription -> 0011:library-compat-comparator
 #     D14 DELETES materialize/filter.go and 0011's predecessor selection
 #     reuses filter.go:112's highestStable. A move, so it moves first.
+#     (The slice was library-subscription-collapse until the 2026-08-10
+#     consolidation folded it together with library-identity-read-checks.)
 #   catalogs-republish          -> 0011:catalogs-publish-cutover
 #   modules-fleet-republish     -> 0011:modules-publish-cutover
 #     The republishes go through `opm catalog publish` / `opm module

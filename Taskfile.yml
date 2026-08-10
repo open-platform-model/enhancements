@@ -2299,7 +2299,7 @@ tasks:
       Coverage is counted ACROSS ENTRIES. A decision here is covered when a
       slice in this plan cites it as "DN", or when a slice in ANY other
       entry's plan cites it as "NNNN:DN" — which is the real case: 0011's
-      cli-catalog-member-gate carries 0010's D17, D21, D25 and D42, and
+      cli-catalog-gates carries 0010's D17, D21, D25 and D42, and
       those would read as uncovered under a local-only scan.
 
       Two exclusions, both deliberate. A tombstoned heading

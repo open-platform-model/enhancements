@@ -56,10 +56,11 @@
 #     retired the v1 line at v1.1.0-alpha.1. Retarget is therefore an
 #     IMPORT REWRITE, not a dependency bump — `task update-deps` cannot
 #     cross a major. 0010's plan header carries the full consequence.
-#   0010:library-subscription-collapse depends on library-compat-comparator,
+#   0010:library-acquire-and-subscription depends on library-compat-comparator,
 #     because 0010 D14 DELETES materialize/filter.go while predecessor
 #     selection reuses filter.go:112's highestStable. A move, not a
-#     delete-and-rewrite — so the move happens first.
+#     delete-and-rewrite — so the move happens first. (That slice was
+#     library-subscription-collapse until 0010's 2026-08-10 consolidation.)
 #
 # AND THREE POINT FROM HERE INTO 0010. The first is a COMPILE dependency
 # rather than an ordering preference:
@@ -151,54 +152,32 @@ slices:
     decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
     status: planned
 
-  - id: cli-version-set
+  - id: cli-authoring-commands
     repo: cli
     phase: implementation
     concern: >
-      `opm module|catalog version set` and `--version` — the surgical AST
-      rewrite that preserves the & chain, located by schema path rather than
-      by a marker. Measured in experiments/01.
+      The commands that write source and never invent identity: `opm
+      module|catalog version set` / `--version` — the surgical AST rewrite
+      measured in experiments/01 — and `opm mod init` as scaffold AND repair
+      behind a second confirmation.
     depends_on:
       - core-identity-package
-    decisions: [D3, D8, D12]
+    decisions: [D3, D8, D12, D16, D20]
     status: planned
 
-  - id: cli-catalog-verify
+  - id: cli-catalog-gates
     repo: cli
     phase: implementation
     concern: >
-      The compatibility gate on `opm catalog publish` plus `opm catalog
-      registry check [--compat]`, whose help text must call it an aid rather
-      than a gate. Both over the library comparator.
+      Both gates on `opm catalog publish`: the compatibility gate plus `opm
+      catalog registry check [--compat]`, help text calling it an aid; and
+      members refused against #CatalogMemberFQNGate, traits with unstated or
+      pinned optional. -c required.
     depends_on:
+      - core-identity-package
       - library-compat-comparator
       - cli-publish-pipeline
-    decisions: [D7, D9, 0010:D35]
-    status: planned
-
-  - id: cli-catalog-member-gate
-    repo: cli
-    phase: implementation
-    concern: >
-      Publish refuses a member whose modulePath or fqn disagrees with
-      #CatalogMemberFQNGate, and a trait whose optional is unstated or
-      pinned. Both unify against core-shipped gates; -c is required.
-    depends_on:
-      - core-identity-package
-      - cli-publish-pipeline
-    decisions: [D22, 0010:D17, 0010:D21, 0010:D25, 0010:D42, 0010:D46]
-    status: planned
-
-  - id: cli-mod-init-repair
-    repo: cli
-    phase: implementation
-    concern: >
-      `opm mod init` becomes scaffold AND repair behind a second confirmation
-      naming every file and value change, and never invents identity. What
-      makes D16's refusal actionable.
-    depends_on:
-      - core-identity-package
-    decisions: [D16, D20]
+    decisions: [D7, D9, D22, 0010:D17, 0010:D21, 0010:D25, 0010:D35, 0010:D42, 0010:D46]
     status: planned
 
   - id: catalogs-publish-cutover
@@ -210,9 +189,8 @@ slices:
       them.
     depends_on:
       - cli-publish-pipeline
-      - cli-version-set
-      - cli-catalog-verify
-      - cli-catalog-member-gate
+      - cli-authoring-commands
+      - cli-catalog-gates
       - cli-login
       - "0010:catalogs-identity-authoring"
     status: planned
@@ -226,7 +204,7 @@ slices:
       authoring; coordinates do not change.
     depends_on:
       - cli-publish-pipeline
-      - cli-version-set
+      - cli-authoring-commands
       - catalogs-publish-cutover
       - "0010:modules-identity-authoring"
     decisions: [D13, D17]
