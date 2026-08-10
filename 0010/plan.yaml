@@ -208,59 +208,38 @@ slices:
     concern: >
       Import rewrite to the core v2 line at v2.0.0-alpha.4 — a MAJOR crossing,
       not a re-pin, so update-deps cannot do it. Fix compile breakage,
-      regenerate testdata incl. two D42 import sites. No behaviour change.
+      regenerate testdata incl. the D42 web_app site; the v0.6.0-pinned site
+      stays. No behaviour change.
     depends_on:
       - core-alpha-release
     decisions: [D42]
-    status: planned
+    status: in-progress
 
-  - id: library-identity-read-checks
+  - id: library-acquire-and-subscription
     repo: library
     phase: implementation
     concern: >
-      Identity verified where artifacts are read: modulePath against the
-      fetched coordinate and version against the tag on the acquire path, plus
-      materialize and subscription.
-    depends_on:
-      - library-core-retarget
-    decisions: [D9, D11, D41]
-    status: planned
-
-  - id: library-subscription-collapse
-    repo: library
-    phase: implementation
-    concern: >
-      D14 deletes materialize/filter.go — no highestStable default, no
-      constraint solving, no prerelease inference. What survives is one major-
-      agreement check beside the subscription.
+      Identity verified where artifacts are read (modulePath vs fetched
+      coordinate, version vs tag), and D14 deletes materialize/filter.go — no
+      highestStable, no constraint solving; one major-agreement check survives
+      beside the subscription.
     depends_on:
       - library-core-retarget
       - "0011:library-compat-comparator"
-    decisions: [D14]
+    decisions: [D9, D11, D14, D41]
     status: planned
 
-  - id: library-contract-match
+  - id: library-matching
     repo: library
     phase: implementation
     concern: >
-      The match rung becomes load-bearing: provenance denylist before
-      unification, contract-key diagnostics, unresolved demand is an error,
-      single-provider guard at materialize.
+      The match rung becomes load-bearing: provenance denylist, contract-key
+      diagnostics, unresolved demand errors, single-provider guard; matching
+      reads matchLabels at the four measured sites; kube-aware FQN comparator;
+      own-graph test.
     depends_on:
       - library-core-retarget
-    decisions: [D4, D26, D28, D30, D32, D37]
-    status: planned
-
-  - id: library-match-labels
-    repo: library
-    phase: implementation
-    concern: >
-      Matching reads matchLabels, not metadata.labels — match.go:111,
-      module.go:197, schema/paths.go:71, context.go:68. Plus D34's kube-aware
-      transitive FQN comparator and D10's own-dependency-graph test.
-    depends_on:
-      - library-core-retarget
-    decisions: [D10, D34, D36]
+    decisions: [D4, D10, D26, D28, D30, D32, D34, D36, D37]
     status: planned
 
   - id: docs-catalog-contract
@@ -309,9 +288,8 @@ slices:
       flatten blueprints, move matching to matchLabels, drop the stamping
       task. Source only.
     depends_on:
-      - library-subscription-collapse
-      - library-contract-match
-      - library-match-labels
+      - library-acquire-and-subscription
+      - library-matching
     decisions: [D5, D42]
     status: planned
 
