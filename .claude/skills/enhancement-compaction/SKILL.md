@@ -208,7 +208,7 @@ Compaction lands in **its own commit**, containing nothing else:
 compact(0004): weave D5 into D3, collapse 6 resolved OQs
 ```
 
-Mixing compaction into a content change makes the two indistinguishable in review, and the whole safety argument here rests on a reviewer being able to see a compaction *as* a compaction. Follow the repo's attribution rule: no AI co-author trailers, no session links, no generated-with footers.
+Mixing compaction into a content change makes the two indistinguishable in review, and the whole safety argument here rests on a reviewer being able to see a compaction *as* a compaction. Follow the repo's attribution rule: an optional plain `Co-Authored-By: Claude <noreply@anthropic.com>` trailer only — no session links, no generated-with footers.
 
 ## Anti-patterns
 
