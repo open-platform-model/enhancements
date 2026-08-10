@@ -215,7 +215,7 @@ slices:
     depends_on:
       - core-alpha-release
     decisions: [D49]
-    status: in-progress
+    status: done
 
   - id: library-core-retarget
     repo: library
@@ -320,7 +320,7 @@ slices:
       - catalogs-identity-authoring
       - core-versioned-kindprefix
     decisions: [D47, D48, D49]
-    status: in-progress
+    status: done
 
   - id: modules-identity-authoring
     repo: modules
