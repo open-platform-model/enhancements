@@ -214,9 +214,9 @@ slices:
       stays. No behaviour change.
     depends_on:
       - core-alpha-release
+      - catalogs-identity-authoring
     decisions: [D42]
-    status: done
-    openspec_ref: "library/library-core-retarget"
+    status: in-progress
 
   - id: library-acquire-and-subscription
     repo: library
@@ -291,10 +291,9 @@ slices:
       flatten blueprints, move matching to matchLabels, drop the stamping
       task. Source only.
     depends_on:
-      - library-acquire-and-subscription
-      - library-matching
+      - core-alpha-release
     decisions: [D5, D42]
-    status: planned
+    status: in-progress
 
   - id: modules-identity-authoring
     repo: modules
