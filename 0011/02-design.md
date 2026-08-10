@@ -15,7 +15,7 @@ This document answers the question: "What is the proposed solution and how does 
 
 ## Non-Goals
 
-- **What identity *is*.** The shape of `metadata.modulePath`, the presence and meaning of a module version, the catalog's compatibility signal, and the major-keyed FQN all belong to enhancement 0010. This entry writes those fields and pushes the artifact carrying them. (D12 amends 0010 D2 to restore `#Module.metadata.version`, and that amendment is contingent on 0010 D38 landing — the shape is still 0010's to define.)
+- **What identity *is*.** The shape of `metadata.modulePath`, the presence and meaning of a module version, the catalog's compatibility signal, and the major-keyed FQN all belong to enhancement 0010. This entry writes those fields and pushes the artifact carrying them. (D12 supplies the publish assertion for `#Module.metadata.version`, restored by 0010 D2, and is contingent on that restoration landing — the shape is still 0010's to define.)
 - **Read-side verification.** The checks a consumer performs at acquire, materialize, and subscription are 0010's. This entry's checks are producer-side, and are deliberately not the guarantee.
 - **Signing, provenance, and attestation.** Out of scope regardless of how the credential question resolves.
 - **Artifact discovery** — search, listing, or any index over what is published. It rests on this entry's addressing and namespace guarantees but is its own concern.
@@ -134,7 +134,7 @@ $ opm catalog publish               # reads 1.3.0 from the artifact; pushes it
 
 The commit sits between deciding a version and pushing an artifact, so no published artifact carries a version that exists in no commit. Nothing is generated, and the bytes in the registry are the bytes under `git show`.
 
-**Publishing a module.** Before, the checksum task derives a tag from a checksum and pushes an artifact whose metadata claims a different version. After, a module carries an identity subpackage exactly as a catalog does (D12, on 0010 D38), so the flow is the same one and `--version` means the same thing:
+**Publishing a module.** Before, the checksum task derives a tag from a checksum and pushes an artifact whose metadata claims a different version. After, a module carries an identity subpackage exactly as a catalog does (D12, on 0010 D2), so the flow is the same one and `--version` means the same thing:
 
 ```
 $ opm module version set 2.1.0     # writes identity/identity.cue, in place, idempotently
