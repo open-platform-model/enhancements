@@ -110,7 +110,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `opm-operator/api/v1alpha1/common_types.go` | `ModuleReference` — already `{Path with major, Version tag}`; verified to need no change |
 | `opm-operator/internal/apply/prune.go` | Skips deletes whose live owner label disagrees with `Status.InstanceUUID` — the constraint behind the migration's adoption path |
 | `opm-operator/internal/reconcile/moduleinstance.go` | Repopulates `Status.InstanceUUID` from each render |
-| `catalog_opm/src/identity/identity.cue` | The catalog identity package this entry reshapes; `catalog_kubernetes` and `catalog_opm_experimental` carry the same file |
+| `catalog_opm/src/identity/identity.cue` | The catalog identity package this entry reshapes; `catalog_kubernetes` and `catalog_opm_experimental` carried the same file until D47 consolidated the catalogs on the v2 line |
 | `catalog_opm/src/resources/configmap.cue` | A representative leaf: imports `identity`, derives its own FQN, and embeds the whole primitive into a `#Component` |
 | `modules/jellyfin/module.cue`, `modules/jellyfin/cue.mod/module.cue` | The worked example in `01-problem.md`; its `deps` block pins the catalog whose primitive definitions the module carries |
 | `enhancements/0011/` | The publishing half — the commands that write what this entry defines |

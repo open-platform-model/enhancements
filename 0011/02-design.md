@@ -97,7 +97,7 @@ The shapes in [`schemas/target.cue`](schemas/target.cue) describe a publish *dec
 - `opm login [registry]` — resolves its target through the existing `ResolveRegistry` precedence and writes to the credential store CUE already reads (D11). Nothing exists today.
 - The tag-names-the-declared-version check (D18) and the `cue.mod` agreement check (D16), both also exposed through `opm module vet`.
 
-**catalog repos** (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`)
+**catalog repos** (`catalog_opm`; `catalog_kubernetes` and `catalog_opm_experimental` fold into it under 0010 D47, so one publish flow remains)
 
 - `Taskfile.yml` — the copy-and-stamp `publish` task is deleted, not disabled. `task publish VERSION=vX.Y.Z` becomes `opm catalog publish --version X.Y.Z`.
 - `.github/workflows/release.yml` — the `publish-cue` job calls the new command; release-please continues to decide the version and hand it over, rather than writing it itself.

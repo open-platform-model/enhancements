@@ -67,7 +67,7 @@ One assumption underneath D21 and D22 turned out not to hold, and it is recorded
 | `cli/pkg/module/module.go` | `CanonicalModuleRef()`, `majorVersionTag()`, `ensureVPrefix()` — coordinate composition that collapses into a read |
 | `library/opm/helper/loader/registry/module.go` | The registry loader publish decodes through; also 0010's module read point |
 | `library/opm/materialize/enumerate.go` | Enumerates a subscription's published versions — what `opm catalog registry check` and the subscription-time check build on |
-| `catalog_opm/Taskfile.yml` | The copy-and-stamp `publish` task this entry deletes; `catalog_kubernetes` and `catalog_opm_experimental` carry the same task |
+| `catalog_opm/Taskfile.yml` | The copy-and-stamp `publish` task this entry deletes; `catalog_kubernetes` and `catalog_opm_experimental` carried the same task until 0010 D47 consolidated the catalogs, leaving one publish flow to retire |
 | `catalog_opm/CLAUDE.md` | Documents today's publish-time stamping flow, including that the source tree is never mutated |
 | `catalog_opm/src/identity/identity.cue` | The file `opm catalog version set` writes |
 | `modules/Taskfile.yml` | the checksum-driven `publish` task this entry retires (D15) |
