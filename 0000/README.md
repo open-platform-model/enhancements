@@ -270,18 +270,11 @@ To create a new enhancement from this template:
 
 ### Compaction
 
-These documents state what is true *now*. Reversals get woven into what they
-reverse rather than stacked on top, so the entry stays safe to read linearly.
-Provenance lives in git and in `config.yaml.history` — the one strictly
-append-only structure. `DN` and `OQN` numbers are never reused or renumbered
-(other repos cite them); a number vacated by a merge keeps a one-line
-tombstone.
+These documents state what is true *now*. Provenance lives in git and in `config.yaml.history` — the one strictly append-only structure. `DN` and `OQN` numbers are never reused or renumbered (other repos cite them); a number vacated by a merge or retraction keeps a one-line tombstone.
 
-- **draft** — merge reversals; leave Open Question prose alone, it is the
-  active work surface.
-- **accepted** — the same, plus resolved Open Questions collapse to a
-  one-line `Status: resolved-by-DN`. Available right up to the flip.
-- **implemented** — frozen. Nothing is compacted, ever.
+- **draft** — decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
+- **accepted** — decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path — weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available right up to the flip.
+- **implemented** — frozen. Nothing changes, ever.
 - **superseded** — narrative documents collapse to pointers at the successor;
   the decision log keeps its numbers and its *Alternatives considered*.
   `experiments/` and `research/` are never touched.

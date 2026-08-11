@@ -29,7 +29,7 @@ enhancements/
     ├── README.md           index, summary, scope, cross-references
     ├── 01-problem.md       why this enhancement needs to exist
     ├── 02-design.md        what the solution is and how it works
-    ├── 03-decisions.md     DN decision log + Open Questions (numbers immutable, prose compactable)
+    ├── 03-decisions.md     DN decision log + Open Questions (numbers immutable; bodies in-place while draft, protected from accepted)
     ├── 04-graduation.md    draft → accepted → implemented gates
     ├── 05-risks.md         risks, drawbacks, alternatives not taken
     ├── 06-operational.md   PRR-lite: observability, semver, deprecation, rollback, cross-repo coordination
@@ -121,20 +121,20 @@ Design lifecycle (`status`) and code lifecycle (`implementation.status`) are ind
 
 ## Compaction
 
-Enhancements are epics. They accrete reversals — a decision made in week one gets amended in week six, an Open Question gets answered — and if every reversal is only ever *stacked* on top of what it reverses, the document stops being safe to read linearly: someone who stops halfway gets an answer that a later entry already killed.
+Enhancements are epics, and their documents are living until the design freezes. While an entry is **`draft`**, a changed decision is an **in-place edit** — the log never contains two conflicting decisions, evidence-backed old positions get folded into *Alternatives considered*, and a retracted number keeps a one-line tombstone. Once the entry is **`accepted`** its decision bodies are protected: implementation-phase changes *append* a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and those stacked reversals get woven back into the decisions they reverse by a deliberate compaction pass — otherwise the document stops being safe to read linearly, and someone who stops halfway gets an answer that a later entry already killed.
 
-So these documents state **what is true now**. Provenance lives in git and in `config.yaml.history`, which is the one strictly append-only structure here. What stays immutable outside it is the *numbering* — `DN` and `OQN` are never reused or renumbered, because other repos cite them — so a number vacated by a merge keeps a one-line tombstone pointing at where its content went.
+Either way these documents state **what is true now**. Provenance lives in git and in `config.yaml.history`, which is the one strictly append-only structure here. What stays immutable everywhere is the *numbering* — `DN` and `OQN` are never reused or renumbered, because other repos cite them — so a number vacated by a merge or retraction keeps a one-line tombstone pointing at where its content went.
 
-Rewriting a design record is a real risk, not a free lunch, so compaction is deliberate: it runs under the `enhancement-compaction` skill, produces a manifest for approval before touching a file, and lands in its own commit so the diff is reviewable as a compaction rather than hidden inside a content change.
+Rewriting a protected design record is a real risk, not a free lunch, so post-acceptance compaction is deliberate: it runs under the `enhancement-compaction` skill, produces a manifest for approval before touching a file, and lands in its own commit so the diff is reviewable as a compaction rather than hidden inside a content change.
 
-| Status | What may be compacted |
+| Status | Decision bodies |
 | --- | --- |
-| `draft` | Merge reversals into what they reverse. Open Question prose is left alone — it is the active work surface. |
-| `accepted` | The same, plus resolved Open Questions collapse to a one-line `Status: resolved-by-DN`. Stays available right up to the `implemented` flip. |
-| `implemented` | **Nothing. Frozen.** The record of a shipped design is closed. |
+| `draft` | Revised in place as part of ordinary editing; the compaction skill is needed only to repair legacy stacked reversals. Open Question prose is left alone — it is the active work surface. |
+| `accepted` | Protected. Changes append a new `DN` with relation fields; the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available right up to the `implemented` flip. |
+| `implemented` | **Nothing changes. Frozen.** The record of a shipped design is closed. |
 | `superseded` | The narrative documents collapse to pointers at the successor; the decision log keeps its numbers and its *Alternatives considered*, so the successor does not re-litigate settled ground. `experiments/` and `research/` are never touched. |
 
-The test for what survives: **keep what would change a future decision; drop what only records that we changed our mind.**
+The test for what survives any revision or weave: **keep what would change a future decision; drop what only records that we changed our mind.**
 
 ## Cross-references
 

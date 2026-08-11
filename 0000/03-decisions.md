@@ -9,22 +9,15 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they
 are made. **Numbers are permanent** — never reused, never renumbered, because
 other repos cite them from commit messages and OpenSpec changes.
 
-**Decision text states what is true now.** When a later decision reverses or
-amends an earlier one, record it as its own `DN` while the design is in
-motion, then weave it into the decision it changes at the next compaction
-pass — the merged decision keeps the lower number, and the vacated number
-keeps a one-line tombstone pointing at where its content went. This keeps the
-log safe to read linearly: a reader who stops halfway should never come away
-believing something a later entry already killed. Compaction is governed by
-the `enhancement-compaction` skill; it never touches an `implemented` entry.
+**Decision text states what is true now.** How that stays true depends on the entry's `status`:
 
-Each decision uses the same four-field shape: Decision, Alternatives
-considered, Rationale, Source. The Source field is specific — `"User
-decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a
-choice never gets lost. A decision revised by a merge keeps its original
-`Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered*
-always survives compaction, because it is what stops a rejected option being
-re-litigated later.
+- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* — marked as previously adopted — before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
+- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields; existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone) — at latest in the mandatory pass immediately before the `implemented` flip.
+- **`implemented`** entries are frozen; **`superseded`** entries are stubbed via compaction.
+
+Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
+
+Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
 
 ---
 

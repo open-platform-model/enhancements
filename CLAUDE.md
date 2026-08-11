@@ -68,8 +68,8 @@ These invariants hold across every enhancement; violations fail PR review even i
 - **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`.
 - **Folder names are id-only.** `0001/`, `0042/` — no slug suffix. `0000` is reserved for the template.
 - **Schemas are pure CUE files** under `NNNN/schemas/`, never fenced code blocks longer than a few illustrative lines.
-- **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge keeps a one-line tombstone.
-- **Decision bodies, Open Question prose, and the narrative documents are mutable.** Compaction (merging a reversal into what it reverses, gutting a resolved OQ's prose, stubbing a superseded entry) is a deliberate act gated by status and governed by the `enhancement-compaction` skill. It never applies to `implemented` entries — those are frozen.
+- **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge or retraction keeps a one-line tombstone.
+- **Decision-body mutability is status-gated.** While `draft`, decisions are revised **in place** — the log never holds two conflicting decisions, and evidence-backed old positions fold into *Alternatives considered*. From `accepted`, bodies are protected: a change is a *new* `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and existing bodies move only through the `enhancement-compaction` skill (weave, OQ collapse, supersession stub). `implemented` entries are frozen.
 - **Don't hard-wrap prose in `.md` files.**
 - **Don't reference `library/enhancements/` content directly** in new entries. Use the `legacy:NNN` cross-ref form when historical link matters.
 - **Don't fork content from the frozen library entries.** Fresh prose.
@@ -92,7 +92,7 @@ Sibling skills to load when applicable:
 - **`enhancement-slicing`** (`.claude/skills/enhancement-slicing/SKILL.md`) — when planning, tracking, or seeding the per-repo execution of an enhancement via the optional `enhancements/NNNN/plan.yaml`. Load before `task new:plan`, before editing `plan.yaml`, before promoting `draft → accepted` on an entry whose `affects` spans more than one repo, or before `task slice:seed`.
 - **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when a design discussion or Open-Questions walk would benefit from a diagram. Mermaid for relationships between enhancements/slices; ASCII for how a single enhancement's design/mechanism works — never interchangeable by default. Load before sketching either, live or persisted into `01-problem.md`/`02-design.md`/`05-risks.md`.
 - **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — when walking an enhancement's `## Open Questions` block interactively (one OQ at a time, with context + alternatives + a decision write-back). Load before invoking `/enhancement-open-questions ID=NNNN`, or when `task questions:open ID=NNNN` returns rows that need resolution.
-- **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — when an entry has accreted reversals: merging an amending decision into the one it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before merging or deleting anything under an existing `DN` / `OQN`, or when `task compact:plan ID=NNNN` returns candidates. Refuses on `implemented` entries.
+- **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — the only body-edit path on `accepted` entries: weaving an appended reversal into the decision it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before touching anything under an existing `DN` / `OQN` on an `accepted` or `superseded` entry, or when `task compact:plan ID=NNNN` returns candidates. Not needed for in-place revision of a `draft` decision (ordinary Phase 2 editing). Refuses on `implemented` entries.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — when implementing a slice that touches `core/*.cue`. Enforces the SPEC.md co-update protocol. Required reading before editing the core schema; the pre-commit hook and CI gate will refuse the commit otherwise.
 - **`openspec-*`** (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — when slicing the enhancement's accepted design into per-repo OpenSpec changes for execution.
 
@@ -104,7 +104,7 @@ Sibling skills to load when applicable:
   config.yaml               Sole metadata source (id, status, area, semver, history, refs)
   01-problem.md             Problem statement + scope
   02-design.md              Design + open questions
-  03-decisions.md           Decision log (D1, D2, …) — numbers immutable, prose compactable
+  03-decisions.md           Decision log (D1, D2, …) — numbers immutable; bodies revised in place while draft, protected from accepted
   04-graduation.md          Promotion gates per status transition
   05-risks.md               Risks, mitigations, blast radius
   06-operational.md         Migration, rollout, observability
@@ -162,7 +162,7 @@ new → fill problem + design → accrete decisions → freeze (accepted) → sh
 | 4. Implement | Slice into target repos; append `history` events; set `implementation.status: complete` | `enhancements ## Phase 4 — Implement` |
 | 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
 
-Compaction runs alongside phases 2–3 and 5, never in phase 4's aftermath: the flip to `implemented` freezes an entry permanently, so the last chance to weave in accumulated reversals is while it is still `accepted`.
+In phase 2 a draft's decisions are revised in place — no compaction involved. Compaction governs `accepted`-phase body edits (weaving the reversals appended during phases 3–4, at latest immediately before the `implemented` flip) and phase 5's supersession stub — never phase 4's aftermath: the flip to `implemented` freezes an entry permanently.
 
 Each phase has gating criteria and a concrete checklist. The `enhancements` skill is the authoritative source; load it before promoting any status.
 

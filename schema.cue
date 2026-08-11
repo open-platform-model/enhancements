@@ -46,11 +46,13 @@ import "strings"
 // This list is the repo's *only* strictly append-only structure. Never delete
 // or reorder past events; a reversal is a new event, not an edit. Everything
 // else in an entry — decision bodies, Open Question prose, the narrative
-// documents — is mutable and compactable under the `enhancement-compaction`
-// protocol, because git already holds that provenance and duplicating it
-// in-band is what made these documents unreadable. What stays immutable
-// outside this list is the *numbering*: `DN` and `OQN` are never reused and
-// never renumbered, so citations from other repos keep resolving.
+// documents — is mutable, status-gated: revised in place while the entry is
+// `draft`, and from `accepted` edited only via the `enhancement-compaction`
+// protocol (a post-acceptance change appends a new DN instead). Git already
+// holds the prose provenance; duplicating it in-band is what made these
+// documents unreadable. What stays immutable outside this list is the
+// *numbering*: `DN` and `OQN` are never reused and never renumbered, so
+// citations from other repos keep resolving.
 #HistoryEvent: {
 	date!:   #DateStr
 	event!:  string & strings.MinRunes(1)
