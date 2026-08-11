@@ -1,32 +1,32 @@
 ---
 name: enhancement-compaction
-description: Compact an enhancement so it states what is true now — merge a reversing decision into the decision it reverses (lower number survives, vacated number keeps a tombstone), collapse resolved Open Question prose to a one-line status, hoist relation trailers out of headings into structured fields, and stub a superseded entry down to pointers at its successor. Produces a manifest for approval before writing anything, appends one rolled-up history event, and lands in its own commit. Load before merging, rewriting, or deleting anything under an existing DN / OQN, when `task compact:plan ID=NNNN` returns candidates, before promoting `draft → accepted`, or when superseding an entry. Refuses outright on `implemented` entries.
+description: Compact an enhancement so it states what is true now — merge a reversing decision into the decision it reverses (lower number survives, vacated number keeps a tombstone), collapse resolved Open Question prose to a one-line status, hoist relation trailers out of headings into structured fields, and stub a superseded entry down to pointers at its successor. Produces a manifest for approval before writing anything, appends one rolled-up history event, and lands in its own commit. This is the ONLY path for editing an existing decision body on an `accepted` entry; load it before touching any DN / OQN content there, when `task compact:plan ID=NNNN` returns candidates, before promoting `draft → accepted`, or when superseding an entry. Not needed for routine in-place revision of a `draft` decision — that is Phase 2 editing under the `enhancements` skill. Refuses outright on `implemented` entries.
 user-invocable: true
 ---
 
 # Enhancement Compaction
 
-Enhancements are epics. They run for weeks across several repos, and they accrete reversals: a decision made in week one gets amended in week six, an Open Question gets answered, a slice reveals that an earlier choice was wrong. If every reversal is only ever *stacked* on top of what it reverses, the document stops being safe to read linearly — someone who stops halfway comes away believing something a later entry already killed.
+Enhancements are epics. They run for weeks across several repos. While an entry is `draft`, its decisions are living text revised in place under the `enhancements` skill, so the log stays conflict-free on its own. Once the entry is `accepted` its decision bodies are **protected**, and implementation-phase changes *append*: a slice reveals that an earlier choice was wrong, and the correction lands as a new `DN` with `**Amends:**` / `**Supersedes:**` relation fields. If those appended reversals are only ever *stacked* on top of what they reverse, the document stops being safe to read linearly — someone who stops halfway comes away believing something a later entry already killed.
 
-This skill weaves reversals back into what they reverse, so the entry states what is true now. Provenance is not lost: git holds every prior revision, and `config.yaml.history` — the one strictly append-only structure in the repo — records that the compaction happened and what it merged.
+This skill weaves reversals back into what they reverse, so the entry states what is true now. It is the **only** path for editing an existing decision body once an entry is `accepted`. Provenance is not lost: git holds every prior revision, and `config.yaml.history` — the one strictly append-only structure in the repo — records that the compaction happened and what it merged.
 
 Rewriting a design record is a real risk, not a free lunch. An agent that can edit decisions can quietly edit them to agree with whatever it just built. Three things make that hard, and all three are mandatory: **a manifest approved before any write**, **one history event naming what changed**, and **a commit that contains nothing but the compaction**.
 
 ## When this skill applies
 
 - `task compact:plan ID=NNNN` returned candidates.
-- You are about to promote `draft → accepted` — the promotion gate already forces you to touch every Open Question, so collapsing resolved ones costs nothing extra.
-- A slice landed that reverses an accepted decision, and you are recording the reversal.
+- You are about to promote `draft → accepted` — the promotion gate already forces you to touch every Open Question, so collapsing resolved ones costs nothing extra, and any legacy stacked reversals get woven before the flip protects decision bodies.
+- A slice landed that reverses an accepted decision — the reversal itself is *recorded* as an appended `DN` with relation fields (`enhancements` skill, Phase 4); weaving it into the decision it changes happens here.
 - You are about to flip `accepted → implemented`. **This is the last chance** — the flip freezes the entry permanently.
 - You are superseding an entry and need to collapse it to pointers at its successor.
-- Any time you are about to merge, rewrite, or delete content under an existing `DN` or `OQN`.
+- Any time you are about to merge, rewrite, or delete content under an existing `DN` or `OQN` on an entry that is **`accepted` or `superseded`** — or to repair reversals stacked in an older draft under the pre-2026-08 append-only model.
 
-Skip it when you are only *adding* — a new decision, a new Open Question, new prose. Growth is not compaction; use the `enhancements` skill.
+Skip it when you are only *adding* — a new decision, a new Open Question, new prose. Growth is not compaction; use the `enhancements` skill. Skip it too for routine in-place revision of a `draft` decision — that is ordinary Phase 2 editing (fold evidence-backed old positions into *Alternatives considered*, tombstone retracted numbers), not a compaction.
 
 Sibling skills:
 
 - **`enhancements`** (`.claude/skills/enhancements/SKILL.md`) — the binding workflow protocol. Decision block format, status gates, history conventions live there. This skill defers to it on conflicts.
-- **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — resolves OQs by *appending* decisions. This skill cleans up after it. If a walk has unresolved rows queued, run the walk first: compacting a half-resolved OQ block just means doing it twice.
+- **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — resolves OQs by appending decisions (or, on drafts, revising one in place). This skill cleans up after it. If a walk has unresolved rows queued, run the walk first: compacting a half-resolved OQ block just means doing it twice.
 
 ## Invocation
 
@@ -46,8 +46,8 @@ Read `config.yaml.status` first thing, before anything else.
 
 | Status | Behavior |
 | --- | --- |
-| `draft` | **WEAVE and TOMBSTONE only.** Leave Open Question prose alone — it is the active work surface, and its context paragraphs are what make the questions answerable. Collapsing them mid-design destroys work in progress. |
-| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case. Stays available for the entire `accepted` period, including a deliberate final pass immediately before the flip to `implemented`. |
+| `draft` | **WEAVE and TOMBSTONE, as repair only** — for reversals stacked before the in-place rule (or imported habits). A draft maintained under the current model needs neither: routine revision happens in place during Phase 2 without this skill. Leave Open Question prose alone — it is the active work surface, and its context paragraphs are what make the questions answerable. Collapsing them mid-design destroys work in progress. |
+| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass immediately before the flip to `implemented`. |
 | `implemented` | **Refuse. No override, no `FORCE` flag.** The design shipped and the record is closed. What looks like a needed correction is either a new enhancement or a note in the successor. Say so and exit. |
 | `superseded` | **STUB**, plus COLLAPSE-OQ and TOMBSTONE. The narrative documents collapse to pointers at the successor. `experiments/` and `research/` are never touched under any status. |
 
@@ -228,7 +228,7 @@ Mixing compaction into a content change makes the two indistinguishable in revie
 
 | Artefact | Path | Authority |
 | --- | --- | --- |
-| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Numbers immutable, bodies mutable. Merged content sits at the lowest number; vacated numbers hold tombstones. |
+| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Numbers immutable; bodies revised in place while `draft`, edited only through this skill from `accepted`. Merged content sits at the lowest number; vacated numbers hold tombstones. |
 | Open Questions | `enhancements/NNNN/03-decisions.md ## Open Questions` (canonical) or `README.md` (fallback) | Bullet shape is parser-bound. Only resolved/deferred bullets collapse. |
 | Narrative documents | `enhancements/NNNN/01-problem.md` … `06-operational.md` | Mutable. Must state current truth after a weave. |
 | Provenance | `enhancements/NNNN/config.yaml history` + git | The only append-only structure. One rolled-up event per compaction pass, mandatory. |
