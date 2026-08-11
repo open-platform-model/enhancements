@@ -27,7 +27,7 @@ affects:
   # this validation being real, so `core` is not optional for this entry.
   - core
 created: "2026-07-26"
-updated: "2026-08-10"
+updated: "2026-08-11"
 authors:
   - emil@jacero.se
 # Design impact: new commands, and a namespace OPM shapes only where it owns the
@@ -111,6 +111,8 @@ history:
     event: "Slice plan consolidated 11 -> 9 alongside 0010's 16 -> 14; no scope dropped, no decision moves. The six CLI slices become four along the read/write seam of the command surface: cli-catalog-gates (formerly cli-catalog-verify + cli-catalog-member-gate — both are refusals at `opm catalog publish` sitting over cli-publish-pipeline, one over the library comparator and one over the core-shipped gates) and cli-authoring-commands (formerly cli-version-set + cli-mod-init-repair — both write the source tree and never invent identity, D20's boundary being D2/D3 held one command earlier). cli-login stays its own slice deliberately: it is independent of everything else here, and folding it into the pipeline would grow the largest slice for no structural gain. Decision citations carry over as unions, so `task decisions:uncovered` still reports zero. ONE ACCEPTED COST: the two cutovers depended on cli-version-set and now depend on cli-authoring-commands, so they formally wait on the mod-init repair work too — marginal, since both already wait on the pipeline, the gates and 0010's authoring slices. The header's cross-enhancement note follows 0010's rename of library-subscription-collapse into library-acquire-and-subscription; history events keep the old ids — they were true when written."
   - date: "2026-08-10"
     event: "Compacted (residuals): the stale clause in D15's measured block — `OQ4's own prose still carries it and is left for compaction` — dropped, since OQ4 was collapsed to its resolved-by-D15 token on 2026-08-04 and the prose it pointed at no longer exists; the publish/publish:smart naming-correction record it sat inside is untouched. Cross-entry citations retargeted after 0010's same-day weave tombstoned D38 and D46 (precedent: this entry's D18 Source line was retargeted D39 -> D9 during 0010's 2026-08-10 pass): 02-design's two `0010 D38` references now cite 0010 D2 (the surviving number for the module-version decision), D22's second-gate rider cites the decision now stated at 0010 D28 rather than 0010 D46, and cli-catalog-gates' plan.yaml decisions swap 0010:D46 for 0010:D28. History events keep the old numbers — they were true when written."
+  - date: "2026-08-11"
+    event: "Slice plan reconciled against 0010's D47-D49 (2026-08-10); no status changes, no scope moves. cli-catalog-gates gains 0010:D49 and its concern now says the member walk runs per version subdirectory — D49's own recorded consequence for this entry's publish gate, since contract members file under <kind>/<apiVersion>/ and a flat walk would miss every member. catalogs-publish-cutover gains 0010:D47 and its concern names the reduced surface: one consolidated catalog_opm release.yml to repoint, the absorbed repos' v2 pipelines tombstoned and never to fire again (each deliberately retains its one-shot release-as leftover so a stray run cannot cut a release, per 0010's history). The header carries the same two facts as a dated note. Nothing else moved: the cutover edges into 0010's authoring slices are unchanged, and comparator, login and pipeline slices are untouched by the consolidation."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"
