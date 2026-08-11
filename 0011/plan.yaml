@@ -103,6 +103,13 @@
 # the only fleet republish and this entry contributes the MECHANISM. So
 # the file is created once, in 0010's slice, and what remains here is the
 # tooling deletion and the cutover to `opm module publish`.
+#
+# 2026-08-11 — 0010 D47 consolidated the first-party catalogs on the v2
+# line, so catalogs-publish-cutover now repoints ONE repo's release.yml
+# (catalog_opm); the absorbed repos' v2 pipelines are tombstoned and must
+# never fire again. 0010 D49 versioned the member filing, which is why
+# cli-catalog-gates' member walk iterates <kind>/<apiVersion>/
+# subdirectories. Everything else above stands.
 slices:
   - id: core-identity-package
     repo: core
@@ -170,29 +177,30 @@ slices:
     phase: implementation
     concern: >
       Both gates on `opm catalog publish`: the compatibility gate plus `opm
-      catalog registry check [--compat]`, help text calling it an aid; and
-      members refused against #CatalogMemberFQNGate, traits with unstated or
+      catalog registry check [--compat]` as an aid; members refused against
+      #CatalogMemberFQNGate per version subdir, traits with unstated or
       pinned optional. -c required.
     depends_on:
       - core-identity-package
       - library-compat-comparator
       - cli-publish-pipeline
-    decisions: [D7, D9, D22, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42]
+    decisions: [D7, D9, D22, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42, 0010:D49]
     status: planned
 
   - id: catalogs-publish-cutover
     repo: catalog
     phase: implementation
     concern: >
-      Switch release.yml's publish job to `opm catalog publish` and delete the
-      copy-and-stamp task. Catalogs go first because modules build against
-      them.
+      Switch the consolidated catalog_opm's release.yml to `opm catalog
+      publish`, delete the copy-and-stamp task — one catalog repo since the
+      consolidation. Catalogs go first because modules build against them.
     depends_on:
       - cli-publish-pipeline
       - cli-authoring-commands
       - cli-catalog-gates
       - cli-login
       - "0010:catalogs-identity-authoring"
+    decisions: [0010:D47]
     status: planned
 
   - id: modules-publish-cutover
