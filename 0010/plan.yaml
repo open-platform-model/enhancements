@@ -150,6 +150,35 @@
 #     release pipeline at a command that REFUSES a tree with no conformant
 #     identity package (0011 D21 refusal 10, D4), so each depends on the
 #     authoring slice here that creates those files.
+#
+# ---------------------------------------------------------------------
+# 2026-08-11 CORRECTION — CONSOLIDATION, INVERSION, AND THE NEXT ALPHA
+# ---------------------------------------------------------------------
+# Three same-day events (2026-08-10, see history) postdate most of this
+# header. The text above stands as record; read it through these:
+#
+# THE FIVE-SLICE REWRITE RESOLVED AS FOUR REWRITES AND TWO TOMBSTONES.
+# D47 consolidated the first-party catalogs, so catalog_kubernetes's 56
+# files and catalog_opm_experimental's 9 were never rewritten forward:
+# each repo's v2 line ended at the v2.0.0-alpha.1 it had already
+# published, absorbed into catalog_opm (the k8s-* raw family at
+# upstream-mirrored apiVersions; the experimental members at v1alpha1).
+# The catalog half of the rewrite lives entirely in catalog_opm now.
+#
+# THE LIBRARY/CATALOG ORDER INVERTED. library-core-retarget landed and
+# was REVERTED the same day (library#51 -> library#52): the old ordering
+# forced a stand-in fixture catalog, judged a regression with no named
+# retirement owner. Catalogs now move first — library-core-retarget
+# depends on catalogs-identity-authoring and catalogs-consolidation and
+# re-lands against the real consolidated catalog. The graph shows the
+# edges; this paragraph names why they point that way.
+#
+# "ONLY v2.0.0-alpha.4 IS A RETARGET TARGET" IS NOW DATED. The D49 gate
+# amendment (core#45) missed its release cut — an unparseable
+# feat!(identity) squash subject, see history — and core#46 relands the
+# release metadata, so v2.0.0-alpha.5 trails it. Once cut, alpha.5 is
+# also complete and the floating v2 major resolves it; alpha.1-alpha.3
+# remain the only partial-and-resolvable hazards on the line.
 slices:
   - id: core-identity-shape
     repo: core
@@ -221,14 +250,15 @@ slices:
     repo: library
     phase: implementation
     concern: >
-      Import rewrite to the core v2 line at v2.0.0-alpha.4 — a MAJOR crossing,
-      not a re-pin, so update-deps cannot do it. Fix compile breakage,
-      regenerate testdata incl. the D42 web_app site; the v0.6.0-pinned site
-      stays. No behaviour change.
+      Redo of the reverted landing: import rewrite to the core v2 major,
+      fixtures re-landed against the consolidated catalog_opm with D49
+      versioned imports; keeps the seam adaptations and major-aware writers,
+      drops the fixture catalog.
     depends_on:
       - core-alpha-release
       - catalogs-identity-authoring
-    decisions: [D42]
+      - catalogs-consolidation
+    decisions: [D42, D47, D49]
     status: in-progress
 
   - id: library-acquire-and-subscription
@@ -274,13 +304,13 @@ slices:
     repo: cli
     phase: implementation
     concern: >
-      Rewrite core imports to v2, retarget to the new library, delete the
-      address-composition helpers, write the resolved coordinate into
-      spec.module.{path,version}. Plus D19's local-module.cue warning and the
-      two D42 test import sites.
+      Rewrite core imports to v2, retarget to the new library, delete
+      address-composition, write the resolved coordinate into
+      spec.module.{path,version}; D19 warning, two test imports move to D49
+      versioned paths, retired-catalog template refs.
     depends_on:
       - library-core-retarget
-    decisions: [D19, D42, D47]
+    decisions: [D19, D42, D47, D49]
     status: planned
 
   - id: operator-library-retarget
@@ -289,24 +319,24 @@ slices:
     concern: >
       Rewrite core imports to v2 and retarget to the new library. No feature
       code, no adoption code — D18 rejected an operator-side tolerance window.
-      Three D42 blueprint import sites in test/fixtures/modules move with it.
+      Three blueprint imports in test/fixtures move to the D49 versioned paths.
     depends_on:
       - library-core-retarget
-    decisions: [D18, D42]
+    decisions: [D18, D42, D49]
     status: planned
 
   - id: catalogs-identity-authoring
     repo: catalog
     phase: implementation
     concern: >
-      Rewrite core imports to v2; commit identity/identity.cue (D5) across the
-      three catalogs, re-key every leaf (apiVersion, catalogVersion, fqn),
-      flatten blueprints, move matching to matchLabels, drop the stamping
-      task. Source only.
+      Core imports rewritten to v2, identity subpackages committed, every leaf
+      re-keyed, matching moved to matchLabels — landed across all three repos.
+      Deviations: stamping task kept for 0011 to retire, releases via
+      release-please.
     depends_on:
       - core-alpha-release
     decisions: [D5, D42]
-    status: in-progress
+    status: done
 
   - id: catalogs-consolidation
     repo: catalog
@@ -326,13 +356,14 @@ slices:
     repo: modules
     phase: implementation
     concern: >
-      Rewrite core imports to v2. Add identity/identity.cue per module and the
-      metadata wiring, plus the twelve D42 blueprint import moves. No hyphen
-      renames — none exist, measured 2026-08-05. Source only.
+      Rewrite core imports to v2. Add the identity subpackage per module and
+      metadata wiring; blueprint imports move to D49 versioned paths; re-pin
+      absorbed-catalog subscriptions to catalogs/opm, rename raw-member spec
+      keys. Source only.
     depends_on:
       - catalogs-identity-authoring
       - catalogs-consolidation
-    decisions: [D2, D42, 0011:D12]
+    decisions: [D2, D42, D47, D48, 0011:D12]
     status: planned
 
   - id: catalogs-republish

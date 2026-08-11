@@ -16,15 +16,15 @@ graph LR
     S_core-platform-and-match["core-platform-and-match (core)\nPlatform and match surface: #SubscriptionFilter d…"]:::done
     S_core-alpha-release["core-alpha-release (core)\nSPEC.md coherence pass across the four schema sli…"]:::done
     S_core-versioned-kindprefix["core-versioned-kindprefix (core)\nThe D49 gate amendment: a contract kind's declare…"]:::done
-    S_library-core-retarget["library-core-retarget (library)\nImport rewrite to the core v2 line at v2.0.0-alph…"]:::in_progress
+    S_library-core-retarget["library-core-retarget (library)\nRedo of the reverted landing: import rewrite to t…"]:::in_progress
     S_library-acquire-and-subscription["library-acquire-and-subscription (library)\nIdentity verified where artifacts are read (modul…"]:::planned
     S_library-matching["library-matching (library)\nThe match rung becomes load-bearing: provenance d…"]:::planned
     S_docs-catalog-contract["docs-catalog-contract (opmodel.dev)\nPublish the catalog-author contract: the additive…"]:::planned
     S_cli-coordinate-adoption["cli-coordinate-adoption (cli)\nRewrite core imports to v2, retarget to the new l…"]:::planned
     S_operator-library-retarget["operator-library-retarget (opm-operator)\nRewrite core imports to v2 and retarget to the ne…"]:::planned
-    S_catalogs-identity-authoring["catalogs-identity-authoring (catalog)\nRewrite core imports to v2; commit identity/ident…"]:::in_progress
+    S_catalogs-identity-authoring["catalogs-identity-authoring (catalog)\nCore imports rewritten to v2, identity subpackage…"]:::done
     S_catalogs-consolidation["catalogs-consolidation (catalog)\ncatalog_opm absorbs catalog_kubernetes (k8s-* raw…"]:::done
-    S_modules-identity-authoring["modules-identity-authoring (modules)\nRewrite core imports to v2. Add identity/identity…"]:::planned
+    S_modules-identity-authoring["modules-identity-authoring (modules)\nRewrite core imports to v2. Add the identity subp…"]:::planned
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
     S_catalogs-republish["catalogs-republish (catalog)\nCut the release of the consolidated catalog_opm t…"]:::planned
@@ -41,6 +41,7 @@ graph LR
   S_core-alpha-release -->|depends_on| S_core-versioned-kindprefix
   S_core-alpha-release -->|depends_on| S_library-core-retarget
   S_catalogs-identity-authoring -->|depends_on| S_library-core-retarget
+  S_catalogs-consolidation -->|depends_on| S_library-core-retarget
   S_library-core-retarget -->|depends_on| S_library-acquire-and-subscription
   X_0011_library-compat-comparator["0011:library-compat-comparator"]:::other
   X_0011_library-compat-comparator -->|depends_on| S_library-acquire-and-subscription
@@ -70,14 +71,14 @@ graph LR
 | core-platform-and-match | implementation | core | done | core-identity-shape | Platform and match surface: #SubscriptionFilter deleted for a scalar version, matchLabels on the four kinds with #LabelWorkloadType deleted, fulfilment on #Resource and #Trait, and D28's #Trait.optional plus gate.   |
 | core-alpha-release | implementation | core | done | core-identity-shape, core-primitive-keying, core-platform-and-match, 0011:core-identity-package | SPEC.md coherence pass across the four schema slices, examples re-vetted, the alpha carrying all four published at v2.0.0-alpha.4. NOT THE SINGLE CUT POINT — the four shipped across alpha.1-alpha.4; see history.   |
 | core-versioned-kindprefix | implementation | core | done | core-alpha-release | The D49 gate amendment: a contract kind's declaredModulePath becomes kindPrefix[kind] + "/" + apiVersion, transformers unchanged, FQN construction untouched; the must-fail filing pin splits in two. SPEC.md co-update.   |
-| library-core-retarget | implementation | library | in-progress | core-alpha-release, catalogs-identity-authoring | Import rewrite to the core v2 line at v2.0.0-alpha.4 — a MAJOR crossing, not a re-pin, so update-deps cannot do it. Fix compile breakage, regenerate testdata incl. the D42 web_app site; the v0.6.0-pinned site stays. No behaviour change.   |
+| library-core-retarget | implementation | library | in-progress | core-alpha-release, catalogs-identity-authoring, catalogs-consolidation | Redo of the reverted landing: import rewrite to the core v2 major, fixtures re-landed against the consolidated catalog_opm with D49 versioned imports; keeps the seam adaptations and major-aware writers, drops the fixture catalog.   |
 | library-acquire-and-subscription | implementation | library | planned | library-core-retarget, 0011:library-compat-comparator | Identity verified where artifacts are read (modulePath vs fetched coordinate, version vs tag), and D14 deletes materialize/filter.go — no highestStable, no constraint solving; one major-agreement check survives beside the subscription.   |
 | library-matching | implementation | library | planned | library-core-retarget | The match rung becomes load-bearing: provenance denylist, contract-key diagnostics, unresolved demand errors, single-provider guard; matching reads matchLabels at the four measured sites; kube-aware FQN comparator; own-graph test.   |
 | docs-catalog-contract | implementation | opmodel.dev | planned | core-alpha-release | Publish the catalog-author contract: the additive-only rule keyed to level, that OPM verifies it only for catalogs published through `opm catalog publish`, and the three version-shaped values.   |
-| cli-coordinate-adoption | implementation | cli | planned | library-core-retarget | Rewrite core imports to v2, retarget to the new library, delete the address-composition helpers, write the resolved coordinate into spec.module.{path,version}. Plus D19's local-module.cue warning and the two D42 test import sites.   |
-| operator-library-retarget | implementation | opm-operator | planned | library-core-retarget | Rewrite core imports to v2 and retarget to the new library. No feature code, no adoption code — D18 rejected an operator-side tolerance window. Three D42 blueprint import sites in test/fixtures/modules move with it.   |
-| catalogs-identity-authoring | implementation | catalog | in-progress | core-alpha-release | Rewrite core imports to v2; commit identity/identity.cue (D5) across the three catalogs, re-key every leaf (apiVersion, catalogVersion, fqn), flatten blueprints, move matching to matchLabels, drop the stamping task. Source only.   |
+| cli-coordinate-adoption | implementation | cli | planned | library-core-retarget | Rewrite core imports to v2, retarget to the new library, delete address-composition, write the resolved coordinate into spec.module.{path,version}; D19 warning, two test imports move to D49 versioned paths, retired-catalog template refs.   |
+| operator-library-retarget | implementation | opm-operator | planned | library-core-retarget | Rewrite core imports to v2 and retarget to the new library. No feature code, no adoption code — D18 rejected an operator-side tolerance window. Three blueprint imports in test/fixtures move to the D49 versioned paths.   |
+| catalogs-identity-authoring | implementation | catalog | done | core-alpha-release | Core imports rewritten to v2, identity subpackages committed, every leaf re-keyed, matching moved to matchLabels — landed across all three repos. Deviations: stamping task kept for 0011 to retire, releases via release-please.   |
 | catalogs-consolidation | implementation | catalog | done | catalogs-identity-authoring, core-versioned-kindprefix | catalog_opm absorbs catalog_kubernetes (k8s-* raw family, upstream-mirrored apiVersions) and catalog_opm_experimental (v1alpha1 members); version-segment filing, one schema tree, no-downward-dependency vet check, tombstones.   |
-| modules-identity-authoring | implementation | modules | planned | catalogs-identity-authoring, catalogs-consolidation | Rewrite core imports to v2. Add identity/identity.cue per module and the metadata wiring, plus the twelve D42 blueprint import moves. No hyphen renames — none exist, measured 2026-08-05. Source only.   |
+| modules-identity-authoring | implementation | modules | planned | catalogs-identity-authoring, catalogs-consolidation | Rewrite core imports to v2. Add the identity subpackage per module and metadata wiring; blueprint imports move to D49 versioned paths; re-pin absorbed-catalog subscriptions to catalogs/opm, rename raw-member spec keys. Source only.   |
 | catalogs-republish | migration | catalog | planned | catalogs-identity-authoring, catalogs-consolidation, 0011:catalogs-publish-cutover | Cut the release of the consolidated catalog_opm through `opm catalog publish`. The first act that changes a published artifact. (Was three catalogs until D47.)   |
 | modules-fleet-republish | migration | modules | planned | catalogs-republish, modules-identity-authoring, 0011:modules-publish-cutover | Republish the fleet through `opm module publish` against the released catalogs. The only fleet republish in the 0010/0011 pair.   |
