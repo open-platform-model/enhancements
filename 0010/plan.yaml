@@ -259,7 +259,8 @@ slices:
       - catalogs-identity-authoring
       - catalogs-consolidation
     decisions: [D42, D47, D49]
-    status: in-progress
+    status: done
+    openspec_ref: "library/library-core-retarget"
 
   - id: library-acquire-and-subscription
     repo: library
