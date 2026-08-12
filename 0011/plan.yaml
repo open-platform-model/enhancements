@@ -132,8 +132,9 @@ slices:
       10/14 and 8/14 on disjoint sets — plus predecessor selection moved out
       of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.
     depends_on: []
-    decisions: [D9, 0010:D14, 0010:D34]
-    status: planned
+    decisions: [D9, 0010:D14, 0010:D27, 0010:D30, 0010:D34]
+    status: done
+    openspec_ref: "library/library-compat-comparator"
 
   - id: cli-login
     repo: cli
