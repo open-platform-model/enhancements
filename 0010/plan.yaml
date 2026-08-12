@@ -179,6 +179,18 @@
 # release metadata, so v2.0.0-alpha.5 trails it. Once cut, alpha.5 is
 # also complete and the floating v2 major resolves it; alpha.1-alpha.3
 # remain the only partial-and-resolvable hazards on the line.
+# ---------------------------------------------------------------------
+# 2026-08-12 NOTE — LIBRARY DOCS DRIFT TO SWEEP WITH THE NEXT LIBRARY SLICE
+# ---------------------------------------------------------------------
+# Found during 0011:library-compat-comparator's verification and out of
+# that slice's scope: library/docs/design/kernel-validate-flow.md still
+# documents the removed opm/api and opm/apiversion packages (lines 22,
+# 68-86 and 214 — source-file list, class-diagram fields, api.Lookup and
+# apiversion.Version), which library's own README records as deleted with
+# schema knowledge centralized in opm/schema. Pre-existing drift, nothing
+# to do with the comparator. Sweep it when library-acquire-and-subscription
+# or library-matching next touches library docs.
+
 slices:
   - id: core-identity-shape
     repo: core
