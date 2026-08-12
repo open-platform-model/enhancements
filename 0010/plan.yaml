@@ -286,7 +286,8 @@ slices:
       - library-core-retarget
       - "0011:library-compat-comparator"
     decisions: [D9, D11, D14, D41]
-    status: planned
+    status: done
+    openspec_ref: "library/library-acquire-and-subscription"
 
   - id: library-matching
     repo: library
