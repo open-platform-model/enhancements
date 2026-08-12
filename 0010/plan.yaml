@@ -300,7 +300,8 @@ slices:
     depends_on:
       - library-core-retarget
     decisions: [D4, D10, D26, D28, D30, D32, D34, D36, D37]
-    status: planned
+    status: done
+    openspec_ref: "library/library-matching"
 
   - id: docs-catalog-contract
     repo: opmodel.dev
