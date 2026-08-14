@@ -80,12 +80,14 @@ Nothing in this design writes state that outlives a render other than the Secret
 
 Strict order — each step consumes a published artifact from the one before.
 
-1. **`core`** — narrow `#Secret`; delete the dead machinery; correct `SPEC.md` §1; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v1.0.0-alpha.N`.
-2. **`library`** — implement `opm/secret` (Discover, Resolve), wire the phases, add the `.value` diagnostic. Consumes the new core alpha. Publishes a new library tag. **This is where OQ2 lands**: whether validation and render can share one build.
-3. **`catalog_opm`** — drop the duplicate and import core's `#Secret`; rewrite both consumption sites to read `.ref` / `.key`; strip name computation from `secret_transformer.cue`. Consumes the new core alpha. Publishes a new `v1.x.x-alpha.x`.
+1. **`core`** — narrow `#Secret`; delete the dead machinery; correct `SPEC.md` §1; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v2.0.0-alpha.N`.
+2. **`library`** — implement `opm/secret` (Discover, Resolve), wire the phases, add the `.value` diagnostic. Consumes the new core alpha. Publishes a new library tag. The build shape is settled (D16, measured by experiment 03): raw values validate in the existing separate `Validate` evaluation, one component-graph build assembled from resolved values only, rewrite via decode → splice → encode (D17).
+3. **`catalog_opm`** — drop the duplicate and import core's `#Secret`; rewrite both consumption sites to read `.ref` / `.key`; strip name computation from `secret_transformer.cue`. Consumes the new core alpha. Publishes a new `v2.x.x-alpha.x`.
 4. **`cli`** and **`opm-operator`** — bump to the new library; port the `secrets-module` fixture; add the `opm module inspect` secrets section. These two can land in parallel.
 5. **`modules`** — migrate `metallb` onto the new core + catalog pins. **Migration step, not a code change:** the rendered Secret name changes, and `components.cue`'s RBAC `resourceNames` scoping references the rendered object name. Both must change together, and the module must be re-rendered and diffed against the running cluster before apply. Instance values need no edit.
 6. **`opmodel.dev`** — regenerate the schema reference; rewrite the secrets section of the authoring docs around the routing/fulfilment split.
 7. **`modules/DESIGN_PATTERNS.md`** — rewrite the `schemas.#Secret` pattern section (`:84-110`) and the summary-table row (`:630`).
 
 Steps 2 and 3 both depend only on step 1 and can proceed in parallel, but step 4 needs both. Step 5 is the only one that touches a live cluster.
+
+The order above is encoded structurally in [`plan.yaml`](plan.yaml) (rendered as [`PLAN.md`](PLAN.md)); this prose carries the rationale, the plan carries the state.

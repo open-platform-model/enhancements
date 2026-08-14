@@ -8,7 +8,9 @@ This document answers the question: "What is the proposed solution and how does 
 - A secret's **fulfilment** is chosen by the deployer, per environment, and is type-checked by CUE rather than by OPM tooling.
 - The same published module deploys against a supplied value in one environment and a pre-existing cluster object in another, with no republish.
 - A Kubernetes Secret object's name is computed once, by one authority, and every consumer reads the same string.
-- Secret plaintext never enters the component graph, so it cannot be rendered, logged, or stored in a `ModuleInstance` CR by accident.
+- Secret plaintext never enters the component graph, so it cannot be rendered or logged by accident. (What a deployer chooses to write *into* a `ModuleInstance` CR is a frontend seam, stated honestly — D15.)
+- A field that *is* a secret cannot be missed: discovery keys on the type as well as the marker, so forgetting the attribute degrades to default routing, never to a leak (D13).
+- A deployer can keep supplied values encrypted at rest with SOPS: the file to encrypt is generatable from the module alone, and decryption happens at the CLI seam with no kernel involvement (D14).
 - A secret that reaches a position the target cannot express as a reference is rejected at authoring time, by CUE, before the kernel is involved.
 - Discovery has no depth ceiling and no blind spots for lists or pattern-constrained maps.
 - Tooling can list a module's required secrets from the module alone, before any instance exists.
@@ -16,7 +18,8 @@ This document answers the question: "What is the proposed solution and how does 
 
 ## Non-Goals
 
-- **Encryption at rest of instance values.** Resolution keeps plaintext out of the *render*; it does not encrypt the input the deployer supplies. Storage-level protection (SOPS, sealed-secrets, a secure side channel) is a separate concern this design enables but does not implement.
+- **Implementing cryptography.** SOPS support (D14) is in scope, but OPM ships no cipher code: the `getsops/sops/v3` library does encrypt/decrypt at the CLI seams, cluster-side decryption belongs to Flux, and key management (age keys, KMS) is deployer configuration. Export-side encryption of rendered Secret manifests rides enhancement 0014's export surface.
+- **Protecting supplied-arm values inside a `ModuleInstance` CR.** A literal in a CR is plaintext in etcd — accepted and documented, with the referenced arm as the production posture on the operator path; no `valuesFrom` mechanism is added (D15).
 - **Shipping an ESO / Vault / CSI backend.** The extension mechanism is in scope; additional backends are not. Two fulfilment arms ship (D7, D10).
 - **Rotation, leasing, or dynamic secrets.** A secret is resolved once per render.
 - **Retiring `#SecretSchema` / the secrets resource.** Modules that compute a whole file and want it stored as Secret data keep writing it by hand; that path is unaffected.
@@ -64,6 +67,8 @@ That restatement is the design's central move.
 The kernel runs two phases.
 
 **Discover** walks the module's `#config` schema and returns one `#SecretDecl` per marked field. It reads the schema, not the values, because that is where the marks live (D3). Consequences fall out for free: no values are needed, so `opm module inspect` can list a module's secrets from the module alone; and the walk is ordinary Go recursion, so there is no depth ceiling and lists and pattern-constrained maps are covered.
+
+Discovery keys on the type as well as the marker, and fails closed (D13): a field typed `#Secret` with no attribute is discovered with all-default routing (as if it carried a bare `@opm(secret)`), and a `secret` marker on a field not typed `#Secret` is a Discover error. Forgetting the mark can therefore never leak a literal into the graph — the marker only ever *overrides* routing, it never gates the security property.
 
 **Resolve** groups the declarations, computes each object's final name exactly once, sends the plaintext out of band into a `#SecretGroupPlan`, and **rewrites every marked path in the render-time values to a `#SecretRef`** — whichever arm the deployer wrote. A literal becomes a reference to the object the kernel just decided to create; a deployer-written reference passes through as itself.
 
@@ -180,6 +185,9 @@ Notably absent, and deliberately: any addition to `#TransformerContext`. Because
 | `tests/fixtures/valid/secrets-module/module.cue` | Port to the attribute form. |
 | `openspec/specs/auto-secrets-injection/spec.md` | Already marked Superseded and pointing at the retired `v1alpha1/`; retire the spec. |
 | `opm module inspect` | **New output section** listing declared secrets, their groups and keys, and which are unfulfilled. |
+| `opm secrets template` | **New command** (D14). Walks Discover with no values present; emits a skeleton values file (YAML/JSON) containing exactly the marked paths, ready to populate and encrypt with `sops -e`. |
+| `opm module vet` | **Secrets-aware messaging** (D14). Intercept CUE incompleteness errors at marked paths; report one grouped "unfulfilled secrets" list naming each path, group, and key, pointing at `opm secrets template`. |
+| Values input | **SOPS decrypt** (D14). Accept a SOPS-encrypted values file, decrypted via the `getsops/sops/v3` library before values enter the kernel. The kernel contract is unchanged. |
 
 ## Before / After
 

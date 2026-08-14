@@ -197,6 +197,8 @@ There is no handle format, no `#TransformerContext.secrets` lookup, and no prefi
 - **D4's opaque handle plus a context map.** Rejected as machinery invented to work around D1: with the field typed `string`, a substituted value had to be a string, so it could not carry the object name, so a side table was needed to map it back. Once the value is a struct the object name fits inside the value and the whole apparatus — the `opm:secret:v1:` format, the SHA-256 derivation, collision handling, the additive core `#TransformerContext` field, the `owned` flag, and the rendered-output scanner — is unnecessary.
 - **Leaving the literal in place and letting the transformer read `.value`.** Rejected: that is plaintext in the component graph, which is the security property the design exists to deliver.
 - **Resolving to `{ref, key}` only for literals, leaving deployer-written refs untouched.** No practical difference — a deployer-written ref already *is* the resolved form — but stating the pass as "every marked path is rewritten" makes the postcondition uniform and checkable.
+- **Module-level context fill — `#ctx.secrets` (proposed 2026-08-13).** The kernel fills a kernel-owned `#ctx.secrets.<path>` subtree with each resolved `{ref, key}` and authors wire consumption sites through it instead of through `#config`. Unification-clean (filling an empty kernel-owned slot has no conflicting conjunct), but rejected on three grounds: the author wiring moves to `from: #ctx.secrets.db.password` — rejected ergonomics, the natural reference is `#config.db.password`; unlike `#ctx.components` (a pure CUE projection over CUE-visible `#names`) the secrets subtree cannot be a projection because attributes are evaluation-inert, so secret wiring would neither vet nor complete standalone without the kernel in the loop; and the plaintext stays live at the `#config` paths.
+- **Legalising coexistence via a shared `#SecretBase` — `ref?`/`key?` optional on the literal arm (proposed and retracted 2026-08-14).** Makes the rewrite a pure fill: `{value: …} & {ref: …, key: …}` unifies (the union selects the literal arm), dissolving the OQ2 collision while keeping the author wiring unchanged. Rejected because the plaintext then remains in the component graph, demoting structural absence to convention: a `.value` read in any transformer (third-party catalogs included, per D8's open ecosystem), a `\(#config.….value)` interpolation, or a value-embedding CUE error message would leak silently — where the closed two-field `#SecretRef` makes each of those a loud error or unrepresentable. Retracted by its proposer on review; retained as the strongest measured fallback should OQ2 rule out clean omission, since it beats `#ctx.secrets` on wiring ergonomics.
 
 **Rationale:** The two arms are not two kinds of secret; they are two statements about one secret. `#SecretLiteral` says *what* the data is, `#SecretRef` says *where* it lives. For a literal, the kernel's entire job is to turn a *what* into a *where* — pick the object, name it, put the data there. Once it has, the literal *also* has a location, so it can be restated in the second arm. Resolve-in-place is just performing that restatement and handing the result to the render.
 
@@ -229,16 +231,99 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ---
 
+### D13: Discovery keys on the type and the marker, and fails closed
+
+**Decision:** Discover recognises a declaration by either signal. A `#config` field typed `#Secret` with no `@opm(secret, …)` attribute is discovered with all-default routing — exactly as if it carried a bare `@opm(secret)`: group `secrets`, key derived from the path (`#DeriveKey`). A field carrying the `secret` marker whose type is not `#Secret` is a Discover error. The marker is therefore pure override; it is never load-bearing for the security property.
+
+**Alternatives considered:**
+
+- **Marker-only discovery** — the shape D3 implied. Rejected: a field typed `#Secret` without the marker would be invisible to Discover, never resolved, and the deployer's `{value: …}` literal would flow into the component graph as an ordinary struct — plaintext in the render, silently. Forgetting the mark would produce exactly the leak the design exists to prevent.
+- **Making the unmarked `#Secret` field a hard error** instead of applying defaults. Rejected: `@opm(secret)` with every argument defaulted is already the documented common case (D2), so an unmarked `#Secret` field has one unambiguous meaning; erroring would add authoring friction without adding safety.
+- **Type-only discovery, deleting the marker.** Rejected: the routing overrides (`group`, `key`, `type`, `immutable`, `description`) need a home, and D10's split — type carries fulfilment, attribute carries routing — is the design.
+
+**Rationale:** Fail closed. The failure mode of forgetting an annotation must be a loud error or a safe default, never a silent leak. Keying discovery on the type makes "secret-typed but unhandled" structurally impossible — the same move D11 makes for name divergence. The inverse check (marker without type) catches the author who marked a plain `string`: a declaration the fulfilment contract cannot type-check and resolve-in-place cannot rewrite.
+
+**Source:** User decision 2026-08-13, during the guarantee-by-guarantee review (fail-closed discovery suggestion accepted).
+
+---
+
+### D14: SOPS support lands at the file seams — decrypt on input, encrypt on export; never an arm, a backend, or kernel code
+
+**Decision:** Encrypted-at-rest instance values are supported via SOPS at exactly two seams, both outside the kernel. **Input:** the CLI accepts a SOPS-encrypted values file (YAML/JSON — SOPS's native formats) and decrypts it with the `github.com/getsops/sops/v3` library before the values become a `cue.Value`; the kernel receives plain values and is unchanged. **Export:** when rendered output is written for GitOps consumption (enhancement 0014's flow), Secret manifests can be SOPS-encrypted on write for cluster-side decryption by Flux's kustomize-controller; the placement is recorded here, the implementation rides 0014's export surface. Companion UX on the input seam: `opm secrets template <module>` walks Discover's output with no values present and emits a skeleton values file containing exactly the marked paths, ready to populate and `sops -e`. Unfulfilled-secret reporting lives in `opm module vet`: Discover's path list lets vet intercept CUE's incompleteness errors at marked paths and replace them with one grouped "unfulfilled secrets" message naming each path, group, and key. No standalone `opm secrets verify` command ships.
+
+**Alternatives considered:**
+
+- **A third fulfilment arm** (`{sopsRef: …}` or similar). Rejected: encryption at rest is a property of the *file*, not of the fulfilment. After decryption a SOPS-supplied secret *is* a `#SecretLiteral`; an arm would bake a tooling choice into instance values — the same category error as `provider=eso` on the attribute, rejected in D8.
+- **SOPS as a D8 catalog backend.** Rejected: SealedSecrets and ESO change what object is materialised *in the cluster*; SOPS changes nothing in the cluster — it protects files. There is no `#SecretGroupPlan` for it to consume.
+- **Kernel-side decryption.** Rejected: kernel neutrality (library Principle I) — no I/O, no crypto, no ambient key material in the kernel. Decryption needs key access (age keys, KMS credentials), which is frontend configuration.
+- **A standalone `opm secrets verify` command.** Rejected in favour of vet: an unfulfilled secret *is* a non-concrete field, so `opm module vet` already detects the condition structurally — only the message needed to become secrets-aware. A second tool to explain what the first should have said is surface without capability. If plaintext-hygiene checking (a marked path fulfilled from an unencrypted file) is ever wanted, it is a warning inside vet/plan, not a command.
+
+**Rationale:** OPM gets encryption at rest without implementing cryptography: the sops library does encrypt/decrypt, Flux already handles cluster-side decryption, and OPM contributes the one thing no other tool can — knowing exactly which fields are secret. That knowledge makes the encrypted file *generatable* (`template`) and the gap report *exact* (vet), which is what turns "you can use SOPS next to it" — true of every competitor — into first-class support. The seam placement keeps D7's two arms and D8's backend mechanism intact, and the kernel contract is identical whether values arrived encrypted or not.
+
+**Source:** User decision 2026-08-13 ("I would like to support encryption, but not by developing it myself. I want SOPS support"; template generator adopted; vet integration preferred over a verify command).
+
+---
+
+### D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection
+
+**Decision:** A `ModuleInstance` CR may carry supplied-arm secrets (`{value: …}`) in its values, and that is accepted as-is: the plaintext sits in the CR object in etcd. Documentation states this plainly and directs production deployments on the operator path to the referenced arm (`{ref, key}` against an existing Secret). No `valuesFrom` mechanism — merging values from Kubernetes Secrets, as Flux HelmRelease does — is added.
+
+**Alternatives considered:**
+
+- **`valuesFrom: [{secretRef: …}]` on the CR**, Flux HelmRelease's shape. Rejected by user decision: not wanted. It stays purely additive if ever revisited, so declining it now costs nothing structurally. The etcd caveat it would have addressed is real and is documented instead: CR read access is typically broader than `get secrets`, and etcd encryption-at-rest usually covers only the `secrets` resource — so a literal in a CR is readable by personas who deliberately cannot read Secrets. The referenced arm is the answer for that posture.
+- **Rejecting the supplied arm on the operator path.** Rejected: it would fork the values contract per frontend — the same instance values would be valid for the CLI and invalid as a CR — breaking the "same module, same values, any frontend" property.
+
+**Rationale:** The design's security property is scoped to the render pipeline — plaintext never enters the component graph. How values *reach* the kernel is a frontend seam: the CLI's seam gets SOPS (D14); the operator's seam is the Kubernetes API, where the referenced arm already provides the secure posture with zero new mechanism. Guidance over machinery.
+
+**Source:** User decision 2026-08-13 ("I don't want to add ValuesFrom"; documentation-first posture).
+
+---
+
+### D16: The rewrite is omission at build assembly — measured viable on the real kernel path, one graph build, no new kernel seams
+
+**Resolves OQ2.**
+
+**Decision:** Resolve-in-place is implemented by assembling the render build **without** the deployer's original values conjunct — never by overriding it. Measured against the published kernel (`github.com/open-platform-model/library v1.0.0-alpha.12`, `opmodel.dev/core@v2` at `v2.0.0-alpha.4`), both candidate mechanisms work today through existing public entry points: **fill-style** (load the instance spec with values omitted; hand the resolved values to `ProcessModuleInstance`, whose existing `ValidateConfig` + `FillPath` seam fills them — the natural fit for parameter-carried values: CLI flags, CR decode) and **bake-style** (bake the resolved values at load time via `loaderfile.BuildInstanceOverlayAt`, the overlay mechanism `synth.Instance` already uses — the natural fit for package-staged loads). The pipeline needs exactly **one component-graph build**: the deployer's raw values are validated in their own evaluation by the existing, separate `Kernel.Validate` phase, and the render build carries the resolved statement only.
+
+**Alternatives considered:**
+
+- **Override-in-place** — filling the resolved arm over the raw-baked package. Measured refuted (experiment 03, M2): the kernel's own fill seam fails with the closed-arm collision (`values.db.password: 3 errors in empty disjunction`), the production-scale twin of the two-statement conflict CUE's disjunction semantics guarantee. This is a feature: the seam structurally enforces that omission is the only implementation.
+- **Two full graph builds** (validate build + render build). Unnecessary: `Kernel.Validate` is already a separate, cheap evaluation against the `#config` schema — it never needed the component graph — so validating raw values and rendering resolved ones costs one graph build plus the validation that exists today.
+- **The `#SecretBase` coexistence fill and `#ctx.secrets` fill** — the fallbacks recorded in D11's alternatives, held in reserve for the case where omission measured unclean. Not needed: it measured clean on both candidates.
+
+**Rationale:** OQ2 was the last mechanical unknown — whether anything downstream re-unifies the original values against the rewritten ones. The measurement answers it precisely: the original conjunct collides if and only if it is in the build (M2), and both omission mechanisms keep it out (M3/M4) while the raw artifact remains fully validatable on its own (M1). The render artifact carries `{ref, key}` at every marked path, the deployer-written ref passes through unchanged (the arms converge), no `.value` field exists on a resolved secret, and the plaintext string is absent from the exported values subtree. No new kernel machinery is required for the swap itself — the implementation's work reduces to Discover + Resolve plus choosing which existing assembly path feeds the render build.
+
+**Source:** `experiments/03-kernel-omission/` — outcome 2026-08-14; 17/17 assertions passed on library v1.0.0-alpha.12, re-verified 17/17 on v1.0.0-alpha.13 the same day.
+
+---
+
+### D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data — not AST, not FillPath-graft
+
+**Decision:** `library/opm/secret`'s Resolve produces the resolved values by decoding the concrete values `cue.Value` to Go data, splicing `{ref, key}` at each marked path, and encoding a fresh `cue.Value` — experiment 02's prototype mechanism, now also the measured-fastest. The rewrite operates on *evaluated data*, never on source: the deployer's file is untouched on disk, and marked-field attributes are read through the `cue.Value.Attribute` API, so no AST is parsed, patched, or round-tripped anywhere in the pass.
+
+**Alternatives considered:**
+
+- **Prune-graft** — `FillPath` untouched subtrees wholesale onto an empty struct, descending only into branches containing marked paths. Measured 12–39× slower than decode-encode on every shape in `experiments/04-rewrite-performance/`, *including* the large-sparse case constructed to favor it: per-`FillPath` construction/re-unification overhead dominates the savings from not decoding untouched data, and deep paths are its worst case. Refuted the scaling hypothesis it was proposed under.
+- **AST surgery** (export via `Syntax()`, patch, rebuild). Rejected without measurement on two grounds: the values are concrete data by the time Resolve runs (`ProcessModuleInstance` enforces it), so there are no expressions whose structure needs preserving; and enhancement 0011's `StripProvenance` work measured CUE's value→AST→value round-trip as fragile for anything beyond concrete data (unbuildable let-bound references; export profiles that silently open closed definitions). The one legitimate value→source export in this design — bake-style delivery serializing resolved values to bytes — stays inside the safe concrete-data subset and costs about one extra decode-encode pass (measured).
+
+**Rationale:** Both mechanisms passed the correctness gate (JSON-identical output, no surviving plaintext), so the choice fell to cost and simplicity, and they agree: the simple mechanism is the fast one, resolving a 2000-field config in ~4ms — noise next to registry pulls and module evaluation. Performance neither constrains the design nor justifies the graft's complexity. Delivery-seam pricing from the same measurement: fill-style needs no serialization at all; bake-style adds roughly one decode-encode-equivalent — both negligible, fill-style strictly cheaper where the seam permits.
+
+**Source:** `experiments/04-rewrite-performance/` — outcome 2026-08-14 (graft-scaling hypothesis refuted; decode-encode wins 12–39× on every shape); mechanism proven correct in `experiments/02-resolve-in-place/`; AST fragility evidence from enhancement 0011's compat work.
+
+---
+
 ## Open Questions
 
 - **OQ1: Which surface chooses between the supplied and referenced fulfilment kinds?** Status: resolved-by-D10.
 
   Resolved by keeping the choice in the field's *type*. D1 had removed the disjunction along with the routing metadata, leaving nowhere for the deployer to express "this object already exists"; D10 restores a narrowed `#Secret` whose two arms are exactly that choice, so CUE resolves it by unification as it does today. The three candidate surfaces this question weighed — an attribute argument, a scheme-prefixed value string, and a sibling block on `#ModuleInstance` — are all rejected in D10's alternatives, the first because it bakes a cluster fact into a published module, the other two because they cost more than the disjunction they were replacing.
 
-- **OQ2: Is replacing a user-supplied arm with the kernel-resolved arm a clean value replacement?** Status: open.
+- **OQ2: Is replacing a user-supplied arm with the kernel-resolved arm a clean value replacement?** Status: resolved-by-D16.
 
   The kernel rewrites `values.<path>` from `{value: …}` to `{ref: …, key: …}` (D11). `experiments/02-resolve-in-place` performs this by decode → mutate → encode, which sidesteps unification entirely and works. What is unverified is whether anything downstream re-unifies the *original* values against the rewritten ones — the instance file's own conjunct on the `values` vertex, a `ModuleInstance` CR round-trip, or `kernel.Validate` running against real values in the same build — and produces a conflict, since `{value: …} & {ref: …, key: …}` is bottom under `#Secret`'s closed arms.
 
   Resolving this requires a measurement against the real `library/opm/kernel` path rather than a synthetic one, and it determines whether the kernel needs two builds (one to validate against supplied values, one to render against resolved values) or can do both in one. It is a research item rather than a judgement call, and it is the last mechanical unknown in the design.
 
-  This is the sole blocker to `draft → accepted`.
+  Two candidate implementations to measure: bake-style (the `synth.Instance` path already writes `values.cue` into the build — write the *resolved* values instead, validating the raw values separately) and fill-style (build the instance package with the `values` vertex unset, then `FillPath` the resolved values into the empty slot). Three doors to check for original-conjunct leakage: the file-loaded instance package, the synth path, and a `ModuleInstance` CR round-trip. If the measurement rules out clean omission on every candidate, the recorded fallback is the `#SecretBase` coexistence fill in D11's alternatives — accepting plaintext-in-graph as convention — not `#ctx.secrets`, which additionally moves the author wiring.
+
+  Was the sole blocker to `draft → accepted`. **Measured 2026-08-14 by `experiments/03-kernel-omission/` against the published kernel: clean omission holds on both candidates, override is refuted by the kernel's own fill seam, one graph build suffices. The fallbacks are not needed. Resolved by D16.**

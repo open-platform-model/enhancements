@@ -31,7 +31,7 @@ Two properties fall out that the first draft of this design did not have: **inst
 
 1. [01-problem.md](01-problem.md) — Routing stated twice with nothing checking it, three disagreeing name derivations, an unused discovery pyramid, and plaintext in the render
 2. [02-design.md](02-design.md) — Routing in an inert `@opm(secret, …)` attribute, fulfilment in a narrowed `#Secret` disjunction, and a kernel that resolves both arms in place
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D12; D10 supersedes D1, D11 supersedes D4) + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D17; D10 supersedes D1, D11 supersedes D4, D16 resolves OQ2) + Open Questions
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
@@ -46,7 +46,7 @@ The design is measurement-driven; [`experiments/`](experiments/) holds the runna
 
 - The `@opm(secret, …)` marker grammar and its parsed contract (`#SecretMarker`).
 - Narrowing `#Secret` to `#SecretLiteral | #SecretRef` and making `core` its only definition.
-- The kernel's secret pass — Discover and Resolve — in `library/opm/secret`.
+- The kernel's secret pass — Discover and Resolve — in `library/opm/secret`. Discovery keys on the type as well as the marker and fails closed: a `#Secret`-typed field without the attribute gets default routing, a marked non-`#Secret` field is an error (D13).
 - Resolve-in-place: rewriting every marked path to a `#SecretRef` before the component graph is built.
 - Kernel-owned Secret object naming, delivered inside the resolved value.
 - Two fulfilment arms: supplied (`{value}`) and referenced (`{ref, key}`).
@@ -54,10 +54,12 @@ The design is measurement-driven; [`experiments/`](experiments/) holds the runna
 - Deleting the `$opm` / `$secretName` / `$dataKey` vocabulary, the `#AutoSecrets` / `#DiscoverSecrets` / `#GroupSecrets` pyramid, and its duplicate in `catalog_opm`; correcting `core/SPEC.md` §1's claim that `#Secret` is a Primitive.
 - Migrating `modules/metallb`, the only fleet module carrying a secret, including its RBAC `resourceNames` scoping.
 - An `opm module inspect` secrets section.
+- SOPS support at the CLI input seam (D14): accepting SOPS-encrypted values files (decrypted via the sops library before values enter the kernel), the `opm secrets template` skeleton generator, and secrets-aware `opm module vet` messaging for unfulfilled secrets.
 
 ### Out of scope
 
-- **Encryption at rest of instance values.** Resolution keeps plaintext out of the render; it does not protect the input the deployer supplies. This design makes out-of-band supply possible but does not implement it.
+- **Implementing cryptography.** SOPS support (D14) calls the `getsops/sops/v3` library; OPM ships no cipher code, and key management is deployer configuration. Export-side encryption of rendered Secret manifests rides enhancement [0014](../0014/)'s export surface.
+- **Protecting supplied-arm values inside a `ModuleInstance` CR.** A literal in a CR is plaintext in etcd — accepted and documented, with the referenced arm as the production posture on the operator path; no `valuesFrom` mechanism (D15).
 - **Shipping an ESO / Vault / SealedSecrets / CSI backend.** The extension mechanism is in scope; additional backends are follow-on catalogs.
 - **Secret rotation, leasing, or dynamic secrets.** A secret is resolved once per render.
 - **Retiring the hand-authored `#SecretSchema` path.** A module that computes a whole file and stores it as Secret data keeps writing it by hand.
@@ -70,10 +72,12 @@ The design is measurement-driven; [`experiments/`](experiments/) holds the runna
 | - | ------- | ------ |
 | 01 | [attribute-propagation](experiments/01-attribute-propagation/) — does a CUE field attribute survive everything the OPM artifact shape does to it, and can a Go walk find it? | Concluded |
 | 02 | [resolve-in-place](experiments/02-resolve-in-place/) — a working prototype of the proposed `library/opm/secret` kernel pass: discover, resolve both arms to `#SecretRef`, materialise | Concluded |
+| 03 | [kernel-omission](experiments/03-kernel-omission/) — the OQ2 measurement: the arm rewrite against the real published kernel, as omission, via both candidate mechanisms | Concluded |
+| 04 | [rewrite-performance](experiments/04-rewrite-performance/) — prices the two rewrite mechanisms; decode-encode wins 12–39×, settling D17 | Concluded |
 
 Experiment 02 is a runnable prototype rather than a probe: `experiments/02-resolve-in-place/secret/` implements the proposed `Discover` / `Resolve` API against real `cue.Value` inputs and mirrors `schemas/target.cue` type for type, so the design can be judged on running code. `go run .` in either experiment reproduces its outcome.
 
-One measurement is still outstanding before acceptance — it is **OQ2**, the sole blocker (see [04-graduation.md](04-graduation.md)): experiment 02 performs the arm rewrite by decode → mutate → encode, which sidesteps unification, and that has not been measured against the real `library/opm/kernel` build path.
+The last mechanical unknown — **OQ2**, whether the arm rewrite survives the real `library/opm/kernel` build path — was measured by experiment 03 (2026-08-14) against the published kernel: clean omission holds via both candidate mechanisms (fill-style through `ProcessModuleInstance`'s existing seam, bake-style through the loader overlay), override is structurally refuted by the kernel's own fill seam, and one component-graph build suffices. Resolved by **D16**. No open questions remain.
 
 ## Deviations from Design
 
@@ -85,15 +89,15 @@ Every path below exists today.
 
 | Document | Purpose |
 | -------- | ------- |
-| `core/CONSTITUTION.md`, `library/CONSTITUTION.md`, `cli/CONSTITUTION.md` | Design principles governing changes in the touched repos |
+| `core/openspec/config.yaml`, `library/CONSTITUTION.md`, `cli/CONSTITUTION.md` | Design principles governing changes in the touched repos (core carries its constitution in `openspec/config.yaml`) |
 | `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the `core/src/*.cue` slice; also carries a stale helper list this enhancement corrects |
 | `core/src/schemas.cue` | The dead secret block deleted by D9 |
 | `core/src/transformer.cue` | `#ComponentTransformer` and `#TransformerContext` — gains the `secrets` field |
 | `core/src/module_instance.cue` | Carries the comments describing the removed `opm-secrets` synthesis |
 | `core/SPEC.md` | §1 misdescribes `#Secret` as a Primitive; §513/§521 record the synthesis removal |
 | `core/.tasks/spec-tracked.txt` | Tracked-construct list; `#Secret` is absent from it despite SPEC.md §1 |
-| `catalog_opm/src/resources/secret.cue` | The duplicated contract type and discovery pyramid deleted by D9 |
-| `catalog_opm/src/resources/container.cue` | `#EnvVarSchema.from` narrows from `#Secret` to `string` |
+| `catalog_opm/src/resources/v1beta1/secret.cue` | The duplicated contract type and discovery pyramid deleted by D9 (path moved by 0010 D49's version-segment filing) |
+| `catalog_opm/src/resources/v1beta1/container.cue` | `#EnvVarSchema.from` — stays typed `#Secret`, now core's narrowed one (D10/D12) |
 | `catalog_opm/src/transformers/container_helpers.cue` | Both consumption sites — env (`:52-89`) and volume (`:368-388`) — move onto `#context.secrets` |
 | `catalog_opm/src/transformers/secret_transformer.cue` | Loses the `opm-secrets` branch and all name computation |
 | `library/opm/schema/paths.go` | `Config` is the discovery root; gains the `#context.secrets` path constant |
