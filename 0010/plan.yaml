@@ -332,13 +332,14 @@ slices:
     repo: opm-operator
     phase: implementation
     concern: >
-      Rewrite core imports to v2 and retarget to the new library. No feature
-      code, no adoption code — D18 rejected an operator-side tolerance window.
-      Three blueprint imports in test/fixtures move to the D49 versioned paths.
+      Retarget to the core-v2 library line. Per the 2026-08-12 deviation the
+      D14 filter->version CRD reshape rides this slice; otherwise no feature
+      or adoption code (D18). Two OpenSpec changes; release waits for both.
     depends_on:
       - library-core-retarget
-    decisions: [D18, D42, D49]
-    status: planned
+    decisions: [D14, D18, D42, D49]
+    status: in-progress
+    openspec_ref: "opm-operator/operator-library-retarget + opm-operator/examples-fleet-core-v2"
 
   - id: catalogs-identity-authoring
     repo: catalog
