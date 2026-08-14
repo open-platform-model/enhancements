@@ -1,0 +1,56 @@
+id: "0016"
+slug: instance-init
+title: Initialize a Module Instance Package from a Published Module
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cli
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+#
+# cli: the new `opm instance init` command. core: one additive optional field
+# on #Module (the init-values template, D3). library: conditional on OQ4 —
+# listed because the leading option generalizes helper/synth's instance-file
+# renderer so CLI init and in-memory synth share one generator; drop it if OQ4
+# resolves to a CLI-side renderer. opmodel.dev regenerates the CLI reference
+# mechanically after landing and ships nothing gated by this entry.
+affects:
+  - cli
+  - core
+  - library
+created: "2026-08-13"
+updated: "2026-08-13"
+authors:
+  - emil@jacero.se
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones. Free-form `event` strings;
+# `slice` + `semver` are optional structured fields for events that carry
+# machine-readable detail.
+history:
+  - date: "2026-08-13"
+    event: >-
+      Drafted. Nothing turns a published module into the on-disk instance package everything downstream consumes
+      (opm instance build/apply, the operator's ModulePackage path): `opm module init` scaffolds author-side
+      modules, and library synth.Instance builds instances only in memory — explicitly refusing a debugValues
+      fallback as "a frontend policy concern". Three decisions came from the user on the day: a new CLI command
+      scaffolds a standalone instance package from an OCI module reference and tag (D1); the generated values.cue
+      defaults to the module's debugValues, making init useful against the already-published fleet with no
+      republish (D2); and #Module gains an optional field (working name initValues) carrying the author-intended
+      init template, taking precedence over debugValues, whose testing contract stays unchanged (D3). Six Open
+      Questions carried: field name/shape and #config conformance (OQ1), command surface and ref syntax (OQ2),
+      empty-source behavior (OQ3), renderer home library-vs-cli (OQ4), init-time validation (OQ5), generated
+      cue.mod pinning strategy (OQ6).
+# Peer enhancements this one builds on or interacts with.
+# 0002: the Instance vocabulary this entry is written in. 0011: publish-time
+# gates — the candidate home for an initValues-conformance check (OQ5).
+# 0014: the opposite direction of the same lifecycle (deployed instance →
+# files vs published module → files).
+related:
+  - "0002"
+  - "0011"
+  - "0014"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
