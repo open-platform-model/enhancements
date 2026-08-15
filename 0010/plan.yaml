@@ -326,7 +326,8 @@ slices:
     depends_on:
       - library-core-retarget
     decisions: [D19, D42, D47, D49]
-    status: planned
+    status: done
+    openspec_ref: "cli/cli-coordinate-adoption"
 
   - id: operator-library-retarget
     repo: opm-operator

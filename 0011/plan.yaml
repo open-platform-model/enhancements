@@ -157,6 +157,9 @@ slices:
       1-8 and 10, plus the D16/D18 checks in `opm module vet`.
     depends_on:
       - core-identity-package
+      # Compile dependency: the pipeline builds in the cli repo against the
+      # core-v2 library line that 0010's crossing lands.
+      - "0010:cli-coordinate-adoption"
     decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
     status: planned
 
