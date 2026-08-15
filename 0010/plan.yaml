@@ -381,7 +381,7 @@ slices:
       - catalogs-identity-authoring
       - catalogs-consolidation
     decisions: [D2, D42, D47, D48, 0011:D12]
-    status: planned
+    status: done
 
   - id: catalogs-republish
     repo: catalog
