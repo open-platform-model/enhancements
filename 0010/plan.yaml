@@ -338,7 +338,7 @@ slices:
     depends_on:
       - library-core-retarget
     decisions: [D14, D18, D42, D49]
-    status: in-progress
+    status: done
     openspec_ref: "opm-operator/operator-library-retarget + opm-operator/examples-fleet-core-v2"
 
   - id: catalogs-identity-authoring

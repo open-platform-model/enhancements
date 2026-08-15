@@ -223,9 +223,10 @@ slices:
     repo: cli
     phase: migration
     concern: >
-      D17 items 2-4: rename opmodel.dev/modules/test/hello-web to hello_web,
-      relocate modules/test/* and its -e2e tags to testing.opmodel.dev, delete
-      test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet migration.
+      D17 items 2-4: finish hello-web -> hello_web (source rename landed via
+      0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev,
+      delete test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet
+      migration.
     depends_on: []
     decisions: [D17]
     status: planned
