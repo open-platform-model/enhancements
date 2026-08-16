@@ -197,8 +197,9 @@ slices:
       - core-identity-package
       - library-compat-comparator
       - cli-publish-pipeline
-    decisions: [D7, D9, D22, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42, 0010:D49]
-    status: planned
+    decisions: [D7, D9, D22, D23, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42, 0010:D49]
+    status: done
+    openspec_ref: "cli/cli-catalog-gates"
 
   - id: catalogs-publish-cutover
     repo: catalog
