@@ -14,7 +14,7 @@ graph LR
     S_core-identity-package["core-identity-package (core)\nShip #IdentityPackage and #CatalogMemberFQNGate i…"]:::done
     S_library-compat-comparator["library-compat-comparator (library)\nThe D9 three-rule field-wise walk — NOT cue.Val…"]:::done
     S_cli-login["cli-login (cli)\nopm login [registry] — resolves its target thro…"]:::planned
-    S_cli-publish-pipeline["cli-publish-pipeline (cli)\nOne pipeline, two entry points: decode, read iden…"]:::planned
+    S_cli-publish-pipeline["cli-publish-pipeline (cli)\nOne pipeline, two entry points: decode, read iden…"]:::done
     S_cli-authoring-commands["cli-authoring-commands (cli)\nThe commands that write source and never invent i…"]:::planned
     S_cli-catalog-gates["cli-catalog-gates (cli)\nBoth gates on opm catalog publish: the compatibil…"]:::planned
     S_catalogs-publish-cutover["catalogs-publish-cutover (catalog)\nSwitch the consolidated catalog_opm's release.yml…"]:::planned
@@ -51,7 +51,7 @@ graph LR
 | core-identity-package | implementation | core | done | 0010:core-identity-shape | Ship #IdentityPackage and #CatalogMemberFQNGate in core so publish validates identity and every catalog member by unification and CUE produces the diagnostic, not a hand-rolled comparison.   |
 | library-compat-comparator | implementation | library | done | - | The D9 three-rule field-wise walk — NOT cue.Value.Subsume, measured 10/14 and 8/14 on disjoint sets — plus predecessor selection moved out of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.   |
 | cli-login | implementation | cli | planned | - | `opm login [registry]` — resolves its target through the existing ResolveRegistry precedence and writes to the credential store CUE itself reads, because CUE performs the push. Independent of everything else here.   |
-| cli-publish-pipeline | implementation | cli | planned | core-identity-package, 0010:cli-coordinate-adoption | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10, plus the D16/D18 checks in `opm module vet`.   |
+| cli-publish-pipeline | implementation | cli | done | core-identity-package, 0010:cli-coordinate-adoption | One pipeline, two entry points: decode, read identity, derive coordinates, run the gates, push, with the dry-run plan output. Refusals 1-8 and 10, plus the D16/D18 checks in `opm module vet`.   |
 | cli-authoring-commands | implementation | cli | planned | core-identity-package | The commands that write source and never invent identity: `opm module|catalog version set` / `--version` — the surgical AST rewrite measured in experiments/01 — and `opm mod init` as scaffold AND repair behind a second confirmation.   |
 | cli-catalog-gates | implementation | cli | planned | core-identity-package, library-compat-comparator, cli-publish-pipeline | Both gates on `opm catalog publish`: the compatibility gate plus `opm catalog registry check [--compat]` as an aid; members refused against #CatalogMemberFQNGate per version subdir, traits with unstated or pinned optional. -c required.   |
 | catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-authoring-commands, cli-catalog-gates, cli-login, 0010:catalogs-identity-authoring | Switch the consolidated catalog_opm's release.yml to `opm catalog publish`, delete the copy-and-stamp task — one catalog repo since the consolidation. Catalogs go first because modules build against them.   |

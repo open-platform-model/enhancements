@@ -161,7 +161,8 @@ slices:
       # core-v2 library line that 0010's crossing lands.
       - "0010:cli-coordinate-adoption"
     decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
-    status: planned
+    status: done
+    openspec_ref: "cli/cli-publish-pipeline"
 
   - id: cli-authoring-commands
     repo: cli
