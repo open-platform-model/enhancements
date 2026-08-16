@@ -175,7 +175,15 @@ slices:
     depends_on:
       - core-identity-package
     decisions: [D3, D8, D12, D16, D20]
-    status: planned
+    # Lands as TWO openspec changes in cli: cli-authoring-commands (the
+    # writer toolkit — idempotent Version write, identity read, cue.mod
+    # module writer — and `version set` for both kinds; verified and
+    # archived 2026-08-16, capability spec authoring-commands synced) and
+    # cli-template-modules (the `mod init` scaffold-and-repair rewrite,
+    # which composes those writers). Flips to done — appending the second
+    # change's ref to openspec_ref — when cli-template-modules lands.
+    status: in-progress
+    openspec_ref: "cli/cli-authoring-commands"
 
   - id: cli-catalog-gates
     repo: cli
