@@ -14,7 +14,7 @@ Dependency resolution at publish is CUE's. `cue.mod/local-module.cue` — the sa
 
 The registry namespace is flat. Modules live at `opmodel.dev/modules/<name>`, alongside a test fixture at `opmodel.dev/library/testdata/modules/web-app` and a set of legacy `opmodel.dev/<name>/v1alpha1` paths. Catalogs live at `opmodel.dev/catalogs/<name>`. Nothing distinguishes a module path from a catalog path from a schema path except knowing which is which.
 
-The CLI has no credential surface: no `opm login`, no credential-helper handling, no token storage. It inherits whatever the CUE SDK's resolver finds in the ambient environment.
+The CLI has no credential surface: no login command, no credential-helper handling, no token storage. It inherits whatever the CUE SDK's resolver finds in the ambient environment.
 
 ## Gap / Pain
 

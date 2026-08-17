@@ -594,6 +594,40 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 
 ---
 
+### D23: Predecessor selection is D9's literal rule — a backward scan of the published history, prereleases included
+
+**Amends:** D9.
+
+**Decision:** The compatibility gate selects each member's predecessor exactly as D9's rule sentence states and nothing else: enumerate published versions strictly below the effective version (same major, prereleases included), walk them newest first, and compare each beta/GA member against the newest build carrying its `name` at its `apiVersion`; a member no published build has carried passes. A beta-or-GA `name@apiVersion` key is thereby a permanent claim on the key's own history — an incompatible re-introduction after a removal is refused against the older build that carried it, and the only escape is the `apiVersion` bump. Two corrections to D9's body follow. **First, the closing implementation note naming materialize's `highestStable` as "exactly the right selection" is struck.** `highestStable` is the subscription float's stable-preferring selector — skip prereleases, fall back to highest overall — which is a different rule that coincides with the gate's only on a prerelease-only history (today's, by luck). The day a stable ships it goes wrong: it would compare `2.1.0-alpha.3` against `2.0.0` and miss every break that consumers pinned to prereleases — a pin 0010 D14 blesses — can see. **Second, the "never needs more than one prior build" transitivity claim is demoted to the no-removals fast path.** The induction holds only while no member is ever removed, and member removal is invisible to the gate — the walk visits the *published* build's members (OQ10 records the removal itself as unrefused). The scan therefore probes older builds exactly when a member is absent from the immediate predecessor, which is also what closes the remove-then-readd laundering hole and degrades gracefully across gate-bypassed builds (0010 D11's `cue mod publish` chain-break). Cost is identical to the one-prior-build reading in the common case — one CUE-cached module fetch per gated package — and the full-history probe fires only for members the immediate predecessor does not carry.
+
+**Rationale:** It is what D9 already says; the `:187` note contradicted the `:158` rule sentence, and the implementation had to pick one. The literal rule refuses incompatible re-introduction, needs no separate prerelease policy (recency is the ordering), and holds across bypassed builds.
+
+**Alternatives considered:**
+
+- **`HighestStable` as the selector.** Rejected as above — wrong the day a stable ships. The function itself stays in `library/opm/compat`: `cli-template-modules` makes it template resolution's version selector, its first true caller.
+- **Immediate predecessor only, absent → pass.** Rejected: leaves the remove-then-readd hole open and inherits D35's bypassed-build blindness with no compensating simplicity — the code path is the same loop with an early exit.
+
+**Source:** Settled in `cli/openspec/changes/cli-catalog-gates/design.md` (exploration + decision tree) and implemented 2026-08-16; the two divergence cases are pinned by hermetic multi-build tests (prerelease predecessor compared; remove-then-readd refused against the older build).
+
+---
+
+### D24: The login command is `opm registry login`
+
+**Amends:** D11.
+
+**Decision:** D11's command surface is renamed: the CLI gains `opm registry login [host]` — a new `registry` root command group whose first subcommand is `login` — instead of a top-level `opm login`. Nothing else in D11's contract moves: the no-arg form still targets the registry `ResolveRegistry` produces, the credential still lands in the store CUE already reads, publish itself still never prompts, and every flag and default carries over unchanged. Refusal actions name the renamed form (`opm registry login <host>`).
+
+**Alternatives considered:**
+
+- **Keep `opm login` (docker/podman/oras/cue precedent).** Rejected for ambiguity: those tools are registry clients, so their "login" has exactly one possible referent. `opm` is a platform tool with no hosted OPM service behind it, and a bare `opm login` reads as logging into one — "do I log in to OPM or to something else?" is precisely the confusion. Helm faced the same situation (a package tool pushing to OCI registries it does not operate) and answered it with `helm registry login`.
+- **`opm auth login` (gh precedent).** Rejected: `gh auth` authenticates to the GitHub service, whereas the thing authenticated to here is an OCI registry, and `registry` names it. `auth` would also be a group with no plausible second member, while `registry` has recorded future occupants — logout and the `docker-credential-opm` helper flow D11 keeps as the upgrade path.
+
+**Rationale:** The command should name what you authenticate to. The capability this slice adds is already named `registry-login`, and the `registry` noun already exists on the command surface via `opm catalog registry check` — a top-level `registry` group extends that vocabulary rather than inventing a new one. The rename lands before any implementation exists (the `cli-login` slice is `planned`), so it costs only the artifact edits it arrives with.
+
+**Source:** User decision 2026-08-17, on review of the drafted `cli-login` slice artifacts in `cli/openspec/changes/cli-login/`.
+
+---
+
 ## Open Questions
 
 - **OQ1: When `--version` fills an open identity field, does publish write the working tree or a copy?** Status: resolved-by-D12.
@@ -613,3 +647,5 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 - **OQ8: Does `--version` mean one thing?** Status: resolved-by-D12.
 
 - **OQ9: What reserved segments do Platform and instance artifacts get?** Status: resolved-by-D14.
+
+- **OQ10: What refuses the removal of a beta or GA member?** Nothing does. The compatibility gate (D9/D23) makes a beta+ `name@apiVersion` key a permanent claim on its own history, but the claim binds only when the key is *re-published*: the walk visits the published build's members, so a build that simply drops a member ships clean, and every module matching on that key discovers the removal downstream. The remove-then-readd half is closed — D23's scan refuses an incompatible re-introduction against the older build — but the removal itself is refused by nothing, which is laundering-adjacent evidence that the gap is real: the hermetic remove-then-readd test's *removing* build passes the full gate set on its way to seeding the case. Status: open (logged by the cli-catalog-gates landing, 2026-08-16).
