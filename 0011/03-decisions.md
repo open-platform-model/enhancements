@@ -611,6 +611,23 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 
 ---
 
+### D24: The login command is `opm registry login`
+
+**Amends:** D11.
+
+**Decision:** D11's command surface is renamed: the CLI gains `opm registry login [host]` — a new `registry` root command group whose first subcommand is `login` — instead of a top-level `opm login`. Nothing else in D11's contract moves: the no-arg form still targets the registry `ResolveRegistry` produces, the credential still lands in the store CUE already reads, publish itself still never prompts, and every flag and default carries over unchanged. Refusal actions name the renamed form (`opm registry login <host>`).
+
+**Alternatives considered:**
+
+- **Keep `opm login` (docker/podman/oras/cue precedent).** Rejected for ambiguity: those tools are registry clients, so their "login" has exactly one possible referent. `opm` is a platform tool with no hosted OPM service behind it, and a bare `opm login` reads as logging into one — "do I log in to OPM or to something else?" is precisely the confusion. Helm faced the same situation (a package tool pushing to OCI registries it does not operate) and answered it with `helm registry login`.
+- **`opm auth login` (gh precedent).** Rejected: `gh auth` authenticates to the GitHub service, whereas the thing authenticated to here is an OCI registry, and `registry` names it. `auth` would also be a group with no plausible second member, while `registry` has recorded future occupants — logout and the `docker-credential-opm` helper flow D11 keeps as the upgrade path.
+
+**Rationale:** The command should name what you authenticate to. The capability this slice adds is already named `registry-login`, and the `registry` noun already exists on the command surface via `opm catalog registry check` — a top-level `registry` group extends that vocabulary rather than inventing a new one. The rename lands before any implementation exists (the `cli-login` slice is `planned`), so it costs only the artifact edits it arrives with.
+
+**Source:** User decision 2026-08-17, on review of the drafted `cli-login` slice artifacts in `cli/openspec/changes/cli-login/`.
+
+---
+
 ## Open Questions
 
 - **OQ1: When `--version` fills an open identity field, does publish write the working tree or a copy?** Status: resolved-by-D12.

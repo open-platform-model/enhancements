@@ -140,12 +140,12 @@ slices:
     repo: cli
     phase: implementation
     concern: >
-      `opm login [registry]` — resolves its target through the existing
-      ResolveRegistry precedence and writes to the credential store CUE itself
-      reads, because CUE performs the push. Independent of everything else
-      here.
+      `opm registry login [host]` — resolves its no-arg target through the
+      existing ResolveRegistry precedence and writes to the credential store
+      CUE itself reads, because CUE performs the push. Independent of
+      everything else here.
     depends_on: []
-    decisions: [D11]
+    decisions: [D11, D24]
     status: planned
 
   - id: cli-publish-pipeline
