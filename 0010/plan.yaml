@@ -307,12 +307,13 @@ slices:
     repo: opmodel.dev
     phase: implementation
     concern: >
-      Publish the catalog-author contract: the additive-only rule keyed to
-      level, that OPM verifies it only for catalogs published through `opm
-      catalog publish`, and the three version-shaped values.
+      Publish the catalog-author contract (additive-only rule keyed to level,
+      verified only via `opm catalog publish`, three version-shaped values)
+      plus the registry-namespaces reference: owned prefixes, enforcement
+      points, decisions.
     depends_on:
       - core-alpha-release
-    decisions: [D4, D27, D34, D35]
+    decisions: [D4, D27, D34, D35, "0011:D13", "0011:D14"]
     status: planned
 
   - id: cli-coordinate-adoption
