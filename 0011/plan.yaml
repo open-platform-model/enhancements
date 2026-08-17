@@ -146,7 +146,8 @@ slices:
       everything else here.
     depends_on: []
     decisions: [D11, D24]
-    status: planned
+    status: done
+    openspec_ref: "cli/cli-login"
 
   - id: cli-publish-pipeline
     repo: cli
