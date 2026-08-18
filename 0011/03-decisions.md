@@ -628,6 +628,27 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 
 ---
 
+### D25: Official templates are published modules in a reserved `templates` segment
+
+**Amends:** D13, D14 (extends the first-party namespace with a fourth reserved segment).
+
+**Decision:** `opmodel.dev/templates/<name>` is reserved for the official scaffold templates — real CUE modules hosted in the cli repo and published by the cli's own release pipeline through `opm module publish`, passing every module gate. The segment is **module-kind**: an artifact under it is an ordinary CUE module, and the publish kind-agreement check treats `templates` as a module segment beside the grandfathered `modules`. It is **cli-CI-published only** as a matter of curation, not of mechanism — the gates cannot distinguish publishers, but the release workflow is the only party that publishes there, and that curation is the point. The name `index` inside the segment is **reserved and unused**: insurance for a future published listing artifact, so nothing can squat the one name a registry-resolved `template list` would need. Community space gets **no mirror segment** — expansion only ever targets the curated first-party segment, and a community or third-party template is served by `opm mod init --from <any-module-path>` without a reservation.
+
+What makes the reservation necessary rather than cosmetic is the CLI's shortcut grammar: `opm mod init <path> standard` expands the bare word into `opmodel.dev/templates/standard`. Expansion into an unreserved namespace is a typosquat surface; expansion into a segment only the cli's release CI publishes to is not. And routing templates through the publish gates removes the rot class this replaces: the embedded templates rotted two schema generations because nothing evaluated them, whereas a template that is a vetted, gated, published module fails the cli release instead of failing the user.
+
+**Alternatives considered:**
+
+- **Rebuild the embedded templates as `.tmpl` files** (the previously drafted plan). Rejected: it fixes the content, not the disease — embedded text is evaluated by nothing, so the next schema crossing rots it again silently.
+- **A naming convention under the existing segment** (`opmodel.dev/modules/template_*`). Rejected: a convention cannot be reserved, so shortcut expansion would target space any first-party module can land in, losing the partitionability D13 keeps for first-party space in exactly the one namespace tooling expands into blind.
+- **A community templates segment** (`community.opmodel.dev/t/<owner>/<name>`). Rejected as reservation-without-purpose: the reservation exists for curated expansion, community space is not curated, and `--from` already accepts any published module as a clone source.
+- **A published index artifact now.** Deferred: the baked table in the binary is release-coupled to the published template set by construction — the binary that knows the table belongs to the release train that published the templates. The `index` name reservation keeps the upgrade path open.
+
+**Rationale:** Same shape as D14's platforms reservation — costless to reserve now, expensive to retrofit once `opmodel.dev/templates/*` could already mean something else — plus an active consumer from day one: the shortcut expansion in `opm mod init` is only safe because the segment it expands into is reserved and gate-curated.
+
+**Source:** User decision 2026-08-17. Prescribed by the cli change `cli/openspec/changes/cli-template-modules/` (proposal + design), whose gate tables land citing this decision; drafted here as its prerequisite.
+
+---
+
 ## Open Questions
 
 - **OQ1: When `--version` fills an open identity field, does publish write the working tree or a copy?** Status: resolved-by-D12.

@@ -22,6 +22,7 @@ import "strings"
 //   first-party  opmodel.dev/modules/<name>
 //                opmodel.dev/catalogs/<name>
 //                opmodel.dev/platforms/<name>    (reserved, nothing published yet — D14)
+//                opmodel.dev/templates/<name>    (reserved, module-kind, cli-CI-published — D25)
 //                opmodel.dev/core                (fixed path, outside the pattern)
 //   community    community.opmodel.dev/m/<owner>/<name>
 //                community.opmodel.dev/catalogs/<owner>/<name>
@@ -48,10 +49,14 @@ import "strings"
 // proposed renaming it to `m`; D13 declined, because the rename rewrites every
 // published module coordinate and every deployment-side pin for a spelling
 // change D5 itself calls cosmetic.
+// `templates` is D25's segment: official scaffold templates, module-kind,
+// published only by the cli's release CI. The name `index` inside it is
+// reserved (future listing insurance, unused today). Community space has NO
+// mirror segment — expansion only targets the curated first-party segment.
 #FirstPartyPath: {
 	space:  "first-party"
 	domain: "opmodel.dev"
-	kind!:  "modules" | "catalogs" | "platforms"
+	kind!:  "modules" | "catalogs" | "platforms" | "templates"
 	name!:  string
 	out:    domain + "/" + kind + "/" + name
 }
@@ -102,6 +107,12 @@ _communityPlatform: (#CommunityPath & {
 	owner: "acme"
 	name:  "edge"
 }).out & "community.opmodel.dev/p/acme/edge"
+
+// Reserved and occupied (D25) — the cli release CI publishes here.
+_firstPartyTemplate: (#FirstPartyPath & {
+	kind: "templates"
+	name: "standard"
+}).out & "opmodel.dev/templates/standard"
 
 // MUST FAIL — a community path with no owner. The segment is what supplies
 // uniqueness structurally; without it the space is the flat namespace D5
@@ -359,7 +370,7 @@ _gateCatalogFlagIgnored: #OverrideGate & {
 	// `testing.opmodel.dev/...` is deliberately NOT caught: it is a separate
 	// domain carrying fixtures (D17 relocates the test namespace onto it), and
 	// it is not the namespace #RegistryPath models.
-	_firstPartyShape: "^opmodel\\.dev/(modules|catalogs|platforms)/[a-z0-9._-]+$"
+	_firstPartyShape: "^opmodel\\.dev/(modules|catalogs|platforms|templates)/[a-z0-9._-]+$"
 	_communityShape:  "^community\\.opmodel\\.dev/(m|catalogs|p)/[a-z0-9._-]+/[a-z0-9._-]+$"
 
 	// opmodel.dev/core is a fixed path outside the kind pattern, per
@@ -383,7 +394,9 @@ _gateCatalogFlagIgnored: #OverrideGate & {
 	// Note there is no `platforms` arm: artifactKind admits only module and
 	// catalog, so a plan targeting opmodel.dev/platforms/<name> fails here. That
 	// is D14's reservation working as intended — the segment is reserved, and
-	// nothing publishes a platform today.
+	// nothing publishes a platform today. `templates` (D25) is the opposite
+	// case: module-kind by decision, so it sits in the module arm beside the
+	// grandfathered `modules` spelling.
 	_repoSegments: strings.Split(registryRepo, "/")
 	_kindSegment: [
 		if _ownedDomain && len(_repoSegments) > 1 {_repoSegments[1]},
@@ -393,7 +406,7 @@ _gateCatalogFlagIgnored: #OverrideGate & {
 	_kindAgrees: [
 		if !_ownedDomain {true},
 		if _isCore {true},
-		if artifactKind == "module" {_kindSegment == "modules" || _kindSegment == "m"},
+		if artifactKind == "module" {_kindSegment == "modules" || _kindSegment == "m" || _kindSegment == "templates"},
 		_kindSegment == "catalogs",
 	][0]
 	_kindAgrees: true
@@ -503,6 +516,18 @@ _planCore: #PublishPlan & {
 	gate: {overridePresent: false}
 }
 
+// The reserved templates segment (D25): a module published there by the cli
+// release CI is an ordinary module plan and must PASS — the segment is
+// module-kind, so kind agreement holds.
+_planTemplateModule: #PublishPlan & {
+	artifactKind: "module"
+	declaredPath: "opmodel.dev/templates/standard@v1"
+	cueModPath:   "opmodel.dev/templates/standard@v1"
+	tag: {tag: "v1.0.0"}
+	identity: [{field: "Version", state: "concrete", declaredValue: "1.0.0"}]
+	gate: {overridePresent: false}
+}
+
 // MUST FAIL — cue.mod disagrees with the artifact's declared identity.
 //   cueModPath: conflicting values "...opm@v1" and "...other@v1"
 //
@@ -601,6 +626,21 @@ _planCore: #PublishPlan & {
 //   artifactKind: "module"
 //   declaredPath: "opmodel.dev/modules/test/hello_web@v1"
 //   cueModPath:   "opmodel.dev/modules/test/hello_web@v1"
+//   tag: {tag: "v1.0.0"}
+//   identity: [{field: "Version", state: "concrete", declaredValue: "1.0.0"}]
+//   gate: {overridePresent: false}
+//  }
+//
+// MUST FAIL — a nested path under the reserved templates segment (D25).
+// First-party space is exactly three segments; `templates/<name>` admits no
+// owner or grouping level, which is part of what keeps shortcut expansion
+// unambiguous. Confirmed 2026-08-17 (cue v0.17.1):
+//   _planNestedTemplate._namespaceOK: conflicting values false and true
+//
+//  _planNestedTemplate: #PublishPlan & {
+//   artifactKind: "module"
+//   declaredPath: "opmodel.dev/templates/x/y@v1"
+//   cueModPath:   "opmodel.dev/templates/x/y@v1"
 //   tag: {tag: "v1.0.0"}
 //   identity: [{field: "Version", state: "concrete", declaredValue: "1.0.0"}]
 //   gate: {overridePresent: false}
