@@ -110,6 +110,20 @@
 # never fire again. 0010 D49 versioned the member filing, which is why
 # cli-catalog-gates' member walk iterates <kind>/<apiVersion>/
 # subdirectories. Everything else above stands.
+#
+# 2026-08-18 — catalogs-publish-cutover landed (catalog_opm PR 42) with one
+# deviation against 02-design.md:104's "branch-publish.yml — unchanged":
+# the dev-tag workflow HAD to change, because publish:branch called the
+# deleted copy-and-stamp task and a -dev version never equals the committed
+# identity.Version — the shipped gate treats a defaulted Version as
+# concrete, and --version asserts, never overwrites (refusal 5), while D18
+# binds the pushed tag to the tree's declared Version. The dev path is now
+# branch-tag.sh (itself unchanged, as D15 requires) -> `opm catalog version
+# set` into the runner's working tree, never a commit -> `opm catalog
+# publish`. The same mechanics retired 0010's recorded D15 deviation: the
+# x-release-please-version annotation is gone, and release.yml runs the
+# writer on the open release branch instead. The 2026-08-18 history event
+# carries the full record.
 slices:
   - id: core-identity-package
     repo: core
@@ -218,7 +232,10 @@ slices:
       - cli-login
       - "0010:catalogs-identity-authoring"
     decisions: [0010:D47]
-    status: planned
+    # Landed via catalog_opm PR 42 (no openspec workspace in that repo; the
+    # 2026-08-18 history event is the record). Deviations noted in the plan
+    # header's 2026-08-18 paragraph.
+    status: done
 
   - id: modules-publish-cutover
     repo: modules
