@@ -26,6 +26,8 @@ history:
   - date: "2026-08-18"
     event: Drafted
   - date: "2026-08-18"
+    event: "Plain-CUE compatibility contract added (D8, C1-C3) with both kernel divergences measured; OQ5 opened"
+  - date: "2026-08-18"
     event: "Groundwork preceding the entry: dead *Defaults definitions removed (catalog_opm eab9b12), K8s-fidelity narrowing issue filed (catalog_opm issue 40), layering contract section 6 added to core SPEC.md (core 504e927)"
 # Peer enhancements this one builds on or interacts with.
 related:

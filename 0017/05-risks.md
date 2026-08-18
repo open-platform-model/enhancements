@@ -10,6 +10,8 @@ This document records the honest costs of the proposed design.
 - **Blueprint narrowing rejects values the fleet already uses.** Kind-invalid values that previously vetted clean (and failed at apply) become vet errors — correct, but a hard break for any module carrying one. **Mitigation:** fleet-wide vet against the narrowed catalog before release; each hit is a latent apply-time failure being surfaced early.
 - **The CUE closedness regression interacts with new blueprint conjunctions.** The workspace pins a `cue` line with a known guard-closedness bug (hoisted-guard workaround documented in catalog_opm). New narrowing structs under conditional schemas (`rollingUpdate` under `if type == …`) may trip it. **Mitigation:** the param-level narrowing is explicitly marked untested in D3; the catalog slice validates against the pinned toolchain and falls back to type-level-only narrowing if the bug fires.
 
+- **A fleet module quietly comes to depend on kernel-only resolution.** A module using the collision pattern renders fine via `opm` but fails any downstream plain-CUE `export` consumer; nothing in `cue vet` flags it (C1 passes). **Mitigation:** the D8 matrix keeps the divergence visible in CI; OQ5 considers a warning gate; the SHOULD in D8 gives reviewers a citable rule.
+
 ## Drawbacks
 
 - **Two observable output shifts if OQ4 lands catalog-first.** Blueprint defaults make `strategy:` blocks appear in rendered output; a later silent-posture decision (OQ1) would remove them again. Landing order and posture decisions trade rollout simplicity against output stability.

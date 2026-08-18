@@ -55,7 +55,7 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 ### D4: The kernel finalizes validated `#config` to concrete data before composition
 
-**Decision:** Between config validation and `FillPath(schema.Values, …)` (`library/opm/kernel/process.go:42`), the kernel resolves every `#config` default to its concrete value, so the composition receives plain data. Applies identically to the `ValidateConfigDetailed` layered-sources path (finalize after the last source merges) and the debugValues/synth path. Consequence, accepted deliberately: a config default becomes a commitment — a default that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
+**Decision:** Between config validation and `FillPath(schema.Values, …)` (`library/opm/kernel/process.go:42`), the kernel resolves every `#config` default to its concrete value, so the composition receives plain data. Applies identically to the `ValidateConfigDetailed` layered-sources path (finalize after the last source merges) and the debugValues/synth path. Consequence, accepted deliberately: a config default becomes a commitment — a default that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct. Under D8's compatibility contract this is divergence *elimination* (kernel stricter and louder than plain CUE, which silently substitutes); the collision case the finalize resolves is divergence *collision* (kernel succeeds where plain CUE fails loudly with `incomplete value`). Neither is a silent fork of plain-CUE semantics.
 
 **Alternatives considered:**
 
@@ -94,6 +94,20 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 **Source:** core SPEC.md §6 (core 504e927); user decision 2026-08-18 ("we cannot use CUE to enforce these behaviors, we will have built-in gates in the CLI").
 
+### D8: Plain-CUE compatibility is a hard constraint on every mechanism
+
+**Decision:** OPM artifacts remain stock-CUE evaluable. C1: plain `cue vet` MUST pass on every valid module and catalog package — all mechanisms preserve it, measured. C2: the kernel MUST NOT silently produce different values than plain CUE; every divergence has at least one loud side. C3: two loud divergences are accepted and documented — the kernel resolves the config-vs-blueprint default collision that plain `cue export` reports as `incomplete value` (kernel more capable), and the kernel rejects the eliminated-default substitution that plain CUE ships silently (kernel stricter). Modules needing plain-CUE export parity SHOULD avoid the collision pattern (OQ5 covers gate support). The core slice adds the compatibility clauses to SPEC.md §6.
+
+**Alternatives considered:**
+
+- *Kernel-only semantics without a compatibility contract* — the original D4 framing; rejected because nothing would stop future mechanisms from quietly forking the language, and the fleet's own CI is plain `cue vet`.
+- *Full plain-CUE parity (no divergences at all)* — would forbid the D4 finalize entirely, reverting L5 to an author obligation and leaving the elimination case's silent substitution in place; rejected — both divergences are loud, and the silent substitution plain CUE performs is the worst behavior on the table.
+- *Mirroring the finalize into a published CUE helper* so plain tooling could opt in — no mechanism: the finalize is an evaluation-order choice, not a value; CUE cannot express "resolve these defaults first".
+
+**Rationale:** The schema is a published contract consumed by people who never install the OPM CLI; `cue vet`/`cue export` against GHCR-resolved modules must keep meaning something. The measured probes show the constraint is satisfiable without giving up D4: plain vet is untouched everywhere, and both export-level divergences fail loud on at least one side.
+
+**Source:** user decision 2026-08-18 ("we cannot break regular cue vet; I still want to be compatible with plain CUE cli tools"); measured probes 2026-08-18 (collision → `incomplete value` under export, vet unaffected; elimination → silent `8080` under export, kernel-side error).
+
 ### D7: The retired `#*Defaults` definitions are removed
 
 **Decision:** The twelve unreferenced `#*Defaults` definitions (relics of the v1alpha1 trait-defaults idiom, retired when defaulting moved into transformers post-014) are deleted from catalog_opm. Landed: catalog_opm eab9b12 (`feat!`), 2026-08-18, after verifying zero references across the workspace and downstream consumers.
@@ -114,4 +128,5 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 - **OQ1: Do the first-party workload blueprints keep their `updateStrategy` (and similar) defaults permanently, or drop them once D5 lands?** Status: open. Opinionated posture: rendered objects state their strategy explicitly; values identical to the K8s defaults; template renders before the core release ships. Silent posture (post-D5): leaner rendered output, Kubernetes owns its defaults, transformer fallbacks carry the per-kind decision. Both are correct under the contract; this is a taste call about what first-party rendered objects look like. Note `restartPolicy` needs no default under either posture — narrowing to the single legal value (`"Always"` for Deployment/STS/DS) makes it concrete by itself.
 - **OQ2: How does the CLI gate detect an L4 violation (author-marked default on a `#components` field)?** Status: open. `hasDefault` inspection on component-spec leaves at module vet is the candidate; needs a feasibility spike — distinguishing an author-written `*` from one arriving through a legitimate `#config` reference requires positional/provenance info the evaluator may not expose cheaply. D4 removes the collision *consequence* either way; the gate would catch the intent violation.
 - **OQ3: Exact kernel finalize mechanics.** Status: open. Candidates: recursive `Default()` walk versus export-and-rebuild via `Syntax(cue.Final(), …)`. Must preserve absence of unset optional fields (D5 depends on it), surface ambiguous-default errors with config-context messages, and interact correctly with `#Secret` contract values in `#config`. Needs an experiment under `experiments/` before the entry promotes.
+- **OQ5: Should a vet gate warn when a module depends on kernel-only default resolution?** Status: open. The collision pattern (defaulted `#config` reference into a blueprint-defaulted field) renders under the kernel but is not plain-CUE-exportable (D8 C3). A gate could detect and warn for modules that declare plain-CUE parity matters. Interacts with OQ2's `hasDefault` feasibility spike — likely the same detection machinery.
 - **OQ4: Sequencing of the core `feat!` relative to the catalog defaults.** Status: open. The catalog defaults (D3) work against the current core and unblock the template immediately; D5 changes what "silent posture" renders (fields the blueprint leaves undefaulted disappear from output when authors are silent). Decide whether catalog lands first (two observable output shifts) or waits for core (one).

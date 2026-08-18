@@ -10,6 +10,7 @@ This document answers the question: "What is the proposed solution and how does 
 - Blueprints constrain composed fields to what the target kind's API accepts, so kind-invalid values fail at vet time, not at `kubectl apply`.
 - `#Trait.optional` (0010 D46) becomes load-bearing: an optional trait's field is genuinely absent until someone sets it; a module demanding a trait (`optional: false`) makes its field required.
 - The rules that CUE cannot enforce are written as specification with citable identifiers, enforceable by CLI gates.
+- Every mechanism stays compatible with stock CUE tooling: plain `cue vet` keeps passing on every valid package, and the kernel never silently produces different values than plain CUE would — the OPM CLI improves error quality and resolution, it does not fork the language.
 
 ## Non-Goals
 
@@ -34,6 +35,16 @@ instance values ─── beats ──► #config defaults ─── beat ──
 2. **Blueprints narrow and default**: each blueprint conjoins the submenu its target kind honors and MAY mark at most one field-level default per field — the single `*` on the catalog side. An author's concrete value eliminates the marked arm and wins.
 3. **The kernel finalizes `#config` to data**: after validating instance values against `#config`, and before `FillPath`, the kernel resolves every default to its concrete value. What enters the composition is plain data — so an author's `#config` default beats a blueprint default by mechanism 2's own rule, and the two-`*` annihilation case becomes unrepresentable.
 4. **Core honors trait optionality**: `#Component._allFields` projects an `optional: true` trait's spec through an optionalizing comprehension (`for k, v in trait.spec {(k)?: v}`) — the field exists as a constraint but is absent until set — and embeds an `optional: false` trait's spec as-is (required). Absence is what arms the transformers' existing per-kind fallbacks.
+
+## Plain-CUE Compatibility
+
+OPM artifacts remain plain CUE packages evaluable by stock `cue` tooling; the OPM CLI adds better errors and the D4 resolution step, never divergent silent semantics. The contract (D8), with both divergences measured (cue v0.17.1, 2026-08-18):
+
+- **C1 (hard):** plain `cue vet` passes on every valid module and catalog package. All four mechanisms preserve this — non-concrete vet does not evaluate definition-internal concreteness, and the fleet's `task vet` is exactly this command.
+- **C2 (hard):** the kernel never *silently* produces different values than plain CUE. In every divergence case at least one side errors loudly.
+- **C3 (documented divergences, both loud):**
+  - *Collision* (a `#config` default meeting a blueprint default): plain `cue export` fails with `incomplete value`; the kernel resolves it (config wins). A module relying on this pattern is kernel-renderable but not plain-CUE-exportable — modules that need plain-CUE export parity SHOULD avoid it (OQ5: whether a vet gate warns).
+  - *Elimination* (a `#config` default vetoed by a downstream constraint): plain `cue export` silently ships the surviving disjunct — a value nobody chose; the kernel errors. The kernel is strictly louder.
 
 ## Schema / API Surface
 
