@@ -21,7 +21,8 @@ graph LR
     S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::planned
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
-    S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: finish hello-web -> hello_web (sou…"]:::in_progress
+    S_registry-cleanup["registry-cleanup (cli)\nD17 item 3 for the cli's own fixture: relocated t…"]:::done
+    S_registry-cleanup-operator["registry-cleanup-operator (opm-operator)\nD17 items 2-3 for the operator fleet: relocate mo…"]:::in_progress
   end
 
   X_0010_core-identity-shape["0010:core-identity-shape"]:::other
@@ -44,6 +45,7 @@ graph LR
   S_catalogs-publish-cutover -->|depends_on| S_modules-publish-cutover
   X_0010_modules-identity-authoring["0010:modules-identity-authoring"]:::other
   X_0010_modules-identity-authoring -->|depends_on| S_modules-publish-cutover
+  S_registry-cleanup -->|depends_on| S_registry-cleanup-operator
 ```
 
 | ID | Phase | Repo | Status | Depends on | Concern |
@@ -56,4 +58,5 @@ graph LR
 | cli-catalog-gates | implementation | cli | done | core-identity-package, library-compat-comparator, cli-publish-pipeline | Both gates on `opm catalog publish`: the compatibility gate plus `opm catalog registry check [--compat]` as an aid; members refused against #CatalogMemberFQNGate per version subdir, traits with unstated or pinned optional. -c required.   |
 | catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-authoring-commands, cli-catalog-gates, cli-login, 0010:catalogs-identity-authoring | Switch the consolidated catalog_opm's release.yml to `opm catalog publish`, delete the copy-and-stamp task — one catalog repo since the consolidation. Catalogs go first because modules build against them.   |
 | modules-publish-cutover | implementation | modules | planned | cli-publish-pipeline, cli-authoring-commands, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity- authoring; coordinates do not change.   |
-| registry-cleanup | migration | cli | in-progress | - | D17 items 2-4: finish hello-web -> hello_web (source rename landed via 0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev, delete test/cleanmod. The cli fixture is done; the operator fleet, -e2e tags and cleanmod remain.   |
+| registry-cleanup | migration | cli | done | - | D17 item 3 for the cli's own fixture: relocated to testing.opmodel.dev/modules/cli/* and published to GHCR through the gated publish pipeline. The operator fleet is registry-cleanup-operator.   |
+| registry-cleanup-operator | migration | opm-operator | in-progress | registry-cleanup | D17 items 2-3 for the operator fleet: relocate modules/test/* to testing.opmodel.dev/modules/operator/* with identity packages and gated publishing. Deletion of the old packages and their -e2e tags follows.   |
