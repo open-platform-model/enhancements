@@ -250,7 +250,7 @@ slices:
       - catalogs-publish-cutover
       - "0010:modules-identity-authoring"
     decisions: [D13, D17]
-    status: planned
+    status: in-progress
 
   - id: registry-cleanup
     repo: cli
