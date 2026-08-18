@@ -64,8 +64,10 @@ slices:
     repo: opmodel.dev
     phase: implementation
     concern: >-
-      Regenerate the schema reference; rewrite the secrets authoring docs
-      around the routing/fulfilment split and the SOPS template workflow.
+      Author the first secrets docs (public docs deliberately carry none
+      until this lands): routing/fulfilment split, the two arms, no plaintext
+      in renders, materialisation as a platform choice, SOPS workflow.
+      Regenerate the schema reference.
     depends_on: [core-secret-narrowing, cli-secrets-surface]
     status: planned
 

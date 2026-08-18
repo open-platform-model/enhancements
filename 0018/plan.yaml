@@ -1,0 +1,155 @@
+# Structured slice plan for enhancement 0018 (Documentation Architecture).
+#
+# Structural backing for 06-operational.md ## Cross-Repo Coordination, which
+# keeps the narrative rationale for the order.
+#
+# ---------------------------------------------------------------------------
+# WHY THERE IS NO MIGRATION PHASE
+# ---------------------------------------------------------------------------
+# Every slice is `implementation`. Nothing here moves an already-published
+# artifact onto a new definition: the doc-comment backfills change CUE source
+# and ship in ordinary catalog and core releases, and site content publishes
+# no module at all. The retirement of opm/docs would be the closest thing to
+# a migration, and it cannot be a slice at all (below).
+#
+# ---------------------------------------------------------------------------
+# THE opm META REPO CANNOT OWN A SLICE
+# ---------------------------------------------------------------------------
+# enhancements/schema.cue's #Area enumeration has no `opm` entry, so the meta
+# repo cannot appear in config.yaml affects and cannot be a slice's `repo`.
+# That tree holds the stale prose this entry replaces (every file last touched
+# 2026-04-21, describing the v0 catalog line). Its retirement is OQ4 and is
+# deliberately absent from this plan rather than smuggled into a neighbouring
+# repo's slice.
+#
+# ---------------------------------------------------------------------------
+# THE ONE ORDERING CONSTRAINT THAT MATTERS
+# ---------------------------------------------------------------------------
+# The generator must not publish before the catalog backfill lands. Generating
+# against today's coverage emits authoritative-looking pages that say nothing
+# for every blueprint and most traits. That is why docs-authoring depends on
+# both, and it is also the rollback hazard 06-operational.md names: reverting
+# the backfill while the generator is live is what produces the bad state.
+slices:
+  - id: docs-generator-repair
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      Fix `task generate:cli`; switch the reference generator from text
+      scraping to evaluated CUE so all 70 members carry descriptions; split
+      generated reference by family; fix the src-excluding tree bug.
+    depends_on: []
+    decisions: [D1, D6]
+    status: planned
+
+  - id: catalog-doc-comments
+    repo: catalog
+    phase: implementation
+    concern: >
+      Backfill doc comments on blueprints (0 of 5), abstraction resources
+      (1 of 11) and traits (6 of 27); add a CI gate refusing a new member
+      that ships without one.
+    depends_on: []
+    decisions: [D1]
+    status: planned
+
+  - id: core-doc-comments
+    repo: core
+    phase: implementation
+    concern: >
+      Backfill doc comments on the roughly 35 definitions with no SPEC.md
+      section, types.cue foremost, so generated reference entries carry
+      prose rather than a bare field list.
+    depends_on: []
+    decisions: [D1]
+    status: planned
+
+  - id: docs-concepts
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The Concepts section: the four version-shaped axes, fqn == modulePath,
+      matchLabels versus metadata.labels, the component derivation rule.
+      Mined from SPEC.md Rationale and rewritten for a public reader.
+    depends_on: []
+    decisions: [D2]
+    status: planned
+
+  - id: docs-diagnostics
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The Diagnostics section: error to cause to fix, distinguishing
+      unresolved demand, unhandled trait per posture, identity mismatch at
+      acquire and at materialize, and a named build that is not published.
+    depends_on: []
+    status: planned
+
+  - id: docs-boundaries
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The boundaries page: what OPM does not do. No lifecycle hooks,
+      workflows, rollback, reverse handoff, export or provider classes.
+      Draft systems named as absent, never as forthcoming.
+    depends_on: []
+    decisions: [D3]
+    status: planned
+
+  - id: library-embedder-guide
+    repo: library
+    phase: implementation
+    concern: >
+      Rewrite docs/getting-started.md around the real lifecycle including
+      the mandatory Materialize step it omits today, so that following it
+      end to end produces working code.
+    depends_on: []
+    status: planned
+
+  - id: docs-authoring
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The authoring track, blueprint-led: which blueprint to start from,
+      which traits attach to it, cross-member interactions, interleaved
+      with generated member entries.
+    depends_on:
+      - docs-concepts
+      - docs-generator-repair
+      - catalog-doc-comments
+    decisions: [D6]
+    status: planned
+
+  - id: docs-operating
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The deploying and operating track: instances, CLI versus operator
+      ownership, handoff, platform subscriptions, and the deletion and
+      prune hazard page.
+    depends_on:
+      - docs-concepts
+    decisions: [D4]
+    status: planned
+
+  - id: docs-start-here
+    repo: opmodel.dev
+    phase: implementation
+    concern: >
+      The Start here section: install, first module, first render, first
+      deploy. The graduation gate walks it end to end on a clean machine
+      rather than asserting it.
+    depends_on:
+      - docs-authoring
+      - docs-operating
+    status: planned
+
+# Decisions this entry implements in no slice, each with the reason. Surfaced
+# by `task decisions:uncovered`, which is quiet about them once they are here.
+unsliced:
+  D5: >
+    A decision to write nothing. Secrets documentation is owned by enhancement
+    0013's docs-secrets-authoring slice, whose concern was amended 2026-08-18
+    to say it authors the first secrets docs rather than rewriting any. This
+    entry's only obligation is to leave the gap visible and linked, which is
+    part of whichever section would have carried it.
