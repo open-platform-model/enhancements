@@ -314,7 +314,8 @@ slices:
     depends_on:
       - core-alpha-release
     decisions: [D4, D27, D34, D35, "0011:D13", "0011:D14"]
-    status: planned
+    status: done
+    openspec_ref: "opmodel.dev/docs-catalog-contract"
 
   - id: cli-coordinate-adoption
     repo: cli

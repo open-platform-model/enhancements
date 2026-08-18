@@ -16,7 +16,7 @@ graph LR
     S_catalog-consumption-rewire["catalog-consumption-rewire (catalog)\nImport core's #Secret, delete the duplicated cont…"]:::planned
     S_cli-secrets-surface["cli-secrets-surface (cli)\nInspect secrets section, opm secrets template, SO…"]:::planned
     S_operator-library-bump["operator-library-bump (opm-operator)\nBump to the secret-pass library; document the sup…"]:::planned
-    S_docs-secrets-authoring["docs-secrets-authoring (opmodel.dev)\nRegenerate the schema reference; rewrite the secr…"]:::planned
+    S_docs-secrets-authoring["docs-secrets-authoring (opmodel.dev)\nAuthor the first secrets docs (public docs delibe…"]:::planned
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
     S_modules-metallb-migration["modules-metallb-migration (modules)\nMigrate metallb to the attribute form: drop the s…"]:::planned
@@ -41,5 +41,5 @@ graph LR
 | catalog-consumption-rewire | implementation | catalog | planned | core-secret-narrowing | Import core's #Secret, delete the duplicated contract and discovery pyramid, rewrite both consumption sites to read .ref/.key, strip all name computation from secret_transformer.  |
 | cli-secrets-surface | implementation | cli | planned | library-secret-pass, catalog-consumption-rewire | Inspect secrets section, opm secrets template, SOPS values-file decrypt, secrets-aware vet messaging; port the secrets-module fixture and retire the superseded auto-secrets-injection spec.  |
 | operator-library-bump | implementation | opm-operator | planned | library-secret-pass | Bump to the secret-pass library; document the supplied-arm plaintext-in-CR posture with the referenced arm as production guidance (no valuesFrom mechanism).  |
-| docs-secrets-authoring | implementation | opmodel.dev | planned | core-secret-narrowing, cli-secrets-surface | Regenerate the schema reference; rewrite the secrets authoring docs around the routing/fulfilment split and the SOPS template workflow.  |
+| docs-secrets-authoring | implementation | opmodel.dev | planned | core-secret-narrowing, cli-secrets-surface | Author the first secrets docs (public docs deliberately carry none until this lands): routing/fulfilment split, the two arms, no plaintext in renders, materialisation as a platform choice, SOPS workflow. Regenerate the schema reference.  |
 | modules-metallb-migration | migration | modules | planned | core-secret-narrowing, library-secret-pass, catalog-consumption-rewire | Migrate metallb to the attribute form: drop the spec.secrets map, move RBAC resourceNames to the new object name, re-render and diff against the live cluster (values unchanged); rewrite DESIGN_PATTERNS' secret section.  |
