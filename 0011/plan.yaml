@@ -239,14 +239,25 @@ slices:
     repo: cli
     phase: migration
     concern: >
-      D17 items 2-4: finish hello-web -> hello_web (source rename landed via
-      0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev,
-      delete test/cleanmod. The cli fixture is done; the operator fleet,
-      -e2e tags and cleanmod remain.
+      D17 item 3 for the cli's own fixture: relocated to
+      testing.opmodel.dev/modules/cli/* and published to GHCR through the gated
+      publish pipeline. The operator fleet is registry-cleanup-operator.
     depends_on: []
     decisions: [D17]
-    status: in-progress
+    status: done
     openspec_ref: "cli/fixture-testing-domain"
+
+  - id: registry-cleanup-operator
+    repo: opm-operator
+    phase: migration
+    concern: >
+      D17 items 2-3 for the operator fleet: relocate modules/test/* to
+      testing.opmodel.dev/modules/operator/* with identity packages and gated
+      publishing. Deletion of the old packages and their -e2e tags follows.
+    depends_on: ["registry-cleanup"]
+    decisions: [D17]
+    status: in-progress
+    openspec_ref: "opm-operator/fixtures-testing-domain"
 
 # Decisions this entry implements in no slice, each with the reason. Surfaced
 # by `task decisions:uncovered`, which is quiet about them once they are here.
