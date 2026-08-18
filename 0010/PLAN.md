@@ -27,7 +27,7 @@ graph LR
     S_modules-identity-authoring["modules-identity-authoring (modules)\nRewrite core imports to v2. Add the identity subp…"]:::done
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
-    S_catalogs-republish["catalogs-republish (catalog)\nCut the release of the consolidated catalog_opm t…"]:::planned
+    S_catalogs-republish["catalogs-republish (catalog)\nCut the release of the consolidated catalog_opm t…"]:::done
     S_modules-fleet-republish["modules-fleet-republish (modules)\nRepublish the fleet through opm module publish ag…"]:::planned
   end
 
@@ -80,5 +80,5 @@ graph LR
 | catalogs-identity-authoring | implementation | catalog | done | core-alpha-release | Core imports rewritten to v2, identity subpackages committed, every leaf re-keyed, matching moved to matchLabels — landed across all three repos. Deviations: stamping task kept for 0011 to retire, releases via release-please.   |
 | catalogs-consolidation | implementation | catalog | done | catalogs-identity-authoring, core-versioned-kindprefix | catalog_opm absorbs catalog_kubernetes (k8s-* raw family, upstream-mirrored apiVersions) and catalog_opm_experimental (v1alpha1 members); version-segment filing, one schema tree, no-downward-dependency vet check, tombstones.   |
 | modules-identity-authoring | implementation | modules | done | catalogs-identity-authoring, catalogs-consolidation | Rewrite core imports to v2. Add the identity subpackage per module and metadata wiring; blueprint imports move to D49 versioned paths; re-pin absorbed-catalog subscriptions to catalogs/opm, rename raw-member spec keys. Source only.   |
-| catalogs-republish | migration | catalog | planned | catalogs-identity-authoring, catalogs-consolidation, 0011:catalogs-publish-cutover | Cut the release of the consolidated catalog_opm through `opm catalog publish`. The first act that changes a published artifact. (Was three catalogs until D47.)   |
+| catalogs-republish | migration | catalog | done | catalogs-identity-authoring, catalogs-consolidation, 0011:catalogs-publish-cutover | Cut the release of the consolidated catalog_opm through `opm catalog publish`. The first act that changes a published artifact. (Was three catalogs until D47.)   |
 | modules-fleet-republish | migration | modules | planned | catalogs-republish, modules-identity-authoring, 0011:modules-publish-cutover | Republish the fleet through `opm module publish` against the released catalogs. The only fleet republish in the 0010/0011 pair.   |

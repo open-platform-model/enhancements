@@ -395,7 +395,11 @@ slices:
       - catalogs-identity-authoring
       - catalogs-consolidation
       - "0011:catalogs-publish-cutover"
-    status: planned
+    # Landed as the v2.0.0-alpha.4 release: catalog_opm PR 43 merged
+    # 2026-08-18, published by release.yml through `opm catalog publish`
+    # (plan GO, post-publish registry check --compat clean). The 2026-08-18
+    # history event carries the record; no openspec workspace in that repo.
+    status: done
 
   - id: modules-fleet-republish
     repo: modules
