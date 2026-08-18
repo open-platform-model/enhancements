@@ -22,10 +22,11 @@ graph LR
   N0010["0010: Module and Catalog Identity"]:::accepted
   N0011["0011: Module and Catalog Publishing"]:::accepted
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
-  N0013["0013: Attribute-Declared Secret Fields"]:::draft
+  N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0015["0015: Catalog Contracts, Provider Classes, and Transfor…"]:::draft
   N0016["0016: Initialize a Module Instance Package from a Publi…"]:::draft
+  N0017["0017: Layered Defaults"]:::draft
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003
@@ -50,6 +51,7 @@ graph LR
   N0010 ---|related| N0012
   N0010 ---|related| N0013
   N0010 ---|related| N0015
+  N0010 ---|related| N0017
   N0011 ---|related| N0013
   N0011 ---|related| N0015
   N0011 ---|related| N0016

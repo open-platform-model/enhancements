@@ -1,0 +1,35 @@
+id: "0017"
+slug: layered-defaults
+title: Layered Defaults
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cross-cutting
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - cross-cutting
+  - core
+  - library
+  - catalog
+  - cli
+  - modules
+created: "2026-08-18"
+updated: "2026-08-18"
+authors:
+  - emil@jacero.se
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones.
+history:
+  - date: "2026-08-18"
+    event: Drafted
+  - date: "2026-08-18"
+    event: "Groundwork preceding the entry: dead *Defaults definitions removed (catalog_opm eab9b12), K8s-fidelity narrowing issue filed (catalog_opm issue 40), layering contract section 6 added to core SPEC.md (core 504e927)"
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0010"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
