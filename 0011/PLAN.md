@@ -21,7 +21,7 @@ graph LR
     S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::planned
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
-    S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: finish hello-web -> hello_web (sou…"]:::planned
+    S_registry-cleanup["registry-cleanup (cli)\nD17 items 2-4: finish hello-web -> hello_web (sou…"]:::in_progress
   end
 
   X_0010_core-identity-shape["0010:core-identity-shape"]:::other
@@ -56,4 +56,4 @@ graph LR
 | cli-catalog-gates | implementation | cli | done | core-identity-package, library-compat-comparator, cli-publish-pipeline | Both gates on `opm catalog publish`: the compatibility gate plus `opm catalog registry check [--compat]` as an aid; members refused against #CatalogMemberFQNGate per version subdir, traits with unstated or pinned optional. -c required.   |
 | catalogs-publish-cutover | implementation | catalog | planned | cli-publish-pipeline, cli-authoring-commands, cli-catalog-gates, cli-login, 0010:catalogs-identity-authoring | Switch the consolidated catalog_opm's release.yml to `opm catalog publish`, delete the copy-and-stamp task — one catalog repo since the consolidation. Catalogs go first because modules build against them.   |
 | modules-publish-cutover | implementation | modules | planned | cli-publish-pipeline, cli-authoring-commands, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity- authoring; coordinates do not change.   |
-| registry-cleanup | migration | cli | planned | - | D17 items 2-4: finish hello-web -> hello_web (source rename landed via 0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev, delete test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet migration.   |
+| registry-cleanup | migration | cli | in-progress | - | D17 items 2-4: finish hello-web -> hello_web (source rename landed via 0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev, delete test/cleanmod. The cli fixture is done; the operator fleet, -e2e tags and cleanmod remain.   |

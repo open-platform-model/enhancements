@@ -241,11 +241,12 @@ slices:
     concern: >
       D17 items 2-4: finish hello-web -> hello_web (source rename landed via
       0010), relocate modules/test/* and -e2e tags to testing.opmodel.dev,
-      delete test/cleanmod. Legacy v1alpha1 waits on the v0 -> v1 fleet
-      migration.
+      delete test/cleanmod. The cli fixture is done; the operator fleet,
+      -e2e tags and cleanmod remain.
     depends_on: []
     decisions: [D17]
-    status: planned
+    status: in-progress
+    openspec_ref: "cli/fixture-testing-domain"
 
 # Decisions this entry implements in no slice, each with the reason. Surfaced
 # by `task decisions:uncovered`, which is quiet about them once they are here.
