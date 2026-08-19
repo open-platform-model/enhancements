@@ -1,27 +1,136 @@
-GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5
-CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
-sizes=[128] renders=[2] workers=[1] strategies=S2 rss-ceiling=24.0G
-reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/08-concurrent-render-at-scale/_out/run
-priming the module cache ... 1990.3 ms
+== timesplit: where a single-build render's time goes, and what a split could divide
+== the instance is identical within each block; only the number of components the
+== render module ASKS FOR varies. Run with: ./run.sh --timesplit
 
-
+##### fleet / bp  k=128
 WHERE THE TIME GOES: one 129-component instance, varying only how many
 components the render module ASKS FOR. The instance is identical in every row.
 
   RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
 --------------------------------------------------------------
-         1          3      38.2    1249.2       0.0    1287.5
-        32         96      33.4    1426.8       0.6    1460.9
-        64        192      31.1    1550.4       1.5    1582.9
-       129        387      33.4    1795.2       3.0    1831.5
+         1          3      37.3    1269.6       0.0    1306.9
+        32         96      33.8    1421.8       0.7    1456.3
+        64        192      32.4    1550.3       1.6    1584.4
+       129        387      31.9    1825.1       3.1    1860.2
 
-  fixed floor (paid whatever the subset): 1283 ms
-  per component actually rendered:        4.25 ms
+  fixed floor (paid whatever the subset): 1303 ms
+  per component actually rendered:        4.32 ms
   so 70% of this render is work every split would re-pay
 
   Ceiling on splitting one module's pairs across K parallel builds:
-    K=2   each build    1557 ms, wall    1557 ms -> 1.18x  (and K times the working set)
-    K=4   each build    1420 ms, wall    1420 ms -> 1.29x  (and K times the working set)
-    K=8   each build    1352 ms, wall    1352 ms -> 1.35x  (and K times the working set)
-    K=16  each build    1318 ms, wall    1318 ms -> 1.39x  (and K times the working set)
-    K=inf                         1283 ms -> 1.43x  (the asymptote)
+    K=2   each build    1581 ms, wall    1581 ms -> 1.18x  (and K times the working set)
+    K=4   each build    1442 ms, wall    1442 ms -> 1.29x  (and K times the working set)
+    K=8   each build    1372 ms, wall    1372 ms -> 1.36x  (and K times the working set)
+    K=16  each build    1337 ms, wall    1337 ms -> 1.39x  (and K times the working set)
+    K=inf                         1303 ms -> 1.43x  (the asymptote)
+
+##### fleet / raw  k=128
+WHERE THE TIME GOES: one 129-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          3      33.3     449.8       0.0     483.2
+        32         96      42.2     603.4       0.7     646.2
+        64        192      31.0     731.4       1.4     763.7
+       129        387      31.7     997.9       3.0    1032.6
+
+  fixed floor (paid whatever the subset): 479 ms
+  per component actually rendered:        4.29 ms
+  so 46% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build     756 ms, wall     756 ms -> 1.37x  (and K times the working set)
+    K=4   each build     617 ms, wall     617 ms -> 1.67x  (and K times the working set)
+    K=8   each build     548 ms, wall     548 ms -> 1.88x  (and K times the working set)
+    K=16  each build     513 ms, wall     513 ms -> 2.01x  (and K times the working set)
+    K=inf                          479 ms -> 2.16x  (the asymptote)
+
+##### fleet / bp  k=32
+WHERE THE TIME GOES: one 33-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          3      34.9     371.5       0.0     406.5
+         8         24      30.0     383.2       0.2     413.4
+        16         48      31.1     423.0       0.3     454.4
+        33         99      34.6     492.2       0.8     527.6
+
+  fixed floor (paid whatever the subset): 403 ms
+  per component actually rendered:        3.79 ms
+  so 76% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build     465 ms, wall     465 ms -> 1.13x  (and K times the working set)
+    K=4   each build     434 ms, wall     434 ms -> 1.22x  (and K times the working set)
+    K=8   each build     418 ms, wall     418 ms -> 1.26x  (and K times the working set)
+    K=16  each build     411 ms, wall     411 ms -> 1.29x  (and K times the working set)
+    K=inf                          403 ms -> 1.31x  (the asymptote)
+
+##### fleet / raw  k=32
+WHERE THE TIME GOES: one 33-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          3      31.0     150.6       0.0     181.6
+         8         24      34.5     183.4       0.2     218.1
+        16         48      28.7     219.6       0.3     248.7
+        33         99      31.0     291.5       0.7     323.2
+
+  fixed floor (paid whatever the subset): 177 ms
+  per component actually rendered:        4.42 ms
+  so 55% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build     250 ms, wall     250 ms -> 1.29x  (and K times the working set)
+    K=4   each build     214 ms, wall     214 ms -> 1.51x  (and K times the working set)
+    K=8   each build     195 ms, wall     195 ms -> 1.65x  (and K times the working set)
+    K=16  each build     186 ms, wall     186 ms -> 1.73x  (and K times the working set)
+    K=inf                          177 ms -> 1.82x  (the asymptote)
+
+##### complex / bp  k=32
+WHERE THE TIME GOES: one 32-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          5      37.3     740.3       0.0     777.7
+         8         40      34.2     803.3       0.4     838.0
+        16         80      31.2     911.6       0.9     943.7
+        32        160      37.2    1072.5       1.9    1111.7
+
+  fixed floor (paid whatever the subset): 767 ms
+  per component actually rendered:        10.77 ms
+  so 69% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build     939 ms, wall     939 ms -> 1.18x  (and K times the working set)
+    K=4   each build     853 ms, wall     853 ms -> 1.30x  (and K times the working set)
+    K=8   each build     810 ms, wall     810 ms -> 1.37x  (and K times the working set)
+    K=16  each build     788 ms, wall     788 ms -> 1.41x  (and K times the working set)
+    K=inf                          767 ms -> 1.45x  (the asymptote)
+
+##### complex / raw  k=32
+WHERE THE TIME GOES: one 32-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          5      33.8     391.9       0.0     425.7
+         8         40      29.3     463.8       0.5     493.5
+        16         80      33.6     554.1       1.0     588.7
+        32        160      36.4     751.0       1.9     789.2
+
+  fixed floor (paid whatever the subset): 414 ms
+  per component actually rendered:        11.73 ms
+  so 52% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build     602 ms, wall     602 ms -> 1.31x  (and K times the working set)
+    K=4   each build     508 ms, wall     508 ms -> 1.55x  (and K times the working set)
+    K=8   each build     461 ms, wall     461 ms -> 1.71x  (and K times the working set)
+    K=16  each build     437 ms, wall     437 ms -> 1.80x  (and K times the working set)
+    K=inf                          414 ms -> 1.91x  (the asymptote)
+

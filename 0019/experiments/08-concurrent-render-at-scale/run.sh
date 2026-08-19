@@ -20,11 +20,13 @@ cd "$HERE"
 
 FRESH=0
 RACE=0
+TIMESPLIT=0
 ARGS=()
 for a in "$@"; do
 	case "$a" in
 	--fresh) FRESH=1 ;;
 	--race) RACE=1 ;;
+	--timesplit) TIMESPLIT=1 ;;
 	*) ARGS+=("$a") ;;
 	esac
 done
@@ -48,6 +50,15 @@ if [[ $RACE -eq 1 ]]; then
 	# established S1 is race-clean; what is unknown is whether SIZE changes the
 	# answer for the shapes an operator would actually run.
 	exec go run -race . -reuse -keep -sizes 32 -renders 8 -workers 1,8 -strategy S2,SB -max-rss-gb 20 "${ARGS[@]+"${ARGS[@]}"}"
+fi
+
+if [[ $TIMESPLIT -eq 1 ]]; then
+	# Not part of the sweep: holds the instance fixed and varies only how many
+	# components the render module asks for, to separate the transform step
+	# from building the components it transforms.
+	echo
+	echo "== timesplit"
+	exec go run . -reuse -keep -timesplit "${ARGS[@]+"${ARGS[@]}"}"
 fi
 
 echo

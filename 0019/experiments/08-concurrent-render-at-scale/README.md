@@ -199,35 +199,41 @@ And it explains the ceiling. Each render demands about 1.6 cores (one evaluator 
 
 ### Follow-up: could ONE large render be split across parallel builds?
 
-The obvious next idea is to build the instance once, match, and hand subsets of the matched pairs to separate builds running in parallel. `-timesplit` measures whether there is anything there, by holding the instance fixed and varying only how many components the generated render module asks for. Output in [`_out/results-timesplit.txt`](_out/results-timesplit.txt):
+The obvious next idea is to build the instance once, match, and hand subsets of the matched pairs to separate builds running in parallel. `-timesplit` measures whether there is anything there, by holding the instance fixed and varying only how many components the generated render module asks for. Full output in [`_out/results-timesplit.txt`](_out/results-timesplit.txt); six fixture and style combinations:
+
+| fixture | style | components | transform per component | outputs each | transform per object | serial floor | Amdahl ceiling |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fleet | bp | 129 | 4.32 ms | 3 | 1.44 ms | 70% | 1.43x |
+| fleet | raw | 129 | 4.29 ms | 3 | 1.43 ms | 46% | 2.16x |
+| fleet | bp | 33 | 3.79 ms | 3 | 1.26 ms | 76% | 1.31x |
+| fleet | raw | 33 | 4.42 ms | 3 | 1.47 ms | 55% | 1.82x |
+| complex | bp | 32 | 10.77 ms | 5 | 2.15 ms | 69% | 1.45x |
+| complex | raw | 32 | 11.73 ms | 5 | 2.35 ms | 52% | 1.91x |
+
+**So how fast is the transformer step?** About **1.3 to 1.5 ms per rendered Kubernetes object** for the shallow fixture and **2.2 to 2.4 ms** for the deep one, which is 3.8 to 4.4 ms per component at three outputs and 10.8 to 11.7 ms at five. On the full 129-component fleet that is 557 ms of an 1860 ms render.
+
+**And no, the transformers are not the slow part. Constructing the components is.** Two independent readings say so.
+
+`FORCE` in the raw output is the time to make `rendered` concrete *after* `BuildInstance` returns: **3.0 ms out of 1831 ms** for 387 objects. CUE has already evaluated every pair by the time the build call returns, which reproduces experiment 04's finding 4 at 64 times the module size. The pairs are not deferred work waiting for a worker.
+
+And rendering a single component out of a 129-component instance still costs 1303 ms of the 1860 ms full render. That floor is the instance and its catalog being built, and every split re-pays it in full.
+
+**The transform cost is identical between blueprint and raw authoring** (4.32 against 4.29 ms per component on the fleet, 10.77 against 11.73 on complex). That pins the entire blueprint tax experiment 07 measured on component *construction* rather than on transformation, which is the mechanism 07 inferred and this measures.
+
+### What that means for splitting
+
+The floor has to be paid, serially, before any transform can start, because transforms consume components. That is an Amdahl bound, and it does not care how the parallel half is implemented:
 
 ```
-  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
-         1          3      38.2    1249.2       0.0    1287.5
-        32         96      33.4    1426.8       0.6    1460.9
-        64        192      31.1    1550.4       1.5    1582.9
-       129        387      33.4    1795.2       3.0    1831.5
-
-  fixed floor (paid whatever the subset): 1283 ms
-  per component actually rendered:        4.25 ms
-  so 70% of this render is work every split would re-pay
+fleet bp 129 comps   K=2 1.18x   K=4 1.29x   K=8 1.35x   ceiling 1.43x
+fleet raw 129 comps  K=2 1.53x   K=4 1.81x   K=8 1.97x   ceiling 2.16x
 ```
 
-**Two things kill the idea.**
+Between **1.31x and 2.16x** depending on module shape and authoring style, for K times the working set (about 1 GB each at 129 components) and K cores an operator would otherwise spend on other renders, which parallelise at 4.0x to 4.3x for 1x memory each. The ceiling is highest exactly where the absolute time is already lowest, because raw authoring shrinks the serial floor rather than the parallel part.
 
-First, there is no separate phase to parallelise. `FORCE` is the time to make `rendered` concrete after `BuildInstance` returns, and it is **3.0 ms out of 1831 ms** for 387 rendered objects. CUE has already evaluated every pair by the time the build call returns, which reproduces experiment 04's finding 4 at 64 times the module size. The pairs are not deferred work sitting in the value waiting for a worker; they are done.
+**This corrects an estimate in an earlier version of this section**, which projected roughly 4x by applying experiment 07's 14.01 ms-per-component slope to a subset build. That slope conflates about 4.3 ms per component of transform work, which a split could divide, with about 9.3 ms of component construction, which it cannot. Only the smaller half was ever splittable. An earlier revision then over-generalised the fleet-with-blueprints figure to "70%, 1.43x"; the table above is the range.
 
-Second, even restructuring so that each build renders only its own subset buys almost nothing, because **70% of the render is the fixed floor**: building the 129-component instance and its catalog, which every split re-pays in full. Rendering a single component out of the same instance still costs 1288 ms against 1832 ms for all 129.
-
-```
-K=2   -> 1.18x     K=4 -> 1.29x     K=8 -> 1.35x     K=inf -> 1.43x
-```
-
-At most **1.43x**, for K times the working set (about 1 GB each at this size) and K cores an operator would otherwise spend on other renders, which parallelise at 4.0x to 4.3x for 1x the memory each.
-
-**This corrects an estimate in an earlier version of this section**, which projected roughly 4x by applying experiment 07's 14.01 ms-per-component slope to a subset build. That slope conflates two costs this measurement separates: about 4.25 ms per component of transform work, which a split could divide, and about 9.3 ms per component of building the component itself, which it cannot. Only the smaller half was ever splittable.
-
-The practical lever on a large module's render time is not concurrency at all. Experiment 07 measured raw authoring at 7.71 ms per component against 14.01 for blueprints, so authoring the same fleet with primitives instead of blueprints takes it from about 1.9 s to about 1.1 s. That is a larger win than the splitting asymptote, at no extra memory and no extra cores.
+The practical lever on a large module's render time is not concurrency. Authoring the same 129-component fleet with primitives instead of blueprints takes it from about 1.86 s to about 1.03 s, a 1.8x win at no extra memory and no extra cores, which is at or above what splitting could reach even in the best case.
 
 ### Limits
 

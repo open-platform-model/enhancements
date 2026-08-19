@@ -60,6 +60,8 @@ func main() {
 	reuse := flag.Bool("reuse", false, "reuse an existing scratch tree instead of rebuilding it")
 	keep := flag.Bool("keep", false, "keep the scratch tree for inspection")
 	setupOnly := flag.Bool("setup-only", false, "materialize the tree and exit")
+	fixture := flag.String("fixture", "fleet", "which experiment 07 fixture to use: fleet (breadth) or complex (depth)")
+	style := flag.String("style", "bp", "authoring style: bp (blueprints) or raw (resources and traits)")
 	split := flag.Bool("timesplit", false, "instead of the sweep: hold the instance fixed and vary how many components the render module asks for, to find what fraction of a render a split could divide")
 	flag.Parse()
 
@@ -80,7 +82,7 @@ func main() {
 	var points []point
 	maxN := 0
 	for i, k := range sizes {
-		points = append(points, point{Fixture: "fleet", Style: "bp", K: k})
+		points = append(points, point{Fixture: *fixture, Style: *style, K: k})
 		if renders[i] > maxN {
 			maxN = renders[i]
 		}
@@ -99,8 +101,8 @@ func main() {
 
 	fmt.Printf("GOMAXPROCS=%d NumCPU=%d race=%v go=%s\n", runtime.GOMAXPROCS(0), runtime.NumCPU(), raceEnabled, runtime.Version())
 	fmt.Printf("CUE_REGISTRY=%s\n", os.Getenv("CUE_REGISTRY"))
-	fmt.Printf("sizes=%v renders=%v workers=%v strategies=%s rss-ceiling=%.1fG\n",
-		sizes, renders, workers, *stratFlag, *maxRSS)
+	fmt.Printf("fixture=%s style=%s sizes=%v renders=%v workers=%v strategies=%s rss-ceiling=%.1fG\n",
+		*fixture, *style, sizes, renders, workers, *stratFlag, *maxRSS)
 
 	t, reused, err := materialize(*fixturesDir, *workDir, points, maxN, *reuse)
 	if err != nil {
