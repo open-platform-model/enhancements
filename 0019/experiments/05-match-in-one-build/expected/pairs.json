@@ -1,0 +1,28 @@
+{
+  "missing": null,
+  "pairs": [
+    {
+      "component": "config",
+      "transformer": "opmodel.dev/catalogs/opm/transformers/configmap-transformer@2.0.0-alpha.3"
+    },
+    {
+      "component": "web",
+      "transformer": "opmodel.dev/catalogs/opm/transformers/deployment-transformer@2.0.0-alpha.3"
+    },
+    {
+      "component": "web",
+      "transformer": "opmodel.dev/catalogs/opm/transformers/hpa-transformer@2.0.0-alpha.3"
+    },
+    {
+      "component": "web",
+      "transformer": "opmodel.dev/catalogs/opm/transformers/http-route-transformer@2.0.0-alpha.3"
+    },
+    {
+      "component": "web",
+      "transformer": "opmodel.dev/catalogs/opm/transformers/service-transformer@2.0.0-alpha.3"
+    }
+  ],
+  "unhandledTraits": {},
+  "unmatched": null,
+  "unresolved": null
+}

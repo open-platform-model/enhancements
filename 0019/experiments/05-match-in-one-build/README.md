@@ -1,6 +1,6 @@
 # Experiment 05: match-in-one-build
 
-Status: Draft
+Status: Concluded
 
 ## Hypothesis
 
@@ -12,54 +12,71 @@ This is the executable form of the four undecided items in `02-design.md`'s **Wh
 
 The protocol's one-concept rule is real, and this hypothesis names four things. They are one concept because they are all decided by **the shape of the glue**, not by four independent mechanisms: whether match verdicts, unify conflicts, missing FQNs and unresolved demands live in a `diagnostics:` field or are allowed to become `_|_` is a single authoring choice, and every one of the four claims is a consequence of it. Testing them separately would mean writing the same glue three more times and would still not answer the only question that matters, which is whether one shape satisfies all four at once.
 
-The split trigger is stated in advance: if the diagnostics-as-data half turns out to require a `core` schema addition (a `#diagnostics` surface on `#transform` or on the platform), that half leaves this experiment and becomes experiment 06, because it stops being a glue question and becomes a schema proposal.
+The split trigger stated in the draft (diagnostics-as-data requiring a `core` schema addition) did **not** fire: the glue needed no schema change anywhere. One boundary of the data contract was found instead and is recorded in the outcome rather than split out, because it is a property of CUE, not a proposal.
 
 ## Setup
 
-> **Draft.** Nothing has been built yet. This section is the plan; it is rewritten as a record of what was actually copied and measured when the experiment moves to `Running`.
+One CUE module, `experiments.opmodel.dev/0019/match-in-one-build@v0`, pinned to `opmodel.dev/core@v2.0.0-alpha.4` and `opmodel.dev/catalogs/opm@v2.0.0-alpha.3` — the same builds experiments 01 and 02 pinned, and the same catalog build `library/modules/opm_platform` subscribes, so the vendored kernel record and the CUE side evaluate the same bytes. The same registry deviation experiment 01 recorded applies: both pins are immutable published versions resolved from GHCR rather than vendored bytes.
 
-A single CUE module, built the same way experiment 01 was, with the glue extended from one rung to three and a fixture set chosen so that each failure class fires at least once.
+| Path | Role | Copied from |
+| --- | --- | --- |
+| `matchdef/match.cue` | **the glue under test**: all three rungs plus D28 demand resolution as one `#Match` definition, laid out rung by rung against `match.go`; every verdict is a public data field (`pairs`, `missing`, `unresolved`, `unifyFailures`, `warnings`, `unmatchedComponents`, `resolved`) | authored here |
+| `web_app/` | the real module fixture | `experiments/01-purecue-render-flow/web_app/`, unmodified |
+| `opm_platform/` | the D5 platform: transformer map arrives by import, `#composedTransformers` is a fold | `experiments/02-platform-authority-mvs/platform/`, unmodified |
+| `healthy/render.cue` | experiment 01's instance + `#Match` instantiation + render-as-data; carries the claim-1 and claim-2 assertions as in-file unifications | instance copied from `experiments/01-purecue-render-flow/instance.cue` |
+| `localcat/localcat.cue` | synthetic catalog: one member per failure class (orphan resource, posture-unstated trait, conflicting-required-copy transformer, output-conflict transformer, output-incomplete transformer), fqns under `testing.opmodel.dev` | authored here |
+| `broken/missing/` | claim 3, resource half: demand with an empty bucket; `gate/` subpackage carries the in-build refusal | authored here |
+| `broken/unstated/` | claim 3, trait half: unhandled trait, posture unstated | authored here |
+| `broken/conflict/` | claim 2 negative case: genuinely conflicting required copy | authored here |
+| `broken/pair/` | claim 4: healthy instance + one error-style and one incomplete-style sabotaged pair | authored here |
+| `expected/pairs.json` | **the vendored kernel record**: the real kernel's `MatchPlan` on the same fixtures, captured 2026-08-19 | output of `capture/` |
+| `capture/` | Go recorder; `pairs` runs the real kernel (mirroring `flow_integration_test.go`'s setup byte for byte), `probe` measures Go-API readability of `diagnostics` beside a failing gate. Deliberately imports the library — it is the recorder of kernel behaviour, not part of the claim; the vendored JSON is the moment-in-time record | authored here |
+| `run.sh` | the verdict table: 18 rows, one per readout | authored here |
 
-| Path | Role |
-| --- | --- |
-| `cue.mod/module.cue` | pinned to the same published builds experiment 01 used, so the two are directly comparable |
-| `match.cue` | the glue: all three rungs plus demand resolution, laid out phase by phase against `match.go` so a reviewer can read them side by side |
-| `instance.cue`, `web_app/` | the real instance and module, copied from `experiments/01-purecue-render-flow/` |
-| `opm_platform/` | the platform, copied from `experiments/02-platform-authority-mvs/platform/` (the D5 shape, so the transformer map arrives by import) |
-| `broken/` | the deliberately-failing fixtures below, kept in their own package so a healthy build and a poisoned one can be evaluated separately |
-| `expected/pairs.json` | the kernel's own answer for the healthy fixture, captured once from a `library` flow test run and vendored, so the comparison is against recorded kernel output rather than against a re-derivation |
-
-**Copied, never referenced.** The fixtures come in as bytes from experiments 01 and 02 and from `library/testdata/modules/web_app/`. The same registry deviation the earlier experiments recorded applies: `opmodel.dev/core@v2` and `opmodel.dev/catalogs/opm@v2` resolve from GHCR at exact published versions.
-
-### The four claims, and the fixture that fires each
-
-**Claim 1: same pairs.** The three rungs in CUE, run against the healthy fixture, produce the pair set in `expected/pairs.json` exactly. Rung 1 is the part experiment 01 skipped: the kernel only considers transformers sitting in a `#matchers.{resources,traits}[fqn]` bucket built from required union optional (`opm/materialize/index.go`), while experiment 01 looped every transformer in the catalog. Building that reverse index in CUE and looping only the buckets is what closes the one latent divergence experiment 01 named.
-
-**Claim 2: the D30 carve-out is a federation artifact.** `match.go`'s always-unify rung drops CUE diagnostics located at `metadata.catalogVersion` or `metadata.description` because provenance changes per catalog release by construction, so a component body and a transformer's embedded required copy from *different builds* always disagree there. In one build both come from the same catalog bytes. The test is direct: express the rung as plain `&` with no exclusion, and check that no pair is disqualified on the healthy fixture. If that holds, the carve-out is deleted rather than ported, and the parity harness loses the one stated exemption `02-design.md` reserves for it. A second fixture pins the negative case: a component whose primitive body genuinely conflicts with a transformer's required copy must still disqualify, so the claim is "provenance cannot diverge", not "unification was disabled".
-
-**Claim 3: fail-closed survives.** D28 refuses a render when a declared resource's bucket is empty or fully disqualified, or when an unhandled trait's `optional` posture is false or unstated. All seven of `web`'s traits are `optional: true`, so the healthy fixture cannot exercise this; `broken/` carries a component with an unstated-optional unhandled trait and one with a demanded FQN no transformer provides. Both must refuse. The open sub-question this answers concretely: the refusal names a list rather than a field path, so whether `oerrors.{MissingFQN,UnresolvedDemand,UnifyError}` become values decoded from a `diagnostics:` field rather than constructed in Go becomes a decision with evidence under it.
-
-**Claim 4: failure isolation.** Not stated anywhere in the entry today, and the sharpest consequence of the collapse. Today each pair renders independently, so one broken transformer fails one pair attributably and the rest still render. In one build, whether a single bad pair poisons the whole evaluation depends entirely on whether the glue lets a bottom propagate out of a comprehension. The fixture is a healthy instance plus one component that fails each way in turn; the readout is whether `rendered` still yields the other pairs concretely, and whether the failure is attributable to a `(component, transformer)` key or only to the build. A design that can only report "the build failed" is a real regression against today's behaviour and needs to be known before the glue shape is fixed.
-
-### What this experiment does not model
-
-- **Error message quality.** CUE can answer `(a & b) == _|_`; it cannot hand back the conflict message `oerrors.UnifyError` carries verbatim. This experiment records what *is* recoverable from a failed unification inside the build; whether a failed pair gets re-run in a second diagnostic build to recover the message is a design decision the result informs rather than settles.
-- **Cost.** Moving matching into the build adds evaluation work. Experiment 04 measures an execute-only build deliberately, so the delta is attributable; measuring it here would make a two-variable result. If claim 1 holds, re-running arm C of experiment 04 against this glue is the natural follow-up.
-- **The multi-build machinery.** `indexCatalogs`' same-FQN cross-build collapse and the D32/D37 single-provider guard are only reachable when several builds are composed. Whether they survive or become vacuous follows from the same question claim 2 asks, and is recorded as a consequence rather than tested here.
+Three CUE semantics questions were probed with `cue v0.17.1` before the glue was written, because the glue's design rests on them: comprehension guards DO resolve defaults (`if x` where `x: bool | *true` takes the `true` branch); `(a & b) == _|_` DOES detect nested struct conflicts with no false positives; and an INCOMPLETE value is **not** `== _|_` (only a genuine error is). The third is the boundary the outcome records.
 
 ## Run
 
-> **Draft.** These are the intended commands; they do not exist yet.
-
 ```bash
 export CUE_REGISTRY='opmodel.dev=ghcr.io/open-platform-model,registry.cue.works'
-cue vet -c ./...                       # healthy fixture must be fully concrete
-cue eval -e pairs                      # compare against expected/pairs.json
-bash run.sh                            # every fixture, including the failing ones, with a verdict table
+bash run.sh                            # the full 18-row verdict table + Go API probe
+
+# individual readouts
+cue vet -c ./healthy/                  # exits 0
+cue eval ./healthy/ -e pairs           # the five pairs
+cue eval ./broken/missing/ -e diagnostics
+cue vet ./broken/missing/gate/         # the in-build refusal
+cue vet -c ./broken/unstated/          # the incomplete-value refusal
+cue eval ./broken/conflict/ -e diagnostics
+cue eval ./broken/pair/ -e failedPairs -e renderedKeys
+
+# re-record the kernel side (writes ../expected/pairs.json)
+(cd capture && go build . && ./capture pairs > ../expected/pairs.json)
+(cd capture && go run . probe)         # Go-API gate coexistence
 ```
 
-Pinned to `cue v0.17.1`. `run.sh` prints one row per fixture: expected verdict, observed verdict, and for the failing fixtures whether the other pairs still rendered.
+Pinned to `cue v0.17.1`, the same version `library/go.mod` pins for the SDK. `run.sh` last run 2026-08-19: **18 passed, 0 failed**.
 
 ## Outcome
 
-{Placeholder. Fill when the experiment moves to `Running`; finalise with an unambiguous held/refuted statement at `Concluded`, and link the result back into `02-design.md`'s **What matching costs** section, which is where the claims are currently stated as undecided.}
+**Hypothesis held**, on all four claims, with one measured boundary and two findings the draft did not predict.
+
+**Claim 1 held: same pairs.** All three rungs plus the bucket index in ~230 lines of commented CUE produce exactly the kernel's pair set on the web_app/opm_platform fixture — five pairs, compared against the vendored kernel record rather than against a re-derivation. Every other verdict surface agrees too: `missing`, `unresolved`, `unmatched` and the warning set are empty on both sides. Rung 1's reverse index (required ∪ optional, `opm/materialize/index.go`) is a two-comprehension fold, which closes the latent divergence experiment 01 recorded when it looped every transformer instead of the buckets.
+
+**Claim 2 held: the D30 carve-out is a federation artifact.** The always-unify rung runs as plain `&` with no provenance exclusion and disqualifies nothing on the healthy fixture. The reason is stated directly rather than only by absence: the component's embedded primitive copy and the transformer's embedded required copy resolve to the same catalog bytes in one build, so `metadata.catalogVersion` and `metadata.description` — the two fields D30 exists to excuse — are **equal**, asserted by in-file unification. The negative case pins that unification was not disabled: a required copy narrowed to a container name the component's copy excludes is disqualified by plain `&`, reported as data (`unifyFailures` names the component, the transformer and the conflicting FQN), while the unnarrowed candidate in the same bucket still pairs and the demand still resolves. In the collapse, `excludeProvenance` and its denylist are **deleted, not ported**, and the parity harness loses its one stated exemption.
+
+**Claim 3 held, with the boundary measured.** The resource half is fully data: an empty-bucket demand yields a `missing` row (rung 1) and an `unresolved` row with an empty `disqualified` list (D28), `resolved` computes `false`, and the component's healthy sibling demand still pairs — refusal evidence without poisoning. The in-build form of `compile/module.go`'s gate is one unification (`resolved & true`) and refuses the render with `conflicting values false and true`. Where the gate can live is now measured on both surfaces: **through the Go API, `diagnostics` stays fully readable and concrete via `LookupPath` while the gate is failing** (probed on the built instance, `value.Err()` non-nil), so the kernel can have the in-build gate and decode `oerrors.{MissingFQN, UnresolvedDemand, UnifyError}` from a `diagnostics:` field at once; the CLI cannot — `cue eval -e diagnostics` validates the whole instance first and reports the gate's conflict instead of answering. The boundary is the trait half's unstated posture: classifying it means evaluating a plain `bool`, which is incomplete, not an error, so `== _|_` cannot see it and the posture-dependent lists stall symbolically. The refusal still happens — `cue vet -c` refuses naming `core/trait.cue`'s own `optional: bool` declaration — which is fail-closed **as bottom rather than as data**, and it is contained: `pairs` stays readable beside the stall. D28's unstated-posture rule therefore survives the collapse, but its diagnostic cannot be a `diagnostics:` row without either a posture-statedness probe CUE does not offer or a publish-side gate that makes unstated posture unrepresentable.
+
+**Claim 4 held, with the error/incomplete asymmetry pinned.** Two sabotaged transformers pair with `config` through the real ConfigMaps bucket (matching cannot see output sabotage, which is the point). The error-style failure — output constraining the component name to a value it never has, which lands as `core`'s `{...} | [...{...}]` output disjunction emptying — is named in `failedPairs` as data while all five healthy pairs render concretely beside it. The incomplete-style failure — a declared output field nothing fills — is invisible to `== _|_`, lands in `rendered` non-concrete, and is caught by `cue vet -c` at a path **naming the pair key** (`rendered."config :: …incomplete-pair-transformer@0.0.1".metadata.name`). So failure isolation as data covers exactly the class of failures that are errors; incompleteness degrades to a build-level refusal that is still per-pair attributable by path. A design that wants incompleteness as data would compute per-pair concreteness, which is a validation walk the glue should not hand-roll — the honest statement is that the kernel's render loop keeps owning the concreteness check per pair, as it does today via `Validate`.
+
+### Two findings beyond the claims
+
+**The provenance stamp refuses cross-catalog injection.** Unifying a synthetic transformer into `catalog.#transformers` is refused outright: the catalog's pattern constraint stamps its own `modulePath`/`catalogVersion` onto every member (0010 D25), and the foreign member conflicts. Multi-catalog composition is therefore a map **fold** (comprehension copy), never a unification into one catalog's member map — which is both a constraint on the collapse's glue and a live demonstration that the stamping 0015 D1 builds its contract maps on actually enforces provenance.
+
+**The label predicate's `&` covers what the kernel's `String()` skips.** Kept from experiment 01 and now load-bearing in the glue: the predicate unifies label values, so every type `#LabelsAnnotationsType` admits is compared, where `match.go`'s `labelPairs`/`missingMapLabels` silently skip non-strings. The two agree on everything the catalog ships today.
+
+### What this discharges in the design
+
+The four bullets in `02-design.md`'s **What matching costs** now have measured answers: D30 is deleted rather than ported (with the negative case pinned); D28 fail-closed survives with its refusal expressible in-build and its evidence as data, except the unstated-posture diagnostic, which stays a bottom; error quality for a failed pair is `unifyFailures`' conflicting-FQN row plus, at render, the empty-disjunction bottom — recovering the verbatim `oerrors.UnifyError` cause still needs a second diagnostic evaluation if wanted, unchanged from the draft's expectation; and failure isolation is a property the data-shaped glue delivers for error-class failures and degrades gracefully for incompleteness. The D32/D37 single-provider guard and `indexCatalogs`' cross-build collapse remain multi-build machinery whose fate follows D5, as the draft scoped.
+
+**Hypothesis held.** One glue shape — verdicts as data, gate as one unification, bottoms confined behind `== _|_` guards — satisfies all four claims at once on `cue v0.17.1`, with the unstated-posture diagnostic and incomplete-output detection as the two measured places where the data contract hands back to the build error, both still attributable.

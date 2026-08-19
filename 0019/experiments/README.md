@@ -12,7 +12,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 02 | platform-authority-mvs | Concluded |
 | 03 | sealed-platform-roundtrip | Concluded (refuted) |
 | 04 | render-build-cost | Concluded |
-| 05 | match-in-one-build | Draft |
+| 05 | match-in-one-build | Concluded |
 | 06 | concurrent-render | Concluded |
 | 07 | module-scale-cost | Concluded |
 | 08 | concurrent-render-at-scale | Concluded |
@@ -44,7 +44,15 @@ They are the two halves of "can the collapse actually be built", opened after
   reuse strategy from OQ8's list.
 - **05** asks what matching LOSES when it moves into the build: the same pairs,
   the D30 carve-out, D28's fail-closed refusals, and whether one failing pair
-  poisons the rest.
+  poisons the rest. Concluded: nothing that matters. Same five pairs as the
+  vendored kernel record, D30 deleted rather than ported (provenance is EQUAL
+  in one build; a genuine conflict still disqualifies through plain &),
+  fail-closed refusals expressible in-build with the evidence readable as data
+  through the Go API beside the failing gate, and failure isolation holds for
+  error-class failures. Two measured boundaries: an unstated trait posture
+  refuses as an incomplete-value bottom rather than as a diagnostics row, and
+  an incomplete (non-error) pair output is invisible to == _|_ — caught by
+  vet -c at a path naming the pair key.
 
 04 measures an execute-only build on purpose, so 05's cost delta stays
 attributable to matching rather than to the collapse.
