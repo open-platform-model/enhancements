@@ -14,6 +14,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 04 | render-build-cost | Concluded |
 | 05 | match-in-one-build | Draft |
 | 06 | concurrent-render | Concluded |
+| 07 | module-scale-cost | Concluded |
 
 ## Reading 02 and 03 together
 
@@ -63,3 +64,27 @@ and applies to today's path too; and the safety answer is inverted, with a
 shared cue.Context race-clean and ADR-002's shared materialized platform
 producing thousands of race reports. Read 04 for what a render costs and 06
 for what may be shared between renders.
+
+## 07 finishes 04
+
+Experiment 04 attached a limit to its own verdict: the 2.1x came from a
+two-component module with five pairs, and "a large module should be measured
+before the ratio is quoted as general". 07 is that measurement, on two
+purpose-built large fixtures that grow in different directions (a 129-component
+fleet, and a 32-component module of deep guarded components), each authored both
+with blueprints and with raw resources and traits so that authoring style is a
+measured variable rather than an assumption.
+
+Concluded: the 2.1x is a FIXED cost, not a general ratio. Per-render cost fits
+`fixed + slope x components` with R^2 above 0.9996 in every case; the single
+build's fixed term is about 85 ms of catalog resolution and evaluation and does
+not move, while its per-component term is LOWER than today's path in every
+fixture and style. The curves cross between 5 and 14 components, and past that
+the collapse is the cheaper option. The experiment's own second hypothesis was
+refuted and is the more useful half: the definitional payload the collapse stops
+stripping costs nothing, because no transformer reads it and CUE never evaluates
+it, whereas finalizing it costs the baseline more per component than carrying it
+costs the single build.
+
+Read 04 for what one render costs, 06 for what may be shared between renders, and
+07 for how either number moves when the module is real.
