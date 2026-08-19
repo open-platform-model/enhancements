@@ -1,0 +1,5 @@
+# Built harness binary and the materialized scratch tree. The results files
+# under _out/ ARE committed; the tree that produced them is not (it is tens of
+# thousands of generated files and is rebuilt by run.sh).
+/concurrent-render-at-scale
+/_out/run/
