@@ -15,6 +15,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 05 | match-in-one-build | Draft |
 | 06 | concurrent-render | Concluded |
 | 07 | module-scale-cost | Concluded |
+| 08 | concurrent-render-at-scale | Concluded |
 
 ## Reading 02 and 03 together
 
@@ -88,3 +89,25 @@ costs the single build.
 
 Read 04 for what one render costs, 06 for what may be shared between renders, and
 07 for how either number moves when the module is real.
+
+## 08 closes 06 and 07 against each other
+
+06 measured concurrency on a two-component module; 07 measured cost on modules
+up to 129 components. Neither could answer the question an operator actually
+has, because 06 had the concurrency without the size and 07 had the size without
+the concurrency. 08 runs 07's fixtures, byte for byte, through 06's worker pool.
+
+Concluded: size changes none of 06's answers. Concurrent speedup is flat across
+a 64-fold size range (4.28x, 4.33x, 4.24x, 4.05x at 2, 9, 33 and 129
+components), resident memory grows sub-linearly in workers, the race detector
+stays silent, and no concurrent render ever produced a wrong value across 2688
+renders.
+
+The result neither parent could produce: 07's crossover disappears. 07 compared
+the two paths SEQUENTIALLY and found the single build cheaper only above roughly
+a dozen components, but 06 established today's path cannot be run concurrently
+at all. Compared against today's path serialised, which is what an operator can
+safely deploy, the single build wins at every size, from 2.48x at two components
+to 5.49x at 129. One correction rides along: today's path retains 348 MB per
+render too, so per-render retention is a property of holding a cue.Context
+rather than a cost the collapse introduces.
