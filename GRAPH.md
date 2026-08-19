@@ -19,8 +19,8 @@ graph LR
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
-  N0010["0010: Module and Catalog Identity"]:::accepted
-  N0011["0011: Module and Catalog Publishing"]:::accepted
+  N0010["0010: Module and Catalog Identity"]:::implemented
+  N0011["0011: Module and Catalog Publishing"]:::implemented
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
