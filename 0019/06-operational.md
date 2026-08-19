@@ -12,6 +12,36 @@ At runtime the enhancement is close to observability-neutral, but it improves on
 
 No new error kinds, metrics or spans. `opm/errors` is untouched.
 
+## Sizing a Render Pool
+
+**How much memory does an operator need once this lands, and how many workers should it run?**
+
+Both answers come from `experiments/08-concurrent-render-at-scale/`, and they are different questions than they were under ADR-002, because D8 makes a render a self-contained unit that holds nothing afterwards.
+
+**A render is single-threaded.** Measured directly: with the collector disabled, one render of a 129-component module uses 1.04 cores. CUE does not evaluate a build's (component, transformer) pairs in parallel, and in the collapsed design there is no Go-side loop to parallelise. Concurrency comes from rendering several instances at once, never from one render going faster. With Go's concurrent collector a render demands about 1.6 cores in total, so throughput saturates at roughly `physical_cores / 1.6` renders in flight: on eight physical cores that is the measured 4.0x to 4.3x at eight workers, and a ninth worker buys nothing.
+
+**Memory is the binding constraint, and it is linear in components.** Peak resident memory per concurrent render, fitted across 2, 9, 33 and 129 components with R^2 = 0.9997:
+
+```
+working set per concurrent render  =  61 MB  +  7.75 MB x components
+```
+
+| module | P=2 | P=4 | P=8 |
+| --- | --- | --- | --- |
+| 10 components | 0.3 GB | 0.5 GB | 1.1 GB |
+| 25 components | 0.5 GB | 1.0 GB | 2.0 GB |
+| 50 components | 0.9 GB | 1.8 GB | 3.5 GB |
+| 100 components | 1.6 GB | 3.3 GB | 6.5 GB |
+| 129 components | 2.1 GB | 4.1 GB | 8.3 GB |
+
+Add roughly 0.3 GB for the process itself and the module cache, then headroom: these are peaks of a sampled RSS, and Go returns memory to the OS lazily. **A pod rendering modules of ordinary size (10 to 25 components) at four concurrent renders wants about 1 GB, and 2 GB is comfortable.** A pod that must render a 129-component fleet at eight concurrent renders wants 12 GB. The largest module the operator will see is the number to size against, not the average, because the pool has no admission control that would stop several large renders coinciding.
+
+Two practical consequences.
+
+**Size the pool by memory, not by core count.** The core-count answer and the memory answer diverge quickly: eight workers is right for throughput on eight physical cores, and at 129 components it costs 8.3 GB. Where memory is the tighter budget, fewer workers is the correct trade, and the throughput cost is close to linear down to P=2.
+
+**Retention is bounded by construction, which is the change.** Under D8 a worker holds 117 KB per render at 129 components and does not grow with render count. The shapes D8 rejects do grow: a per-worker reused `cue.Context` retains 582 MB per render at that size (23.4 GB through 32 renders), and today's held-platform path retains 348 MB per render. An operator running the superseded model has to plan for a process that grows until it is restarted; one running D8 does not.
+
 ## Semver Impact
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**

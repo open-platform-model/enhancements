@@ -7,6 +7,7 @@
 - **The platform decides what executes.** A consumer module may not choose the transformer bytes a platform runs. That is a property of the dependency list the kernel writes, and it has to be written deliberately (D5, D6, OQ6).
 - **The kernel gets smaller.** Every divergence is closed by removing kernel behaviour, never by adding kernel behaviour that reproduces CUE more faithfully.
 - **The declared contract is honoured in full.** All three inputs `core` declares on `#transform` are supplied concretely.
+- **Nothing built is shared between renders.** Each render is its own CUE build in its own `cue.Context`, and that context does not outlive the render. This supersedes ADR-002's shared-materialized-platform model rather than amending it (D8), and it is the reason the reuse question stops being a question.
 
 ## Non-Goals
 
@@ -186,11 +187,12 @@ This matters for ordering. While definitions are stripped, that fixture ships *n
 | `library` | `opm/compile/finalize.go`, `opm/kernel/phases.go` | removal, Go API break |
 | `library` | render-build assembler, skew policy | the collapse and D7 |
 | `library` | `opm/materialize` | shrinks or goes, gated on D5 landing in `core` |
+| `library` | `adr/002-concurrent-render-shared-materialized-platform.md`, plus a new ADR | D8: supersede, and write down the shares-nothing and context-lifetime rules |
 | `library` | `opm/kernel/flow_integration_test.go` | fixture construction |
 | `core` | `src/platform.cue`, `SPEC.md` | D5's registry reshape |
 | `core` | `src/transformer.cue`, `SPEC.md` | only if OQ5 resolves toward projection |
 | `opm-operator` | `api/v1alpha1/platform_types.go`, platform package generation | D6 |
-| `opm-operator` | `internal/platform/store.go` | the reuse model, gated on OQ8 |
+| `opm-operator` | `internal/platform/store.go` | the single held slot loses its reason to exist under D8 |
 | `cli` | render command configuration | D7's policy surface |
 | `catalog_opm` | transformer authoring docs | the lexical-declaration rule (downstream, no slice here) |
 
