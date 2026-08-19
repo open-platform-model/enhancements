@@ -1,0 +1,136 @@
+== setup: one scratch tree of 80 instances, shared by every process below
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+materialized 80 instances under /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run
+priming the module cache ... 125.3 ms
+
+
+== strategy S1
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run (80 instances)
+priming the module cache ... 114.8 ms
+
+sequential reference (single family): rendering 80 instances in one goroutine ...
+sequential reference (single family): 85.6 ms per render, n=80  [experiment 04 measured 90.2 ms single-build, 42.3 ms baseline]
+
+S1-ctx-per-worker -- one cue.Context per worker, reused across that worker's renders. The shape the hypothesis rests on
+  P      WALL_s  RENDER/s  SPEEDUP   LAT_p50   LAT_p90   ERRS  WRONG   RSS_PEAK  HEAP_PEAK  HEAP_KEPT
+  ------------------------------------------------------------------------------------------------------------
+  1        7.64      10.5    1.00x      90.3     108.7      0      0       3.6G       3.4G       2.9G
+  2        5.17      15.5    1.48x     115.1     165.3      0      0       3.4G       3.1G       2.9G
+  4        3.05      26.2    2.50x     124.9     201.7      0      0       3.4G       3.1G       2.9G
+  8        2.21      36.2    3.46x     209.3     313.4      0      0       3.5G       3.3G       2.9G
+  16       1.81      44.2    4.22x     355.2     528.2      0      0       3.7G       3.5G       2.9G
+  scaling: peak 4.22x at P=16; best at P>=4 is 4.22x (README refutes below ~2x) -> HELD
+  memory: heap kept 2.9G at P=1 vs 2.9G at P=16, 37.5M per render at P=1. Kept memory that scales with RENDERS rather than workers is the shape the README refutes on
+  safety: 0 failed renders, 0 wrong values across the sweep, race detector off (run ./run.sh -race for the safety half)
+
+SUMMARY -- renders per second
+
+  STRATEGY                 P=1       P=2       P=4       P=8      P=16
+  S1-ctx-per-worker       10.5      15.5      26.2      36.2      44.2
+
+== strategy S2
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run (80 instances)
+priming the module cache ... 135.4 ms
+
+sequential reference (single family): loaded 80 digests from _out/ref-single.json
+
+S2-ctx-per-render -- a fresh cue.Context per render. The safest possible shape, and the one that shares nothing
+  P      WALL_s  RENDER/s  SPEEDUP   LAT_p50   LAT_p90   ERRS  WRONG   RSS_PEAK  HEAP_PEAK  HEAP_KEPT
+  ------------------------------------------------------------------------------------------------------------
+  1       10.28       7.8    1.00x     128.2     141.6      0      0      95.8M      63.5M       1.8M
+  2        5.36      14.9    1.92x     131.3     148.5      0      0     158.2M     123.5M       1.8M
+  4        2.86      28.0    3.60x     139.0     160.9      0      0     290.9M     223.0M       1.8M
+  8        1.91      42.0    5.39x     187.4     208.4      0      0     565.6M     496.8M       2.2M
+  16       1.79      44.7    5.74x     346.2     392.4      0      0       1.5G       1.4G       2.3M
+  scaling: peak 5.74x at P=16; best at P>=4 is 5.74x (README refutes below ~2x) -> HELD
+  memory: heap kept 1.8M at P=1 vs 2.3M at P=16, 22.5K per render at P=1. Kept memory that scales with RENDERS rather than workers is the shape the README refutes on
+  safety: 0 failed renders, 0 wrong values across the sweep, race detector off (run ./run.sh -race for the safety half)
+
+SUMMARY -- renders per second
+
+  STRATEGY                 P=1       P=2       P=4       P=8      P=16
+  S2-ctx-per-render        7.8      14.9      28.0      42.0      44.7
+
+== strategy S3
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run (80 instances)
+priming the module cache ... 134.1 ms
+
+sequential reference (single family): loaded 80 digests from _out/ref-single.json
+
+S3-ctx-shared -- ONE cue.Context for every worker. The direct test of execute.go's comment; the value is in how it fails
+  P      WALL_s  RENDER/s  SPEEDUP   LAT_p50   LAT_p90   ERRS  WRONG   RSS_PEAK  HEAP_PEAK  HEAP_KEPT
+  ------------------------------------------------------------------------------------------------------------
+  1        9.25       8.7    1.00x     108.8     126.0      0      0       3.6G       3.4G       2.9G
+  2        5.16      15.5    1.79x     115.3     157.2      0      0       3.5G       3.3G       2.9G
+  4        3.06      26.2    3.03x     129.1     210.3      0      0       3.6G       3.4G       2.9G
+  8        2.10      38.1    4.40x     181.0     295.9      0      0       3.5G       3.2G       2.9G
+  16       1.91      41.9    4.84x     382.5     426.7      0      0       3.6G       3.3G       2.9G
+  scaling: peak 4.84x at P=16; best at P>=4 is 4.84x (README refutes below ~2x) -> HELD
+  memory: heap kept 2.9G at P=1 vs 2.9G at P=16, 37.5M per render at P=1. Kept memory that scales with RENDERS rather than workers is the shape the README refutes on
+  safety: 0 failed renders, 0 wrong values across the sweep, race detector off (run ./run.sh -race for the safety half)
+
+SUMMARY -- renders per second
+
+  STRATEGY                 P=1       P=2       P=4       P=8      P=16
+  S3-ctx-shared            8.7      15.5      26.2      38.1      41.9
+
+== strategy S4
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run (80 instances)
+priming the module cache ... 132.5 ms
+
+sequential reference (baseline family): rendering 80 instances in one goroutine ...
+sequential reference (baseline family): 47.8 ms per render, n=80  [experiment 04 measured 90.2 ms single-build, 42.3 ms baseline]
+
+S4-baseline -- ADR-002's model: one prebuilt platform held read-only, per-worker contexts, cross-context fill. Yardstick and independent check on the ADR
+  P      WALL_s  RENDER/s  SPEEDUP   LAT_p50   LAT_p90   ERRS  WRONG   RSS_PEAK  HEAP_PEAK  HEAP_KEPT
+  ------------------------------------------------------------------------------------------------------------
+  1        4.14      19.3    1.00x      48.3      61.1      0      0       1.1G    1011.8M     738.8M
+       one-time platform hold, outside the timed window: 79.5 ms
+  2        2.25      35.5    1.84x      52.3      76.6      0      0       1.2G       1.1G     738.8M
+  4        1.36      58.6    3.04x      63.6      95.7      0      0       1.1G       1.0G     739.2M
+  8        0.94      85.5    4.43x      92.6     114.4      0      0       1.2G       1.1G     739.5M
+  16       0.82      97.4    5.05x     162.8     203.9      0      0       1.4G       1.3G     739.9M
+  scaling: peak 5.05x at P=16; best at P>=4 is 5.05x (README refutes below ~2x) -> HELD
+  memory: heap kept 738.8M at P=1 vs 739.9M at P=16, 9.2M per render at P=1. Kept memory that scales with RENDERS rather than workers is the shape the README refutes on
+  safety: 0 failed renders, 0 wrong values across the sweep, race detector off (run ./run.sh -race for the safety half)
+
+SUMMARY -- renders per second
+
+  STRATEGY                 P=1       P=2       P=4       P=8      P=16
+  S4-baseline             19.3      35.5      58.6      85.5      97.4
+
+== strategy S5
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5 n=80 workers=[1 2 4 8 16]
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/06-concurrent-render/_out/run (80 instances)
+priming the module cache ... 124.7 ms
+
+sequential reference (baseline family): loaded 80 digests from _out/ref-baseline.json
+
+S5-base-prewalked -- S4 with the held platform walked to completion before any worker touches it. Isolates lazy evaluation of a shared value from sharing itself
+  P      WALL_s  RENDER/s  SPEEDUP   LAT_p50   LAT_p90   ERRS  WRONG   RSS_PEAK  HEAP_PEAK  HEAP_KEPT
+  ------------------------------------------------------------------------------------------------------------
+  1        4.04      19.8    1.00x      47.8      58.1      0      0       1.1G       1.0G     739.2M
+       one-time platform hold, outside the timed window: 176.5 ms
+  2        2.27      35.3    1.78x      50.9      74.3      0      0       1.1G     987.8M     739.3M
+  4        1.37      58.3    2.94x      63.8      88.8      0      0       1.2G       1.1G     739.1M
+  8        0.92      87.3    4.41x      92.8     117.3      0      0       1.2G       1.1G     739.8M
+  16       0.89      89.5    4.52x     166.3     194.1      0      0       1.4G       1.3G     740.0M
+  scaling: peak 4.52x at P=16; best at P>=4 is 4.52x (README refutes below ~2x) -> HELD
+  memory: heap kept 739.2M at P=1 vs 740.0M at P=16, 9.2M per render at P=1. Kept memory that scales with RENDERS rather than workers is the shape the README refutes on
+  safety: 0 failed renders, 0 wrong values across the sweep, race detector off (run ./run.sh -race for the safety half)
+
+SUMMARY -- renders per second
+
+  STRATEGY                 P=1       P=2       P=4       P=8      P=16
+  S5-base-prewalked       19.8      35.3      58.3      87.3      89.5
+scratch tree kept at _out/run
