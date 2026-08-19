@@ -178,6 +178,27 @@ That is the answer this half was for. Experiment 06 established `S2` race-clean 
 
 **6. Throughput saturates at physical cores, not threads.** `P=16` adds between nothing and 5% over `P=8` at every size. An operator sizing a render pool should count physical cores and then check the memory table above, because memory is the binding constraint well before threads are.
 
+### Follow-up: is there parallelism to gain INSIDE one render?
+
+Measured after this experiment concluded, on the same harness and tree, because the question came up and the answer changes what an operator should build. Six renders of a 129-component module through one worker, timed three ways:
+
+```
+                   CPU%    per render   RSS peak
+default            159%       1922 ms      1.2G
+GOGC=off           104%       1822 ms      5.6G
+GOMAXPROCS=1        99%       2692 ms      1.6G
+```
+
+**CUE's evaluation of a single build is single-threaded.** With the collector disabled the process uses 1.04 cores, so the 59% of extra CPU at default settings is the concurrent garbage collector, not parallel evaluation of the (component, transformer) pairs. Forcing everything onto one OS thread costs 40% wall time, which is the collector losing its own thread and competing with the evaluator.
+
+Two consequences.
+
+There is **no within-render parallelism to harvest**. In the collapsed design the pairs live inside one CUE build, so there is no Go-side loop to parallelise, and the evaluator will not do it. In today's path the pairs *are* a Go loop, and parallelising it is exactly the shape experiment 06 measured producing 2321 data races. The parallelism available is across renders, which is what this experiment measured.
+
+And it explains the ceiling. Each render demands about 1.6 cores (one evaluator plus roughly 0.6 of collector), so eight physical cores saturate at about five renders in flight. The measured peak of 4.0x to 4.3x is that number, not a scheduling defect.
+
+The one untested idea it leaves open is splitting a single large module's pairs across several builds to trade the fixed catalog cost for parallelism. Experiment 07's fit says four builds of a 129-component module would each cost about 551 ms against 1896 ms for one, which would be a latency win if the components split cleanly. They may not: the fleet's router folds over every server, so a subset build still forces part of the rest, and four concurrent builds of the same module multiply the working set. It is a latency optimisation for one big module rather than a throughput one, and an operator rendering many releases already has its parallelism. Untested, and deliberately not claimed.
+
 ### Limits
 
 - **One machine, 8 physical cores.** The 4x is the core count, not a property of CUE. What travels is that the ratio does not move with module size.
