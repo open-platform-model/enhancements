@@ -13,7 +13,7 @@ affects:
   - cli
   - catalog
 created: "2026-08-05"
-updated: "2026-08-05"
+updated: "2026-08-19"
 authors:
   - emil@jacero.se
 implementation:
@@ -36,9 +36,12 @@ history:
       (classes, amending 0010 D37), D3 (RBAC-gated registration CR), D4 (no contract/adapter
       packaging split, decided now because riding 0010's FQN break is nearly free and a
       standalone break later is not). Six Open Questions carried.
+  - date: "2026-08-19"
+    event: "Enhancement 0019 rescoped to carry the single-build render pipeline as its Phase B (its D9: one CUE build per render; D5: registry entries import their catalog and embed the transformer map, version scalar removed; D6: the operator generates the platform package; D8: ADR-002 superseded, store.go's held slot removed; D10: matching moves into the build). This entry's concept layer (D1-D4: contract maps, classes, TransformerRegistration, packaging) is untouched, but its library and operator integration surface is written against code 0019 deletes: the match.go line anchors, the materialize-based inventory, and the store re-keying in OQ6 all need re-baselining, and OQ6's blast-radius question largely dissolves under 0019 D8 (no held platform to invalidate). 0019's OQ9/OQ10 (what regenerates the platform package when a registration is accepted, and where a conflicting registration's requirements are refused) are deferred TO this entry. Re-baseline is triggered when 0019 reaches accepted."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"
   - "0011"
+  - "0019"
 supersedes: []
 superseded_by: null

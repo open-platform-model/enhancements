@@ -158,3 +158,79 @@ package schema
 	declares!: [...#TransformInput]
 	declares: reads
 }
+
+// ---------------------------------------------------------------------------
+// The render build (D9) and the registry shape that makes it resolvable (D5)
+// ---------------------------------------------------------------------------
+
+// D9: the render step is one CUE build per render. The kernel generates the
+// render module, and what that module's cue.mod owes is the OQ6 invariant:
+// the complete tidied dependency set, or no render at all. Experiment 02
+// measured that authority fails by OMISSION, never by override — a path the
+// render module does not list is answered by the module graph's maximum
+// instead of by the platform.
+#RenderBuild: {
+	// One build, one cue.Context, per render; the context does not outlive
+	// the render (D8). No built value is shared between renders.
+	buildsPerRender:   1
+	sharesBuiltValues: false
+
+	// OQ6 invariant, stated as obligations on the generated cue.mod.
+	// `refusesOnIncomplete` is fixed: no caller may configure it away —
+	// a render module missing a path is a kernel defect, not a policy.
+	dependencyList!:     "complete-tidied-set"
+	refusesOnIncomplete: true
+
+	// The check that no OPM-namespace path resolved from the module graph
+	// rather than from the roots (the default-major trap has the same
+	// shape: a default is honoured only for a root dependency).
+	opmPathsFromRoots: true
+}
+
+// D5: a registry entry carries the catalog by import, not by version scalar.
+// Inexpressible as an extension of core's #Subscription (closed around
+// `enable` + `version!`), so this is the replacement shape, exercised by
+// experiments/02-platform-authority-mvs/platform/schema.cue. The catalog
+// build is named where every other CUE dependency is named: the platform
+// module's own cue.mod. #TransformerMap is core's; named by reference here.
+#CatalogEntry: {
+	enable: bool | *true
+
+	// The imported catalog's transformer map, embedded WHOLE. Per-transformer
+	// selection is deliberately inexpressible here — that concern belongs to
+	// enhancement 0015 (provider classes, TransformerRegistration).
+	#transformers: _
+}
+
+// What replaces the kernel-filled #composedTransformers: a fold over enabled
+// entries, computable in the schema itself once the maps are present. Folds
+// COPY (comprehension), never unify into one catalog's member map — the D25
+// provenance stamp refuses foreign members (measured by experiment 05).
+#ComposedTransformers: {
+	#registry: [string]: #CatalogEntry
+	out: {
+		for _, entry in #registry if entry.enable {
+			for tfqn, tf in entry.#transformers {(tfqn): tf}
+		}
+	}
+}
+
+// D10: matching inside the build reports verdicts as DATA. The shape below is
+// the contract experiment 05's glue measured: a caller (the kernel, via
+// LookupPath) reads these beside a failing fail-closed gate. Two boundaries
+// are part of the contract: an unstated trait posture refuses as a build
+// error rather than a diagnostics row, and an incomplete pair output is
+// caught by per-pair concreteness validation, not by these fields.
+#MatchDiagnostics: {
+	pairs: [...{component!: string, transformer!: string}]
+	missing: [...{component!: string, kind!: "resource" | "trait", fqn!: string}]
+	unifyFailures: [...{component!: string, transformer!: string, conflicts!: [...string]}]
+	unresolved: [...{component!: string, kind!: "resource" | "trait", fqn!: string, disqualified!: [...string]}]
+	warnings: [...{component!: string, fqn!: string}]
+	unmatchedComponents: [...string]
+
+	// The fail-closed gate (0010 D28): unified against `true` inside the
+	// build; the build refuses while every field above stays readable
+	// through the Go API.
+	resolved!: bool
+}

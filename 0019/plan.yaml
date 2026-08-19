@@ -1,0 +1,175 @@
+# Structured slice plan for enhancement 0019. Narrative rationale lives in
+# 06-operational.md ## Cross-Repo Coordination; this file is the structured
+# backing data (task vet, task plan:graph, task plan:ready, task slice:seed).
+#
+# The entry's two phases (A: parity on the current path; B: the single-build
+# collapse) are BOTH `implementation` in this file's phase vocabulary — nothing
+# here republishes artifacts. The A/B split is carried by the dependency
+# graph: no library-parity-* / library-*-fill / library-finalize-removal slice
+# depends on anything in Phase B, which is the structural guarantee
+# 04-graduation.md gates on.
+slices:
+  # ── Phase A: parity on the current path (library-local) ──────────
+  - id: library-parity-harness
+    repo: library
+    phase: implementation
+    concern: >
+      Differential parity harness comparing kernel render output against
+      pure-CUE unification of the same three inputs; lands first, its first
+      failure on the definition strip is D1's evidence.
+    depends_on: []
+    decisions: [D1]
+    status: planned
+
+  - id: library-component-fill
+    repo: library
+    phase: implementation
+    concern: >
+      Fill #transform.#component from the unstripped value and repair
+      TestFlow_WebApp_OnOpmPlatform's severed instance construction in the
+      same slice; sweep cli and opm-operator for the same construction shape.
+    depends_on:
+      - library-parity-harness
+    decisions: [D1]
+    status: planned
+
+  - id: library-moduleinstance-fill
+    repo: library
+    phase: implementation
+    concern: >
+      Fill #transform.#moduleInstance for the first time, with plain-read and
+      self-referential tests; closes open-platform-model/library#65.
+    depends_on:
+      - library-component-fill
+    decisions: [D3]
+    status: planned
+
+  - id: library-finalize-removal
+    repo: library
+    phase: implementation
+    concern: >
+      Remove FinalizeValue from the render path, then from the public kernel
+      surface (MAJOR, MIGRATIONS.md entry), shipping the OQ14 env-ordering
+      migration note with it.
+    depends_on:
+      - library-component-fill
+      - library-moduleinstance-fill
+    decisions: [D1]
+    status: planned
+
+  # ── Interim operator stopgap (independent of both phases) ────────
+  - id: opm-operator-render-serialization
+    repo: opm-operator
+    phase: implementation
+    concern: >
+      Serialise the operator's render path behind a mutex until the D8 slice
+      lands: the shared-platform model races under concurrent render, and the
+      measured 2.5x-5.5x throughput cost is the accepted interim price.
+    depends_on: []
+    decisions: [D8]
+    status: planned
+
+  # ── Phase B: the single-build collapse (cross-repo) ──────────────
+  - id: core-registry-import
+    repo: core
+    phase: implementation
+    concern: >
+      D5 registry reshape: #CatalogEntry replaces #Subscription, version!
+      removed, #composedTransformers derived; SPEC.md co-update under the
+      core-schema-edit protocol.
+    depends_on: []
+    decisions: [D5]
+    status: planned
+
+  - id: library-render-build
+    repo: library
+    phase: implementation
+    concern: >
+      The render-build assembler: stage instance + platform into a generated
+      render module under OQ6's invariant, build once, read rendered and
+      diagnostics; parity-harness-proven before the old path is deleted.
+    depends_on:
+      - library-finalize-removal
+      - library-parity-harness
+      - core-registry-import
+    decisions: [D9]
+    status: planned
+
+  - id: library-match-in-build
+    repo: library
+    phase: implementation
+    concern: >
+      Matching moves into the render build with verdicts as data per
+      experiment 05's glue shape; gated on reproducing the kernel's exact
+      pair set; deletes excludeProvenance and the D30 denylist.
+    depends_on:
+      - library-render-build
+    decisions: [D2, D10]
+    status: planned
+
+  - id: library-skew-policy
+    repo: library
+    phase: implementation
+    concern: >
+      Kernel-side module-versus-platform skew detection with caller-supplied
+      response (warn-and-render or refuse), returned as structured
+      diagnostics, never library-emitted output.
+    depends_on:
+      - library-render-build
+    decisions: [D7]
+    status: planned
+
+  - id: library-adr002-supersession
+    repo: library
+    phase: implementation
+    concern: >
+      ADR-002 gains its superseded-by header; a new ADR records the
+      shares-nothing rule and the cue.Context lifetime rule; opm/materialize
+      shrinks or is deleted, its composed map replaced by the platform's own
+      imports.
+    depends_on:
+      - library-render-build
+      - library-match-in-build
+    decisions: [D8]
+    status: planned
+
+  - id: opm-operator-store-removal
+    repo: opm-operator
+    phase: implementation
+    concern: >
+      Remove internal/platform/store.go's single held platform slot and the
+      render serialisation stopgap; renders become self-contained
+      shares-nothing units sized by memory.
+    depends_on:
+      - library-adr002-supersession
+      - opm-operator-render-serialization
+    decisions: [D8]
+    status: planned
+
+  - id: opm-operator-platform-generation
+    repo: opm-operator
+    phase: implementation
+    concern: >
+      The operator generates the #Platform CUE package its CR describes
+      (typed fields stay on the CR), with a named extension point where
+      enhancement 0015's effective transformer set folds in.
+    depends_on:
+      - core-registry-import
+    decisions: [D6]
+    status: planned
+
+  - id: cli-skew-surface
+    repo: cli
+    phase: implementation
+    concern: >
+      Expose D7's skew policy on the render command surface; cli and the
+      operator may default opposite ways over one kernel implementation.
+    depends_on:
+      - library-skew-policy
+    decisions: [D7]
+    status: planned
+
+unsliced:
+  D4: >
+    The slicing decision itself — implemented by this plan's own ordering
+    and dependency graph rather than by any single slice.

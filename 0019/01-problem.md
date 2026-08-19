@@ -41,7 +41,7 @@ The kernel executes this contract in Go. `compileModuleInstance` (`library/opm/k
 
 ## Gap / Pain
 
-**The kernel does not behave like CUE.** A plain CUE wrapper that unified the same three values would hand the transformer everything. The kernel hands it a subset, and the subset is not documented as a contract anywhere; it is a side effect of a tool chosen to do something else.
+**The kernel does not behave like CUE.** A plain CUE wrapper that unified the same three values would hand the transformer everything. The kernel hands it a subset, and the subset is not documented as a contract anywhere; it is a side effect of a tool chosen to do something else. And the multi-build architecture that made the subset possible carries measured costs of its own, stated below as the third gap.
 
 The consequences are already being paid, in three places:
 
@@ -95,11 +95,25 @@ It renders anyway, fully concrete. Whatever that sentence described in March was
 
 Three later changes removed the conditions that motivated it, and none of them prompted a re-examination: materialize federation (ADR-003) removed the closed-value fill that was corrupting transformers, single-build synth removed the closed-into-closed composition on the instance side, and core settled `#component: _` as explicitly unconstrained.
 
+## The architecture that made the strip reachable is also the expensive one
+
+The strip exists because the render path spans several CUE builds: the instance in one, each subscribed catalog in others, values crossing between them by `FillPath`. `cue.Final()` was reached for to make a value fillable across that boundary. The boundary itself, measured across experiments 04 and 06 through 08 (all concluded 2026-08-19), is the expensive part:
+
+- **The concurrency model is unsafe.** ADR-002's "one shared read-only `*MaterializedPlatform`, no mutex" produces 2321 data-race reports under concurrent render on the real catalog, 1540 after pre-evaluating the shared value — filling a shared value is a write to its evaluation state, the exact caveat the ADR drew and set aside. No wrong value was observed, so this is undefined behaviour rather than demonstrated corruption, but the model `opm-operator`'s store runs today cannot be run concurrently as written.
+- **Retention is unbounded by construction.** Today's path holds one `cue.Context` for the life of the process and retains 348 MB per render at 129 components; the process grows until restarted. A shares-nothing render retains 117 KB, flat in render count.
+- **Serialised, today's path loses at every size.** Since the races force serialisation, the comparison an operator actually faces is today's path behind a mutex against a shares-nothing single-build worker: 2.48x slower at two components, 5.49x at 129.
+- **The strip costs more than the payload it strips.** The baseline exports the whole component to remove definitions, which is why its per-component cost exceeds the single build's in every fixture (12.17 against 7.71 ms and upward), while the definitional payload rides into `#transform` unevaluated and free under CUE's laziness.
+
+The honest counterweight: a per-render single build pays a fixed ~85 ms catalog term, so a module below roughly a dozen components renders 1.7x to 2.1x slower in sequential isolation. The crossover, the concurrency independence, and the memory model are what make the trade one-sided in fleet operation.
+
+So the two halves of this entry are one defect seen at two depths: Phase A removes the strip the boundary demanded; Phase B removes the boundary.
+
 ## User Stories
 
 - As a **catalog author**, I want to render an object name from the component's own computed identity so that a rename propagates from one place. Today: `#component.#names` does not exist inside `#transform`, so I interpolate the name by hand and my formula silently disagrees with the five other transformers that did the same.
 - As a **catalog author**, I want to read instance data from the slot the schema declares for it. Today: the slot exists, my catalog vets and publishes, and the render fails on a consumer's cluster with an error about a disjunction.
 - As a **kernel contributor**, I want a mechanical answer to "does the kernel still behave like CUE". Today: there is no oracle, so the question is answered by reading the render path and reasoning about `cue.Final()`.
+- As a **platform operator**, I want to render many instances concurrently inside a bounded working set. Today: the shared-platform model races under concurrency, serialising it costs 2.5x to 5.5x throughput, and the held context grows until the process restarts.
 
 ## Why Existing Workarounds Fail
 

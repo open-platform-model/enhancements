@@ -64,6 +64,10 @@ Two practical consequences.
 | `compile.FinalizeValue` and the kernel wrapper as public API | nothing; no consumer need remains | a later slice, after the render path stops calling it |
 | The `schemaComponents` / `dataComponents` split in `compileModuleInstance` | one components value | same slice as the render-path removal |
 | Go decoding in `opm/schema/context.go` | CUE projection in `core` | only if OQ5 resolves toward projection |
+| `#Subscription.version!` and the version-scalar registry entry | the platform module's own `cue.mod` (D5) | Phase B, the `core` reshape slice |
+| `opm/materialize` (pull + index) | the platform's own imports; the composed map as a fold | Phase B, gated on D5 landing in `core` |
+| Go matching in `opm/compile/match.go`, including `excludeProvenance` and the D30 denylist | CUE comprehensions inside the render build (D10) | Phase B, gated on exact pair-set reproduction |
+| ADR-002's shared-materialized-platform model and `opm-operator/internal/platform/store.go`'s held slot | shares-nothing renders; a `cue.Context` does not outlive its render (D8) | Phase B, the supersession slice |
 
 The two-step for `FinalizeValue` is deliberate: stop using it, confirm the parity harness is green, then remove it from the surface. Collapsing both into one change would mix a behaviour change with an API break.
 
@@ -71,7 +75,9 @@ The two-step for `FinalizeValue` is deliberate: stop using it, confirm the parit
 
 **If this lands and proves bad, what's the rollback story?**
 
-Straightforward, and this is one of the design's better properties. Every slice is a code change in `library` with no artifact, no published bytes and no cluster state. Reverting the commit restores the previous behaviour exactly; nothing has been written to a registry and no rendered object's shape has changed in a way that outlives the revert.
+**Phase A: straightforward**, and one of the design's better properties. Every Phase A slice is a code change in `library` with no artifact, no published bytes and no cluster state. Reverting the commit restores the previous behaviour exactly; nothing has been written to a registry and no rendered object's shape has changed in a way that outlives the revert.
+
+**Phase B: ordinary release discipline rather than trivial revert.** D5 ships in a published `core` major, so rolling it back means pinning back a published artifact, not reverting a commit; the operator's package generation (D6) and the store removal (D8) revert as code but interact with live Platform CRs. The mitigation is the landing order below: the render-build assembler runs behind the parity harness against the old path before the old path is deleted, so the largest Phase B step has a within-release fallback.
 
 Two qualifications. If a transformer is authored to read `#names` or `#moduleInstance` while this is live, reverting breaks that transformer, so the catalog side should not adopt the new capability until the parity harness has been green across a release. And if the removal of `FinalizeValue` from the public surface has already shipped in a MAJOR bump, consumers that re-pinned would need to pin back; that is why the removal is a separate, later slice.
 
@@ -79,16 +85,24 @@ Two qualifications. If a transformer is authored to read `#names` or `#moduleIns
 
 **Which repos must coordinate, and in what order?**
 
-The order is driven by one measured constraint rather than by repo dependencies: exposing definitions changes the flow fixture from shipping no value to shipping a broken one, so the fixture repair cannot follow the exposure.
+`plan.yaml` is the source of truth for sequencing; this section is its narrative. Two constraints drive the order. Within Phase A, one measured constraint: exposing definitions changes the flow fixture from shipping no value to shipping a broken one, so the fixture repair cannot follow the exposure. Between phases, one structural guarantee: no Phase A slice depends on any Phase B slice, so the parity work lands regardless of how long the collapse takes.
+
+**Phase A (library-local):**
 
 1. **`library`, parity harness.** Additive, no behaviour change. Lands first so every subsequent slice is checked against the oracle rather than against the existing suite. Its initial failure on the definition strip is the evidence for D1.
 2. **`library`, fixture repair plus `#component` fill.** One slice, because the ordering constraint binds them. Produces: a render path that passes definitions through, and a regression test that a transformer reads `#names`.
 3. **`library`, `#moduleInstance` fill.** Consumes step 2's parity harness coverage. Produces: the third input filled, plus the self-reference test. Closes open-platform-model/library#65.
 4. **`library`, remove `FinalizeValue` from the public surface.** Consumes steps 2 and 3 being green. Produces: the MAJOR bump and the `MIGRATIONS.md` entry that `cli` and `opm-operator` re-pin against.
-5. **`core`, `#TransformerContext` projection**, only if OQ5 resolves toward it. Produces: derived context fields plus the `SPEC.md` co-update. `library` then deletes its decoding in a follow-on slice, and the two can be separated by a release because unification agrees while both are in place.
+**Phase B (cross-repo, after Phase A's step 4):**
 
-Steps 1 through 4 are `library`-local and need no upstream artifact. Step 5 is the only genuine cross-repo hand-off, and it is gated on an open question.
+5. **`core`, D5 registry reshape.** `#CatalogEntry` replaces `#Subscription`, `#composedTransformers` becomes derived, `SPEC.md` co-update under `core-schema-edit`. Nothing downstream moves until this publishes.
+6. **`library`, render-build assembler.** Stage, write `cue.mod` and `local-module.cue` under OQ6's invariant, build once, read `rendered` and `diagnostics`. Runs behind the parity harness against the old path; the old path is deleted only when every fixture agrees.
+7. **`library`, matching into the build (D10).** Gated on exact pair-set reproduction against the vendored kernel record; deletes `excludeProvenance` and the D30 denylist in the same slice, with the Go-matcher fallback recorded in D10 if error quality regresses.
+8. **`library`, skew detection and policy (D7)**, with `cli` and `opm-operator` each exposing their surface.
+9. **`library` + `opm-operator`, D8 supersession.** ADR-002 gains its superseded-by header, the new ADR carries the shares-nothing and context-lifetime rules, `store.go`'s held slot is removed, `opm/materialize` shrinks or goes.
+10. **`opm-operator`, D6 package generation**, shipping the named extension point where 0015's effective transformer set folds in.
+11. **`core`, `#TransformerContext` projection**, only if OQ5 resolved toward it. Additive; separable by a release because unification agrees while both fill paths are in place.
 
-The single-build collapse (OQ1 through OQ3) is deliberately absent from this sequence. If those resolve in its favour it is a further enhancement with its own coordination, not a step appended here.
+**Interim operator stopgap, recorded here as a decision of this entry:** until step 9 lands, `opm-operator`'s render path holds the ADR-002 shape that experiment 06 measured racing. The interim response is to serialise the render path behind a mutex, at the measured cost of 2.5x to 5.5x throughput — undefined behaviour is not an acceptable resting state even though no wrong value was ever observed. The serialisation is explicitly a stopgap: experiment 08 priced it, and D8 exists because it is also the slower architecture at every module size.
 
-Whether this warrants a `plan.yaml` is a `draft → accepted` gate item. `affects` spans two repos, but only one hand-off is real and it is conditional, so the narrative above may be sufficient.
+**0015 hand-off:** this entry reaching `accepted` is the trigger for re-baselining 0015's integration surface (its `match.go` line anchors, the materialize-based inventory, the `store.go` re-keying), and OQ9/OQ10 live there from that point.
