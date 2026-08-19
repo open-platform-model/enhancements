@@ -16,7 +16,7 @@ Three modules on disk, each with its own `cue.mod`, assembled into one build.
 
 | Directory | Role | Notes |
 | --- | --- | --- |
-| `platform/` | the platform, under the **proposed** schema | pins `catalogs/opm@v2.0.0-alpha.3` in its own `cue.mod`; constant in every case |
+| `platform/` | the platform, under the **proposed** schema | declares `catalogs/opm@v2.0.0-alpha.3` in its own `cue.mod`; constant in every case. A declaration, not a guarantee: authoritative only for a main module, and a minimum the graph can raise for a dependency |
 | `consumer/` | a minimal real `#Module` | its catalog pin is the matrix variable |
 | `render/` | the kernel-generated render module | main module of the build; its `cue.mod` is the second variable |
 
@@ -65,7 +65,9 @@ Pinned to `cue v0.17.1`. `replaceWith` requires language version `v0.17.0` or la
 **Hypothesis held, but conditionally, and the condition is the finding.**
 
 ```
-platform module pins catalogs/opm@2.0.0-alpha.3 in every case
+platform module DECLARES catalogs/opm@2.0.0-alpha.3 in every case
+(a declaration, not a guarantee: as a dependency it is a minimum the
+ graph can raise. RESOLVED is what the build actually selected.)
 
 CONSUMER-PIN       MODE       RESOLVED         AUTHORITY  CONSUMER-SEES    FULL-VET  TRANSFORMER-BYTES
 2.0.0-alpha.3      pinned     2.0.0-alpha.3    YES        2.0.0-alpha.3    ok        deployment-transformer@2.0.0-alpha.3

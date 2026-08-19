@@ -21,7 +21,9 @@ CACHE="${CUE_CACHE_DIR:-$HOME/.cache/cue}"
 
 export CUE_REGISTRY="${CUE_REGISTRY:-opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works}"
 
-PLATFORM_PIN="v2.0.0-alpha.3"   # what the platform's own cue.mod names; constant
+PLATFORM_PIN="v2.0.0-alpha.3"   # what the platform's own cue.mod DECLARES; constant.
+                                # Authoritative only for the main module; as a dependency
+                                # it is a minimum the module graph can raise.
 CORE_PIN="v2.0.0-alpha.4"
 
 CONSUMER_PINS=(v2.0.0-alpha.3 v2.0.0-alpha.4 v2.0.0-alpha.2)
@@ -87,7 +89,9 @@ run_case() { # $1 = consumer pin, $2 = mode
 
 prime
 echo
-echo "platform module pins catalogs/opm@${PLATFORM_PIN#v} in every case"
+echo "platform module DECLARES catalogs/opm@${PLATFORM_PIN#v} in every case"
+echo "(a declaration, not a guarantee: as a dependency it is a minimum the"
+echo " graph can raise. RESOLVED is what the build actually selected.)"
 echo
 printf '%-18s %-10s %-16s %-9s %-16s %-10s %s\n' \
   CONSUMER-PIN MODE RESOLVED AUTHORITY CONSUMER-SEES FULL-VET TRANSFORMER-BYTES
