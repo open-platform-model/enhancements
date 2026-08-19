@@ -1,48 +1,120 @@
-# Design — Kernel render path parity with pure CUE
+# Design: kernel render path parity with pure CUE
 
 ## Design Goals
 
-- **Parity is the contract.** For any (instance, component, transformer) triple, the kernel's rendered output equals what plain CUE unification of the same three inputs produces. Where they differ, the kernel is wrong.
-- **Parity is checkable.** The equality above is a test that runs in CI, not a principle in a document.
+- **Parity is the contract.** For any (instance, component, transformer) triple, what the kernel produces equals what plain CUE unification of the same three inputs produces. Where they differ, the kernel is wrong (D1).
+- **The render step is one CUE build.** The kernel stages the instance and the platform into a single generated module, evaluates it once, and reads the result. Parity then stops being a property the kernel maintains and becomes a property it cannot violate.
+- **The platform decides what executes.** A consumer module may not choose the transformer bytes a platform runs. That is a property of the dependency list the kernel writes, and it has to be written deliberately (D5, D6, OQ6).
 - **The kernel gets smaller.** Every divergence is closed by removing kernel behaviour, never by adding kernel behaviour that reproduces CUE more faithfully.
 - **The declared contract is honoured in full.** All three inputs `core` declares on `#transform` are supplied concretely.
 
 ## Non-Goals
 
-- Changing what a transformer is, or how components pair with transformers. Matching is untouched.
+- Changing what a transformer is, or which components pair with which transformers. Matching *semantics* are untouched; where matching executes is not, and the cost of that is stated below.
 - Changing the unit of execution. One `#component` per `#transform` evaluation stays (D2).
 - Removing `#moduleInstance` from the schema. It is intended, and the fix is to fill it (D3).
-- Resolving the render path's build topology. Whether the pipeline collapses to a single CUE build is a real question raised by this work and deliberately left open (OQ1, OQ2, OQ3).
+- Per-transformer selection in the platform file. D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement 0015.
+- Sealing a platform into catalog-independent CUE. Refuted on today's tooling (OQ8).
 
 ## High-Level Approach
 
-The render path currently forks one component value into two and hands the transformer the lossy branch. The target keeps one value.
+Two changes that turn out to be the same change.
+
+The first is the defect this entry opened on: the render path forks one component value into two and hands the transformer the lossy branch. The second is structural: there is more than one CUE build, and the fork exists because of it. Removing the strip fixes the symptom. Removing the second build removes the reason the strip was reachable.
 
 ```
-  TODAY                                    TARGET
+  TODAY
 
-  components                               components
-      |                                        |
-      +-- schemaComponents --> Match           +--> Match
-      |                    --> #context        +--> #context
-      |                                        +--> #component
-      +-- dataComponents   --> #component      +--> #moduleInstance
-          (definitions gone)                       (nothing removed)
+  module ──── build 1 ────> instance value ──┬──> Go Match ─────────> pairs
+                                             │
+                                             └──> FinalizeValue ────> stripped components
+                                                    (definitions gone)      │
+  platform ─── builds 2..N ──> catalog values ──> Go index ──> transformers ─┴──> FillPath ──> output
+
+
+  TARGET
+
+  kernel stages ONE build and evaluates it:
+
+      render module (generated, never published)
+        ├── cue.mod              the resolution. The kernel writes it (OQ6)
+        ├── local-module.cue     directory replacements for the unpublished inputs
+        └── render.cue           imports the instance and the platform
+
+  kernel then READS `rendered` and `diagnostics` off the built value
 ```
 
-Three properties follow, and each is measured rather than assumed:
+Nothing is stripped in the target because nothing crosses a build boundary. `cue.Final()` was reached for to make a value fillable into an independently-built closed value; with one build there is no such fill, so the call has no job. The same is true of the two-value split: matching reads `#resources` and `#traits`, which are definition fields, so the kernel cannot match with the value it renders with. That is a consequence of the strip, not an independent design choice, and it disappears with it.
 
-**Nothing breaks.** Filling `#component` from the unstripped value leaves the full library suite green across 14 packages, including `composed_open_test.go`'s closed-platform corruption guard, `materialize_test.go`'s seam guard, and the `cueregression` canary pair that pins the unfixed upstream CUE closedness regression in both directions.
+Validated end to end by `experiments/01-purecue-render-flow/`, which runs the whole flow (match, context, execute) as 82 lines of CUE against the published `catalogs/opm` transformers and renders a Deployment, a Service, an HTTPRoute and two ConfigMaps with `cue vet -c` clean.
 
-**The hazard does not reproduce.** A transformer with a hidden field declared lexically inside `output`, referencing a `#transform`-scope hidden field and consumed in-expression, the exact shape that ADR-003 exists to route around, marshals concretely with the sidecar intact. The corruption ADR-003 documents is a cross-build closed-fill artifact, and the fill site this enhancement changes is not that composition.
+## The render build
 
-Validated end-to-end against real artifacts by `experiments/01-purecue-render-flow/`, which runs the whole flow (match, context, execute) as CUE against the published `catalogs/opm` transformers and renders a Deployment, a Service, an HTTPRoute and two ConfigMaps with `cue vet -c` clean.
+The main module of the render build is generated by the kernel and never published. That single fact carries most of the design.
 
-**Defaults survive.** `cue.Final()` also sets `TakeDefaults`, so dropping it raises the question of whether defaulted disjunctions still resolve. A component field `port: *8080 | int` renders `8080` without it, and an unset optional stays absent from the output.
+**Its `cue.mod` is the resolution.** `cue/load` resolves an import by first consulting the main module's own dependency list, and falls back to the module graph and its maximum-version selection only for paths that list does not carry (`cuelang.org/go@v0.17.1` `internal/mod/modpkgload/import.go:93-98`). Minimum version selection is what `cue mod tidy` computes when it *writes* a dependency list; it is not re-derived when a build reads one. So a committed `cue.mod` is a resolution rather than a floor, and the kernel writing that file is what makes the platform authoritative.
 
-## The parity oracle
+**Its `cue.mod/local-module.cue` brings the unpublished inputs in.** The synthesized instance and the generated platform package are not registry artifacts. A directory replacement serves them from disk without consulting a registry at all (`modpkgload/replace.go:88-97`), and `replaceWith` is refused in published modules by `mod/modfile/schema.cue`'s `#Strict`, which makes the mechanism structurally build-local. It is how local modules enter the build; it is *not* how authority is enforced.
 
-The design's load-bearing artifact is not a code change, it is a test shape:
+**The failure mode is omission.** `experiments/02-platform-authority-mvs/` measured nine cases and found authority lost in exactly one: the render module does not list the catalog path, and the consumer module declares a higher version. Then the graph answers, the maximum wins, and the platform executes transformer bytes it never named. That cell matters more than one-in-nine suggests, because a render glue imports the instance and the platform and has no reason to import the catalog. Nothing forces the path onto the list unless the kernel puts it there.
+
+A second form of the same trap: a **default major version** is honoured only for a path that is a root dependency, so a catalog's own `default: true` for `cue.dev/x/k8s.io` stops working the moment the catalog leaves the roots. The generated module needs the complete tidied dependency set, not only the OPM paths.
+
+What the kernel owes that file, and what refuses a render when it cannot supply it, is OQ6. It is an internal invariant rather than a policy: no caller may configure it away.
+
+## The platform shape that makes this resolvable
+
+A platform that names its catalog with a `version` string is inert. Nothing resolves a string, so in a single build it has no way to influence anything. D5 changes the registry entry to carry the catalog by import:
+
+```
+core today                          target (D5)
+---------------------------------   ---------------------------------
+#registry: [Path]: #Subscription    #registry: [Path]: #CatalogEntry
+  enable:   bool | *true              enable:        bool | *true
+  version!: #VersionType              #transformers: #TransformerMap
+```
+
+The `version!` scalar is removed rather than made optional, because two answers to one question leave no way to tell which is load-bearing. The catalog build is named where every other CUE dependency is named, in the platform module's own `cue.mod`. Enhancement 0010 D14's property survives: catalog selection stays a pure function of committed source. The sentence changes from "the platform file *is* the resolution" to "the platform *module* is the resolution".
+
+Two consequences follow directly. `#composedTransformers` stops being a kernel-filled slot and becomes a fold over enabled registry entries, which is `library/opm/materialize/index.go` rewritten as four lines of CUE. And a platform can no longer be expressed as CR fields alone, because imports need a `cue.mod`; D6 puts package generation on the operator, which is also where enhancement 0015's runtime-discovered registrations have to be folded in (OQ9).
+
+The shape is exercised in `experiments/02-platform-authority-mvs/platform/schema.cue`. Writing it surfaced one thing worth recording: the proposal is inexpressible as an extension of core's `#Subscription`, which is closed around `enable` + `version!`. This is a core schema change, not an authoring convention.
+
+## The three inputs
+
+`#transform`'s three declared inputs are unchanged in shape. What changes is that all three are supplied, and that nothing is removed from them in transit.
+
+- `#component` carries the unstripped component, so `#names`, `#resources`, `#traits` and `#instance` are readable. Measured on the kernel side: filling from the unstripped value leaves the full suite green across 14 packages, including `composed_open_test.go`'s closed-platform corruption guard and the `cueregression` canary pair.
+- `#moduleInstance` is filled, which the kernel has never done (D3). The pure-CUE control fills it including the self-referential case, where the instance filled into `#moduleInstance` contains the component filled into `#component`, with no cycle.
+- `#context` is the only input with a runtime-owned part. Every field except `#runtimeName` is derivable from the other two, demonstrated in 18 lines of CUE by experiment 01's `_contextFor`. Whether `core` should own that derivation is OQ5, and a single build makes it close to forced: the glue would otherwise hand-roll in generated CUE what `core` could compute.
+
+Two properties measured rather than assumed. **The ADR-003 hazard does not reproduce**: a transformer with a hidden field declared inside `output`, referencing a `#transform`-scope hidden field and consumed in-expression, marshals concretely with the sidecar intact. That corruption is a cross-build closed-fill artifact, and a single build has no such fill. **Defaults survive**: `cue.Final()` also sets `TakeDefaults`, and dropping it still resolves `port: *8080 | int` to `8080`, with an unset optional staying absent.
+
+One authoring rule falls out of CUE itself and is not announced by anything. CUE resolves references **lexically**, so a transformer must re-declare a slot in its own `#transform` body to reference it. That is why shipped transformers write `#component: _` despite `core` declaring it, and it becomes author-visible the moment `#moduleInstance` is fillable.
+
+## What matching costs
+
+This is the part of the collapse that is not free, and it should be read before the deletions below are believed.
+
+`library/opm/compile/match.go` states its algorithm as FQN-lookup, then always-unify, then predicate. Experiment 01 expressed the predicate rung in CUE and enumerated what it does not model. Each is a question the design has to answer before matching moves:
+
+- **The D30 provenance denylist may be a federation artifact that dies with federation.** Today the always-unify rung drops CUE diagnostics located at `metadata.catalogVersion` or `description` (`match.go:375-417`), because provenance diverges across builds. CUE cannot express "unify but ignore conflicts at these paths". But in one build the component's primitive body and the transformer's embedded required copy come from the *same* catalog build, so they cannot diverge on provenance. If that holds, the rung becomes plain `&` and the carve-out is deleted rather than ported. Cheap to test and not yet tested.
+- **D32/D37's single-provider guard and `indexCatalogs`' cross-build collapse are multi-build machinery.** Whether they survive, or become vacuous, follows from the same question.
+- **Error quality regresses.** CUE can answer `(a & b) == _|_`, which experiment 01 does. It cannot hand back the conflict message that `oerrors.UnifyError` carries verbatim today. Whether a failed pair is re-run in a second diagnostic build, or the message is simply lost, is undecided.
+- **One thing improves.** `#LabelsAnnotationsType` admits `string | int | bool | [...]`, but the kernel's label predicate goes through `cue.Value.String()` and skips on error, silently narrowing a type `core` widens. Unification covers every admitted type and refuses on mismatch.
+- **D28's fail-closed demand resolution has to survive.** A declared resource with an empty or fully-disqualified bucket, and an unhandled trait whose optional posture is false or unstated, must still refuse the render. CUE can compute the unresolved set as data and assert it empty, but the failure then names a list rather than a field path. Whether `oerrors.{MissingFQN,UnresolvedDemand,UnifyError}` become values decoded from a `diagnostics:` field rather than constructed in Go is a contract change worth deciding before the glue shape is fixed.
+
+## Version skew and authority
+
+Experiment 02 measured that skew is silent in both directions. Under a render module that lists the catalog, a module demanding a higher build is silently downgraded to the platform's. Under one that does not, the module silently escalates the platform onto bytes it did not name. `cue vet -c` exits 0 in both. So "this module was authored against a build this platform does not run" is a fact that exists only if OPM computes it.
+
+D7 makes the kernel compute it and the caller choose the response, warn-and-render or refuse, supplied per compile so `cli` and `opm-operator` can take opposite positions over one implementation. Two boundaries are fixed rather than configurable: warning means a structured diagnostic returned to the caller, never library-emitted output (`library/CONSTITUTION.md:188`), and the omission case above is a kernel defect rather than a policy dial.
+
+Doing the comparison purely in CUE, as experiment 01's `_versionsAgree` sketches, is rejected as the sole mechanism: a CUE build failure cannot be downgraded to a warning by a caller, so it implements one of the two responses and not the other.
+
+## The parity oracle, and how its role changes
+
+The differential harness compares the kernel's rendered value against pure-CUE unification of the same three inputs:
 
 ```
   for each (instance, platform, component, transformer) fixture:
@@ -50,81 +122,89 @@ The design's load-bearing artifact is not a code change, it is a test shape:
       kernel render    ----+
                            +---> assert equal
       pure CUE unify   ----+
-
-  where "pure CUE unify" is literally:
-      tf.#transform & {#moduleInstance: inst, #component: inst.components.<id>, #context: <projection>}
 ```
 
-This differential harness is what turns D1 from an intention into an invariant. It fails on the definition strip the day it is written, which is the point: the first failure is the evidence, and every later removal is checked against an oracle rather than against "the suite still passes".
+It fails on the definition strip the day it is written, and that first failure is the primary evidence for D1. It lands before any fix so that every later slice is checked against an oracle rather than against "the suite still passes".
 
-It also has a property worth naming: it makes the *absence* of divergence visible. A future contributor who adds a Go-side transformation of a component value, for a good local reason, gets a failing parity test rather than a green suite and a slow drift.
+Its role then changes rather than ending. Once the render step *is* a CUE build, parity is structural: there is no Go-side transformation left to diverge. The harness becomes the instrument that proves the new path produces what the old path produced, one fixture at a time, and its long-term value is as a tripwire against a future contributor reintroducing a Go-side transformation of a component value for a good local reason.
+
+It also has a stated exemption from the start. The D30 carve-out is a place where the kernel is deliberately not plain unification, so the harness needs it named rather than asserted away. If the collapse makes D30 vacuous, the exemption is deleted with it.
+
+## What the kernel keeps, and what it loses
+
+| Stays in Go, by necessity | Reason |
+| --- | --- |
+| OCI resolution, credentials, the module cache | I/O and auth are not expressible in CUE |
+| Staging the render module and writing its `cue.mod` | the resolution has to be authored by something (OQ6) |
+| The build call, and reading `rendered` / `diagnostics` off the value | the boundary between CUE and Go |
+| `#runtimeName` | nothing in the artifacts can know what is executing them |
+| The skew comparison and its policy (D7) | CUE cannot express a caller-configurable severity |
+| Concurrency, caching, and the operator's reuse model | outside the language (OQ8; measured affordable at 2.1x the current path by experiment 04, and parallel to about 4x on eight cores by experiment 06) |
+
+| Candidate for deletion | Replaced by |
+| --- | --- |
+| `opm/compile/finalize.go` (`FinalizeValue`) | nothing; the unstripped value is used directly |
+| The `schemaComponents` / `dataComponents` split in `compileModuleInstance` | one components value |
+| `opm/compile/execute.go`'s `FillPath` sequence | unification inside the build |
+| `opm/materialize` pull plus index | the platform's own imports (D5) |
+| `opm/schema/context.go`'s Go decoding | a CUE projection, if OQ5 resolves that way |
+| Much of `opm/compile/match.go` | CUE comprehensions, subject to the costs above |
+
+The deletions are listed as candidates rather than commitments. Each is gated on a question in `03-decisions.md`, and the matching section above is the reason none of them should be assumed.
+
+## The fixture that has to move first
+
+`TestFlow_WebApp_OnOpmPlatform` builds its instance by pulling `#components` out of a module value and filling it into a separately-compiled skeleton. That is the shape the workspace's `module-construction` experiment measured in February 2026 and found to sever references: a sub-value's internal references resolve against the scope it was defined in, and moving it to a new parent does not rebind them.
+
+The visible symptom is that `#instance` is never wired, so `#names.dns.fqdn` fails with `required field missing: namespace` **in place**, before any fill and independent of anything this enhancement changes. On the real `synth.Instance` path the same expression resolves to `web.prod.svc.cluster.local`.
+
+This matters for ordering. While definitions are stripped, that fixture ships *no* value. Once they are exposed, it ships a *broken* one. The repair is a prerequisite of the slice that exposes definitions, not follow-up work, and `cli` and `opm-operator` are swept for the same construction shape before that slice lands.
 
 ## Schema and API Surface
 
 ### `core`
 
-`#transform`'s three declared inputs are unchanged in shape. What changes is that all three are filled.
-
-A second, larger reduction is available and is held as an open question rather than a decision. `#TransformerContext` is almost entirely derivable from the other two inputs:
-
-| `#context` field | derivable from |
-| --- | --- |
-| `#moduleInstanceMetadata.{name,namespace,fqn,uuid,labels,annotations}` | `#moduleInstance.metadata.*` |
-| `#moduleInstanceMetadata.version` | `#moduleInstance.#moduleMetadata.version` |
-| `#componentMetadata.{name,labels,annotations}` | `#component.metadata.*` |
-| `moduleLabels`, `componentLabels`, `controllerLabels` | already CUE-computed folds over the above |
-| `#runtimeName` | nothing; it is the runtime's own identity |
-
-If those become projections in `core`, `library` stops decoding metadata into Go structs and re-encoding it, and `opm/schema/context.go` collapses to filling one string. That deletes a hand-maintained mirror of the schema, which is a drift surface by construction. It is OQ5 rather than a decision because it changes `core` shapes and wants its own evidence.
+- `#Platform.#registry` entries carry `#transformers` and lose `version!` (D5). Inexpressible as an extension of the current `#Subscription`, so it is a shape change with a `SPEC.md` co-update under the `core-schema-edit` protocol.
+- `#composedTransformers` becomes derived rather than kernel-filled.
+- `#TransformerContext` becomes a projection of the other two inputs, if OQ5 resolves that way. Additive from an author's perspective, since the same field names hold the same values, and safe to stage: the kernel can keep filling values identical to what the projection computes, and unification simply agrees.
 
 ### `library`
 
 - `opm/schema/paths.go` gains a `ModuleInstance` path constant, built with `cue.MakePath(cue.Def(...))` per that file's own note about definition paths on closed structs.
-- `opm/compile/execute.go` fills `#component` from the schema-side component value, and fills `#moduleInstance`.
-- `opm/compile/finalize.go`'s `FinalizeValue` leaves the render path. It is also exposed as a public kernel method (`opm/kernel/phases.go`), so its removal is a Go API break and carries a `MIGRATIONS.md` entry.
-- `opm/kernel/flow_integration_test.go` stops constructing its instance by `LookupPath` plus `FillPath` (see below).
-
-## The fixture that has to move first
-
-`TestFlow_WebApp_OnOpmPlatform` builds its instance by pulling `#components` out of a module value and filling it into a separately-compiled skeleton. That is the shape the workspace's own `module-construction` experiment measured in February 2026 and found to sever references: a sub-value's internal references resolve against the scope it was defined in, and moving it to a new parent does not rebind them.
-
-The visible symptom is that `#instance` is never wired, so `#names.dns.fqdn` fails with `required field missing: namespace` **in place**, before any fill and independent of anything this enhancement changes. On the real `synth.Instance` path the same expression resolves to `web.prod.svc.cluster.local`.
-
-This matters for ordering, not for correctness of the change. While definitions are stripped, that fixture ships *no* value. Once they are exposed, it ships a *broken* one. The fixture is therefore a prerequisite of the slice that exposes definitions, not follow-up work.
-
-## The single-build question
-
-ADR-003 chose federation over single-build evaluation for one stated reason: a platform may subscribe to multiple versions of the same catalog `path@major` simultaneously, and CUE's Minimal Version Selection admits exactly one version per `path@major` per build.
-
-Enhancement 0010 D14 subsequently deleted that requirement. A subscription carries one scalar `version`, the registry key is major-qualified by type, CUE map semantics enforce one subscription per key, and the decision states the rule as permanent: "A platform that wants two builds of one catalog cannot express it; it makes two platforms."
-
-```
-   ADR-003 (June 2026)                    0010 D14 (August 2026)
-   platform may hold                      one subscription per path,
-   catalog 0.5.0 AND 0.5.1     versus     scalar version, two builds
-   simultaneously                         = two platforms, permanent
-            |                                        |
-            +--------------------+-------------------+
-                                 |
-              which is exactly MVS's own constraint.
-              The premise for federation no longer holds.
-```
-
-If that reading survives scrutiny, the render pipeline could collapse to a single evaluation, and with it go `FinalizeValue`, the cross-build `FillPath` sequence, the federation machinery, and the class of bug ADR-003 exists to contain, because that bug is a cross-build artifact.
-
-This enhancement does not decide it. Three questions gate it (OQ1, OQ2, OQ3), and the third is a genuine design fork rather than a verification task: in one build, MVS would resolve a module's catalog pin against the platform's subscription by picking the higher, which can override the version the platform names and contradict 0010 D14's "the platform file *is* the resolution".
+- `opm/compile/execute.go` fills `#component` from the schema-side value and fills `#moduleInstance`.
+- `FinalizeValue` leaves the render path, then the public surface. It is a kernel method, so removal is a Go API break carrying a `MIGRATIONS.md` entry.
+- A new render-build assembler: stage, write `cue.mod` and `local-module.cue`, build, read.
+- A new skew comparison with a caller-supplied policy (D7).
+- `opm/kernel/flow_integration_test.go` stops constructing its instance by `LookupPath` plus `FillPath`.
 
 ## Integration Points
 
 | Repo | Surface | Nature |
 | --- | --- | --- |
+| `library` | new parity harness | the enforcement mechanism, lands first |
 | `library` | `opm/compile/execute.go`, `opm/schema/paths.go` | the fills |
 | `library` | `opm/compile/finalize.go`, `opm/kernel/phases.go` | removal, Go API break |
+| `library` | render-build assembler, skew policy | the collapse and D7 |
+| `library` | `opm/materialize` | shrinks or goes, gated on D5 landing in `core` |
 | `library` | `opm/kernel/flow_integration_test.go` | fixture construction |
-| `library` | new parity harness | the enforcement mechanism |
+| `core` | `src/platform.cue`, `SPEC.md` | D5's registry reshape |
 | `core` | `src/transformer.cue`, `SPEC.md` | only if OQ5 resolves toward projection |
+| `opm-operator` | `api/v1alpha1/platform_types.go`, platform package generation | D6 |
+| `opm-operator` | `internal/platform/store.go` | the reuse model, gated on OQ8 |
+| `cli` | render command configuration | D7's policy surface |
 | `catalog_opm` | transformer authoring docs | the lexical-declaration rule (downstream, no slice here) |
+
+## Validation
+
+| Claim | Evidence |
+| --- | --- |
+| The whole flow is expressible as plain CUE against real published artifacts, with no `FinalizeValue` analogue | `experiments/01-purecue-render-flow/`, concluded 2026-08-19 |
+| The platform decides which catalog build executes in a single build, provided the kernel lists the path | `experiments/02-platform-authority-mvs/`, concluded 2026-08-19 |
+| Sealing a platform into catalog-independent CUE is not viable on today's tooling | `experiments/03-sealed-platform-roundtrip/`, refuted 2026-08-19 |
+| A per-render single build costs 2.1x the held-platform baseline, with flat memory, so reuse is an optimisation rather than a precondition | `experiments/04-render-build-cost/`, concluded 2026-08-19 |
+| Renders parallelise to about 4x on eight cores and the 2.1x multiplier survives concurrency; a reused `cue.Context` retains memory per render, and a shared built platform value races | `experiments/06-concurrent-render/`, concluded 2026-08-19 |
+| Definitions can be exposed to transformers without breaking the suite, and the ADR-003 hazard does not reproduce | `library/docs/design/repro-purecue-definitions/`, measured 2026-08-19 |
 
 ## Open Questions
 
-The full list with status lines lives in [`03-decisions.md`](03-decisions.md). In summary: three concern the single-build question (OQ1, OQ2, OQ3), one concerns whether sibling-component access through `#moduleInstance` should be constrained (OQ4), and one concerns collapsing `#TransformerContext` to a projection (OQ5).
+The full list with status lines lives in [`03-decisions.md`](03-decisions.md). In summary: OQ1 through OQ3 are resolved by the experiments above and await ratification; OQ4 concerns sibling-component access through `#moduleInstance`; OQ5 concerns collapsing `#TransformerContext` to a projection; OQ6 is now the load-bearing one, what the generated render module owes its own `cue.mod`; OQ7's residue is D7's default and inputs; OQ8 is the reuse model, no longer a feasibility blocker after experiments 04 and 06; OQ9 and OQ10 concern enhancement 0015's runtime-discovered registrations; OQ11 concerns what publishing a platform would mean; OQ12 and OQ13 are experiment 06's residue, what a render worker may hold between renders and what replaces ADR-002's shared materialized platform.
