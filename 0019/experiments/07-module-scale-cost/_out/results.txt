@@ -1,0 +1,187 @@
+== setup
+GOMAXPROCS=16 go=go1.26.5 n=8 ctx=fresh max-seconds=120
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+points: 28
+materialized 28 points x 8 renders under /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/07-module-scale-cost/_out/run in 0.1 s
+
+== measure
+GOMAXPROCS=16 go=go1.26.5 n=8 ctx=fresh max-seconds=120
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+points: 28
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/07-module-scale-cost/_out/run
+priming the module cache ... 183.9 ms
+
+FIXTURE   STYL     K COMPS  OUTS    N      LOAD     BUILD      EVAL    EXPORT     TOTAL TOTAL_p90  ERRS
+----------------------------------------------------------------------------------------------------------------------
+fleet/single bp       1     2     6    8      41.9      78.8       0.0       0.9     119.1     135.7     0
+fleet/base bp       1     2     6    8      11.5      26.4      24.3       0.9      68.5      73.1     0
+fleet/single raw      1     2     6    8      41.1      59.7       0.0       0.9     101.8     106.0     0
+fleet/base raw      1     2     6    8      11.5      10.4      17.2       1.0      41.5      45.4     0
+fleet/single bp       2     3     9    8      34.7      90.2       0.0       1.3     126.2     134.2     0
+fleet/base bp       2     3     9    8      10.2      35.5      34.3       1.4      85.4      90.1     0
+fleet/single raw      2     3     9    8      37.8      67.9       0.0       1.3     109.9     117.1     0
+fleet/base raw      2     3     9    8      10.0      14.6      24.8       1.4      53.7      61.4     0
+fleet/single bp       4     5    15    8      33.8     118.8       0.1       2.1     157.2     164.9     0
+fleet/base bp       4     5    15    8      10.0      54.3      52.3       2.3     125.8     129.1     0
+fleet/single raw      4     5    15    8      36.2      81.7       0.1       2.2     122.8     128.8     0
+fleet/base raw      4     5    15    8       8.8      19.3      46.4       2.6      79.5      88.3     0
+fleet/single bp       8     9    27    8      36.2     170.8       0.2       3.9     211.6     223.3     0
+fleet/base bp       8     9    27    8      10.2      90.4      97.7       4.2     205.4     216.1     0
+fleet/single raw      8     9    27    8      38.2     111.9       0.2       4.0     153.7     160.2     0
+fleet/base raw      8     9    27    8       8.6      32.0      83.1       4.6     129.0     135.0     0
+fleet/single bp      16    17    51    8      34.5     284.3       0.3       7.5     333.1     339.1     0
+fleet/base bp      16    17    51    8       9.6     166.4     173.1       8.0     362.3     373.6     0
+fleet/single raw     16    17    51    8      33.4     170.6       0.3       7.3     213.1     223.0     0
+fleet/base raw     16    17    51    8       9.2      58.4     150.3       7.8     231.2     233.3     0
+fleet/single bp      32    33    99    8      31.4     503.3       0.7      14.8     557.3     567.3     0
+fleet/base bp      32    33    99    8      10.5     312.3     332.9      15.4     671.0     692.9     0
+fleet/single raw     32    33    99    8      34.8     284.4       0.7      14.7     332.3     357.3     0
+fleet/base raw     32    33    99    8       9.9     103.1     295.6      15.1     431.4     451.2     0
+fleet/single bp      64    65   195    8      34.1     933.2       1.4      29.2     997.5    1038.8     0
+fleet/base bp      64    65   195    8      10.7     605.2     643.6      31.5    1306.0    1329.6     0
+fleet/single raw     64    65   195    8      32.2     520.5       1.4      28.5     585.0     594.0     0
+fleet/base raw     64    65   195    8       9.2     202.5     572.9      30.2     812.8     864.4     0
+fleet/single bp     128   129   387    8      35.7    1799.7       2.9      57.5    1895.7    1922.9     0
+fleet/base bp     128   129   387    8      11.5    1243.4    1208.9      58.6    2513.9    2605.9     0
+fleet/single raw    128   129   387    8      31.3     980.3       2.8      58.1    1079.6    1089.8     0
+fleet/base raw    128   129   387    8      11.0     407.5    1116.7      58.1    1587.9    1698.9     0
+complex/single bp       1     1     5    8      32.3      79.5       0.0       1.3     118.1     122.3     0
+complex/base bp       1     1     5    8      10.9      23.7      33.6       1.4      74.4      80.8     0
+complex/single raw      1     1     5    8      36.6      69.9       0.0       1.3     109.4     116.3     0
+complex/base raw      1     1     5    8       8.3      12.9      31.9       1.4      54.5      59.0     0
+complex/single bp       2     2    10    8      37.4     112.6       0.1       2.4     150.2     156.7     0
+complex/base bp       2     2    10    8      12.2      43.8      60.3       2.6     119.9     124.6     0
+complex/single raw      2     2    10    8      39.4      90.7       0.1       2.4     131.9     137.3     0
+complex/base raw      2     2    10    8       9.7      22.6      51.4       2.7      86.6      93.3     0
+complex/single bp       4     4    20    8      42.0     175.9       0.2       4.7     221.8     232.7     0
+complex/base bp       4     4    20    8       9.8      82.4     109.3       5.1     206.4     215.1     0
+complex/single raw      4     4    20    8      33.6     133.6       0.2       4.6     176.6     186.7     0
+complex/base raw      4     4    20    8      11.5      42.6      93.9       5.2     154.1     160.2     0
+complex/single bp       8     8    40    8      34.3     302.1       0.4       9.3     347.5     358.4     0
+complex/base bp       8     8    40    8      11.6     163.9     196.9      10.0     394.7     406.6     0
+complex/single raw      8     8    40    8      31.6     220.0       0.4       9.3     262.2     274.6     0
+complex/base raw      8     8    40    8       9.1      81.9     184.2      10.1     288.3     304.0     0
+complex/single bp      16    16    80    8      32.1     571.4       0.9      19.2     626.2     647.7     0
+complex/base bp      16    16    80    8      11.3     325.8     408.4      19.6     768.0     778.9     0
+complex/single raw     16    16    80    8      33.3     388.9       0.9      18.3     440.3     459.8     0
+complex/base raw     16    16    80    8       9.0     161.5     351.0      19.3     549.3     584.4     0
+complex/single bp      32    32   160    8      39.3    1091.6       1.8      37.2    1175.7    1213.3     0
+complex/base bp      32    32   160    8      10.6     658.3     803.1      38.0    1524.4    1550.8     0
+complex/single raw     32    32   160    8      35.6     740.0       1.8      36.1     817.3     835.5     0
+complex/base raw     32    32   160    8       9.4     321.4     718.8      38.3    1089.2    1122.8     0
+
+SINGLE BUILD vs BASELINE, per point
+  (experiment 04 measured 2.1x on a 2-component module producing 5 outputs)
+
+  FIXTURE   STYL     K   OUTS  SINGLE_ms    BASE_ms   RATIO SINGLE/comp  SINGLE/out
+  ----------------------------------------------------------------------------------------
+  fleet     bp       1      6      119.1       68.5   1.74x       59.53       19.84
+  fleet     raw      1      6      101.8       41.5   2.46x       50.92       16.97
+  fleet     bp       2      9      126.2       85.4   1.48x       42.08       14.03
+  fleet     raw      2      9      109.9       53.7   2.05x       36.62       12.21
+  fleet     bp       4     15      157.2      125.8   1.25x       31.45       10.48
+  fleet     raw      4     15      122.8       79.5   1.54x       24.55        8.18
+  fleet     bp       8     27      211.6      205.4   1.03x       23.51        7.84
+  fleet     raw      8     27      153.7      129.0   1.19x       17.08        5.69
+  fleet     bp      16     51      333.1      362.3   0.92x       19.60        6.53
+  fleet     raw     16     51      213.1      231.2   0.92x       12.53        4.18
+  fleet     bp      32     99      557.3      671.0   0.83x       16.89        5.63
+  fleet     raw     32     99      332.3      431.4   0.77x       10.07        3.36
+  fleet     bp      64    195      997.5     1306.0   0.76x       15.35        5.12
+  fleet     raw     64    195      585.0      812.8   0.72x        9.00        3.00
+  fleet     bp     128    387     1895.7     2513.9   0.75x       14.70        4.90
+  fleet     raw    128    387     1079.6     1587.9   0.68x        8.37        2.79
+  complex   bp       1      5      118.1       74.4   1.59x      118.10       23.62
+  complex   raw      1      5      109.4       54.5   2.01x      109.44       21.89
+  complex   bp       2     10      150.2      119.9   1.25x       75.08       15.02
+  complex   raw      2     10      131.9       86.6   1.52x       65.94       13.19
+  complex   bp       4     20      221.8      206.4   1.07x       55.44       11.09
+  complex   raw      4     20      176.6      154.1   1.15x       44.15        8.83
+  complex   bp       8     40      347.5      394.7   0.88x       43.44        8.69
+  complex   raw      8     40      262.2      288.3   0.91x       32.77        6.55
+  complex   bp      16     80      626.2      768.0   0.82x       39.14        7.83
+  complex   raw     16     80      440.3      549.3   0.80x       27.52        5.50
+  complex   bp      32    160     1175.7     1524.4   0.77x       36.74        7.35
+  complex   raw     32    160      817.3     1089.2   0.75x       25.54        5.11
+
+VERDICT 1 -- does the single-build penalty grow with module size?
+  README refutes the bounded-ratio claim if the ratio at the largest size
+  exceeds twice the ratio at the smallest.
+  fleet     bp   ratio 1.74x at k=1 -> 0.75x at k=128  (0.43x growth) -> HELD
+  fleet     raw  ratio 2.46x at k=1 -> 0.68x at k=128  (0.28x growth) -> HELD
+  complex   bp   ratio 1.59x at k=1 -> 0.77x at k=32  (0.49x growth) -> HELD
+  complex   raw  ratio 2.01x at k=1 -> 0.75x at k=32  (0.37x growth) -> HELD
+
+VERDICT 2 -- is per-render cost linear in component count?
+  Reported as ms per component at each end of the sweep. Rising = super-linear.
+  fleet     bp   single   59.53 ms/comp at k=1 ->   14.70 ms/comp at k=128  (sub-linear)
+  fleet     bp   base     34.23 ms/comp at k=1 ->   19.49 ms/comp at k=128  (sub-linear)
+  fleet     raw  single   50.92 ms/comp at k=1 ->    8.37 ms/comp at k=128  (sub-linear)
+  fleet     raw  base     20.73 ms/comp at k=1 ->   12.31 ms/comp at k=128  (sub-linear)
+  complex   bp   single  118.10 ms/comp at k=1 ->   36.74 ms/comp at k=32  (sub-linear)
+  complex   bp   base     74.39 ms/comp at k=1 ->   47.64 ms/comp at k=32  (sub-linear)
+  complex   raw  single  109.44 ms/comp at k=1 ->   25.54 ms/comp at k=32  (sub-linear)
+  complex   raw  base     54.46 ms/comp at k=1 ->   34.04 ms/comp at k=32  (sub-linear)
+
+VERDICT 3 -- what does blueprint authoring cost, and where?
+  README refutes the payload claim if bp and raw are within 10% everywhere,
+  or if the gap in the single build is not larger than the gap in the baseline.
+
+  FIXTURE       K   SINGLE_gap     BASE_gap SINGLE_bp/raw  BASE_bp/raw
+  ----------------------------------------------------------------------
+  fleet         1        16.9%        65.2%         1.17x         1.65x
+  fleet         2        14.9%        59.2%         1.15x         1.59x
+  fleet         4        28.1%        58.1%         1.28x         1.58x
+  fleet         8        37.7%        59.2%         1.38x         1.59x
+  fleet        16        56.3%        56.7%         1.56x         1.57x
+  fleet        32        67.7%        55.5%         1.68x         1.56x
+  fleet        64        70.5%        60.7%         1.71x         1.61x
+  fleet       128        75.6%        58.3%         1.76x         1.58x
+  complex       1         7.9%        36.6%         1.08x         1.37x
+  complex       2        13.9%        38.5%         1.14x         1.39x
+  complex       4        25.6%        33.9%         1.26x         1.34x
+  complex       8        32.5%        36.9%         1.33x         1.37x
+  complex      16        42.2%        39.8%         1.42x         1.40x
+  complex      32        43.8%        40.0%         1.44x         1.40x
+
+  the single-build gap is the wider one in 5 of 14 sizes
+
+GUARDS
+  bp/raw output identity: 28 identical, 0 divergent
+  single vs baseline: 16 byte-identical, 12 identical modulo LIST ORDER, 0 genuinely different
+    (reported, not asserted: the baseline finalizes the component, which this enhancement exists to remove)
+  render distinctness: 0 points where consecutive renders produced identical bytes
+  failed renders: 0
+
+ALLOCATION per render (churn, not retention -- experiment 06 owns retention)
+  FIXTURE   STYL     K       SINGLE         BASE
+  ------------------------------------------------
+  fleet     bp       1        64.7M        44.6M
+  fleet     raw      1        58.0M        32.2M
+  fleet     bp       2        71.3M        59.4M
+  fleet     raw      2        62.4M        44.3M
+  fleet     bp       4        84.6M        89.1M
+  fleet     raw      4        71.3M        68.6M
+  fleet     bp       8       111.5M       148.5M
+  fleet     raw      8        89.2M       117.2M
+  fleet     bp      16       164.7M       267.1M
+  fleet     raw     16       124.7M       214.3M
+  fleet     bp      32       271.4M       504.6M
+  fleet     raw     32       195.6M       408.7M
+  fleet     bp      64       485.3M       979.6M
+  fleet     raw     64       338.3M       797.1M
+  fleet     bp     128       913.4M         1.9G
+  fleet     raw    128       623.2M         1.5G
+  complex   bp       1        66.4M        46.8M
+  complex   raw      1        62.8M        38.9M
+  complex   bp       2        80.9M        74.9M
+  complex   raw      2        74.3M        62.5M
+  complex   bp       4       110.9M       134.0M
+  complex   raw      4        98.2M       112.5M
+  complex   bp       8       171.0M       251.9M
+  complex   raw      8       146.1M       211.9M
+  complex   bp      16       292.7M       490.2M
+  complex   raw     16       243.0M       412.9M
+  complex   bp      32       533.6M       964.4M
+  complex   raw     32       436.6M       813.0M
+EXIT=0
