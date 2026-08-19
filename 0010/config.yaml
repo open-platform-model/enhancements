@@ -1,7 +1,7 @@
 id: "0010"
 slug: artifact-identity
 title: Module and Catalog Identity
-status: accepted
+status: implemented
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: core
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -29,7 +29,7 @@ affects:
   # that an accepted -> implemented gate, and it had no repo until 2026-08-05.
   - opmodel.dev
 created: "2026-07-26"
-updated: "2026-08-18"
+updated: "2026-08-19"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -39,7 +39,15 @@ semver: major
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
-  status: in-progress
+  status: complete
+  date: "2026-08-19"
+  notes: >
+    All fifteen slices landed. The identity reshape crossed core to
+    `opmodel.dev/core@v2`, the library, cli and operator retargeted onto it,
+    the first-party catalogs consolidated into `catalog_opm` and republished
+    through `opm catalog publish`, and the module fleet — all 20 modules —
+    republished to GHCR at unchanged coordinates. Seven deviations are
+    recorded in README.md.
 # Append-only timeline of milestones.
 history:
   - date: "2026-07-26"
@@ -214,6 +222,12 @@ history:
   - date: "2026-08-18"
     slice: "opmodel.dev/docs-catalog-contract"
     event: "docs-catalog-contract DONE — the last implementation slice of this entry; only modules-fleet-republish remains, behind 0011:modules-publish-cutover. Two hand-written pages land as the site's first non-generated reference content: reference/catalog-contract.md (the D34 level ladder with the two-axes trap stated first, D27's additive rule worked in the publish gate's own violation vocabulary, the D4/D25 three-version-shaped-values table with catalogVersion explicitly not an escape, and the D35 enforcement-honesty section — publish-gate-only, registry check --compat an aid not a guarantee, ungated cue-mod-publish named as the unreported chain-break) and reference/registry-namespaces.md (every owned prefix with publisher + enforcement point + defining decision incl. 0011 D25's templates segment and index reservation, framed by 0011 D13's hosts-not-indexes and the shortcut-safety argument; testing.opmodel.dev and platforms explicitly de-mystified). The 2026-08-16 scope addition (namespaces page) is hereby delivered. Root workspace CLAUDE.md's Registry Policy gained the one-line internal pointer to the public page. Verification honest to the site's current state: hugo builds clean and both pages enter the content set, but the repo's disabled-theme condition renders NO section to HTML today — pre-existing, repo-wide, not this slice's to fix; also discovered pre-existing and left unowned: `task generate:cli` fails on a clean tree, breaking `task build`'s generate step (docs bug, traces to docgen/cli wiring, noted for the opmodel.dev repo). The change record lives at opmodel.dev/openspec/changes/docs-catalog-contract (proposal/design/tasks; the repo had no OpenSpec workspace before — this creates its first, no spec tree)."
+  - date: "2026-08-18"
+    event: "modules-fleet-republish DONE — the fleet republish is complete and this entry's last slice is closed. All 20 modules on main were published to GHCR through `opm module publish` by the cutover's sweep (modules workflow run 32184835701, dispatched 2026-08-18): apprise/gotify/ntfy at 2.1.0, jellyfin and k8up at 3.0.1, web_app at 1.0.1, the remaining fourteen at 2.0.1. VERIFIED BY REGISTRY PROBE RATHER THAN BY LOG: opmodel.dev/modules/k8up:v3.0.1 went 404 to 200 across the run. COORDINATES DID NOT MOVE, exactly as 0011 D17 predicts — the @vN suffix on metadata.modulePath addresses the same OCI repository, so every module kept its registryPath and the instance identity D41 derives from it. THE VERSIONS ARE NOT THE SEEDED ONES, and the reason is worth recording: release-please bumped three modules for the port commits after the seeded bootstrap-sha, then the derivation fix below touched all 20 module.cue files in one commit and patch-bumped the rest. Nothing had been published at the seeded values, so the republish simply shipped what was declared; the practical residue is that no module has an x.y.0 tag on the v2 line. A DEFECT SURFACED AND WAS FIXED MID-FLIGHT (modules#32): every module stated its version twice — once in identity/identity.cue, once as a literal in module.cue — because 0010's modules-identity-authoring landed the identity subpackages but not the D12 metadata derivation its concern also claimed. `opm module version set` writes only the identity package by design, so the first release-please bump desynchronised the two and publish refused all three bumped modules with refusal 7. All 20 now derive modulePath and version from their identity package, as catalog_opm always has; the gate had been comparing two literals that happened to agree since the fleet port. Reproduced and confirmed fixed before merge. Executed as workflow dispatches with no OpenSpec change of its own — the modules repo gained a workspace with the cutover slice, but this slice is a publish event, not a source change."
+  - date: "2026-08-19"
+    event: "Compacted: D49's relation hoisted from its heading into an **Amends:** D42 field. No weave, no tombstone, no OQ collapse — the entry carries no stacked reversal and no unresolved question, so this was the whole of the pre-implemented pass."
+  - date: "2026-08-19"
+    event: "IMPLEMENTED — every slice is done and the entry is frozen. The last to land was modules-fleet-republish; the pre-flip compaction pass was a single relation hoist on D49. Seven deviations recorded in README.md, the substantive one being that modules-identity-authoring landed the identity packages without the D12 metadata derivation its concern claimed, caught by the publish gate during the republish and fixed across all 20 modules."
 related:
   - "0001"
   - "0011"

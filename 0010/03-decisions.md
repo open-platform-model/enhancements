@@ -1043,7 +1043,9 @@ The default is **one version per kind per catalog build** — the version the ve
 
 ---
 
-### D49: Contract kinds file under a version segment — `<kind>/<apiVersion>/` — derived from the key; D42 amended, the FQN unchanged
+### D49: Contract kinds file under a version segment — `<kind>/<apiVersion>/` — derived from the key
+
+**Amends:** D42
 
 **Decision:** The three contract kinds file one segment deeper, under their own `apiVersion`: `resources/v1/k8s_deployment.cue`, `resources/v1beta1/container.cue`, `resources/v1alpha1/namespace.cue`, and likewise `traits/v1beta1/`, `blueprints/v1beta1/`. The rule is **uniform across both families** — abstraction members file by their level exactly as raw members do. Transformers stay flat under `…/transformers`: they carry no `apiVersion` (D44), so there is no segment to derive.
 

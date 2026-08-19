@@ -413,7 +413,7 @@ slices:
       - modules-identity-authoring
       - "0011:modules-publish-cutover"
     decisions: [0011:D17]
-    status: planned
+    status: done
 
 # Decisions this entry implements in no slice, each with the reason. Surfaced
 # by `task decisions:uncovered`, which is quiet about them once they are here.

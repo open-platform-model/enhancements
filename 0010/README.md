@@ -1,5 +1,7 @@
 # Enhancement 0010 — Module and Catalog Identity
 
+> **Implementation status (2026-08-19).** Complete. Every slice has landed: core crossed to the v2 major, the library/cli/operator retargeted onto it, the first-party catalogs consolidated and republished through `opm catalog publish`, and the module fleet republished at unchanged coordinates. Deviations are recorded below.
+
 An OPM artifact states its identity in more places than one — `metadata.modulePath`, `metadata.name`, `metadata.version`, the `module:` line in `cue.mod/module.cue`, the CUE package name, and the tag it was published under — and nothing binds them. This enhancement reduces that to one statement per artifact, held in the artifact's own committed bytes, and takes the full version out of identity entirely.
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives in this README.
@@ -73,7 +75,21 @@ Pure-CUE definitions live in [`schemas/`](schemas/): [`target.cue`](schemas/targ
 
 ## Deviations from Design
 
-None at this stage. This entry is `draft`; deviations are recorded here when implementation lands.
+Seven, each recorded in `config.yaml.history` where it landed.
+
+1. **The library retarget landed twice.** The first crossing (library#51) shipped against a library-owned stand-in fixture catalog, because the original ordering put the catalogs' v2 authoring behind the library slices. It was reverted the same day (library#52) — the stand-in duplicated the real catalog's shape knowledge with no named retirement owner — and the ordering was inverted so catalogs moved first. The redo re-landed against the real consolidated catalog.
+
+2. **The core slices shipped across four tags, not one release.** `06-operational.md` describes a single cut point that "nothing else can move until"; in practice `v2.0.0-alpha.1` through `alpha.4` each carried part of it, leaving three partial-and-resolvable tags on the line. Only `alpha.4` was ever a retarget target, and nothing in the registry distinguishes a partial tag from a complete one.
+
+3. **The five-slice import rewrite resolved as four rewrites and two tombstones.** D47's consolidation meant `catalog_kubernetes`'s 56 files and `catalog_opm_experimental`'s 9 were never rewritten forward — each repo's v2 line ended at the `v2.0.0-alpha.1` it had already published.
+
+4. **D11's third read point has no library home.** The design names platform-subscription time as the earliest place to verify a catalog's identity, but nothing in the library resolves subscriptions outside materialize — the platform loader deliberately does not. The check collapsed into the materialize read; the fires-earliest property is a frontend workflow concern.
+
+5. **The operator needed feature code after all.** `02-design.md` states the operator needs none. Retiring the Platform CRD's `Subscription.Filter` for D14's scalar `version` is versioned API work, and the controller could not compile against the retargeted library while still mapping a filter the library had deleted.
+
+6. **`modules-identity-authoring` landed the identity packages but not the metadata derivation its concern also claimed.** Every module stated its version twice — in `identity/identity.cue` and as a literal in `module.cue` — and the gate compares values, so the two agreed until something moved one. The first release-please bump desynchronised them and publish refused; fixed across all 20 modules during the republish (modules#32). This is the entry's one genuine implementation gap rather than a design change.
+
+7. **The republished fleet carries no `x.y.0` tags.** The seeded versions were overtaken before the republish ran — release-please counted the port commits after the bootstrap SHA, then the derivation fix touched all 20 module files in one commit and patch-bumped the rest. Nothing had been published at the seeded values, so the sweep simply shipped what was declared.
 
 ## Cross-References
 

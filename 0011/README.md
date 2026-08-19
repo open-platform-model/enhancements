@@ -1,5 +1,7 @@
 # Enhancement 0011 — Module and Catalog Publishing
 
+> **Implementation status (2026-08-19).** Complete. Publishing an OPM artifact now goes through `opm module publish` / `opm catalog publish` in every pipeline, versions are authored rather than inferred, and the registry cleanup D17 scoped is finished. Deviations are recorded below.
+
 There is no OPM publish command. Every artifact in the registry today was pushed by `cue mod publish`, wrapped in a repo-local task that decides the version by its own rules — a content checksum for modules, a copy-and-stamp for catalogs — and neither wrapper reads what the artifact says about itself. This enhancement defines how an OPM artifact reaches a registry.
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives in this README.
@@ -50,11 +52,19 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue), which s
 
 ## Deviations from Design
 
-None in what has been built. One slice of nine has landed — `core-identity-package`, shipping D21's `#IdentityPackage` and D22's `#CatalogMemberFQNGate` in `core` — and it matches its design on every requirement, verified by executing all 20 spec scenarios against the shipped schema.
+Six, each recorded in `config.yaml.history` where it landed. The pre-implementation note about the unbuilt major-agreement backstop is resolved and folded into (1).
 
-One assumption underneath D21 and D22 turned out not to hold, and it is recorded here because it changes what protects the fleet *today* rather than what the design says:
+1. **The major-agreement window is closed.** While this entry was in flight, nothing in shipped code checked the version-major relation: 0010's D43 and D45 each deleted a `core`-side assertion on the ground that subscription selection would catch a skew, and that check was itself unbuilt. `#IdentityPackage.VersionMajor` was its only statement anywhere. Both ends landed — `library-acquire-and-subscription` for the subscription check and `cli-publish-pipeline` for the publish gate — and the relation is now enforced at publish for every artifact.
 
-- **The consumer-side major-agreement backstop is not built yet.** Enhancement 0010 D43 and D45 each deleted a `core`-side version-major assertion, accepting the residual exposure on the ground that a skew would still surface at the platform's subscription-selection check. That check is library-side — `0010/schemas/target.cue`'s preamble puts subscription selection's production implementation in Go, and 0010's `library-acquire-and-subscription` slice (formerly `library-subscription-collapse`) carries it explicitly ("one major-agreement check survives beside the subscription"). That slice is `planned`. So nothing in shipped code checks the relation right now: `#IdentityPackage.VersionMajor` is its only statement, and no shipped code unifies against it until `cli-publish-pipeline` lands. Measured 2026-08-08 — `_majorAgrees` has never existed in `core` at any commit. The window closes from either end and neither end has started; it is an ordering fact with two named owners, not a design change.
+2. **release-please was adopted for `modules`, which D15 permits rather than requires.** D15 explicitly left conventional commits a catalog convention and anticipated the cost of per-module components. The cutover took that option: 20 packages, a seeded manifest, one combined release PR, with `opm module version set` remaining the only writer of `identity/identity.cue`.
+
+3. **D9's implementation note was wrong and is struck by D23.** It named materialize's `highestStable` as "exactly the right selection" for the compatibility gate's predecessor, but that is the subscription float's stable-preferring selector — a different rule that coincides with the gate's only on a prerelease-only history. D23 restores D9's own rule sentence: a backward scan of the published history, prereleases included. The conflation never executed; it was caught in design before the gate was built.
+
+4. **`registry-cleanup` split into two slices.** The original single slice covered D17's items across every fleet. The cli's own fixture and the operator's four moved on different schedules and through different pipelines, so the work landed as `registry-cleanup` (cli) and `registry-cleanup-operator`, the latter also carrying the modulepackages to the testing domain — a deviation from D17 item 5, which had left them out.
+
+5. **`cli-authoring-commands` landed as two OpenSpec changes.** The `mod init` half grew into `cli-template-modules` when the builtin templates were replaced by real published modules under a reserved segment (D25) — templates became gated artifacts published by the cli's own release pipeline rather than text embedded in the binary.
+
+6. **The login command was renamed before it was built.** D11 specified `opm login [registry]`; D24 moved it onto the `registry` command group as `opm registry login`, and the shipped command writes the standard OCI credential file rather than CUE's `logins.json` — the device-grant path D11 left open is unimplementable against the registries this fleet actually publishes to.
 
 ## Cross-References
 

@@ -18,11 +18,11 @@ graph LR
     S_cli-authoring-commands["cli-authoring-commands (cli)\nThe commands that write source and never invent i…"]:::done
     S_cli-catalog-gates["cli-catalog-gates (cli)\nBoth gates on opm catalog publish: the compatibil…"]:::done
     S_catalogs-publish-cutover["catalogs-publish-cutover (catalog)\nSwitch the consolidated catalog_opm's release.yml…"]:::done
-    S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::in_progress
+    S_modules-publish-cutover["modules-publish-cutover (modules)\nDelete the checksum-driven publish and versions.y…"]:::done
   end
   subgraph PHASE_MIGR["Migration — published artifacts"]
     S_registry-cleanup["registry-cleanup (cli)\nD17 item 3 for the cli's own fixture: relocated t…"]:::done
-    S_registry-cleanup-operator["registry-cleanup-operator (opm-operator)\nD17 items 2-3 for the operator fleet: relocate mo…"]:::in_progress
+    S_registry-cleanup-operator["registry-cleanup-operator (opm-operator)\nD17 items 2-3 for the operator fleet: relocate mo…"]:::done
   end
 
   X_0010_core-identity-shape["0010:core-identity-shape"]:::other
@@ -57,6 +57,6 @@ graph LR
 | cli-authoring-commands | implementation | cli | done | core-identity-package | The commands that write source and never invent identity: `opm module|catalog version set` / `--version` — the surgical AST rewrite measured in experiments/01 — and `opm mod init` as scaffold AND repair behind a second confirmation.   |
 | cli-catalog-gates | implementation | cli | done | core-identity-package, library-compat-comparator, cli-publish-pipeline | Both gates on `opm catalog publish`: the compatibility gate plus `opm catalog registry check [--compat]` as an aid; members refused against #CatalogMemberFQNGate per version subdir, traits with unstated or pinned optional. -c required.   |
 | catalogs-publish-cutover | implementation | catalog | done | cli-publish-pipeline, cli-authoring-commands, cli-catalog-gates, cli-login, 0010:catalogs-identity-authoring | Switch the consolidated catalog_opm's release.yml to `opm catalog publish`, delete the copy-and-stamp task — one catalog repo since the consolidation. Catalogs go first because modules build against them.   |
-| modules-publish-cutover | implementation | modules | in-progress | cli-publish-pipeline, cli-authoring-commands, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity- authoring; coordinates do not change.   |
+| modules-publish-cutover | implementation | modules | done | cli-publish-pipeline, cli-authoring-commands, catalogs-publish-cutover, 0010:modules-identity-authoring | Delete the checksum-driven publish and versions.yml, cut over to `opm module publish`. The identity file itself is 0010's modules-identity- authoring; coordinates do not change.   |
 | registry-cleanup | migration | cli | done | - | D17 item 3 for the cli's own fixture: relocated to testing.opmodel.dev/modules/cli/* and published to GHCR through the gated publish pipeline. The operator fleet is registry-cleanup-operator.   |
-| registry-cleanup-operator | migration | opm-operator | in-progress | registry-cleanup | D17 items 2-3 for the operator fleet: relocate modules/test/* to testing.opmodel.dev/modules/operator/* with identity packages and gated publishing. Deletion of the old packages and their -e2e tags follows.   |
+| registry-cleanup-operator | migration | opm-operator | done | registry-cleanup | D17 items 2-3 for the operator fleet: relocate modules/test/* to testing.opmodel.dev/modules/operator/* with identity packages and gated publishing. Deletion of the old packages and their -e2e tags follows.   |

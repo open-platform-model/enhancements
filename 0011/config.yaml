@@ -1,7 +1,7 @@
 id: "0011"
 slug: artifact-publishing
 title: Module and Catalog Publishing
-status: accepted
+status: implemented
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: cli
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -33,7 +33,7 @@ affects:
   # e2e run. Added 2026-08-18 with the operator half of registry-cleanup.
   - opm-operator
 created: "2026-07-26"
-updated: "2026-08-18"
+updated: "2026-08-19"
 authors:
   - emil@jacero.se
 # Design impact: new commands, and a namespace OPM shapes only where it owns the
@@ -44,16 +44,15 @@ semver: minor
 # Implementation tracking. status: not-started | in-progress | partial | complete.
 # `date` and `notes` allowed only when status reaches `complete`.
 implementation:
-  status: in-progress
+  status: complete
+  date: "2026-08-19"
   notes: >
-    Three of nine slices have landed: core-identity-package (shipped
-    #IdentityPackage and #CatalogMemberFQNGate in `core`),
-    library-compat-comparator (the pure `opm/compat` package), and
-    cli-publish-pipeline (`opm module publish`, `opm catalog publish`, the
-    D16/D18/D21 checks in `opm module vet`). Identity is now validated by
-    unification at publish and vet, so #IdentityPackage has live enforcement —
-    including the version-major/path-major relation. #CatalogMemberFQNGate
-    still has none until cli-catalog-gates lands.
+    All nine slices landed. `core` ships #IdentityPackage and the member and
+    trait gates; `library` ships the compatibility comparator; the cli ships
+    the publish pipeline, the authoring commands, the catalog gates and
+    `opm registry login`; both release pipelines publish through the CLI; and
+    D17's registry cleanup is complete on both fleets. Six deviations are
+    recorded in README.md.
 # Append-only timeline of milestones.
 history:
   - date: "2026-07-26"
@@ -155,6 +154,14 @@ history:
     event: "catalogs-publish-cutover IMPLEMENTED and moved to done — catalog_opm's release.yml, branch-publish.yml and ci.yml publish exclusively through `opm catalog publish` (catalog_opm PR 42; that repo has no openspec workspace, so the PR is the ref), and the copy-and-stamp `publish` task is DELETED, not disabled, together with `publish:branch` and the CUE_LOCAL_PUBLISH_REGISTRY var — no publish entrypoint remains in the Taskfile, so the old laptop-safety guard becomes the absence of a task: a local publish now requires explicitly pointing OPM_REGISTRY at the local registry (Registry Policy rule 2). THE D15 DEVIATION 0010 RECORDED IS RETIRED: the x-release-please-version extra-files updater is removed from release-please-config.json, and release.yml instead runs `opm catalog version set` on the open release branch — reading the decided version from .release-please-manifest.json on that branch, committing only on change, converging when release-please force-updates — so release-please decides and opm's writer writes, exactly D15's sentence. The publish job's --version is thereby a PURE ASSERTION, forced by a measured gate fact: identity.go classifies a defaulted Version as StateConcrete, so --version never overwrites (refusal 5) and the tagged tree must carry the value before publish. ONE RECORDED DEVIATION against 02-design.md:104's 'branch-publish.yml — unchanged': the dev path had to move onto the same mechanics — branch-tag.sh (itself unchanged, as D15 requires) derives the version, `opm catalog version set` stamps it into the runner's WORKING TREE, never a commit, and `opm catalog publish ./src` pushes with D18's tag-equals-declared-Version holding by construction. ci.yml additionally gains vet:layering (a task-check/CI coverage gap) and a publish-gates dry-run tolerating already-published as the ONLY refusal (the caller-side pattern from cli's publish-templates.sh); the opm binary is pinned at v1.0.0-alpha.11 and checksum-verified in all three workflows, with OPM_REGISTRY set beside CUE_REGISTRY because opm's resolver never reads the latter. REHEARSED before merge: dry-run at the committed version refuses with only already-published (member gate 120/0, posture 27/0, compat 66 compared/0 refused/4 alpha-exempt), dry-run after version set to the next alpha is GO, and the branch push published v2.0.0-0.dev.1787062834.g641abe3 to GHCR through the full pipeline. FIRST LIVE RELEASE CYCLE VERIFIED post-merge: the stale pre-cutover release PR 41 — generated with the annotation edit, conflicting with main after the cutover — was closed and the release workflow re-run; release-please recreated the release PR (43) from current main WITHOUT touching identity.cue, the advance step committed the surgical one-line bump to 2.0.0-alpha.4 as its own chore commit, and PR 43 stands green and mergeable. Its merge is the first real publish through the new command — 0010:catalogs-republish's act, deliberately left to a human. modules-publish-cutover is now the last implementation slice standing."
 
 # Peer enhancements this one builds on or interacts with.
+  - date: "2026-08-18"
+    slice: "modules/modules-publish-cutover"
+    event: "modules-publish-cutover DONE — modules#30 (plus review fixes) deleted the checksum ledger and cut publishing over to the CLI. versions.yml is gone, along with Taskfile's publish/publish:one/publish:dry/versions tasks and both copies of compute_checksum and bump_version; the measurement D15 rests on had grown to 20 modules with two checksums, so 18 of 20 were blind patch-bumped on every run. Versions are now decided per module by release-please (20 packages, seeded manifest, one combined release PR), written on the release branch by `opm module version set`, and pushed by `opm module publish` — release-please writes only the manifest and changelogs, so D15's no-second-writer rule holds. ADOPTING RELEASE-PLEASE IS A CHOICE D15 PERMITS RATHER THAN REQUIRES, and it anticipated the cost precisely (per-module components). THE FIRST RELEASE CYCLE EXERCISED THE WHOLE PIPELINE (modules#31): release PR opened, advance step wrote three identity.cue files, tags landed as modules/<name>/vX.Y.Z — the historical shape, so the component + tag-separator config resolved the one uncertainty carried into implementation. It also surfaced the missing D12 derivation across the fleet, fixed in modules#32 and recorded under 0010's republish event. BOTH HALVES OF THE 04-graduation IDEMPOTENCY GATE ARE NOW DEMONSTRATED RATHER THAN ASSUMED: a second sweep over the published fleet skipped all 20 by the caller-side registry filter and reported `published: none` with a successful run, while `opm module publish ./k8up` on the already-published v3.0.1 exits 2 with the drafted refusal — the sweep passes because its filter selected nothing, not because publish tolerated anything. Two review findings were fixed pre-merge, one of them a blocker: both setup-action pins in the new PR gate referenced commits that do not exist, so every gate run would have failed to resolve them. Also added the PR gate this repo never had, and repointed the cross-train major guard from v0_legacy to the live v1 branch — the train main's majors were actually chosen to dodge, confirmed by opmodel.dev/modules/k8up@v2 being live from v1 while main publishes @v3. Publish-on-push was enabled afterwards (modules#33) now that the fleet is live."
+  - date: "2026-08-19"
+    slice: "opm-operator/fixtures-testing-domain"
+    event: "registry-cleanup-operator DONE — D17's cleanup is complete and this entry has no open slice. Task 8.1, the one item held back behind its own precondition, ran today: the five opmodel.dev/modules/test/* GHCR packages (hello, podinfo, redis, hello_web, and the orphaned hyphenated hello-web) and the two pre-2026 testing.opmodel.dev/{modules,releases}/hello leftovers were deleted — 138 package versions across seven packages, org-admin, irreversible. THREE CHECKS RAN BEFORE THE DELETION RATHER THAN AFTER: the task's own precondition (7.5) was confirmed live rather than read off the checklist — all four relocated fixtures resolve anonymously at testing.opmodel.dev/modules/operator/*; the workspace was swept for live dependencies on the old coordinates and the only code reference is a NEGATIVE test literal asserting that path must be refused (cli/internal/publish/gates_test.go:208), everything else being documentation plus gitignored dist/examples build output regenerated from the relocated fixtures; and the package list was enumerated from the GHCR API rather than transcribed, matching the task's five-plus-two exactly. Verified after: the old coordinates no longer resolve, the relocated four still do. WHAT THIS CLOSES: D17's items 2 and 3 for the operator fleet are now fully done — item 2's hyphenated name is gone at the source (0010's examples-fleet-core-v2 renamed it) and now at the registry, and item 3's relocation is complete on both ends. Item 1, the legacy opmodel.dev/<name>/v1alpha1 namespace, remains explicitly OUT — the v0 fleet still pins it (0010 D18) and it goes with the v0 to v1 migration, not this entry. Item 4, opmodel.dev/test/cleanmod, was already absent."
+  - date: "2026-08-19"
+    event: "IMPLEMENTED — every slice is done and the entry is frozen. The last to land was registry-cleanup-operator, whose GHCR deletion had been held behind its own precondition. Six deviations recorded in README.md; the pre-implementation note about the unbuilt major-agreement backstop is resolved and folded into the first, both ends having landed. No compaction was needed: D23 already carried its Amends field, and the entry holds no stacked reversal and no unresolved question."
 related:
   - "0010"
 # Lifecycle relationships.

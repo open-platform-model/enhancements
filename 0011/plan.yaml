@@ -250,7 +250,8 @@ slices:
       - catalogs-publish-cutover
       - "0010:modules-identity-authoring"
     decisions: [D13, D17]
-    status: in-progress
+    status: done
+    openspec_ref: "modules/modules-publish-cutover"
 
   - id: registry-cleanup
     repo: cli
@@ -273,7 +274,7 @@ slices:
       publishing. Deletion of the old packages and their -e2e tags follows.
     depends_on: ["registry-cleanup"]
     decisions: [D17]
-    status: in-progress
+    status: done
     openspec_ref: "opm-operator/fixtures-testing-domain"
 
 # Decisions this entry implements in no slice, each with the reason. Surfaced
