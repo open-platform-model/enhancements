@@ -197,7 +197,37 @@ There is **no within-render parallelism to harvest**. In the collapsed design th
 
 And it explains the ceiling. Each render demands about 1.6 cores (one evaluator plus roughly 0.6 of collector), so eight physical cores saturate at about five renders in flight. The measured peak of 4.0x to 4.3x is that number, not a scheduling defect.
 
-The one untested idea it leaves open is splitting a single large module's pairs across several builds to trade the fixed catalog cost for parallelism. Experiment 07's fit says four builds of a 129-component module would each cost about 551 ms against 1896 ms for one, which would be a latency win if the components split cleanly. They may not: the fleet's router folds over every server, so a subset build still forces part of the rest, and four concurrent builds of the same module multiply the working set. It is a latency optimisation for one big module rather than a throughput one, and an operator rendering many releases already has its parallelism. Untested, and deliberately not claimed.
+### Follow-up: could ONE large render be split across parallel builds?
+
+The obvious next idea is to build the instance once, match, and hand subsets of the matched pairs to separate builds running in parallel. `-timesplit` measures whether there is anything there, by holding the instance fixed and varying only how many components the generated render module asks for. Output in [`_out/results-timesplit.txt`](_out/results-timesplit.txt):
+
+```
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+         1          3      38.2    1249.2       0.0    1287.5
+        32         96      33.4    1426.8       0.6    1460.9
+        64        192      31.1    1550.4       1.5    1582.9
+       129        387      33.4    1795.2       3.0    1831.5
+
+  fixed floor (paid whatever the subset): 1283 ms
+  per component actually rendered:        4.25 ms
+  so 70% of this render is work every split would re-pay
+```
+
+**Two things kill the idea.**
+
+First, there is no separate phase to parallelise. `FORCE` is the time to make `rendered` concrete after `BuildInstance` returns, and it is **3.0 ms out of 1831 ms** for 387 rendered objects. CUE has already evaluated every pair by the time the build call returns, which reproduces experiment 04's finding 4 at 64 times the module size. The pairs are not deferred work sitting in the value waiting for a worker; they are done.
+
+Second, even restructuring so that each build renders only its own subset buys almost nothing, because **70% of the render is the fixed floor**: building the 129-component instance and its catalog, which every split re-pays in full. Rendering a single component out of the same instance still costs 1288 ms against 1832 ms for all 129.
+
+```
+K=2   -> 1.18x     K=4 -> 1.29x     K=8 -> 1.35x     K=inf -> 1.43x
+```
+
+At most **1.43x**, for K times the working set (about 1 GB each at this size) and K cores an operator would otherwise spend on other renders, which parallelise at 4.0x to 4.3x for 1x the memory each.
+
+**This corrects an estimate in an earlier version of this section**, which projected roughly 4x by applying experiment 07's 14.01 ms-per-component slope to a subset build. That slope conflates two costs this measurement separates: about 4.25 ms per component of transform work, which a split could divide, and about 9.3 ms per component of building the component itself, which it cannot. Only the smaller half was ever splittable.
+
+The practical lever on a large module's render time is not concurrency at all. Experiment 07 measured raw authoring at 7.71 ms per component against 14.01 for blueprints, so authoring the same fleet with primitives instead of blueprints takes it from about 1.9 s to about 1.1 s. That is a larger win than the splitting asymptote, at no extra memory and no extra cores.
 
 ### Limits
 

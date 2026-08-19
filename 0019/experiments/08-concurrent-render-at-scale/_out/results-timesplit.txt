@@ -1,0 +1,27 @@
+GOMAXPROCS=16 NumCPU=16 race=false go=go1.26.5
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+sizes=[128] renders=[2] workers=[1] strategies=S2 rss-ceiling=24.0G
+reusing scratch tree at /var/home/emil/dev/open-platform-model/enhancements/0019/experiments/08-concurrent-render-at-scale/_out/run
+priming the module cache ... 1990.3 ms
+
+
+WHERE THE TIME GOES: one 129-component instance, varying only how many
+components the render module ASKS FOR. The instance is identical in every row.
+
+  RENDERED    OUTPUTS   LOAD_ms  BUILD_ms  FORCE_ms  TOTAL_ms
+--------------------------------------------------------------
+         1          3      38.2    1249.2       0.0    1287.5
+        32         96      33.4    1426.8       0.6    1460.9
+        64        192      31.1    1550.4       1.5    1582.9
+       129        387      33.4    1795.2       3.0    1831.5
+
+  fixed floor (paid whatever the subset): 1283 ms
+  per component actually rendered:        4.25 ms
+  so 70% of this render is work every split would re-pay
+
+  Ceiling on splitting one module's pairs across K parallel builds:
+    K=2   each build    1557 ms, wall    1557 ms -> 1.18x  (and K times the working set)
+    K=4   each build    1420 ms, wall    1420 ms -> 1.29x  (and K times the working set)
+    K=8   each build    1352 ms, wall    1352 ms -> 1.35x  (and K times the working set)
+    K=16  each build    1318 ms, wall    1318 ms -> 1.39x  (and K times the working set)
+    K=inf                         1283 ms -> 1.43x  (the asymptote)

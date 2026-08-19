@@ -60,6 +60,7 @@ func main() {
 	reuse := flag.Bool("reuse", false, "reuse an existing scratch tree instead of rebuilding it")
 	keep := flag.Bool("keep", false, "keep the scratch tree for inspection")
 	setupOnly := flag.Bool("setup-only", false, "materialize the tree and exit")
+	split := flag.Bool("timesplit", false, "instead of the sweep: hold the instance fixed and vary how many components the render module asks for, to find what fraction of a render a split could divide")
 	flag.Parse()
 
 	if os.Getenv("CUE_REGISTRY") == "" {
@@ -123,6 +124,14 @@ func main() {
 		fatal(fmt.Errorf("prime: %w", err))
 	}
 	fmt.Printf("%.1f ms\n\n", ms(time.Since(t0)))
+
+	if *split {
+		p := points[len(points)-1]
+		if err := timeSplit(t, p, []int{1, p.components() / 4, p.components() / 2, p.components()}, 3); err != nil {
+			fatal(err)
+		}
+		return
+	}
 
 	var all []pointResult
 	// refs[strategy][size][idx]: the digests that strategy's own P=1 point
