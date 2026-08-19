@@ -28,11 +28,13 @@ graph LR
   N0016["0016: Initialize a Module Instance Package from a Publi…"]:::draft
   N0017["0017: Layered Defaults"]:::draft
   N0018["0018: Documentation Architecture"]:::draft
+  N0019["0019: Kernel render path parity with pure CUE"]:::draft
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003
   N0001 ---|related| N0006
   N0001 ---|related| N0010
+  N0001 ---|related| N0019
   N0002 ---|related| N0003
   N0002 ---|related| N0004
   N0002 ---|related| N0006
@@ -40,6 +42,7 @@ graph LR
   N0002 ---|related| N0008
   N0002 ---|related| N0016
   N0002 ---|related| N0018
+  N0002 ---|related| N0019
   N0003 ---|related| N0006
   N0005 ---|related| N0007
   N0006 ---|related| N0007
@@ -55,6 +58,7 @@ graph LR
   N0010 ---|related| N0015
   N0010 ---|related| N0017
   N0010 ---|related| N0018
+  N0010 ---|related| N0019
   N0011 ---|related| N0013
   N0011 ---|related| N0015
   N0011 ---|related| N0016
@@ -62,6 +66,7 @@ graph LR
   N0013 ---|related| N0014
   N0013 ---|related| N0018
   N0014 ---|related| N0016
+  N0015 ---|related| N0019
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003
 ```

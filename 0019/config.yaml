@@ -1,0 +1,46 @@
+id: "0019"
+slug: kernel-cue-parity
+title: Kernel render path parity with pure CUE
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: library
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - library
+  - core
+created: "2026-08-19"
+updated: "2026-08-19"
+authors:
+  - emil@jacero.se
+# Implementation tracking. status: not-started | in-progress | partial | complete.
+# `date` and `notes` allowed only when status reaches `complete`.
+implementation:
+  status: not-started
+# Append-only timeline of milestones.
+history:
+  - date: "2026-08-19"
+    event: Drafted
+  - date: "2026-08-19"
+    event: "Pure-CUE control concluded (library/docs/design/repro-purecue-definitions/). Unifying a #ModuleInstance's component into a transformer's #transform preserves every field including definitions, fills all three declared inputs, and passes `cue vet -c` fully concrete, with the transformer arriving by import from a separate package. The component carries genuine closedness (`_probe.spec.bogus: field not allowed`) and renders anyway, which falsifies the March 2026 premise that finalization was required before filling. Third finding: CUE resolves references lexically, so a transformer must re-declare a slot in its own #transform body to reference it at all."
+  - date: "2026-08-19"
+    event: "Kernel-side measurement: filling #component from the unstripped value leaves the full suite green across 14 packages including both closedness regression guards and the CUE canary pair; a transformer then renders #component.#names.dns.fqdn, which fails on the unmodified kernel with an empty-disjunction error. The ADR-003 output-local hidden field hazard does not reproduce, and defaults still resolve without cue.Final()."
+  - date: "2026-08-19"
+    event: "Experiment 01-purecue-render-flow concluded. The whole render flow (match, context, execute) expressed as 82 lines of CUE against the real published catalogs/opm 2.0.0-alpha.3 transformers and the real web_app module, producing the same five pairs the kernel produces and rendering a Deployment, Service, HTTPRoute and two ConfigMaps with `cue vet -c` clean. Settled three things beyond the hypothesis: matching structurally needs the definition fields rendering is denied, filling #moduleInstance works without a transformer declaring it (only referencing it needs the declaration), and #context is derivable in full except #runtimeName. OQ3 is made executable by a version-agreement unification rather than argued."
+  - date: "2026-08-19"
+    event: "Decisions D1-D4 locked by user decision in the design session; OQ1-OQ3 opened against the single-build question after finding that ADR-003's federation premise (multi-version-per-major catalog composition) was deleted by 0010 D14"
+  - date: "2026-08-19"
+    event: "Experiment 02-platform-authority-mvs concluded, refuting OQ3's premise. Minimum version selection does not run at load time: cue/load resolves an import from the MAIN module's own dependency list (modpkgload/import.go:93-98, RootSelected) and consults the module graph's maximum-version selection only for paths that list does not carry. A committed cue.mod is a resolution, not a floor, so the kernel-generated render module's cue.mod confers platform authority and a consumer module's higher pin is inert. Authority is lost in exactly one measured cell, an unlisted catalog path plus a consumer pinning higher, which reframes the risk as omission rather than override and opens OQ6. Three mechanical findings carried: local-module.cue is the complete main-module dependency view rather than a patch, `v: null` is undecodable in v0.17.1 despite the schema documenting it, and a dependency listed but not imported still participates in graph expansion."
+  - date: "2026-08-19"
+    event: "Experiment 03-sealed-platform-roundtrip concluded, hypothesis REFUTED. `cue def --inline-imports` is not a viable platform-sealing mechanism for catalogs/opm 2.0.0-alpha.3: the emitted source does not re-parse (486 trailing _|_ comments swallow multi-line booleans; 21 continuation lines break before their operator), two catalog packages survive the inlining so the seal is not self-contained, and inlining leaves dangling references to #KebabToPascal and #JSONSchemaProps. Definitions and hidden fields ARE emitted, which was the specific fear going in. Redirects sealing toward vendoring bytes rather than flattening values, and demotes it from an authority mechanism to a reuse optimisation (OQ8)."
+  - date: "2026-08-19"
+    event: "D5 and D6 locked by user decision: a platform imports its catalog and embeds catalog.#transformers WHOLE into the registry entry, with the version scalar removed (per-transformer selection stays enhancement 0015's job via classes and TransformerRegistration); the Platform CR keeps naming a catalog coordinate and the operator generates the #Platform CUE package on the backend, with publishing permitted but not pursued. OQ6-OQ11 opened."
+# Peer enhancements this one builds on or interacts with.
+related:
+  - "0001"
+  - "0002"
+  - "0010"
+  - "0015"
+# Lifecycle relationships.
+supersedes: []
+superseded_by: null
