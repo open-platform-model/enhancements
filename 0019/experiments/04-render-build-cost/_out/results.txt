@@ -1,0 +1,33 @@
+CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+materializing 50 instances under _out/run ...
+arm A-cold  (3 samples, each refetching the dependency set) ...
+priming the shared module cache ...
+arm B-warm  (50 renders, fresh cue.Context each) ...
+arm C-shared (50 renders, one cue.Context) ...
+arm D-base  (50 renders against one pre-built platform) ...
+
+PER-RENDER COST (milliseconds)
+
+ARM            N      LOAD     BUILD      EVAL    EXPORT     TOTAL TOTAL_p90    ERRS ALLOC/rnd
+----------------------------------------------------------------------------------------------------
+A-cold         3    1676.4      86.3       0.0       0.7    1763.3    1763.3       0     63.7M
+B-warm        50      38.9      63.4       0.0       0.5     104.8     113.1       0     57.3M
+C-shared      50      32.0      55.8       0.0       0.4      90.2     107.2       0     56.3M
+D-base        50      10.0      17.2      11.9       0.4      42.3      50.9       0     28.9M
+
+A-cold     network-bound; one-off per process rather than per render
+B-warm     fresh cue.Context per render, warm module cache
+C-shared   one cue.Context for every render, warm module cache
+D-base     one-time setup outside the per-render loop: 77.9 ms
+D-base     today's path: platform held, component finalized, filled across builds. Not parity-correct; yardstick only
+
+DRIFT (median of first fifth vs last fifth, per arm)
+  B-warm     first 105.1 ms -> last 102.4 ms  (-2.6%)  heap retained 6.6M
+  C-shared   first 92.3 ms -> last 88.6 ms  (-4.0%)  heap retained 9.5M
+  D-base     first 42.3 ms -> last 40.8 ms  (-3.4%)  heap retained 9.9M
+
+SINGLE BUILD vs BASELINE: C-shared is 2.1x D-base (90.2 ms vs 42.3 ms per render)
+The hypothesis in README.md is refuted above roughly 10x.
+
+SETUP (excluded from every arm): 50 render modules materialized in 329.7 ms, 6.6 ms each.
+Harness-shaped: a tree copy plus one `cue mod edit` process per render. Not a kernel cost.
