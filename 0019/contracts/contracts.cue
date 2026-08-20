@@ -536,12 +536,21 @@ package contracts
 // 05's measured glue shape. Semantics are unchanged; the slice's gate is
 // reproducing the kernel's exact pair set against a vendored kernel record.
 //
-// The buckets it reads are the platform's reverse index, which D5 turns from a
-// kernel-filled slot into a derivation (../schemas/target.cue records the open
-// choice between deriving it on #Platform and computing it in this glue).
+// The glue OWNS the reverse index (D17): #Platform.#matchers is removed rather
+// than derived, so the buckets are built here from the composed transformer
+// map, keyed contract FQN to a set of transformer FQNs. Experiment 05's #Match
+// takes exactly two inputs, the composed map and the components, which is what
+// makes the removal free: nothing in the render path was reading the slot.
 #MatchingInBuild: {
 	location: "render-build"
 	rungs: ["reverse-index (required ∪ optional)", "always-unify", "predicate"]
+
+	// D17: where the first rung's index comes from, and its shape. Stated
+	// because core no longer carries one, so this is the only reverse index
+	// in the system.
+	bucketsBuiltBy:       "render glue, from #composedTransformers"
+	bucketShape:          "contract FQN -> set of transformer FQNs"
+	platformCarriesIndex: false
 
 	// In one build both embedded copies resolve to the same catalog bytes, so
 	// the always-unify rung runs as plain `&` and 0010 D30's provenance

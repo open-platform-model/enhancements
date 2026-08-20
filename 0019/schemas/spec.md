@@ -51,7 +51,7 @@ It replaces `#Subscription` outright. A subscription named a build with a versio
 
 ### Definition
 
-The change to §3.4's Definition is what a `#Platform` value *is*. It stops being "a spec plus a place for the kernel to write its materialization output" and becomes a complete value: the registry carries the catalogs, and the materialization slots are folds over that registry computed by CUE. There is no materialized twin, and no `Materialize` step to produce one.
+The change to §3.4's Definition is what a `#Platform` value *is*. It stops being "a spec plus a place for the kernel to write its materialization output" and becomes a complete value: the registry carries the catalogs, and the one materialization slot that survives is a fold over that registry computed by CUE. There is no materialized twin, no `Materialize` step to produce one, and no reverse index.
 
 The sentence "the platform file **is** the resolution" is unchanged in force and stronger in mechanism: the resolution now includes the bytes.
 
@@ -71,8 +71,7 @@ The sentence "the platform file **is** the resolution" is unchanged in force and
         }
     }
 
-    // CHANGED: derived from the composed map (required ∪ optional buckets).
-    #matchers: {...}
+    // REMOVED (D17): the render build's matching glue owns the reverse index.
 }
 ```
 
@@ -81,7 +80,7 @@ The sentence "the platform file **is** the resolution" is unchanged in force and
 - **Added.** The `#registry` pattern constraint MUST bind the map key into the entry's embedded catalog: an entry keyed at a path whose catalog declares a different `metadata.modulePath` MUST fail the build at a path naming that entry.
 - **Changed.** `#composedTransformers` MUST be the fold of every enabled entry's `#transformers`. It MUST NOT be optional, and no runtime MUST fill it.
 - **Changed.** The fold MUST copy entries member by member (a comprehension). It MUST NOT unify one entry's transformer map into another's: a catalog's provenance stamp (enhancement 0010 D25) refuses a foreign member, so unification across catalogs fails on healthy input.
-- **Changed.** `#matchers` MUST be derived from `#composedTransformers`, bucketing each transformer under every contract FQN in its required and optional maps.
+- **Removed.** `#matchers`. A `#Platform` MUST NOT carry a reverse index. A platform value declaring one MUST be rejected as a field not allowed.
 - **Unchanged.** Exactly one entry per catalog path, by CUE map semantics. Two builds of one catalog remain two platforms (enhancement 0010 D13/D14).
 - **Removed.** Every constraint phrased in terms of the kernel's `Materialize` step, of a materialized twin, or of `#Subscription`.
 
@@ -90,6 +89,7 @@ The sentence "the platform file **is** the resolution" is unchanged in force and
 - **Why the key binding is structural rather than a check.** Key-and-import drift is the one new failure mode embedding the catalog introduces, and a pattern constraint makes it inexpressible instead of detectable. The conflict names the entry, so the report points at the line the author wrote.
 - **Why `#composedTransformers` stops being kernel-filled.** With the maps present in the registry the fold is four lines of CUE, and `library/opm/materialize/index.go` loses its reason to exist. This is enhancement 0019 D1's direction applied to a schema slot: the divergence between what CUE can compute and what the kernel computes is closed by removing the kernel's copy.
 - **Why the fold copies rather than unifies.** Measured in experiment 05: the catalog's D25 provenance stamp refuses a transformer from another catalog unified into its member map, so unification would fail on exactly the multi-catalog platform this shape exists to support.
+- **Why `#matchers` is removed rather than derived (0019 D17).** The slot existed because a Go step filled it, and both halves of that sentence are being deleted: `Materialize` by this change, and the Go matcher that read it by 0019 D10. Measured 2026-08-20, `library/opm/compile/match.go` is its only reader; nothing in `opm-operator` or `cli` reads it. The in-build glue does not read it either: experiment 05's matcher takes the composed map and the components and builds its own buckets, keyed contract FQN to a *set* of transformer FQNs rather than to a list of transformer values. A derived `#matchers` would therefore be a second index, in a shape nothing consumes, beside the one the render uses. A consumer that wants the index folds it over `#composedTransformers`.
 
 ## `#ComponentTransformer.#transform` and `#TransformerContext` (CHANGED vs SPEC.md §4.1)
 

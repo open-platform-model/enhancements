@@ -20,8 +20,8 @@
 //                          binds the map key into the embedded catalog's
 //                          modulePath; `#composedTransformers` stops being a
 //                          kernel-filled optional slot and becomes a fold
-//                          over enabled entries; `#matchers` likewise loses
-//                          its filler (see the RESIDUE note at that field).
+//                          over enabled entries; `#matchers` is REMOVED
+//                          outright (D17).
 //   #TransformerContext  — CHANGED (D12). Its two metadata blocks become
 //                          projections of #transform's other two inputs.
 //                          Field names and values are unchanged, which is
@@ -175,59 +175,18 @@ import "strings"
 		}
 	}
 
-	// CHANGED (D5): derived from the composed map, by the same reasoning —
-	// Materialize is what filled it, and D5 removes Materialize's reason to
-	// exist.
+	// REMOVED (D17). The slot existed because a Go step filled it, and both
+	// halves of that sentence are deleted: Materialize by D5, and the Go
+	// matcher that read it by D10.
 	//
-	// RESIDUE for the core-registry-import slice: D10 moves matching into the
-	// render build, where the reverse index is a comprehension in the glue.
-	// So the alternative — drop the slot from #Platform entirely and let the
-	// build compute the buckets — is equally consistent with the decision log,
-	// and no decision picks between them. It is derived here because that is
-	// the smaller change and keeps the platform value self-describing for a
-	// caller that wants to inspect it; the slice may choose removal instead,
-	// which is a strictly larger deletion in the direction D1 points.
-	#matchers: {
-		// The bucket set is required ∪ optional, which is the rung set D10
-		// carries into the render build. Built as a set of FQNs first, then
-		// one list comprehension per FQN: CUE has no list accumulator, so the
-		// two-step is the shape rather than a style choice.
-		_resourceFQNs: {
-			for _, tf in #composedTransformers {
-				if tf.requiredResources != _|_ {for fqn, _ in tf.requiredResources {(fqn): true}}
-				if tf.optionalResources != _|_ {for fqn, _ in tf.optionalResources {(fqn): true}}
-			}
-		}
-		_traitFQNs: {
-			for _, tf in #composedTransformers {
-				if tf.requiredTraits != _|_ {for fqn, _ in tf.requiredTraits {(fqn): true}}
-				if tf.optionalTraits != _|_ {for fqn, _ in tf.optionalTraits {(fqn): true}}
-			}
-		}
-
-		resources: {
-			for fqn, _ in _resourceFQNs {
-				(fqn): [
-					for _, tf in #composedTransformers
-					if (tf.requiredResources != _|_ && tf.requiredResources[fqn] != _|_) ||
-						(tf.optionalResources != _|_ && tf.optionalResources[fqn] != _|_) {tf},
-				]
-			}
-		}
-		traits: {
-			for fqn, _ in _traitFQNs {
-				(fqn): [
-					for _, tf in #composedTransformers
-					if (tf.requiredTraits != _|_ && tf.requiredTraits[fqn] != _|_) ||
-						(tf.optionalTraits != _|_ && tf.optionalTraits[fqn] != _|_) {tf},
-				]
-			}
-		}
-	}
-	#matchers: {
-		resources: [#ContractFQNType]: [...]
-		traits: [#ContractFQNType]: [...]
-	}
+	// Nothing replaces it in core. Inside the render build the reverse index
+	// is built by the matching glue from #composedTransformers, keyed contract
+	// FQN to a SET of transformer FQNs — a different shape from the list-valued
+	// buckets core carried, and the one experiment 05's #Match actually
+	// consumes. A caller wanting the index outside a render folds it in four
+	// lines over the field above.
+	//
+	// #matchers: REMOVED
 }
 
 /////////////////////////////////////////////////////////////////

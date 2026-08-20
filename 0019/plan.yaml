@@ -113,12 +113,12 @@ slices:
     repo: core
     phase: implementation
     concern: >
-      D5 registry reshape (revised): #CatalogEntry replaces #Subscription
-      with {enable, #catalog}; version and #transformers derived, key bound
-      to modulePath; #composedTransformers derived; SPEC.md co-update under
-      core-schema-edit.
+      D5 registry reshape: #CatalogEntry replaces #Subscription with
+      {enable, #catalog}; version and #transformers derived, key bound to
+      modulePath; #composedTransformers derived, #matchers removed (D17);
+      SPEC.md co-update.
     depends_on: []
-    decisions: [D5]
+    decisions: [D5, D17]
     status: planned
 
   - id: core-context-projection
@@ -154,11 +154,12 @@ slices:
     phase: implementation
     concern: >
       Matching moves into the render build with verdicts as data per
-      experiment 05's glue shape; gated on reproducing the kernel's exact
-      pair set; deletes excludeProvenance and the D30 denylist.
+      experiment 05's glue; gated on reproducing the kernel's exact pair
+      set; deletes excludeProvenance and the D30 denylist; owns the reverse
+      index now that core carries none (D17).
     depends_on:
       - library-render-build
-    decisions: [D2, D10]
+    decisions: [D2, D10, D17]
     status: planned
 
   - id: library-skew-policy

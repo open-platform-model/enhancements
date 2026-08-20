@@ -98,12 +98,12 @@ _assertComposedCount:    true & (len(examplePlatform.#composedTransformers) == 2
 _assertDisabledExcluded: true &
 	(examplePlatform.#composedTransformers["example.com/catalogs/provider/transformers/backup@1.4.2"] == _|_)
 
-// The reverse index is derived from the composed map, required ∪ optional.
-// Two transformers require the container resource, so its bucket has both.
-_assertResourceBucket: true &
-				(len(examplePlatform.#matchers.resources["opmodel.dev/catalogs/opm/resources/container@v1beta1"]) == 2)
-_assertOptionalTraitBucketed: true &
-	(len(examplePlatform.#matchers.traits["opmodel.dev/catalogs/opm/traits/expose@v1beta1"]) == 1)
+// D17: the platform carries no reverse index. #composedTransformers is the
+// only materialization-shaped field left, and the render build's glue derives
+// its buckets from it (experiment 05's #Match takes the composed map and the
+// components, and nothing else). Pinned as an ABSENCE so a reintroduced slot
+// fails here rather than passing unnoticed.
+_assertNoMatchersSlot: true & (examplePlatform.#matchers == _|_)
 
 // MUST FAIL — an entry whose key and import disagree:
 //
