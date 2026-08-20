@@ -10,7 +10,7 @@ See [`config.yaml`](config.yaml) for the metadata contract; it is the sole sourc
 
 A pure-CUE control settles what the target behaviour is. Unifying a real `#ModuleInstance`'s component into a real transformer's `#transform`, with the transformer arriving by import from a separate package, preserves **every** field and evaluates fully concrete: `#names.dns.fqdn` renders `web.prod.svc.cluster.local`, `#resources` renders its FQN list, `#moduleInstance.metadata.fqn` renders the instance identity, and `cue vet -c` exits 0. The kernel is the only thing that removes anything. The premise that justified the removal is falsified there too: the behaviour dates to a March 2026 `cli` experiment whose stated reason ("`FillPath` on `#component` fails with schema constraints present") does not reproduce — the control's component carries genuine closedness and renders anyway. `cue.Final()` was reached for to strip validators and `close()`; dropping definitions was collateral.
 
-**Phase A** makes the current path honest: fill `#transform.#component` from the unstripped value, fill `#transform.#moduleInstance` for the first time, remove `FinalizeValue` from the render path and then from the public surface, and repair the flow fixture whose instance construction severs `#instance`. It is library-local, evidence-complete, and lands first — no Phase A slice depends on anything in Phase B.
+**Phase A** makes the current path honest: fill `#transform.#component` from the unstripped value, fill `#transform.#moduleInstance` for the first time, remove `FinalizeValue` from the render path and then from the public surface, and repair the flow fixture whose instance construction severs `#instance`. It is evidence-complete and lands first — no Phase A slice depends on anything in Phase B — and since D15/D16 it spans four repos: the library fills, then the naming pair (`core` default flip, `catalogs/opm` sweep), then the `modules` fleet revalidation.
 
 **Phase B** removes the reason the strip was reachable: the render step becomes **one CUE build per render** (D9). The kernel stages the instance and the platform into a generated render module and evaluates it once; nothing crosses a build boundary, so nothing needs stripping, and parity stops being a property the kernel maintains and becomes one it cannot violate. That collapse carries the platform reshape it requires — a registry entry imports its catalog and embeds the transformer map, replacing the `version!` scalar (D5); the operator generates the platform package the CR describes (D6); module-versus-platform version skew becomes a kernel-detected, caller-configured signal (D7); ADR-002's shared-materialized-platform model is superseded by shares-nothing renders (D8); and matching moves into the build with its verdicts as data (D10).
 
@@ -94,11 +94,13 @@ None at this stage. Update when implementation lands.
 | `library/opm/compile/execute.go` | `executePair`, the Phase A fill site |
 | `library/opm/compile/finalize.go` | `FinalizeValue`, the strip — removed in Phase A |
 | `library/opm/compile/match.go` | The Go matcher D10 moves into the build; its D30 carve-out is deleted with federation |
+| `library/opm/errors/match.go` | Message text naming the reverse index, reworded under D17 |
+| `library/.claude/skills/security-audit/SKILL.md` | Documents `FinalizeValue` as a constraint guard; rewritten in the `library-finalize-removal` slice |
 | `library/opm/kernel/compile.go` | Where one components value forks into two |
 | `library/opm/kernel/phases.go` | The public kernel wrapper over `FinalizeValue` |
 | `library/opm/materialize/index.go` | `indexCatalogs`; shrinks or goes under D5 |
 | `library/opm/schema/paths.go` | Path constants; gains `ModuleInstance` |
-| `library/opm/schema/context.go` | Go-side `#context` construction, deleted if OQ5 resolves toward projection |
+| `library/opm/schema/context.go` | Go-side `#context` construction, deleted under D12's projection |
 | `library/opm/kernel/flow_integration_test.go` | The fixture whose instance construction severs `#instance` |
 | `library/opm/materialize/composed_open_test.go` | Closed-platform corruption guard that must keep passing |
 | `library/opm/internal/cueregression/closedness_test.go` | The CUE canary pair |
@@ -107,7 +109,7 @@ None at this stage. Update when implementation lands.
 | `core/src/transformer.cue` | `#transform`'s three declared inputs and `#TransformerContext` |
 | `core/src/component.cue` | `#names`, the projection the render path cannot currently read |
 | `catalog_opm/src/` | The 50 transformers whose hand-rolled name formulas the `catalog-names-readonly` slice rewrites to read `#component.#names` (D15), plus `traits/v1beta1/resource_name.cue` and `transformers/name_helpers.cue`, both deleted |
-| `core/SPEC.md` | Normative co-update for D5, and for OQ5 if it resolves toward projection |
+| `core/SPEC.md` | Normative co-update for D5, D12, D16 and D17 (pre-drafted in `schemas/spec.md`) |
 | `opm-operator/api/v1alpha1/platform_types.go` | The CR that keeps naming a catalog coordinate while the operator generates the package (D6) |
 | `opm-operator/internal/platform/store.go` | The single held slot that loses its reason to exist under D8 |
 | `cli/` | Render command configuration — D7's policy surface |

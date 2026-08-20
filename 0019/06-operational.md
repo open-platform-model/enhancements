@@ -10,7 +10,7 @@ The primary new signal is a CI one: the parity harness in `library`, which repor
 
 At runtime the enhancement is close to observability-neutral, but it improves one existing diagnostic by removing its cause. A transformer that reads a field the kernel did not supply currently fails with `#transform.output: N errors in empty disjunction`, which names neither the field nor the reason, because the disjunction in `core`'s `output: {...} | [...{...}]` swallows the underlying incompleteness. Filling all three inputs removes the most common way to reach that message. It does not fix the message itself; a transformer with a genuine typo still gets it. Improving that error is worth considering as follow-up work and is not in scope here.
 
-No new error kinds, metrics or spans. `opm/errors` is untouched.
+New diagnostics, no new severity machinery: D7/D18's skew comparison returns structured rows on the existing warnings channel, and the resolved-versions comparison rides every compile's diagnostics as plain data. `opm/errors/match.go`'s message text is reworded where it names the removed reverse index (D17); no new error kinds, metrics or spans otherwise.
 
 ## Sizing a Render Pool
 
@@ -52,7 +52,7 @@ Two practical consequences.
 
 **Rendered output: potentially observable, expected to be identical.** Transformers receive strictly more than before, and no existing transformer reads a definition field (measured: zero references to `#component.#` across every `catalog_opm` transformer; re-verified 2026-08-20 at 50 transformers). Output should therefore be byte-identical for every shipped transformer, and the parity harness is what proves it rather than assumes it.
 
-**Core schema: none, unless OQ5 resolves toward projection.** If it does, `#TransformerContext`'s fields become derived rather than filled. That is additive from a transformer author's perspective, since the same field names hold the same values, and it carries a `SPEC.md` co-update under the `core-schema-edit` protocol. The kernel can keep filling identical values for a release, so there is no flag day.
+**Core schema: breaking by content, absorbed within the v2 alpha line.** Four changes land, each with its `SPEC.md` co-update under `core-schema-edit` and pre-drafted in `schemas/spec.md`: D5 removes `#Subscription.version!` and reshapes the registry entry, D17 removes `#Platform.#matchers`, D16 flips the `resourceName` default, and D12 turns `#TransformerContext` into a projection. D12 is additive from a transformer author's perspective (the same field names hold the same values), and the kernel keeps filling identical values for a release, so it has no flag day; the other three are the entry's stated breaks.
 
 **Rendered object names: near-neutral by ordering (D15/D16, revised 2026-08-20).** Rendered objects are already named `<instance>-<component>` by every hand-rolled catalog formula, so the D16 flip (landing first) only makes the computed `#names` agree with rendered reality, and the D15 sweep is gated on byte-identical goldens for every default-named fixture. Residual renames are confined to two cases: a component that sets `metadata.resourceName` explicitly (silently ignored today, honoured after the sweep) and modules using the deleted `#ResourceNameTrait` (same rendered name, moved to the core field). A rename is a replace rather than an update on first reconcile; the `modules-fleet-rename` slice records them, and the alpha stance applies: no deprecation cycle.
 
@@ -65,7 +65,7 @@ Two practical consequences.
 | `FinalizeValue` in the render path | nothing; the unstripped value is used directly | the slice that exposes definitions |
 | `compile.FinalizeValue` and the kernel wrapper as public API | nothing; no consumer need remains | a later slice, after the render path stops calling it |
 | The `schemaComponents` / `dataComponents` split in `compileModuleInstance` | one components value | same slice as the render-path removal |
-| Go decoding in `opm/schema/context.go` | CUE projection in `core` | only if OQ5 resolves toward projection |
+| Go decoding in `opm/schema/context.go` | CUE projection in `core` (D12) | Phase B, the `core-context-projection` slice |
 | `#Subscription.version!` and the version-scalar registry entry | the platform module's own `cue.mod` (D5) | Phase B, the `core` reshape slice |
 | `opm/materialize` (pull + index) | the platform's own imports; the composed map as a fold | Phase B, gated on D5 landing in `core` |
 | Go matching in `opm/compile/match.go`, including `excludeProvenance` and the D30 denylist | CUE comprehensions inside the render build (D10) | Phase B, gated on exact pair-set reproduction |
@@ -77,7 +77,7 @@ The two-step for `FinalizeValue` is deliberate: stop using it, confirm the parit
 
 **If this lands and proves bad, what's the rollback story?**
 
-**Phase A: straightforward**, and one of the design's better properties. Every Phase A slice is a code change in `library` with no artifact, no published bytes and no cluster state. Reverting the commit restores the previous behaviour exactly; nothing has been written to a registry and no rendered object's shape has changed in a way that outlives the revert.
+**Phase A: code-revert for the library half, release-pin for the naming half.** The four library slices are code changes with no artifact and no cluster state; reverting the commit restores the previous behaviour exactly. The naming pair publishes: D16 ships in a `core` release and the D15 sweep in a `catalogs/opm` release. Both roll back by pinning back, and both are output-neutral by construction (the flip changes only a computed value nothing renders from yet; the sweep is gated on byte-identical goldens), so a rollback changes no rendered object either. The one state-bearing change is the fleet's residual renames (`modules-fleet-rename`); reverting those is a second rename, which the alpha stance accepts.
 
 **Phase B: ordinary release discipline rather than trivial revert.** D5 ships in a published `core` major, so rolling it back means pinning back a published artifact, not reverting a commit; the operator's package generation (D6) and the store removal (D8) revert as code but interact with live Platform CRs. The mitigation is the landing order below: the render-build assembler runs behind the parity harness against the old path before the old path is deleted, so the largest Phase B step has a within-release fallback.
 
@@ -89,7 +89,7 @@ Two qualifications. If a transformer is authored to read `#names` or `#moduleIns
 
 `plan.yaml` is the source of truth for sequencing; this section is its narrative. Two constraints drive the order. Within Phase A, one measured constraint: exposing definitions changes the flow fixture from shipping no value to shipping a broken one, so the fixture repair cannot follow the exposure. Between phases, one structural guarantee: no Phase A slice depends on any Phase B slice, so the parity work lands regardless of how long the collapse takes.
 
-**Phase A (library-local):**
+**Phase A:**
 
 1. **`library`, parity harness.** Additive, no behaviour change. Lands first so every subsequent slice is checked against the oracle rather than against the existing suite. Its initial failure on the definition strip is the evidence for D1.
 2. **`library`, fixture repair plus `#component` fill.** One slice, because the ordering constraint binds them. Produces: a render path that passes definitions through, and a regression test that a transformer reads `#names`.
@@ -104,10 +104,10 @@ Two qualifications. If a transformer is authored to read `#names` or `#moduleIns
 9. **`library`, render-build assembler.** Stage, write `cue.mod` and `local-module.cue` under OQ6's invariant, build once, read `rendered` and `diagnostics`. Runs behind the parity harness against the old path; the old path is deleted only when every fixture agrees.
 10. **`library`, matching into the build (D10).** Gated on exact pair-set reproduction against the vendored kernel record; deletes `excludeProvenance` and the D30 denylist in the same slice, with the Go-matcher fallback recorded in D10 if error quality regresses.
 11. **`library`, skew detection and policy (D7)**, with `cli` and `opm-operator` each exposing their surface.
-12. **`library` + `opm-operator`, D8 supersession.** ADR-002 gains its superseded-by header, the new ADR carries the shares-nothing and context-lifetime rules, `store.go`'s held slot is removed, `opm/materialize` shrinks or goes.
+12. **`library` + `opm-operator`, D8 supersession.** ADR-002 gains its superseded-by header, the new ADR carries the shares-nothing and context-lifetime rules, ADR-003's federation rationale is retired in place, `store.go`'s held slot is removed, `opm/materialize` shrinks or goes.
 13. **`opm-operator`, D6 package generation**, shipping the named extension point where 0015's effective transformer set folds in.
-14. **`core`, `#TransformerContext` projection**, only if OQ5 resolved toward it. Additive; separable by a release because unification agrees while both fill paths are in place.
+14. **`core`, `#TransformerContext` projection (D12).** Additive; separable by a release because unification agrees while both fill paths are in place, after which the Go fills are removed and the harness's `equality` collapses to `structural`.
 
-**Interim operator stopgap, recorded here as a decision of this entry:** until step 10 lands, `opm-operator`'s render path holds the ADR-002 shape that experiment 06 measured racing. The interim response is to serialise the render path behind a mutex, at the measured cost of 2.5x to 5.5x throughput — undefined behaviour is not an acceptable resting state even though no wrong value was ever observed. The serialisation is explicitly a stopgap: experiment 08 priced it, and D8 exists because it is also the slower architecture at every module size.
+**Interim operator stopgap, recorded here as a decision of this entry:** until step 10 lands, the operator holds the ADR-002 shape that experiment 06 measured racing, and the live exposure is sharper than that experiment's: today no controller sets `MaxConcurrentReconciles`, so reconciles within a controller are already serial, but three controllers share one `*kernel.Kernel` across their goroutines against `library`'s documented one-Kernel-per-goroutine rule, with no lock anywhere. The stopgap therefore serialises shared-Kernel access across the controllers (render and platform paths alike) behind one mutex, at the measured cost of 2.5x to 5.5x render throughput: undefined behaviour is not an acceptable resting state even though no wrong value was ever observed. The serialisation is explicitly a stopgap: experiment 08 priced it, and D8 exists because it is also the slower architecture at every module size.
 
 **0015 hand-off:** this entry reaching `accepted` is the trigger for re-baselining 0015's integration surface (its `match.go` line anchors, the materialize-based inventory, the `store.go` re-keying), and OQ9/OQ10 live there from that point.

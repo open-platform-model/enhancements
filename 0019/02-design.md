@@ -91,7 +91,7 @@ The shape is exercised in `experiments/02-platform-authority-mvs/platform/schema
 
 - `#component` carries the unstripped component, so `#names`, `#resources`, `#traits` and `#instance` are readable. Measured on the kernel side: filling from the unstripped value leaves the full suite green across 14 packages, including `composed_open_test.go`'s closed-platform corruption guard and the `cueregression` canary pair.
 - `#moduleInstance` is filled, which the kernel has never done (D3). The pure-CUE control fills it including the self-referential case, where the instance filled into `#moduleInstance` contains the component filled into `#component`, with no cycle.
-- `#context` is the only input with a runtime-owned part. Every field except `#runtimeName` is derivable from the other two, demonstrated in 18 lines of CUE by experiment 01's `_contextFor`. Whether `core` should own that derivation is OQ5, and a single build makes it close to forced: the glue would otherwise hand-roll in generated CUE what `core` could compute.
+- `#context` is the only input with a runtime-owned part. Every field except `#runtimeName` is derivable from the other two, demonstrated in 18 lines of CUE by experiment 01's `_contextFor`. `core` owns that derivation under D12; the single build made it close to forced, since the glue would otherwise hand-roll in generated CUE what `core` could compute.
 
 Two properties measured rather than assumed. **The ADR-003 hazard does not reproduce**: a transformer with a hidden field declared inside `output`, referencing a `#transform`-scope hidden field and consumed in-expression, marshals concretely with the sidecar intact. That corruption is a cross-build closed-fill artifact, and a single build has no such fill. **Defaults survive**: `cue.Final()` also sets `TakeDefaults`, and dropping it still resolves `port: *8080 | int` to `8080`, with an unset optional staying absent.
 
@@ -156,7 +156,7 @@ It also has a stated exemption from the start. The D30 carve-out is a place wher
 | The `schemaComponents` / `dataComponents` split in `compileModuleInstance` | one components value |
 | `opm/compile/execute.go`'s `FillPath` sequence | unification inside the build |
 | `opm/materialize` pull plus index | the platform's own imports (D5) |
-| `opm/schema/context.go`'s Go decoding | a CUE projection, if OQ5 resolves that way |
+| `opm/schema/context.go`'s Go decoding | a CUE projection (D12) |
 | Much of `opm/compile/match.go` | CUE comprehensions, subject to the costs above |
 
 The deletions were candidates until D9 and D10 landed in the decision log; they are now commitments, each carried by a named slice in `plan.yaml`, with D10 recording the one fallback (matching stays in Go reading the single build's value if error quality regresses unacceptably during the slice).
@@ -201,7 +201,7 @@ The three core changes are written as a compilable delta in [`schemas/target.cue
 | `library` | `adr/002-concurrent-render-shared-materialized-platform.md`, plus a new ADR | D8: supersede, and write down the shares-nothing and context-lifetime rules |
 | `library` | `opm/kernel/flow_integration_test.go` | fixture construction |
 | `core` | `src/platform.cue`, `SPEC.md` | D5's registry reshape |
-| `core` | `src/transformer.cue`, `SPEC.md` | only if OQ5 resolves toward projection |
+| `core` | `src/transformer.cue`, `SPEC.md` | D12's projection slice |
 | `opm-operator` | `api/v1alpha1/platform_types.go`, platform package generation | D6 |
 | `opm-operator` | `internal/platform/store.go` | the single held slot loses its reason to exist under D8 |
 | `cli` | render command configuration | D7's policy surface |

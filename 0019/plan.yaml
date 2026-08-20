@@ -50,7 +50,7 @@ slices:
     concern: >
       Remove FinalizeValue from the render path, then from the public kernel
       surface (MAJOR, MIGRATIONS.md entry), shipping the D14 env-ordering
-      migration note with it.
+      migration note and the security-audit skill rewrite with it.
     depends_on:
       - library-component-fill
       - library-moduleinstance-fill
@@ -101,9 +101,10 @@ slices:
     repo: opm-operator
     phase: implementation
     concern: >
-      Serialise the operator's render path behind a mutex until the D8 slice
-      lands: the shared-platform model races under concurrent render, and the
-      measured 2.5x-5.5x throughput cost is the accepted interim price.
+      Serialise shared-Kernel access across the operator's controllers
+      behind one mutex until D8 lands: one kernel.Kernel is shared by
+      controller goroutines against library's one-per-goroutine rule;
+      measured 2.5x-5.5x throughput cost accepted.
     depends_on: []
     decisions: [D8]
     status: planned
@@ -129,7 +130,9 @@ slices:
       of the other two inputs; SPEC.md co-update under core-schema-edit.
       Staged behind the parity harness; kernel then fills #runtimeName
       alone, context.go mirror deleted.
-    depends_on: []
+    depends_on:
+      - library-parity-harness
+      - library-moduleinstance-fill
     decisions: [D12]
     status: planned
 
@@ -179,9 +182,8 @@ slices:
     phase: implementation
     concern: >
       ADR-002 gains its superseded-by header; a new ADR records the
-      shares-nothing rule and the cue.Context lifetime rule; opm/materialize
-      shrinks or is deleted, its composed map replaced by the platform's own
-      imports.
+      shares-nothing and cue.Context lifetime rules; ADR-003's federation
+      rationale is retired in place; opm/materialize shrinks or is deleted.
     depends_on:
       - library-render-build
       - library-match-in-build
