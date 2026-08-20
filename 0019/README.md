@@ -47,6 +47,8 @@ Cross-repo sequencing lives in [`plan.yaml`](plan.yaml) (rendered as [PLAN.md](P
 - Removing `FinalizeValue` from the render path, and subsequently from the public kernel surface, with the `MIGRATIONS.md` entry that break requires.
 - Repairing `TestFlow_WebApp_OnOpmPlatform`'s instance construction, which severs the reference wiring `#instance` and must land with the slice that exposes definitions rather than after it.
 - Recording the lexical-declaration rule as an authoring obligation.
+- The read-only names contract (D15): transformers read `#component.#names.resourceName` and its DNS variants, and never derive a name of their own — generation stays upstream on `#Component`. The `catalogs/opm` sweep that rewrites every hand-rolled name formula to read `#names` lands as the `catalog-names-readonly` slice, gated on the `#component` fill that makes `#names` readable.
+- The instance-qualified `resourceName` default (D16): `metadata.resourceName` defaults to `<instance>-<component>` (validated against `#NameType`) instead of the bare component name, fixing the cross-instance collision the bare default admits; a `core` slice gated on the sweep, breaking by intent for rendered fleets.
 - The `env`-ordering migration note (OQ14): removing the strip changes list ordering for modules that assemble environments conditionally, so the note attaches to Phase A's landing, not to the collapse.
 
 **Phase B — the single-build collapse:**
@@ -66,7 +68,7 @@ Cross-repo sequencing lives in [`plan.yaml`](plan.yaml) (rendered as [PLAN.md](P
 - **Removing `#moduleInstance` from the schema.** It is intended surface; the fix is to fill it (D3).
 - **Per-transformer selection in the platform file.** D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement 0015 (provider classes, `TransformerRegistration`), as do the runtime-registration questions this entry defers there (OQ9, OQ10).
 - **Publishing platforms to a registry.** Disallowed (D6, revised 2026-08-20) — the generated `#Platform` package is build-local by construction, and the reserved namespace stays reserved-unpublished; OQ11 is resolved by that revision.
-- **The `catalog_opm` transformer sweep.** open-platform-model/catalog_opm#44 and open-platform-model/core#49 remain worth landing on their own merits, because the computed name genuinely does not match the rendered name. This entry removes the part of their justification that reads "no transformer can read `#names` anyway".
+- **The core-side name workaround.** open-platform-model/core#49's approach — copying the computed name into a regular field — is made unnecessary rather than implemented: the transformer sweep it motivated is now in scope (D15, `catalog-names-readonly`), reading the projection instead of duplicating it.
 - **Improving the empty-disjunction error.** Filling all three inputs removes the most common way to reach it; the message itself stays as unhelpful as it is today.
 - **A publish-side gate forbidding unstated trait posture.** Experiment 05 measured that an unstated `optional` posture refuses as a build error rather than as a diagnostics row; making it data would need publish-side enforcement of 0010 D46's authoring rule, which belongs to the publish-gate family (0011), not here.
 
@@ -99,6 +101,7 @@ None at this stage. Update when implementation lands.
 | `core/src/platform.cue` | `#registry`; reshaped by D5 with a `SPEC.md` co-update under the `core-schema-edit` protocol |
 | `core/src/transformer.cue` | `#transform`'s three declared inputs and `#TransformerContext` |
 | `core/src/component.cue` | `#names`, the projection the render path cannot currently read |
+| `catalog_opm/src/` | The 35 transformers whose hand-rolled name formulas the `catalog-names-readonly` slice rewrites to read `#component.#names` (D15) |
 | `core/SPEC.md` | Normative co-update for D5, and for OQ5 if it resolves toward projection |
 | `opm-operator/api/v1alpha1/platform_types.go` | The CR that keeps naming a catalog coordinate while the operator generates the package (D6) |
 | `opm-operator/internal/platform/store.go` | The single held slot that loses its reason to exist under D8 |

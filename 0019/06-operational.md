@@ -54,6 +54,8 @@ Two practical consequences.
 
 **Core schema: none, unless OQ5 resolves toward projection.** If it does, `#TransformerContext`'s fields become derived rather than filled. That is additive from a transformer author's perspective, since the same field names hold the same values, and it carries a `SPEC.md` co-update under the `core-schema-edit` protocol. The kernel can keep filling identical values for a release, so there is no flag day.
 
+**Rendered object names: breaking by intent (D16).** Once `core-resourcename-default` lands, every component that does not set `resourceName` explicitly renames from `<component>` to `<instance>-<component>`, and its DNS variants qualify with it. A rename is a replace rather than an update on the first reconcile after upgrade, so live fleets see delete-and-recreate for affected objects; the migration note ships with the slice, and setting `resourceName: metadata.name`'s old value explicitly is the opt-out for a module that must keep its names.
+
 ## Deprecation
 
 **What gets removed and when? What replaces it?**
@@ -93,15 +95,17 @@ Two qualifications. If a transformer is authored to read `#names` or `#moduleIns
 2. **`library`, fixture repair plus `#component` fill.** One slice, because the ordering constraint binds them. Produces: a render path that passes definitions through, and a regression test that a transformer reads `#names`.
 3. **`library`, `#moduleInstance` fill.** Consumes step 2's parity harness coverage. Produces: the third input filled, plus the self-reference test. Closes open-platform-model/library#65.
 4. **`library`, remove `FinalizeValue` from the public surface.** Consumes steps 2 and 3 being green. Produces: the MAJOR bump and the `MIGRATIONS.md` entry that `cli` and `opm-operator` re-pin against.
+5. **`catalog`, the D15 names sweep.** Consumes step 2 (the fill is what makes `#names` readable inside `#transform`). Every `catalogs/opm` transformer's hand-rolled name formula is rewritten to read `#component.#names`; ships behind a catalog release whose consumers run a kernel carrying the fill, since a `#names` read against an unfixed kernel fails with the empty-disjunction error.
+6. **`core`, the D16 default flip.** Consumes step 5: flipping the default while transformers still hand-roll names would widen the computed-versus-rendered divergence instead of propagating through `#names` reads. `metadata.resourceName` defaults to the instance-qualified `<instance>-<component>` unified with `#NameType`; `SPEC.md` co-update under `core-schema-edit`; the rename migration note (objects replace, not update, on first reconcile) rides this slice.
 **Phase B (cross-repo, after Phase A's step 4):**
 
-5. **`core`, D5 registry reshape.** `#CatalogEntry` replaces `#Subscription`, `#composedTransformers` becomes derived, `SPEC.md` co-update under `core-schema-edit`. Nothing downstream moves until this publishes.
-6. **`library`, render-build assembler.** Stage, write `cue.mod` and `local-module.cue` under OQ6's invariant, build once, read `rendered` and `diagnostics`. Runs behind the parity harness against the old path; the old path is deleted only when every fixture agrees.
-7. **`library`, matching into the build (D10).** Gated on exact pair-set reproduction against the vendored kernel record; deletes `excludeProvenance` and the D30 denylist in the same slice, with the Go-matcher fallback recorded in D10 if error quality regresses.
-8. **`library`, skew detection and policy (D7)**, with `cli` and `opm-operator` each exposing their surface.
-9. **`library` + `opm-operator`, D8 supersession.** ADR-002 gains its superseded-by header, the new ADR carries the shares-nothing and context-lifetime rules, `store.go`'s held slot is removed, `opm/materialize` shrinks or goes.
-10. **`opm-operator`, D6 package generation**, shipping the named extension point where 0015's effective transformer set folds in.
-11. **`core`, `#TransformerContext` projection**, only if OQ5 resolved toward it. Additive; separable by a release because unification agrees while both fill paths are in place.
+7. **`core`, D5 registry reshape.** `#CatalogEntry` replaces `#Subscription`, `#composedTransformers` becomes derived, `SPEC.md` co-update under `core-schema-edit`. Nothing downstream moves until this publishes.
+8. **`library`, render-build assembler.** Stage, write `cue.mod` and `local-module.cue` under OQ6's invariant, build once, read `rendered` and `diagnostics`. Runs behind the parity harness against the old path; the old path is deleted only when every fixture agrees.
+9. **`library`, matching into the build (D10).** Gated on exact pair-set reproduction against the vendored kernel record; deletes `excludeProvenance` and the D30 denylist in the same slice, with the Go-matcher fallback recorded in D10 if error quality regresses.
+10. **`library`, skew detection and policy (D7)**, with `cli` and `opm-operator` each exposing their surface.
+11. **`library` + `opm-operator`, D8 supersession.** ADR-002 gains its superseded-by header, the new ADR carries the shares-nothing and context-lifetime rules, `store.go`'s held slot is removed, `opm/materialize` shrinks or goes.
+12. **`opm-operator`, D6 package generation**, shipping the named extension point where 0015's effective transformer set folds in.
+13. **`core`, `#TransformerContext` projection**, only if OQ5 resolved toward it. Additive; separable by a release because unification agrees while both fill paths are in place.
 
 **Interim operator stopgap, recorded here as a decision of this entry:** until step 9 lands, `opm-operator`'s render path holds the ADR-002 shape that experiment 06 measured racing. The interim response is to serialise the render path behind a mutex, at the measured cost of 2.5x to 5.5x throughput — undefined behaviour is not an acceptable resting state even though no wrong value was ever observed. The serialisation is explicitly a stopgap: experiment 08 priced it, and D8 exists because it is also the slower architecture at every module size.
 

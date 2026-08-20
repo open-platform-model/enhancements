@@ -159,6 +159,29 @@ package schema
 	declares: reads
 }
 
+// D15: a transformer's relationship to component identity is read-only. The
+// object name comes from #component.#names.resourceName and the DNS variants
+// from #component.#names.dns.* — never interpolated from #context fields, and
+// never read from #component.metadata.resourceName, which is the input to the
+// cascade rather than the finalized projection. Generation stays upstream on
+// #Component. Like sibling access (D11), this is an authoring contract
+// enforced by catalog review, never structurally prevented.
+#NamesAccess: {
+	source!:     "#component.#names"
+	derivation!: "forbidden"
+}
+
+// D16: the resourceName cascade's default is the instance-qualified name,
+// spelled *("\(#instance.name)-\(name)" & #NameType) | #NameType — the
+// default branch is unified with #NameType so an overlong concatenation
+// refuses the render, and an explicit resourceName still wins. #names.dns
+// inherits the qualification by construction.
+#ResourceNameDefault: {
+	form!:      "<instance>-<component>"
+	validated!: "#NameType"
+	override!:  "metadata.resourceName"
+}
+
 // ---------------------------------------------------------------------------
 // The render build (D9) and the registry shape that makes it resolvable (D5)
 // ---------------------------------------------------------------------------
