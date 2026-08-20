@@ -1,16 +1,35 @@
-// Target schema for enhancement 0017 — Layered Defaults.
+// Core-schema delta for enhancement 0017 — Layered Defaults.
 //
-// Self-contained sketches of the shapes this enhancement changes. These are
-// illustrative replicas, not imports: core is the source of truth once the
-// slices land. Marker comments reference Open Questions in ../03-decisions.md.
+// Delta manifest (classified against core/src on the v2 line):
+//
+//   #Trait     — MIRROR (unchanged restatement of core/src/trait.cue for
+//                self-containment; simplified to the two properties D5's
+//                projection depends on — the stated posture and the
+//                single-regular-field spec gate). The core slice changes no
+//                trait shape; only rationale prose gains the posture-required
+//                consequence.
+//   #Component — CHANGED vs core@v2 (core/src/component.cue `_allFields`
+//                trait branch): the unconditional `trait.spec` embedding
+//                becomes the D5 optionality-aware projection — an
+//                `optional: true` trait's field is projected optional
+//                (absent until set), an `optional: false` trait's spec
+//                embeds as-is (required). Resource and blueprint branches
+//                unchanged (elided here).
+//
+// These are illustrative replica restatements, not imports — CUE cannot
+// "edit" an imported closed definition, and the restatement IS the proposal;
+// core is the source of truth once the slices land. Non-core material (the
+// L1–L6 layer contract as rule data, the blueprint narrowing/default idiom)
+// lives in ../contracts/. examples.cue in this package exercises the CHANGED
+// projection. Marker comments reference Open Questions in ../03-decisions.md.
 package schema
 
 import "strings"
 
 /////////////////////////////////////////////////////////////////
-// Replica of the core #Trait surface this design relies on (unchanged
-// by this enhancement — pinned here because D5's projection depends on
-// both properties).
+// MIRROR — replica of the core #Trait surface this design relies on
+// (unchanged by this enhancement — pinned here because D5's projection
+// depends on both properties).
 /////////////////////////////////////////////////////////////////
 
 #Trait: {
@@ -32,8 +51,8 @@ import "strings"
 }
 
 /////////////////////////////////////////////////////////////////
-// D5 — the optionality-aware projection in core #Component.
-// Replaces the unconditional `trait.spec` embedding.
+// CHANGED vs core@v2 — D5, the optionality-aware projection in core
+// #Component. Replaces the unconditional `trait.spec` embedding.
 /////////////////////////////////////////////////////////////////
 
 #Component: {
@@ -65,60 +84,3 @@ import "strings"
 
 	...
 }
-
-/////////////////////////////////////////////////////////////////
-// D3 — the blueprint idiom: subtractive narrowing + one field-level
-// default. Illustrated for the stateless workload (Deployment).
-/////////////////////////////////////////////////////////////////
-
-// What the trait publishes: bounds only, union across kinds (D2/L1).
-#UpdateStrategyBounds: {
-	type: "RollingUpdate" | "Recreate" | "OnDelete"
-	rollingUpdate?: {
-		maxUnavailable?: uint | string
-		maxSurge?:       uint | string
-		partition?:      uint
-	}
-}
-
-// What the stateless blueprint conjoins: the Deployment submenu plus the
-// blueprint's default. Field-level `*` only (L3) — a whole-struct marked
-// disjunct is forbidden. OQ1: whether first-party blueprints keep this
-// default once D5 lands, or go silent and delegate to the transformer.
-#StatelessUpdateStrategyNarrowing: {
-	type: ("RollingUpdate" | "Recreate") & (*"RollingUpdate" | string)
-	rollingUpdate?: {
-		maxUnavailable?: uint | string
-		maxSurge?:       uint | string
-		// no partition — Deployment has none (catalog_opm issue 40 tracks
-		// the exhaustive per-kind audit).
-	}
-}
-
-// Narrowing to a single legal value needs no default at all — the field is
-// concrete by narrowing alone (Deployment/STS/DS pods accept only Always).
-#StatelessRestartPolicyNarrowing: "Always"
-
-/////////////////////////////////////////////////////////////////
-// D1/D4 — the precedence chain as a checkable statement. The kernel
-// finalize step (D4) is Go behavior, not schema; what CUE can state is
-// the contract each layer's contribution satisfies.
-/////////////////////////////////////////////////////////////////
-
-#LayerRule: {
-	id:          =~"^L[1-9][0-9]*$"
-	layer:       "primitive" | "blueprint" | "module-config" | "module-components" | "kernel" | "transformer"
-	rule:        string
-	enforcement: "catalog-publish-gate" | "module-vet-gate" | "kernel-behavior" | "review"
-}
-
-// The six rules of core SPEC.md §6, as data for CLI gates to cite.
-// OQ2: L4's gate mechanics need a feasibility spike.
-#LayerContract: [...#LayerRule] & [
-	{id: "L1", layer: "primitive", rule: "spec schemas publish bounds; never mark a default", enforcement: "catalog-publish-gate"},
-	{id: "L2", layer: "blueprint", rule: "narrowing is subtractive; every admitted value is admitted by the primitive", enforcement: "catalog-publish-gate"},
-	{id: "L3", layer: "blueprint", rule: "at most one default per field, field-level, never whole-struct", enforcement: "catalog-publish-gate"},
-	{id: "L4", layer: "module-config", rule: "authors mark defaults only inside #config; #components carries data and references", enforcement: "module-vet-gate"},
-	{id: "L5", layer: "kernel", rule: "validated #config is finalized to concrete data before composition; the two-default collision is unrepresentable", enforcement: "kernel-behavior"},
-	{id: "L6", layer: "transformer", rule: "fallbacks are keyed on field absence; transformers never unify values into component spec", enforcement: "review"},
-]

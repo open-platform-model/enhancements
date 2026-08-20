@@ -33,9 +33,14 @@ enhancements/
     ├── 04-graduation.md    draft → accepted → implemented gates
     ├── 05-risks.md         risks, drawbacks, alternatives not taken
     ├── 06-operational.md   PRR-lite: observability, semver, deprecation, rollback, cross-repo coordination
-    ├── schemas/            pure CUE — vettable, importable, never markdown-fenced
+    ├── schemas/            (iff core_schema: true) the core-schema delta — vettable, referencable, tested
     │   ├── cue.mod/module.cue
-    │   └── target.cue
+    │   ├── target.cue      the proposed opmodel.dev/core delta (may import published core)
+    │   ├── examples.cue    concrete instances + assertions — the test (required from accepted)
+    │   └── spec.md         spec delta in core SPEC.md's four-part format (required from accepted)
+    ├── contracts/          (optional) non-core compilable CUE — procedures, behaviour contracts, taxonomies
+    │   ├── cue.mod/module.cue
+    │   └── *.cue
     ├── experiments/        (optional) self-contained proofs-of-concept
     │   ├── README.md       hand-maintained index of experiments
     │   └── NN-{concept}/   one directory per experiment (per-experiment README carries Status:)
@@ -57,7 +62,7 @@ Start at the entry's `README.md` — it has the summary, scope, and cross-refere
 5. **`05-risks.md`** — honest costs: risks, drawbacks, high-level alternatives ruled out.
 6. **`06-operational.md`** — production-readiness questionnaire (five prompts).
 
-CUE schemas live in `schemas/` as compilable files; the markdown documents reference shapes by name, not by re-pasting code blocks.
+Compilable CUE lives outside the markdown; the documents reference shapes by name, not by re-pasting code blocks. `schemas/` exists **iff** the enhancement adds or changes `opmodel.dev/core` definitions (`config.yaml.core_schema: true`) and holds exactly that delta — `target.cue` (the proposed definitions), `examples.cue` (concrete instances whose unification is the test), and `spec.md` (the specification changes, pre-drafting the core SPEC.md co-update). Everything else expressible as CUE — decision procedures, contracts over Go behaviour, taxonomies — goes in the optional `contracts/`.
 
 ## How to create a new enhancement
 
@@ -65,7 +70,7 @@ CUE schemas live in `schemas/` as compilable files; the markdown documents refer
 task new SLUG=platform-context TITLE="Platform Context"
 ```
 
-Auto-numbers the next four-digit id, copies `0000/`, fills `config.yaml` with today's date and your slug/title, and updates `schemas/cue.mod/module.cue` with the new id. Fill in `01-problem.md` and `02-design.md` first; decisions and the supporting documents accrete iteratively. See [`CLAUDE.md`](CLAUDE.md) for the full workflow.
+Auto-numbers the next four-digit id, copies `0000/`, and fills `config.yaml` with today's date and your slug/title. Pass `CORE_SCHEMA=true` when the enhancement changes core schemas — that keeps `schemas/` (and rewrites its `cue.mod/module.cue` id); without it no `schemas/` is scaffolded, and non-core CUE is added later with `task new:contracts ID=NNNN`. Fill in `01-problem.md` and `02-design.md` first; decisions and the supporting documents accrete iteratively. See [`CLAUDE.md`](CLAUDE.md) for the full workflow.
 
 ## Experiments
 
@@ -103,7 +108,7 @@ task slice:seed ID=0001 SLICE=cli-foo      # print a seed stub for one slice, fo
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, schemas/ compiles standalone, and — when `plan.yaml` is present — its schema, slice id uniqueness, `repo ∈ affects`, `depends_on` resolution, and dependency-cycle freedom.
+- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, and — when `plan.yaml` is present — its schema, slice id uniqueness, `repo ∈ affects`, `depends_on` resolution, and dependency-cycle freedom.
 - **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings, Open Questions block, implementation snapshot quote block, deviations section, and a nudge (not a block) to add `plan.yaml` when an `accepted` entry's `affects` spans more than one repo and none exists yet.
 
 Run `task vet` before any PR that touches an enhancement; run `task check` before promoting a status (draft → accepted, accepted → implemented).

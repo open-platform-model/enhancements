@@ -12,8 +12,9 @@ affects:
   - opm-operator
   - cli
 
+core_schema: true
 created: "2026-05-23"
-updated: "2026-07-24"
+updated: "2026-08-20"
 
 authors:
   - emil@jacero.se
@@ -73,6 +74,8 @@ history:
   - {date: "2026-06-12", event: "Provider plumbing removed (fork removal 5b) — prov *provider.Provider dropped from the ModuleRenderer/ReleaseRenderer interfaces and kernel renderers, Provider fields off reconcilers/params, catalog.LoadProvider + --catalog-path/--provider-name flags out of main.go (--registry and --cue-cache-dir retained for the kernel), pkg/provider + pkg/loader + internal/catalog + the root catalog/ composition module + its Dockerfile/.dockerignore plumbing deleted. OPERATOR REWRITE COMPLETE: opm-operator consumes only the library kernel + materialized platform; zero pre-0001 fork code remains (pkg/ is down to core/errors/resourceorder — the intentional K8s adapter tail). First half of the final accepted→implemented criterion (opm-operator + cli rewritten onto the kernel) satisfied; cli/ rewrite remains.", slice: "opm-operator/2026-06-12-remove-provider-plumbing"}
   - {date: "2026-06-22", event: "Re-scope toward graduation: cli/ rewrite remainder delegated to enhancement 0006 (CLI library-kernel adoption, D9). accepted→implemented gate amended — the cli criterion is now tracked in 0006; the workspace modules/* mass-rewire is reclassified as consumer maintenance (only e2e fixtures gate 0001, and jellyfin/seerr/web_app are already on core@v0; verified 3/28 migrated). Sole remaining 0001 blocker: 0006's kernel-adoption slice. related += 0006. Status stays accepted/in-progress until then."}
   - {date: "2026-07-24", event: "Implemented — accepted → implemented. Final graduation gate closed: enhancement 0006's CLI kernel-adoption slice (C2, D9) landed 2026-07-20 in cli 1.0.0-alpha.4, completing the last accepted→implemented criterion (the cli/ rewrite onto the library kernel). Verified in cli/ today: go.mod requires github.com/open-platform-model/library v1.0.0-alpha.8; the pkg/render fork is deleted (directory gone); 13 Go files import open-platform-model/library/opm; render (internal/workflow/render/kernel.go NewKernel → kernel.New + WithRegistry + WithSchemaLoader → env.kernel.Compile), platform materialize (internal/platform/materialize.go → MaterializedPlatform), and handoff verify (internal/workflow/handoff/verify.go → k.Compile) all flow through the kernel — full adoption, not a token import. All producer + consumer rewrites now complete: core@v0, library v0.3.0+, catalogs/opm@v0, opm-operator (2026-06-12), cli (via 0006, 2026-07-20). Workspace modules/* mass-rewire stays non-blocking consumer maintenance (D23 wave). implementation.status in-progress → complete; implementation.date 2026-07-20 (CLI slice landing = final piece). README gains the implementation-status quote block and a fourth Deviations entry (CLI rewrite carved into 0006).", semver: minor}
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0001/schemas, CUE v0.17.0. Structure/metadata only."
 
 related:
   - "0006"

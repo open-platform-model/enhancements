@@ -76,7 +76,7 @@ Publish **does not resolve dependencies differently from a consumer**. There is 
 
 ## Schema / API Surface
 
-The shapes in [`schemas/target.cue`](schemas/target.cue) describe a publish *decision* rather than a CUE type an artifact carries — they are the contract the command implements, expressed so it can be checked.
+The shapes in [`contracts/contracts.cue`](contracts/contracts.cue) describe a publish *decision* rather than a CUE type an artifact carries — they are the contract the command implements, expressed so it can be checked.
 
 - **`#TagRef`** — a release tag and its decomposition, with the constraint that a tag's major matches the artifact path's major. CUE already enforces this half (measured: `cue mod publish v9.1.0` against a `@v3` module fails with `publish version "v9.1.0" does not match the major version "v3"`), so the shape records a check that exists rather than one to build. It does **not** bind the tag to the declared version — that is `#PublishPlan`'s `_versionAgrees` (D18).
 - **`#PublishPlan`** — everything publish resolves before it pushes: the artifact path, the tag, the derived registry repository, the gate outcomes, and the tag-names-the-declared-version rule. A plan that does not unify is a push that does not happen.

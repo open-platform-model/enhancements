@@ -23,7 +23,7 @@ This entry also re-opens a settled decision. Enhancement 0006 **D13.1** decided 
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 
-Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the ownership vocabulary, inventory wire shape, deletion policy, plan verdicts, ownerRef eligibility predicate, and the conformance property. It compiles, so a wrong shape is a build failure rather than a documentation bug.
+Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue) — the ownership vocabulary, inventory wire shape, deletion policy, plan verdicts, ownerRef eligibility predicate, and the conformance property. It compiles, so a wrong shape is a build failure rather than a documentation bug.
 
 ## Scope
 

@@ -103,7 +103,7 @@ The analysis in [`01-problem.md`](01-problem.md) §6 points at one conclusion, r
 
 ## Schema / API Surface
 
-The full target shape lives in [`schemas/target.cue`](schemas/target.cue) and compiles. It is CUE rather than Go because the surface that matters here is the *contract* both Go implementations must satisfy — the inventory wire shape, the label vocabulary, the deletion policy, the verdict enums, the ownerRef eligibility predicate — and that contract is already anchored in CUE and the CRD schema rather than in either frontend's structs.
+The full target shape lives in [`contracts/contracts.cue`](contracts/contracts.cue) and compiles. It is CUE rather than Go because the surface that matters here is the *contract* both Go implementations must satisfy — the inventory wire shape, the label vocabulary, the deletion policy, the verdict enums, the ownerRef eligibility predicate — and that contract is already anchored in CUE and the CRD schema rather than in either frontend's structs.
 
 The Go package layout it implies, subject to OQ1 and OQ2:
 

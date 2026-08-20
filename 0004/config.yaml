@@ -26,8 +26,9 @@ affects:
   - cli
   - opm-operator
   - modules
+core_schema: false
 created: "2026-06-17"
-updated: "2026-06-18"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -50,6 +51,8 @@ history:
   - date: "2026-06-18"
     event: Accepted
     semver: none
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0004/contracts, CUE v0.17.0. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

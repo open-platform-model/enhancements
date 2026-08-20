@@ -73,7 +73,7 @@ publish     A publish gate refuses it. Fails at `opm module|catalog publish`.
 convention  Nothing checks it. Stated because a reader must know it anyway.
 ```
 
-The badge vocabulary is defined in `schemas/target.cue` so that it is a closed set rather than prose. Its value is highest exactly where `SPEC.md` is currently wrong in both directions: the layering contract's rules are MUSTs with a `convention` badge, and the publish gates moved from unenforced to `publish` when the CLI slices landed.
+The badge vocabulary is defined in `contracts/contracts.cue` so that it is a closed set rather than prose. Its value is highest exactly where `SPEC.md` is currently wrong in both directions: the layering contract's rules are MUSTs with a `convention` badge, and the publish gates moved from unenforced to `publish` when the CLI slices landed.
 
 ### The abstraction family leads
 
@@ -83,7 +83,7 @@ The framing is a fact about the system rather than an editorial preference: no f
 
 ## Schema / API Surface
 
-`schemas/target.cue` states four shapes: the section taxonomy with its reader-state entry condition, the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. Stating them in CUE makes the taxonomy testable before any page exists, and gives the generator a contract to emit against.
+`contracts/contracts.cue` states four shapes: the section taxonomy with its reader-state entry condition, the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. Stating them in CUE makes the taxonomy testable before any page exists, and gives the generator a contract to emit against.
 
 ## Integration Points
 

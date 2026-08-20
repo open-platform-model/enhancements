@@ -12,7 +12,7 @@ Load this skill when any of the following is true:
 
 - A decision in `enhancements/NNNN/03-decisions.md` rests on a CUE evaluation pattern, kernel behaviour, or Go fixture that hasn't been demonstrated end-to-end and you are about to validate it.
 - A reviewer asks "does that actually work?" about a specific design claim and the cheapest honest answer is a small runnable sandbox.
-- A complex schema interaction (CUE comprehension, lock-step pattern, cycle-avoidance trick) is about to be baked into `schemas/target.cue` and you want evidence first.
+- A complex schema interaction (CUE comprehension, lock-step pattern, cycle-avoidance trick) is about to be baked into the entry's `schemas/` or `contracts/` CUE and you want evidence first.
 - You are about to invoke `task new:experiment` or `task experiments:list`.
 - You are editing any file under `enhancements/NNNN/experiments/`.
 - You are transitioning an experiment's `Status:` line.
@@ -132,7 +132,7 @@ Deletion is a regular `git rm`. Update the `experiments/README.md` index by remo
 - **Writing tests instead of demonstrations.** Experiments are not `go test ./...`. They are runnable scripts a human invokes to see a behaviour. If your "experiment" wants table-driven test cases and assertions, write a test fixture in `library/` instead.
 - **Leaving `Outcome` as the placeholder when transitioning to `Concluded`.** A Concluded experiment without a recorded outcome is a lie. Either write the outcome or roll the status back to `Running`.
 - **Not linking the result back into the enhancement.** A concluded experiment that lives only under `experiments/` is invisible to anyone reading the design. The link from `02-design.md` or `03-decisions.md` is what makes the evidence discoverable.
-- **Treating the experiment's code as canonical.** It isn't. The canonical schema is `schemas/target.cue` and (eventually) `core/*.cue`. The experiment's copies are *demonstrations of a moment*, not authoritative artefacts.
+- **Treating the experiment's code as canonical.** It isn't. The canonical CUE is the entry's `schemas/` (core delta) or `contracts/` files and (eventually) `core/*.cue`. The experiment's copies are *demonstrations of a moment*, not authoritative artefacts.
 
 ## Where things live
 

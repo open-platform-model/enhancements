@@ -36,7 +36,7 @@ The major is pinned for free: each deps key already carries `@vN`, and `cue mod 
 
 ## Schema / API Surface
 
-The full contract is in [`schemas/target.cue`](schemas/target.cue). It models the CI wiring, authored in CUE and exported to YAML — the same CUE-as-source-of-truth pattern the superseded Renovate design used for its preset, now pointed at the workflow. Headline constructs:
+The full contract is in [`contracts/contracts.cue`](contracts/contracts.cue). It models the CI wiring, authored in CUE and exported to YAML — the same CUE-as-source-of-truth pattern the superseded Renovate design used for its preset, now pointed at the workflow. Headline constructs:
 
 - `#UpdateFn` — the Dagger function signature every consumer depends on: `{ source, cueRegistry, ghcrToken } → Directory`. The stable contract reused local + CI.
 - `#RegistryAuth` / `#auth` — which backing OCI registries need credentials (`ghcr.io` → `read:packages`; `registry.cue.works` → public reads). This is the only registry config left, and unlike the old route table it does not duplicate `CUE_REGISTRY`'s host→registry map — it only names auth needs.

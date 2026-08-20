@@ -37,14 +37,14 @@ A `task` target regenerates all three; a CI check re-runs it and fails on any di
 
 ## Schema / API Surface
 
-The new surface is the `#CRD` envelope and its sub-shapes, defined in full in [`schemas/target.cue`](schemas/target.cue). Headline shapes:
+The new surface is the `#CRD` envelope and its sub-shapes, defined in full in [`schemas/target.cue`](schemas/target.cue); the worked `#CRD` instances (`#ModuleInstanceCRD`, `#PlatformCRD`) live in [`schemas/examples.cue`](schemas/examples.cue), same package. Headline shapes:
 
 - `#CRD` — one per custom resource. Carries `group`, `names` (`kind`/`plural`/`singular`/`shortNames`), `scope` (`Namespaced | Cluster`), and `versions: [...#CRDVersion]`. The `ModuleInstance`/`ModulePackage`/`Platform` definitions become `#CRD` instances.
 - `#CRDVersion` — `name` (e.g. `v1alpha1`), `served`/`storage` flags, the `schema` (a reference to the domain definition whose `spec`/`status` form the body), `subresources` (status on/off + scale if ever needed), `additionalPrinterColumns: [...#PrinterColumn]`, and `validations: [...#CELValidation]`.
 - `#PrinterColumn` — `name`, `type`, `jsonPath`, optional `priority` — a direct, lossless model of `+kubebuilder:printcolumn`.
 - `#CELValidation` — `rule` (the CEL expression, carried verbatim), `message`/`messageExpression`, optional `reason`/`fieldPath`/`optionalOldSelf` — a direct model of `+kubebuilder:validation:XValidation`. The design never parses or rewrites `rule`.
 
-The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here — they are the existing `#ModuleInstance` / `#Platform` definitions in `core/src/`. `#CRD` references them, so there is exactly one definition of each field. `schemas/target.cue` mirrors the existing shapes locally only so the file compiles standalone for review (the same convention 0006 used).
+The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here — they are the existing `#ModuleInstance` / `#Platform` definitions in `core/src/`. `#CRD` references them, so there is exactly one definition of each field. `schemas/examples.cue` mirrors the existing shapes locally only so the package compiles standalone for review (the same convention 0006 used).
 
 ## Integration Points
 

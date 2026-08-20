@@ -35,7 +35,7 @@ The core/kernel boundary is the load-bearing decision: because Kustomize reads a
 
 ## Schema / API Surface
 
-The full target shape is in [`schemas/target.cue`](schemas/target.cue). It models the **operator CRD spec addition** (the source of truth for the declared shape) plus a `#PassthroughObject` provenance shape — not core schema. Headline:
+The full target shape is in [`contracts/contracts.cue`](contracts/contracts.cue). It models the **operator CRD spec addition** (the source of truth for the declared shape) plus a `#PassthroughObject` provenance shape — not core schema. Headline:
 
 ```cue
 #ExtraManifestSource: {
@@ -49,7 +49,7 @@ The full target shape is in [`schemas/target.cue`](schemas/target.cue). It model
 - `#ExtraManifestSource` — one declared side-channel source. The `raw` vs `kustomize` split is the scope axis OQ1 resolves; the schema currently models both and a decision may narrow it.
 - Ownership/inventory shapes are **not** new — side objects reuse the operator's existing `pkg/core/labels.go` label set and `api/v1alpha1/common_types.go` inventory entry. The schema file documents which existing fields carry the passthrough provenance marker rather than redefining them.
 
-There is intentionally **no CUE definition under `opmodel.dev/core`** here. `schemas/target.cue` is repo-internal modeling of the CRD/CLI surface, consistent with this being an apply-layer feature.
+There is intentionally **no CUE definition under `opmodel.dev/core`** here. `contracts/contracts.cue` is repo-internal modeling of the CRD/CLI surface, consistent with this being an apply-layer feature.
 
 ## Integration Points
 

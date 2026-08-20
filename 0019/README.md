@@ -31,7 +31,7 @@ The six split documents below are mandatory and always present.
 5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite), including the two-phase landing order and the interim operator stopgap
 
-Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue), which states the parity contract, the runtime's fill obligations per input and which field classes each must preserve, the execution unit, the lexical-declaration obligation on transformer authors, and the D5 registry-entry shape.
+Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the parity contract, the runtime's fill obligations per input and which field classes each must preserve, the execution unit, the lexical-declaration obligation on transformer authors, and the D5 registry-entry shape.
 
 Cross-repo sequencing lives in [`plan.yaml`](plan.yaml) (rendered as [PLAN.md](PLAN.md)): Phase A slices carry no dependency on Phase B, which is the structural guarantee that the ready half is never hostage to the unready half.
 

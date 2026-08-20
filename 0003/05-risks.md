@@ -71,7 +71,7 @@ D16 lands in the same window as D13 — both change `#Module.metadata` and both 
 | `modules/*/module.cue` ×5 | `modulePath: "opmodel.dev/modules"` | full path per module, matching that module's own `cue.mod` |
 | `library/testdata/`, `cli/tests/e2e/testdata/` | fixture module paths | regenerate |
 
-Two of these are reductions rather than costs. The address composition in `cli/pkg/module/module.go:74` disappears — the declared path *is* the address. And D1's constraint ("the registry path leaf equals `nameSnakeCase`") stops being a relationship between two independently-authored fields and becomes a statement about one, so it is checkable locally; `schemas/target.cue` now expresses it as `leafMatchesName: strings.HasSuffix(registryPath, "/" + nameSnakeCase)`, verified to fail on a mismatched leaf.
+Two of these are reductions rather than costs. The address composition in `cli/pkg/module/module.go:74` disappears — the declared path *is* the address. And D1's constraint ("the registry path leaf equals `nameSnakeCase`") stops being a relationship between two independently-authored fields and becomes a statement about one, so it is checkable locally; `contracts/contracts.cue` now expresses it as `leafMatchesName: strings.HasSuffix(registryPath, "/" + nameSnakeCase)`, verified to fail on a mismatched leaf.
 
 The authored path still duplicates `cue.mod/module.cue`'s `module:` line. That duplication is not removed by D16 — it is made *comparable*, since both sides are now the same complete string rather than a fragment reassembled from parts. Checking it is the surviving job of D6's path half.
 
@@ -96,7 +96,7 @@ The authored path still duplicates `cue.mod/module.cue`'s `module:` line. That d
 
 Catalog-version skew stops being routine. Today `#Catalog`'s pattern constraint puts the catalog's full version into every transformer FQN, so a module built against `catalog@1.0.0-alpha.2` and a platform subscribed to `catalog@1.1.0` share **no** matcher keys, and the symptom is `no matching transformer` — a message naming neither the catalog nor the version at fault. This has already been observed in the workspace (opm-operator e2e, fixtures at `@v1-alpha` against a platform range at `@v0`).
 
-Under D17 only a **major** bump changes the key space. Patch and minor catalog releases become non-events for matching. `schemas/target.cue` pins the resulting key shape as `_transformerFQNExample` — `opmodel.dev/catalogs/opm/transformers/deployment@v1`, identical across every 1.x release of that catalog.
+Under D17 only a **major** bump changes the key space. Patch and minor catalog releases become non-events for matching. `contracts/contracts.cue` pins the resulting key shape as `_transformerFQNExample` — `opmodel.dev/catalogs/opm/transformers/deployment@v1`, identical across every 1.x release of that catalog.
 
 ### What the removal retires
 

@@ -29,10 +29,13 @@ often lands the idea faster than prose alone — see `enhancement-diagrams`.}
 
 ## Schema / API Surface
 
-{Headline shapes only — the full schema lives in `schemas/target.cue`.
-Reference specific definitions and explain the *role* of each new or changed
+{Headline shapes only — the full compilable surface lives in
+`schemas/target.cue` (when this enhancement changes core schemas —
+`config.yaml.core_schema: true`) or `contracts/` (non-core CUE). Reference
+specific definitions and explain the *role* of each new or changed
 construct. Quote short CUE snippets where they clarify the structure; point
-to `schemas/target.cue` for the full surface.}
+to the CUE files for the full surface. Delete this section if the
+enhancement defines no schema or contract surface at all.}
 
 ## Integration Points
 

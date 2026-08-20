@@ -14,7 +14,7 @@ Four coordinates an OPM author sets independently — `metadata.modulePath`, `me
 Two measurements gave the entry its urgency, and both are reproduced in the successors:
 
 - **The version invariant was already false across the published fleet** (2026-07-25, workspace registry): jellyfin `v2.0.1` and `v2.0.2` both declare `2.0.0`, seerr `v1.0.2` declares `1.0.0`. Only the `.0` of each minor line is honest. The `modules` repo's checksum-driven `publish:smart` never reads or writes `metadata.version`, so drift is the *output* of the flow and accumulates with every publish.
-- **A derivable rule is not an enforced one.** This entry's own `schemas/target.cue` always specified `depVersion: "v" + version`, yet the shipped `CanonicalModuleRef` returned the bare version — so every `ModuleInstance` the CLI had written was unresolvable by the operator, undetected until `opm instance handoff` first had to re-read what the CLI wrote (fixed 2026-07-20).
+- **A derivable rule is not an enforced one.** This entry's own `contracts/contracts.cue` always specified `depVersion: "v" + version`, yet the shipped `CanonicalModuleRef` returned the bare version — so every `ModuleInstance` the CLI had written was unresolvable by the operator, undetected until `opm instance handoff` first had to re-read what the CLI wrote (fixed 2026-07-20).
 
 ## Where it went
 

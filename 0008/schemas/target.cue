@@ -1,18 +1,29 @@
-// Target schema for enhancement 0008 — CUE-Native CRD Schemas.
+// Core-schema delta for enhancement 0008 — CUE-Native CRD Schemas.
 //
-// The #CRD envelope below is the NEW surface this enhancement adds to core/.
-// It pairs the Kubernetes object-metadata of a CRD (group/names/scope/versions)
-// with the OpenAPIv3-compatible schema body (reused from the existing core
-// domain definitions) and the non-schema facets controller-gen expresses as
-// kubebuilder markers today (status subresource, printer columns, CEL rules) —
-// here modelled as plain CUE DATA (D4), so a downstream Go assembler can emit
-// both the CRD YAML and the Go API types from one source (D1, D2, D3).
+// Delta manifest (vs core@v2 — core/src/ has no CRD-shaped definitions today):
+//
+//	#CRD               NEW — the CRD envelope: group + names + scope + versions; one per custom resource (proposed core/src/crd.cue)
+//	#CRDVersion        NEW — per-version served/storage flags, OpenAPIv3-compatible schema body, subresources, printer columns, CEL validations
+//	#CRDNames          NEW — kind/plural/singular/listKind/shortNames block of the envelope
+//	#Scope             NEW — "Namespaced" | "Cluster"
+//	#PrinterColumn     NEW — direct, lossless model of +kubebuilder:printcolumn (D4)
+//	#CELValidation     NEW — direct model of +kubebuilder:validation:XValidation; `rule` carried verbatim, never parsed (D4, D6)
+//	#Subresources      NEW — status-subresource toggle (field ownership gated by OQ2)
+//	#ModuleInstanceCRD NEW — worked #CRD instance for ModuleInstance (in examples.cue; genuine codegen input, proposed for core/src/module_instance.cue)
+//	#PlatformCRD       NEW — worked #CRD instance for Platform (in examples.cue; genuine codegen input, proposed for core/src/platform.cue)
+//
+// The #CRD envelope pairs the Kubernetes object-metadata of a CRD
+// (group/names/scope/versions) with the OpenAPIv3-compatible schema body
+// (reused from the existing core domain definitions) and the non-schema facets
+// controller-gen expresses as kubebuilder markers today (status subresource,
+// printer columns, CEL rules) — here modelled as plain CUE DATA (D4), so a
+// downstream Go assembler can emit both the CRD YAML and the Go API types from
+// one source (D1, D2, D3).
 //
 // The spec/status BODIES are not re-authored here — in core/ they are the
-// existing #ModuleInstance / #Platform definitions. The mirrored shapes in this
-// file are illustrative locals so the file compiles standalone for review
-// (same convention as 0006's target.cue); they are not the authoritative
-// bodies.
+// existing #ModuleInstance / #Platform definitions. examples.cue carries
+// illustrative local mirrors of those shapes (so the package compiles
+// standalone), the two worked #CRD instances, and the concrete test values.
 //
 // Open questions tracked in ../03-decisions.md are marked `// OQn:` inline.
 package schema
@@ -24,10 +35,10 @@ package schema
 #Scope: "Namespaced" | "Cluster"
 
 #CRDNames: {
-	kind!:       string
-	plural!:     string
-	singular?:   string
-	listKind?:   string
+	kind!:     string
+	plural!:   string
+	singular?: string
+	listKind?: string
 	shortNames?: [...string]
 }
 
@@ -67,123 +78,18 @@ package schema
 	// definitions (#ModuleInstance, #Platform); the encoder turns them into the
 	// structural openAPIV3Schema (D3).
 	schema!: {
-		spec!:   {...}
+		spec!: {...}
 		status?: {...}
 	}
 
-	subresources:              #Subresources
+	subresources: #Subresources
 	additionalPrinterColumns?: [...#PrinterColumn]
-	validations?:              [...#CELValidation]
+	validations?: [...#CELValidation]
 }
 
 #CRD: {
-	group!:    string // e.g. "opmodel.dev"
-	names!:    #CRDNames
-	scope!:    #Scope
+	group!: string // e.g. "opmodel.dev"
+	names!: #CRDNames
+	scope!: #Scope
 	versions!: [#CRDVersion, ...#CRDVersion]
-}
-
-// ---------------------------------------------------------------------------
-// Illustrative local bodies (in core/ these are the real domain definitions).
-// ---------------------------------------------------------------------------
-
-#Condition: {
-	type!:    string
-	status!:  "True" | "False" | "Unknown"
-	reason?:  string
-	message?: string
-}
-
-#ModuleInstanceSpec: {
-	suspend?: bool
-	module!: {
-		path!:    string
-		version!: string
-	}
-	values?:             {...} // OQ5: must stay an object to match the core contract
-	prune?:              bool
-	serviceAccountName?: string
-	owner?:              "cli" | "operator" // from 0006
-}
-
-#ModuleInstanceStatus: {
-	observedGeneration?: int
-	instanceUUID?:       string
-	conditions?: [...#Condition]
-	...
-}
-
-#PlatformSpec: {
-	type!: string
-	registry?: [string]: {
-		enable?: bool
-		filter?: {
-			range?: string
-			allow?: [...string]
-			deny?: [...string]
-		}
-	}
-}
-
-#PlatformStatus: {
-	observedGeneration?: int
-	conditions?: [...#Condition]
-}
-
-// ---------------------------------------------------------------------------
-// Worked instances — the three CRDs re-expressed as #CRD values.
-// ---------------------------------------------------------------------------
-
-// Worked instances are definitions: a CRD's `schema` field holds a type (the
-// domain schema), not concrete data, so these are intentionally non-concrete.
-#ModuleInstanceCRD: #CRD & {
-	group: "opmodel.dev"
-	names: {
-		kind:       "ModuleInstance"
-		plural:     "moduleinstances"
-		singular:   "moduleinstance"
-		shortNames: ["mi"]
-	}
-	scope: "Namespaced"
-	versions: [{
-		name: "v1alpha1"
-		schema: {
-			spec:   #ModuleInstanceSpec
-			status: #ModuleInstanceStatus
-		}
-		subresources: status: true
-		additionalPrinterColumns: [
-			{name: "Ready", type: "string", jsonPath: ".status.conditions[?(@.type=='Ready')].status"},
-			{name: "Module", type: "string", jsonPath: ".spec.module.path"},
-			{name: "Version", type: "string", jsonPath: ".spec.module.version"},
-		]
-	}]
-}
-
-#PlatformCRD: #CRD & {
-	group: "opmodel.dev"
-	names: {
-		kind:       "Platform"
-		plural:     "platforms"
-		singular:   "platform"
-		shortNames: ["plat"]
-	}
-	scope: "Cluster"
-	versions: [{
-		name: "v1alpha1"
-		schema: {
-			spec:   #PlatformSpec
-			status: #PlatformStatus
-		}
-		subresources: status: true
-		additionalPrinterColumns: [
-			{name: "Type", type: "string", jsonPath: ".spec.type"},
-			{name: "Ready", type: "string", jsonPath: ".status.conditions[?(@.type=='Ready')].status"},
-		]
-		// CEL rule carried verbatim (D6) — the Platform cluster-singleton guard.
-		validations: [{
-			rule:    "self.metadata.name == 'cluster'"
-			message: "Platform is a cluster singleton; the only permitted name is 'cluster'"
-		}]
-	}]
 }

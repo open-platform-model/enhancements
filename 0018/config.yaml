@@ -12,8 +12,9 @@ affects:
   - catalog
   - cli
   - library
+core_schema: false
 created: "2026-08-18"
-updated: "2026-08-18"
+updated: "2026-08-20"
 authors:
   - emil
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -28,6 +29,8 @@ history:
     event: "Sourcing survey concluded across core, library, catalog_opm, opm and enhancements 0001-0017. Findings that shaped the entry: opm/docs is a total write-off (every file last touched 2026-04-21, describes the v0 catalog line, 121 references to the retired #ModuleRelease); the best explanation prose in the workspace is core/SPEC.md's Rationale sections, which are unpublishable as-is because they cite enhancement decision numbers and experiment paths; catalog doc-comment coverage is inverted against usage (blueprints 0 of 5, abstraction resources 1 of 11, traits 6 of 27, while the raw k8s-* family that no first-party module imports has 27 of 27); metadata.description is populated for all 70 catalog members but the index generator is a text scraper that never reads it; and only five enhancements of seventeen are implemented, so nine draft systems including lifecycle/workflows (0009) must not appear as features."
   - date: "2026-08-18"
     event: "Decisions D1-D6 locked by user decision in the design session"
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0018/contracts, CUE v0.17.0. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0002"

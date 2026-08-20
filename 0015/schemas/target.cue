@@ -7,6 +7,33 @@
 // standalone rather than importing opmodel.dev/core, so the entry vets
 // without a registry round-trip; the types they mirror are named in comments.
 //
+// Delta manifest — every top-level definition, classified against
+// opmodel.dev/core@v2 (core/src/*.cue). MIRROR = an unchanged core type
+// restated narrowly for this file's self-containment; mirrors are NOT part
+// of the proposed delta and get no section in spec.md.
+//
+//   #ModulePath                     MIRROR   core #ModulePathType (types.cue) — regex kept, rune bounds dropped
+//   #PackagePath                    MIRROR   core #PackagePathType (types.cue) — regex kept, rune bounds dropped
+//   #ContractFQN                    MIRROR   core #ContractFQNType (types.cue) — collapsed to one segment class
+//   #ImplFQN                        MIRROR   core #ImplFQNType (types.cue) — build-metadata (+…) tail dropped
+//   #Name                           MIRROR   core #NameType (types.cue) — regex kept, rune bounds dropped
+//   #Version                        MIRROR   core #VersionType (types.cue) — simplified pre-release tail
+//   #ContractKind                   MIRROR   the kind-segment vocabulary of core's kindPrefix (identity_package.cue, 0010 D21), contract kinds only
+//   #Fulfilment                     MIRROR   the fulfilment disjunction on core #Resource/#Trait (0010 D37) — values unchanged; D2's arity change lands in #ContractRouting
+//   #PublishedContract              NEW      (D1) the member value a catalog publishes per contract; provenance stamped, never authored at the leaf
+//   #CatalogContractMaps            CHANGED  vs core@v2 #Catalog (catalog.cue) — #resources/#traits/#blueprints added beside #transformers, same stamping pattern constraint; stated standalone here
+//   #ContractInventory              NEW      (D1) materialize's defined × required cross; Platform readiness and `opm platform check` read it
+//   #ProviderClass                  NEW      (D2) one entry of the platform-published routing vocabulary
+//   #ClassVocabulary                CHANGED  vs core@v2 #Platform (platform.cue) — the class-vocabulary member #Platform gains beside #registry; stated standalone here
+//   #ClassLabelKey                  NEW      (D2) the per-contract label key a class projects; derivation OQ2-gated
+//   #ClassedContract                CHANGED  vs core@v2 #Resource/#Trait — optional `class` plus its projection into 0010 D36's existing matchLabels
+//   #ContractRouting                NEW      (D2) the arity relation replacing 0010 D37's exactly-one-provider rule
+//   #TransformerRegistrationSpec    NEW      (D3) the claim a provider module ships
+//   #TransformerRegistrationStatus  NEW      (D3) what the Platform reconciler decides about a claim
+//   #TransformerRegistration        NEW      (D3) the cluster-scoped CR: spec + status
+//   #Subscription                   MIRROR   core #Subscription (platform.cue) — 0010 D14's shape, unchanged
+//   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the store key (OQ3, OQ6)
+//
 // Unresolved fields carry `// OQN:` markers pointing at ../03-decisions.md.
 package schema
 
@@ -76,27 +103,30 @@ import "strings"
 // alongside the existing #transformers one.
 #CatalogContractMaps: {
 	// The catalog's identity, as core/src/catalog.cue's `M._ref` already
-	// decomposes it.
-	registryPath!:   #PackagePath
-	catalogVersion!: #Version
+	// decomposes it. Label aliases (0001 D25, the same device catalog.cue's
+	// `M=metadata` uses) carry the values across the pattern-constraint
+	// boundary — a bare `catalogVersion: catalogVersion` inside the member
+	// struct would self-reference and stamp nothing.
+	RP=registryPath!:   #PackagePath
+	CV=catalogVersion!: #Version
 
 	#resources: [FQN=#ContractFQN]: #PublishedContract & {
 		kind:           "resources"
 		fqn:            FQN
-		modulePath:     "\(registryPath)/resources"
-		catalogVersion: catalogVersion
+		modulePath:     "\(RP)/resources"
+		catalogVersion: CV
 	}
 	#traits: [FQN=#ContractFQN]: #PublishedContract & {
 		kind:           "traits"
 		fqn:            FQN
-		modulePath:     "\(registryPath)/traits"
-		catalogVersion: catalogVersion
+		modulePath:     "\(RP)/traits"
+		catalogVersion: CV
 	}
 	#blueprints: [FQN=#ContractFQN]: #PublishedContract & {
 		kind:           "blueprints"
 		fqn:            FQN
-		modulePath:     "\(registryPath)/blueprints"
-		catalogVersion: catalogVersion
+		modulePath:     "\(RP)/blueprints"
+		catalogVersion: CV
 	}
 }
 
@@ -174,7 +204,7 @@ import "strings"
 	// "…/traits/backup@v1beta1" → "traits.backup.opmodel.dev/class"
 	// OQ2: the exact derivation is settled with the default-fill placement;
 	// what is fixed is that it is per-contract and derived, never authored.
-	out: string & strings.Replace(contract, "/", ".", -1) + "/class"
+	out: string & strings.Replace(contract, "/", ".", -1)+"/class"
 }
 
 // The demand side: what a contract carrying a class projects upward. The
@@ -183,12 +213,13 @@ import "strings"
 // #ComponentTransformer.requiredLabels selects on that field.
 // compile/match.go:344-360 is unchanged, and that is load-bearing.
 #ClassedContract: {
-	contract!: #ContractFQN
+	C=contract!: #ContractFQN
 
 	// Authored by the module, or filled from the platform default (OQ2).
 	class?: #Name
 
-	_key: (#ClassLabelKey & {contract: contract}).out
+	// Label alias again: `{contract: contract}` would self-reference.
+	_key: (#ClassLabelKey & {contract: C}).out
 
 	// Absent class → no label → the contract is unrouted and the platform's
 	// default must have been filled in before match. Present → exactly one

@@ -67,7 +67,7 @@ The demo packs all four objects into a single `moduleinstance.yaml`; the export 
 
 ## Schema / API Surface
 
-The full surface is in [`schemas/target.cue`](schemas/target.cue), which compiles. Headline shapes:
+The full surface is in [`contracts/contracts.cue`](contracts/contracts.cue), which compiles. Headline shapes:
 
 - `#ExportRequest` — the command's inputs: instance identity, out-dir, and the flags.
 - `#Gate` and `#GateChain` — the ordered precondition chain, each gate carrying the class of failure it reports. The chain is a value, not prose, so the design's claim that export and handoff share a chain is checkable.

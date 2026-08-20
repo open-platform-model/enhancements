@@ -1,6 +1,6 @@
 ---
 name: enhancements
-description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/target.cue), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events after a slice ships, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
+description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events after a slice ships, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
 user-invocable: true
 ---
 
@@ -14,7 +14,7 @@ Load this skill when any of the following is true:
 
 - Creating a new enhancement (about to invoke `task new` or write `enhancements/NNNN/` files).
 - Editing an existing enhancement's `config.yaml`, `README.md`, or any of the six split documents (`01-problem.md` through `06-operational.md`).
-- Editing `enhancements/NNNN/schemas/target.cue`.
+- Editing anything under `enhancements/NNNN/schemas/` (the core-schema delta) or `enhancements/NNNN/contracts/` (non-core compilable CUE).
 - Promoting an enhancement's `status` (draft → accepted → implemented → superseded).
 - Recording a new event in `config.yaml.history` after a slice ships.
 - Adding or removing entries in `related`, `supersedes`, `superseded_by`.
@@ -30,7 +30,7 @@ Sibling skills carry parallel protocols you may also need to load:
 - **`enhancement-diagrams`** — when a design discussion or Open-Questions walk would benefit from a diagram. Mermaid for relationships between enhancements/slices, ASCII for how a single enhancement's design/mechanism works — the two are never interchangeable by default. Load before sketching either, or before adding a diagram to `01-problem.md`/`02-design.md`/`05-risks.md`.
 - **`core-schema-edit`** (at `core/.claude/skills/core-schema-edit/`) — when implementing a slice that touches `core/*.cue`. The enhancement's accepted-to-implemented work routes there.
 
-If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `06-operational.md`, and inspect `schemas/target.cue`. The skill matters when you are about to *change* something.
+If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `06-operational.md`, and inspect the compilable CUE under `schemas/` (core entries) or `contracts/`. The skill matters when you are about to *change* something.
 
 ## Repo rules — invariants
 
@@ -38,7 +38,7 @@ These hold across every enhancement in the repo. Violations fail PR review even 
 
 1. **`config.yaml` is the sole source of metadata.** Do not reintroduce a metadata table to `README.md`. The table was removed by design; `config.yaml` is canonical.
 2. **Folder names are id-only.** `0001/`, `0042/` — four digits, zero-padded, no slug suffix. The slug lives in `config.yaml.slug` and surfaces in `INDEX.md`. `0000` is reserved for the template; never repurpose it.
-3. **Schemas are pure CUE files.** Never write CUE inside a markdown fence longer than a few illustrative lines. The target schema lives in `NNNN/schemas/target.cue`, validated via `cue vet ./...` from that directory.
+3. **Compilable CUE is pure CUE files, and `schemas/` means exactly one thing: the core-schema delta.** Never write CUE inside a markdown fence longer than a few illustrative lines. `NNNN/schemas/` exists **iff** `config.yaml.core_schema: true` — the enhancement adds or changes `opmodel.dev/core` definitions — and holds `target.cue` (the proposed delta; import published `opmodel.dev/core@vN` for unchanged referenced types where practical, fully restate changed definitions with a delta-manifest header), `examples.cue` (concrete instances + assertions whose unification is the actual test), and `spec.md` (the specification changes, one section per construct in core SPEC.md's four-part Definition/Shape/Constraints/Rationale format — pre-drafting the SPEC.md co-update the core slice will need). `examples.cue` + `spec.md` are hard-required from `accepted`; a compiling `target.cue` suffices at `draft`; `implemented`/`superseded` entries are grandfathered. `core_schema: true` implies `core ∈ affects`. All other compilable CUE — decision procedures, kernel-behaviour contracts, CLI command contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts ID=NNNN`), which vet compiles when present but never requires. (One-time exception on record: the 2026-08-20 full-sweep migration to this rule restructured frozen entries' folders and metadata — structure only, no content rewrites; see `CLAUDE.md ## Repository Rules`.)
 4. **`config.yaml.history` is append-only.** Never delete or reorder past events. Reversed conclusions get a new event recording the reversal; the original event stays. This is the only strictly append-only structure in the repo — it is short, structured, and it is where provenance is supposed to live.
 5. **Decision and OQ *numbers* are immutable; body mutability is status-gated.** `D1`, `D2`, `OQ1`, … are never reused and never renumbered — other repos cite them from commit messages and OpenSpec changes. A number vacated by a merge or retraction keeps a one-line tombstone (`### D18: (merged into D3, YYYY-MM-DD)`) so the citation still resolves. What may happen to the prose under a number depends on `status`:
    - **`draft`** — decision bodies are freely revised **in place**. The log never contains two conflicting decisions: a changed choice is an edit to the existing `DN`, not a new one. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* before overwriting; a mere sketch may be replaced outright.
@@ -59,23 +59,23 @@ new → fill problem + design → accrete decisions → freeze (accepted) → sh
 
 ```bash
 task new SLUG=my-slug TITLE="My Title"
-# Optional: AREA=cli  AUTHOR="Jane Doe"
+# Optional: AREA=cli  AUTHOR="Jane Doe"  CORE_SCHEMA=true
 ```
 
 What the task does:
 
 - Computes the next id from the highest existing `NNNN/` directory (excluding `0000`).
-- Copies `0000/` to `NNNN/`.
-- Fills `config.yaml`: id, slug, title, area (defaults to `cross-cutting`), affects (defaults to `[area]`), created/updated to today, authors, and seeds `history` with `{date: today, event: "Drafted"}`.
-- Replaces `{Enhancement Title}` placeholders across the six split documents + README.
-- Updates `schemas/cue.mod/module.cue` to set `module: "enhancements.opmodel.dev/NNNN@v0"`.
+- Copies `0000/` to `NNNN/` — keeping `schemas/` only when `CORE_SCHEMA=true` (the enhancement adds or changes `opmodel.dev/core` definitions); `contracts/` is never auto-copied.
+- Fills `config.yaml`: id, slug, title, area (defaults to `cross-cutting`), affects (defaults to `[area]`, plus `core` when `CORE_SCHEMA=true`), `core_schema`, created/updated to today, authors, and seeds `history` with `{date: today, event: "Drafted"}`.
+- Replaces `{Enhancement Title}` placeholders across the six split documents + README (+ `schemas/spec.md` when kept).
+- Updates `schemas/cue.mod/module.cue` to set `module: "enhancements.opmodel.dev/NNNN/schemas@v0"`.
 - Prints the recommended next steps.
 
 After `task new`:
 
 1. Write `01-problem.md` first — full prose. The Concrete Example section is the most important — it makes the problem tangible.
 2. Write `02-design.md` next — full prose. Goals and Non-Goals together define the boundary; the High-Level Approach should be understandable without deep implementation knowledge.
-3. Sketch the target schema in `schemas/target.cue`. Mark unresolved fields with `// OQN:` comments pointing at the corresponding Open Question in `03-decisions.md`.
+3. Core-schema entries (`core_schema: true`): sketch the delta in `schemas/target.cue` — delta-manifest header (each definition marked NEW or CHANGED vs core), unresolved fields marked with `// OQN:` comments pointing at the corresponding Open Question in `03-decisions.md`. Grow `examples.cue` and `spec.md` alongside; both are required before `draft → accepted`. Non-core entries with compilable-CUE needs: `task new:contracts ID=NNNN`.
 4. Seed `03-decisions.md ## Open Questions` with the questions the design surfaces. Fill `## Decisions` iteratively as choices land.
 5. Update `04-graduation.md`, `05-risks.md`, `06-operational.md` as the design firms up. They start as scaffolds and mature alongside the decision log.
 6. Before opening a PR: `task vet:one ID=NNNN && task index`.
@@ -86,7 +86,7 @@ Every meaningful edit:
 
 - Bumps `config.yaml.updated` to today's date (ISO 8601, `YYYY-MM-DD`).
 - May add a new event to `history` if the edit captures a milestone (e.g. "Decisions D1..D5 locked", "Schema spike concluded", "Open Question OQ3 resolved by D7"). Don't add history events for typo fixes or routine prose edits.
-- Tightens `schemas/target.cue` as decisions resolve `OQ` markers.
+- Tightens the CUE under `schemas/` (and `contracts/`) as decisions resolve `OQ` markers; on core entries, keeps `examples.cue` exercising every changed definition and `spec.md` in step with the delta.
 
 Decisions are written **after** they are made, not speculatively. The format is fixed:
 
@@ -109,7 +109,7 @@ Source is specific. "User decision 2026-05-23" beats "discussion"; an experiment
 
 **While the entry is `draft`, a changed decision is an in-place edit.** Rewrite the affected `### DN:` block to state the new choice — never append a second decision that conflicts with an existing one. When the position being replaced was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* marked as previously adopted, and optionally add a `**Revised:** YYYY-MM-DD — {what changed}` line; a position that was only ever a sketch may be replaced outright. The keep/drop test applies at write time: keep what would change a future decision, drop what only records that we changed our mind. A decision that is genuinely retracted — nothing replaces it — keeps its number as a tombstone (`### DN: (retracted, YYYY-MM-DD)` plus one line on why), never a deleted heading.
 
-**When resolving Open Questions interactively, load `enhancement-open-questions`.** It walks each OQ one at a time, drafts the four-field decision block in the format above, rewrites the OQ's `Status:` line, prompts for `// OQN:` marker edits in `schemas/target.cue` (with `cue vet` in the same pass), and appends a single rolled-up `history` event at the end. Use `task questions:open ID=NNNN` to inspect the walk queue without entering the skill.
+**When resolving Open Questions interactively, load `enhancement-open-questions`.** It walks each OQ one at a time, drafts the four-field decision block in the format above, rewrites the OQ's `Status:` line, prompts for `// OQN:` marker edits in the `schemas/`/`contracts/` CUE (with `cue vet` in the same pass), and appends a single rolled-up `history` event at the end. Use `task questions:open ID=NNNN` to inspect the walk queue without entering the skill.
 
 **Reach for a diagram during design discussion, not just during the OQ walk.** Discussing High-Level Approach, Schema/API Surface, Integration Points, or Before/After is exactly where a picture often settles a question faster than prose. Load `enhancement-diagrams` — Mermaid for how this entry relates to others, ASCII for how its design/mechanism actually works.
 
@@ -126,7 +126,7 @@ Before promoting:
 
 - Every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`). Use `task questions:open ID=NNNN` to check the queue; if it returns rows, walk them with the `enhancement-open-questions` skill before promoting.
 - Every decision (D1..DN) has the four-field format.
-- `schemas/target.cue` captures the target shape end-to-end and compiles cleanly.
+- Core entries (`core_schema: true`): `schemas/` compiles cleanly, `examples.cue` carries concrete instances exercising every NEW/CHANGED definition, and `spec.md` drafts the full spec delta — `task vet` hard-enforces the file presence the moment `status` flips to `accepted`. Non-core entries: no `schemas/` exists; any `contracts/` compiles.
 - `config.yaml.semver` is set (`major | minor | none`).
 - `config.yaml.affects` lists every repo that ships code/schema/content changes; `area` appears in `affects`.
 - `README.md ## Scope` has `### In scope` + `### Out of scope`.
@@ -204,7 +204,8 @@ The cheap-entry state. Be lenient — this is where ideas form.
 - **[H]** `created` set, `updated >= created`
 - **[H]** cross-refs (`related`, `supersedes`, `superseded_by`) resolve to existing entries (workspace `NNNN/` or `library/enhancements/NNN-*/`)
 - **[H]** `implementation.status ≠ complete` (`complete` is reserved for `implemented`)
-- **[H]** `schemas/` compiles via `cue vet ./...`
+- **[H]** `core_schema` set; `schemas/` exists **iff** it is `true`, contains `target.cue`, and compiles via `cue vet ./...`; when `true`, `core ∈ affects`
+- **[H]** `contracts/`, when present, is non-empty and compiles via `cue vet ./...`
 - **[H]** if `experiments/` exists: index `README.md` is present and every `NN-*/` subdirectory has its own `README.md`
 - **[H]** if `plan.yaml` exists: `#SlicePlan` schema conformance, slice id uniqueness, `repo ∈ affects`, every `depends_on` resolves, no dependency cycle
 
@@ -218,6 +219,7 @@ Everything `draft` requires, plus:
 
 - **[H]** `semver: major | minor | none` set
 - **[H]** `implementation.status ∈ {not-started, in-progress, partial}`
+- **[H]** if `core_schema: true`: `schemas/spec.md` exists and `schemas/` has at least one companion `.cue` beside `target.cue` (convention: `examples.cue`)
 - **[S]** `README.md` contains `## Scope` with `### In scope` and `### Out of scope`
 - **[S]** `03-decisions.md` contains at least one `### DN:` heading
 - **[S]** `03-decisions.md` contains `## Open Questions` block (may say "None")
@@ -285,7 +287,8 @@ Workflow:
 
 - **Forgetting to re-run `task index` after editing `config.yaml`.** `INDEX.md` is generated. Stale `INDEX.md` is the most common drift; run `task index` whenever any `config.yaml` changes.
 - **Forgetting to re-run `task graph` after editing cross-references.** Same story for `GRAPH.md`.
-- **Writing CUE inside a markdown fence instead of `schemas/target.cue`.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in `schemas/target.cue` with a one-line markdown reference.
+- **Writing CUE inside a markdown fence instead of a compilable file.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in a `.cue` file with a one-line markdown reference — in `schemas/` when it is (part of) the core-schema delta, in `contracts/` otherwise.
+- **Putting non-core CUE in `schemas/`, or a core delta in `contracts/`.** `schemas/` has exactly one meaning — the `opmodel.dev/core` delta gated by `core_schema` — and vet enforces its presence in both directions. A decision procedure or Go-behaviour contract wearing `#Def` syntax is `contracts/` material; a proposed core definition hiding in `contracts/` dodges the examples/spec.md gate.
 - **Filling decisions speculatively.** On a draft the fix is cheap — revise the block in place — but until then a wrong decision misleads whoever reads the log next, and once the entry is `accepted` unwinding it costs an amending `DN` plus a compaction pass. Only record decisions after they are made, with their alternatives and source. If unsure, leave it as an Open Question.
 - **Revising a draft decision carelessly.** In-place revision is the normal Phase 2 move, but it has two hard edges: an evidence-backed old position folds into *Alternatives considered* (deleting it guarantees someone re-proposes it), and a retracted number keeps a tombstone heading — it never silently disappears.
 - **Editing an `accepted` entry's decision body directly.** Protected means protected: the change is a new `DN` with a relation field, and existing bodies move only through `enhancement-compaction` with its manifest and its own commit. A direct edit after acceptance is exactly how a design record gets quietly laundered to agree with whatever was just built.

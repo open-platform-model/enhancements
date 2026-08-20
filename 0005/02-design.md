@@ -32,7 +32,7 @@ Each generated resource is stamped with **lifecycle metadata** the operator cons
 
 ## Schema / API Surface
 
-Headline shapes only — full surface in `schemas/target.cue`.
+Headline shapes only — full surface in `contracts/contracts.cue`.
 
 - **Generator manifest** — declarative config naming the inputs (a k8s minor's OpenAPI endpoint or a CRD bundle), the projection (strict | open), and output targets. Drives reproducible regeneration; the catalog source becomes a generation artifact rather than hand-written.
 - **Lifecycle metadata block** — the per-resource stamp (`scope`, `applyPhase`, `readiness`, `prune`/`ownership`) attached to each generated `#Resource`'s metadata, shaped so the library/operator can read it without re-deriving from the GVK.

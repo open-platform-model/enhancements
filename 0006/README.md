@@ -19,7 +19,7 @@ This enhancement promotes the storage/handoff design of `cli/docs/rfc/0007` (and
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 
-Pure-CUE / Go-shape sketches live under [`schemas/`](schemas/).
+Pure-CUE / Go-shape sketches live under [`schemas/`](contracts/).
 
 ## Scope
 

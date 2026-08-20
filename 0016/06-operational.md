@@ -8,7 +8,7 @@ fixed prompts — answer every one, even briefly.
 **What new signals, metrics, diagnostics, or error types does this
 enhancement introduce, and how are they surfaced?**
 
-The command's report (`#InstanceInitReport` in `schemas/target.cue`) is the observability surface: resolved module reference and version, the values source used (`initValues` / `debugValues` / `empty`), the target directory, and warnings — including the mandatory review warning whenever the source is `debugValues`. Failure modes reuse the CLI's existing error surfaces: registry acquisition errors from the kernel acquire path, and (per OQ5) `#config`-conformance diagnostics from the same validation machinery `opm instance vet` uses. No metrics or long-running signals — this is a local, one-shot scaffolding command.
+The command's report (`#InstanceInitReport` in `contracts/contracts.cue`) is the observability surface: resolved module reference and version, the values source used (`initValues` / `debugValues` / `empty`), the target directory, and warnings — including the mandatory review warning whenever the source is `debugValues`. Failure modes reuse the CLI's existing error surfaces: registry acquisition errors from the kernel acquire path, and (per OQ5) `#config`-conformance diagnostics from the same validation machinery `opm instance vet` uses. No metrics or long-running signals — this is a local, one-shot scaffolding command.
 
 ## Semver Impact
 

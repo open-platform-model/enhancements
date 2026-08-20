@@ -8,7 +8,7 @@ The design is ready to be sliced for implementation when:
 
 - Design Goals and Non-Goals in `02-design.md` are final and reviewed.
 - Every Open Question in `03-decisions.md` is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`) — in particular OQ1 (projection shape), OQ2 (generator home/language), OQ3 (version axis), and OQ5 (trapdoor semantics), which gate the construction roadmap.
-- `schemas/target.cue` compiles (`cue vet ./...`) and captures the generation manifest, lifecycle metadata, and trapdoor shapes end-to-end.
+- `contracts/contracts.cue` compiles (`cue vet ./...`) and captures the generation manifest, lifecycle metadata, and trapdoor shapes end-to-end.
 - `config.yaml.semver` is set; the cross-cutting impact on each entry in `affects` is understood.
 - `config.yaml` cross-refs (`related`, `supersedes`, `superseded_by`) are final and resolve.
 - No `{Capitalised}` placeholder strings remain in any markdown file.

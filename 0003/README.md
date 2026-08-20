@@ -27,7 +27,7 @@ The six split documents below are mandatory and always present. All but `03-deci
 5. [05-risks.md](05-risks.md) — *Partly kept.* Risk narrative stubbed; the per-site **Blast Radius** audit retained in full
 6. [06-operational.md](06-operational.md) — *Stub.* PRR-lite answers against the retired design
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable files.
+Pure-CUE schema definitions live in [`schemas/`](contracts/) as compilable files.
 
 ## Scope
 

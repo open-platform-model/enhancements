@@ -18,7 +18,7 @@ The conformance test required at graduation is itself an observability artefact:
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-`opmodel.dev/core` — no impact expected. This entry adds no CUE schema surface of its own; `schemas/target.cue` describes the contract both Go implementations satisfy, and where it overlaps `core` (the label vocabulary, the inventory wire shape) it restates what is already there. OQ11 could change this if label stamping moves; that would be coordinated with 0010, which is already moving one label from schema to kernel.
+`opmodel.dev/core` — no impact expected. This entry adds no CUE schema surface of its own; `contracts/contracts.cue` describes the contract both Go implementations satisfy, and where it overlaps `core` (the label vocabulary, the inventory wire shape) it restates what is already there. OQ11 could change this if label stamping moves; that would be coordinated with 0010, which is already moving one label from schema to kernel.
 
 `library` — **breaking**, magnitude set by OQ3. Deleting the neutral `core.Resource` / `Identity` contract is a major bump; retaining it and adding `opm/k8s/` alongside is a minor one that still breaks nothing. Either way `library` gains an `apimachinery` dependency, which is not a source break but is an MVS floor for every embedder and belongs in `MIGRATIONS.md` next to the CUE floor. `config.yaml.semver` stays unset until OQ3 resolves, which is why OQ3 is a promotion blocker.
 

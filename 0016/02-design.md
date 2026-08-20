@@ -54,7 +54,7 @@ The command is the write-to-disk sibling of `synth.Instance`: synth overlays a g
 
 ## Schema / API Surface
 
-Full shapes in [`schemas/target.cue`](schemas/target.cue). Two surfaces:
+Full shapes in [`schemas/target.cue`](schemas/target.cue) (core delta) and [`contracts/contracts.cue`](contracts/contracts.cue) (CLI contracts). Two surfaces:
 
 **Core — one new optional field on `#Module`** (working name `initValues`; final name is OQ1):
 

@@ -13,8 +13,9 @@ affects:
   - catalog
   - cli
   - modules
+core_schema: true
 created: "2026-08-18"
-updated: "2026-08-18"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -29,6 +30,10 @@ history:
     event: "Plain-CUE compatibility contract added (D8, C1-C3) with both kernel divergences measured; OQ5 opened"
   - date: "2026-08-18"
     event: "Groundwork preceding the entry: dead *Defaults definitions removed (catalog_opm eab9b12), K8s-fidelity narrowing issue filed (catalog_opm issue 40), layering contract section 6 added to core SPEC.md (core 504e927)"
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0017/schemas, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-20"
+    event: "Schemas convention follow-up: #LayerContract rule data and blueprint narrowing idioms moved from schemas/ to contracts/ (schemas/ keeps the #Component projection delta + #Trait mirror); examples.cue (six verified assertion pins) and schemas/spec.md authored."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"

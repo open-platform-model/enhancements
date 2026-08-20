@@ -11,8 +11,9 @@ affects:
   - core
   - opm-operator
   - cli
+core_schema: true
 created: "2026-06-25"
-updated: "2026-06-30"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -22,6 +23,10 @@ implementation:
 history:
   - date: "2026-06-25"
     event: "Drafted — seeded from a deep-research sweep on CUE→CRD and CUE→Go tooling (research/findings.md)"
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0008/schemas, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-20"
+    event: "Schemas convention follow-up: examples.cue authored (worked #CRD instances moved from target.cue, 12 assertion pins, recorded must-fail cases) and schemas/spec.md drafted (7 NEW envelope definitions)."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0006"

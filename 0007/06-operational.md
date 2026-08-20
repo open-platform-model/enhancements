@@ -7,7 +7,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
 - **New error class: passthrough render failure.** Reading a `raw` glob or running `kustomize build` can fail before any apply happens (missing path, malformed YAML, kustomization error). The operator surfaces this on the release `status` conditions (a Render/Reconciling failure with the source path and Kustomize error), mirroring how render errors are already reported; the CLI surfaces it to stderr and a non-zero exit before applying anything. Failures must be atomic — a bad side manifest fails the reconcile rather than partially applying.
-- **Provenance marker.** Every passed-through object carries a `passthrough` provenance marker (`schemas/target.cue` `#PassthroughProvenance`) on the existing component-provenance slot, so `status.inventory` entries and cluster objects can be filtered to "rendered vs side-channel" for diffing and debugging.
+- **Provenance marker.** Every passed-through object carries a `passthrough` provenance marker (`contracts/contracts.cue` `#PassthroughProvenance`) on the existing component-provenance slot, so `status.inventory` entries and cluster objects can be filtered to "rendered vs side-channel" for diffing and debugging.
 - **Inventory.** Side objects appear in `status.inventory` like any rendered resource — no new inventory surface, but the inventory count/digest now includes them, which is the intended visibility.
 
 ## Semver Impact

@@ -19,13 +19,13 @@ The design is grounded in a dated, primary-source research dossier ([`research/f
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, and the Go-source-of-truth / CRD-pivot alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 
-Pure-CUE schema definitions live under [`schemas/`](schemas/) as compilable files. External evidence lives under [`research/`](research/).
+The core-schema delta lives under [`schemas/`](schemas/) as compilable files: [`target.cue`](schemas/target.cue) (the proposed `opmodel.dev/core` definitions, with a delta manifest), [`examples.cue`](schemas/examples.cue) (worked instances + assertions), and [`spec.md`](schemas/spec.md) (the core SPEC.md delta). External evidence lives under [`research/`](research/).
 
 ## Scope
 
 ### In scope
 
-- A CUE-native way to declare a Kubernetes CRD in `core/`: a `#CRD` construct bundling group/kind/names/scope, per-version served/storage flags, the OpenAPIv3-compatible spec/status schema (which `core` already mandates), subresources, printer columns, short names, and verbatim CEL rules. Sketched end-to-end in [`schemas/target.cue`](schemas/target.cue).
+- A CUE-native way to declare a Kubernetes CRD in `core/`: a `#CRD` construct bundling group/kind/names/scope, per-version served/storage flags, the OpenAPIv3-compatible spec/status schema (which `core` already mandates), subresources, printer columns, short names, and verbatim CEL rules. Sketched end-to-end in [`schemas/target.cue`](schemas/target.cue) (envelope) and [`schemas/examples.cue`](schemas/examples.cue) (worked `#CRD` instances + assertions).
 - Re-expressing the three existing CRDs — `ModuleInstance` (namespaced), `ModulePackage` (namespaced), `Platform` (cluster singleton) — as `#CRD` instances in `core/`, reusing the existing domain definitions for the schema bodies.
 - A generation pipeline that consumes the **published** `opmodel.dev/core` module and emits (a) the CRD YAML in `opm-operator/config/crd/bases/` and (b) the Go API types in `opm-operator/api/v1alpha1/`.
 - Retaining controller-gen for `runtime.Object`/deepcopy generation over the generated Go structs; the generated structs carry the `+kubebuilder:object:root=true` marker so this keeps working unchanged.

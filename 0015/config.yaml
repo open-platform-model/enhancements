@@ -12,6 +12,7 @@ affects:
   - opm-operator
   - cli
   - catalog
+core_schema: true
 created: "2026-08-05"
 updated: "2026-08-20"
 authors:
@@ -38,6 +39,10 @@ history:
       standalone break later is not). Six Open Questions carried.
   - date: "2026-08-19"
     event: "Enhancement 0019 rescoped to carry the single-build render pipeline as its Phase B (its D9: one CUE build per render; D5: registry entries import their catalog and embed the transformer map, version scalar removed; D6: the operator generates the platform package; D8: ADR-002 superseded, store.go's held slot removed; D10: matching moves into the build). This entry's concept layer (D1-D4: contract maps, classes, TransformerRegistration, packaging) is untouched, but its library and operator integration surface is written against code 0019 deletes: the match.go line anchors, the materialize-based inventory, and the store re-keying in OQ6 all need re-baselining, and OQ6's blast-radius question largely dissolves under 0019 D8 (no held platform to invalidate). 0019's OQ9/OQ10 (what regenerates the platform package when a registration is accepted, and where a conflicting registration's requirements are refused) are deferred TO this entry. Re-baseline is triggered when 0019 reaches accepted."
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0015/schemas, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-20"
+    event: "Schemas convention follow-up: examples.cue authored (backup/k8up/velero cast, 20 assertion pins) and schemas/spec.md drafted (ten sections). Fixed a latent self-reference bug in target.cue stamping fields (catalogVersion: catalogVersion resolves to itself and stamps nothing) with label aliases, the device core catalog.cue already uses."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"

@@ -20,6 +20,15 @@ area: cross-cutting
 affects:
   - cross-cutting
 
+# Does this enhancement add or change opmodel.dev/core definitions?
+# true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
+#         affects MUST include "core".
+# false → schemas/ MUST NOT exist; non-core compilable CUE goes in the
+#         optional contracts/ (task new:contracts ID=NNNN).
+# The template itself keeps schemas/ and contracts/ as copy sources and is
+# exempt from the iff-rule (0000 is skipped by `task vet`).
+core_schema: false
+
 created: "2026-05-23"
 updated: "2026-05-23"
 

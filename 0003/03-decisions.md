@@ -40,7 +40,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D3: `metadata.version` MUST equal the version of the artifact carrying it
 
-**Decision:** A module's declared `metadata.version` and the release tag it is published under are the same value. `schemas/target.cue` states this as `#PublishedModuleRef`, which unifies the derived `depVersion` (`"v" + metadata.version`) with the artifact coordinates in hand, so a disagreement is a unification conflict rather than an accepted condition. The invariant is checked in both directions: a publisher unifies the tag it is about to write, a consumer unifies the reference it fetched by.
+**Decision:** A module's declared `metadata.version` and the release tag it is published under are the same value. `contracts/contracts.cue` states this as `#PublishedModuleRef`, which unifies the derived `depVersion` (`"v" + metadata.version`) with the artifact coordinates in hand, so a disagreement is a unification conflict rather than an accepted condition. The invariant is checked in both directions: a publisher unifies the tag it is about to write, a consumer unifies the reference it fetched by.
 
 **Alternatives considered:**
 
@@ -67,7 +67,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D5: A bare import binds; no `:packageName` qualifier is required
 
-**Decision:** Under D1 the registry path leaf equals `nameSnakeCase` equals the CUE package name, so `import "path@vN"` resolves without qualification. The library helper emits the bare `importPath`. `importQualified` is retained in `schemas/target.cue` for diagnostics and for reporting a non-conforming module's actual coordinates.
+**Decision:** Under D1 the registry path leaf equals `nameSnakeCase` equals the CUE package name, so `import "path@vN"` resolves without qualification. The library helper emits the bare `importPath`. `importQualified` is retained in `contracts/contracts.cue` for diagnostics and for reporting a non-conforming module's actual coordinates.
 
 **Alternatives considered:**
 
@@ -322,7 +322,7 @@ The two carry different jobs:
 - **FQN (`@vN`) is the match key.** Major-keyed, so a module built against catalog `1.0.0` and a platform that materialized `1.2.0` match — the cross-minor pattern D18 exists to support.
 - **`metadata.version` (full SemVer) is the compatibility signal.** Because the catalog stamps it onto its primitives, a module *inherits a record of which catalog build it was authored against*. Comparing that against the version the platform actually resolved detects "this platform's catalog is older than this module requires" and errors clearly, instead of failing later with a missing FQN that names nothing useful.
 
-This closes the residual failure D18 left open. It is expressed in `schemas/target.cue` as `#CatalogCompat`, whose `satisfied` field is constrained to `true` so an out-of-date platform catalog is a unification failure rather than a value someone must remember to check. Verified: a module requiring `1.2.0` against a platform resolving `1.0.0` yields `satisfied: conflicting values false and true`, and differing majors yield `major: conflicting values 2 and 1`. The passing cross-minor and exact-match cases vet clean.
+This closes the residual failure D18 left open. It is expressed in `contracts/contracts.cue` as `#CatalogCompat`, whose `satisfied` field is constrained to `true` so an out-of-date platform catalog is a unification failure rather than a value someone must remember to check. Verified: a module requiring `1.2.0` against a platform resolving `1.0.0` yields `satisfied: conflicting values false and true`, and differing majors yield `major: conflicting values 2 and 1`. The passing cross-minor and exact-match cases vet clean.
 
 **`#Catalog` and `#Module` are therefore NOT symmetric, and the asymmetry is principled.** A catalog is a *vocabulary provider*: its consumers must be able to state a minimum version, because a module can genuinely require a primitive that only exists from some catalog build onward. A module is a leaf artifact that nothing depends on, so there is no consumer needing to express a floor against it — which is why D13 stands for `#Module` and does not extend here.
 
