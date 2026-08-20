@@ -9,6 +9,7 @@ area: library
 affects:
   - library
   - core
+  - catalog
   - opm-operator
   - cli
 core_schema: false
@@ -65,6 +66,10 @@ history:
     event: "OQ walk concluded with zero unresolved OQs: D11-D14 locked, D5 and D6 revised in place. OQ4 resolved-by-D11 (sibling access through #moduleInstance stays reachable and is discouraged by authoring contract, never narrowed structurally). OQ5 resolved-by-D12 (#TransformerContext becomes a core-computed projection of the other two inputs, the kernel fills #runtimeName alone, context.go's mirror deleted; adds a core slice to Phase B). OQ6 resolved-by-D5/D13: D5 revised so a registry entry embeds the imported catalog WHOLE and derives version and #transformers from it, with the pattern constraint binding the registry key to the catalog's modulePath and an optional generation-time version stamp unifying against the readout as a tripwire; D13 states the render module's cue.mod is derived by promotion (platform's tidied list whole, instance's unioned for module-only paths, platform wins every shared path as D7's skew surface), never by a render-time tidy, refusing when any OPM-namespace path would resolve from the module graph. OQ9 deferred-to-0015; OQ10 resolved-by-D13 on the shared-path half with the refusal site deferred-to-0015, filed there as its OQ7 carrying the walk's positions (two-CR registry contribution, provider catalogs not dependent on the base catalog or each other). OQ11 resolved by the D6 revision: publishing #Platform as a CUE module is disallowed outright, reversing the 2026-08-19 permission. OQ12 resolved-by-D8 (the context-lifetime rule's home is the superseding ADR). OQ14 resolved-by-D14: CUE's natural unfinalized ordering is the contract, today's ordering is an artifact of the strip with no compatibility promise, migration note rides library-finalize-removal."
   - date: "2026-08-20"
     event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0019/contracts, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-20"
+    event: "D15 locked by user decision: transformers read component identity from #component.#names (resourceName and dns variants) and never derive a name — generation stays upstream on #Component, reading metadata.resourceName directly is rejected as the input rather than the finalized projection, and the rule is an authoring contract like D11's. The catalogs/opm transformer sweep moves from out-of-scope into the entry as slice catalog-names-readonly (Phase A, gated on library-component-fill), absorbing the catalog half of open-platform-model/catalog_opm#44; affects grows to include catalog."
+  - date: "2026-08-20"
+    event: "D16 locked by user decision: metadata.resourceName's default becomes the instance-qualified form *(\"\\(#instance.name)-\\(name)\" & #NameType) | #NameType — Helm-style <instance>-<component>, validated so an overlong concatenation refuses the render, explicit resourceName still winning. Lands as core slice core-resourcename-default, gated on catalog-names-readonly so the flip propagates through #names reads instead of widening the computed-versus-rendered divergence; breaking by intent for rendered fleets (objects rename, replace-not-update on first reconcile), migration note rides the slice."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"

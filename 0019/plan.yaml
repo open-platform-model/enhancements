@@ -57,6 +57,30 @@ slices:
     decisions: [D1]
     status: planned
 
+  - id: catalog-names-readonly
+    repo: catalog
+    phase: implementation
+    concern: >
+      Sweep every catalogs/opm transformer to read #component.#names
+      (resourceName, dns variants) instead of a hand-rolled name formula;
+      absorbs the catalog half of open-platform-model/catalog_opm#44.
+    depends_on:
+      - library-component-fill
+    decisions: [D15]
+    status: planned
+
+  - id: core-resourcename-default
+    repo: core
+    phase: implementation
+    concern: >
+      Flip metadata.resourceName's default to the instance-qualified
+      "\(#instance.name)-\(name)" unified with #NameType; SPEC.md co-update
+      under core-schema-edit; rename migration note rides the slice.
+    depends_on:
+      - catalog-names-readonly
+    decisions: [D16]
+    status: planned
+
   # ── Interim operator stopgap (independent of both phases) ────────
   - id: opm-operator-render-serialization
     repo: opm-operator
