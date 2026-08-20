@@ -1,56 +1,49 @@
-// Target schema for enhancement 0019 (Kernel render path parity with pure CUE).
+// Behaviour contracts for enhancement 0019 (Kernel render path parity with
+// pure CUE).
 //
-// This entry changes kernel BEHAVIOUR, not primarily schema shapes, so the
-// target is stated as a contract over that behaviour: which inputs the runtime
-// owes a #transform, what may and may not be removed from a value in transit,
-// what the render build owes its own cue.mod, and what the parity oracle
-// compares. Writing it in CUE rather than prose makes the obligations
-// enumerable: a fill site can be checked against #FillObligation, a registry
-// entry against #CatalogEntry, and the harness's comparison scope against
+// This entry mostly changes kernel BEHAVIOUR rather than schema shapes, so
+// most of its target is stated as a contract over that behaviour: which
+// inputs the runtime owes a #transform, what may and may not be removed from
+// a value in transit, what the render build owes its own cue.mod, what a
+// transformer author may read, and what the parity oracle compares. Writing
+// it in CUE rather than prose makes the obligations enumerable: a fill site
+// can be checked against #FillObligation, a generated cue.mod against
+// #DependencyPromotion, and the harness's comparison scope against
 // #ParityCase.
 //
-// Self-contained by design: it does not import opmodel.dev/core, so it
-// compiles with no module dependencies. The core shapes it needs in order to
-// state a derivation are mirrored as local stubs in the first section below,
-// marked as mirrors. The stubs exist so that a decision's MECHANISM can be
-// written as CUE rather than described in a comment; where a decision says
-// "derived", this file writes the derivation.
+// Nothing here proposes an opmodel.dev/core definition. The three decisions
+// that DO change core live in ../schemas/ (the core-schema delta, gated by
+// config.yaml core_schema: true), where they are exercised by examples.cue
+// and pre-drafted for SPEC.md:
+//
+//   D5  the registry entry that carries its catalog     -> ../schemas/target.cue
+//   D12 #TransformerContext as a projection (the shape) -> ../schemas/target.cue
+//   D16 the instance-qualified resourceName default     -> ../schemas/target.cue
+//
+// Where a contract here has a counterpart there, its comment says so rather
+// than restating the shape: two copies of one derivation is the drift this
+// entry exists to remove, and it would be a poor look to introduce it in the
+// entry's own files.
+//
+// Self-contained: no imports, no module dependencies. Two core type names are
+// mirrored below as plain strings because a field's TYPE is part of what the
+// contract says; nothing here validates a value against them.
 package contracts
 
 // ---------------------------------------------------------------------------
-// Mirrors of core shapes
+// Mirrors of core type names
 // ---------------------------------------------------------------------------
 //
-// Loose stubs, not replicas: each carries only the structure a derivation
-// below has to reach through. core is the source of truth for all of them;
-// nothing here is a proposal about their content. The structs stay open (`...`)
-// so a real core value unifies with the stub instead of being rejected by
-// definition closedness.
+// core is the source of truth; these carry no constraints because no contract
+// in this file validates a value. The real constrained forms are in
+// core/src/types.cue, and ../schemas/target.cue mirrors them faithfully where
+// the delta needs them to bite.
 
-// core's #NameType (a DNS label, length-bounded), #ModulePathType and
-// #VersionType. Typed as plain strings here: this file never validates a name,
-// it only records which slot a name is read from.
-#NameType: string
-
+// core's #ModulePathType — "opmodel.dev/catalogs/opm@v2".
 #ModulePathType: string
 
+// core's #VersionType — SemVer 2.0.
 #VersionType: string
-
-// core's #TransformerMap: [#ImplFQNType]: #ComponentTransformer.
-#TransformerMap: [string]: _
-
-// core's #Catalog. Only the two identity fields and the transformer map are
-// mirrored, because those are what a registry entry derives from (D5).
-#Catalog: {
-	kind: "Catalog"
-	metadata: {
-		modulePath!: #ModulePathType
-		version!:    #VersionType
-		...
-	}
-	#transformers: #TransformerMap
-	...
-}
 
 // ---------------------------------------------------------------------------
 // The parity contract (D1)
@@ -79,8 +72,8 @@ package contracts
 // `equality` is deliberately a field rather than an assumption: structural
 // equality of the exported value is the intended meaning, but #context is
 // projected differently on the two sides today, so the harness may legitimately
-// need a narrower comparison until D12's projection slice lands. Naming it here forces the
-// choice to be stated rather than buried in the assertion helper.
+// need a narrower comparison until D12's projection slice lands. Naming it here
+// forces the choice to be stated rather than buried in the assertion helper.
 #ParityCase: {
 	name!: string
 
@@ -116,7 +109,7 @@ package contracts
 // ---------------------------------------------------------------------------
 
 // The three inputs core/src/transformer.cue declares on #transform. Its own
-// comment states the contract this schema makes enumerable: "The runtime
+// comment states the contract this file makes enumerable: "The runtime
 // supplies all three inputs concretely."
 #TransformInput: "#moduleInstance" | "#component" | "#context"
 
@@ -166,19 +159,23 @@ package contracts
 	},
 	{
 		// resolved-by-D12: core computes every field except #runtimeName as a
-		// projection of the two inputs above; the kernel's obligation narrows
-		// to filling #runtimeName alone.
+		// projection of the two inputs above (../schemas/target.cue writes the
+		// projection), so the kernel's obligation narrows to filling
+		// #runtimeName alone.
 		input:  "#context"
 		source: "runtime-owned"
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
 	},
 ]
 
-// D12: #TransformerContext stops being a kernel-assembled struct and becomes a
-// projection core computes from the other two inputs. Enumerating the field
-// split is the point: `runtimeOwned` is the whole of what the kernel may still
-// fill, so a future field added to the context is projected by default and a
-// second runtime-owned slot has to argue for itself here.
+// D12 from the RUNTIME's side: which fields stop being the kernel's job, and
+// what has to be true before the Go fills are deleted. The core-side shape of
+// the projection is ../schemas/target.cue's #TransformerContext; this is the
+// migration contract around it.
+//
+// Enumerating the split is the point: `runtimeOwned` is the whole of what the
+// kernel may still fill, so a future context field is projected by default and
+// a second runtime-owned slot has to argue for itself here.
 #ContextProjection: {
 	// Computed by core from #moduleInstance and #component.
 	projected!: [...string]
@@ -239,7 +236,7 @@ package contracts
 }
 
 // ---------------------------------------------------------------------------
-// Authoring obligations (D11, D15, D16)
+// Authoring obligations on transformer authors (D11, D15)
 // ---------------------------------------------------------------------------
 
 // CUE resolves references lexically, against the source where the reference is
@@ -264,10 +261,11 @@ package contracts
 // D15: a transformer's relationship to component identity is read-only, and
 // the rule is scoped to the component's PRIMARY object. The object name comes
 // from #component.#names.resourceName and the DNS variants from
-// #component.#names.dns.*. Generation stays upstream on #Component. Like
-// sibling access (D11), this is an authoring contract enforced by catalog
-// review and by the harness's fixtures, never structurally prevented: CUE
-// cannot forbid string interpolation.
+// #component.#names.dns.*. Generation stays upstream on #Component (the
+// cascade whose default D16 changes; see ../schemas/target.cue). Like sibling
+// access (D11), this is an authoring contract enforced by catalog review and
+// by the harness's fixtures, never structurally prevented: CUE cannot forbid
+// string interpolation.
 #NamesAccess: {
 	scope!:      "primary-object"
 	source!:     "#component.#names"
@@ -338,6 +336,9 @@ package contracts
 // deleted rather than reconciled, because core's metadata.resourceName
 // subsumes it and (after D16) carries the DNS variants the trait never did.
 // Alpha stance: removed outright, no deprecation cycle.
+//
+// This is a catalogs/opm change, which is why it is here and not in the core
+// delta: nothing in core moves for it.
 #DeletedNameAuthority: {
 	definition:       "#ResourceNameTrait"
 	file:             "traits/v1beta1/resource_name.cue"
@@ -345,41 +346,11 @@ package contracts
 	replacedBy:       "#Component.metadata.resourceName"
 	deprecationCycle: false
 	fixturesMigrated: ["istio-cni-node", "istiod", "database"]
-}
 
-// D16: the resourceName cascade's default is the instance-qualified name. The
-// default branch is unified with #NameType so an overlong concatenation
-// refuses the render, and an explicit resourceName still wins. #names.dns
-// inherits the qualification by construction.
-#ResourceNameDefault: {
-	form!:      "<instance>-<component>"
-	validated!: "#NameType"
-	override!:  "metadata.resourceName"
-
-	// The exact spelling, in a raw string so the interpolation is data rather
-	// than evaluated here. The unvalidated spelling (the same disjunction
-	// without `& #NameType` on the default branch) was measured shipping a
-	// 69-rune name clean on cue v0.17.1, so the unification is load-bearing
-	// rather than decorative.
-	spelling: #"*("\(#instance.name)-\(name)" & #NameType) | #NameType"#
-
-	// The measured caveat the slice must close: on cue v0.17.1 the refusal
-	// surfaces as a bare `incomplete value` naming #NameType's constraints,
-	// because the failed default branch falls back to the non-concrete arm.
-	// The slice adds a hidden assertion (in the style of
-	// _matchLabelsAreDerived) that names the offending string.
-	assertionRequired: true
-
-	// The ripple is by construction, not by a second edit: #names.dns.* reads
-	// resourceName, so service DNS becomes
-	// <instance>-<component>.<namespace>.svc.<clusterDomain>.
-	dnsFollows: true
-
-	// Ordering is part of the decision: flipping first makes the computed name
-	// agree with what every hand-rolled catalog formula already renders, which
-	// is what makes the D15 sweep a byte-identical refactor instead of a
-	// double fleet rename.
-	landsBefore: "catalog-names-readonly"
+	// The sweep is byte-identity gated, and the gate only holds if the core
+	// default flips first: D16 makes the value #names computes equal to what
+	// every hand-rolled formula already renders.
+	gatedOn: ["library-component-fill", "core-resourcename-default"]
 }
 
 // ---------------------------------------------------------------------------
@@ -389,7 +360,7 @@ package contracts
 // D9: the render step is one CUE build per render. The kernel generates the
 // render module, and what that module's cue.mod owes is the D13 invariant:
 // the complete tidied dependency set, or no render at all. Experiment 02
-// measured that authority fails by OMISSION, never by override — a path the
+// measured that authority fails by OMISSION, never by override: a path the
 // render module does not list is answered by the module graph's maximum
 // instead of by the platform.
 #RenderBuild: {
@@ -398,7 +369,7 @@ package contracts
 	buildsPerRender:   1
 	sharesBuiltValues: false
 
-	// D8 stated as the two fields that make it checkable rather than as a
+	// D8 stated as the fields that make it checkable rather than as a
 	// principle. `contextOutlivesRender: false` is the rule ADR-002 lost:
 	// holding a cue.Context is what retains 348 MB per render, and filling a
 	// shared built value is a write to its evaluation state, which is the race
@@ -422,11 +393,10 @@ package contracts
 	reads: ["rendered", "diagnostics"]
 
 	// resolved-by-D13, stated as obligations on the generated cue.mod.
-	// The list is DERIVED by promotion — the platform module's list whole,
-	// the instance module's unioned in for module-only paths, the platform
-	// winning every shared path — never computed by a render-time tidy.
-	// `refusesOnIncomplete` is fixed: no caller may configure it away —
-	// a render module missing a path is a kernel defect, not a policy.
+	// The list is DERIVED by promotion (see #DependencyPromotion), never
+	// computed by a render-time tidy. `refusesOnIncomplete` is fixed: no
+	// caller may configure it away, because a render module missing a path is
+	// a kernel defect rather than a policy.
 	dependencyList!:     "complete-tidied-set"
 	derivedBy:           "promotion"
 	refusesOnIncomplete: true
@@ -440,9 +410,9 @@ package contracts
 	ordering:     #OutputOrdering
 }
 
-// D13: the promotion rule, spelled out as the four facts a reviewer has to
-// check the implementation against. `renderTimeTidy: false` is the negative
-// half and the one most likely to be reintroduced by accident: tidy WRITES a
+// D13: the promotion rule, spelled out as the facts a reviewer has to check
+// the implementation against. `renderTimeTidy: false` is the negative half and
+// the one most likely to be reintroduced by accident: tidy WRITES a
 // resolution, and the render build's job is to inherit one that was already
 // written at platform-package generation (D6, cold path).
 #DependencyPromotion: {
@@ -458,9 +428,14 @@ package contracts
 
 	// Defense in depth, not the mechanism: D5's derived fields turn wrong
 	// bytes into a build conflict naming the registry entry even if promotion
-	// is ever defective. Rejected as the SOLE mechanism, because they detect
-	// rather than prevent and cover only stamped OPM artifacts.
-	tripwires: ["stamped-vs-derived version unification", "registry key bound to #catalog.metadata.modulePath"]
+	// is ever defective. Both live in ../schemas/target.cue as core shape;
+	// named here because the render path is what they protect. Rejected as
+	// the SOLE mechanism, because they detect rather than prevent and cover
+	// only stamped OPM artifacts.
+	tripwires: [
+		"#CatalogEntry.version: stamped expectation unified with the derived readout",
+		"#Platform.#registry: key bound into #catalog.metadata.modulePath",
+	]
 }
 
 // D14: the byte ordering the collapse emits is the contract. Today's ordering
@@ -481,54 +456,6 @@ package contracts
 }
 
 // ---------------------------------------------------------------------------
-// The registry shape that makes the render build resolvable (D5)
-// ---------------------------------------------------------------------------
-
-// D5 (revised 2026-08-20): a registry entry carries the catalog by import,
-// embedded WHOLE, and derives everything else from it. Inexpressible as an
-// extension of core's #Subscription (closed around `enable` + `version!`),
-// so this is the replacement shape. The catalog build is named where every
-// other CUE dependency is named: the platform module's own cue.mod.
-#CatalogEntry: {
-	enable: bool | *true
-
-	// The imported catalog, whole. Free to carry: unevaluated definition
-	// payloads cost nothing (measured by experiment 07).
-	#catalog: #Catalog
-
-	// Derived, never authored: a readout of the release-stamped identity.
-	// The operator MAY stamp the expected version at platform-generation time;
-	// the stamp unifies with this readout, so wrong bytes are a build conflict
-	// naming this entry (D13's tripwire) rather than a second answer to the
-	// question the import already answers.
-	version: #catalog.metadata.version
-
-	// The catalog's transformer map, derived. Per-transformer selection is
-	// deliberately inexpressible here: that concern belongs to enhancement
-	// 0015 (provider classes, TransformerRegistration).
-	#transformers: #TransformerMap & #catalog.#transformers
-}
-
-// The pattern constraint is the half that makes key-versus-import drift
-// impossible rather than merely detectable: the key IS unified into the
-// embedded catalog's modulePath, so an entry keyed at one path carrying a
-// catalog published at another is a conflict at build time.
-#Registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}
-
-// What replaces the kernel-filled #composedTransformers: a fold over enabled
-// entries, computable in the schema itself once the maps are present. Folds
-// COPY (comprehension), never unify into one catalog's member map — the D25
-// provenance stamp refuses foreign members (measured by experiment 05).
-#ComposedTransformers: {
-	#registry: #Registry
-	out: {
-		for _, entry in #registry if entry.enable {
-			for tfqn, tf in entry.#transformers {(tfqn): tf}
-		}
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Where the platform package comes from (D6)
 // ---------------------------------------------------------------------------
 
@@ -538,6 +465,9 @@ package contracts
 // generation is what gives the build a real module. It is also the step where
 // a runtime-discovered transformer set is folded in (enhancement 0015 D3's
 // TransformerRegistration).
+//
+// No core shape moves for this: what the generator EMITS is the core delta in
+// ../schemas/target.cue; this is the contract on the generator.
 #PlatformPackage: {
 	crCarries:   "catalog coordinate (typed fields), not CUE text"
 	generatedBy: "opm-operator, on the backend"
@@ -563,9 +493,9 @@ package contracts
 // expose it on their own surface without reimplementing the comparison.
 #SkewPolicy: "warn" | "refuse"
 
-// D7: what is configurable, and what is not. The three `false`/fixed fields
-// are the decision's substance: each names a case that LOOKS like it belongs
-// under the policy and does not.
+// D7: what is configurable, and what is not. The three fixed fields are the
+// decision's substance: each names a case that LOOKS like it belongs under the
+// policy and does not.
 #SkewContract: {
 	detectedBy: "kernel"
 	response!:  #SkewPolicy
@@ -588,7 +518,9 @@ package contracts
 }
 
 // One detected skew, as the caller receives it. `relation` is what the kernel
-// computes; only "newer" reaches the policy.
+// computes; only "newer" reaches the policy. The two versions are read off the
+// two committed resolutions D13 promotes from, and `entry` names the registry
+// entry whose path they disagree on.
 #SkewDiagnostic: {
 	entry!:           #ModulePathType
 	moduleRequires!:  #VersionType
@@ -603,6 +535,10 @@ package contracts
 // D10: matching is expressed in CUE inside the render build, per experiment
 // 05's measured glue shape. Semantics are unchanged; the slice's gate is
 // reproducing the kernel's exact pair set against a vendored kernel record.
+//
+// The buckets it reads are the platform's reverse index, which D5 turns from a
+// kernel-filled slot into a derivation (../schemas/target.cue records the open
+// choice between deriving it on #Platform and computing it in this glue).
 #MatchingInBuild: {
 	location: "render-build"
 	rungs: ["reverse-index (required ∪ optional)", "always-unify", "predicate"]
@@ -646,12 +582,8 @@ package contracts
 	losesOnMove: "oerrors.UnifyError's verbatim CUE cause, not recoverable in-build without a second diagnostic evaluation"
 }
 
-// D10: matching inside the build reports verdicts as DATA. The shape below is
-// the contract experiment 05's glue measured: a caller (the kernel, via
-// LookupPath) reads these beside a failing fail-closed gate. Two boundaries
-// are part of the contract: an unstated trait posture refuses as a build
-// error rather than a diagnostics row, and an incomplete pair output is
-// caught by per-pair concreteness validation, not by these fields.
+// The verdict shape experiment 05's glue measured: a caller (the kernel, via
+// LookupPath) reads these beside a failing fail-closed gate.
 #MatchDiagnostics: {
 	pairs: [...{component!: string, transformer!: string}]
 	missing: [...{component!: string, kind!: "resource" | "trait", fqn!: string}]
