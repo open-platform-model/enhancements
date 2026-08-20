@@ -11,9 +11,9 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
   - OQ4 (sibling access through `#moduleInstance`) resolves — it gates the Phase A slice that fills the slot.
   - OQ5 (`#TransformerContext` as projection) resolves, or is explicitly deferred with a successor named. It does not gate the parity work, so deferral is a legitimate outcome.
   - OQ6 (what the generated render module owes its own `cue.mod`) resolves **at the invariant level**: the kernel writes the complete tidied dependency set or refuses to render, and an internal check asserts no OPM-namespace path resolves from the module graph rather than the roots. The tidy-mechanism choice stays inside the Phase B slice.
-  - OQ7's residue resolves: the default response per caller, where the comparison reads the module's requirement from, and whether older-than-platform gets its own signal.
+  - OQ7's residue resolves: settled by D18 (default warn-and-render, configurable warn/refuse only; comparison between the two committed resolutions; older-than-platform as diagnostics data).
   - OQ9 and OQ10 defer to enhancement 0015, named.
-  - OQ11 defers to a named future platform-publishing entry.
+  - OQ11 dissolves via D6's 2026-08-20 revision: publishing a #Platform is disallowed outright, so no successor entry is owed.
   - OQ14 resolves: which `env` ordering is the contract, recorded with its migration note — and re-homed to Phase A, since the reordering comes from removing the strip.
 - The parity oracle's equality is stated precisely enough to implement: which fixtures it covers, how `#context` is projected on the CUE side, and what "equal" means for a rendered value (structural equality of the exported value, or something narrower).
 - `schemas/` (the core-schema delta, `core_schema: true`) compiles via `cue vet ./...`, and `examples.cue` exercises every NEW or CHANGED definition with concrete instances whose derived values are pinned by hidden assertions: D5's entry derivations and key binding, D12's context projection, D16's qualified default and its DNS ripple. `spec.md` drafts the `core/SPEC.md` delta for all three core slices.

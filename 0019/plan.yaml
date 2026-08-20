@@ -49,12 +49,12 @@ slices:
     phase: implementation
     concern: >
       Remove FinalizeValue from the render path, then from the public kernel
-      surface (MAJOR, MIGRATIONS.md entry), shipping the OQ14 env-ordering
+      surface (MAJOR, MIGRATIONS.md entry), shipping the D14 env-ordering
       migration note with it.
     depends_on:
       - library-component-fill
       - library-moduleinstance-fill
-    decisions: [D1]
+    decisions: [D1, D14]
     status: planned
 
   - id: core-resourcename-default
@@ -171,7 +171,7 @@ slices:
       diagnostics, never library-emitted output.
     depends_on:
       - library-render-build
-    decisions: [D7]
+    decisions: [D7, D18]
     status: planned
 
   - id: library-adr002-supersession
@@ -217,14 +217,31 @@ slices:
     repo: cli
     phase: implementation
     concern: >
-      Expose D7's skew policy on the render command surface; cli and the
-      operator may default opposite ways over one kernel implementation.
+      Expose D7's skew policy on the instance/module build command surface
+      (kernel default per D18: warn-and-render; refuse opt-in).
     depends_on:
       - library-skew-policy
-    decisions: [D7]
+    decisions: [D7, D18]
+    status: planned
+
+  - id: opm-operator-skew-surface
+    repo: opm-operator
+    phase: implementation
+    concern: >
+      Expose D7's skew policy on the operator surface (Platform CR field or
+      controller option); refuse is the admission-time strictness opt-in
+      over the kernel's warn-and-render default (D18).
+    depends_on:
+      - library-skew-policy
+    decisions: [D7, D18]
     status: planned
 
 unsliced:
   D4: >
     The slicing decision itself — implemented by this plan's own ordering
     and dependency graph rather than by any single slice.
+  D11: >
+    An authoring contract, never structurally enforced: sibling access
+    through #moduleInstance stays reachable and is discouraged by catalog
+    review; the catalog-names-readonly sweep keeps the first-party
+    transformers exemplary, and no code change carries it.

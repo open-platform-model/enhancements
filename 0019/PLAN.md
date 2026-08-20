@@ -27,7 +27,8 @@ graph LR
     S_library-adr002-supersession["library-adr002-supersession (library)\nADR-002 gains its superseded-by header; a new ADR…"]:::planned
     S_opm-operator-store-removal["opm-operator-store-removal (opm-operator)\nRemove internal/platform/store.go's single held p…"]:::planned
     S_opm-operator-platform-generation["opm-operator-platform-generation (opm-operator)\nThe operator generates the #Platform CUE package …"]:::planned
-    S_cli-skew-surface["cli-skew-surface (cli)\nExpose D7's skew policy on the render command sur…"]:::planned
+    S_cli-skew-surface["cli-skew-surface (cli)\nExpose D7's skew policy on the instance/module bu…"]:::planned
+    S_opm-operator-skew-surface["opm-operator-skew-surface (opm-operator)\nExpose D7's skew policy on the operator surface (…"]:::planned
   end
 
   S_library-parity-harness -->|depends_on| S_library-component-fill
@@ -49,6 +50,7 @@ graph LR
   S_opm-operator-render-serialization -->|depends_on| S_opm-operator-store-removal
   S_core-registry-import -->|depends_on| S_opm-operator-platform-generation
   S_library-skew-policy -->|depends_on| S_cli-skew-surface
+  S_library-skew-policy -->|depends_on| S_opm-operator-skew-surface
 ```
 
 | ID | Phase | Repo | Status | Depends on | Concern |
@@ -56,7 +58,7 @@ graph LR
 | library-parity-harness | implementation | library | planned | - | Differential parity harness comparing kernel render output against pure-CUE unification of the same three inputs; lands first, its first failure on the definition strip is D1's evidence.   |
 | library-component-fill | implementation | library | planned | library-parity-harness | Fill #transform.#component from the unstripped value and repair TestFlow_WebApp_OnOpmPlatform's severed instance construction in the same slice; sweep cli and opm-operator for the same construction shape.   |
 | library-moduleinstance-fill | implementation | library | planned | library-component-fill | Fill #transform.#moduleInstance for the first time, with plain-read and self-referential tests; closes open-platform-model/library#65.   |
-| library-finalize-removal | implementation | library | planned | library-component-fill, library-moduleinstance-fill | Remove FinalizeValue from the render path, then from the public kernel surface (MAJOR, MIGRATIONS.md entry), shipping the OQ14 env-ordering migration note with it.   |
+| library-finalize-removal | implementation | library | planned | library-component-fill, library-moduleinstance-fill | Remove FinalizeValue from the render path, then from the public kernel surface (MAJOR, MIGRATIONS.md entry), shipping the D14 env-ordering migration note with it.   |
 | core-resourcename-default | implementation | core | planned | - | Flip metadata.resourceName's default to the instance-qualified form with a hidden assertion for a legible overlong refusal; SPEC.md co-update under core-schema-edit. Output-neutral for rendered fleets; lands before the sweep.   |
 | catalog-names-readonly | implementation | catalog | planned | library-component-fill, core-resourcename-default | Sweep all 50 transformers to read #component.#names for the primary object name under D15's carve-outs; delete #ResourceNameTrait and #WorkloadName; bump the core dep. Gate: byte-identical goldens. Absorbs catalog_opm#44 and core#49.   |
 | modules-fleet-rename | implementation | modules | planned | catalog-names-readonly | Revalidate the v2 staging fleet under instance-qualified naming: set explicit metadata.resourceName where a name is an external contract, drop the deleted trait, record residual renames. Alpha stance: no deprecation cycle.   |
@@ -69,4 +71,5 @@ graph LR
 | library-adr002-supersession | implementation | library | planned | library-render-build, library-match-in-build | ADR-002 gains its superseded-by header; a new ADR records the shares-nothing rule and the cue.Context lifetime rule; opm/materialize shrinks or is deleted, its composed map replaced by the platform's own imports.   |
 | opm-operator-store-removal | implementation | opm-operator | planned | library-adr002-supersession, opm-operator-render-serialization | Remove internal/platform/store.go's single held platform slot and the render serialisation stopgap; renders become self-contained shares-nothing units sized by memory.   |
 | opm-operator-platform-generation | implementation | opm-operator | planned | core-registry-import | The operator generates the #Platform CUE package its CR describes (typed fields stay on the CR), with a named extension point where enhancement 0015's effective transformer set folds in.   |
-| cli-skew-surface | implementation | cli | planned | library-skew-policy | Expose D7's skew policy on the render command surface; cli and the operator may default opposite ways over one kernel implementation.   |
+| cli-skew-surface | implementation | cli | planned | library-skew-policy | Expose D7's skew policy on the instance/module build command surface (kernel default per D18: warn-and-render; refuse opt-in).   |
+| opm-operator-skew-surface | implementation | opm-operator | planned | library-skew-policy | Expose D7's skew policy on the operator surface (Platform CR field or controller option); refuse is the admission-time strictness opt-in over the kernel's warn-and-render default (D18).   |
