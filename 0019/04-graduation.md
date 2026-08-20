@@ -21,7 +21,7 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
 - `semver` in `config.yaml` is set. Current expectation is `major`, twice over: `FinalizeValue` leaves the public kernel surface (Phase A), and `#Subscription`'s `version!` leaves `core`'s `#Platform` (Phase B, D5).
 - `plan.yaml` exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, each verified to exist.
-- A compaction pass has collapsed the resolved-OQ prose (the OQ block is currently the entry's heaviest reading; the ratified questions fold to their D-references before the flip).
+- A compaction pass collapses the resolved-OQ prose at the flip: `enhancement-compaction` gates COLLAPSE-OQ to `accepted`, so the collapse lands as the first commit after the status flips, folding the ratified questions to their D-references.
 
 ## accepted → implemented
 

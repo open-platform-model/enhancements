@@ -1,7 +1,7 @@
 id: "0019"
 slug: kernel-cue-parity
 title: Kernel render path parity with pure CUE
-status: draft
+status: accepted
 # Aggregate design impact (04-graduation.md names both breaks): FinalizeValue
 # leaves the kernel surface in Phase A; version! leaves #Subscription in Phase B.
 semver: major
@@ -88,6 +88,9 @@ history:
     event: "Documentation synchronisation pass, closing the last pre-promotion gap: 04-graduation.md's Phase A gates now cover the three naming slices (D16 with the scoped legibility assertion, D15 with the byte-identity and trait-deletion gates, the fleet revalidation) and its Phase B gates make D12 unconditional and add D17's absence assertion and D18's default; 06-operational.md's rollback section stops claiming Phase A publishes nothing (the naming pair rolls back by release pin, output-neutral by construction, with the fleet renames the one state-bearing change), its semver section replaces the stale no-core-change claim with the four core changes, and the operator stopgap is respecified to the measured live hazard, one kernel.Kernel shared across three controllers' goroutines with no lock, rather than concurrent reconciles that do not occur at the default single worker. ADR-003's federation-rationale retirement and the security-audit skill rewrite (FinalizeValue is documented there as the constraint-bypass guard; unification is the stronger guarantee) join their slices; 05-risks.md gains four entries (catalog-kernel release coupling, the D16 assertion SKETCH, the shared-Kernel race, the security claim) and sheds its resolved-OQ conditionals; core-context-projection gains its staging dependencies."
   - date: "2026-08-20"
     event: "The pure-CUE control relocated into the entry as experiment 00-purecue-definitions, from library/docs/design/repro-purecue-definitions/ where it had lived untracked; earlier history events cite the old path, true when written. It is D1's foundational evidence and fits the experiments convention exactly (self-contained scratch.example module, pinned published core v2.0.0-alpha.4, Status: Concluded); re-verified on restore: cue vet -c exits 0 and the eval output matches the recorded result byte for byte. All mutable citation sites repointed."
+  - date: "2026-08-20"
+    event: "Accepted"
+    semver: major
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"
