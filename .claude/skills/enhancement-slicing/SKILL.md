@@ -25,7 +25,7 @@ A slice plan is the structured layer between a design (the enhancement, defined 
 It is **not**:
 
 - **A design document.** A slice's `concern` is one line. Full detail — the actual integration points, the code paths touched, the tests required — lives in that slice's own OpenSpec change in the target repo, exactly as it does today. `plan.yaml` is a table of contents for execution, not the execution itself.
-- **A replacement for `06-operational.md ## Cross-Repo Coordination`.** That section keeps the narrative rationale — *why* this order, what a hand-off produces for the next slice to consume. `plan.yaml` is the structured backing data the narrative refers to by slice id, the same relationship `03-decisions.md`'s prose already has to `schemas/target.cue`.
+- **A replacement for `06-operational.md ## Cross-Repo Coordination`.** That section keeps the narrative rationale — *why* this order, what a hand-off produces for the next slice to consume. `plan.yaml` is the structured backing data the narrative refers to by slice id, the same relationship `03-decisions.md`'s prose already has to the compilable CUE in `schemas/` or `contracts/`.
 - **Mandatory.** Most enhancements ship as one slice in one repo and never need this file. Scaffold it only once `config.yaml.affects` spans more than one repo, or a single repo's work is large enough to need an explicit landing order.
 
 ## The two phases

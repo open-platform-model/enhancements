@@ -1,5 +1,26 @@
 // Target schema for enhancement 0009 — Operational Primitives.
 //
+// Delta manifest (vs opmodel.dev/core@v2, classified against core/src/*.cue):
+//
+//   #Name                      placeholder — stand-in for core's #NameType (src/types.cue); not part of the delta
+//   #FQN                       placeholder — stand-in for core's #FQNType (src/types.cue); not part of the delta
+//   #OpKind                    NEW — kind-discriminator string type for #Op (dotted lowercase, e.g. "cue.eval")
+//   #Op                        NEW — the controlled operational primitive; slim dispatchable leaf carrying the @op(...) dispatch attribute (D5)
+//   #ExecOp                    NEW — well-known "exec" Op (initial vocabulary, D2); ships catalog-sourced per D6, restated here to show @op placement
+//   #HttpOp                    NEW — well-known "http" Op, full CRUD, raw response (D8); catalog-sourced per D6
+//   #WaitOp                    NEW — well-known "wait" Op (poll a condition); catalog-sourced per D6
+//   #CueOp                     NEW — well-known "cue.eval" Op (pure CUE evaluation); catalog-sourced per D6
+//   #Step                      NEW — one flow step: (#Op | #Action) plus explicit dependsOn ordering (OQ2)
+//   #StepMap                   NEW — name-keyed map of #Step
+//   #Action                    NEW — FQN-identified composition over Ops and nested Actions
+//   #ActionMap                 NEW — FQN-keyed map of #Action
+//   #Phase                     NEW — fixed nine-phase lifecycle vocabulary (D7)
+//   #Lifecycle                 NEW — binds ordered steps to state-transition phases
+//   #Workflow                  NEW — on-demand, explicitly invoked flow (run-state model OQ3)
+//   #WorkflowMap               NEW — name-keyed map of #Workflow
+//   #ModuleOperationalSketch   sketch — CHANGED vs core@v2 #Module (src/module.cue): attachment of lifecycle/workflows, placement OQ4-gated
+//   #CatalogOperationalSketch  sketch — CHANGED vs core@v2 #Catalog (src/catalog.cue): additive #ops / #actions sibling maps beside #transformers (D6)
+//
 // Sketch of the four operational constructs the enhancement introduces into
 // the core schema (opmodel.dev/core@v1): #Op, #Action, #Lifecycle, #Workflow,
 // plus the @op(...) dispatch-attribute convention the library planner reads.

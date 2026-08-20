@@ -11,7 +11,7 @@ These are design acceptance criteria, not implementation milestones. Implementat
 - OQ9 (relationship to 0008) and OQ10 (relationship to 0009) carry an agreed position recorded in both entries, not only in this one. A unilateral answer here is not a resolution.
 - OQ11 (label stamping) is resolved or deferred to 0010 with 0010 updated to say so.
 - `03-decisions.md` records every resolution in the four-field format, with `Source` naming a dated user decision, an experiment outcome, or a file path.
-- `schemas/target.cue` compiles (`cue vet ./...` from `schemas/`) and captures the deletion policy, the verdict enums, the inventory wire shape, the label vocabulary, and the ownerRef eligibility predicate end-to-end, with every `// OQN:` marker either removed or pointing at a still-open question that graduation explicitly allows.
+- `contracts/contracts.cue` compiles (`cue vet ./...` from `schemas/`) and captures the deletion policy, the verdict enums, the inventory wire shape, the label vocabulary, and the ownerRef eligibility predicate end-to-end, with every `// OQN:` marker either removed or pointing at a still-open question that graduation explicitly allows.
 - `config.yaml.semver` is set. It will be `major` if OQ3 lands as a deletion of the neutral contract.
 - `config.yaml.affects` is final and lists every repo shipping code.
 - The Cross-References table in `README.md` lists every file path implementation will touch, and each exists today.

@@ -32,7 +32,7 @@ exists only when implementation.status reaches `complete`).
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 
-Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the request shapes, the ordered gate chain, the render-bearing / apply-bearing / cluster-side field partition (enforced by the schema, so a policy that copied a cluster-side field fails `cue vet`), the exported document set, the report, and the adoption property.
+Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue) — the request shapes, the ordered gate chain, the render-bearing / apply-bearing / cluster-side field partition (enforced by the schema, so a policy that copied a cluster-side field fails `cue vet`), the exported document set, the report, and the adoption property.
 
 ## Scope
 

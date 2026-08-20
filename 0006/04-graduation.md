@@ -6,7 +6,7 @@ The design is frozen and ready for slicing when:
 
 - Design Goals and Non-Goals in `02-design.md` are final and reviewed.
 - D1–D17 in `03-decisions.md` are locked, and the load-bearing Open Questions are resolved or explicitly deferred. **OQ1** (platform source) is resolved by D11/D12/D17; **OQ2** (dependency topology) is resolved by D13. Still required before `accepted`: **OQ5** (one wave or two) and **OQ10** (`spec.values` capture / render parity) — OQ10 must be resolved by research or explicitly deferred into the kernel-adoption wave with a recorded reason, because it is load-bearing for the zero-downtime no-op claim. OQ3/OQ4/OQ11–OQ14 (and OQ6–OQ9) may resolve in their slices but each must carry a `Status:` decision.
-- `schemas/target.cue` compiles (`cue vet ./...` from `schemas/`) and captures the `spec.owner` field and the CLI status subset end-to-end.
+- `contracts/contracts.cue` compiles (`cue vet ./...` from `schemas/`) and captures the `spec.owner` field and the CLI status subset end-to-end.
 - `config.yaml.affects` is final (`cli`, `opm-operator`, `library`).
 - `config.yaml.semver` is set. Expected `none` for `opmodel.dev/core` (this enhancement touches no `core` schema); the operator's `ModuleInstance` CRD gains an additive `spec.owner` field within `v1alpha1`.
 - `related` (`0001`, `0002`, `0003`) is final and resolves.

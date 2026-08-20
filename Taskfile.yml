@@ -16,6 +16,13 @@ vars:
   # dir: enhancements, which keeps the default working).
   WORKSPACE_ROOT: '{{.WORKSPACE_ROOT | default ".."}}'
 
+env:
+  # Canonical developer registry mapping (workspace Registry Policy rule 1)
+  # so NNNN/schemas/ modules may import opmodel.dev/core@vN — reads resolve
+  # from GHCR anonymously and cache locally. An ambient CUE_REGISTRY wins.
+  CUE_REGISTRY:
+    sh: 'echo "${CUE_REGISTRY:-opmodel.dev=ghcr.io/open-platform-model,testing.opmodel.dev=ghcr.io/open-platform-model,registry.cue.works}"'
+
 tasks:
   default:
     desc: Show the most useful commands
@@ -28,7 +35,8 @@ tasks:
           task vet                               — hard gate (CUE schema + cross-refs + placeholders)
           task vet:one ID=0001                   — same, single enhancement
           task check [ID=0001]                   — soft gate (scope section, decisions, impl block, …)
-          task new SLUG=foo TITLE="Foo Bar"      — scaffold a new enhancement from 0000/
+          task new SLUG=foo TITLE="Foo Bar"      — scaffold a new enhancement from 0000/ (CORE_SCHEMA=true when it changes core schemas)
+          task new:contracts ID=0001             — scaffold contracts/ (non-core compilable CUE) inside an enhancement
           task new:experiment ID=0001 NAME=foo   — scaffold an experiment inside an enhancement
           task experiments:list ID=0001          — list experiments for one enhancement (parsed Status)
           task questions:list ID=0001            — list Open Questions for one enhancement (grouped, classified)
@@ -187,7 +195,7 @@ tasks:
         # Scanned surfaces, all of them machine-written or convention-fixed:
         #   - `Status: resolved-by-D##` on Open Question bullets
         #   - `**Supersedes:** / **Amends:** / **Resolves:**` relation fields
-        #   - `// OQ##` markers in schemas/*.cue
+        #   - `// OQ##` markers in schemas/*.cue and contracts/*.cue
         #
         # NOT scanned: free-form decision prose and `history` events. Both
         # carry cross-entry citations in the house style ("enhancement 0006
@@ -218,8 +226,11 @@ tasks:
                         fi
                       } | sort -u )
 
-          if [ -d "$dir/schemas" ]; then
-            markers=$( { find "$dir/schemas" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
+          local scan_dirs=()
+          [ -d "$dir/schemas" ]   && scan_dirs+=("$dir/schemas")
+          [ -d "$dir/contracts" ] && scan_dirs+=("$dir/contracts")
+          if [ ${#scan_dirs[@]} -gt 0 ]; then
+            markers=$( { find "${scan_dirs[@]}" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
                        | { if [ -n "$id_alt" ]; then grep -vE "\b(${id_alt})\b" || true; else cat; fi; } \
                        | { grep -oE '\bOQ[0-9]+\b' || true; } )
           fi
@@ -423,10 +434,11 @@ tasks:
           local dir_id; dir_id=$(basename "$dir")
           local errors=""
 
-          local id status area
+          local id status area core_schema
           id=$(yq -r '.id' "$cfg")
           status=$(yq -r '.status' "$cfg")
           area=$(yq -r '.area' "$cfg")
+          core_schema=$(yq -r '.core_schema // "false"' "$cfg")
 
           # 1. id matches directory name (no slug suffix now).
           [ "$id" = "$dir_id" ] || errors="${errors}\n    id '$id' != directory name '$dir_id'"
@@ -465,11 +477,55 @@ tasks:
             errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
           fi
 
-          # 6. schemas/ directory compiles standalone.
-          if [ -d "$dir/schemas" ]; then
-            local schemas_out
-            if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
-              errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+          # 6. schemas/ exists iff core_schema, compiles, and carries the
+          #    status-gated files. schemas/ is strictly the core-schema
+          #    delta (target.cue + examples.cue + spec.md); the promote-time
+          #    gate is the status flip itself — promotion lands in the same
+          #    PR vet blocks. Grandfather: the spec.md/examples requirement
+          #    fires only at `accepted`; implemented/superseded predate the
+          #    convention (their spec landed in core/SPEC.md), and a draft
+          #    needs only a compiling target.cue.
+          if [ "$core_schema" = "true" ]; then
+            case " $(yq -r '.affects | join(" ")' "$cfg") " in
+              *" core "*) : ;;
+              *) errors="${errors}\n    core_schema is true but affects[] does not contain 'core'" ;;
+            esac
+            if [ ! -d "$dir/schemas" ]; then
+              errors="${errors}\n    core_schema is true but schemas/ is missing"
+            else
+              [ -f "$dir/schemas/target.cue" ] \
+                || errors="${errors}\n    schemas/ exists but schemas/target.cue is missing"
+              local schemas_out
+              if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
+                errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+              fi
+              if [ "$status" = "accepted" ]; then
+                [ -f "$dir/schemas/spec.md" ] \
+                  || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
+                local companions
+                companions=$(find "$dir/schemas" -maxdepth 1 -name '*.cue' ! -name 'target.cue' 2>/dev/null | head -1)
+                [ -n "$companions" ] \
+                  || errors="${errors}\n    status is accepted but schemas/ has no companion example instances (convention: examples.cue)"
+              fi
+            fi
+          else
+            [ ! -d "$dir/schemas" ] \
+              || errors="${errors}\n    core_schema is false but schemas/ exists — set core_schema: true or remove the directory (non-core CUE goes in contracts/)"
+          fi
+
+          # 6b. contracts/ (optional, never required) — non-core compilable
+          #     CUE: decision procedures, kernel-behaviour contracts,
+          #     taxonomies. When present it must be non-empty and compile
+          #     (cue vet on an empty module errors opaquely, hence the
+          #     explicit emptiness check).
+          if [ -d "$dir/contracts" ]; then
+            if [ -z "$(find "$dir/contracts" -name '*.cue' -not -path '*/cue.mod/*' 2>/dev/null | head -1)" ]; then
+              errors="${errors}\n    contracts/ exists but contains no .cue files"
+            else
+              local contracts_out
+              if ! contracts_out=$(cd "$dir/contracts" && cue vet ./... 2>&1); then
+                errors="${errors}\n    contracts/ failed cue vet:\n$(echo "$contracts_out" | sed 's/^/      /')"
+              fi
             fi
           fi
 
@@ -510,7 +566,10 @@ tasks:
           # Skip the template — its placeholders are part of the design.
           # The template's config.yaml is still vetted (it's reserved id
           # 0000 and must pass the schema), but doc placeholders are
-          # expected.
+          # expected. This also exempts 0000 from the core_schema iff-rule
+          # by design: the template keeps schemas/ and contracts/ as copy
+          # sources for `task new` / `task new:contracts` while declaring
+          # core_schema: false.
           if [ "$id" = "0000" ]; then
             if cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
               printf "${GREEN}ok${RESET}   %s (template)\n" "$cfg"
@@ -635,8 +694,11 @@ tasks:
                         fi
                       } | sort -u )
 
-          if [ -d "$dir/schemas" ]; then
-            markers=$( { find "$dir/schemas" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
+          local scan_dirs=()
+          [ -d "$dir/schemas" ]   && scan_dirs+=("$dir/schemas")
+          [ -d "$dir/contracts" ] && scan_dirs+=("$dir/contracts")
+          if [ ${#scan_dirs[@]} -gt 0 ]; then
+            markers=$( { find "${scan_dirs[@]}" -name '*.cue' -exec grep -hoE '//.*' {} + 2>/dev/null || true; } \
                        | { if [ -n "$id_alt" ]; then grep -vE "\b(${id_alt})\b" || true; else cat; fi; } \
                        | { grep -oE '\bOQ[0-9]+\b' || true; } )
           fi
@@ -833,6 +895,7 @@ tasks:
         cfg_id=$(yq -r '.id' "$cfg")
         status=$(yq -r '.status' "$cfg")
         area=$(yq -r '.area' "$cfg")
+        core_schema=$(yq -r '.core_schema // "false"' "$cfg")
 
         [ "$cfg_id" = "$dir_id" ] || errors="${errors}\n    id '$cfg_id' != directory name '$dir_id'"
 
@@ -863,9 +926,51 @@ tasks:
           errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
         fi
 
-        if [ -d "$dir/schemas" ]; then
+        # schemas/ exists iff core_schema, compiles, and carries the
+        # status-gated files — see the numbered comment on the same block in
+        # `vet`. The template (0000) is exempt from the iff-rule by design:
+        # it keeps schemas/ and contracts/ as copy sources while declaring
+        # core_schema: false.
+        if [ "$dir_id" != "0000" ]; then
+          if [ "$core_schema" = "true" ]; then
+            case " $(yq -r '.affects | join(" ")' "$cfg") " in
+              *" core "*) : ;;
+              *) errors="${errors}\n    core_schema is true but affects[] does not contain 'core'" ;;
+            esac
+            if [ ! -d "$dir/schemas" ]; then
+              errors="${errors}\n    core_schema is true but schemas/ is missing"
+            else
+              [ -f "$dir/schemas/target.cue" ] \
+                || errors="${errors}\n    schemas/ exists but schemas/target.cue is missing"
+              if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
+                errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+              fi
+              if [ "$status" = "accepted" ]; then
+                [ -f "$dir/schemas/spec.md" ] \
+                  || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
+                companions=$(find "$dir/schemas" -maxdepth 1 -name '*.cue' ! -name 'target.cue' 2>/dev/null | head -1)
+                [ -n "$companions" ] \
+                  || errors="${errors}\n    status is accepted but schemas/ has no companion example instances (convention: examples.cue)"
+              fi
+            fi
+          else
+            [ ! -d "$dir/schemas" ] \
+              || errors="${errors}\n    core_schema is false but schemas/ exists — set core_schema: true or remove the directory (non-core CUE goes in contracts/)"
+          fi
+        elif [ -d "$dir/schemas" ]; then
           if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
             errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
+          fi
+        fi
+
+        # contracts/ (optional, never required) — see the 6b comment in `vet`.
+        if [ -d "$dir/contracts" ]; then
+          if [ -z "$(find "$dir/contracts" -name '*.cue' -not -path '*/cue.mod/*' 2>/dev/null | head -1)" ]; then
+            errors="${errors}\n    contracts/ exists but contains no .cue files"
+          else
+            if ! contracts_out=$(cd "$dir/contracts" && cue vet ./... 2>&1); then
+              errors="${errors}\n    contracts/ failed cue vet:\n$(echo "$contracts_out" | sed 's/^/      /')"
+            fi
           fi
         fi
 
@@ -908,6 +1013,11 @@ tasks:
         - accepted+   → 04-graduation.md has 'draft → accepted' section
         - accepted    → nudge (not a gate) to add plan.yaml when affects[]
                         spans more than one repo and none exists yet
+        - draft+core  → nudge: schemas/spec.md + companion examples.cue are
+                        required before draft → accepted (vet enforces at
+                        accepted)
+        - any         → schemas/spec.md follows the four-part
+                        Definition/Shape/Constraints/Rationale format
         - implemented → README has '> **Implementation status (YYYY-MM-DD).**'
                         quote block, date matching implementation.date
         - implemented → README has '## …Deviation…' section
@@ -949,7 +1059,30 @@ tasks:
           id=$(yq -r '.id' "$cfg")
           status=$(yq -r '.status' "$cfg")
           impl_date=$(yq -r '.implementation.date // ""' "$cfg")
+          local core_schema; core_schema=$(yq -r '.core_schema // "false"' "$cfg")
           local warnings=""
+
+          # Soft mirror of vet's accepted-gate: while still draft, nudge
+          # toward the files the draft → accepted promotion will require.
+          # Silent on implemented/superseded — grandfathered (their spec
+          # landed in core/SPEC.md).
+          if [ "$core_schema" = "true" ] && [ "$status" = "draft" ] && [ -d "$dir/schemas" ]; then
+            [ -f "$dir/schemas/spec.md" ] \
+              || warnings="${warnings}\n    schemas/spec.md missing — required before draft → accepted (spec delta in core SPEC.md's four-part format)"
+            [ -n "$(find "$dir/schemas" -maxdepth 1 -name '*.cue' ! -name 'target.cue' 2>/dev/null | head -1)" ] \
+              || warnings="${warnings}\n    schemas/ has no companion example instances — required before draft → accepted (convention: examples.cue)"
+          fi
+
+          # Four-part-format innards of spec.md — soft, any status. Core's
+          # SPEC.md uses '#### Definition'-style headings; a bold label is
+          # accepted too.
+          if [ -f "$dir/schemas/spec.md" ]; then
+            local part
+            for part in Definition Shape Constraints Rationale; do
+              grep -qE "^#{2,5} ${part}\b|\*\*${part}\*\*" "$dir/schemas/spec.md" 2>/dev/null \
+                || warnings="${warnings}\n    schemas/spec.md: no '${part}' part found (core SPEC.md four-part format: Definition/Shape/Constraints/Rationale)"
+            done
+          fi
 
           # Nudge, not a gate: an accepted multi-repo entry with no plan.yaml
           # is exactly the shape 06-operational.md's Cross-Repo Coordination
@@ -1055,6 +1188,7 @@ tasks:
         printf "  %-16s %s\n" "status:"       "$(yq -r '.status' "$cfg")"
         printf "  %-16s %s\n" "area:"         "$(yq -r '.area' "$cfg")"
         printf "  %-16s %s\n" "affects:"      "$(yq -r '.affects | join(", ")' "$cfg")"
+        printf "  %-16s %s\n" "core_schema:"  "$(yq -r '.core_schema // "-"' "$cfg")"
         printf "  %-16s %s\n" "semver:"       "$(yq -r '.semver // "-"' "$cfg")"
         printf "  %-16s %s\n" "created:"      "$(yq -r '.created' "$cfg")"
         printf "  %-16s %s\n" "updated:"      "$(yq -r '.updated' "$cfg")"
@@ -1086,6 +1220,9 @@ tasks:
         if [ -d "$ID/schemas" ]; then
           printf "  schemas/\n"
         fi
+        if [ -d "$ID/contracts" ]; then
+          printf "  contracts/\n"
+        fi
         if [ -d "$ID/experiments" ]; then
           printf "  experiments/\n"
         fi
@@ -1102,11 +1239,17 @@ tasks:
       Today's date is used for `created` and `updated`.
       AUTHOR defaults to "emil@jacero.se"; pass an email address, not a name.
       AREA defaults to "cross-cutting"; affects defaults to [AREA].
+      CORE_SCHEMA defaults to "false"; pass CORE_SCHEMA=true when the
+      enhancement adds or changes opmodel.dev/core definitions — this copies
+      schemas/ from 0000, sets core_schema: true, and ensures "core" is in
+      affects. Non-core compilable CUE gets scaffolded later on demand via
+      `task new:contracts ID=NNNN`.
     vars:
-      SLUG:   '{{.SLUG   | default ""}}'
-      TITLE:  '{{.TITLE  | default ""}}'
-      AUTHOR: '{{.AUTHOR | default "emil@jacero.se"}}'
-      AREA:   '{{.AREA   | default "cross-cutting"}}'
+      SLUG:        '{{.SLUG        | default ""}}'
+      TITLE:       '{{.TITLE       | default ""}}'
+      AUTHOR:      '{{.AUTHOR      | default "emil@jacero.se"}}'
+      AREA:        '{{.AREA        | default "cross-cutting"}}'
+      CORE_SCHEMA: '{{.CORE_SCHEMA | default "false"}}'
     preconditions:
       - sh: '[ -n "{{.SLUG}}" ]'
         msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>"'
@@ -1114,6 +1257,8 @@ tasks:
         msg: 'TITLE is required. Usage: task new SLUG=<slug> TITLE="<title>"'
       - sh: 'printf %s "{{.SLUG}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
         msg: 'SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
+      - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
+        msg: 'CORE_SCHEMA must be true or false'
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
     cmds:
@@ -1124,6 +1269,7 @@ tasks:
         TITLE="{{.TITLE}}"
         AUTHOR="{{.AUTHOR}}"
         AREA="{{.AREA}}"
+        CORE_SCHEMA="{{.CORE_SCHEMA}}"
         TEMPLATE_DIR="0000"
 
         # Compute next id from the highest existing NNNN/ dir (excluding 0000).
@@ -1140,40 +1286,68 @@ tasks:
 
         cp -r "$TEMPLATE_DIR" "$NEW_DIR"
 
+        # schemas/ is strictly the core-schema delta and is copied only for
+        # core-schema enhancements; contracts/ is never auto-copied
+        # (scaffold on demand: task new:contracts ID=NNNN).
+        if [ "$CORE_SCHEMA" != "true" ]; then
+          rm -rf "$NEW_DIR/schemas"
+        fi
+        rm -rf "$NEW_DIR/contracts"
+
         TODAY=$(date +%Y-%m-%d)
 
         # Fill config.yaml. yq strenv() reads from environment to keep
         # quoting clean across titles with shell-meta chars.
         ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AREA_V="$AREA" \
         CREATED="$TODAY" UPDATED="$TODAY" AUTHOR_V="$AUTHOR" \
+        CORE_V="$CORE_SCHEMA" \
         yq -i '
-          .id       = strenv(ID)       |
-          .slug     = strenv(SLUG_V)   |
-          .title    = strenv(TITLE_V)  |
-          .area     = strenv(AREA_V)   |
-          .affects  = [strenv(AREA_V)] |
-          .created  = strenv(CREATED)  |
-          .updated  = strenv(UPDATED)  |
-          .authors  = [strenv(AUTHOR_V)] |
-          .history  = [{"date": strenv(CREATED), "event": "Drafted"}]
+          .id          = strenv(ID)       |
+          .slug        = strenv(SLUG_V)   |
+          .title       = strenv(TITLE_V)  |
+          .area        = strenv(AREA_V)   |
+          .affects     = [strenv(AREA_V)] |
+          .core_schema = (strenv(CORE_V) == "true") |
+          .created     = strenv(CREATED)  |
+          .updated     = strenv(UPDATED)  |
+          .authors     = [strenv(AUTHOR_V)] |
+          .history     = [{"date": strenv(CREATED), "event": "Drafted"}]
         ' "$NEW_DIR/config.yaml"
 
-        # Replace {Enhancement Title} placeholder in README + the six split docs.
-        ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
-        for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
-          [ -f "$NEW_DIR/$f" ] && sed -i "s#{Enhancement Title}#${ESCAPED_TITLE}#g" "$NEW_DIR/$f"
-        done
-
-        # Update schemas/cue.mod/module.cue with new four-digit id.
-        if [ -f "$NEW_DIR/schemas/cue.mod/module.cue" ]; then
-          sed -i "s#enhancements.opmodel.dev/0000@v0#enhancements.opmodel.dev/$NEW_ID@v0#g" "$NEW_DIR/schemas/cue.mod/module.cue"
+        # core_schema implies "core" ∈ affects (vet enforces it).
+        if [ "$CORE_SCHEMA" = "true" ] && [ "$AREA" != "core" ]; then
+          yq -i '.affects += ["core"]' "$NEW_DIR/config.yaml"
         fi
 
-        echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, area=$AREA)"
+        # Replace {Enhancement Title} placeholder in README + the six split
+        # docs (+ schemas/spec.md when CORE_SCHEMA=true kept schemas/).
+        ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
+        for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md schemas/spec.md; do
+          # if/then rather than `[ -f ] && sed`: schemas/spec.md is absent on
+          # CORE_SCHEMA=false scaffolds and the failing AND-list would abort
+          # the script under set -e.
+          if [ -f "$NEW_DIR/$f" ]; then
+            sed -i "s#{Enhancement Title}#${ESCAPED_TITLE}#g" "$NEW_DIR/$f"
+          fi
+        done
+
+        # Update schemas/cue.mod/module.cue with new four-digit id. Generic
+        # prefix replacement — the template module path carries a /schemas
+        # suffix (enhancements.opmodel.dev/0000/schemas@v0).
+        if [ -f "$NEW_DIR/schemas/cue.mod/module.cue" ]; then
+          sed -i "s#enhancements.opmodel.dev/0000#enhancements.opmodel.dev/$NEW_ID#g" "$NEW_DIR/schemas/cue.mod/module.cue"
+        fi
+
+        echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, area=$AREA, core_schema=$CORE_SCHEMA)"
         echo
         echo "Next steps:"
         echo "  1. Fill in $NEW_DIR/01-problem.md and $NEW_DIR/02-design.md"
-        echo "  2. Sketch schemas in $NEW_DIR/schemas/target.cue"
+        if [ "$CORE_SCHEMA" = "true" ]; then
+          echo "  2. Sketch the core-schema delta in $NEW_DIR/schemas/target.cue"
+          echo "     (schemas/examples.cue + schemas/spec.md are required before draft → accepted)"
+        else
+          echo "  2. Non-core compilable CUE? Scaffold it with: task new:contracts ID=$NEW_ID"
+        fi
         echo "  3. Add Open Questions to $NEW_DIR/03-decisions.md; fill decisions iteratively"
         echo "  4. Update $NEW_DIR/README.md scope + cross-references"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
@@ -2037,6 +2211,47 @@ tasks:
         echo "  2. Validate:            task vet:one ID=$ID"
         echo "  3. Render the DAG:      task plan:graph ID=$ID"
         echo "  4. Check what's ready:  task plan:ready ID=$ID"
+
+  new:contracts:
+    desc: Scaffold contracts/ inside an enhancement (non-core compilable CUE; optional)
+    summary: |
+      Usage:
+        task new:contracts ID=0009
+
+      Creates NNNN/contracts/ from the 0000 template — the home for
+      compilable CUE that is NOT a core-schema delta: decision procedures,
+      kernel-behaviour contracts, CLI command contracts, taxonomies.
+      Optional and never required; when present, `task vet` requires it to
+      be non-empty and to compile (cue vet ./...). The core-schema delta
+      itself lives in schemas/ and is gated by config.yaml.core_schema.
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task new:contracts ID=<4-digit-id>'
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        ID="{{.ID}}"
+
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        [ -d "0000/contracts" ] || { echo "Template 0000/contracts/ missing" >&2; exit 1; }
+        if [ -e "$ID/contracts" ]; then
+          echo "Already exists: $ID/contracts" >&2
+          exit 1
+        fi
+
+        cp -r "0000/contracts" "$ID/contracts"
+        if [ -f "$ID/contracts/cue.mod/module.cue" ]; then
+          sed -i "s#enhancements.opmodel.dev/0000#enhancements.opmodel.dev/$ID#g" "$ID/contracts/cue.mod/module.cue"
+        fi
+
+        echo "Created $ID/contracts/"
+        echo
+        echo "Next steps:"
+        echo "  1. Replace the template .cue with your contracts (package name stays 'contracts')"
+        echo "  2. Validate: task vet:one ID=$ID"
 
   plan:graph:
     desc: (Re)generate NNNN/PLAN.md — Mermaid DAG of one enhancement's slice plan

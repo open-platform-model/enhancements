@@ -56,7 +56,7 @@ With a shared CR (move 1) and a shared kernel (move 2), handoff is a verified ow
 
 ## Schema / API Surface
 
-The new and changed shapes live in [`schemas/target.cue`](schemas/target.cue) (CR + status-subset shapes expressed as CUE for review) — these mirror Go types in `opm-operator/api/v1alpha1`, the source of truth. Headlines:
+The new and changed shapes live in [`contracts/contracts.cue`](contracts/contracts.cue) (CR + status-subset shapes expressed as CUE for review) — these mirror Go types in `opm-operator/api/v1alpha1`, the source of truth. Headlines:
 
 - `ModuleInstance.spec.owner: "cli" | "operator"` (default `"operator"`) — the new ownership marker (D3).
 - The **CLI status subset** (D2): the CLI writes only `inventory`, `instanceUUID`, `lastAppliedRenderDigest`, `lastAppliedSourceDigest`, `lastAppliedConfigDigest`, `lastAppliedAt`, and one `Ready` condition (reason `AppliedByCLI`). Everything else in `ModuleInstanceStatus` stays operator-owned and unset by the CLI.

@@ -48,7 +48,7 @@ OPM artifacts remain plain CUE packages evaluable by stock `cue` tooling; the OP
 
 ## Schema / API Surface
 
-Headline shapes — full surface in [`schemas/target.cue`](schemas/target.cue).
+Headline shapes — core delta in [`schemas/target.cue`](schemas/target.cue); layer-contract rule data and the blueprint idiom in [`contracts/contracts.cue`](contracts/contracts.cue).
 
 - **`core` `#Component._allFields`** — the trait branch becomes optionality-aware (mechanism 4). A trait that never states a posture fails loudly at every consumer instead of being silently required. A companion single-regular-field guarantee on trait specs keeps the comprehension total (a top-level `req!` sibling would abort iteration; core's existing trait gate plus closedness already prevents it — the target schema pins it).
 - **`catalog_opm` blueprints** — per-kind narrowing conjunctions plus field-level defaults on composed fields (mechanism 2); the whole-struct default form is forbidden (an author override of one field silently discards the marked arm's other defaults).

@@ -40,8 +40,11 @@ specific need surfaces.
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
-files, never as fenced blocks inside markdown.
+Pure-CUE definitions live as compilable files, never as fenced blocks inside
+markdown. [`schemas/`](schemas/) is strictly the **core-schema delta** — it
+exists iff `config.yaml.core_schema: true` (target.cue + examples.cue +
+spec.md); non-core compilable CUE (decision procedures, behaviour contracts,
+taxonomies) lives in the optional `contracts/` (`task new:contracts ID=NNNN`).
 
 ## Scope
 
@@ -145,7 +148,7 @@ NNNN/research/
 
 Also **optional**. A slice plan is the structured layer between this design and its execution: one small, single-concern **slice** per repo landing, with an explicit dependency order and a status. Add `plan.yaml` once `## Cross-Repo Coordination` in `06-operational.md` stops being enough to hold the sequence in your head — typically when `config.yaml.affects` spans more than one repo, or a single repo's work is large enough to need an explicit landing order. A single-repo, single-slice enhancement never needs this file.
 
-`06-operational.md ## Cross-Repo Coordination` keeps the *narrative rationale* — why this order, what each hand-off produces. `plan.yaml` is the *structured backing data* the narrative refers to by slice id — the same relationship `03-decisions.md`'s prose already has to `schemas/target.cue`.
+`06-operational.md ## Cross-Repo Coordination` keeps the *narrative rationale* — why this order, what each hand-off produces. `plan.yaml` is the *structured backing data* the narrative refers to by slice id — the same relationship `03-decisions.md`'s prose already has to the compilable CUE in `schemas/` or `contracts/`.
 
 ### Scaffold
 
@@ -255,8 +258,12 @@ To create a new enhancement from this template:
    accrete iteratively in `03-decisions.md` as design choices emerge.
 6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
    and mature alongside the decision log.
-7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
-   line in `schemas/cue.mod/module.cue` to match the new four-digit id.
+7. If the enhancement adds or changes opmodel.dev/core definitions
+   (`config.yaml.core_schema: true`), sketch the delta in
+   `schemas/target.cue` (scaffolded by `task new CORE_SCHEMA=true`;
+   `examples.cue` + `spec.md` are required before draft → accepted).
+   Otherwise there is no `schemas/`; put non-core compilable CUE in
+   `contracts/` via `task new:contracts ID=NNNN` if needed.
 8. Do not strip these HTML-comment Agent Instructions when copying — they
    are the in-template guidance for the next author/agent.
 

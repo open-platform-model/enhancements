@@ -32,7 +32,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
+Pure-CUE schema definitions live in [`schemas/`](contracts/) as compilable
 files, never as fenced blocks inside markdown.
 
 ## Scope
@@ -185,7 +185,7 @@ To create a new enhancement from this template:
    accrete iteratively in `03-decisions.md` as design choices emerge.
 6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
    and mature alongside the decision log.
-7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
+7. Sketch the target schema in `contracts/contracts.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.
 8. Do not strip these HTML-comment Agent Instructions when copying — they
    are the in-template guidance for the next author/agent.

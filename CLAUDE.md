@@ -67,7 +67,8 @@ These invariants hold across every enhancement; violations fail PR review even i
 
 - **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`.
 - **Folder names are id-only.** `0001/`, `0042/` — no slug suffix. `0000` is reserved for the template.
-- **Schemas are pure CUE files** under `NNNN/schemas/`, never fenced code blocks longer than a few illustrative lines.
+- **Compilable CUE is pure CUE files**, never fenced code blocks longer than a few illustrative lines. `NNNN/schemas/` is strictly the **core-schema delta** and exists **iff** `config.yaml.core_schema: true` — `target.cue` (the proposed `opmodel.dev/core` additions/changes), `examples.cue` (concrete instances + assertions; the test), `spec.md` (spec delta in core SPEC.md's four-part format; `examples.cue` + `spec.md` are hard-required from `accepted`). Non-core compilable CUE — decision procedures, kernel-behaviour contracts, CLI contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts`). `task vet` enforces the iff-rule in both directions and that `core_schema: true` implies `core ∈ affects`.
+- **2026-08-20 schemas-convention migration carve-out.** The full-sweep migration to the rule above (moving non-core CUE from `schemas/` to `contracts/`, adding `config.yaml.core_schema`, and refreshing `cue.mod` metadata) was applied to every entry **including frozen `implemented`/`superseded` ones** as a one-time, structure-only exception to the freeze invariant, recorded per-entry as a history event. Frozen prose, decision bodies, and CUE *content* were not rewritten; `implemented`/`superseded` entries stay exempt from the `examples.cue`/`spec.md` requirement (their spec landed in `core/SPEC.md`).
 - **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge or retraction keeps a one-line tombstone.
 - **Decision-body mutability is status-gated.** While `draft`, decisions are revised **in place** — the log never holds two conflicting decisions, and evidence-backed old positions fold into *Alternatives considered*. From `accepted`, bodies are protected: a change is a *new* `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and existing bodies move only through the `enhancement-compaction` skill (weave, OQ collapse, supersession stub). `implemented` entries are frozen.
 - **Don't hard-wrap prose in `.md` files.**
@@ -108,7 +109,8 @@ Sibling skills to load when applicable:
   04-graduation.md          Promotion gates per status transition
   05-risks.md               Risks, mitigations, blast radius
   06-operational.md         Migration, rollout, observability
-  schemas/                  Pure CUE target schemas (no fenced-code substitutes)
+  schemas/                  Core-schema delta (iff core_schema: true): target.cue + examples.cue + spec.md
+  contracts/                Optional — non-core compilable CUE (procedures, behaviour contracts, taxonomies)
 NNNN/                       One per enhancement (id-only directory name)
   experiments/              Optional — runnable validations under enhancement-experiments skill
   research/                 Optional — external evidence (deep-research dossiers, benchmarks, prior-art surveys)
@@ -131,10 +133,11 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | --- | --- |
 | `task list` | Status table — id, status, semver, area, impl status, impl date, title. First thing to read when picking up unfamiliar work. |
 | `task show ID=NNNN` | Full metadata + history list + document list for one entry. |
-| `task vet` | **Hard gate** (PR-blocking). CUE schema validation, cross-ref existence, placeholder absence, `area ∈ affects`, `schemas/` compiles, experiments structure when present. |
+| `task vet` | **Hard gate** (PR-blocking). CUE schema validation, cross-ref existence, placeholder absence, `area ∈ affects`, the `core_schema` rules (`schemas/` iff `core_schema: true`, compiles, `core ∈ affects`, `examples.cue` + `spec.md` from `accepted`), `contracts/` compiles when present, experiments structure when present. |
 | `task vet:one ID=NNNN` | Same gate, single entry. |
 | `task check [ID=NNNN]` | **Soft gate** (pre-PR aid). Per-status prose conventions: scope section, decision headings, OQ block, implementation snapshot, deviations, supersession quote block. |
-| `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffold a new entry from `0000/`. |
+| `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…] [CORE_SCHEMA=true]` | Scaffold a new entry from `0000/`. `CORE_SCHEMA=true` keeps `schemas/` (core-schema delta) and sets `core_schema: true`. |
+| `task new:contracts ID=NNNN` | Scaffold the optional `contracts/` (non-core compilable CUE) inside an entry. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffold an experiment inside an entry. Load `enhancement-experiments` skill first. |
 | `task experiments:list ID=NNNN` | List experiments for one entry; parses `Status:` from each per-experiment README. |
 | `task new:plan ID=NNNN` | Scaffold `plan.yaml` (structured slice plan) inside an entry. Load `enhancement-slicing` skill first. |
@@ -157,7 +160,7 @@ new → fill problem + design → accrete decisions → freeze (accepted) → sh
 | Phase | Command / action | Skill section |
 | --- | --- | --- |
 | 1. Create | `task new SLUG=foo TITLE="Foo Bar"` | `enhancements ## Phase 1 — Create` |
-| 2. Iterate | Edit `01..06`, `schemas/target.cue`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
+| 2. Iterate | Edit `01..06`, `schemas/` (core entries) / `contracts/`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
 | 3. Promote `draft → accepted` | `task vet:one` + `task check`; resolve every OQ; set `semver` | `enhancements ## Phase 3 — Promote` |
 | 4. Implement | Slice into target repos; append `history` events; set `implementation.status: complete` | `enhancements ## Phase 4 — Implement` |
 | 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
@@ -171,7 +174,7 @@ Each phase has gating criteria and a concrete checklist. The `enhancements` skil
 - **Always load the `enhancements` skill** before doing workflow work (create, edit `config.yaml`, promote status, append history, add cross-refs, run any `task` other than read-only `list`/`show`).
 - **Preserve research evidence under `NNNN/research/`.** When an enhancement's design rests on external research — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — write the cited findings to `NNNN/research/` (primary dossier as `research/findings.md`; topic-named files for further write-ups) so the evidence travels with the design rather than living only in a chat transcript. Keep it cited and dated, distinguish verified facts from recommendations, and reference it back from the `Source:` lines in `03-decisions.md` (and from `01-problem.md` / `05-risks.md` where it drives a claim). `research/` is for *gathered* evidence (read-only synthesis); `experiments/` is for *authored* runnable proofs — keep the two distinct. `research/` is optional and not gated by `task vet`. See `0000/README.md ## Research` for the full convention.
 - If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `06-operational.md`.
-- Run `task vet` after any `config.yaml` or `schemas/` edit — hard gate, PR-blocking.
+- Run `task vet` after any `config.yaml`, `schemas/`, or `contracts/` edit — hard gate, PR-blocking.
 - Run `task index` after any `config.yaml` change; `task graph` after any cross-ref change.
 - **Track cross-repo sequencing in `plan.yaml`, not only in `06-operational.md` prose**, once an enhancement's `affects` spans more than one repo. Load `enhancement-slicing` before scaffolding it (`task new:plan`) or editing an existing one; run `task vet:one` after every edit and `task plan:graph` to refresh `PLAN.md`. Optional — `task check` nudges (does not block) when an `accepted` multi-repo entry has none yet.
 - When a slice touches `core/`, the `core-schema-edit` skill is the binding protocol for SPEC.md co-updates.

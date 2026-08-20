@@ -31,7 +31,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
+Pure-CUE schema definitions live in [`schemas/`](contracts/) as compilable
 files, never as fenced blocks inside markdown.
 
 ## Scope
@@ -126,7 +126,7 @@ deliberate divergences from the design need to be documented. The validator
 | -------- | ------- |
 | `/Taskfile.yml` (`deps:update`, `deps:update:modules`, `deps:update:templates`) | The bash update logic the Dagger function reimplements; `task update-deps` becomes a wrapper over it (D9) |
 | `/CLAUDE.md` (Environment Variables, "Never manually edit version pins") | `CUE_REGISTRY` / `GHCR_CUE_REGISTRY` the function passes to `cue` natively |
-| `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Shared compute layer; subpath in the org daggerverse monorepo, subpath-prefixed version tags; target of `schemas/target.cue` |
+| `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Shared compute layer; subpath in the org daggerverse monorepo, subpath-prefixed version tags; target of `contracts/contracts.cue` |
 | `open-platform-model/.github/.github/workflows/cue-deps.yml` reusable workflow (to be created, D12) | Shared CI contract: invokes the daggerverse module, opens the grouped PR |
 | `<each-repo>/.github/workflows/cue-deps.yml` (to be created) | Per-repo ~10-line caller: daily schedule → `uses:` the reusable workflow → grouped PR on a fixed branch |
 | `enhancements/0002` | Related — module identity vs registry import-path resolution, the same coupling CUE resolves natively here |
@@ -150,7 +150,7 @@ To create a new enhancement from this template:
    accrete iteratively in `03-decisions.md` as design choices emerge.
 6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
    and mature alongside the decision log.
-7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
+7. Sketch the target schema in `contracts/contracts.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.
 8. Do not strip these HTML-comment Agent Instructions when copying — they
    are the in-template guidance for the next author/agent.

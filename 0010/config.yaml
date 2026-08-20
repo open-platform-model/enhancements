@@ -28,8 +28,9 @@ affects:
   # catalog-author contract, not only in this entry — 04-graduation.md makes
   # that an accepted -> implemented gate, and it had no repo until 2026-08-05.
   - opmodel.dev
+core_schema: true
 created: "2026-07-26"
-updated: "2026-08-19"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -146,6 +147,8 @@ history:
   - date: "2026-08-08"
     slice: "core/core-identity-package"
     event: "0011's core-identity-package landed #IdentityPackage in `core` (archived 2026-08-08-core-identity-package), which discharges the dependency D43 and D45 both rest on — and reading the result against this entry corrected a fact both decisions state in a tense that no longer holds. NOTES ADDED TO D43 AND D45; neither decision changes, and neither exposure is wider than each already recorded. THE CORRECTION: both name a consumer-side residual, `surfaces at #SubscriptionSelection._majorAgrees in the platform author's file`, in a way a reader takes as present. It is not built. Measured 2026-08-08 — `_majorAgrees` has never existed in `core` at any commit (`git log --all -S_majorAgrees -- src/` empty), core's pre-reshape #SubscriptionFilter carried only range/allow/deny, and `core-platform-and-match` never mentioned #SubscriptionSelection in any artifact. That absence is CORRECT rather than a dropped scope: schemas/target.cue's own preamble puts subscription selection's production implementation in Go, and this entry's library-subscription-collapse slice carries the check in as many words — `what survives is one major-agreement check beside the subscription`. That slice is `status: planned`, and 0011's cli-publish-pipeline, which is where D21's unification of the identity file lives, is also planned. SO THE WINDOW IS REAL AND CURRENTLY OPEN AT BOTH ENDS: from 2026-08-08 until the first of those two slices lands, nothing in shipped code checks that a declared version's major agrees with its path's. #IdentityPackage.VersionMajor is the only statement of the relation and no tool runs it. This is ordering rather than design — both ends have named owners and the relation returns when either lands — but it is not the state D43's `the exposure this accepts` paragraph describes, which assumed the consumer-side catch was standing. ONE OPTION IS NEWLY AVAILABLE AND WORTH WEIGHING NOW: D43's own recommended follow-on, identity files embedding the shipped #IdentityPackage, was blocked on the definition not existing. It exists. Taking it would make the assertion fire under a plain `cue vet` of the artifact's own tree, closing the window without waiting on either slice, at the cost of the import-free invariant D21 scoped to intra-module imports (`strings` is a builtin and `core` imports no catalog, so no cycle results). Not decided here."
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0010/schemas, CUE v0.17.0. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
   - date: "2026-08-05"
     slice: "core/core-identity-shape"

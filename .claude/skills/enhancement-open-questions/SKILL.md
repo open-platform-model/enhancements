@@ -1,6 +1,6 @@
 ---
 name: enhancement-open-questions
-description: Interactive walk through an enhancement's Open Questions — present each OQ's context plus alternatives plus an evidence-bearing recommendation, then on user decision write a four-field `### DN:` block to `03-decisions.md`, rewrite the OQ's `Status:` line, optionally tighten `// OQN:` markers in `schemas/target.cue`, bump `config.yaml.updated`, and append a single rolled-up `history` event at the end. Load before invoking `/enhancement-open-questions`, when iterating an enhancement's decisions in Phase 2 of the enhancements workflow, or when patching unresolved OQs that `task check` flagged before promoting `draft → accepted`.
+description: Interactive walk through an enhancement's Open Questions — present each OQ's context plus alternatives plus an evidence-bearing recommendation, then on user decision write a four-field `### DN:` block to `03-decisions.md`, rewrite the OQ's `Status:` line, optionally tighten `// OQN:` markers in the `schemas/`/`contracts/` CUE, bump `config.yaml.updated`, and append a single rolled-up `history` event at the end. Load before invoking `/enhancement-open-questions`, when iterating an enhancement's decisions in Phase 2 of the enhancements workflow, or when patching unresolved OQs that `task check` flagged before promoting `draft → accepted`.
 user-invocable: true
 ---
 
@@ -54,8 +54,8 @@ Read `config.yaml.status` first thing. Behavior by status:
 
 ### Preflight (once per session)
 
-1. Read `$ID/config.yaml`, `$ID/02-design.md`, `$ID/03-decisions.md`, `$ID/schemas/target.cue`. Cache in session context. **Do not re-read on each OQ** — token discipline matters across long walks.
-2. Capture mtimes of `$ID/03-decisions.md`, `$ID/schemas/target.cue`, `$ID/config.yaml`. Used for race detection before each per-OQ write.
+1. Read `$ID/config.yaml`, `$ID/02-design.md`, `$ID/03-decisions.md`, and every `.cue` file under `$ID/schemas/` and `$ID/contracts/` (whichever exist — `schemas/` only on `core_schema: true` entries). Cache in session context. **Do not re-read on each OQ** — token discipline matters across long walks.
+2. Capture mtimes of `$ID/03-decisions.md`, the cached `.cue` files, `$ID/config.yaml`. Used for race detection before each per-OQ write.
 3. Compute next decision number: highest `^### D[0-9]+:` in `03-decisions.md` plus 1 — counting tombstone stubs, which hold numbers that are retired but never reusable. Never reuse, never backfill.
 4. Run `task questions:open ID=$ID`. Filter the resulting TSV by `OQ=` / `ONLY=` if provided. This is the walk queue.
 5. If the queue is empty, report and exit. Do not invent OQs.
@@ -65,7 +65,7 @@ Read `config.yaml.status` first thing. Behavior by status:
 1. **Present.** Restate the OQ. Surface:
    - Gated design surface: `grep -n "OQ$K\b" 02-design.md` and excerpt the surrounding sentences.
    - Related decisions: `grep -nE "OQ$K\\b" 03-decisions.md` restricted to lines inside `## Decisions` (above `## Open Questions`).
-   - Schema markers: `grep -nE "OQ$K\\b" schemas/target.cue`. Show line numbers with two lines of context above and below.
+   - CUE markers: `grep -rnE "OQ$K\\b" schemas/ contracts/ --include='*.cue' 2>/dev/null`. Show line numbers with two lines of context above and below.
    - Experiment evidence (only if `Status: informed-by-exp-NN` or `supported-by-exp-NN`): read `experiments/NN-*/README.md` and quote the Outcome section.
    - Alternatives the OQ bullet enumerates.
    - **Diagram** (see `enhancement-diagrams`) — if the OQ is about how this entry relates to
@@ -84,15 +84,15 @@ Read `config.yaml.status` first thing. Behavior by status:
    - Re-stat the file. If mtime has advanced since the preflight capture and the skill did not write, surface "external edit detected — re-read or abort?" and stop. Number allocation is impossible to get right through a stale view — the file may have grown a `DN` you are about to collide with.
    - For a Decide outcome: insert the new `### DN:` block immediately before `^## Open Questions$` with a trailing `---\n\n` separator (matches the cadence used in `0001`) — or, for a draft in-place revision, rewrite the existing `### DN:` block where it stands. Rewrite the OQ's `Status:` line in place — keep the bullet text identical except for the `Status:` span.
    - For Defer / Answer: rewrite the `Status:` line only. No new DN block.
-5. **Schema markers.** After a Decide outcome only: if `grep -nE "OQ$K\\b" schemas/target.cue` returned any matches, prompt:
+5. **CUE markers.** After a Decide outcome only: if the marker grep over `schemas/`/`contracts/` returned any matches, prompt:
    ```
-   Found N references to OQ{K} in schemas/target.cue. Edit each?
+   Found N references to OQ{K} in {file}. Edit each?
      [r] rewrite marker to "// resolved-by-D{N}"
      [d] delete the OQ{K} reference, keep surrounding comment
      [k] keep as-is
      [s] show full file, I'll handle it
    ```
-   On any edit: run `cd $ID/schemas && cue vet ./...`. On failure, show the error and offer revert. Keep pre-edit bytes in session memory for the revert path.
+   On any edit: run `cue vet ./...` from the edited file's directory (`$ID/schemas` or `$ID/contracts`). On failure, show the error and offer revert. Keep pre-edit bytes in session memory for the revert path.
 6. **Move on** to the next queued OQ.
 
 ### Compound decisions
@@ -120,9 +120,9 @@ Three buckets (the parser in `task questions:open` classifies based on these):
 
 Any other status string renders as `unknown` and is omitted from the queue. If the user wants to walk an `unknown`-status OQ, fix the status spelling first.
 
-## Schema marker handling
+## CUE marker handling
 
-The `// OQN:` form in `schemas/target.cue` is a comment marking a field that the OQ gates. Examples:
+The `// OQN:` form in the `schemas/` and `contracts/` `.cue` files is a comment marking a field that the OQ gates. Examples:
 
 ```cue
 range?: string  // SemVer constraint, e.g. ">=1.0.0 <2.0.0". OQ2 / OQ3.
@@ -130,7 +130,7 @@ range?: string  // SemVer constraint, e.g. ">=1.0.0 <2.0.0". OQ2 / OQ3.
 
 Comments can reference multiple OQs. When OQ2 resolves but OQ3 is still open, the right edit is usually to remove the `OQ2` reference and keep the rest of the comment intact (`[d]` option). When both have resolved, `[r]` to rewrite to `// resolved-by-D{N1}/D{N2}` is one valid form; outright deleting the comment is another.
 
-The skill **must** run `cd $ID/schemas && cue vet ./...` after any schema edit. The `[H]` hard gate in the `enhancements` skill at promotion time is "schemas/ compiles via `cue vet ./...`". Catching breakage inline beats discovering it at PR time. Keep pre-edit bytes in session memory so revert is one-step.
+The skill **must** run `cue vet ./...` from the edited directory (`$ID/schemas` or `$ID/contracts`) after any CUE edit. The `[H]` hard gate in the `enhancements` skill at promotion time requires both directories to compile. Catching breakage inline beats discovering it at PR time. Keep pre-edit bytes in session memory so revert is one-step.
 
 If the comment gates a *block* of fields (e.g. lines 88-95 in `0001/schemas/target.cue` document a struct under OQs 8-12), the right edit is often to delete the comment block entirely once all gated OQs are resolved. The skill cannot reliably tell when a block-comment is "fully resolved"; offer `[s]` (show full file, user handles it) and step back.
 
@@ -167,7 +167,7 @@ After the queue is exhausted (or the user exits early):
 | Open Questions block | `enhancements/NNNN/03-decisions.md ## Open Questions` (canonical) or `enhancements/NNNN/README.md ## Open Questions` (fallback) | Source of truth for what's unresolved. Walk modifies only the `Status:` line of each bullet. |
 | Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Walk appends `### DN:` blocks immediately before `## Open Questions`; on `draft` entries it may also revise an existing block in place when a resolution changes it. Numbers are never reused; body edits on `accepted` entries belong to `enhancement-compaction`. |
 | Decision block format | `.claude/skills/enhancements/SKILL.md ## Phase 2 — Iterate` | Four-field shape. This skill defers to that one verbatim. |
-| Schema markers | `enhancements/NNNN/schemas/target.cue` | `// OQN:` comments. Walk edits these only with user confirmation; validates via `cue vet`. |
+| CUE markers | `enhancements/NNNN/schemas/*.cue`, `enhancements/NNNN/contracts/*.cue` | `// OQN:` comments. Walk edits these only with user confirmation; validates via `cue vet`. |
 | Metadata + history | `enhancements/NNNN/config.yaml` | `updated` bumps at end of walk. `history` event appended at end. |
 | Walk queue source | `enhancements/Taskfile.yml :: questions:list / questions:open` | Parses Open Questions, classifies into open / partial / resolved. |
 | End-of-walk validator | `enhancements/Taskfile.yml :: vet:one` | Hard gate, runs after the walk completes. |

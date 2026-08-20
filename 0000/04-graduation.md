@@ -13,8 +13,11 @@ The enhancement is ready to be implemented when:
 - {Goals and Non-Goals in `02-design.md` are final and reviewed.}
 - {Every decision recorded in `03-decisions.md` (D1..DN) is locked — no
   open trade-offs in the design.}
-- {`schemas/target.cue` compiles (`cue vet` from the directory passes)
-  and captures the target shape end-to-end.}
+- {If `core_schema: true`: `schemas/` compiles (`cue vet ./...` passes),
+  `examples.cue` carries concrete instances that actually exercise every
+  new or changed definition, and `spec.md` drafts the core SPEC.md delta
+  (four-part format) — `task vet` enforces file presence at `accepted`.
+  If `core_schema: false`: no `schemas/` exists; any `contracts/` compiles.}
 - {`related`, `supersedes`, `superseded_by` in `config.yaml` are final
   and resolve to existing enhancements.}
 - {`semver` in `config.yaml` is set (major / minor / none).}
@@ -27,7 +30,8 @@ The enhancement is ready to be implemented when:
 The enhancement is shipped when:
 
 - {Every CUE schema target named in `## Integration Points` is updated
-  to match `schemas/target.cue`.}
+  to match the delta in `schemas/target.cue`, and the core SPEC.md
+  co-update follows `schemas/spec.md` (via the `core-schema-edit` skill).}
 - {Every Go target named in `## Integration Points` carries the new
   behavior with test coverage on the new paths.}
 - {Catalog / module artefacts repackaged where the enhancement requires

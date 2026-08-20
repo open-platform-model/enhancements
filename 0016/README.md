@@ -30,7 +30,7 @@ exists only when implementation.status reaches `complete`).
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 
-Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the `#Module` delta (`initValues` beside `debugValues`), the command's request shape, the values-source ladder, the exact generated file set, and the user-facing report.
+Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the `#Module` delta (`initValues` beside `debugValues`) — and [`contracts/contracts.cue`](contracts/contracts.cue) — the command's request shape, the values-source ladder, the exact generated file set, and the user-facing report.
 
 ## Scope
 

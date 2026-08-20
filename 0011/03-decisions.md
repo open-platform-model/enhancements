@@ -410,7 +410,7 @@ The same validation is available in **`opm module vet`** (`cli/internal/cmd/modu
 
 A tree with **no** `cue.mod` is refused with a message pointing at `cue mod init`. Publish does not offer to create one.
 
-This is already expressed in `schemas/target.cue`: `#PublishPlan` carries `cueModPath: declaredPath`, so a disagreement is a unification failure rather than a check someone has to remember to write.
+This is already expressed in `contracts/contracts.cue`: `#PublishPlan` carries `cueModPath: declaredPath`, so a disagreement is a unification failure rather than a check someone has to remember to write.
 
 **The self-import is what settles this, and it is why "generate" is larger than it sounds.** The module path has **three** statements, not two, measured 2026-08-04:
 
@@ -485,7 +485,7 @@ Recording the inverted sequencing matters more than recording the cleanup. Both 
 
 The check runs in the CLI, in `opm module publish` and `opm catalog publish`, and is available in `opm module vet` / `check` on the same shift-left argument D16 makes for the `cue.mod` comparison: the condition is cheap to detect while working and expensive only when discovered at a push.
 
-`schemas/target.cue` states the rule as well, because that file is this entry's **specification** rather than a second enforcement point — the same status `#OverrideGate.proceed` (D6), `#IdentityState._asserted` (D12) and `cueModPath: declaredPath` (D16) already have. None of those run at publish time either; all of them are implemented in Go and stated in CUE so the rule is testable before the Go exists.
+`contracts/contracts.cue` states the rule as well, because that file is this entry's **specification** rather than a second enforcement point — the same status `#OverrideGate.proceed` (D6), `#IdentityState._asserted` (D12) and `cueModPath: declaredPath` (D16) already have. None of those run at publish time either; all of them are implemented in Go and stated in CUE so the rule is testable before the Go exists.
 
 **The gap this closes, probed 2026-08-03 against the entry's own schema.** A catalog declaring `Version: "1.2.0"` published under tag `v1.3.0` yielded **`go: true`**. `#TagRef` compares the tag's major against the path's, and `#IdentityState` checks only that `Version` is concrete; nothing joined the two. The pushed bytes would interpolate `1.2.0` into every transformer FQN while the registry served them as `1.3.0` — the local-versus-published divergence D2, D5 and D6 exist to remove, reintroduced at the final step. Enhancement 0010 **D39** makes the result detectable at read rather than silent, which downgrades this from a silent-divergence defect to a publish-produces-unusable-artifacts defect; it does not close it.
 
@@ -502,7 +502,7 @@ The check runs in the CLI, in `opm module publish` and `opm catalog publish`, an
 
 The rule itself is the last unjoined pair in the plan. Every other coordinate publish resolves is already tied to the artifact: the path to `cue.mod`, the major to the path, the identity to concreteness. The version was tied to nothing.
 
-**Source:** User decision 2026-08-04. Gap probed against `schemas/target.cue` 2026-08-03; constraint implemented and the MUST-FAIL case measured against `cue v0.17.1` 2026-08-04. Detectability at read from enhancement 0010 D9.
+**Source:** User decision 2026-08-04. Gap probed against `contracts/contracts.cue` 2026-08-03; constraint implemented and the MUST-FAIL case measured against `cue v0.17.1` 2026-08-04. Detectability at read from enhancement 0010 D9.
 
 ---
 
@@ -547,7 +547,7 @@ The invention boundary is what keeps this from undermining the gates it serves. 
 
 **Decision:** `identity/identity.cue` is validated by **unifying it against the official `#IdentityPackage` schema and surfacing CUE's own error**. OPM does not hand-roll an expected-versus-found comparison, does not check field names procedurally, and does not maintain a second statement of what a conformant identity package looks like.
 
-**`#IdentityPackage` must therefore ship in `core`.** Today it exists only in enhancement 0010's `schemas/target.cue` — 0010 D40's own alternative records that it is "defined in this entry's `schemas/target.cue` and nowhere in shipped code". A schema that lives only in a design document cannot validate anything.
+**`#IdentityPackage` must therefore ship in `core`.** Today it exists only in enhancement 0010's `contracts/contracts.cue` — 0010 D40's own alternative records that it is "defined in this entry's `contracts/contracts.cue` and nowhere in shipped code". A schema that lives only in a design document cannot validate anything.
 
 **The validation is external, and that is a constraint rather than an implementation detail.** `identity/identity.cue` deliberately imports nothing: `catalog_opm/src/identity/identity.cue` states that it "sits at the bottom of the catalog's import graph (it imports nothing within the module)" and mirrors `core.#VersionType` locally rather than importing `core`, precisely so it stays import-free and cannot create a cycle. Validation must not change that. The CLI loads the identity package and unifies it against `core`'s `#IdentityPackage` through the CUE API, in Go — the author's file gains no import, and the naive shape (`identity.cue` importing `core` and embedding `core.#IdentityPackage`) is **excluded**, because it would put the schema module at the bottom of every catalog's graph to buy a check that works fine from outside.
 
@@ -588,9 +588,9 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 - **Ship the gate in `cli` rather than in `core`.** Rejected on D21's placement argument, which transposes without change: a catalog need not depend on any particular catalog, `core` is the only module everything already depends on, and a gate living in one consumer's binary cannot be run by anyone else. It also splits one validation route into two.
 - **Check only the primitives and skip transformers.** Rejected: 0010 D44 records that the gate's four-kind scope is correct and survives the primitive/adapter split — D17's rule binds a transformer's package path, and a transformer's build-keyed FQN is exactly what D21's stale-literal failure applies to. Only the shape's *name* changed (`#PrimitiveFQNGate` → `#CatalogMemberFQNGate`).
 
-**Rationale:** 0010 states this rule four times and implements it nowhere. The gate exists as CUE in that entry's `schemas/target.cue` and, as 0010 D40's own alternative records of `#IdentityPackage`, "a schema that lives only in a design document cannot validate anything." This decision does for the member gate exactly what D21 does for the identity package, at the same moment and by the same mechanism, so the two ship as one piece of work rather than one shipping and the other being rediscovered later.
+**Rationale:** 0010 states this rule four times and implements it nowhere. The gate exists as CUE in that entry's `contracts/contracts.cue` and, as 0010 D40's own alternative records of `#IdentityPackage`, "a schema that lives only in a design document cannot validate anything." This decision does for the member gate exactly what D21 does for the identity package, at the same moment and by the same mechanism, so the two ship as one piece of work rather than one shipping and the other being rediscovered later.
 
-**Source:** User decision 2026-08-05, on an audit of enhancement 0010's decisions against both entries' slice plans. Gate shape read from `enhancements/0010/schemas/target.cue`'s `#CatalogMemberFQNGate` (`:466-503`); the delegating claims at 0010 D17, D21, D25, D42 and `0010/05-risks.md:41`. Extends D21's mechanism; supplies the gate 0010 D21 trades `core`'s FQN derivation for.
+**Source:** User decision 2026-08-05, on an audit of enhancement 0010's decisions against both entries' slice plans. Gate shape read from `enhancements/0010/contracts/contracts.cue`'s `#CatalogMemberFQNGate` (`:466-503`); the delegating claims at 0010 D17, D21, D25, D42 and `0010/05-risks.md:41`. Extends D21's mechanism; supplies the gate 0010 D21 trades `core`'s FQN derivation for.
 
 ---
 

@@ -21,8 +21,9 @@ affects:
   - opm-operator
   - cli
   - catalog
+core_schema: true
 created: "2026-06-17"
-updated: "2026-08-04"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 # Design-impact semver. A definition + CRD + wire rename is breaking for every
@@ -89,6 +90,8 @@ history:
     semver: major
   - date: "2026-08-04"
     event: "Illustrative example vocabulary genericised across this entry — a documentation-hygiene pass, cosmetic only. NO decision, gate, open question, measurement or schema constraint changed, and no decision or OQ number moved. The worked examples' application names move to neutral infrastructure names (`postgres`, instances `pg-*` in `data-*`), and example namespaces from `media`/`games-*` to `prod`/`staging`/`data-*`. DELIBERATELY LEFT VERBATIM: dated measurements (the 2026-07-25 byte-for-byte registry read and everything derived from it), live-fleet inventories, and real repository paths — `modules/jellyfin/`, `opm-kind-demo/jellyfin/` and the `modules/*` rewire lists name artifacts that were actually read or must actually be opened, so renaming them would falsify the record or dangle the pointer. Where an entry's problem statement IS the measurement, it stays; where the name was arbitrary, it moved."
+  - date: "2026-08-20"
+    event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0002/schemas, CUE v0.17.0. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

@@ -11,7 +11,7 @@ This document records the gates that must hold before the enhancement advances a
 - OQ4 (field-manager collision on the first GitOps apply) is answered by a **runnable experiment**, not by reasoning. The experiment applies an exported tree over a live CLI-applied-then-handed-off instance in a kind cluster and records: whether kustomize-controller's apply conflicts, whether the resulting field ownership is stable across reconciles, whether Flux's `Kustomization.spec.prune` interacts with the operator's finalizer, and whether the instance's inventory entry set is unchanged. Until this runs, D2's adoption guarantee is a claim rather than a result.
 - OQ5 (whether the CR's own OPM labels are exported) is resolved, most likely by the same experiment.
 - OQ6 (whether the CLI warns when applying to a git-managed instance) is either resolved or explicitly deferred to a named follow-on.
-- `schemas/target.cue` compiles (`cue vet ./...` from that directory) and captures the full target shape: request, gate chain, field classes, exported set, report, and the adoption property.
+- `contracts/contracts.cue` compiles (`cue vet ./...` from that directory) and captures the full target shape: request, gate chain, field classes, exported set, report, and the adoption property.
 - `related`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve to existing entries.
 - `semver` in `config.yaml` is set.
 - No placeholder strings remain in any markdown file.

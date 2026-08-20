@@ -67,6 +67,18 @@ import "strings"
 	status!:  #Status
 	area!:    #Area
 	affects!: [...#Area]
+
+	// Declares whether this enhancement adds or changes definitions in the
+	// opmodel.dev/core schema. `affects` is deliberately not the trigger —
+	// it is a blast-radius field, and listing "core" there does not mean
+	// the entry owns schema. This flag gates the NNNN/schemas/ convention:
+	// the directory MUST exist iff true (target.cue — the core-schema
+	// delta — plus examples.cue and spec.md from the draft → accepted
+	// gate), and `affects` must then include "core". Directory presence,
+	// the core-membership rule, and the status-gated file requirements are
+	// enforced by `task vet` in bash — the same schema/graph split used
+	// for `area ∈ affects` and the cross-ref checks.
+	core_schema!: bool
 	created!: #DateStr
 	// ISO 8601 strings sort lexicographically — `>=created` enforces monotonic time.
 	updated!:        #DateStr & >=created

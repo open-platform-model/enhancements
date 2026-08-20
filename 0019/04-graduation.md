@@ -16,7 +16,7 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
   - OQ11 defers to a named future platform-publishing entry.
   - OQ14 resolves: which `env` ordering is the contract, recorded with its migration note — and re-homed to Phase A, since the reordering comes from removing the strip.
 - The parity oracle's equality is stated precisely enough to implement: which fixtures it covers, how `#context` is projected on the CUE side, and what "equal" means for a rendered value (structural equality of the exported value, or something narrower).
-- `schemas/target.cue` compiles via `cue vet ./...` and states the parity contract, the fill obligations end-to-end, and the D5 registry-entry shape.
+- `contracts/contracts.cue` compiles via `cue vet ./...` and states the parity contract, the fill obligations end-to-end, and the D5 registry-entry shape.
 - `semver` in `config.yaml` is set. Current expectation is `major`, twice over: `FinalizeValue` leaves the public kernel surface (Phase A), and `#Subscription`'s `version!` leaves `core`'s `#Platform` (Phase B, D5).
 - `plan.yaml` exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, each verified to exist.

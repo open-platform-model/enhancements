@@ -25,7 +25,7 @@ The six split documents below are mandatory and always present.
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 
-Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue), which states the publish decision — the plan, the gates, and the tag rule — as shapes that fail to unify when a rule is violated.
+Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the publish decision — the plan, the gates, and the tag rule — as shapes that fail to unify when a rule is violated.
 
 ## Scope
 
