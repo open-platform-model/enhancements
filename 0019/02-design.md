@@ -68,7 +68,7 @@ What the kernel owes that file is settled by D13: the list is derived by promoti
 A platform that names its catalog with a `version` string is inert. Nothing resolves a string, so in a single build it has no way to influence anything. D5 changes the registry entry to carry the catalog by import:
 
 ```
-core today                          target (D5, revised 2026-08-20)
+core today                          target (D5)
 ---------------------------------   ------------------------------------------------
 #registry: [Path]: #Subscription    #registry: [Path]: #CatalogEntry & {
   enable:   bool | *true                #catalog: metadata: modulePath: Path

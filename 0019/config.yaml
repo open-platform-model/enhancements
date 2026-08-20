@@ -91,6 +91,8 @@ history:
   - date: "2026-08-20"
     event: "Accepted"
     semver: major
+  - date: "2026-08-20"
+    event: "Compacted: OQ relations hoisted into structured Resolves fields on D5-D9, D11-D14 and D18, and three narrative revised-qualifiers dropped (the D5 target caption in 02-design.md, the rendered-names heading in 06-operational.md, the two README scope bullets). No weaves or tombstones owed: the entry was maintained under the in-place rule and the OQ block collapsed at the flip."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"

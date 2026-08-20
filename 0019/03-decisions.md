@@ -58,6 +58,8 @@
 
 ### D5: A platform imports its catalog and embeds it whole into the registry entry, which derives everything else
 
+**Resolves:** OQ6 (with D13)
+
 **Decision:** `#Platform.#registry` stops naming a catalog by a version string and starts carrying the catalog itself by import. A registry entry becomes `{enable, #catalog}`: the imported catalog is embedded WHOLE, and every other field is derived from it — `version: #catalog.metadata.version` (a readout of the release-stamped identity, never a choice) and `#transformers: #TransformerMap & #catalog.#transformers`. The registry's pattern constraint binds the map key to the embedded catalog, `#registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}`, so a key and its import cannot drift. The `version!` scalar is removed as an *authored* field; the operator MAY stamp an expected `version` at platform-generation time, which unifies with the derived readout and turns wrong-bytes into a build conflict naming the entry (the tripwire D13 records as defense in depth). The catalog build is named the way every other CUE dependency is named: by the platform module's own `cue.mod`. Per-transformer selection is deliberately not expressible here.
 
 **Revised:** 2026-08-20 — the entry originally embedded only the transformer map (`{enable, #transformers}`); revised during the OQ6 walk to embed the catalog whole and derive the map and version from it.
@@ -75,6 +77,8 @@
 
 ### D6: The Platform CR keeps naming a catalog coordinate; the operator generates the platform package
 
+**Resolves:** OQ11
+
 **Decision:** `PlatformSpec` continues to carry typed Kubernetes fields naming the catalog artifact and version, and the operator encodes those into a `#Platform` CUE package on the backend. Publishing a `#Platform` to a registry is not allowed: the generated package is build-local by construction, and the reserved `opmodel.dev/platforms/…` namespace stays reserved-unpublished.
 
 **Revised:** 2026-08-20 — publishing was originally permitted but not pursued; reversed at the OQ walk (OQ11), which found the permission bought nothing and left a half-supported artifact class standing.
@@ -91,6 +95,8 @@
 
 
 ### D7: Catalog version skew between a module and its platform is detected by the kernel, and the response is caller-configured
+
+**Resolves:** OQ7 (with D18)
 
 **Decision:** When a `#Module`'s declared catalog requirement is **newer** than the build the `#Platform` imports, the kernel detects it and the caller chooses what happens. Two responses are supported: **warn and render anyway**, or **refuse to render**. The choice is kernel configuration, supplied per compile, so `cli` and `opm-operator` can each expose it on their own surface (a flag, a Platform CR field, a controller option) without either of them reimplementing the comparison.
 
@@ -114,6 +120,8 @@ Three things are fixed rather than configurable:
 
 ### D8: ADR-002 is superseded, not amended; nothing built is shared between renders
 
+**Resolves:** OQ12, OQ13
+
 **Decision:** `library/adr/002-concurrent-render-shared-materialized-platform.md` is superseded by this enhancement. Its model, "per-goroutine Kernels, one shared read-only `*MaterializedPlatform`, no mutex", is replaced by a rule with no shared built value in it: **each render is its own CUE build in its own `cue.Context`, and that context does not outlive the render.** Concurrency is across renders, never within one.
 
 The supersession lands as a `library` slice: ADR-002 gains a superseded-by header, a new ADR states the shares-nothing rule together with the `cue.Context` lifetime rule (OQ12), and `opm-operator/internal/platform/store.go`'s single held slot loses its reason to exist.
@@ -132,6 +140,8 @@ The supersession lands as a `library` slice: ADR-002 gains a superseded-by heade
 
 
 ### D9: The render step is one CUE build per render
+
+**Resolves:** OQ1, OQ2, OQ3, OQ8
 
 **Decision:** The kernel stages the synthesized `#ModuleInstance` and the generated platform package into a single generated render module — its `cue.mod` written by the kernel, its unpublished inputs entering through `cue.mod/local-module.cue` directory replacements — and evaluates it once, reading `rendered` and `diagnostics` off the built value. Nothing crosses a build boundary, so nothing is stripped and no value is filled into an independently-built closed value; combined with D8, no built value is shared between renders. Parity (D1) stops being a property the kernel maintains and becomes one it cannot violate. This ratifies OQ1, OQ2, OQ3 and OQ8: ADR-003's federation premise is stale (0010 D14 made multi-version-per-major composition inexpressible, and the only Go code assuming breadth is a self-described defensive path), the instance already participates in a build on disk via `synth`'s in-tree staging plus the directory-replacement mechanism experiment 02 exercised, minimum version selection does not run at load time so a committed `cue.mod` is a resolution rather than a floor, and reuse is an optimisation for sub-dozen-component modules worth at most ~85 ms rather than a precondition. What the generated render module owes its own `cue.mod` — the omission trap, the complete tidied dependency set, the refuse-to-render condition — remains OQ6, the one open design question inside this decision.
 
@@ -163,6 +173,8 @@ Two measured boundaries are part of the decision rather than surprises for the i
 
 ### D11: Sibling access through `#moduleInstance` stays reachable and is discouraged by contract, never narrowed structurally
 
+**Resolves:** OQ4
+
 **Decision:** OQ4's `siblingAccess` resolves to `discouraged`. The kernel fills `#moduleInstance` whole, sibling components included, and no kernel or schema mechanism prevents a transformer from reading them. D2's one-component invariant is stated as an authoring contract instead: a transformer that reads sibling components forfeits per-pair attributability of its errors and any future per-pair reordering or caching, and `catalogs/opm`'s own transformers must not do it.
 
 **Alternatives considered:**
@@ -175,6 +187,8 @@ Two measured boundaries are part of the decision rather than surprises for the i
 **Source:** User decision 2026-08-20; recommendation accepted as presented.
 
 ### D12: `#TransformerContext` becomes a projection of the other two inputs; the kernel fills `#runtimeName` alone
+
+**Resolves:** OQ5
 
 **Decision:** `core` computes every `#TransformerContext` field except `#runtimeName` as a projection of `#moduleInstance` and `#component`. The kernel's filling obligation narrows to the one runtime-owned string, and `opm/schema/context.go`'s hand-maintained decode/re-encode mirror is deleted. The change lands in this entry, as a `core` slice in Phase B beside `core-registry-import`, with the `SPEC.md` co-update under the `core-schema-edit` protocol. It is staged: the kernel keeps filling values identical to what the projection computes until the parity harness confirms agreement, after which the Go fills are removed and the harness's `equality` field collapses to `"structural"` permanently.
 
@@ -189,6 +203,8 @@ Two measured boundaries are part of the decision rather than surprises for the i
 
 ### D13: The render module's `cue.mod` is derived by promotion, never computed, and a render refuses when derivation cannot cover a path
 
+**Resolves:** OQ6 (with D5), OQ10 (shared-path half)
+
 **Decision:** The kernel writes the generated render module's dependency list by promotion from the two committed resolutions it already holds. The platform module's tidied dependency list is promoted WHOLE into the render module's roots; the staged instance module's list is unioned in for paths only the module carries; on every shared path the platform's entry wins, and the disagreement itself is D7's skew surface, reported through its diagnostics. No tidy-equivalent runs at render time — tidying happens once, at platform-package generation (D6, cold path). After writing the file the kernel verifies that no OPM-namespace path would resolve from the module graph rather than from the roots, and refuses the render otherwise; an incomplete list is a kernel defect, never caller-configurable (D7). D5's derived fields are the in-build defense in depth: the stamped-expected-versus-derived `version` unification and the key-to-`modulePath` binding turn wrong bytes into a build conflict naming the registry entry even if the promotion logic is ever defective.
 
 **Alternatives considered:**
@@ -202,6 +218,8 @@ Two measured boundaries are part of the decision rather than surprises for the i
 **Source:** User decision 2026-08-20: "I want to lock this down, and make sure to document the core schema changes", confirming the promotion rule with the platform always winning shared paths and the derived-entry tripwires as defense in depth. Evidence: `experiments/02-platform-authority-mvs/` (outcome 2026-08-19).
 
 ### D14: CUE's natural, unfinalized ordering is the render output contract
+
+**Resolves:** OQ14
 
 **Decision:** The byte ordering the collapse emits — CUE's natural evaluation order, with no finalization pass — is the contract. Today's ordering is explicitly an artifact of the strip, with no compatibility promise attached: `finalize.go` re-emits components through `Syntax(cue.Final())`, which hoists comprehension-produced fields ahead of plainly-declared ones, and the catalog's env map-to-list conversion carries that hoisting into rendered objects. The kernel does not re-sort output to preserve today's bytes. The migration note ships with the `library-finalize-removal` slice (Phase A, where the ordering change actually originates): one server-side-apply diff on the first reconcile after upgrade for modules that assemble environments conditionally, nothing after that.
 
@@ -271,6 +289,8 @@ It lands as `core-resourcename-default` with no dependency on any other slice, *
 **Source:** User decision 2026-08-20, on the residue recorded while authoring the core delta: recommendation ("drop the slot") accepted as presented. Evidence: `experiments/05-match-in-one-build/matchdef/match.cue` (the glue's inputs and its own bucket construction), and a 2026-08-20 sweep of `library`, `opm-operator` and `cli` for readers of `#matchers`.
 
 ### D18: Skew policy defaults to warn-and-render; the comparison reads the two committed resolutions; older-than-platform is data
+
+**Resolves:** OQ7 (with D7)
 
 **Decision:** Three fixings that complete D7's shape. **Default:** when a caller supplies no policy, the kernel warns and renders — the newer-module diagnostic returns on the warnings channel and the render proceeds. The policy stays configurable per compile between exactly two responses, warn-and-render and refuse; there is no third. **Source:** the comparison reads the module's requirement from the staged instance module's `cue.mod` and the platform's answer from the platform module's tidied dependency list, per OPM-namespace path. The render module's promoted list is never an input: promotion makes the platform win every shared path (D13), so reading the output would compare the platform against itself and skew would be structurally undetectable. **Older:** a module requiring an older build than the platform runs gets no warning; the resolved-versions comparison (what the module asked for, what the platform ran) is always present in compile diagnostics as plain data with no severity attached, so a caller can display which build executed without the ordinary forward-compatible case nagging.
 
