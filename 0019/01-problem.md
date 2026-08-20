@@ -45,7 +45,7 @@ The kernel executes this contract in Go. `compileModuleInstance` (`library/opm/k
 
 The consequences are already being paid, in three places:
 
-**Core computes an identity nothing can read.** `#Component.#names` is documented in `core/SPEC.md` as "the single source of truth for this component's identity", and the render path structurally cannot see it. All 35 transformers in `catalog_opm` rebuild the object name by hand from `#context`, in six different formulas, tracked as open-platform-model/core#49 and open-platform-model/catalog_opm#44. Those two issues work around this one by moving a computed value into a regular field, which fixes one value and leaves the next projection to hit the same wall.
+**Core computes an identity nothing can read.** `#Component.#names` is documented in `core/SPEC.md` as "the single source of truth for this component's identity", and the render path structurally cannot see it. All 50 transformers in `catalog_opm` rebuild object names by hand, in five distinct formula shapes (measured 2026-08-20), tracked as open-platform-model/core#49 and open-platform-model/catalog_opm#44. Those two issues work around this one by moving a computed value into a regular field, which fixes one value and leaves the next projection to hit the same wall.
 
 **A declared slot is a trap.** A transformer that reads `#moduleInstance` passes `cue vet` at authoring time, publishes clean, and fails at render with `#transform.output: 2 errors in empty disjunction`, a message that names neither the slot nor the reason. Tracked as open-platform-model/library#65.
 
@@ -121,6 +121,6 @@ The workarounds in flight are correct locally and do not address the class.
 
 `core#49` moves the resolved name onto the component as a regular field, specifically because regular fields survive finalization, and states "No `library` change is required". That is true and it fixes the name. It does not make the next schema-computed projection readable, and it encodes the strip as a constraint that core has to design around rather than a defect the kernel should stop causing.
 
-`catalog_opm#44` sweeps 35 transformers onto that single field. Also correct, also silent about why the field had to be a regular one.
+`catalog_opm#44` sweeps the transformer fleet onto that single field. Also correct, also silent about why the field had to be a regular one.
 
 The general form of the workaround is: for every value the schema computes and the render path needs, add a parallel regular field. That is a permanent tax proportional to how much OPM computes in CUE, which is the thing OPM is built to do.

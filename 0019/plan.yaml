@@ -57,28 +57,43 @@ slices:
     decisions: [D1]
     status: planned
 
-  - id: catalog-names-readonly
-    repo: catalog
-    phase: implementation
-    concern: >
-      Sweep every catalogs/opm transformer to read #component.#names
-      (resourceName, dns variants) instead of a hand-rolled name formula;
-      absorbs the catalog half of open-platform-model/catalog_opm#44.
-    depends_on:
-      - library-component-fill
-    decisions: [D15]
-    status: planned
-
   - id: core-resourcename-default
     repo: core
     phase: implementation
     concern: >
-      Flip metadata.resourceName's default to the instance-qualified
-      "\(#instance.name)-\(name)" unified with #NameType; SPEC.md co-update
-      under core-schema-edit; rename migration note rides the slice.
+      Flip metadata.resourceName's default to the instance-qualified form
+      with a hidden assertion for a legible overlong refusal; SPEC.md
+      co-update under core-schema-edit. Output-neutral for rendered
+      fleets; lands before the sweep.
+    depends_on: []
+    decisions: [D16]
+    status: planned
+
+  - id: catalog-names-readonly
+    repo: catalog
+    phase: implementation
+    concern: >
+      Sweep all 50 transformers to read #component.#names for the primary
+      object name under D15's carve-outs; delete #ResourceNameTrait and
+      #WorkloadName; bump the core dep. Gate: byte-identical goldens.
+      Absorbs catalog_opm#44 and core#49.
+    depends_on:
+      - library-component-fill
+      - core-resourcename-default
+    decisions: [D15]
+    status: planned
+
+  - id: modules-fleet-rename
+    repo: modules
+    phase: implementation
+    concern: >
+      Revalidate the v2 staging fleet under instance-qualified naming: set
+      explicit metadata.resourceName where a name is an external contract,
+      drop the deleted trait, record residual renames. Alpha stance: no
+      deprecation cycle.
     depends_on:
       - catalog-names-readonly
-    decisions: [D16]
+    decisions: [D15, D16]
     status: planned
 
   # ── Interim operator stopgap (independent of both phases) ────────

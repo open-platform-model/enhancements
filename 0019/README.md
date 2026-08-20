@@ -31,7 +31,7 @@ The six split documents below are mandatory and always present.
 5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite), including the two-phase landing order and the interim operator stopgap
 
-Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the parity contract, the runtime's fill obligations per input and which field classes each must preserve, the execution unit, the lexical-declaration obligation on transformer authors, and the D5 registry-entry shape.
+Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which carries every decision that has a mechanical surface: the parity contract and the direction its fixes take (D1), the runtime's fill obligations per input and which field classes each must preserve (D3, D12), the execution unit (D2, D11), the authoring obligations on transformer authors (lexical declaration, the read-only names rule and its carve-outs, the `resourceName` default) (D15, D16), the render build with its promotion rule, isolation rules and output ordering (D8, D9, D13, D14), the registry entry and its derivations (D5), platform-package generation (D6), version-skew policy (D7), and matching-in-build with its verdicts-as-data shape (D10). Core shapes it needs in order to state a derivation are mirrored as loose local stubs, so the file still compiles with no module dependencies. Slice ordering is deliberately absent: that is [`plan.yaml`](plan.yaml)'s surface (D4).
 
 Cross-repo sequencing lives in [`plan.yaml`](plan.yaml) (rendered as [PLAN.md](PLAN.md)): Phase A slices carry no dependency on Phase B, which is the structural guarantee that the ready half is never hostage to the unready half.
 
@@ -47,8 +47,9 @@ Cross-repo sequencing lives in [`plan.yaml`](plan.yaml) (rendered as [PLAN.md](P
 - Removing `FinalizeValue` from the render path, and subsequently from the public kernel surface, with the `MIGRATIONS.md` entry that break requires.
 - Repairing `TestFlow_WebApp_OnOpmPlatform`'s instance construction, which severs the reference wiring `#instance` and must land with the slice that exposes definitions rather than after it.
 - Recording the lexical-declaration rule as an authoring obligation.
-- The read-only names contract (D15): transformers read `#component.#names.resourceName` and its DNS variants, and never derive a name of their own — generation stays upstream on `#Component`. The `catalogs/opm` sweep that rewrites every hand-rolled name formula to read `#names` lands as the `catalog-names-readonly` slice, gated on the `#component` fill that makes `#names` readable.
-- The instance-qualified `resourceName` default (D16): `metadata.resourceName` defaults to `<instance>-<component>` (validated against `#NameType`) instead of the bare component name, fixing the cross-instance collision the bare default admits; a `core` slice gated on the sweep, breaking by intent for rendered fleets.
+- The instance-qualified `resourceName` default (D16, revised): `metadata.resourceName` defaults to `<instance>-<component>` (validated against `#NameType`, with a hidden assertion for a legible overlong refusal) instead of the bare component name. The flip lands **before** the sweep: rendered objects already carry the instance-qualified name via the hand-rolled formulas, so the flip is output-neutral for rendered fleets and closes core#49's computed-versus-rendered divergence.
+- The read-only names contract (D15, revised): transformers read `#component.#names.resourceName` and its DNS variants for the component's **primary object**, and never derive that name; generation stays upstream on `#Component`. The sweep over all 50 `catalogs/opm` transformers lands as `catalog-names-readonly`, gated on the `#component` fill and on the D16 flip, carries three carve-out classes (exact-name kinds, secondary/multi-object names, cross-object references), deletes `#ResourceNameTrait` and `#WorkloadName` in favour of `metadata.resourceName`, and gates on byte-identical goldens.
+- The fleet revalidation (`modules-fleet-rename`): residual renames (explicit `metadata.resourceName` starts winning; trait users move to the core field) land in the `modules` v2 staging fleet without a deprecation cycle, per the alpha stance.
 - The `env`-ordering migration note (OQ14): removing the strip changes list ordering for modules that assemble environments conditionally, so the note attaches to Phase A's landing, not to the collapse.
 
 **Phase B — the single-build collapse:**
@@ -101,7 +102,7 @@ None at this stage. Update when implementation lands.
 | `core/src/platform.cue` | `#registry`; reshaped by D5 with a `SPEC.md` co-update under the `core-schema-edit` protocol |
 | `core/src/transformer.cue` | `#transform`'s three declared inputs and `#TransformerContext` |
 | `core/src/component.cue` | `#names`, the projection the render path cannot currently read |
-| `catalog_opm/src/` | The 35 transformers whose hand-rolled name formulas the `catalog-names-readonly` slice rewrites to read `#component.#names` (D15) |
+| `catalog_opm/src/` | The 50 transformers whose hand-rolled name formulas the `catalog-names-readonly` slice rewrites to read `#component.#names` (D15), plus `traits/v1beta1/resource_name.cue` and `transformers/name_helpers.cue`, both deleted |
 | `core/SPEC.md` | Normative co-update for D5, and for OQ5 if it resolves toward projection |
 | `opm-operator/api/v1alpha1/platform_types.go` | The CR that keeps naming a catalog coordinate while the operator generates the package (D6) |
 | `opm-operator/internal/platform/store.go` | The single held slot that loses its reason to exist under D8 |

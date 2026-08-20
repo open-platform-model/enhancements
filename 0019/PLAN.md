@@ -15,8 +15,9 @@ graph LR
     S_library-component-fill["library-component-fill (library)\nFill #transform.#component from the unstripped va…"]:::planned
     S_library-moduleinstance-fill["library-moduleinstance-fill (library)\nFill #transform.#moduleInstance for the first tim…"]:::planned
     S_library-finalize-removal["library-finalize-removal (library)\nRemove FinalizeValue from the render path, then f…"]:::planned
-    S_catalog-names-readonly["catalog-names-readonly (catalog)\nSweep every catalogs/opm transformer to read #com…"]:::planned
     S_core-resourcename-default["core-resourcename-default (core)\nFlip metadata.resourceName's default to the insta…"]:::planned
+    S_catalog-names-readonly["catalog-names-readonly (catalog)\nSweep all 50 transformers to read #component.#nam…"]:::planned
+    S_modules-fleet-rename["modules-fleet-rename (modules)\nRevalidate the v2 staging fleet under instance-qu…"]:::planned
     S_opm-operator-render-serialization["opm-operator-render-serialization (opm-operator)\nSerialise the operator's render path behind a mut…"]:::planned
     S_core-registry-import["core-registry-import (core)\nD5 registry reshape (revised): #CatalogEntry repl…"]:::planned
     S_core-context-projection["core-context-projection (core)\nD12: #TransformerContext fields except #runtimeNa…"]:::planned
@@ -34,7 +35,8 @@ graph LR
   S_library-component-fill -->|depends_on| S_library-finalize-removal
   S_library-moduleinstance-fill -->|depends_on| S_library-finalize-removal
   S_library-component-fill -->|depends_on| S_catalog-names-readonly
-  S_catalog-names-readonly -->|depends_on| S_core-resourcename-default
+  S_core-resourcename-default -->|depends_on| S_catalog-names-readonly
+  S_catalog-names-readonly -->|depends_on| S_modules-fleet-rename
   S_library-finalize-removal -->|depends_on| S_library-render-build
   S_library-parity-harness -->|depends_on| S_library-render-build
   S_core-registry-import -->|depends_on| S_library-render-build
@@ -55,8 +57,9 @@ graph LR
 | library-component-fill | implementation | library | planned | library-parity-harness | Fill #transform.#component from the unstripped value and repair TestFlow_WebApp_OnOpmPlatform's severed instance construction in the same slice; sweep cli and opm-operator for the same construction shape.   |
 | library-moduleinstance-fill | implementation | library | planned | library-component-fill | Fill #transform.#moduleInstance for the first time, with plain-read and self-referential tests; closes open-platform-model/library#65.   |
 | library-finalize-removal | implementation | library | planned | library-component-fill, library-moduleinstance-fill | Remove FinalizeValue from the render path, then from the public kernel surface (MAJOR, MIGRATIONS.md entry), shipping the OQ14 env-ordering migration note with it.   |
-| catalog-names-readonly | implementation | catalog | planned | library-component-fill | Sweep every catalogs/opm transformer to read #component.#names (resourceName, dns variants) instead of a hand-rolled name formula; absorbs the catalog half of open-platform-model/catalog_opm#44.   |
-| core-resourcename-default | implementation | core | planned | catalog-names-readonly | Flip metadata.resourceName's default to the instance-qualified "\(#instance.name)-\(name)" unified with #NameType; SPEC.md co-update under core-schema-edit; rename migration note rides the slice.   |
+| core-resourcename-default | implementation | core | planned | - | Flip metadata.resourceName's default to the instance-qualified form with a hidden assertion for a legible overlong refusal; SPEC.md co-update under core-schema-edit. Output-neutral for rendered fleets; lands before the sweep.   |
+| catalog-names-readonly | implementation | catalog | planned | library-component-fill, core-resourcename-default | Sweep all 50 transformers to read #component.#names for the primary object name under D15's carve-outs; delete #ResourceNameTrait and #WorkloadName; bump the core dep. Gate: byte-identical goldens. Absorbs catalog_opm#44 and core#49.   |
+| modules-fleet-rename | implementation | modules | planned | catalog-names-readonly | Revalidate the v2 staging fleet under instance-qualified naming: set explicit metadata.resourceName where a name is an external contract, drop the deleted trait, record residual renames. Alpha stance: no deprecation cycle.   |
 | opm-operator-render-serialization | implementation | opm-operator | planned | - | Serialise the operator's render path behind a mutex until the D8 slice lands: the shared-platform model races under concurrent render, and the measured 2.5x-5.5x throughput cost is the accepted interim price.   |
 | core-registry-import | implementation | core | planned | - | D5 registry reshape (revised): #CatalogEntry replaces #Subscription with {enable, #catalog}; version and #transformers derived, key bound to modulePath; #composedTransformers derived; SPEC.md co-update under core-schema-edit.   |
 | core-context-projection | implementation | core | planned | - | D12: #TransformerContext fields except #runtimeName become projections of the other two inputs; SPEC.md co-update under core-schema-edit. Staged behind the parity harness; kernel then fills #runtimeName alone, context.go mirror deleted.   |

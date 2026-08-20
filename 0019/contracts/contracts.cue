@@ -3,19 +3,57 @@
 // This entry changes kernel BEHAVIOUR, not primarily schema shapes, so the
 // target is stated as a contract over that behaviour: which inputs the runtime
 // owes a #transform, what may and may not be removed from a value in transit,
-// and what the parity oracle compares. Writing it in CUE rather than prose
-// makes the obligations enumerable: a fill site can be checked against
-// #FillObligation, and the harness's comparison scope against #ParityCase.
+// what the render build owes its own cue.mod, and what the parity oracle
+// compares. Writing it in CUE rather than prose makes the obligations
+// enumerable: a fill site can be checked against #FillObligation, a registry
+// entry against #CatalogEntry, and the harness's comparison scope against
+// #ParityCase.
 //
 // Self-contained by design: it does not import opmodel.dev/core, so it
-// compiles with no module dependencies. Shapes it mirrors from core are
-// named as references rather than redeclared.
-//
-// Unresolved fields carry an OQ# comment pointing at ../03-decisions.md.
+// compiles with no module dependencies. The core shapes it needs in order to
+// state a derivation are mirrored as local stubs in the first section below,
+// marked as mirrors. The stubs exist so that a decision's MECHANISM can be
+// written as CUE rather than described in a comment; where a decision says
+// "derived", this file writes the derivation.
 package contracts
 
 // ---------------------------------------------------------------------------
-// The parity contract
+// Mirrors of core shapes
+// ---------------------------------------------------------------------------
+//
+// Loose stubs, not replicas: each carries only the structure a derivation
+// below has to reach through. core is the source of truth for all of them;
+// nothing here is a proposal about their content. The structs stay open (`...`)
+// so a real core value unifies with the stub instead of being rejected by
+// definition closedness.
+
+// core's #NameType (a DNS label, length-bounded), #ModulePathType and
+// #VersionType. Typed as plain strings here: this file never validates a name,
+// it only records which slot a name is read from.
+#NameType: string
+
+#ModulePathType: string
+
+#VersionType: string
+
+// core's #TransformerMap: [#ImplFQNType]: #ComponentTransformer.
+#TransformerMap: [string]: _
+
+// core's #Catalog. Only the two identity fields and the transformer map are
+// mirrored, because those are what a registry entry derives from (D5).
+#Catalog: {
+	kind: "Catalog"
+	metadata: {
+		modulePath!: #ModulePathType
+		version!:    #VersionType
+		...
+	}
+	#transformers: #TransformerMap
+	...
+}
+
+// ---------------------------------------------------------------------------
+// The parity contract (D1)
 // ---------------------------------------------------------------------------
 
 // The reference semantics of the render path. `kernel` is what
@@ -24,6 +62,16 @@ package contracts
 // where they differ, the kernel is defective and the fix removes kernel
 // behaviour rather than adding emulation.
 #Renderer: "kernel" | "cue"
+
+// D1 as three fields rather than a sentence. `closesBy` is the load-bearing
+// one: it fixes the DIRECTION of every parity fix, so a proposal that closes a
+// divergence by teaching the kernel to emulate CUE more faithfully is refused
+// by the contract rather than by review taste.
+#ParityContract: {
+	oracle:     #Renderer & "cue"
+	closesBy:   "kernel-removal"
+	enforcedBy: "differential-harness"
+}
 
 // One comparison the parity harness performs. A case names the inputs, and
 // asserts the two renderers agree.
@@ -49,6 +97,13 @@ package contracts
 	// only for the interim harness.
 	equality!: "structural" | "output-fields-only"
 
+	// D14: field order is part of what the harness compares, because the
+	// output ordering contract is CUE's natural one. Fixed rather than
+	// per-case: a harness that compares modulo order cannot observe a
+	// re-sorting pass being reintroduced, which is the regression D14's
+	// alternatives call out.
+	orderSensitive: true
+
 	// Whether this case is expected to diverge today. The harness lands
 	// before the fixes (D4), so its first run legitimately reports failures;
 	// they are the evidence for D1, not a broken harness. Every entry here
@@ -57,7 +112,7 @@ package contracts
 }
 
 // ---------------------------------------------------------------------------
-// What the runtime owes #transform
+// What the runtime owes #transform (D3, D12)
 // ---------------------------------------------------------------------------
 
 // The three inputs core/src/transformer.cue declares on #transform. Its own
@@ -100,27 +155,66 @@ package contracts
 // only one that cannot be a pure projection.
 #targetFills: [...#FillObligation] & [
 	{
-		input:     "#moduleInstance"
-		source:    "instance-derived"
+		input:  "#moduleInstance"
+		source: "instance-derived"
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
 	},
 	{
-		input:     "#component"
-		source:    "instance-derived"
+		input:  "#component"
+		source: "instance-derived"
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
 	},
 	{
 		// resolved-by-D12: core computes every field except #runtimeName as a
 		// projection of the two inputs above; the kernel's obligation narrows
 		// to filling #runtimeName alone.
-		input:     "#context"
-		source:    "runtime-owned"
+		input:  "#context"
+		source: "runtime-owned"
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
 	},
 ]
 
+// D12: #TransformerContext stops being a kernel-assembled struct and becomes a
+// projection core computes from the other two inputs. Enumerating the field
+// split is the point: `runtimeOwned` is the whole of what the kernel may still
+// fill, so a future field added to the context is projected by default and a
+// second runtime-owned slot has to argue for itself here.
+#ContextProjection: {
+	// Computed by core from #moduleInstance and #component.
+	projected!: [...string]
+
+	// Supplied by the runtime, because nothing in the two inputs carries it.
+	runtimeOwned!: [...string]
+
+	// The hand-maintained Go decode/re-encode mirror the projection replaces.
+	goMirrorDeleted: "opm/schema/context.go"
+
+	// Staged migration: for one release the kernel keeps filling values
+	// identical to what the projection computes and unification agrees. The
+	// harness confirming agreement is what unblocks removing the Go fills, and
+	// #ParityCase.equality collapses to "structural" at that point.
+	staged:            true
+	removeGoFillsWhen: "parity harness reports agreement on every case"
+}
+
+// The field split as core declares it today (core/src/transformer.cue).
+#targetContextProjection: #ContextProjection & {
+	projected: [
+		"#moduleInstanceMetadata",
+		"#componentMetadata",
+		"moduleLabels",
+		"moduleAnnotations",
+		"componentLabels",
+		"componentAnnotations",
+		"controllerLabels",
+		"labels",
+		"annotations",
+	]
+	runtimeOwned: ["#runtimeName"]
+}
+
 // ---------------------------------------------------------------------------
-// The execution unit
+// The execution unit (D2, D11)
 // ---------------------------------------------------------------------------
 
 // D2: #transform evaluates once per (component, transformer) pair, and
@@ -134,10 +228,18 @@ package contracts
 	// stays possible (D1/D3 forbid narrowing the filled value) and is
 	// discouraged by authoring contract, never structurally prevented.
 	siblingAccess!: "discouraged"
+
+	// What a transformer forfeits by reading a sibling anyway. Written down
+	// because "discouraged" with no stated cost is a rule nobody can weigh.
+	forfeitsOnSiblingRead: [
+		"per-pair error attributability",
+		"per-pair reordering",
+		"per-pair caching",
+	]
 }
 
 // ---------------------------------------------------------------------------
-// Authoring obligation
+// Authoring obligations (D11, D15, D16)
 // ---------------------------------------------------------------------------
 
 // CUE resolves references lexically, against the source where the reference is
@@ -159,20 +261,93 @@ package contracts
 	declares: reads
 }
 
-// D15: a transformer's relationship to component identity is read-only. The
-// object name comes from #component.#names.resourceName and the DNS variants
-// from #component.#names.dns.* — never interpolated from #context fields, and
-// never read from #component.metadata.resourceName, which is the input to the
-// cascade rather than the finalized projection. Generation stays upstream on
-// #Component. Like sibling access (D11), this is an authoring contract
-// enforced by catalog review, never structurally prevented.
+// D15: a transformer's relationship to component identity is read-only, and
+// the rule is scoped to the component's PRIMARY object. The object name comes
+// from #component.#names.resourceName and the DNS variants from
+// #component.#names.dns.*. Generation stays upstream on #Component. Like
+// sibling access (D11), this is an authoring contract enforced by catalog
+// review and by the harness's fixtures, never structurally prevented: CUE
+// cannot forbid string interpolation.
 #NamesAccess: {
+	scope!:      "primary-object"
 	source!:     "#component.#names"
 	derivation!: "forbidden"
+
+	// The two spellings the sweep replaces, kept as data because both are
+	// equal in value today and therefore invisible to any test. #context is
+	// itself a projection of #component under D12, and metadata.resourceName
+	// is the INPUT to the cascade rather than its finalized projection.
+	forbiddenSources: ["#context", "#component.metadata.resourceName"]
+
+	enforcedBy: "catalog review + parity harness fixtures"
 }
 
-// D16: the resourceName cascade's default is the instance-qualified name,
-// spelled *("\(#instance.name)-\(name)" & #NameType) | #NameType — the
+// A class of name the D15 sweep does NOT rewrite, and the rule that governs it
+// instead. Enumerated because the unscoped version of D15 was wrong against
+// the shipped catalog: 50 transformers, of which these three classes are not
+// primary-object names at all.
+#NameCarveOut: {
+	class!: "exact-name" | "secondary" | "cross-reference"
+	rule!:  string
+	examples!: [...string]
+}
+
+#nameCarveOuts: [...#NameCarveOut] & [
+	{
+		// Names that are contracts with something outside the module render,
+		// so the API server (not the module) decides them.
+		class: "exact-name"
+		rule:  "authored verbatim; #names is not consulted"
+		examples: [
+			"APIService (<version>.<group>)",
+			"CRD (<plural>.<group>)",
+			"webhook configurations (patched by name at runtime)",
+			"Namespace",
+			"Role / RoleBinding / ServiceAccount",
+			"k8s_object user-supplied segment",
+		]
+	},
+	{
+		// Objects a component emits beside its primary one. They stay derived,
+		// with #names.resourceName as the prefix wherever one applies.
+		class: "secondary"
+		rule:  "derived, prefixed by #component.#names.resourceName where a prefix applies"
+		examples: [
+			"per-item ConfigMap / Secret names (hash-suffixed immutable forms included)",
+			"per-volume PVCs",
+			"policy-plus-binding pairs",
+			"#ExposeSchema.name (Service exact-name knob)",
+			"headless and governing service names",
+		]
+	},
+	{
+		// The silent-failure class: a wrong name here vets clean and breaks at
+		// runtime, because nothing unifies the two sides.
+		class: "cross-reference"
+		rule:  "follows the REFERENCED object's naming rule; never an independent formula"
+		examples: [
+			"HPA scaleTargetRef",
+			"PDB selector target",
+			"route backendRefs",
+			"StatefulSet serviceName",
+		]
+	},
+]
+
+// D15's other half: the catalog's own competing name-override authority is
+// deleted rather than reconciled, because core's metadata.resourceName
+// subsumes it and (after D16) carries the DNS variants the trait never did.
+// Alpha stance: removed outright, no deprecation cycle.
+#DeletedNameAuthority: {
+	definition:       "#ResourceNameTrait"
+	file:             "traits/v1beta1/resource_name.cue"
+	helper:           "#WorkloadName"
+	replacedBy:       "#Component.metadata.resourceName"
+	deprecationCycle: false
+	fixturesMigrated: ["istio-cni-node", "istiod", "database"]
+}
+
+// D16: the resourceName cascade's default is the instance-qualified name. The
 // default branch is unified with #NameType so an overlong concatenation
 // refuses the render, and an explicit resourceName still wins. #names.dns
 // inherits the qualification by construction.
@@ -180,10 +355,35 @@ package contracts
 	form!:      "<instance>-<component>"
 	validated!: "#NameType"
 	override!:  "metadata.resourceName"
+
+	// The exact spelling, in a raw string so the interpolation is data rather
+	// than evaluated here. The unvalidated spelling (the same disjunction
+	// without `& #NameType` on the default branch) was measured shipping a
+	// 69-rune name clean on cue v0.17.1, so the unification is load-bearing
+	// rather than decorative.
+	spelling: #"*("\(#instance.name)-\(name)" & #NameType) | #NameType"#
+
+	// The measured caveat the slice must close: on cue v0.17.1 the refusal
+	// surfaces as a bare `incomplete value` naming #NameType's constraints,
+	// because the failed default branch falls back to the non-concrete arm.
+	// The slice adds a hidden assertion (in the style of
+	// _matchLabelsAreDerived) that names the offending string.
+	assertionRequired: true
+
+	// The ripple is by construction, not by a second edit: #names.dns.* reads
+	// resourceName, so service DNS becomes
+	// <instance>-<component>.<namespace>.svc.<clusterDomain>.
+	dnsFollows: true
+
+	// Ordering is part of the decision: flipping first makes the computed name
+	// agree with what every hand-rolled catalog formula already renders, which
+	// is what makes the D15 sweep a byte-identical refactor instead of a
+	// double fleet rename.
+	landsBefore: "catalog-names-readonly"
 }
 
 // ---------------------------------------------------------------------------
-// The render build (D9) and the registry shape that makes it resolvable (D5)
+// The render build (D8, D9, D13, D14)
 // ---------------------------------------------------------------------------
 
 // D9: the render step is one CUE build per render. The kernel generates the
@@ -197,6 +397,29 @@ package contracts
 	// the render (D8). No built value is shared between renders.
 	buildsPerRender:   1
 	sharesBuiltValues: false
+
+	// D8 stated as the two fields that make it checkable rather than as a
+	// principle. `contextOutlivesRender: false` is the rule ADR-002 lost:
+	// holding a cue.Context is what retains 348 MB per render, and filling a
+	// shared built value is a write to its evaluation state, which is the race
+	// experiment 06 reproduced. Concurrency is across renders only, so a pool
+	// is sized by memory rather than by core count (CUE evaluates one build
+	// single-threaded).
+	contextOutlivesRender: false
+	concurrency:           "across-renders"
+	poolSizedBy:           "memory"
+
+	// How the two unpublished inputs enter the build (D9). Named because the
+	// mechanism is the reason nothing crosses a build boundary and therefore
+	// the reason nothing can be stripped in transit.
+	staging: {
+		instanceEntersVia: "generated render module (synth in-tree staging)"
+		overridesVia:      "cue.mod/local-module.cue directory replacements"
+	}
+
+	// What the kernel reads off the built value. Two values, both by
+	// LookupPath, both readable beside a failing fail-closed gate (D10).
+	reads: ["rendered", "diagnostics"]
 
 	// resolved-by-D13, stated as obligations on the generated cue.mod.
 	// The list is DERIVED by promotion — the platform module's list whole,
@@ -212,48 +435,215 @@ package contracts
 	// rather than from the roots (the default-major trap has the same
 	// shape: a default is honoured only for a root dependency).
 	opmPathsFromRoots: true
+
+	dependencies: #DependencyPromotion
+	ordering:     #OutputOrdering
 }
+
+// D13: the promotion rule, spelled out as the four facts a reviewer has to
+// check the implementation against. `renderTimeTidy: false` is the negative
+// half and the one most likely to be reintroduced by accident: tidy WRITES a
+// resolution, and the render build's job is to inherit one that was already
+// written at platform-package generation (D6, cold path).
+#DependencyPromotion: {
+	platformList:     "promoted whole into the render module's roots"
+	instanceList:     "unioned in for paths only the module carries"
+	sharedPathWinner: "platform"
+	renderTimeTidy:   false
+	tidiedAt:         "platform-package generation (D6)"
+
+	// A shared path where the two lists disagree is not silently resolved: the
+	// disagreement IS the skew surface, reported through D7's diagnostics.
+	sharedPathDisagreement: "reported as #SkewDiagnostic"
+
+	// Defense in depth, not the mechanism: D5's derived fields turn wrong
+	// bytes into a build conflict naming the registry entry even if promotion
+	// is ever defective. Rejected as the SOLE mechanism, because they detect
+	// rather than prevent and cover only stamped OPM artifacts.
+	tripwires: ["stamped-vs-derived version unification", "registry key bound to #catalog.metadata.modulePath"]
+}
+
+// D14: the byte ordering the collapse emits is the contract. Today's ordering
+// is an artifact of the strip (finalize.go re-emits through Syntax(cue.Final()),
+// which hoists comprehension-produced fields ahead of declared ones), carrying
+// no compatibility promise. Re-sorting to preserve it would be kernel
+// behaviour added to emulate an artifact, which is D1's wrong direction.
+#OutputOrdering: {
+	ordering:         "cue-natural"
+	finalizationPass: false
+	reSortsOutput:    false
+
+	// The whole migration cost, measured: 12 of 28 comparison points differ
+	// modulo list order, all of them fixtures whose container environment is
+	// assembled from several guarded sources.
+	migration: "one server-side-apply diff on the first reconcile after upgrade"
+	shipsWith: "library-finalize-removal"
+}
+
+// ---------------------------------------------------------------------------
+// The registry shape that makes the render build resolvable (D5)
+// ---------------------------------------------------------------------------
 
 // D5 (revised 2026-08-20): a registry entry carries the catalog by import,
 // embedded WHOLE, and derives everything else from it. Inexpressible as an
 // extension of core's #Subscription (closed around `enable` + `version!`),
 // so this is the replacement shape. The catalog build is named where every
-// other CUE dependency is named: the platform module's own cue.mod. In core
-// the pattern constraint binds the map key to the embedded catalog, so key
-// and import cannot drift:
-//   #registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}
+// other CUE dependency is named: the platform module's own cue.mod.
 #CatalogEntry: {
 	enable: bool | *true
 
 	// The imported catalog, whole. Free to carry: unevaluated definition
-	// payloads cost nothing (measured by experiment 07). core's #Catalog;
-	// named by reference here.
-	#catalog: _
+	// payloads cost nothing (measured by experiment 07).
+	#catalog: #Catalog
 
-	// Derived, never authored: a readout of the release-stamped identity
-	// (#catalog.metadata.version). The operator MAY stamp the expected
-	// version at platform-generation time; it unifies with the readout, so
-	// wrong bytes are a build conflict naming this entry (D13's tripwire).
-	version: string
+	// Derived, never authored: a readout of the release-stamped identity.
+	// The operator MAY stamp the expected version at platform-generation time;
+	// the stamp unifies with this readout, so wrong bytes are a build conflict
+	// naming this entry (D13's tripwire) rather than a second answer to the
+	// question the import already answers.
+	version: #catalog.metadata.version
 
-	// The catalog's transformer map, derived: core's #TransformerMap &
-	// #catalog.#transformers. Per-transformer selection is deliberately
-	// inexpressible here — that concern belongs to enhancement 0015
-	// (provider classes, TransformerRegistration).
-	#transformers: _
+	// The catalog's transformer map, derived. Per-transformer selection is
+	// deliberately inexpressible here: that concern belongs to enhancement
+	// 0015 (provider classes, TransformerRegistration).
+	#transformers: #TransformerMap & #catalog.#transformers
 }
+
+// The pattern constraint is the half that makes key-versus-import drift
+// impossible rather than merely detectable: the key IS unified into the
+// embedded catalog's modulePath, so an entry keyed at one path carrying a
+// catalog published at another is a conflict at build time.
+#Registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}
 
 // What replaces the kernel-filled #composedTransformers: a fold over enabled
 // entries, computable in the schema itself once the maps are present. Folds
 // COPY (comprehension), never unify into one catalog's member map — the D25
 // provenance stamp refuses foreign members (measured by experiment 05).
 #ComposedTransformers: {
-	#registry: [string]: #CatalogEntry
+	#registry: #Registry
 	out: {
 		for _, entry in #registry if entry.enable {
 			for tfqn, tf in entry.#transformers {(tfqn): tf}
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Where the platform package comes from (D6)
+// ---------------------------------------------------------------------------
+
+// D6: the Platform CR keeps naming a catalog coordinate in typed Kubernetes
+// fields, and the operator encodes those into a #Platform CUE package on the
+// backend. D5 moved resolution into a cue.mod, which a CR cannot express, so
+// generation is what gives the build a real module. It is also the step where
+// a runtime-discovered transformer set is folded in (enhancement 0015 D3's
+// TransformerRegistration).
+#PlatformPackage: {
+	crCarries:   "catalog coordinate (typed fields), not CUE text"
+	generatedBy: "opm-operator, on the backend"
+
+	// Revised 2026-08-20: publishing is disallowed outright rather than
+	// permitted-but-unused. A published module cannot carry a build-local
+	// override (mod/modfile/schema.cue's #Strict refuses replaceWith), so a
+	// published platform would express intent without enforcement outside the
+	// kernel's own promotion path (D13).
+	publishable:     false
+	namespaceStatus: "reserved-unpublished"
+	reservedPath:    "opmodel.dev/platforms"
+
+	// The generated module is where tidy runs (D13's cold path).
+	tidiedHere: true
+}
+
+// ---------------------------------------------------------------------------
+// Catalog version skew (D7)
+// ---------------------------------------------------------------------------
+
+// The caller's choice. Supplied per compile, so cli and opm-operator can each
+// expose it on their own surface without reimplementing the comparison.
+#SkewPolicy: "warn" | "refuse"
+
+// D7: what is configurable, and what is not. The three `false`/fixed fields
+// are the decision's substance: each names a case that LOOKS like it belongs
+// under the policy and does not.
+#SkewContract: {
+	detectedBy: "kernel"
+	response!:  #SkewPolicy
+
+	// library/CONSTITUTION.md forbids the kernel writing to stdout or stderr,
+	// so "warn" means a structured diagnostic returned to the caller through
+	// the channel compile already has. Rendering it is the caller's job.
+	emitsOutput: false
+	warnChannel: "compile warnings"
+
+	// A module requiring an OLDER build than the platform imports is the
+	// ordinary forward-compatible case, not skew. Its lower-severity signal is
+	// OQ7's residue, deliberately not folded in here.
+	olderIsSkew: false
+
+	// A render module omitting a path is a kernel defect (D13), caught by an
+	// internal invariant. No caller may configure it away, which is why it is
+	// not reachable through #SkewPolicy at all.
+	missingPathIsSkew: false
+}
+
+// One detected skew, as the caller receives it. `relation` is what the kernel
+// computes; only "newer" reaches the policy.
+#SkewDiagnostic: {
+	entry!:           #ModulePathType
+	moduleRequires!:  #VersionType
+	platformImports!: #VersionType
+	relation!:        "newer" | "older" | "equal"
+}
+
+// ---------------------------------------------------------------------------
+// Matching inside the render build (D10)
+// ---------------------------------------------------------------------------
+
+// D10: matching is expressed in CUE inside the render build, per experiment
+// 05's measured glue shape. Semantics are unchanged; the slice's gate is
+// reproducing the kernel's exact pair set against a vendored kernel record.
+#MatchingInBuild: {
+	location: "render-build"
+	rungs: ["reverse-index (required ∪ optional)", "always-unify", "predicate"]
+
+	// In one build both embedded copies resolve to the same catalog bytes, so
+	// the always-unify rung runs as plain `&` and 0010 D30's provenance
+	// carve-out (excludeProvenance plus its denylist) is DELETED rather than
+	// ported, together with the parity harness's one stated exemption.
+	// Porting it is impossible as stated anyway: CUE cannot express "unify but
+	// ignore conflicts at these paths".
+	alwaysUnify:        "plain &"
+	provenanceCarveOut: "deleted"
+	parityExemption:    "deleted"
+
+	// 0010 D28's fail-closed gate is one unification inside the build. The
+	// diagnostics value stays fully readable and concrete beside the failing
+	// gate, which is why verdicts are data rather than bottoms.
+	failClosedGate:    "resolved & true"
+	diagnosticsReadBy: "LookupPath"
+	semanticsChange:   false
+
+	// Two measured boundaries, part of the contract rather than surprises for
+	// the implementer.
+	//
+	// An unhandled trait with an UNSTATED optional posture refuses as an
+	// incomplete-value error naming core/trait.cue's own `optional` field:
+	// fail-closed survives, but as a build error, because posture-statedness
+	// is default-detection, which CUE exposes only through evaluation. Making
+	// it a diagnostics row needs a publish-side gate enforcing 0010 D46, which
+	// belongs to the 0011 publish-gate family.
+	unstatedTraitPosture: "build error, not a diagnostics row"
+
+	// An INCOMPLETE (non-error) pair output is invisible to `== _|_`: it lands
+	// non-concrete in `rendered`, where the per-pair concreteness validation
+	// the kernel already owns catches it at a path naming the pair key. So
+	// failure isolation as data covers error-class failures only.
+	incompletePairOutput: "caught by per-pair concreteness validation"
+
+	// The one recoverability loss, recorded so the fallback (keep matching in
+	// Go) stays a legible option during the slice.
+	losesOnMove: "oerrors.UnifyError's verbatim CUE cause, not recoverable in-build without a second diagnostic evaluation"
 }
 
 // D10: matching inside the build reports verdicts as DATA. The shape below is
