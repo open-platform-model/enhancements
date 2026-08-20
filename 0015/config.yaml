@@ -13,7 +13,7 @@ affects:
   - cli
   - catalog
 created: "2026-08-05"
-updated: "2026-08-19"
+updated: "2026-08-20"
 authors:
   - emil@jacero.se
 implementation:
