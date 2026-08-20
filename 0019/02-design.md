@@ -220,7 +220,7 @@ The three core changes are written as a compilable delta in [`schemas/target.cue
 | Renders parallelise to about 4x on eight cores and the 2.1x multiplier survives concurrency; a reused `cue.Context` retains memory per render, and a shared built platform value races | `experiments/06-concurrent-render/`, concluded 2026-08-19 |
 | The definitional payload the collapse stops stripping is free (no transformer reads a definition field off `#component`, and CUE never evaluates it), while finalizing it is not | `experiments/07-module-scale-cost/`, concluded 2026-08-19 |
 | Concurrent scaling is independent of module size (4.28x to 4.05x from 2 to 129 components), and against today's path serialised as its races require, the single build wins at every size, 2.48x at two components rising to 5.49x at 129 | `experiments/08-concurrent-render-at-scale/`, concluded 2026-08-19 |
-| Definitions can be exposed to transformers without breaking the suite, and the ADR-003 hazard does not reproduce | `library/docs/design/repro-purecue-definitions/`, measured 2026-08-19 |
+| Definitions can be exposed to transformers without breaking the suite, and the ADR-003 hazard does not reproduce | `experiments/00-purecue-definitions/`, measured 2026-08-19 |
 
 ## Open Questions
 

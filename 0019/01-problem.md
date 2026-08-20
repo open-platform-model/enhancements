@@ -53,7 +53,7 @@ The consequences are already being paid, in three places:
 
 ## Concrete Example
 
-A pure-CUE harness (`library/docs/design/repro-purecue-definitions/`) builds a real `#Module`, a real `#ModuleInstance`, and a real `#ComponentTransformer` in a separate package reached by import. The render step is written as one unification, which is exactly what a wrapper around CUE would do:
+A pure-CUE harness (`experiments/00-purecue-definitions/`) builds a real `#Module`, a real `#ModuleInstance`, and a real `#ComponentTransformer` in a separate package reached by import. The render step is written as one unification, which is exactly what a wrapper around CUE would do:
 
 ```
 applied: cat.#TestTransformer.#transform & {

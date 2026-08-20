@@ -14,7 +14,7 @@
 
 **Rationale:** OPM's value proposition is that the schema computes things and everything downstream reads what it computed. A render path that silently narrows the value it passes on is not a wrapper around CUE; it is a reinterpretation of it, and the reinterpretation is invisible to authors until their transformer fails. Making CUE the oracle also makes the kernel's surface shrink over time by default, because every parity failure has removal as its natural fix.
 
-**Source:** User decision 2026-08-19: "It is very important that OPM kernel keep compatability with pure CUE in this regards. I rather remove shit from the kernel to be compatible then to keep it." Evidence: `library/docs/design/repro-purecue-definitions/` (pure CUE renders all eight probed fields concretely, `cue vet -c` exit 0, with a genuinely closed component), and `experiments/01-purecue-render-flow/` (the whole flow expressed as CUE against the real published catalog, outcome 2026-08-19).
+**Source:** User decision 2026-08-19: "It is very important that OPM kernel keep compatability with pure CUE in this regards. I rather remove shit from the kernel to be compatible then to keep it." Evidence: `experiments/00-purecue-definitions/` (pure CUE renders all eight probed fields concretely, `cue vet -c` exit 0, with a genuinely closed component), and `experiments/01-purecue-render-flow/` (the whole flow expressed as CUE against the real published catalog, outcome 2026-08-19).
 
 ### D2: `#transform` executes once per (component, transformer) pair, and `#component` stays singular
 

@@ -8,6 +8,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 
 | # | Concept | Status |
 | - | ------- | ------ |
+| 00 | purecue-definitions | Concluded |
 | 01 | purecue-render-flow | Concluded |
 | 02 | platform-authority-mvs | Concluded |
 | 03 | sealed-platform-roundtrip | Concluded (refuted) |

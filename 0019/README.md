@@ -88,7 +88,7 @@ None at this stage. Update when implementation lands.
 | `library/CONSTITUTION.md` | Kernel neutrality and small-batch principles governing every slice here |
 | `library/adr/002-concurrent-render-shared-materialized-platform.md` | Superseded by D8; gains the superseded-by header in a Phase B slice |
 | `library/adr/003-no-cross-build-fillpath-into-closed-values.md` | The no-cross-build-fill invariant, and the federation premise D9 retires |
-| `library/docs/design/repro-purecue-definitions/` | The pure-CUE control this entry rests on |
+| `experiments/00-purecue-definitions/` | The pure-CUE control this entry rests on (relocated 2026-08-20 from `library/docs/design/`) |
 | `library/docs/design/transformer-output-hidden-field-scope-bug.md` | The closedness corruption whose hazard shape was probed and did not reproduce |
 | `library/docs/design/cue-closedness-regression-alpha2.md` | The unfixed upstream evaluator regression the canary pair pins |
 | `library/opm/compile/execute.go` | `executePair`, the Phase A fill site |
