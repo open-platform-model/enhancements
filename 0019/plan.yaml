@@ -74,11 +74,24 @@ slices:
     repo: core
     phase: implementation
     concern: >
-      D5 registry reshape: #CatalogEntry replaces #Subscription, version!
-      removed, #composedTransformers derived; SPEC.md co-update under the
-      core-schema-edit protocol.
+      D5 registry reshape (revised): #CatalogEntry replaces #Subscription
+      with {enable, #catalog}; version and #transformers derived, key bound
+      to modulePath; #composedTransformers derived; SPEC.md co-update under
+      core-schema-edit.
     depends_on: []
     decisions: [D5]
+    status: planned
+
+  - id: core-context-projection
+    repo: core
+    phase: implementation
+    concern: >
+      D12: #TransformerContext fields except #runtimeName become projections
+      of the other two inputs; SPEC.md co-update under core-schema-edit.
+      Staged behind the parity harness; kernel then fills #runtimeName
+      alone, context.go mirror deleted.
+    depends_on: []
+    decisions: [D12]
     status: planned
 
   - id: library-render-build
@@ -86,13 +99,15 @@ slices:
     phase: implementation
     concern: >
       The render-build assembler: stage instance + platform into a generated
-      render module under OQ6's invariant, build once, read rendered and
-      diagnostics; parity-harness-proven before the old path is deleted.
+      render module under D13's promotion invariant, build once, read
+      rendered and diagnostics; parity-harness-proven before the old path is
+      deleted.
     depends_on:
       - library-finalize-removal
       - library-parity-harness
       - core-registry-import
-    decisions: [D9]
+      - core-context-projection
+    decisions: [D9, D13]
     status: planned
 
   - id: library-match-in-build

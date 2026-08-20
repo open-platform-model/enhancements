@@ -16,7 +16,8 @@ graph LR
     S_library-moduleinstance-fill["library-moduleinstance-fill (library)\nFill #transform.#moduleInstance for the first tim…"]:::planned
     S_library-finalize-removal["library-finalize-removal (library)\nRemove FinalizeValue from the render path, then f…"]:::planned
     S_opm-operator-render-serialization["opm-operator-render-serialization (opm-operator)\nSerialise the operator's render path behind a mut…"]:::planned
-    S_core-registry-import["core-registry-import (core)\nD5 registry reshape: #CatalogEntry replaces #Subs…"]:::planned
+    S_core-registry-import["core-registry-import (core)\nD5 registry reshape (revised): #CatalogEntry repl…"]:::planned
+    S_core-context-projection["core-context-projection (core)\nD12: #TransformerContext fields except #runtimeNa…"]:::planned
     S_library-render-build["library-render-build (library)\nThe render-build assembler: stage instance + plat…"]:::planned
     S_library-match-in-build["library-match-in-build (library)\nMatching moves into the render build with verdict…"]:::planned
     S_library-skew-policy["library-skew-policy (library)\nKernel-side module-versus-platform skew detection…"]:::planned
@@ -33,6 +34,7 @@ graph LR
   S_library-finalize-removal -->|depends_on| S_library-render-build
   S_library-parity-harness -->|depends_on| S_library-render-build
   S_core-registry-import -->|depends_on| S_library-render-build
+  S_core-context-projection -->|depends_on| S_library-render-build
   S_library-render-build -->|depends_on| S_library-match-in-build
   S_library-render-build -->|depends_on| S_library-skew-policy
   S_library-render-build -->|depends_on| S_library-adr002-supersession
@@ -50,8 +52,9 @@ graph LR
 | library-moduleinstance-fill | implementation | library | planned | library-component-fill | Fill #transform.#moduleInstance for the first time, with plain-read and self-referential tests; closes open-platform-model/library#65.   |
 | library-finalize-removal | implementation | library | planned | library-component-fill, library-moduleinstance-fill | Remove FinalizeValue from the render path, then from the public kernel surface (MAJOR, MIGRATIONS.md entry), shipping the OQ14 env-ordering migration note with it.   |
 | opm-operator-render-serialization | implementation | opm-operator | planned | - | Serialise the operator's render path behind a mutex until the D8 slice lands: the shared-platform model races under concurrent render, and the measured 2.5x-5.5x throughput cost is the accepted interim price.   |
-| core-registry-import | implementation | core | planned | - | D5 registry reshape: #CatalogEntry replaces #Subscription, version! removed, #composedTransformers derived; SPEC.md co-update under the core-schema-edit protocol.   |
-| library-render-build | implementation | library | planned | library-finalize-removal, library-parity-harness, core-registry-import | The render-build assembler: stage instance + platform into a generated render module under OQ6's invariant, build once, read rendered and diagnostics; parity-harness-proven before the old path is deleted.   |
+| core-registry-import | implementation | core | planned | - | D5 registry reshape (revised): #CatalogEntry replaces #Subscription with {enable, #catalog}; version and #transformers derived, key bound to modulePath; #composedTransformers derived; SPEC.md co-update under core-schema-edit.   |
+| core-context-projection | implementation | core | planned | - | D12: #TransformerContext fields except #runtimeName become projections of the other two inputs; SPEC.md co-update under core-schema-edit. Staged behind the parity harness; kernel then fills #runtimeName alone, context.go mirror deleted.   |
+| library-render-build | implementation | library | planned | library-finalize-removal, library-parity-harness, core-registry-import, core-context-projection | The render-build assembler: stage instance + platform into a generated render module under D13's promotion invariant, build once, read rendered and diagnostics; parity-harness-proven before the old path is deleted.   |
 | library-match-in-build | implementation | library | planned | library-render-build | Matching moves into the render build with verdicts as data per experiment 05's glue shape; gated on reproducing the kernel's exact pair set; deletes excludeProvenance and the D30 denylist.   |
 | library-skew-policy | implementation | library | planned | library-render-build | Kernel-side module-versus-platform skew detection with caller-supplied response (warn-and-render or refuse), returned as structured diagnostics, never library-emitted output.   |
 | library-adr002-supersession | implementation | library | planned | library-render-build, library-match-in-build | ADR-002 gains its superseded-by header; a new ADR records the shares-nothing rule and the cue.Context lifetime rule; opm/materialize shrinks or is deleted, its composed map replaced by the platform's own imports.   |

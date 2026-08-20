@@ -31,7 +31,7 @@ package schema
 // `equality` is deliberately a field rather than an assumption: structural
 // equality of the exported value is the intended meaning, but #context is
 // projected differently on the two sides today, so the harness may legitimately
-// need a narrower comparison until OQ5 resolves. Naming it here forces the
+// need a narrower comparison until D12's projection slice lands. Naming it here forces the
 // choice to be stated rather than buried in the assertion helper.
 #ParityCase: {
 	name!: string
@@ -43,10 +43,10 @@ package schema
 	component!:   string
 	transformer!: string
 
-	// OQ5: while #TransformerContext is filled by the kernel and projected by
-	// hand on the CUE side, "structural" may over-report. If OQ5 resolves
-	// toward projection, both sides derive #context from the same two inputs
-	// and this collapses to "structural" permanently.
+	// resolved-by-D12: core computes #context from the two inputs, so once
+	// the projection slice lands both sides derive it identically and this
+	// collapses to "structural" permanently; "output-fields-only" exists
+	// only for the interim harness.
 	equality!: "structural" | "output-fields-only"
 
 	// Whether this case is expected to diverge today. The harness lands
@@ -110,9 +110,9 @@ package schema
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
 	},
 	{
-		// OQ5: every field except #runtimeName is derivable from the two
-		// inputs above. If OQ5 resolves toward projection, this obligation
-		// narrows to filling #runtimeName alone and core computes the rest.
+		// resolved-by-D12: core computes every field except #runtimeName as a
+		// projection of the two inputs above; the kernel's obligation narrows
+		// to filling #runtimeName alone.
 		input:     "#context"
 		source:    "runtime-owned"
 		preserves: ["regular", "definition", "hidden", "optional-unset"]
@@ -130,10 +130,10 @@ package schema
 #ExecutionUnit: {
 	componentsPerEvaluation: 1
 
-	// OQ4: whether reaching a sibling through #moduleInstance.components is
-	// permitted, discouraged, or structurally prevented. `reachable` is the
-	// state D3 produces; the other two are the candidate resolutions.
-	siblingAccess!: "reachable" | "discouraged" | "prevented"
+	// resolved-by-D11: reaching a sibling through #moduleInstance.components
+	// stays possible (D1/D3 forbid narrowing the filled value) and is
+	// discouraged by authoring contract, never structurally prevented.
+	siblingAccess!: "discouraged"
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ package schema
 // ---------------------------------------------------------------------------
 
 // D9: the render step is one CUE build per render. The kernel generates the
-// render module, and what that module's cue.mod owes is the OQ6 invariant:
+// render module, and what that module's cue.mod owes is the D13 invariant:
 // the complete tidied dependency set, or no render at all. Experiment 02
 // measured that authority fails by OMISSION, never by override — a path the
 // render module does not list is answered by the module graph's maximum
@@ -175,10 +175,14 @@ package schema
 	buildsPerRender:   1
 	sharesBuiltValues: false
 
-	// OQ6 invariant, stated as obligations on the generated cue.mod.
+	// resolved-by-D13, stated as obligations on the generated cue.mod.
+	// The list is DERIVED by promotion — the platform module's list whole,
+	// the instance module's unioned in for module-only paths, the platform
+	// winning every shared path — never computed by a render-time tidy.
 	// `refusesOnIncomplete` is fixed: no caller may configure it away —
 	// a render module missing a path is a kernel defect, not a policy.
 	dependencyList!:     "complete-tidied-set"
+	derivedBy:           "promotion"
 	refusesOnIncomplete: true
 
 	// The check that no OPM-namespace path resolved from the module graph
@@ -187,18 +191,32 @@ package schema
 	opmPathsFromRoots: true
 }
 
-// D5: a registry entry carries the catalog by import, not by version scalar.
-// Inexpressible as an extension of core's #Subscription (closed around
-// `enable` + `version!`), so this is the replacement shape, exercised by
-// experiments/02-platform-authority-mvs/platform/schema.cue. The catalog
-// build is named where every other CUE dependency is named: the platform
-// module's own cue.mod. #TransformerMap is core's; named by reference here.
+// D5 (revised 2026-08-20): a registry entry carries the catalog by import,
+// embedded WHOLE, and derives everything else from it. Inexpressible as an
+// extension of core's #Subscription (closed around `enable` + `version!`),
+// so this is the replacement shape. The catalog build is named where every
+// other CUE dependency is named: the platform module's own cue.mod. In core
+// the pattern constraint binds the map key to the embedded catalog, so key
+// and import cannot drift:
+//   #registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}
 #CatalogEntry: {
 	enable: bool | *true
 
-	// The imported catalog's transformer map, embedded WHOLE. Per-transformer
-	// selection is deliberately inexpressible here — that concern belongs to
-	// enhancement 0015 (provider classes, TransformerRegistration).
+	// The imported catalog, whole. Free to carry: unevaluated definition
+	// payloads cost nothing (measured by experiment 07). core's #Catalog;
+	// named by reference here.
+	#catalog: _
+
+	// Derived, never authored: a readout of the release-stamped identity
+	// (#catalog.metadata.version). The operator MAY stamp the expected
+	// version at platform-generation time; it unifies with the readout, so
+	// wrong bytes are a build conflict naming this entry (D13's tripwire).
+	version: string
+
+	// The catalog's transformer map, derived: core's #TransformerMap &
+	// #catalog.#transformers. Per-transformer selection is deliberately
+	// inexpressible here — that concern belongs to enhancement 0015
+	// (provider classes, TransformerRegistration).
 	#transformers: _
 }
 
