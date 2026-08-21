@@ -3,6 +3,8 @@
 # ## Cross-Repo Coordination. The seam to respect: everything consumes the
 # core alpha first; metallb is the only slice that touches a live cluster.
 
+title: "Attribute-Declared Secret Fields"
+implements: ["0013"]
 slices:
   - id: core-secret-narrowing
     repo: core
@@ -12,7 +14,7 @@ slices:
       machinery, correct SPEC.md §1, regenerate INDEX; publishes the core v2
       alpha every other slice consumes. Load core-schema-edit first.
     depends_on: []
-    decisions: [D7, D9, D10, D12]
+    decisions: [0013:D7, 0013:D9, 0013:D10, 0013:D12]
     status: planned
 
   - id: library-secret-pass
@@ -24,7 +26,7 @@ slices:
       graph build, synthesized secrets component with platform-supplied FQN,
       .value diagnostic in compile.
     depends_on: [core-secret-narrowing]
-    decisions: [D2, D3, D5, D6, D8, D11, D13, D16, D17]
+    decisions: [0013:D2, 0013:D3, 0013:D5, 0013:D6, 0013:D8, 0013:D11, 0013:D13, 0013:D16, 0013:D17]
     status: planned
 
   - id: catalog-consumption-rewire
@@ -35,7 +37,7 @@ slices:
       pyramid, rewrite both consumption sites to read .ref/.key, strip all
       name computation from secret_transformer.
     depends_on: [core-secret-narrowing]
-    decisions: [D9, D12]
+    decisions: [0013:D9, 0013:D12]
     status: planned
 
   - id: cli-secrets-surface
@@ -46,7 +48,7 @@ slices:
       secrets-aware vet messaging; port the secrets-module fixture and retire
       the superseded auto-secrets-injection spec.
     depends_on: [library-secret-pass, catalog-consumption-rewire]
-    decisions: [D14]
+    decisions: [0013:D14]
     status: planned
 
   - id: operator-library-bump
@@ -57,7 +59,7 @@ slices:
       plaintext-in-CR posture with the referenced arm as production guidance
       (no valuesFrom mechanism).
     depends_on: [library-secret-pass]
-    decisions: [D15]
+    decisions: [0013:D15]
     status: planned
 
   - id: docs-secrets-authoring
@@ -83,5 +85,5 @@ slices:
     status: planned
 
 unsliced:
-  D1: Superseded by D10 the day it was written; retained position only — no work to carry.
-  D4: Superseded by D11 the day it was written; retained position only — no work to carry.
+  "0013:D1": Superseded by D10 the day it was written; retained position only — no work to carry.
+  "0013:D4": Superseded by D11 the day it was written; retained position only — no work to carry.

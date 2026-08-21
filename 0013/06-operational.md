@@ -90,4 +90,4 @@ Strict order — each step consumes a published artifact from the one before.
 
 Steps 2 and 3 both depend only on step 1 and can proceed in parallel, but step 4 needs both. Step 5 is the only one that touches a live cluster.
 
-The order above is encoded structurally in [`plan.yaml`](plan.yaml) (rendered as [`PLAN.md`](PLAN.md)); this prose carries the rationale, the plan carries the state.
+The order above is encoded structurally in a delivery plan under `plans/`; this prose carries the rationale, the plan carries the state.

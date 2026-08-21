@@ -124,6 +124,8 @@
 # x-release-please-version annotation is gone, and release.yml runs the
 # writer on the open release branch instead. The 2026-08-18 history event
 # carries the full record.
+title: "Module and Catalog Publishing"
+implements: ["0011"]
 slices:
   - id: core-identity-package
     repo: core
@@ -133,8 +135,8 @@ slices:
       validates identity and every catalog member by unification and CUE
       produces the diagnostic, not a hand-rolled comparison.
     depends_on:
-      - "0010:core-identity-shape"
-    decisions: [D21, D22, 0010:D40]
+      - "artifact-identity:core-identity-shape"
+    decisions: [0011:D21, 0011:D22, 0010:D40]
     status: done
     openspec_ref: "core/core-identity-package"
 
@@ -146,7 +148,7 @@ slices:
       10/14 and 8/14 on disjoint sets — plus predecessor selection moved out
       of filter.go before 0010 D14 deletes it. Level-aware per 0010 D34.
     depends_on: []
-    decisions: [D9, 0010:D14, 0010:D27, 0010:D30, 0010:D34]
+    decisions: [0011:D9, 0010:D14, 0010:D27, 0010:D30, 0010:D34]
     status: done
     openspec_ref: "library/library-compat-comparator"
 
@@ -159,7 +161,7 @@ slices:
       CUE itself reads, because CUE performs the push. Independent of
       everything else here.
     depends_on: []
-    decisions: [D11, D24]
+    decisions: [0011:D11, 0011:D24]
     status: done
     openspec_ref: "cli/cli-login"
 
@@ -174,8 +176,8 @@ slices:
       - core-identity-package
       # Compile dependency: the pipeline builds in the cli repo against the
       # core-v2 library line that 0010's crossing lands.
-      - "0010:cli-coordinate-adoption"
-    decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
+      - "artifact-identity:cli-coordinate-adoption"
+    decisions: [0011:D1, 0011:D2, 0011:D4, 0011:D6, 0011:D12, 0011:D15, 0011:D16, 0011:D18, 0011:D21]
     status: done
     openspec_ref: "cli/cli-publish-pipeline"
 
@@ -189,7 +191,7 @@ slices:
       behind a second confirmation.
     depends_on:
       - core-identity-package
-    decisions: [D3, D8, D12, D16, D20]
+    decisions: [0011:D3, 0011:D8, 0011:D12, 0011:D16, 0011:D20]
     # Landed as TWO openspec changes in cli: cli-authoring-commands (the
     # writer toolkit — idempotent Version write, identity read, cue.mod
     # module writer — and `version set` for both kinds; verified and
@@ -214,7 +216,7 @@ slices:
       - core-identity-package
       - library-compat-comparator
       - cli-publish-pipeline
-    decisions: [D7, D9, D22, D23, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42, 0010:D49]
+    decisions: [0011:D7, 0011:D9, 0011:D22, 0011:D23, 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D35, 0010:D42, 0010:D49]
     status: done
     openspec_ref: "cli/cli-catalog-gates"
 
@@ -230,7 +232,7 @@ slices:
       - cli-authoring-commands
       - cli-catalog-gates
       - cli-login
-      - "0010:catalogs-identity-authoring"
+      - "artifact-identity:catalogs-identity-authoring"
     decisions: [0010:D47]
     # Landed via catalog_opm PR 42 (no openspec workspace in that repo; the
     # 2026-08-18 history event is the record). Deviations noted in the plan
@@ -248,8 +250,8 @@ slices:
       - cli-publish-pipeline
       - cli-authoring-commands
       - catalogs-publish-cutover
-      - "0010:modules-identity-authoring"
-    decisions: [D13, D17]
+      - "artifact-identity:modules-identity-authoring"
+    decisions: [0011:D13, 0011:D17]
     status: done
     openspec_ref: "modules/modules-publish-cutover"
 
@@ -261,7 +263,7 @@ slices:
       testing.opmodel.dev/modules/cli/* and published to GHCR through the gated
       publish pipeline. The operator fleet is registry-cleanup-operator.
     depends_on: []
-    decisions: [D17]
+    decisions: [0011:D17]
     status: done
     openspec_ref: "cli/fixture-testing-domain"
 
@@ -273,7 +275,7 @@ slices:
       testing.opmodel.dev/modules/operator/* with identity packages and gated
       publishing. Deletion of the old packages and their -e2e tags follows.
     depends_on: ["registry-cleanup"]
-    decisions: [D17]
+    decisions: [0011:D17]
     status: done
     openspec_ref: "opm-operator/fixtures-testing-domain"
 
@@ -282,18 +284,18 @@ slices:
 # See schema.cue #SlicePlan.unsliced: this is a claim on the record that the
 # decision needs no work, not a suppression list.
 unsliced:
-  D5: >
+  "0011:D5": >
     Its namespace half is REVERSED by D13, which is carried by
     modules-publish-cutover. What survives is the hosts-rather-than-indexes
     holding — a property of what the registry IS, established by the CUE
     resolution argument rather than by anything anyone builds.
-  D10: >
+  "0011:D10": >
     Tag immutability is enforced by the REGISTRY, not by OPM. It gates on the
     Zot cutover, which 0010's plan header records as out of scope for both
     entries with no owner and no date. Nothing in either plan can deliver it,
     and pretending otherwise by attaching it to a CLI slice would claim an
     enforcement OPM does not have.
-  D14: >
+  "0011:D14": >
     Explicitly forward-looking in its own words: the platform segment is
     RESERVED and no platform is published or fetched from a registry today,
     while instances get no segment at all. A reservation with no publisher is

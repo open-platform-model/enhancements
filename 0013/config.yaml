@@ -31,7 +31,7 @@ affects:
 
 core_schema: true
 created: "2026-07-27"
-updated: "2026-08-20"
+updated: "2026-08-21"
 
 authors:
   - emil@jacero.se
@@ -171,6 +171,8 @@ history:
     event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0013/schemas, CUE v0.17.0. Structure/metadata only."
   - date: "2026-08-20"
     event: "Schemas convention follow-up: schemas/spec.md authored — spec delta for the #Secret family (CHANGED #Secret/#SecretLiteral, NEW #SecretRef and @opm(secret) marker, removed-definitions table), derived from the existing decision log."
+  - date: "2026-08-21"
+    event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
 
 # Peer enhancements this one builds on or interacts with.
 related:

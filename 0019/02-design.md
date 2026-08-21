@@ -159,7 +159,7 @@ It also has a stated exemption from the start. The D30 carve-out is a place wher
 | `opm/schema/context.go`'s Go decoding | a CUE projection (D12) |
 | Much of `opm/compile/match.go` | CUE comprehensions, subject to the costs above |
 
-The deletions were candidates until D9 and D10 landed in the decision log; they are now commitments, each carried by a named slice in `plan.yaml`, with D10 recording the one fallback (matching stays in Go reading the single build's value if error quality regresses unacceptably during the slice).
+The deletions were candidates until D9 and D10 landed in the decision log; they are now commitments, each carried by a named slice in the delivery plan, with D10 recording the one fallback (matching stays in Go reading the single build's value if error quality regresses unacceptably during the slice).
 
 ## The fixture that has to move first
 

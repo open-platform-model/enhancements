@@ -42,4 +42,4 @@ Sequence: `core` → (`library`, if OQ4 chooses the shared renderer) → `cli` �
 - `cli` ships `opm instance init` consuming both. The fallback ladder means the CLI does not hard-require modules republished with the new field — only the new core *schema* version so the field is legal to read.
 - `modules` is not required to do anything; authors adopt `initValues` module-by-module at their own pace.
 
-Two to three hand-offs in a straight line — prose here suffices for now; scaffold `plan.yaml` at the `draft → accepted` gate once OQ4 fixes whether `library` is in the chain.
+Two to three hand-offs in a straight line — prose here suffices for now; scaffold a delivery plan at the `draft → accepted` gate once OQ4 fixes whether `library` is in the chain.

@@ -14,7 +14,7 @@ affects:
   - library
 core_schema: false
 created: "2026-08-18"
-updated: "2026-08-20"
+updated: "2026-08-21"
 authors:
   - emil
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -31,6 +31,8 @@ history:
     event: "Decisions D1-D6 locked by user decision in the design session"
   - date: "2026-08-20"
     event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0018/contracts, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-21"
+    event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0002"

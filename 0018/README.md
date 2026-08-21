@@ -27,7 +27,7 @@ The six split documents below are mandatory and always present.
 
 Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose.
 
-The landing order across five repos is tracked in [`plan.yaml`](plan.yaml); [`06-operational.md`](06-operational.md) `## Cross-Repo Coordination` carries why the order is what it is.
+The landing order across five repos is tracked in a delivery plan under `plans/`; [`06-operational.md`](06-operational.md) `## Cross-Repo Coordination` carries why the order is what it is.
 
 ## Scope
 

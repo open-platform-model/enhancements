@@ -191,6 +191,8 @@
 # to do with the comparator. Sweep it when library-acquire-and-subscription
 # or library-matching next touches library docs.
 
+title: "Module and Catalog Identity"
+implements: ["0010"]
 slices:
   - id: core-identity-shape
     repo: core
@@ -200,7 +202,7 @@ slices:
       underscores, #PackagePathType splits off, fqn == modulePath,
       registryPath, snake name, instance fqn/uuid.
     depends_on: []
-    decisions: [D1, D2, D3, D6, D8, D41, D43, D45]
+    decisions: [0010:D1, 0010:D2, 0010:D3, 0010:D6, 0010:D8, 0010:D41, 0010:D43, 0010:D45]
     status: done
     openspec_ref: "core/core-identity-shape"
 
@@ -213,7 +215,7 @@ slices:
       primitives, authored fqn, primitive-versus-adapter.
     depends_on:
       - core-identity-shape
-    decisions: [D4, D21, D25, D33, D34, D44]
+    decisions: [0010:D4, 0010:D21, 0010:D25, 0010:D33, 0010:D34, 0010:D44]
     status: done
     openspec_ref: "core/core-primitive-keying"
 
@@ -226,7 +228,7 @@ slices:
       fulfilment on #Resource and #Trait, and D28's #Trait.optional plus gate.
     depends_on:
       - core-identity-shape
-    decisions: [D14, D28, D32, D36, D37]
+    decisions: [0010:D14, 0010:D28, 0010:D32, 0010:D36, 0010:D37]
     status: done
     openspec_ref: "core/core-platform-and-match"
 
@@ -241,7 +243,7 @@ slices:
       - core-identity-shape
       - core-primitive-keying
       - core-platform-and-match
-      - "0011:core-identity-package"
+      - "artifact-publishing:core-identity-package"
     status: done
     openspec_ref: "core/core-alpha-release"
 
@@ -255,7 +257,7 @@ slices:
       SPEC.md co-update.
     depends_on:
       - core-alpha-release
-    decisions: [D49]
+    decisions: [0010:D49]
     status: done
 
   - id: library-core-retarget
@@ -270,7 +272,7 @@ slices:
       - core-alpha-release
       - catalogs-identity-authoring
       - catalogs-consolidation
-    decisions: [D42, D47, D49]
+    decisions: [0010:D42, 0010:D47, 0010:D49]
     status: done
     openspec_ref: "library/library-core-retarget"
 
@@ -284,8 +286,8 @@ slices:
       beside the subscription.
     depends_on:
       - library-core-retarget
-      - "0011:library-compat-comparator"
-    decisions: [D9, D11, D14, D41]
+      - "artifact-publishing:library-compat-comparator"
+    decisions: [0010:D9, 0010:D11, 0010:D14, 0010:D41]
     status: done
     openspec_ref: "library/library-acquire-and-subscription"
 
@@ -299,7 +301,7 @@ slices:
       own-graph test.
     depends_on:
       - library-core-retarget
-    decisions: [D4, D10, D26, D28, D30, D32, D34, D36, D37]
+    decisions: [0010:D4, 0010:D10, 0010:D26, 0010:D28, 0010:D30, 0010:D32, 0010:D34, 0010:D36, 0010:D37]
     status: done
     openspec_ref: "library/library-matching"
 
@@ -313,7 +315,7 @@ slices:
       points, decisions.
     depends_on:
       - core-alpha-release
-    decisions: [D4, D27, D34, D35, "0011:D13", "0011:D14"]
+    decisions: [0010:D4, 0010:D27, 0010:D34, 0010:D35, "0011:D13", "0011:D14"]
     status: done
     openspec_ref: "opmodel.dev/docs-catalog-contract"
 
@@ -327,7 +329,7 @@ slices:
       versioned paths, retired-catalog template refs.
     depends_on:
       - library-core-retarget
-    decisions: [D19, D42, D47, D49]
+    decisions: [0010:D19, 0010:D42, 0010:D47, 0010:D49]
     status: done
     openspec_ref: "cli/cli-coordinate-adoption"
 
@@ -340,7 +342,7 @@ slices:
       or adoption code (D18). Two OpenSpec changes; release waits for both.
     depends_on:
       - library-core-retarget
-    decisions: [D14, D18, D42, D49]
+    decisions: [0010:D14, 0010:D18, 0010:D42, 0010:D49]
     status: done
     openspec_ref: "opm-operator/operator-library-retarget + opm-operator/examples-fleet-core-v2"
 
@@ -354,7 +356,7 @@ slices:
       release-please.
     depends_on:
       - core-alpha-release
-    decisions: [D5, D42]
+    decisions: [0010:D5, 0010:D42]
     status: done
 
   - id: catalogs-consolidation
@@ -368,7 +370,7 @@ slices:
     depends_on:
       - catalogs-identity-authoring
       - core-versioned-kindprefix
-    decisions: [D47, D48, D49]
+    decisions: [0010:D47, 0010:D48, 0010:D49]
     status: done
 
   - id: modules-identity-authoring
@@ -382,7 +384,7 @@ slices:
     depends_on:
       - catalogs-identity-authoring
       - catalogs-consolidation
-    decisions: [D2, D42, D47, D48, 0011:D12]
+    decisions: [0010:D2, 0010:D42, 0010:D47, 0010:D48, 0011:D12]
     status: done
 
   - id: catalogs-republish
@@ -395,7 +397,7 @@ slices:
     depends_on:
       - catalogs-identity-authoring
       - catalogs-consolidation
-      - "0011:catalogs-publish-cutover"
+      - "artifact-publishing:catalogs-publish-cutover"
     # Landed as the v2.0.0-alpha.4 release: catalog_opm PR 43 merged
     # 2026-08-18, published by release.yml through `opm catalog publish`
     # (plan GO, post-publish registry check --compat clean). The 2026-08-18
@@ -411,7 +413,7 @@ slices:
     depends_on:
       - catalogs-republish
       - modules-identity-authoring
-      - "0011:modules-publish-cutover"
+      - "artifact-publishing:modules-publish-cutover"
     decisions: [0011:D17]
     status: done
 
@@ -420,13 +422,13 @@ slices:
 # See schema.cue #SlicePlan.unsliced: this is a claim on the record that the
 # decision needs no work, not a suppression list.
 unsliced:
-  D7: >
+  "0010:D7": >
     Its holding (a module's identity file writes metadata directly, declaring no
     top-level field) is REVERSED by the decision now stated at D2, which gives
     modules a catalog-style identity subpackage. What survives is the measurement
     D2 leans on — a top-level Version beside the embedded #Module fails
     re-unification into the closed #ModuleInstance.#module slot — which is
     evidence, not work.
-  D16: >
+  "0010:D16": >
     A decision NOT to add a field. #Catalog gains no `name`, so there is nothing
     to implement; the same reader-set argument D33 uses to delete #definitionName.

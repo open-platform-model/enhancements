@@ -30,6 +30,8 @@
 # for every blueprint and most traits. That is why docs-authoring depends on
 # both, and it is also the rollback hazard 06-operational.md names: reverting
 # the backfill while the generator is live is what produces the bad state.
+title: "Documentation Architecture"
+implements: ["0018"]
 slices:
   - id: docs-generator-repair
     repo: opmodel.dev
@@ -39,7 +41,7 @@ slices:
       scraping to evaluated CUE so all 70 members carry descriptions; split
       generated reference by family; fix the src-excluding tree bug.
     depends_on: []
-    decisions: [D1, D6]
+    decisions: [0018:D1, 0018:D6]
     status: planned
 
   - id: catalog-doc-comments
@@ -50,7 +52,7 @@ slices:
       (1 of 11) and traits (6 of 27); add a CI gate refusing a new member
       that ships without one.
     depends_on: []
-    decisions: [D1]
+    decisions: [0018:D1]
     status: planned
 
   - id: core-doc-comments
@@ -61,7 +63,7 @@ slices:
       section, types.cue foremost, so generated reference entries carry
       prose rather than a bare field list.
     depends_on: []
-    decisions: [D1]
+    decisions: [0018:D1]
     status: planned
 
   - id: docs-concepts
@@ -72,7 +74,7 @@ slices:
       matchLabels versus metadata.labels, the component derivation rule.
       Mined from SPEC.md Rationale and rewritten for a public reader.
     depends_on: []
-    decisions: [D2]
+    decisions: [0018:D2]
     status: planned
 
   - id: docs-diagnostics
@@ -93,7 +95,7 @@ slices:
       workflows, rollback, reverse handoff, export or provider classes.
       Draft systems named as absent, never as forthcoming.
     depends_on: []
-    decisions: [D3]
+    decisions: [0018:D3]
     status: planned
 
   - id: library-embedder-guide
@@ -117,7 +119,7 @@ slices:
       - docs-concepts
       - docs-generator-repair
       - catalog-doc-comments
-    decisions: [D6]
+    decisions: [0018:D6]
     status: planned
 
   - id: docs-operating
@@ -129,7 +131,7 @@ slices:
       prune hazard page.
     depends_on:
       - docs-concepts
-    decisions: [D4]
+    decisions: [0018:D4]
     status: planned
 
   - id: docs-start-here
@@ -147,7 +149,7 @@ slices:
 # Decisions this entry implements in no slice, each with the reason. Surfaced
 # by `task decisions:uncovered`, which is quiet about them once they are here.
 unsliced:
-  D5: >
+  "0018:D5": >
     A decision to write nothing. Secrets documentation is owned by enhancement
     0013's docs-secrets-authoring slice, whose concern was amended 2026-08-18
     to say it authors the first secrets docs rather than rewriting any. This

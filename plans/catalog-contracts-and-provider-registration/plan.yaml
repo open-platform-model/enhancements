@@ -5,6 +5,8 @@
 # Every implementation slice extends 0019's single-build pipeline; the three
 # cross-enhancement dependencies below are the structural form of
 # 06-operational.md's "this entry cannot ship ahead of those slices".
+title: "Catalog Contracts and Transformer Registration"
+implements: ["0015"]
 slices:
   - id: core-contract-maps
     repo: core
@@ -14,7 +16,7 @@ slices:
       each stamping modulePath and catalogVersion; SPEC.md §3.6 co-update
       under the core-schema-edit protocol.
     depends_on: []
-    decisions: [D1]
+    decisions: [0015:D1]
     status: planned
 
   - id: core-inventory-routing
@@ -26,8 +28,8 @@ slices:
       reports, D37's exactly-one kept); SPEC.md §3.4 and §4.1 co-updates.
     depends_on:
       - core-contract-maps
-      - "0019:core-registry-import"
-    decisions: [D1, D2]
+      - "kernel-cue-parity:core-registry-import"
+    decisions: [0015:D1, 0015:D2]
     status: planned
 
   - id: library-assembly-checks
@@ -39,8 +41,8 @@ slices:
       and the one-registration-per-module refusal.
     depends_on:
       - core-inventory-routing
-      - "0019:library-match-in-build"
-    decisions: [D5, D15]
+      - "kernel-cue-parity:library-match-in-build"
+    decisions: [0015:D5, 0015:D15]
     status: planned
 
   - id: catalog-contract-members
@@ -52,7 +54,7 @@ slices:
       that demand them.
     depends_on:
       - core-contract-maps
-    decisions: [D1]
+    decisions: [0015:D1]
     status: planned
 
   - id: catalog-registration-surface
@@ -65,7 +67,7 @@ slices:
     depends_on:
       - catalog-contract-members
       - core-inventory-routing
-    decisions: [D9, D11, D12]
+    decisions: [0015:D9, 0015:D11, 0015:D12]
     status: planned
 
   - id: operator-registration
@@ -77,8 +79,8 @@ slices:
       readiness exclusion, finalizer, Platform.status.registry.
     depends_on:
       - core-inventory-routing
-      - "0019:opm-operator-platform-generation"
-    decisions: [D2, D3, D8, D10, D11, D14]
+      - "kernel-cue-parity:opm-operator-platform-generation"
+    decisions: [0015:D2, 0015:D3, 0015:D8, 0015:D10, 0015:D11, 0015:D14]
     status: planned
 
   - id: operator-regeneration
@@ -90,7 +92,7 @@ slices:
       generation-plus-active-claims identity.
     depends_on:
       - operator-registration
-    decisions: [D13]
+    decisions: [0015:D13]
     status: planned
 
   - id: cli-platform-pull-check
@@ -103,7 +105,7 @@ slices:
     depends_on:
       - core-inventory-routing
       - operator-regeneration
-    decisions: [D6]
+    decisions: [0015:D6]
     status: planned
 
   - id: provider-e2e
@@ -119,10 +121,10 @@ slices:
       - catalog-registration-surface
       - operator-regeneration
       - cli-platform-pull-check
-    decisions: [D3]
+    decisions: [0015:D3]
     status: planned
 
 # Decisions deliberately implemented in no slice.
 unsliced:
-  D4: "Decides against building a packaging split — no code anywhere."
-  D7: "Records that no transformer-predicate stability rule ships; the widening gate is deferred to the 0011 publish-gate family."
+  "0015:D4": "Decides against building a packaging split — no code anywhere."
+  "0015:D7": "Records that no transformer-predicate stability rule ships; the widening gate is deferred to the 0011 publish-gate family."

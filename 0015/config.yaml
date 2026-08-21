@@ -58,6 +58,8 @@ history:
   - date: "2026-08-21"
     event: "Accepted. All twelve Open Questions closed (nine resolved into D2/D5-D8/D13-D15, OQ6 answered, OQ5/OQ9 explicitly deferred with hand-off context); semver set to major per 06-operational's break-in-effect reasoning; plan.yaml authored — nine slices across core, library, catalog, opm-operator and cli with three cross-enhancement dependencies on 0019's registry/build slices, D4 and D7 recorded as deliberately unsliced; Cross-References re-verified (the tenancy reference repointed to the archived openspec design, opm-operator/docs/TENANCY.md no longer exists)."
     semver: major
+  - date: "2026-08-21"
+    event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"

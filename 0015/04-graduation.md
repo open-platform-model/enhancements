@@ -14,7 +14,7 @@ This document records the gates that must hold before the enhancement advances a
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/` passes) and captures the target shape end-to-end, with every `// OQN:` marker either tightened or pointing at a still-open question.
 - `config.yaml.semver` is set. Expected **major**: D1 adds required stamped members to `#Catalog`, landing inside 0010's core major window.
 - `related` resolves to `0010`, `0011` and `0019`.
-- **A `plan.yaml` exists.** `affects` spans six areas with a real ordering constraint — `core` before `library` before `opm-operator`, and the catalog listing before any provider catalog — so the `enhancement-slicing` gate applies rather than being optional.
+- **A delivery plan exists.** `affects` spans six areas with a real ordering constraint — `core` before `library` before `opm-operator`, and the catalog listing before any provider catalog — so a structured delivery plan (see `plans/`) is required rather than optional.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - Cross-References table in `README.md` lists every file path the implementation will touch, and each exists today.
 

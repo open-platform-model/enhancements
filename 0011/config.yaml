@@ -34,7 +34,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-07-26"
-updated: "2026-08-20"
+updated: "2026-08-21"
 authors:
   - emil@jacero.se
 # Design impact: new commands, and a namespace OPM shapes only where it owns the
@@ -165,6 +165,8 @@ history:
     event: "registry-cleanup-operator DONE — D17's cleanup is complete and this entry has no open slice. Task 8.1, the one item held back behind its own precondition, ran today: the five opmodel.dev/modules/test/* GHCR packages (hello, podinfo, redis, hello_web, and the orphaned hyphenated hello-web) and the two pre-2026 testing.opmodel.dev/{modules,releases}/hello leftovers were deleted — 138 package versions across seven packages, org-admin, irreversible. THREE CHECKS RAN BEFORE THE DELETION RATHER THAN AFTER: the task's own precondition (7.5) was confirmed live rather than read off the checklist — all four relocated fixtures resolve anonymously at testing.opmodel.dev/modules/operator/*; the workspace was swept for live dependencies on the old coordinates and the only code reference is a NEGATIVE test literal asserting that path must be refused (cli/internal/publish/gates_test.go:208), everything else being documentation plus gitignored dist/examples build output regenerated from the relocated fixtures; and the package list was enumerated from the GHCR API rather than transcribed, matching the task's five-plus-two exactly. Verified after: the old coordinates no longer resolve, the relocated four still do. WHAT THIS CLOSES: D17's items 2 and 3 for the operator fleet are now fully done — item 2's hyphenated name is gone at the source (0010's examples-fleet-core-v2 renamed it) and now at the registry, and item 3's relocation is complete on both ends. Item 1, the legacy opmodel.dev/<name>/v1alpha1 namespace, remains explicitly OUT — the v0 fleet still pins it (0010 D18) and it goes with the v0 to v1 migration, not this entry. Item 4, opmodel.dev/test/cleanmod, was already absent."
   - date: "2026-08-19"
     event: "IMPLEMENTED — every slice is done and the entry is frozen. The last to land was registry-cleanup-operator, whose GHCR deletion had been held behind its own precondition. Six deviations recorded in README.md; the pre-implementation note about the unbuilt major-agreement backstop is resolved and folded into the first, both ends having landed. No compaction was needed: D23 already carried its Amends field, and the entry holds no stacked reversal and no unresolved question."
+  - date: "2026-08-21"
+    event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
 related:
   - "0010"
 # Lifecycle relationships.

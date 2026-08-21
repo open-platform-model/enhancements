@@ -2,7 +2,7 @@
 
 This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not as implementation milestones; implementation progress lives in `config.yaml.implementation` and the `history` list.
 
-The entry graduates **as one unit** — there is no per-phase acceptance — but implementation is phased, and the structural guarantee that Phase A is never hostage to Phase B is a gate item here: `plan.yaml` must show no Phase A slice depending on any Phase B slice.
+The entry graduates **as one unit** — there is no per-phase acceptance — but implementation is phased, and the structural guarantee that Phase A is never hostage to Phase B is a gate item here: the delivery plan must show no Phase A slice depending on any Phase B slice.
 
 ## draft → accepted
 
@@ -19,7 +19,7 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
 - `schemas/` (the core-schema delta, `core_schema: true`) compiles via `cue vet ./...`, and `examples.cue` exercises every NEW or CHANGED definition with concrete instances whose derived values are pinned by hidden assertions: D5's entry derivations and key binding, D12's context projection, D16's qualified default and its DNS ripple. `spec.md` drafts the `core/SPEC.md` delta for all three core slices.
 - `contracts/contracts.cue` compiles via `cue vet ./...` and carries a surface for every remaining decision that has one: the parity contract, the fill obligations end-to-end, the execution unit, the authoring obligations, the render build (promotion, isolation, ordering), platform generation, skew policy, and matching-in-build. The gate across both files is that no decision's mechanism lives only in a comment while the field beside it stays a placeholder.
 - `semver` in `config.yaml` is set. Current expectation is `major`, twice over: `FinalizeValue` leaves the public kernel surface (Phase A), and `#Subscription`'s `version!` leaves `core`'s `#Platform` (Phase B, D5).
-- `plan.yaml` exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
+- A delivery plan exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, each verified to exist.
 - A compaction pass collapses the resolved-OQ prose at the flip: `enhancement-compaction` gates COLLAPSE-OQ to `accepted`, so the collapse lands as the first commit after the status flips, folding the ratified questions to their D-references.
 
@@ -38,7 +38,7 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
 - Every `catalogs/opm` transformer reads `#component.#names` for its primary object per D15's carve-outs; `#ResourceNameTrait` and `#WorkloadName` are deleted with their fixtures migrated; the release pins the D16 core build; no default-named golden fixture changes by a byte.
 - The `modules` v2 staging fleet validates under the new naming, with the residual renames (explicit `metadata.resourceName`, former trait users) recorded in the slice.
 
-**Phase B — the single-build collapse** (cross-repo; sequenced by `plan.yaml`):
+**Phase B — the single-build collapse** (cross-repo; sequenced by the delivery plan):
 
 - `core` ships D5's registry reshape (`#CatalogEntry`, `version!` removed, `#composedTransformers` derived) and D17's `#matchers` removal, with the `SPEC.md` co-update under the `core-schema-edit` protocol; `schemas/examples.cue`'s absence assertion holds.
 - The render-build assembler exists in `library`: stage, write `cue.mod` and `local-module.cue` honouring OQ6's invariant, build once, read `rendered` and `diagnostics`. The parity harness proves the new path produces what the old path produced, fixture by fixture, before the old path is removed.
