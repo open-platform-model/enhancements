@@ -1,0 +1,7 @@
+# Local-only flow diagrams.
+#
+# NNNN/diagrams/ holds Mermaid renderings of an enhancement's process flows: a
+# viewing aid for walking a design or its implementation slices, regenerable and
+# personal. Committed design/mechanism diagrams stay ASCII inside 01-problem.md /
+# 02-design.md / 05-risks.md, per .claude/skills/enhancement-diagrams/SKILL.md.
+[0-9][0-9][0-9][0-9]/diagrams/
