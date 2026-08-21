@@ -1,7 +1,11 @@
 id: "0015"
 slug: catalog-contracts-and-provider-registration
 title: Catalog Contracts and Transformer Registration
-status: draft
+# Aggregate design impact: schema-additive but a break in effect — the
+# inventory is trivial until every catalog republishes with populated
+# contract maps (06-operational.md ## Semver Impact).
+semver: major
+status: accepted
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
 area: cross-cutting
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -51,6 +55,9 @@ history:
     event: "OQ walk concluded: D5-D8 and D13-D15 locked. OQ1/OQ10 resolved-by-D5 (duplicate guard, at generation), OQ3 by D6 (opm platform pull), OQ4 by D7 (no predicate-stability rule; widening gate to 0011), OQ7 by D8 (acceptance-time committed-resolution comparison, exact under GA discipline), OQ8 by D13 (edge-triggered level-computed regeneration, identity = generation + active claims, blast radius accepted), OQ11 by D14 (registration excluded by kind from package readiness; pure-registration modules legal), OQ12 by D15 (one registration per module). OQ2 dissolved by D2's class rejection; OQ5 deferred to a future aliasing entry; OQ9 deferred to the guard's implementation slice with a measured candidate definition validated against catalog_opm's 8-transformer bucket. Mid-walk: provider classes rejected (D2 revised in place, 0010 D37 stands, entry retitled); D13 re-grounded on the same-day D9-D12 authoring-surface work. Zero open questions remain."
   - date: "2026-08-21"
     event: "Pre-promotion compaction pass (enhancement-compaction): OQ1-OQ4, OQ7, OQ8, OQ10-OQ12 collapsed to bare resolved-by pointers; OQ6's answered line trimmed; OQ5 and OQ9 keep their deferral annotations (no filed target — the prose is the hand-off). No weaves, no tombstones: the draft was maintained under the in-place rule."
+  - date: "2026-08-21"
+    event: "Accepted. All twelve Open Questions closed (nine resolved into D2/D5-D8/D13-D15, OQ6 answered, OQ5/OQ9 explicitly deferred with hand-off context); semver set to major per 06-operational's break-in-effect reasoning; plan.yaml authored — nine slices across core, library, catalog, opm-operator and cli with three cross-enhancement dependencies on 0019's registry/build slices, D4 and D7 recorded as deliberately unsliced; Cross-References re-verified (the tenancy reference repointed to the archived openspec design, opm-operator/docs/TENANCY.md no longer exists)."
+    semver: major
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0010"

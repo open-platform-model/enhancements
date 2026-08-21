@@ -75,6 +75,6 @@ None at this stage. Update when implementation lands.
 | `opm-operator/api/v1alpha1/platform_types.go` | `PlatformStatus` gains the effective registry and the readiness condition |
 | `opm-operator/internal/platform/store.go` | The held slot 0019 D8 deletes; its re-key question became OQ8's platform-package regeneration identity |
 | `opm-operator/internal/controller/platform_controller.go` | Claim validation and acceptance |
-| `opm-operator/docs/TENANCY.md` | The per-tenant ServiceAccount model D3's RBAC gate rests on |
+| `opm-operator/openspec/changes/archive/2026-04-20-default-sa-and-tenancy-guide/design.md` | The per-tenant ServiceAccount model D3's RBAC gate rests on (the shipped tenancy design; `docs/TENANCY.md` no longer exists) |
 | `catalog_opm/src/catalog.cue` | First catalog to list its contracts in the new maps; also gains D9's registration pair (`src/resources/` contract + `src/transformers/` renderer) |
 | `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |
