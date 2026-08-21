@@ -9,6 +9,14 @@ version: "3"
 
 silent: true
 
+includes:
+  # Delivery plans — the structured execution layer, kept outside the
+  # NNNN/ entries under the one-way reference rule (plans cite
+  # enhancements; enhancements never cite plans). `task plans:<name>`.
+  plans:
+    taskfile: plans/Taskfile.yml
+    dir: plans
+
 vars:
   # Path to the workspace root, relative to this Taskfile. Used to resolve
   # legacy:NNN cross-references against ../library/enhancements/. Override
