@@ -14,6 +14,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: Reference is generated from source; guidance is authored
 
+**Kind:** policy
+
 **Decision:** Every reference fact that can be derived from CUE or from cobra is generated, never hand-transcribed. That covers a member's name, `apiVersion`, `fqn`, `modulePath`, description, category, spec key and schema shape, a trait's `optional` posture and `appliesTo`, a blueprint's composed sets and `matchLabels`, the set of transformers that serve a member, worked examples taken from the transformers' embedded golden tests, and the full CLI command reference. Everything a reader needs that CUE does not encode is authored by hand: which blueprint to start from, which traits are legal on which blueprint, cross-member interactions, family guidance, and every Concepts and Diagnostics page.
 
 Generation reads evaluated CUE, not source text. The catalog's `metadata.description` is populated on all 70 members; the current index generator is a shell text scraper that reads doc comments instead and therefore reports an empty description for exactly the members readers need most. Hand-written doc comments remain load-bearing for what a one-line description cannot carry, and a CI gate refuses a new catalog member that ships without one.
@@ -30,6 +32,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 ### D2: `core/SPEC.md` is not published; the public reference is a projection of its normative spine
 
+**Kind:** policy
+
 **Decision:** `SPEC.md` remains contributor-facing. The public reference takes its Definition, Shape and Constraints content as a source and drops the Rationale sections. Rationale is instead mined as raw material for Concepts pages, rewritten rather than copied.
 
 **Alternatives considered:**
@@ -42,6 +46,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 **Source:** User decision 2026-08-18.
 
 ### D3: The documentation states what OPM does not do
+
+**Kind:** policy
 
 **Decision:** A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no reverse handoff from operator back to CLI, no export to GitOps manifests, no provider classes. Draft enhancements are not described as forthcoming features on that page or anywhere else.
 
@@ -56,6 +62,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 ### D4: The deletion and prune hazard is documented now, independent of enhancement 0012
 
+**Kind:** scope
+
 **Decision:** A page documents the current, shipped deletion semantics: `spec.prune` defaults to false, so the finalizer's default behaviour is to orphan; a CLI-owned instance carries no hold, so deleting the CR destroys the only inventory record and orphans everything it tracked; and CLI and operator deletion paths have diverged in ways that decide whether a resource is actually removed.
 
 **Alternatives considered:**
@@ -69,6 +77,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 ### D5: Secrets documentation waits for enhancement 0013
 
+**Kind:** scope
+
 **Decision:** The public documentation carries no secrets material until enhancement 0013 lands. 0013's `docs-secrets-authoring` slice authors it, and its concern was amended on 2026-08-18 to say so: it writes the first secrets documentation rather than rewriting anything.
 
 **Alternatives considered:**
@@ -81,6 +91,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 **Source:** User decision 2026-08-18.
 
 ### D6: The abstraction family is the documented default; the raw passthrough family is a marked escape hatch
+
+**Kind:** policy
 
 **Decision:** Reference splits catalog members by family. The abstraction family (11 resources, 27 traits, 5 blueprints) gets full per-member pages and leads every authoring path, with blueprints first. The raw `k8s-*` family (27 resources) gets one index page plus a generated table, labelled as the last resort, each entry pointing at the abstraction that covers the same ground where one exists.
 

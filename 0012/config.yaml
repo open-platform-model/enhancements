@@ -18,7 +18,7 @@ affects:
 
 core_schema: false
 created: "2026-07-27"
-updated: "2026-08-20"
+updated: "2026-08-21"
 
 authors:
   - emil@jacero.se
@@ -33,6 +33,8 @@ history:
     event: "Illustrative example vocabulary genericised across this entry — a documentation-hygiene pass, cosmetic only. NO decision, gate, open question, measurement or schema constraint changed, and no decision or OQ number moved. The worked examples' application names move to neutral infrastructure names (`postgres`), and example namespaces from `media`/`games-*` to `prod`/`staging`/`data-*`. DELIBERATELY LEFT VERBATIM: dated measurements (the 2026-07-25 byte-for-byte registry read and everything derived from it), live-fleet inventories, and real repository paths — `modules/jellyfin/`, `opm-kind-demo/jellyfin/` and the `modules/*` rewire lists name artifacts that were actually read or must actually be opened, so renaming them would falsify the record or dangle the pointer. Where an entry's problem statement IS the measurement, it stays; where the name was arbitrary, it moved."
   - date: "2026-08-20"
     event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0012/contracts, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-21"
+    event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
 
 # 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
 #        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).

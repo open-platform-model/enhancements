@@ -14,6 +14,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: Passthrough lives at the apply layer, not in core or the kernel
 
+**Kind:** contract
+
 **Decision:** Manifest passthrough is implemented in the CLI and operator apply paths. `opmodel.dev/core@v0` and the library kernel are not modified. Side manifests never become `#Component`s, `#Resource`s, or transformer output.
 
 **Alternatives considered:**
@@ -29,6 +31,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D2: Kustomize is rendered by an embedded library, not by shelling out
 
+**Kind:** policy
+
 **Decision:** Kustomize rendering uses the embedded `sigs.k8s.io/kustomize/api/krusty` Go API. The CLI and operator do not exec an external `kustomize` binary.
 
 **Alternatives considered:**
@@ -42,6 +46,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 ---
 
 ### D3: Side manifests reuse the existing ownership, inventory, and prune machinery
+
+**Kind:** contract
 
 **Decision:** Passed-through objects are folded into the resource list *before* labeling, inventory recording, staging, SSA, and prune. They are stamped with the same OPM ownership labels (including `module-instance.opmodel.dev/uuid`), recorded in `status.inventory`, and pruned on removal exactly like rendered output — one ownership model, one inventory, one prune. A provenance marker records that an object came from the side-channel.
 
@@ -58,6 +64,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D4: Available in both the CLI and the operator with identical semantics
 
+**Kind:** contract
+
 **Decision:** Passthrough is wired into both `opm instance build`/`apply` and the operator reconcile, sharing one renderer so a release behaves identically whether driven from a laptop or a controller.
 
 **Alternatives considered:**
@@ -71,6 +79,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 ---
 
 ### D5: Passthrough is declared via a release-spec side-channel, not woven into the component model
+
+**Kind:** contract
 
 **Decision:** Extra manifests are declared on the release surface — an `extraManifests` field on the operator's `ModuleInstance`/`ModulePackage` CRD specs and an equivalent CLI input — as an explicit, labeled side-channel. They are not expressed through `#Component`/`#Trait`/transformer constructs.
 

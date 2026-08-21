@@ -12,6 +12,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 ### D1: Add a second kernel half for execution; do not extend the render pipeline
 
+**Kind:** contract
+
 **Decision:** The kernel grows a parallel *execution half* that consumes the same `#Module` as the render half (`opm/compile/`) and produces ordered flow execution rather than resources. One input, two interpreters.
 
 **Alternatives considered:**
@@ -24,6 +26,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Source:** User decision 2026-06-29.
 
 ### D2: Four operational constructs in `core`, keep the names
+
+**Kind:** contract
 
 **Decision:** Introduce `#Op`, `#Action`, `#Lifecycle`, `#Workflow` into `opmodel.dev/core@v1`. `#Op` is the controlled primitive (closed set of kinds), `#Action` is a composition with FQN identity, `#Lifecycle` binds steps to state-transition phases, `#Workflow` is on-demand.
 
@@ -38,6 +42,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 ### D3: The library is a pure planner + orchestrator; side effects live behind injected executors
 
+**Kind:** contract
+
 **Decision:** The execution half (`opm/flow/`) plans flows into an ordered DAG and sequences them, but performs no side effects itself. Actual execution happens behind an `Executor` interface whose implementations the frontend injects.
 
 **Alternatives considered:**
@@ -49,6 +55,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Source:** User decision 2026-06-29.
 
 ### D4: Executor backends ship in the library's opt-in layer; frontends compose them à la carte
+
+**Kind:** contract
 
 **Decision:** The generic executor backend *hosts* live under `opm/helper/executor/` (opt-in, like `helper/loader/`). Frontends build a `Registry` from only the backends they want. The runner validates the plan against the registry up front; a step whose backend is unregistered fails fast before any execution.
 
@@ -63,6 +71,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 ### D5: Dispatch via a CUE `@op(...)` attribute (eval-invisible, SDK-readable)
 
+**Kind:** contract
+
 **Decision:** Each concrete `#Op` carries a CUE attribute, hof.io-style, as a **field attribute** (placed after the field value, e.g. `opKind: "exec" @op(...)`) or a declaration/file-level attribute. It is invisible to CUE evaluation and read by the Go SDK (`cue.Value.Attribute`). It carries `protocol` (which backend) and `ref` (locator for the pluggable artifact). Note: CUE does **not** support attributes placed *before* a field/identifier (the "before the field" hof.io form is not portable CUE — see `research/cue-attribute-longevity.md`), so 0009 uses the on-field placement.
 
 **Alternatives considered:**
@@ -75,6 +85,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Source:** User decision 2026-06-29. Inspired by hofstadter.io's task/flow attribute model (`@task(os.Exec)`). Longevity of the attribute mechanism assessed in `research/cue-attribute-longevity.md` (2026-06-29) — no removal planned; CUE's own custom-function feature is itself attribute-based (`@extern`).
 
 ### D6: Executable op code is catalog-sourced, not hardcoded in the library
+
+**Kind:** policy
 
 **Decision:** The actual code an Op runs is not compiled into the library. It is a pluggable artifact located by the `@op(...)` attribute's `ref`, distributed through the existing `#Catalog` / `#Platform.#registry` / `materialize` machinery. `core`'s `#Catalog` gains additive `#ops` / `#actions` maps alongside `#transformers`.
 
@@ -89,6 +101,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 ### D7: `#Lifecycle` exposes a fixed nine-phase vocabulary
 
+**Kind:** contract
+
 **Decision:** `#Lifecycle` phases are the fixed set: `pre-install`, `install`, `post-install`, `pre-upgrade`, `upgrade`, `post-upgrade`, `pre-uninstall`, `uninstall`, `post-uninstall`. Each phase is an ordered list of steps; absent phases are no-ops.
 
 **Alternatives considered:**
@@ -100,6 +114,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Source:** User decision 2026-06-29.
 
 ### D8: The HTTP Op exposes full CRUD and returns the raw response; parsing is done in CUE
+
+**Kind:** contract
 
 **Decision:** The `http` Op exposes the full verb set (GET/POST/PUT/PATCH/DELETE) and returns the raw status, headers, and body. Response parsing/shaping is done in CUE downstream, not inside the executor.
 

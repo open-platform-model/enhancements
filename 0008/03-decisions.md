@@ -19,6 +19,8 @@ choice never gets lost.
 
 ### D1: CUE in `core/` is the single source of truth; Go types and CRD YAML are generated
 
+**Kind:** contract
+
 **Decision:** The `ModuleInstance`, `ModulePackage`, and `Platform` type definitions are authored once in CUE in `core/`. The operator's `api/v1alpha1` Go structs and the `config/crd/bases/*.yaml` manifests become generated artefacts derived from that CUE.
 
 **Alternatives considered:**
@@ -31,6 +33,8 @@ choice never gets lost.
 **Source:** User decision 2026-06-25 (direction selected after research synthesis); `research/findings.md` §7.
 
 ### D2: Generation runs downstream over the *published* `core`; `core/` stays pure CUE
+
+**Kind:** policy
 
 **Decision:** The generator is a Go tool in `opm-operator` (`cmd/crdgen/`) that imports `opmodel.dev/core` as a published module dependency. `core/` itself gains no Go and no build-time codegen.
 
@@ -45,6 +49,8 @@ choice never gets lost.
 
 ### D3: The CRD schema body is emitted via CUE's `encoding/openapi` in structural mode
 
+**Kind:** policy
+
 **Decision:** Generate each version's `openAPIV3Schema` with `cuelang.org/go/encoding/openapi` using `Config{ExpandReferences: true}`, which produces the structural-OpenAPI form Kubernetes CRDs require.
 
 **Alternatives considered:**
@@ -57,6 +63,8 @@ choice never gets lost.
 **Source:** `research/findings.md` §1; `cuelang.org/docs/concept/how-cue-works-with-openapi/`; `encoding/openapi/crd.go` @v0.17.0-alpha.1.
 
 ### D4: Non-schema CRD facets are modelled as CUE data, not Go markers
+
+**Kind:** contract
 
 **Decision:** Scope, short names, status subresource, printer columns, and CEL validations are expressed as fields on the `#CRD` / `#CRDVersion` value in CUE, and spliced into the assembled CRD manifest by `cmd/crdgen`. They are no longer authored as kubebuilder marker comments.
 
@@ -71,6 +79,8 @@ choice never gets lost.
 
 ### D5: deepcopy stays controller-gen's job, run over the generated Go
 
+**Kind:** policy
+
 **Decision:** `cmd/crdgen` emits the Go API structs (with json tags and `+kubebuilder:object:root=true` on root types); controller-gen `object` then generates `zz_generated.deepcopy.go` from those structs, unchanged from today.
 
 **Alternatives considered:**
@@ -82,6 +92,8 @@ choice never gets lost.
 **Source:** `research/findings.md` §3; `sigs.k8s.io/controller-tools/pkg/deepcopy`.
 
 ### D6: CEL `x-kubernetes-validations` rules are carried verbatim, never translated
+
+**Kind:** policy
 
 **Decision:** CEL rules (today: the `Platform` `self.metadata.name == 'cluster'` singleton rule) are stored as opaque strings in `#CELValidation.rule` and injected as-is into the assembled CRD. No CEL↔CUE translation is attempted in either direction.
 
@@ -95,6 +107,8 @@ choice never gets lost.
 
 ### D7: Drift is blocked by a regenerate-and-diff CI gate
 
+**Kind:** policy
+
 **Decision:** A `crdgen:check` CI step regenerates the CRD YAML and Go types from `core` and fails the build if the result differs from the committed artefacts. Regeneration is also a local `task` target.
 
 **Alternatives considered:**
@@ -107,6 +121,8 @@ choice never gets lost.
 **Source:** User decision 2026-06-25; `01-problem.md` (unenforced-drift pain).
 
 ### D8: `gengotypes` is an optional implementation detail, not a load-bearing dependency
+
+**Kind:** policy
 
 **Decision:** `cmd/crdgen` owns Go-struct emission. It may shell out to `cue exp gengotypes` or use a small in-tree emitter via the CUE Go API; either way the project does not depend on `gengotypes` being stable or on its exact output.
 

@@ -10,6 +10,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 ### D1: Kubernetes is the first-class lowest common denominator; one generated type source feeds both catalogs
 
+**Kind:** policy
+
 **Decision:** The Kubernetes OpenAPI is the single source of Kubernetes type truth. Generation tooling derives all downstream type schemas from it, and both `catalog_kubernetes` and `catalog_opm` consume the generated output rather than independently-maintained schemas. The project targets Kubernetes only.
 
 **Alternatives considered:**
@@ -23,6 +25,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 ### D2: Catalog-on-catalog composition is supported, not forced
 
+**Kind:** policy
+
 **Decision:** Composition between catalogs is an available capability for layering abstractions *on top* of a lower catalog (notably third-party / provider golden-path catalogs). The base catalogs are not required to compose each other: `catalog_opm` keeps its own constructing transformers, re-pointed at the strict generated types, and does not flow through `catalog_kubernetes`.
 
 **Alternatives considered:**
@@ -34,6 +38,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 **Source:** User decision 2026-06-20.
 
 ### D3: No core change in this enhancement; multi-phase lowering is a staged, evidence-gated follow-on
+
+**Kind:** scope
 
 **Decision:** This enhancement makes no change to `opmodel.dev/core@v0`; the transformation model stays single-pass. A separate `core` enhancement for multi-phase / fixpoint lowering (transformer outputs that re-enter matching) is opened only when a concrete case demonstrates that pure-CUE schema projection cannot express it. As cheap insurance, the transformer-output convention is kept compatible with typed outputs later, without adopting fixpoint lowering now.
 

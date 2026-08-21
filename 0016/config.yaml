@@ -19,7 +19,7 @@ affects:
   - library
 core_schema: true
 created: "2026-08-13"
-updated: "2026-08-20"
+updated: "2026-08-21"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -47,6 +47,8 @@ history:
     event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0016/schemas, CUE v0.17.0. Structure/metadata only."
   - date: "2026-08-20"
     event: "Schemas convention follow-up: CLI request/report contracts moved from schemas/ to contracts/ (schemas/ keeps only the #ModuleInitSurface core delta); examples.cue and schemas/spec.md authored."
+  - date: "2026-08-21"
+    event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
 # Peer enhancements this one builds on or interacts with.
 # 0002: the Instance vocabulary this entry is written in. 0011: publish-time
 # gates — the candidate home for an initValues-conformance check (OQ5).

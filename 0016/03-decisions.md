@@ -25,6 +25,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: A new CLI command scaffolds an on-disk instance package from a published module reference
 
+**Kind:** contract
+
 **Decision:** The CLI gains an init command for module instances: the user supplies an OCI module reference and tag (plus instance name and namespace), and the command writes a complete, standalone on-disk instance package — `cue.mod/module.cue`, `instance.cue`, `values.cue` — the same shape `LoadInstancePackage` consumes and `opm instance build`/`apply` accept.
 
 **Alternatives considered:**
@@ -38,6 +40,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D2: `debugValues` is the default template source for the generated `values.cue`
 
+**Kind:** contract
+
 **Decision:** When the module declares no dedicated init field (D3), init populates the generated `values.cue` from the module's `debugValues`. The command output names the source used, so a `debugValues`-scaffolded file is visibly that.
 
 **Alternatives considered:**
@@ -50,6 +54,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 **Source:** User decision 2026-08-13.
 
 ### D3: `#Module` gains an optional field carrying the author-intended init template, taking precedence over `debugValues`
+
+**Kind:** contract
 
 **Decision:** `#Module` gains a new optional field (working name `initValues`; final name and shape are OQ1) whose meaning is: the values a freshly initialized instance package starts from. When present, init uses it and never reads `debugValues`. `debugValues` keeps its existing contract (concrete example values for testing and debugging) unchanged.
 

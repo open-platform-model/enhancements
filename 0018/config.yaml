@@ -33,6 +33,8 @@ history:
     event: "Schemas convention migration: config gains core_schema: false — the entry changes no opmodel.dev/core definitions, so its compilable CUE moved from schemas/ to contracts/ (file renamed target.cue -> contracts.cue, package renamed to contracts, content unchanged); cue.mod refreshed to enhancements.opmodel.dev/0018/contracts, CUE v0.17.0. Structure/metadata only."
   - date: "2026-08-21"
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
+  - date: "2026-08-21"
+    event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0002"

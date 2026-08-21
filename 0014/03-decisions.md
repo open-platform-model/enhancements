@@ -14,6 +14,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: The exported unit is the instance's apply envelope, not the bare CR
 
+**Kind:** contract
+
 **Decision:** `opm instance export` emits a directory containing the `ModuleInstance` plus the `Namespace`, the applier `ServiceAccount`, its RBAC, and a `kustomization.yaml` listing them — one directory per instance. It does not emit repo-level Flux wiring (`OCIRepository`, Flux `Kustomization`), and it does not emit a bare CR.
 
 **Alternatives considered:**
@@ -28,6 +30,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D2: Export refuses to write unless the published module reproduces the deployed render
 
+**Kind:** contract
+
 **Decision:** Export runs handoff's precondition chain before writing any file: cluster gates, CR existence, non-local render provenance, concrete `spec.module`, a recorded `status.lastAppliedRenderDigest`, and a strict-registry verification render whose digest equals it. A failure aborts with nothing written. `--force` bypasses the digest comparison only, exactly as it does for handoff; it does not relax the provenance or resolvability gates.
 
 **Alternatives considered:**
@@ -41,6 +45,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D3: `spec.values` is written verbatim, with a warning
 
+**Kind:** contract
+
 **Decision:** The exported `ModuleInstance` carries the live CR's `spec.values` byte-for-byte. The command prints a warning that the values were written to disk unredacted and that OPM cannot yet identify which of them are secret. There is no redaction mode and no refusal on suspected secrets.
 
 **Alternatives considered:**
@@ -53,6 +59,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 **Source:** User decision 2026-07-29.
 
 ### D4: The live CR is the sole input
+
+**Kind:** contract
 
 **Decision:** Export reads the `ModuleInstance` from the cluster and nothing else. It does not read the local instance file, accept a values file, or merge local state into the output.
 
