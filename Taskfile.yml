@@ -51,10 +51,7 @@ tasks:
           task questions:open ID=0001            — TSV of unresolved Open Questions (for the OQ-walk skill)
           task graph                             — regenerate GRAPH.md
           task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
-          task new:plan ID=0001                  — scaffold plan.yaml (structured slice plan) inside an enhancement
-          task plan:graph ID=0001                — regenerate NNNN/PLAN.md (slice DAG)
-          task plan:ready ID=0001                — slices whose dependencies are all done (order-of-procedure)
-          task slice:seed ID=0001 SLICE=foo      — print a seed stub for one slice's OpenSpec change
+          task plans:                            — delivery-plan tasks (new, vet, graph, ready, seed, uncovered, deferred) — see plans/README.md
         EOF
 
   list:
@@ -254,188 +251,6 @@ tasks:
           comm -23 <(printf '%s\n' "$cited") <(printf '%s\n' "$declared")
         }
 
-        # Slice-plan structural checks (only when plan.yaml exists — the
-        # file is optional). Validates: #SlicePlan schema conformance,
-        # slice id uniqueness, repo ∈ affects, every depends_on resolving
-        # (a local slice id, or "NNNN:slice-id" checked against that
-        # enhancement's own plan.yaml when one exists — its absence just
-        # means the upstream isn't sliced yet, not an error), and no cycle
-        # in the local depends_on graph. Cross-enhancement cycles are out
-        # of scope (would require reading every plan.yaml on every run).
-        plan_errors() {
-          local dir="$1" cfg="$2"
-          local plan="$dir/plan.yaml"
-          [ -f "$plan" ] || return 0
-
-          local out=""
-          local cue_out
-          if ! cue_out=$(cue vet -d '#SlicePlan' schema.cue "$plan" 2>&1); then
-            out="${out}\n    plan.yaml cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
-          fi
-
-          # If yq can't even read slices[], stop here — the cue vet above
-          # already reported the parse/shape problem.
-          if ! yq -e '.slices' "$plan" >/dev/null 2>&1; then
-            printf '%s' "$out"
-            return 0
-          fi
-
-          local affects; affects=$(yq -r '.affects | join(" ")' "$cfg" 2>/dev/null || echo "")
-          local n; n=$(yq -r '.slices | length' "$plan" 2>/dev/null || echo 0)
-
-          local ids="" i id repo phase
-          local -A slice_phase=()
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            repo=$(yq -r ".slices[$i].repo // \"\"" "$plan" 2>/dev/null)
-            phase=$(yq -r ".slices[$i].phase // \"\"" "$plan" 2>/dev/null)
-            ids="${ids} ${id}"
-            slice_phase["$id"]="$phase"
-            case " $affects " in
-              *" $repo "*) : ;;
-              *) out="${out}\n    slice '$id': repo '$repo' not in config.yaml affects[]" ;;
-            esac
-          done
-
-          local dup; dup=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' | sort | uniq -d || true)
-          [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
-
-          local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          # `other_ids` is materialised BEFORE the membership test on purpose.
-          # The obvious form — `yq ... | grep -qx "$other_slice"` — is a race
-          # under `set -o pipefail`: `grep -q` exits on its first match, yq
-          # takes SIGPIPE while still writing, and pipefail turns the killed
-          # producer into a failed pipeline even though the slice WAS found.
-          # Measured 2026-08-05: 36/60 false "no slice" failures on a valid
-          # tree, worst when the target is the first id in the other plan —
-          # which both of the core edges across 0010/0011 are.
-          local edges="" local_deps dep other other_slice cur_phase dep_phase other_ids
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            cur_phase="${slice_phase[$id]:-}"
-            local_deps=""
-            while IFS= read -r dep; do
-              [ -z "$dep" ] && continue
-              dep_phase=""
-              case "$dep" in
-                [0-9][0-9][0-9][0-9]:*)
-                  other="${dep%%:*}"; other_slice="${dep#*:}"
-                  if ! ref_exists "$other"; then
-                    out="${out}\n    slice '$id': depends_on '$dep' — no such enhancement '$other'"
-                  elif [ -f "$other/plan.yaml" ]; then
-                    other_ids=$(yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null || true)
-                    if ! grep -qx "$other_slice" <<<"$other_ids"; then
-                      out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
-                    else
-                      dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
-                    fi
-                  fi
-                  ;;
-                *)
-                  if ! grep -qx "$dep" <<<"$all_ids"; then
-                    out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
-                  else
-                    dep_phase="${slice_phase[$dep]:-}"
-                  fi
-                  local_deps="${local_deps}${local_deps:+,}${dep}"
-                  ;;
-              esac
-              # Phase ordering (#SlicePhase): implementation lands before
-              # migration, so an implementation slice may never wait on a
-              # migration slice. Checking DIRECT edges is sufficient — any
-              # transitive implementation→…→migration path necessarily
-              # contains at least one direct implementation→migration edge.
-              # Not a blanket barrier: a migration slice whose own deps are
-              # done is free to run while unrelated implementation work is
-              # still open (that grouping is `task plan:ready`'s job).
-              if [ "$cur_phase" = "implementation" ] && [ "$dep_phase" = "migration" ]; then
-                out="${out}\n    slice '$id': implementation slice depends on migration slice '$dep' — migration follows implementation"
-              fi
-            done < <(yq -r ".slices[$i].depends_on[]?" "$plan" 2>/dev/null)
-            edges="${edges}${id}\t${local_deps}\n"
-          done
-
-          local cyc
-          cyc=$(printf '%b' "$edges" | awk -F'\t' '
-            NF < 1 || $1 == "" { next }
-            { deps[$1] = $2; ids[$1] = 1 }
-            END {
-              n = 0
-              for (id in ids) { n++; resolved[id] = 0 }
-              changed = 1; iter = 0
-              while (changed && iter <= n) {
-                changed = 0; iter++
-                for (id in ids) {
-                  if (resolved[id]) continue
-                  ok = 1
-                  split(deps[id], dl, ",")
-                  for (k in dl) {
-                    d = dl[k]
-                    if (d == "") continue
-                    if ((d in ids) && !resolved[d]) { ok = 0; break }
-                  }
-                  if (ok) { resolved[id] = 1; changed = 1 }
-                }
-              }
-              cyc = ""
-              for (id in ids) if (!resolved[id]) cyc = cyc (cyc == "" ? "" : ", ") id
-              if (cyc != "") print cyc
-            }
-          ' || true)
-          [ -n "$cyc" ] && out="${out}\n    dependency cycle involves: $cyc"
-
-          # Decision references (#DecisionRefStr). A slice cites the decisions
-          # it implements structurally rather than inside `concern`, so the
-          # numbers can be resolved here and inverted by
-          # `task decisions:uncovered`. A local "D34" must exist in THIS
-          # entry's 03-decisions.md; an "NNNN:D34" in that entry's. Numbers are
-          # immutable per the repo's invariants, so a tombstoned heading
-          # (`### D12: (merged into D10, …)`) still RESOLVES — the number is
-          # retired, not absent, and citations to it stay valid.
-          local dref dnum ddir
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            while IFS= read -r dref; do
-              [ -z "$dref" ] && continue
-              case "$dref" in
-                [0-9][0-9][0-9][0-9]:*)
-                  ddir="${dref%%:*}"; dnum="${dref#*:}"
-                  if ! ref_exists "$ddir"; then
-                    out="${out}\n    slice '$id': decisions '$dref' — no such enhancement '$ddir'"
-                    continue
-                  fi
-                  ;;
-                *) ddir="$dir"; dnum="$dref" ;;
-              esac
-              local dlog="$ddir/03-decisions.md"
-              if [ ! -f "$dlog" ]; then
-                out="${out}\n    slice '$id': decisions '$dref' — $ddir has no 03-decisions.md"
-              elif ! grep -qE "^#{2,4} $dnum:" "$dlog"; then
-                out="${out}\n    slice '$id': decisions '$dref' — no '$dnum:' heading in $dlog"
-              fi
-            done < <(yq -r ".slices[$i].decisions[]?" "$plan" 2>/dev/null)
-          done
-
-          # `unsliced` keys must resolve the same way, and must not ALSO be
-          # claimed by a slice — a decision is either carried or deliberately
-          # not, never both.
-          while IFS= read -r dref; do
-            [ -z "$dref" ] && continue
-            case "$dref" in
-              [0-9][0-9][0-9][0-9]:*) ddir="${dref%%:*}"; dnum="${dref#*:}" ;;
-              *) ddir="$dir"; dnum="$dref" ;;
-            esac
-            if [ -f "$ddir/03-decisions.md" ] && ! grep -qE "^#{2,4} $dnum:" "$ddir/03-decisions.md"; then
-              out="${out}\n    unsliced '$dref': no '$dnum:' heading in $ddir/03-decisions.md"
-            fi
-            if yq -r '.slices[].decisions[]?' "$plan" 2>/dev/null | grep -qx "$dref"; then
-              out="${out}\n    unsliced '$dref': also claimed by a slice — a decision is carried or deliberately not, never both"
-            fi
-          done < <(yq -r '.unsliced // {} | keys | .[]' "$plan" 2>/dev/null)
-
-          printf '%s' "$out"
-        }
-
         check() {
           local cfg="$1"
           local dir; dir=$(dirname "$cfg")
@@ -557,9 +372,9 @@ tasks:
             errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
           fi
 
-          # 9. plan.yaml structural checks (only when the file exists — optional).
-          local plan_out; plan_out=$(plan_errors "$dir" "$cfg")
-          [ -n "$plan_out" ] && errors="${errors}${plan_out}"
+          # 9. One-way rule: delivery plans live in plans/, never inside an entry.
+          [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+          [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
 
           if [ -n "$errors" ]; then
             printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
@@ -722,180 +537,6 @@ tasks:
           comm -23 <(printf '%s\n' "$cited") <(printf '%s\n' "$declared")
         }
 
-        # Slice-plan structural checks — see the long comment on the same
-        # function in `vet`. Only runs when plan.yaml exists (optional file).
-        plan_errors() {
-          local dir="$1" cfg="$2"
-          local plan="$dir/plan.yaml"
-          [ -f "$plan" ] || return 0
-
-          local out=""
-          local cue_out
-          if ! cue_out=$(cue vet -d '#SlicePlan' schema.cue "$plan" 2>&1); then
-            out="${out}\n    plan.yaml cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
-          fi
-
-          if ! yq -e '.slices' "$plan" >/dev/null 2>&1; then
-            printf '%s' "$out"
-            return 0
-          fi
-
-          local affects; affects=$(yq -r '.affects | join(" ")' "$cfg" 2>/dev/null || echo "")
-          local n; n=$(yq -r '.slices | length' "$plan" 2>/dev/null || echo 0)
-
-          local ids="" i id repo phase
-          local -A slice_phase=()
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            repo=$(yq -r ".slices[$i].repo // \"\"" "$plan" 2>/dev/null)
-            phase=$(yq -r ".slices[$i].phase // \"\"" "$plan" 2>/dev/null)
-            ids="${ids} ${id}"
-            slice_phase["$id"]="$phase"
-            case " $affects " in
-              *" $repo "*) : ;;
-              *) out="${out}\n    slice '$id': repo '$repo' not in config.yaml affects[]" ;;
-            esac
-          done
-
-          local dup; dup=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' | sort | uniq -d || true)
-          [ -n "$dup" ] && out="${out}\n    duplicate slice id(s): $(echo "$dup" | tr '\n' ' ')"
-
-          local all_ids; all_ids=$(echo "$ids" | tr -s ' ' '\n' | grep -E '.' || true)
-          # `other_ids` is materialised BEFORE the membership test on purpose.
-          # The obvious form — `yq ... | grep -qx "$other_slice"` — is a race
-          # under `set -o pipefail`: `grep -q` exits on its first match, yq
-          # takes SIGPIPE while still writing, and pipefail turns the killed
-          # producer into a failed pipeline even though the slice WAS found.
-          # Measured 2026-08-05: 36/60 false "no slice" failures on a valid
-          # tree, worst when the target is the first id in the other plan —
-          # which both of the core edges across 0010/0011 are.
-          local edges="" local_deps dep other other_slice cur_phase dep_phase other_ids
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            cur_phase="${slice_phase[$id]:-}"
-            local_deps=""
-            while IFS= read -r dep; do
-              [ -z "$dep" ] && continue
-              dep_phase=""
-              case "$dep" in
-                [0-9][0-9][0-9][0-9]:*)
-                  other="${dep%%:*}"; other_slice="${dep#*:}"
-                  if ! ref_exists "$other"; then
-                    out="${out}\n    slice '$id': depends_on '$dep' — no such enhancement '$other'"
-                  elif [ -f "$other/plan.yaml" ]; then
-                    other_ids=$(yq -r '.slices[].id' "$other/plan.yaml" 2>/dev/null || true)
-                    if ! grep -qx "$other_slice" <<<"$other_ids"; then
-                      out="${out}\n    slice '$id': depends_on '$dep' — no slice '$other_slice' in $other/plan.yaml"
-                    else
-                      dep_phase=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .phase // \"\"" "$other/plan.yaml" 2>/dev/null)
-                    fi
-                  fi
-                  ;;
-                *)
-                  if ! grep -qx "$dep" <<<"$all_ids"; then
-                    out="${out}\n    slice '$id': depends_on '$dep' — no such slice id in this plan"
-                  else
-                    dep_phase="${slice_phase[$dep]:-}"
-                  fi
-                  local_deps="${local_deps}${local_deps:+,}${dep}"
-                  ;;
-              esac
-              # Phase ordering (#SlicePhase): implementation lands before
-              # migration, so an implementation slice may never wait on a
-              # migration slice. Checking DIRECT edges is sufficient — any
-              # transitive implementation→…→migration path necessarily
-              # contains at least one direct implementation→migration edge.
-              # Not a blanket barrier: a migration slice whose own deps are
-              # done is free to run while unrelated implementation work is
-              # still open (that grouping is `task plan:ready`'s job).
-              if [ "$cur_phase" = "implementation" ] && [ "$dep_phase" = "migration" ]; then
-                out="${out}\n    slice '$id': implementation slice depends on migration slice '$dep' — migration follows implementation"
-              fi
-            done < <(yq -r ".slices[$i].depends_on[]?" "$plan" 2>/dev/null)
-            edges="${edges}${id}\t${local_deps}\n"
-          done
-
-          local cyc
-          cyc=$(printf '%b' "$edges" | awk -F'\t' '
-            NF < 1 || $1 == "" { next }
-            { deps[$1] = $2; ids[$1] = 1 }
-            END {
-              n = 0
-              for (id in ids) { n++; resolved[id] = 0 }
-              changed = 1; iter = 0
-              while (changed && iter <= n) {
-                changed = 0; iter++
-                for (id in ids) {
-                  if (resolved[id]) continue
-                  ok = 1
-                  split(deps[id], dl, ",")
-                  for (k in dl) {
-                    d = dl[k]
-                    if (d == "") continue
-                    if ((d in ids) && !resolved[d]) { ok = 0; break }
-                  }
-                  if (ok) { resolved[id] = 1; changed = 1 }
-                }
-              }
-              cyc = ""
-              for (id in ids) if (!resolved[id]) cyc = cyc (cyc == "" ? "" : ", ") id
-              if (cyc != "") print cyc
-            }
-          ' || true)
-          [ -n "$cyc" ] && out="${out}\n    dependency cycle involves: $cyc"
-
-          # Decision references (#DecisionRefStr). A slice cites the decisions
-          # it implements structurally rather than inside `concern`, so the
-          # numbers can be resolved here and inverted by
-          # `task decisions:uncovered`. A local "D34" must exist in THIS
-          # entry's 03-decisions.md; an "NNNN:D34" in that entry's. Numbers are
-          # immutable per the repo's invariants, so a tombstoned heading
-          # (`### D12: (merged into D10, …)`) still RESOLVES — the number is
-          # retired, not absent, and citations to it stay valid.
-          local dref dnum ddir
-          for ((i = 0; i < n; i++)); do
-            id=$(yq -r ".slices[$i].id // \"\"" "$plan" 2>/dev/null)
-            while IFS= read -r dref; do
-              [ -z "$dref" ] && continue
-              case "$dref" in
-                [0-9][0-9][0-9][0-9]:*)
-                  ddir="${dref%%:*}"; dnum="${dref#*:}"
-                  if ! ref_exists "$ddir"; then
-                    out="${out}\n    slice '$id': decisions '$dref' — no such enhancement '$ddir'"
-                    continue
-                  fi
-                  ;;
-                *) ddir="$dir"; dnum="$dref" ;;
-              esac
-              local dlog="$ddir/03-decisions.md"
-              if [ ! -f "$dlog" ]; then
-                out="${out}\n    slice '$id': decisions '$dref' — $ddir has no 03-decisions.md"
-              elif ! grep -qE "^#{2,4} $dnum:" "$dlog"; then
-                out="${out}\n    slice '$id': decisions '$dref' — no '$dnum:' heading in $dlog"
-              fi
-            done < <(yq -r ".slices[$i].decisions[]?" "$plan" 2>/dev/null)
-          done
-
-          # `unsliced` keys must resolve the same way, and must not ALSO be
-          # claimed by a slice — a decision is either carried or deliberately
-          # not, never both.
-          while IFS= read -r dref; do
-            [ -z "$dref" ] && continue
-            case "$dref" in
-              [0-9][0-9][0-9][0-9]:*) ddir="${dref%%:*}"; dnum="${dref#*:}" ;;
-              *) ddir="$dir"; dnum="$dref" ;;
-            esac
-            if [ -f "$ddir/03-decisions.md" ] && ! grep -qE "^#{2,4} $dnum:" "$ddir/03-decisions.md"; then
-              out="${out}\n    unsliced '$dref': no '$dnum:' heading in $ddir/03-decisions.md"
-            fi
-            if yq -r '.slices[].decisions[]?' "$plan" 2>/dev/null | grep -qx "$dref"; then
-              out="${out}\n    unsliced '$dref': also claimed by a slice — a decision is carried or deliberately not, never both"
-            fi
-          done < <(yq -r '.unsliced // {} | keys | .[]' "$plan" 2>/dev/null)
-
-          printf '%s' "$out"
-        }
-
         errors=""
         dir="$ID"
         dir_id="$ID"
@@ -997,10 +638,9 @@ tasks:
         if [ -n "$dangling" ]; then
           errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
         fi
-
-        # 9. plan.yaml structural checks (only when the file exists — optional).
-        plan_out=$(plan_errors "$dir" "$cfg")
-        [ -n "$plan_out" ] && errors="${errors}${plan_out}"
+        # 9. One-way rule: delivery plans live in plans/, never inside an entry.
+        [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+        [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
 
         if [ -n "$errors" ]; then
           printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
@@ -1019,8 +659,14 @@ tasks:
         - accepted+   → 03-decisions.md has at least one '### DN:' heading
         - accepted+   → 03-decisions.md has '## Open Questions' block
         - accepted+   → 04-graduation.md has 'draft → accepted' section
-        - accepted    → nudge (not a gate) to add plan.yaml when affects[]
-                        spans more than one repo and none exists yet
+        - draft/acc   → one-way smell: no *.md names a plan file
+                        (plan.yaml / PLAN.md) — plans live in plans/
+        - draft       → every decision carries '**Kind:** contract |
+                        policy | scope'
+        - draft/acc   → mechanism smell: file:line refs or function()
+                        tokens in 03-decisions.md
+        - draft/acc   → evidence nudge: no research/, no experiments/,
+                        no 'Measured' claim in the decision log
         - draft+core  → nudge: schemas/spec.md + companion examples.cue are
                         required before draft → accepted (vet enforces at
                         accepted)
@@ -1092,15 +738,50 @@ tasks:
             done
           fi
 
-          # Nudge, not a gate: an accepted multi-repo entry with no plan.yaml
-          # is exactly the shape 06-operational.md's Cross-Repo Coordination
-          # section starts reinventing as a hand-numbered prose list. Scoped
-          # to `accepted` only — no point nagging forever on an `implemented`
-          # (frozen) entry that shipped before this convention existed.
-          if [ "$status" = "accepted" ]; then
-            local affects_n; affects_n=$(yq -r '.affects | length' "$cfg" 2>/dev/null || echo 0)
-            if [ "$affects_n" -gt 1 ] && [ ! -f "$dir/plan.yaml" ]; then
-              warnings="${warnings}\n    affects[] spans $affects_n repos with no plan.yaml — consider 'task new:plan ID=$id' (see enhancement-slicing skill)"
+          # One-way smell: a draft/accepted entry's prose naming a plan file
+          # is a reference in the forbidden direction (generic statements
+          # like "a delivery plan under plans/" are fine — this greps only
+          # for the file names). The coverage nudge for accepted multi-repo
+          # entries with no plan lives on the plans side (task plans:vet).
+          if [ "$status" = "draft" ] || [ "$status" = "accepted" ]; then
+            local oneway
+            oneway=$(grep -lE 'plan\.yaml|PLAN\.md' "$dir"/*.md 2>/dev/null | paste -sd',' - || true)
+            [ -z "$oneway" ] || warnings="${warnings}\n    names a plan file ($oneway) — enhancements never reference plans (one-way rule); reword to the generic form"
+          fi
+
+          # Decision Kind gate (draft entries): every decision carries
+          # '**Kind:** contract | policy | scope'. The admission test: if
+          # every affected repo were rewritten from scratch, would this
+          # decision still bind the result? Mechanism decisions belong in
+          # the implementing slice's OpenSpec change, not here.
+          if [ "$status" = "draft" ] && [ -f "$dir/03-decisions.md" ]; then
+            local dn_total kind_total
+            dn_total=$(grep -cE '^#{2,4} D[0-9]+: [^(]' "$dir/03-decisions.md" 2>/dev/null || true)
+            kind_total=$(grep -cE '^\*\*Kind:\*\* (contract|policy|scope)$' "$dir/03-decisions.md" 2>/dev/null || true)
+            if [ "${dn_total:-0}" -gt "${kind_total:-0}" ]; then
+              warnings="${warnings}\n    03-decisions.md: $((dn_total - kind_total)) decision(s) without a '**Kind:** contract | policy | scope' line"
+            fi
+          fi
+
+          # Mechanism smell (draft + accepted): file:line references or
+          # function() tokens inside the decision log usually mean
+          # construction detail that belongs in the implementing slice's
+          # OpenSpec change rather than the design record. Measured
+          # constraints stay — this is a smell count, not a gate.
+          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
+            local mech
+            mech=$(grep -cE '\.(go|cue|md):[0-9]+|\b[a-zA-Z_][a-zA-Z0-9_]+\(\)' "$dir/03-decisions.md" 2>/dev/null || true)
+            if [ "${mech:-0}" -gt 0 ]; then
+              warnings="${warnings}\n    03-decisions.md: $mech mechanism smell(s) (file:line refs or function() tokens) — construction detail belongs in the implementing slice"
+            fi
+          fi
+
+          # Evidence nudge (draft + accepted): a design whose decisions rest
+          # on no measured backing. Satisfied by research/ or experiments/
+          # existing, or any 'Measured' claim in the decision log.
+          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
+            if [ ! -d "$dir/research" ] && [ ! -d "$dir/experiments" ] && ! grep -qi 'measured' "$dir/03-decisions.md" 2>/dev/null; then
+              warnings="${warnings}\n    decisions carry no measured evidence (no research/, no experiments/, no 'Measured' claim) — consider backing the design"
             fi
           fi
 
