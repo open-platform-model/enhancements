@@ -12,7 +12,7 @@ Three new surfaces, and the first is the point of the entry.
 
 **Registration status.** `TransformerRegistration.status` carries `accepted`, `active`, `reason` and `dependentInstances`. The four together answer the questions an operator actually asks — why was my claim refused, why is it accepted but not live, and what breaks if I delete it. A refused claim names the failing check (catalog unresolvable, contract not defined by any subscribed catalog, contract already provided); an inactive one names the ModulePackage it is waiting on.
 
-New diagnostics: the `unfulfilled` and `overSubscribed` reports at platform-package generation (0010 D37's two-provider refusal, now able to name both catalog paths), D5's comparable-predicate refusal (site per OQ10), and a registration-rejection reason enum on the CR.
+New diagnostics: the `unfulfilled` and `overSubscribed` reports at platform-package generation (0010 D37's two-provider refusal, now able to name both catalog paths), D5's comparable-predicate refusal (at generation, per D5; detection per OQ9's deferral), and a registration-rejection reason enum on the CR.
 
 ## Semver Impact
 
@@ -55,7 +55,7 @@ Six areas, with a genuine ordering constraint rather than a convention, which is
   core      contract maps + inventory fold + routing assertion + SPEC.md
             │
             ▼
-  library   read inventory/verdicts off built values · sharper diagnostic · duplicate guard (OQ9/OQ10)
+  library   read inventory/verdicts off built values · sharper diagnostic · duplicate guard (detection per OQ9)
             │
             ├──────────────▶ catalog   catalog_opm lists its contracts, republished
             │                              │

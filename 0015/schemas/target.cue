@@ -23,12 +23,12 @@
 //   #PublishedContract              NEW      (D1) the member value a catalog publishes per contract; provenance stamped, never authored at the leaf
 //   #CatalogContractMaps            CHANGED  vs core@v2 #Catalog (catalog.cue) — #resources/#traits/#blueprints added beside #transformers, same stamping pattern constraint; stated standalone here
 //   #ContractInventory              NEW      (D1) the defined × required cross — under 0019 D5 a fold over the platform's embedded catalogs; Platform readiness and `opm platform check` read it
-//   #ContractRouting                NEW      (D2/D5) the arity relation: 0010 D37's exactly-one-provider rule stands (D2, as revised); catalog buckets unconstrained here — D5's comparable-predicate guard is OQ9/OQ10-gated
+//   #ContractRouting                NEW      (D2/D5) the arity relation: 0010 D37's exactly-one-provider rule stands (D2, as revised); catalog buckets unconstrained here — D5's guard runs at generation, detection deferred per OQ9
 //   #TransformerRegistrationSpec    NEW      (D3) the claim a provider module ships
 //   #TransformerRegistrationStatus  NEW      (D3) what the Platform reconciler decides about a claim
 //   #TransformerRegistration        NEW      (D3) the cluster-scoped CR: spec + status
 //   #Subscription                   MIRROR   the Platform CR's subscription coordinate (opm-operator platform_types.go) — core's own registry entry becomes #CatalogEntry {enable, #catalog} under 0019 D5; the scalar shape survives only CR-side, as what 0019 D6's generator consumes
-//   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the regenerated platform package's identity (OQ3, OQ8)
+//   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the regenerated platform package's identity (reproduction per D6, regeneration per D13)
 //
 // Unresolved fields carry `// OQN:` markers pointing at ../03-decisions.md.
 //
@@ -193,9 +193,10 @@ package schema
 		// A "catalog"-fulfilled contract legitimately feeds many different
 		// outputs — catalog_opm's #ContainerResource bucket holds 8
 		// transformers — so no arity rule binds here. The duplicate-adapter
-		// case is refused by D5's comparable-predicate guard, whose detection
-		// shape is OQ9 and detection site OQ10; until OQ9 resolves the guard
-		// is not expressible in this file.
+		// case is refused by D5's comparable-predicate guard at platform-
+		// package generation (site per D5, resolving OQ10); the detection
+		// definition is deferred to the implementation slice (OQ9), so the
+		// guard is not expressible in this file.
 		_routed: true
 	}
 
@@ -228,7 +229,7 @@ package schema
 
 	// The provider's own ModulePackage. Activation is gated on this being
 	// Ready, so a transformer never registers ahead of its CRDs (readiness
-	// definition per OQ11 — it must exclude this CR itself). STAMPED by the
+	// excludes this CR by kind, D14). STAMPED by the
 	// rendering transformer from #TransformerContext instance metadata and
 	// not authorable: the provider IS the instance that rendered the claim
 	// (D11).
@@ -294,7 +295,7 @@ package schema
 // resolved-by-D6: this value existing only in cluster state was the tension
 // with 0010 D14's "the platform file is the lockfile"; the answer is fetch —
 // `opm platform pull` retrieves the operator-generated platform package
-// (the authoritative bytes, identity per OQ8), and a local build against it
+// (the authoritative bytes, identity per D13), and a local build against it
 // reproduces the cluster's render.
 #EffectiveRegistry: {
 	// Authored in Platform.spec.registry — the static path.
@@ -313,8 +314,8 @@ package schema
 	// The identity of the platform package the operator regenerates from this
 	// set (0019 D6; the store this originally keyed is deleted by 0019 D8).
 	// Every accepted or revoked claim moves it, regenerates the package, and
-	// re-renders every ModuleInstance — trigger, identity and blast radius
-	// per OQ8.
+	// re-renders every ModuleInstance — edge-triggered, level-computed, with
+	// the blast radius explicitly accepted (D13).
 	key!: {
 		generation!: int
 		claims: [...string] // sorted "catalog@version" of every active claim

@@ -126,7 +126,8 @@ _assertUnfulfilledNotOk: exRoutingUnfulfilled.ok & false
 
 // A "catalog"-fulfilled bucket carries no arity rule here — catalog_opm's
 // #ContainerResource bucket legitimately feeds 8 transformers. The duplicate-
-// adapter case is refused by D5's guard (detection per OQ9/OQ10), not by
+// adapter case is refused by D5's guard at platform assembly (detection
+// definition deferred per OQ9), not by
 // this shape.
 exRoutingCatalogBucket: #ContractRouting & {
 	contract:   "opmodel.dev/catalogs/opm/resources/container@v1"
@@ -206,9 +207,10 @@ _assertRejectedInert: exRegistrationRejected.status.accepted & false
 // dynamic path), and the identity key covering both — under 0019 D6/D8 the
 // identity of the platform package the operator regenerates, not a cache key
 // (the store it once keyed is deleted). The claims list inside the key is
-// illustrative "catalog@version" strings; its exact serialization is part of
-// OQ8's regeneration question. Reproducibility is resolved-by-D6: `opm
-// platform pull` fetches the generated platform package this value summarizes.
+// illustrative "catalog@version" strings; the identity is the CR generation
+// plus the sorted active-claim list, every pair derived (D11, D13).
+// Reproducibility is resolved-by-D6: `opm platform pull` fetches the
+// generated platform package this value summarizes.
 exEffectiveRegistry: #EffectiveRegistry & {
 	subscriptions: "opmodel.dev/catalogs/opm@v1": {
 		version: "1.4.0"

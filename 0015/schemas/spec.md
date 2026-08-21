@@ -4,7 +4,7 @@ This document pre-drafts the `core/SPEC.md` co-update the core slice will need (
 
 MIRROR definitions in `target.cue` — `#ModulePath`, `#PackagePath`, `#ContractFQN`, `#ImplFQN`, `#Name`, `#Version`, `#ContractKind`, `#Fulfilment`, `#Subscription` — restate unchanged core types narrowly so the file vets standalone; they change nothing in core and get no section here.
 
-Open Questions gating parts of this delta, cited inline where they bind: OQ8 (platform-package regeneration and registration blast radius; it absorbs OQ6, which is answered — overtaken by 0019 D8), and OQ9/OQ10 (D5's duplicate guard: detection shape and site — until they resolve the guard is stated in prose, not in this delta). The build-incompatibility refusal is resolved-by-D8: refused at acceptance, by 0019 D18's committed-resolution comparison per shared path, exact under GA additive discipline. Provider classes were removed from this delta on 2026-08-20 (D2, as revised): 0010 D37's one-provider rule stands, and the former class shapes live in D2's alternatives for a successor entry.
+One deferral gates part of this delta: OQ9 (D5's duplicate guard's detection definition, deferred to the implementation slice with a measured starting point) — until it lands, the guard is stated in prose, not in this delta. Its site is decided: platform-package generation (D5, resolving OQ10). Platform-package regeneration is resolved-by-D13 (edge-triggered, level-computed, identity = generation plus the sorted active-claim list, blast radius accepted; D13 absorbs OQ6's residue via OQ8). The build-incompatibility refusal is resolved-by-D8: refused at acceptance, by 0019 D18's committed-resolution comparison per shared path, exact under GA additive discipline. Provider classes were removed from this delta on 2026-08-20 (D2, as revised): 0010 D37's one-provider rule stands, and the former class shapes live in D2's alternatives for a successor entry.
 
 ## #PublishedContract (NEW)
 
@@ -127,7 +127,7 @@ The relation asserted on the platform value — at 0019 D6's generation step —
 
 - Zero implementations of a provider-fulfilled contract MUST be reported at platform assembly (as `unfulfilled`), not deferred to the first render that trips over it.
 - A provider-fulfilled contract MUST have at most one implementation (0010 D37); a second MUST be refused, naming the contract and both catalog paths.
-- A `"catalog"`-fulfilled contract MUST NOT be arity-constrained by this relation: such a bucket legitimately feeds many outputs (catalog_opm's `#ContainerResource` bucket holds 8 transformers). The duplicate-adapter case within that fulfilment is refused by D5's comparable-predicate guard, whose detection shape (OQ9) and site (OQ10) are unresolved and deliberately not constrained here.
+- A `"catalog"`-fulfilled contract MUST NOT be arity-constrained by this relation: such a bucket legitimately feeds many outputs (catalog_opm's `#ContainerResource` bucket holds 8 transformers). The duplicate-adapter case within that fulfilment is refused by D5's comparable-predicate guard at platform-package generation (site per D5, resolving OQ10); the detection definition is OQ9, deferred to the implementation slice and deliberately not constrained here.
 
 ### Rationale
 
@@ -172,7 +172,7 @@ A cluster-scoped custom resource through which a provider module registers its c
 - The CR's name MUST be instance-derived (dot-joined `namespace.name`, D12), so a duplicate provider is refused at acceptance naming the claimant rather than colliding at apply.
 - `provides` MUST be verified against the subscribed catalogs' contract maps (D1) **and** for exact equality against the reconciler's re-derivation of the provider set from the fetched catalog (D11); drift in either direction MUST reject the claim naming both lists. A claim naming a contract no subscribed catalog defines MUST be rejected at acceptance.
 - `version` MUST be scalar: the value written is the value used, with nothing to resolve (0010 D14).
-- Activation MUST be gated on `providerRef` being Ready, so a transformer never registers ahead of its CRDs; `active` MUST imply `accepted`. The readiness aggregation MUST NOT let the registration CR gate its own package (OQ11).
+- Activation MUST be gated on `providerRef` being Ready, so a transformer never registers ahead of its CRDs; `active` MUST imply `accepted`. The readiness aggregation MUST exclude the registration CR by kind — it never gates its own package — and a module whose only resource is a registration MUST be legal, Ready on apply (D14).
 - Acceptance MUST be centralized in the Platform reconciler; accepted claims MUST be recorded in `Platform.status.registry`, never written into the Platform CR's spec.
 - Deletion MUST be refused while `dependentInstances > 0`, naming the count.
 - A claim naming a contract already provided by an active subscription or registration MUST be rejected (0010 D37's one-provider rule, kept by D2).
@@ -209,8 +209,8 @@ The union platform-package generation (0019 D6) consumes and `Platform.status.re
 
 - `claims` MUST include only registrations that are accepted AND active.
 - A claim naming a path the spec already subscribes to MUST be a conflict, not a merge — two sources would then disagree about the build.
-- The identity MUST cover the Platform CR's generation plus the active-claim set; every accepted or revoked claim moves it, regenerates the platform package (0019 D6), and re-renders every ModuleInstance. Regeneration's trigger, the key's exact serialization, and the blast radius are OQ8-gated.
-- A consumer MUST be able to reproduce a cluster's render by pulling the operator-generated platform package (`opm platform pull`, D6): the pull delivers a build-local module carrying the committed resolution and the OQ8 identity, never a published artifact (0019 D6). D3 reintroduces resolution that 0010 D14 deleted; the restated property is "the platform file, plus one attributable fetch per claim-set change".
+- The identity MUST cover the Platform CR's generation plus the sorted `catalog@version` list of active claims, every pair a derived fact (D11); every accepted or revoked claim moves it, regenerates the platform package (0019 D6), and re-renders every ModuleInstance. Regeneration MUST be edge-triggered and level-computed — watches wake the reconciler, the package is computed from the current tuple, never from an event's content — with per-object serialization so no half-applied claim set is observable; the fleet-wide blast radius is explicitly accepted (D13).
+- A consumer MUST be able to reproduce a cluster's render by pulling the operator-generated platform package (`opm platform pull`, D6): the pull delivers a build-local module carrying the committed resolution and the D13 identity, never a published artifact (0019 D6). D3 reintroduces resolution that 0010 D14 deleted; the restated property is "the platform file, plus one attributable fetch per claim-set change".
 
 ### Rationale
 
