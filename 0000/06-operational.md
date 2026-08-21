@@ -44,14 +44,12 @@ data-plane state changes that survive a code rollback?}
 
 ## Cross-Repo Coordination
 
-**Which repos must coordinate, and in what order?**
+**Which repos must coordinate, and what constrains the order?**
 
-{Sequence the repo landings (core → library → catalog → …). For each
-hand-off, name the artefact the upstream produces that the downstream
-consumes (a published OCI tag, a regenerated fixture, a new task target).
-
-If the sequence is more than a couple of hand-offs, or spans more than one
-repo, back this narrative with a structured `plan.yaml` (see
-`README.md ## Slice Plan`) — this section then states *why* the order is
-what it is, while `plan.yaml` / the generated `PLAN.md` are the source of
-truth for the order and per-slice status itself.}
+{State the ordering *constraints as design facts*: what must exist before
+what, and why — for each hand-off, name the artefact the upstream produces
+that the downstream consumes (a published OCI tag, a regenerated fixture,
+a new contract). Constraints only, no sequencing plan: the slice-by-slice
+landing order and its status live in a delivery plan under `plans/`, which
+cites this entry — never the reverse (the one-way rule). Do not name a
+plan, a slice, or a plan file here.}

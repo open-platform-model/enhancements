@@ -17,13 +17,23 @@ other repos cite them from commit messages and OpenSpec changes.
 
 Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
 
-Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
+Each decision carries a `**Kind:**` line plus the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
+
+**The Kind gate.** A decision belongs in this log only if it passes the admission test: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Three kinds pass it:
+
+- `contract` — changes what a consumer can observe or rely on: a schema shape, a command's semantics, a compatibility or refusal rule, a naming guarantee.
+- `policy` — a posture OPM commits to ("publish never invents a version").
+- `scope` — a boundary decision: what this entry defers, what a successor owns, what a supersession keeps.
+
+A *mechanism* decision — how a repo achieves the contract (algorithm choice, code placement, internal wiring) — fails the test and belongs in the implementing slice's OpenSpec change in the target repo, decided when the code in front of the implementer is current. Measured evidence that *constrains* a contract (an experiment proving a primitive cannot express a rule) stays here, attached to the contract decision it constrains; the winning implementation design does not.
 
 ---
 
 ## Decisions
 
 ### D1: {Decision Title}
+
+**Kind:** {contract | policy | scope}
 
 **Decision:** {What was decided. State it as a fact, not a question.}
 
@@ -45,8 +55,17 @@ design discussion, external reference, or prior art.}
 Track unresolved questions surfaced during design. The validator (future)
 requires this block (with or without entries) starting at `status:
 accepted`, in either this file or `README.md`. Each entry should carry a
-`Status:` line; close it with `resolved-by-D##`, `deferred-to-NNNN`, or
-`answered` when the question resolves.
+`Status:` line; close it with `resolved-by-D##`, `deferred-to-NNNN`,
+`deferred-to-implementation`, or `answered` when the question resolves.
+
+`deferred-to-implementation` is the deferral register: an
+implementation-level question the design deliberately hands to whoever
+delivers it. Attach the context a future implementer needs (what is
+unclear, what evidence exists, what would settle it) — but never name the
+inheritor: the slice that picks it up claims it from the plans side
+(`resolves: ["NNNN:OQ9"]`), and `task plans:deferred` reports deferred
+questions no slice has claimed. Contract-level questions cannot be
+deferred this way — they must be resolved before `accepted`.
 
 While a question is open, its bullet is a working surface — edit the wording,
 sharpen the framing, add or drop alternatives freely. Numbers stay fixed

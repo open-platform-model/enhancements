@@ -42,8 +42,10 @@ implementation:
 
 # Append-only timeline of milestones. The validator (future) enforces
 # append-only via git diff against HEAD~1. Free-form `event` strings;
-# `slice` + `semver` are optional structured fields for events that carry
-# machine-readable detail.
+# `semver` is an optional structured field for events that carry
+# machine-readable detail. (`slice` is LEGACY — never write it in new
+# events: naming a slice or OpenSpec change here violates the one-way
+# rule; plans cite enhancements, enhancements never cite plans.)
 history:
   - {date: "2026-05-23", event: "Template scaffolded"}
 

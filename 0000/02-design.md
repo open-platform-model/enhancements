@@ -37,14 +37,16 @@ construct. Quote short CUE snippets where they clarify the structure; point
 to the CUE files for the full surface. Delete this section if the
 enhancement defines no schema or contract surface at all.}
 
-## Integration Points
+## Affected Surfaces
 
-{File-by-file targets across the touched repos. Group by repo (core,
-library, catalog, …). For each target, name the construct or function being
-changed and the nature of the change (new field, renamed field, new
-function, replaced function, removed field, etc.). This is the construction
-roadmap for implementation. An ASCII component/dependency diagram can make
-cross-repo wiring easier to follow than three separate bullet lists.}
+{Per repo: which *contracts* change and what a consumer observes
+differently — a schema shape, a command's semantics, a refusal rule, a
+naming guarantee. Intent-level only: **no file paths, no line numbers, no
+function names** — the construction roadmap belongs to the delivery plan's
+slices and their OpenSpec changes in the target repos, written when the
+code in front of the implementer is current. An ASCII component/dependency
+diagram can make cross-repo wiring easier to follow than separate bullet
+lists.}
 
 ## Before / After
 
