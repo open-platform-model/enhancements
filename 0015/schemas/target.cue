@@ -227,9 +227,12 @@ package schema
 	// version the module was not built against (D11).
 	version!: #Version
 
-	// The provider's own ModulePackage. Activation is gated on this being
-	// Ready, so a transformer never registers ahead of its CRDs (readiness
-	// excludes this CR by kind, D14). STAMPED by the
+	// The provider's own ModulePackage. Initial activation is gated on this
+	// being Ready, so a transformer never registers ahead of its CRDs
+	// (readiness excludes this CR by kind, D14; the gate latches — D3).
+	// Acceptance-side verification of this field is deferred to the
+	// operator slice (candidate: 0010 D41 owner-label match — see D11).
+	// STAMPED by the
 	// rendering transformer from #TransformerContext instance metadata and
 	// not authorable: the provider IS the instance that rendered the claim
 	// (D11).
@@ -243,7 +246,10 @@ package schema
 	// demands, and VERIFIED at acceptance for exact equality against the
 	// reconciler's re-derivation from the fetched catalog plus the
 	// subscribed catalogs' contract maps (D1, D11) — drift in either
-	// direction refuses the claim naming both lists.
+	// direction refuses the claim naming both lists. An UPDATE that shrinks
+	// this set while instances depend on a dropped contract is refused
+	// before the new spec replaces the accepted claim (D16), the same
+	// invariant the deletion finalizer enforces.
 	provides!: [...#ContractFQN]
 
 }
@@ -255,8 +261,11 @@ package schema
 	// subscribed catalog, none already provided (0010 D37, kept by D2).
 	accepted: bool | *false
 
-	// Accepted AND providerRef is Ready. Only active registrations reach the
-	// effective registry.
+	// Accepted AND providerRef has been Ready once: activation LATCHES (D3).
+	// Ready gates initial activation only — an active claim deactivates only
+	// by deletion through the finalizer, so provider health noise never moves
+	// the effective registry or regenerates the platform package (D13). Only
+	// active registrations reach the effective registry.
 	active: bool | *false
 
 	// Why a claim was refused, or why an accepted claim is inactive.
