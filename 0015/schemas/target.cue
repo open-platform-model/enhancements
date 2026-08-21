@@ -1,5 +1,5 @@
-// Target schema for enhancement 0015 — Catalog Contracts, Provider Classes,
-// and Transformer Registration.
+// Target schema for enhancement 0015 — Catalog Contracts and Transformer
+// Registration.
 //
 // These shapes describe the target surface across three layers: what a
 // #Catalog publishes (D1), how a contract with several implementations is
@@ -19,25 +19,19 @@
 //   #Name                           MIRROR   core #NameType (types.cue) — regex kept, rune bounds dropped
 //   #Version                        MIRROR   core #VersionType (types.cue) — simplified pre-release tail
 //   #ContractKind                   MIRROR   the kind-segment vocabulary of core's kindPrefix (identity_package.cue, 0010 D21), contract kinds only
-//   #Fulfilment                     MIRROR   the fulfilment disjunction on core #Resource/#Trait (0010 D37) — values unchanged; D2's arity change lands in #ContractRouting
+//   #Fulfilment                     MIRROR   the fulfilment disjunction on core #Resource/#Trait (0010 D37) — values unchanged; D37's arity rule is asserted by #ContractRouting
 //   #PublishedContract              NEW      (D1) the member value a catalog publishes per contract; provenance stamped, never authored at the leaf
 //   #CatalogContractMaps            CHANGED  vs core@v2 #Catalog (catalog.cue) — #resources/#traits/#blueprints added beside #transformers, same stamping pattern constraint; stated standalone here
-//   #ContractInventory              NEW      (D1) materialize's defined × required cross; Platform readiness and `opm platform check` read it
-//   #ProviderClass                  NEW      (D2) one entry of the platform-published routing vocabulary
-//   #ClassVocabulary                CHANGED  vs core@v2 #Platform (platform.cue) — the class-vocabulary member #Platform gains beside #registry; stated standalone here
-//   #ClassLabelKey                  NEW      (D2) the per-contract label key a class projects; derivation OQ2-gated
-//   #ClassedContract                CHANGED  vs core@v2 #Resource/#Trait — optional `class` plus its projection into 0010 D36's existing matchLabels
-//   #ContractRouting                NEW      (D2) the arity relation replacing 0010 D37's exactly-one-provider rule
+//   #ContractInventory              NEW      (D1) the defined × required cross — under 0019 D5 a fold over the platform's embedded catalogs; Platform readiness and `opm platform check` read it
+//   #ContractRouting                NEW      (D2/D5) the arity relation: 0010 D37's exactly-one-provider rule stands (D2, as revised); catalog buckets unconstrained here — D5's comparable-predicate guard is OQ9/OQ10-gated
 //   #TransformerRegistrationSpec    NEW      (D3) the claim a provider module ships
 //   #TransformerRegistrationStatus  NEW      (D3) what the Platform reconciler decides about a claim
 //   #TransformerRegistration        NEW      (D3) the cluster-scoped CR: spec + status
-//   #Subscription                   MIRROR   core #Subscription (platform.cue) — 0010 D14's shape, unchanged
-//   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the store key (OQ3, OQ6)
+//   #Subscription                   MIRROR   the Platform CR's subscription coordinate (opm-operator platform_types.go) — core's own registry entry becomes #CatalogEntry {enable, #catalog} under 0019 D5; the scalar shape survives only CR-side, as what 0019 D6's generator consumes
+//   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the regenerated platform package's identity (OQ3, OQ8)
 //
 // Unresolved fields carry `// OQN:` markers pointing at ../03-decisions.md.
 package schema
-
-import "strings"
 
 // ---------------------------------------------------------------------------
 // Shared vocabulary — mirrors of core types, narrowed to what this entry needs.
@@ -66,7 +60,7 @@ import "strings"
 #ContractKind: "resources" | "traits" | "blueprints"
 
 // Where a contract's fulfilment comes from (0010 D37). Unchanged by this
-// entry; restated because D2 amends what "provider" implies about arity.
+// entry; restated because #ContractRouting asserts D37's arity rule on it.
 #Fulfilment: *"catalog" | "provider"
 
 // ---------------------------------------------------------------------------
@@ -87,10 +81,6 @@ import "strings"
 	catalogVersion!: #Version // stamped
 	fqn!:            #ContractFQN
 	fulfilment:      #Fulfilment
-
-	// D2: a provider-fulfilled contract MAY be routed by class. Absent means
-	// the contract has exactly one implementation path and needs no routing.
-	classed?: bool
 
 	description?: string
 }
@@ -131,17 +121,20 @@ import "strings"
 }
 
 // ---------------------------------------------------------------------------
-// What materialize computes once contracts are members.
+// The defined × required cross, computable once contracts are members — under
+// 0019 D5 a pure fold over the platform's embedded catalogs, derivable in core
+// beside #composedTransformers.
 // ---------------------------------------------------------------------------
 
 // The cross of "defined by a subscribed catalog" against "required by an
 // adapter on this platform". This is the value a Platform readiness condition
-// and `opm platform check` both read, and the value D2's arity rule is
-// evaluated against.
+// and `opm platform check` both read, and the value #ContractRouting's arity
+// rule is evaluated against.
 //
-// Without D1 the `defined` set is not computable: materialize walks
-// #transformers only (library/opm/materialize/index.go:39-41), so a contract
-// no adapter demands is absent from the world entirely.
+// Without D1 the `defined` set is not computable: every derivation from a
+// catalog walks #transformers only (measured pre-0019 at
+// materialize/index.go:39-41; equally true of 0019's composed-map fold), so a
+// contract no adapter demands is absent from the world entirely.
 #ContractInventory: {
 	// Every contract every subscribed catalog DEFINES.
 	defined: [FQN=#ContractFQN]: #PublishedContract & {fqn: FQN}
@@ -156,84 +149,22 @@ import "strings"
 	// exists nowhere. Drives Platform Ready=False/UnfulfilledContracts.
 	unfulfilled: [...#ContractFQN]
 
-	// A contract with more implementations than the class vocabulary routes.
-	// Replaces 0010 D37's "more than one is an error" (D2).
-	unroutable: [...#ContractFQN]
+	// A provider-fulfilled contract with more than one implementation —
+	// refused per 0010 D37, which D2 (as revised) keeps unamended. The
+	// inventory is what lets the refusal name both catalog paths.
+	overSubscribed: [...#ContractFQN]
 
 	// The platform is contract-ready when neither report has entries.
-	ready: bool & (len(unfulfilled) == 0 && len(unroutable) == 0)
+	ready: bool & (len(unfulfilled) == 0 && len(overSubscribed) == 0)
 }
 
 // ---------------------------------------------------------------------------
-// D2 — provider classes.
+// D2/D5 — the arity relation.
 // ---------------------------------------------------------------------------
 
-// One entry in the vocabulary a platform publishes for a contract with more
-// than one implementation. Modelled on StorageClass / IngressClass /
-// GatewayClass / VolumeSnapshotClass: the admin names it, the consumer
-// references the name, and one is the default so most consumers say nothing.
-#ProviderClass: {
-	// The contract being routed.
-	contract!: #ContractFQN
-
-	// The class name a module selects by. Platform-published vocabulary — a
-	// module NEVER names the catalog below.
-	name!: #Name
-
-	// The catalog whose transformer implements this class.
-	catalog!: #ModulePath
-
-	// Exactly one class per contract carries this.
-	default: bool | *false
-}
-
-// The platform-side vocabulary, keyed by contract then class name. Keyed by
-// contract rather than flat because a cluster with a default backup class and
-// a default ingress class has two independent defaults.
-#ClassVocabulary: {
-	[Contract=#ContractFQN]: [ClassName=#Name]: #ProviderClass & {
-		contract: Contract
-		name:     ClassName
-	}
-}
-
-// The label key a class projects. One key per contract, so two contracts'
-// classes cannot collide in a component's unified matchLabels.
-#ClassLabelKey: {
-	contract!: #ContractFQN
-	// "…/traits/backup@v1beta1" → "traits.backup.opmodel.dev/class"
-	// OQ2: the exact derivation is settled with the default-fill placement;
-	// what is fixed is that it is per-contract and derived, never authored.
-	out: string & strings.Replace(contract, "/", ".", -1)+"/class"
-}
-
-// The demand side: what a contract carrying a class projects upward. The
-// projection IS the whole matcher integration — 0010 D36 unifies
-// #Component.matchLabels from its attached primitives' wholesale, and
-// #ComponentTransformer.requiredLabels selects on that field.
-// compile/match.go:344-360 is unchanged, and that is load-bearing.
-#ClassedContract: {
-	C=contract!: #ContractFQN
-
-	// Authored by the module, or filled from the platform default (OQ2).
-	class?: #Name
-
-	// Label alias again: `{contract: contract}` would self-reference.
-	_key: (#ClassLabelKey & {contract: C}).out
-
-	// Absent class → no label → the contract is unrouted and the platform's
-	// default must have been filled in before match. Present → exactly one
-	// transformer's requiredLabels can be satisfied, because class values are
-	// mutually exclusive by construction.
-	matchLabels: {
-		if class != _|_ {
-			(_key): class
-		}
-	}
-}
-
-// The arity rule after D2, replacing 0010 D37's exactly-one. Stated as the
-// relation materialize asserts for one provider-fulfilled contract.
+// The arity rule: 0010 D37's exactly-one-provider, kept unamended by D2 (as
+// revised 2026-08-20). Stated as the relation asserted on the platform value,
+// at 0019 D6's generation step, for one contract.
 #ContractRouting: {
 	contract!:  #ContractFQN
 	fulfilment: #Fulfilment
@@ -241,31 +172,24 @@ import "strings"
 	// Implementation keys requiring this contract, across subscribed catalogs.
 	implementations!: [...#ImplFQN]
 
-	// The classes the platform publishes for it.
-	classes!: [Name=#Name]: #ProviderClass & {name: Name}
-
-	// Zero implementations is D1's `unfulfilled` — reportable at materialize
+	// Zero implementations is D1's `unfulfilled` — reportable at platform assembly
 	// rather than deferred to a render (0010 D28).
 	_fulfilled: bool & (len(implementations) > 0)
 
-	// One implementation needs no vocabulary; more than one needs one class
-	// each, and exactly one default. This is the whole of what replaces
-	// "exactly one provider".
+	// Exactly one provider (0010 D37). A second is `overSubscribed` in the
+	// inventory and refused, naming both catalog paths; routing between
+	// providers is a successor entry (D2).
 	_routed: bool
 	if fulfilment == "provider" {
-		if len(implementations) <= 1 {
-			_routed: true
-		}
-		if len(implementations) > 1 {
-			_routed: len(classes) == len(implementations)
-		}
+		_routed: len(implementations) <= 1
 	}
 	if fulfilment == "catalog" {
-		// OQ1: a "catalog"-fulfilled contract legitimately feeds many
-		// different outputs — catalog_opm's #ContainerResource bucket holds 8
+		// A "catalog"-fulfilled contract legitimately feeds many different
+		// outputs — catalog_opm's #ContainerResource bucket holds 8
 		// transformers — so no arity rule binds here. The duplicate-adapter
-		// case within this fulfilment is OQ1's, and it is deliberately not
-		// constrained by this shape.
+		// case is refused by D5's comparable-predicate guard, whose detection
+		// shape is OQ9 and detection site OQ10; until OQ9 resolves the guard
+		// is not expressible in this file.
 		_routed: true
 	}
 
@@ -298,17 +222,13 @@ import "strings"
 	// naming a contract no catalog defines is rejected at acceptance.
 	provides!: [...#ContractFQN]
 
-	// The class this registration serves, for a contract with more than one
-	// implementation (D2). Absent means the contract has a single
-	// implementation path.
-	class?: #Name
 }
 
 // What the Platform reconciler decides about a claim. Acceptance is
-// centralized so exactly one writer reaches the materialized set.
+// centralized so exactly one writer reaches the effective set.
 #TransformerRegistrationStatus: {
 	// Passed validation: catalog resolvable, `provides` all defined by a
-	// subscribed catalog, class free.
+	// subscribed catalog, none already provided (0010 D37, kept by D2).
 	accepted: bool | *false
 
 	// Accepted AND providerRef is Ready. Only active registrations reach the
@@ -332,22 +252,27 @@ import "strings"
 }
 
 // ---------------------------------------------------------------------------
-// The effective registry, and what the operator's store keys on.
+// The effective registry, and the regenerated platform package's identity.
 // ---------------------------------------------------------------------------
 
-// A subscription as 0010 D14 leaves it: a scalar version, nothing resolved.
+// The Platform CR's subscription coordinate: a scalar version, nothing
+// resolved. Under 0019 D6 the CR names coordinates and the operator generates
+// the platform package; the generated module's registry entry embeds the
+// catalog itself (0019 D5's #CatalogEntry), so this scalar shape is CR-side
+// input to generation, not core's registry shape.
 #Subscription: {
 	enable:   bool | *true
 	version!: #Version
 }
 
-// Spec subscriptions unified with active claims. This is what materialize
-// consumes and what Platform.status.registry reports.
+// Spec subscriptions unified with active claims. This is what platform-package
+// generation (0019 D6) consumes and what Platform.status.registry reports.
 //
-// OQ3: this value existing only in cluster state is the tension with 0010
-// D14's "the platform file is the lockfile". Whether it is exported to a
-// #Platform file, written back to git, or fetched on demand is unresolved,
-// and it blocks draft → accepted.
+// resolved-by-D6: this value existing only in cluster state was the tension
+// with 0010 D14's "the platform file is the lockfile"; the answer is fetch —
+// `opm platform pull` retrieves the operator-generated platform package
+// (the authoritative bytes, identity per OQ8), and a local build against it
+// reproduces the cluster's render.
 #EffectiveRegistry: {
 	// Authored in Platform.spec.registry — the static path.
 	subscriptions: [#ModulePath]: #Subscription
@@ -362,10 +287,11 @@ import "strings"
 	_conflicts: [for p, _ in claims for q, _ in subscriptions if p == q {p}]
 	_noConflict: true & (len(_conflicts) == 0)
 
-	// What the operator's platform.Store keys on, replacing the Platform CR's
-	// .metadata.generation alone (internal/platform/store.go). Every accepted
-	// or revoked claim moves this and re-renders every ModuleInstance —
-	// blast radius per OQ6.
+	// The identity of the platform package the operator regenerates from this
+	// set (0019 D6; the store this originally keyed is deleted by 0019 D8).
+	// Every accepted or revoked claim moves it, regenerates the package, and
+	// re-renders every ModuleInstance — trigger, identity and blast radius
+	// per OQ8.
 	key!: {
 		generation!: int
 		claims: [...string] // sorted "catalog@version" of every active claim

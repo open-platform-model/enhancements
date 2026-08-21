@@ -3,11 +3,12 @@
 // Every value here unifies against target.cue, so `cue vet ./...` from this
 // directory checks the delta's behaviour rather than its syntax. The cast is
 // the one from 01-problem.md's Concrete Example: catalog_opm defines the
-// provider-fulfilled backup trait, k8up and velero both implement it, and the
-// platform routes between them with two classes. Derived values — stamps,
-// label keys, readiness, routing verdicts — are pinned with hidden `_assert*`
-// fields, so a change in behaviour is a build failure. Must-fail cases are
-// commented out with the exact error text observed on 2026-08-20.
+// provider-fulfilled backup trait, k8up implements it, and a second
+// implementation (velero) is over-subscription, refused per 0010 D37 (kept
+// unamended by D2 as revised 2026-08-20). Derived values — stamps, readiness,
+// routing verdicts — are pinned with hidden `_assert*` fields, so a change in
+// behaviour is a build failure. Must-fail cases are commented out with the
+// exact error text observed on 2026-08-20.
 package schema
 
 // The contract every example routes: catalog_opm's provider-fulfilled backup
@@ -30,7 +31,6 @@ exCatalog: #CatalogContractMaps & {
 		name:       "backup"
 		apiVersion: "v1beta1"
 		fulfilment: "provider"
-		classed:    true
 	}
 	#resources: "opmodel.dev/catalogs/opm/resources/volume@v1": {
 		name:       "volume"
@@ -54,11 +54,11 @@ _assertResourcePath: exCatalog.#resources["opmodel.dev/catalogs/opm/resources/vo
 // fulfilment defaults to "catalog" (0010 D37's default, unchanged here).
 _assertResourceFulfilment: exCatalog.#resources["opmodel.dev/catalogs/opm/resources/volume@v1"].fulfilment & "catalog"
 
-// ─── D1: the inventory materialize computes from the maps ───────────────────
+// ─── D1: the inventory derived from the maps (a platform-value fold) ────────
 
 // The healthy cross: backup is defined by a subscribed catalog and required
-// by two implementations, and the class vocabulary below routes both — so
-// neither report has entries and the platform is contract-ready.
+// by exactly one implementation — so neither report has entries and the
+// platform is contract-ready.
 exInventoryReady: #ContractInventory & {
 	defined: (_backupFQN): {
 		name:           "backup"
@@ -67,13 +67,23 @@ exInventoryReady: #ContractInventory & {
 		apiVersion:     "v1beta1"
 		catalogVersion: "1.4.0"
 		fulfilment:     "provider"
-		classed:        true
 	}
-	requiredBy: (_backupFQN): [_k8upImpl, _veleroImpl]
+	requiredBy: (_backupFQN): [_k8upImpl]
 	unfulfilled: []
-	unroutable: []
+	overSubscribed: []
 }
 _assertInventoryReady: exInventoryReady.ready & true
+
+// A second implementation is over-subscription: refused per 0010 D37 (kept
+// by D2), and the inventory is what lets the refusal name both paths —
+// before D1 the guard could only count adapters it happened to reach.
+exInventoryOverSubscribed: #ContractInventory & {
+	defined: (_backupFQN): exInventoryReady.defined[_backupFQN]
+	requiredBy: (_backupFQN): [_k8upImpl, _veleroImpl]
+	unfulfilled: []
+	overSubscribed: [_backupFQN]
+}
+_assertOverSubscribedNotReady: exInventoryOverSubscribed.ready & false
 
 // The zero case D1 makes nameable: the contract is defined, nothing requires
 // it, and the platform is Ready=False before any module trips over it —
@@ -82,111 +92,42 @@ exInventoryUnfulfilled: #ContractInventory & {
 	defined: (_backupFQN): exInventoryReady.defined[_backupFQN]
 	requiredBy: {}
 	unfulfilled: [_backupFQN]
-	unroutable: []
+	overSubscribed: []
 }
 _assertInventoryNotReady: exInventoryUnfulfilled.ready & false
 
-// ─── D2: the platform-published class vocabulary ────────────────────────────
+// ─── D2/D5: the arity relation ──────────────────────────────────────────────
 
-// Two engines, two classes, one default — the topology 0010 D37 refused.
-// contract and name arrive from the map keys; the leaf authors only the
-// implementing catalog and the default marker.
-exVocabulary: #ClassVocabulary & {
-	(_backupFQN): {
-		daily: {
-			catalog: "opmodel.dev/catalogs/k8up@v1"
-			default: true
-		}
-		archive: {
-			catalog: "opmodel.dev/catalogs/velero@v1"
-		}
-	}
-}
-_assertClassContract: exVocabulary[_backupFQN].daily.contract & _backupFQN
-_assertClassName:     exVocabulary[_backupFQN].archive.name & "archive"
-_assertClassDefault:  exVocabulary[_backupFQN].archive.default & false
-
-// The derived label key. OQ2 leaves the exact derivation open; pinning what
-// target.cue computes today means settling OQ2 differently breaks this line
-// rather than drifting silently.
-exLabelKey: #ClassLabelKey & {contract: _backupFQN}
-_assertLabelKey: exLabelKey.out & "opmodel.dev.catalogs.opm.traits.backup@v1beta1/class"
-
-// ─── D2: the demand side — class projected as a matchLabel ──────────────────
-
-// A contract carrying a class projects exactly one label, under the
-// per-contract key. This projection is the whole matcher integration: it
-// lands in #Component.matchLabels via 0010 D36 and is selected on by
-// requiredLabels, with compile/match.go unchanged.
-exClassedArchive: #ClassedContract & {
-	contract: _backupFQN
-	class:    "archive"
-}
-_assertProjectedLabel: exClassedArchive.matchLabels["opmodel.dev.catalogs.opm.traits.backup@v1beta1/class"] & "archive"
-_assertOneLabelOnly:   len(exClassedArchive.matchLabels) & 1
-
-// No class → no label. The demand is unrouted until the platform's default
-// is filled in (before match — placement per OQ2).
-exClassedUnfilled: #ClassedContract & {contract: _backupFQN}
-_assertNoLabelYet: len(exClassedUnfilled.matchLabels) & 0
-
-// ─── D2: the arity relation that replaces 0010 D37's exactly-one ────────────
-
-// Two providers, one class each, one default: the motivating topology, and
-// under D2 it is routable rather than refused.
-exRoutingTwoProviders: #ContractRouting & {
-	contract:   _backupFQN
-	fulfilment: "provider"
-	implementations: [_k8upImpl, _veleroImpl]
-	classes: {
-		daily: {
-			contract: _backupFQN
-			catalog:  "opmodel.dev/catalogs/k8up@v1"
-			default:  true
-		}
-		archive: {
-			contract: _backupFQN
-			catalog:  "opmodel.dev/catalogs/velero@v1"
-		}
-	}
-}
-_assertTwoProvidersRouted: exRoutingTwoProviders.ok & true
-
-// One implementation needs no vocabulary at all.
+// One provider: the supported state (0010 D37, kept by D2 as revised).
 exRoutingSingle: #ContractRouting & {
 	contract:   _backupFQN
 	fulfilment: "provider"
 	implementations: [_k8upImpl]
-	classes: {}
 }
 _assertSingleRouted: exRoutingSingle.ok & true
 
-// More implementations than classes: unroutable, reported at materialize.
-exRoutingUnroutable: #ContractRouting & {
+// Two providers: over-subscription, refused. The topology 0010 D37 refused
+// and this entry keeps refusing — routing between providers is a successor
+// entry (D2, as revised 2026-08-20).
+exRoutingTwoProviders: #ContractRouting & {
 	contract:   _backupFQN
 	fulfilment: "provider"
 	implementations: [_k8upImpl, _veleroImpl]
-	classes: daily: {
-		contract: _backupFQN
-		catalog:  "opmodel.dev/catalogs/k8up@v1"
-		default:  true
-	}
 }
-_assertUnroutableRefused: exRoutingUnroutable.ok & false
+_assertTwoProvidersRefused: exRoutingTwoProviders.ok & false
 
-// Zero implementations: D1's unfulfilled case, reportable at materialize
-// rather than deferred to the first render that trips over it.
+// Zero implementations of a provider-fulfilled contract: unfulfilled, not ok.
 exRoutingUnfulfilled: #ContractRouting & {
 	contract:   _backupFQN
 	fulfilment: "provider"
 	implementations: []
-	classes: {}
 }
 _assertUnfulfilledNotOk: exRoutingUnfulfilled.ok & false
 
 // A "catalog"-fulfilled bucket carries no arity rule here — catalog_opm's
 // #ContainerResource bucket legitimately feeds 8 transformers. The duplicate-
-// adapter case inside this fulfilment is OQ1's, deliberately unconstrained.
+// adapter case is refused by D5's guard (detection per OQ9/OQ10), not by
+// this shape.
 exRoutingCatalogBucket: #ContractRouting & {
 	contract:   "opmodel.dev/catalogs/opm/resources/container@v1"
 	fulfilment: "catalog"
@@ -194,15 +135,14 @@ exRoutingCatalogBucket: #ContractRouting & {
 		"opmodel.dev/catalogs/opm/transformers/deployment@1.4.0",
 		"opmodel.dev/catalogs/opm/transformers/daemonset@1.4.0",
 	]
-	classes: {}
 }
 _assertCatalogBucketOk: exRoutingCatalogBucket.ok & true
 
 // ─── D3: the registration claim and its lifecycle ───────────────────────────
 
 // The claim the k8up module ships, accepted and activated: catalog resolvable,
-// provides all defined by a subscribed catalog (exCatalog), class "daily" free
-// in the vocabulary, and ModulePackage/k8up Ready.
+// provides all defined by a subscribed catalog (exCatalog), none already
+// provided, and ModulePackage/k8up Ready.
 exRegistrationActive: #TransformerRegistration & {
 	spec: {
 		catalog: "opmodel.dev/catalogs/k8up@v1"
@@ -212,7 +152,6 @@ exRegistrationActive: #TransformerRegistration & {
 			namespace: "backup-system"
 		}
 		provides: [_backupFQN]
-		class: "daily"
 	}
 	status: {
 		accepted:           true
@@ -264,10 +203,12 @@ _assertRejectedInert: exRegistrationRejected.status.accepted & false
 // ─── D3: the effective registry ─────────────────────────────────────────────
 
 // Spec subscriptions (the static path) unified with active claims (the
-// dynamic path), and the store key covering both. The claims list inside the
-// key is illustrative "catalog@version" strings; its exact serialization is
-// part of OQ6's store-key question, and whether this whole value is
-// exportable back to a #Platform file is OQ3 — blocking for accepted.
+// dynamic path), and the identity key covering both — under 0019 D6/D8 the
+// identity of the platform package the operator regenerates, not a cache key
+// (the store it once keyed is deleted). The claims list inside the key is
+// illustrative "catalog@version" strings; its exact serialization is part of
+// OQ8's regeneration question. Reproducibility is resolved-by-D6: `opm
+// platform pull` fetches the generated platform package this value summarizes.
 exEffectiveRegistry: #EffectiveRegistry & {
 	subscriptions: "opmodel.dev/catalogs/opm@v1": {
 		version: "1.4.0"
