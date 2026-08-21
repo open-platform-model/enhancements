@@ -23,8 +23,8 @@ The two categories are not a style preference; they map onto genuinely different
 
 - A **relationship** question has enhancements, slices, or entries as its nodes and
   `related`/`supersedes`/`depends_on` as its edges. This is exactly what `GRAPH.md` (cross-entry)
-  and `NNNN/PLAN.md` (per-entry slice DAG) already render as generated Mermaid — see
-  `enhancement-slicing` for the slice side. Mermaid is a natural fit because that is what it's
+  and `plans/<slug>/PLAN.md` (per-plan slice DAG) already render as generated Mermaid — see
+  `delivery-plans` for the slice side. Mermaid is a natural fit because that is what it's
   for: named nodes, directed/undirected edges, `classDef`-based coloring.
 - A **design/mechanism** question has functions, data, states, or components as its nodes —
   how a deletion protocol resolves, how a rung ladder architecture is layered, how a request
@@ -42,13 +42,13 @@ Load this skill when any of the following is true:
 - You are in Phase 2 (Iterate) of the `enhancements` workflow, discussing `02-design.md`'s
   High-Level Approach, Schema/API Surface, Integration Points, or Before/After with the user.
 - You are weighing a `related`/`supersedes`/`depends_on` edge, or whether to split or merge
-  enhancements, before committing the edit to `config.yaml`/`plan.yaml`.
+  enhancements, before committing the edit to `config.yaml` / `plans/<slug>/plan.yaml`.
 - You are unsure which medium a diagram calls for — re-read `## The core split` above before
   drawing anything.
 
 Skip this skill when the diagram question is already answered by a *generated* file — if
-`GRAPH.md` or `NNNN/PLAN.md` already show what's being asked, point at those (regenerating via
-`task graph` / `task plan:graph` if they're stale) rather than hand-drawing a duplicate.
+`GRAPH.md` or `plans/<slug>/PLAN.md` already show what's being asked, point at those (regenerating via
+`task graph` / `task plans:graph` if they're stale) rather than hand-drawing a duplicate.
 
 ## Reaching for a diagram
 
@@ -68,7 +68,7 @@ A concrete trigger list, so this is a default reflex rather than a vague encoura
 
 Sketch it **live, inline in the chat response** — no tool call needed at typical size. Reuse the
 exact `classDef` palette already defined in `Taskfile.yml`'s `graph` task (entry status) and
-`plan:graph` task (slice status), so the live preview looks like what the regenerated file will
+`plans:graph` task (slice status), so the live preview looks like what the regenerated file will
 actually contain once the edit lands:
 
 ```
@@ -79,13 +79,13 @@ classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
 ```
 
 (slice-plan sketches substitute the `planned`/`in_progress`/`done`/`cancelled` palette from
-`plan:graph` instead — see `enhancement-slicing`.)
+`plans:graph` instead — see `delivery-plans`.)
 
 This is a genuinely new capability, not a restatement of what already exists: today `GRAPH.md` and
-`PLAN.md` only exist *after* `task graph` / `task plan:graph` runs against already-committed data.
+`PLAN.md` only exist *after* `task graph` / `task plans:graph` runs against already-committed data.
 A live sketch lets the user see the shape of a *proposed* edge or split — "what would the graph
 look like if 0013 superseded 0007 instead of merely relating to it?" — before touching
-`config.yaml` or `plan.yaml` at all. Once the relationship decision is actually made, it is
+`config.yaml` or `plan.yaml` (plans side) at all. Once the relationship decision is actually made, it is
 encoded there and the real file is regenerated; the live sketch was scaffolding for the
 conversation, not a new artifact to maintain. Never hand-edit `GRAPH.md` or `PLAN.md` to match a
 sketch — they carry a "do not edit by hand" header for a reason.
@@ -140,7 +140,7 @@ considered / Rationale / Source) is deliberately compact and text-only — see t
 `02-design.md` that carries it; don't embed one in the decision body.
 
 Relationship Mermaid sketches are not persisted by hand anywhere — see `## Relationships →
-Mermaid` above. The generated `GRAPH.md` / `NNNN/PLAN.md` are the only committed artifacts for
+Mermaid` above. The generated `GRAPH.md` / `plans/<slug>/PLAN.md` are the only committed artifacts for
 that category.
 
 ## Anti-patterns
@@ -156,7 +156,7 @@ that category.
   text inside a bordered box, re-check every row's width before presenting it.
 - **A diagram in `03-decisions.md`.** Keep the decision log text-only; point at `02-design.md`.
 - **Hand-editing `GRAPH.md` or `PLAN.md` to match a live sketch.** They're generated — encode the
-  decision in `config.yaml`/`plan.yaml` and regenerate instead.
+  decision in `config.yaml` / the plan and regenerate instead.
 - **Treating a diagram as optional decoration rather than the fastest way to answer the question
   on the table.** If the user is asking "how does X relate to Y" or "how does this flow," a
   diagram is very often the actual answer — prose describing a picture is a worse picture.
@@ -165,9 +165,9 @@ that category.
 
 | Artefact | Path | Authority |
 | --- | --- | --- |
-| Relationship diagrams (generated) | `enhancements/GRAPH.md`, `enhancements/NNNN/PLAN.md` | Generated by `task graph` / `task plan:graph`. Never hand-edited. Live sketches during discussion should visually match these. |
+| Relationship diagrams (generated) | `enhancements/GRAPH.md`, `enhancements/plans/<slug>/PLAN.md` | Generated by `task graph` / `task plans:graph`. Never hand-edited. Live sketches during discussion should visually match these. |
 | Mermaid `classDef` palette (entry status) | `enhancements/Taskfile.yml :: graph` | Source of the four-color palette to reuse in a live relationship sketch. |
-| Mermaid `classDef` palette (slice status) | `enhancements/Taskfile.yml :: plan:graph` | Source of the slice-status palette; see `enhancement-slicing`. |
+| Mermaid `classDef` palette (slice status) | `enhancements/plans/Taskfile.yml :: graph` | Source of the slice-status palette; see `delivery-plans`. |
 | Design/mechanism diagrams (hand-authored) | `enhancements/NNNN/01-problem.md`, `02-design.md`, `05-risks.md` | Plain ASCII fenced blocks, authored in place, mutable like any other prose. |
 | Reference example | `enhancements/0012/02-design.md` (lines 28-43, 80-94) | The existing ASCII convention this skill formalizes — study before drawing a new one. |
 | This skill | `enhancements/.claude/skills/enhancement-diagrams/SKILL.md` | The protocol — the file you are reading. |
@@ -179,8 +179,8 @@ that category.
   `## Phase 2 — Iterate` is where general design discussion happens and this skill applies.
 - `enhancements/.claude/skills/enhancement-open-questions/SKILL.md` — the OQ-walk's Present step
   is the primary trigger for a live diagram during a walk.
-- `enhancements/.claude/skills/enhancement-slicing/SKILL.md` — owns the slice-DAG side of the
-  relationship category (`plan.yaml` → `PLAN.md`); this skill's Mermaid guidance defers to it for
+- `enhancements/.claude/skills/delivery-plans/SKILL.md` — owns the slice-DAG side of the
+  relationship category (`plans/<slug>/plan.yaml` → `PLAN.md`); this skill's Mermaid guidance defers to it for
   slice-specific conventions.
 - `enhancements/0000/README.md ## Diagrams` — canonical rules text reproduced in each new entry's
   template.

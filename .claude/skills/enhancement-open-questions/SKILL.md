@@ -70,7 +70,7 @@ Read `config.yaml.status` first thing. Behavior by status:
    - Alternatives the OQ bullet enumerates.
    - **Diagram** (see `enhancement-diagrams`) — if the OQ is about how this entry relates to
      others (a `related`/`supersedes` call, or a slice `depends_on`), sketch a small Mermaid
-     relationship preview using the `graph`/`plan:graph` `classDef` palette. If the OQ is about
+     relationship preview using the `graph`/`plans:graph` `classDef` palette. If the OQ is about
      internal architecture, data/control flow, or state, sketch an ASCII diagram. Not every OQ
      needs one — reach for it when a picture would settle the question faster than prose.
    - **Recommendation** — include a `**Recommendation:** {…}` line *only* when evidence supports it (an experiment outcome, a prior decision that constrains the answer, a principle explicitly stated in `02-design.md`). If no such evidence exists, say so: "No strong recommendation — both A and B are live." Fabricating decisiveness is an anti-pattern; see below.

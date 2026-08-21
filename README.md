@@ -24,6 +24,13 @@ enhancements/
 ├── README.md               this file
 ├── CLAUDE.md               agent guide for working in this repo
 ├── 0000/                   canonical template — copy from here
+├── plans/                  delivery plans — the execution layer (one-way rule: plans cite entries, never the reverse)
+│   ├── schema.cue          #DeliveryPlan — validates every plan.yaml
+│   ├── Taskfile.yml        plans:* tasks
+│   ├── README.md           field reference + the one-way rule
+│   └── {slug}/             one directory per plan
+│       ├── plan.yaml       implements, slices, unsliced
+│       └── PLAN.md         generated (task plans:graph) — do not hand-edit
 └── NNNN/                   one directory per enhancement (id-only)
     ├── config.yaml         sole source of metadata
     ├── README.md           index, summary, scope, cross-references
@@ -44,11 +51,9 @@ enhancements/
     ├── experiments/        (optional) self-contained proofs-of-concept
     │   ├── README.md       hand-maintained index of experiments
     │   └── NN-{concept}/   one directory per experiment (per-experiment README carries Status:)
-    ├── research/           (optional) external evidence — deep-research dossiers, benchmarks, surveys
-    │   ├── findings.md     primary dossier (cited summary + sources)
-    │   └── {topic}.md      further write-ups
-    ├── plan.yaml           (optional) structured slice plan — repo, concern, depends_on, status per slice
-    └── PLAN.md             generated from plan.yaml (task plan:graph) — do not hand-edit
+    └── research/           (optional) external evidence — deep-research dossiers, benchmarks, surveys
+        ├── findings.md     primary dossier (cited summary + sources)
+        └── {topic}.md      further write-ups
 ```
 
 ## How to read an enhancement
@@ -56,7 +61,7 @@ enhancements/
 Start at the entry's `README.md` — it has the summary, scope, and cross-references. Then walk the split documents in order:
 
 1. **`01-problem.md`** — current state, gap, concrete example, user stories. Answers "why does this exist?".
-2. **`02-design.md`** — goals, non-goals, high-level approach, integration points, before/after. Answers "what changes?".
+2. **`02-design.md`** — goals, non-goals, high-level approach, affected surfaces, before/after. Answers "what changes?".
 3. **`03-decisions.md`** — every architectural choice with alternatives, rationale, and source. Open Questions track what is still unresolved.
 4. **`04-graduation.md`** — gates that must hold to advance status.
 5. **`05-risks.md`** — honest costs: risks, drawbacks, high-level alternatives ruled out.
@@ -86,30 +91,16 @@ Creates `0001/experiments/` (with an index README on first invocation), drops a 
 
 Also optional. When an enhancement's design rests on **external evidence** — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — capture the cited findings under `research/` so the evidence travels with the design. The primary dossier is `research/findings.md`; add topic-named files for distinct investigations. Research is *gathered* evidence (read-only synthesis), as distinct from `experiments/`, which are *authored* runnable proofs. Cite every claim, date the snapshot, and reference it back from the `Source:` lines in `03-decisions.md`. There is no scaffold task and `task vet` does not gate it. See `0000/README.md ## Research` for the full convention.
 
-## Slice Plans
+## Delivery Plans
 
-Also optional. `06-operational.md ## Cross-Repo Coordination` names the sequence in prose; once that sequence grows past a couple of hand-offs (as it did for enhancement 0006, which ended up hand-numbering slices and their dependencies inline), back it with a structured `plan.yaml`:
-
-```bash
-task new:plan ID=0001
-```
-
-Each entry in `plan.yaml` is a **slice** — a small, single-concern, single-repo landing: an `id`, the target `repo` (must be a member of `config.yaml.affects`), a one-line `concern`, `depends_on` (other slice ids, or `"NNNN:slice-id"` for a cross-enhancement dependency), and a `status` (`planned | in-progress | done | cancelled`). A slice is a table of contents for execution, not the execution itself — the detail lives in that slice's own OpenSpec change in the target repo.
-
-```bash
-task plan:graph ID=0001                    # regenerate NNNN/PLAN.md — Mermaid DAG + table, coloured by status
-task plan:ready ID=0001                    # slices whose dependencies are all done — the order-of-procedure answer
-task slice:seed ID=0001 SLICE=cli-foo      # print a seed stub for one slice, for that repo's own OpenSpec `new`
-```
-
-`task vet` / `task vet:one` validate `plan.yaml` structurally whenever it's present (schema, id uniqueness, `repo ∈ affects`, every `depends_on` resolving, no dependency cycle) — never required when absent. See `0000/README.md ## Slice Plan` for the full field reference and the `enhancement-slicing` skill for the workflow.
+Execution sequencing lives outside the entries, in [`plans/`](plans/) — one delivery plan per coordinated landing, each a set of thin **slices** (repo, phase, one-line concern, dependencies, status). The relation is strictly one-way: a plan cites the enhancements it `implements` and their decisions and Open Questions by number (`"0015"`, `"0015:D9"`, `"0015:OQ9"`); an enhancement never names a plan, a slice, or a plan file. See [`plans/README.md`](plans/README.md) for the field reference, the phase split, and the command set (`task plans:new`, `plans:vet`, `plans:graph`, `plans:ready`, `plans:uncovered`, `plans:deferred`, `plans:seed`), and the `delivery-plans` skill for the workflow.
 
 ## Validation
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, and — when `plan.yaml` is present — its schema, slice id uniqueness, `repo ∈ affects`, `depends_on` resolution, and dependency-cycle freedom.
-- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings, Open Questions block, implementation snapshot quote block, deviations section, and a nudge (not a block) to add `plan.yaml` when an `accepted` entry's `affects` spans more than one repo and none exists yet.
+- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, and no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule — delivery plans live in `plans/`, validated by `task plans:vet`).
+- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, one-way smell (plan-file names in draft/accepted prose), mechanism smell (file:line refs in the decision log), evidence nudge (no research/, experiments/, or Measured claim), implementation snapshot quote block, deviations section, and supersession quote block.
 
 Run `task vet` before any PR that touches an enhancement; run `task check` before promoting a status (draft → accepted, accepted → implemented).
 
@@ -160,4 +151,4 @@ The validator flags dangling references (`task vet` fails). Once the library pre
 - **`opmodel.dev/`** — public docs site.
 - **`modules/`** — workspace-level OPM module definitions.
 
-Each repo has its own `CLAUDE.md` describing how it consumes the OPM schema. Enhancement implementations cross several of these in coordinated PRs; see each entry's `06-operational.md ## Cross-Repo Coordination` for the sequence.
+Each repo has its own `CLAUDE.md` describing how it consumes the OPM schema. Enhancement implementations cross several of these in coordinated PRs; each entry's `06-operational.md ## Cross-Repo Coordination` states the ordering constraints, and the delivery plans under `plans/` carry the sequence itself.

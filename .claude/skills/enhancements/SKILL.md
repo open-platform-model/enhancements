@@ -1,6 +1,6 @@
 ---
 name: enhancements
-description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events after a slice ships, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
+description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events as delivery milestones land, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
 user-invocable: true
 ---
 
@@ -16,7 +16,7 @@ Load this skill when any of the following is true:
 - Editing an existing enhancement's `config.yaml`, `README.md`, or any of the six split documents (`01-problem.md` through `06-operational.md`).
 - Editing anything under `enhancements/NNNN/schemas/` (the core-schema delta) or `enhancements/NNNN/contracts/` (non-core compilable CUE).
 - Promoting an enhancement's `status` (draft → accepted → implemented → superseded).
-- Recording a new event in `config.yaml.history` after a slice ships.
+- Recording a new event in `config.yaml.history` as a delivery milestone lands.
 - Adding or removing entries in `related`, `supersedes`, `superseded_by`.
 - Running any of the workflow tasks (`task vet`, `task check`, `task new`, `task index`, `task graph`, etc.).
 - Reviewing whether a design is ready to promote — the per-status checklist below is the binding gate.
@@ -26,7 +26,7 @@ Sibling skills carry parallel protocols you may also need to load:
 - **`enhancement-experiments`** — when creating, updating, or validating experiments under `enhancements/NNNN/experiments/`.
 - **`enhancement-open-questions`** — when resolving an enhancement's Open Questions interactively (one OQ at a time, with context + alternatives + a decision write-back). The walk drafts the `### DN:` block, rewrites the OQ's `Status:` line, optionally tightens `// OQN:` markers in `schemas/target.cue`, and appends a single rolled-up `history` event.
 - **`enhancement-compaction`** — the sole path for editing decision bodies on an `accepted` entry (weaving appended reversals into the decisions they reverse, including the mandatory pass immediately before the `implemented` flip), for stubbing a `superseded` entry, and for repairing legacy stacked reversals in older drafts. Routine in-place revision of a `draft` decision does **not** route through it — that is ordinary Phase 2 editing. Never applies to `implemented` entries.
-- **`enhancement-slicing`** — when planning, tracking, or seeding the per-repo execution of an enhancement via the optional `enhancements/NNNN/plan.yaml`. Load before `task new:plan`, before editing an existing `plan.yaml`, before deciding whether a multi-repo entry needs one at the `draft → accepted` gate, or before `task slice:seed`.
+- **`delivery-plans`** — when planning, tracking, or seeding the per-repo delivery of an enhancement via `plans/<slug>/plan.yaml`. Load before `task plans:new`, before editing an existing plan, before deciding whether a multi-repo entry needs one at the `draft → accepted` gate, or before `task plans:seed`. Plans cite this entry's decisions and Open Questions by number; this entry never cites a plan — the one-way rule.
 - **`enhancement-diagrams`** — when a design discussion or Open-Questions walk would benefit from a diagram. Mermaid for relationships between enhancements/slices, ASCII for how a single enhancement's design/mechanism works — the two are never interchangeable by default. Load before sketching either, or before adding a diagram to `01-problem.md`/`02-design.md`/`05-risks.md`.
 - **`core-schema-edit`** (at `core/.claude/skills/core-schema-edit/`) — when implementing a slice that touches `core/*.cue`. The enhancement's accepted-to-implemented work routes there.
 
@@ -88,10 +88,12 @@ Every meaningful edit:
 - May add a new event to `history` if the edit captures a milestone (e.g. "Decisions D1..D5 locked", "Schema spike concluded", "Open Question OQ3 resolved by D7"). Don't add history events for typo fixes or routine prose edits.
 - Tightens the CUE under `schemas/` (and `contracts/`) as decisions resolve `OQ` markers; on core entries, keeps `examples.cue` exercising every changed definition and `spec.md` in step with the delta.
 
-Decisions are written **after** they are made, not speculatively. The format is fixed:
+Decisions are written **after** they are made, not speculatively, and only if they pass the **Kind admission test**: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Three kinds pass — `contract` (changes what a consumer can observe or rely on), `policy` (a posture OPM commits to), `scope` (a boundary decision). A *mechanism* decision (how a repo achieves the contract) fails the test and belongs in the implementing slice's OpenSpec change in the target repo. Measured evidence that constrains a contract stays here, attached to the decision it constrains. The format is fixed:
 
 ```markdown
 ### DN: {Decision Title}
+
+**Kind:** {contract | policy | scope}
 
 **Decision:** {What was decided. State it as a fact.}
 
@@ -124,8 +126,8 @@ task check ID=NNNN            # SHOULD pass; document any deferred warnings in t
 
 Before promoting:
 
-- Every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`). Use `task questions:open ID=NNNN` to check the queue; if it returns rows, walk them with the `enhancement-open-questions` skill before promoting.
-- Every decision (D1..DN) has the four-field format.
+- Every **contract-level** Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`); implementation-level questions may instead close as `deferred-to-implementation` with the context a future implementer needs attached — never naming the inheritor (the slice that picks one up claims it from the plans side; `task plans:deferred` reports unclaimed ones). Use `task questions:open ID=NNNN` to check the queue; if it returns rows, walk them with the `enhancement-open-questions` skill before promoting.
+- Every decision (D1..DN) has the `**Kind:**` line (contract | policy | scope) and the four-field format, and passes the admission test — mechanism decisions have been moved to the implementing slices.
 - Core entries (`core_schema: true`): `schemas/` compiles cleanly, `examples.cue` carries concrete instances exercising every NEW/CHANGED definition, and `spec.md` drafts the full spec delta — `task vet` hard-enforces the file presence the moment `status` flips to `accepted`. Non-core entries: no `schemas/` exists; any `contracts/` compiles.
 - `config.yaml.semver` is set (`major | minor | none`).
 - `config.yaml.affects` lists every repo that ships code/schema/content changes; `area` appears in `affects`.
@@ -133,8 +135,8 @@ Before promoting:
 - `04-graduation.md` has both `## draft → accepted` and `## accepted → implemented` sections filled.
 - `05-risks.md` has concrete content (not placeholders) for Risks / Drawbacks / Alternatives.
 - `06-operational.md` answers the five PRR prompts.
-- Cross-References table in `README.md` lists every file path the implementation will touch (verify each exists today).
-- **If `config.yaml.affects` spans more than one repo, decide whether the entry needs a `plan.yaml`.** Not required — but this is the natural moment: Integration Points are being locked down anyway, and `06-operational.md ## Cross-Repo Coordination` either stays a short prose hand-off or is already turning into a hand-numbered dependency list (the shape enhancement 0006 hit). If the latter, load `enhancement-slicing` and run `task new:plan ID=NNNN`. `task check` nudges (does not block) when this is skipped on a multi-repo `accepted` entry.
+- Cross-References table in `README.md` lists the design documents and sibling entries the reader needs — not implementation file paths (that construction detail belongs to the delivery plan's slices).
+- **If `config.yaml.affects` spans more than one repo, decide whether the design needs a delivery plan.** Not required — but this is the natural moment: `06-operational.md ## Cross-Repo Coordination` states the ordering constraints, and if they are real, load `delivery-plans` and run `task plans:new SLUG=<slug> IMPLEMENTS=NNNN`. The plan lives under `plans/` and cites this entry; this entry never cites the plan. `task plans:vet` nudges (does not block) when an accepted multi-repo entry has no plan.
 - **Run a compaction pass** (`task compact:plan ID=NNNN`, then the `enhancement-compaction` skill) as a separate commit before the flip. The gate already forces you to touch every Open Question, so collapsing resolved OQ prose costs nothing extra. A draft maintained under the in-place rule should have no stacked reversals to weave; if `compact:plan` finds some anyway (legacy entries, imported habits), weave them now — the flip to `accepted` protects decision bodies.
 
 Append a history event:
@@ -153,13 +155,10 @@ Implementation lands in the affected repos (named in `config.yaml.affects`), not
 
 As code ships:
 
-- Append `history` events naming each landing milestone. Use the optional `slice` field to reference an OpenSpec change slug if the target repo uses OpenSpec:
-  ```yaml
-  - {date: <today>, event: "Library kernel rewired", slice: "library/2026-06-15-add-materialize-step"}
-  ```
-- **If this entry has a `plan.yaml`,** set the landed slice's `status: done` and `openspec_ref` in the *same commit* as the `history` event above, citing the same value — see `enhancement-slicing`. `plan.yaml` and `history` must always agree on what has landed; drift means `plan.yaml` is wrong.
+- Append `history` events naming each landing milestone **in plan-blind wording** — say what became true ("Library kernel rewired: acquire-time version check shipped"), never which plan, slice, or OpenSpec change delivered it. The one-way rule: plans cite enhancements; enhancements never cite plans. (The legacy `slice` field on history events predates this rule — never write it in new events.)
+- **The delivery record lives on the plans side.** If a delivery plan implements this entry, the landed slice's `status: done` and `openspec_ref` are set in `plans/<slug>/plan.yaml` — see the `delivery-plans` skill. This entry only accumulates its own milestones.
 - For slices that land in `core/*.cue`: **load `core-schema-edit` first.** That skill enforces the SPEC.md co-update protocol. Skipping it gets the commit rejected by the pre-commit hook + CI gate.
-- Decision bodies are **protected** while the entry is `accepted` — slices routinely reveal that an earlier choice was wrong, and that change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields, never as a direct edit to the old body. The appended decision is visible in review and shows up in `task decisions:uncovered` until a slice carries it. Weave the stacked reversals into the decisions they reverse via `enhancement-compaction` (own commit) as they land, or at latest in the mandatory pre-flip pass. **This is the last chance:** the flip to `implemented` freezes the entry permanently, so anything left stacked stays stacked.
+- Decision bodies are **protected** while the entry is `accepted` — slices routinely reveal that an earlier choice was wrong, and that change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields, never as a direct edit to the old body. The appended decision is visible in review and shows up in `task plans:uncovered` until a slice carries it. Weave the stacked reversals into the decisions they reverse via `enhancement-compaction` (own commit) as they land, or at latest in the mandatory pre-flip pass. **This is the last chance:** the flip to `implemented` freezes the entry permanently, so anything left stacked stays stacked.
 - When everything in scope has shipped:
   - Run a final compaction pass **before** the flip, while the entry is still `accepted`.
   - Set `implementation.status: complete` with `date` matching the final landing date.
@@ -207,7 +206,7 @@ The cheap-entry state. Be lenient — this is where ideas form.
 - **[H]** `core_schema` set; `schemas/` exists **iff** it is `true`, contains `target.cue`, and compiles via `cue vet ./...`; when `true`, `core ∈ affects`
 - **[H]** `contracts/`, when present, is non-empty and compiles via `cue vet ./...`
 - **[H]** if `experiments/` exists: index `README.md` is present and every `NN-*/` subdirectory has its own `README.md`
-- **[H]** if `plan.yaml` exists: `#SlicePlan` schema conformance, slice id uniqueness, `repo ∈ affects`, every `depends_on` resolves, no dependency cycle
+- **[H]** no `plan.yaml` or `PLAN.md` inside the entry — delivery plans live in `plans/<slug>/` (the one-way rule)
 
 Not required at draft: `semver`, scope section, decisions content, Open Questions list, implementation block.
 
@@ -224,7 +223,7 @@ Everything `draft` requires, plus:
 - **[S]** `03-decisions.md` contains at least one `### DN:` heading
 - **[S]** `03-decisions.md` contains `## Open Questions` block (may say "None")
 - **[S]** `04-graduation.md` contains both `## draft → accepted` and `## accepted → implemented` sections
-- **[S]** if `affects` has more than one entry, `plan.yaml` exists (nudge only — never required; see `enhancement-slicing`)
+- **[S]** no `*.md` names a plan file, every decision carries `**Kind:**` (checked on drafts), mechanism smells and missing evidence warned (see `task check`'s summary); the delivery-plan coverage nudge for accepted multi-repo entries lives in `task plans:vet` (see `delivery-plans`)
 
 ### `implemented`
 
@@ -264,24 +263,21 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Consumed by the `enhancement-compaction` skill. Read-only; it proposes nothing and writes nothing. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
 | `task graph` | After any cross-reference edit. `GRAPH.md` is generated, not hand-edited. |
-| `task new:plan ID=NNNN` | Scaffolding `plan.yaml` (structured slice plan) inside an entry. **Load `enhancement-slicing` skill first.** |
-| `task plan:graph ID=NNNN` | After any `plan.yaml` edit — regenerates `NNNN/PLAN.md`, not hand-edited. |
-| `task plan:ready ID=NNNN` | Need the order-of-procedure answer — slices whose dependencies are all `done`. |
-| `task slice:seed ID=NNNN SLICE=id` | About to hand a slice off to a target repo's own OpenSpec `new` flow. |
+| `task plans:*` | Delivery-plan tasks (`new`, `vet`, `graph`, `ready`, `uncovered`, `deferred`, `seed`) — operate on `plans/<slug>/`, never inside an entry. **Load the `delivery-plans` skill first.** |
 
 ## OpenSpec — sister workflow for slicing
 
 OpenSpec is the per-repo workflow for breaking a single design (defined here, in `enhancements/NNNN/`) into one or more **slices** that land as discrete changes in target repos. Each affected repo (`catalog/`, `library/`, `opm-operator/`, `orca/`, etc.) has its own `openspec/` workspace.
 
-The OpenSpec skills (`openspec-new-change`, `openspec-explore`, `openspec-continue-change`, `openspec-apply-change`, `openspec-verify-change`, `openspec-archive-change`, `openspec-ff-change`, plus utilities) handle the slice lifecycle inside each target repo. `config.yaml` itself still carries no `slices[]` field (dropped intentionally — a mandatory array inside the sole-metadata file would be too noisy to maintain on every entry, most of which never need it). What changed: the optional `enhancements/NNNN/plan.yaml` (see `enhancement-slicing`) gives entries that *do* need cross-repo ordering a structured, separate home for exactly that — not required, not part of `config.yaml`, only scaffolded once the coordination need actually surfaces. Either way, the audit trail of what has *landed* lives in `history` events; each affected repo's own OpenSpec workspace is the source of truth for that slice's content.
+The OpenSpec skills (`openspec-new-change`, `openspec-explore`, `openspec-continue-change`, `openspec-apply-change`, `openspec-verify-change`, `openspec-archive-change`, `openspec-ff-change`, plus utilities) handle the slice lifecycle inside each target repo. `config.yaml` carries no `slices[]` field, and the delivery plan lives in `plans/<slug>/` (see `delivery-plans`) — not inside the entry. The landing record is the plan; the enhancement's `history` records milestones in plan-blind wording; each affected repo's own OpenSpec workspace is the source of truth for that slice's content.
 
 Workflow:
 
 1. Design the enhancement here (`enhancements/NNNN/`).
-2. Promote to `accepted`. If `affects` spans more than one repo and the landing order needs tracking, scaffold `plan.yaml` here (`enhancement-slicing`).
-3. For each affected repo, `cd <repo>` and use the openspec skills to draft a slice referencing the enhancement id in its proposal. If a `plan.yaml` slice exists for it, `task slice:seed ID=NNNN SLICE=<id>` prints a stub to hand to that repo's `openspec new`.
+2. Promote to `accepted`. If `affects` spans more than one repo and the landing order needs tracking, scaffold a delivery plan (`task plans:new SLUG=<slug> IMPLEMENTS=NNNN`, under the `delivery-plans` skill).
+3. For each affected repo, `cd <repo>` and use the openspec skills to draft a slice referencing the enhancement id in its proposal. If a plan slice exists for it, `task plans:seed SLUG=<slug> SLICE=<id>` prints a stub to hand to that repo's `openspec new`.
 4. Implement the slice; archive on completion.
-5. Append a `history` event to `enhancements/NNNN/config.yaml` with the slice slug in the optional `slice` field. If `plan.yaml` has a matching slice, set its `status: done` and `openspec_ref` in the same commit.
+5. Record the landing on the plans side (`status: done` + `openspec_ref` in `plans/<slug>/plan.yaml`). Append a milestone `history` event here only when the entry itself reaches a milestone worth recording — in plan-blind wording, never citing the slice or the OpenSpec slug.
 
 ## Common pitfalls
 
@@ -297,9 +293,10 @@ Workflow:
 - **Forking content from the frozen library entries.** Fresh prose. The frozen predecessors are reference material for *why* the new design exists, not source code to copy.
 - **Promoting status without running both gates.** `task vet` is mechanical and must pass. `task check` is prose-shape; failing it is acceptable only if the warning is documented in the PR body with a reason for deferring.
 - **Editing `core/*.cue` as part of an implementation slice without loading the `core-schema-edit` skill first.** That skill is binding. The pre-commit hook + CI gate will reject the commit. Reading the skill first means the SPEC section format is ready when you write it.
-- **Treating `INDEX.md` or `GRAPH.md` as hand-maintained.** They are generated. Hand-edits get clobbered on the next `task index` / `task graph`. Same for `NNNN/PLAN.md` — generated by `task plan:graph`.
-- **Letting `plan.yaml` and `config.yaml.history` disagree about what has landed.** A slice marked `done` with no matching `history` event (or vice versa) means one of them is stale. Update both in the same commit — see `enhancement-slicing`.
-- **Scaffolding `plan.yaml` on every multi-repo entry regardless of need.** Same discipline as `experiments/`: only add it once `06-operational.md`'s prose sequencing actually becomes hard to track, not upfront.
+- **Treating `INDEX.md` or `GRAPH.md` as hand-maintained.** They are generated. Hand-edits get clobbered on the next `task index` / `task graph`. Same for `plans/<slug>/PLAN.md` — generated by `task plans:graph`.
+- **Writing a plan pointer into the entry.** No history event cites a slice or OpenSpec slug, no doc names a plan file, no `plan.yaml` lives inside an entry — `task vet` fails the file, `task check` warns on the prose. Plans cite enhancements; enhancements never cite plans.
+- **Scaffolding a delivery plan for every multi-repo entry regardless of need.** Same discipline as `experiments/`: only add one once `06-operational.md`'s ordering constraints are real, not upfront.
+- **Recording a mechanism decision.** If it would not bind a from-scratch rewrite of the affected repos, it is not a `DN` — it belongs in the implementing slice's OpenSpec change. `task check` flags file:line refs and function() tokens in the decision log as smells.
 - **Using Mermaid for a design/mechanism diagram, or ASCII for an entity-relationship graph.** The medium follows content shape — see `enhancement-diagrams`. Swapping either direction is the specific mistake that skill exists to prevent.
 - **A bordered ASCII diagram whose alignment drifted after an edit.** Fixed-width box borders are fragile — `0012/02-design.md`'s rung ladder (73 characters wide) is the cautionary example. Re-check row widths after any edit, or prefer arrow/column layouts that don't have this failure mode.
 
@@ -316,12 +313,12 @@ When guidance conflicts, the most-specific source wins: target repo skill > this
 
 - `enhancements/CLAUDE.md` — repo orientation; points here for the full protocol.
 - `enhancements/0000/README.md` — template; carries the canonical rules text duplicated inside each new entry.
-- `enhancements/schema.cue` — CUE contract that `task vet` validates each `config.yaml` (and, when present, `plan.yaml`) against.
+- `enhancements/schema.cue` — CUE contract that `task vet` validates each `config.yaml` against (`plans/schema.cue` is the plan-side counterpart).
 - `enhancements/Taskfile.yml` — workflow tasks source.
 - `enhancement-experiments` skill (sibling, under `enhancements/.claude/skills/`) — the experiments protocol.
 - `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — the interactive OQ-walk protocol; load when resolving Open Questions one at a time, especially before promoting `draft → accepted`.
 - `enhancement-compaction` skill (sibling, under `enhancements/.claude/skills/`) — the compaction protocol; the only body-edit path on `accepted` entries. Load before weaving an appended reversal into the decision it reverses, collapsing resolved OQ prose, or stubbing a superseded entry.
-- `enhancement-slicing` skill (sibling, under `enhancements/.claude/skills/`) — the slice-plan protocol; load before scaffolding or editing `plan.yaml`, or before `task slice:seed`.
+- `delivery-plans` skill (sibling, under `enhancements/.claude/skills/`) — the delivery-plan protocol; load before scaffolding or editing `plans/<slug>/plan.yaml`, or before `task plans:seed`.
 - `enhancement-diagrams` skill (sibling, under `enhancements/.claude/skills/`) — the diagram protocol; load before sketching a relationship (Mermaid) or design/mechanism (ASCII) diagram, live or persisted.
 - `core-schema-edit` skill (`core/.claude/skills/core-schema-edit/`) — the SPEC.md co-update protocol for slices that touch `core/*.cue`.
 - `openspec-*` skills (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — the slice lifecycle in each target repo.

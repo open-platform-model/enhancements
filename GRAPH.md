@@ -24,11 +24,11 @@ graph LR
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
-  N0015["0015: Catalog Contracts, Provider Classes, and Transfor…"]:::draft
+  N0015["0015: Catalog Contracts and Transformer Registration"]:::accepted
   N0016["0016: Initialize a Module Instance Package from a Publi…"]:::draft
   N0017["0017: Layered Defaults"]:::draft
   N0018["0018: Documentation Architecture"]:::draft
-  N0019["0019: Kernel render path parity with pure CUE"]:::draft
+  N0019["0019: Kernel render path parity with pure CUE"]:::accepted
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003
