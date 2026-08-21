@@ -138,7 +138,7 @@ The relation asserted on the platform value — at 0019 D6's generation step —
 
 ### Definition
 
-A cluster-scoped custom resource through which a provider module registers its catalog's transformers, shipped among the module's rendered resources. The CR is a **claim**, not a fact: the Platform reconciler validates it and records acceptance, so there remains exactly one writer to the effective set and one place to reject (D3). `target.cue` splits it as `#TransformerRegistrationSpec` (the claim) and `#TransformerRegistrationStatus` (the verdict); the Go types land in `opm-operator/api/v1alpha1/`, and this section specifies the CUE-level contract they must satisfy.
+A cluster-scoped custom resource through which a provider module registers its catalog's transformers, shipped among the module's rendered resources. The CR is a **claim**, not a fact: the Platform reconciler validates it and records acceptance, so there remains exactly one writer to the effective set and one place to reject (D3). It is never authored as a raw object: it is the rendered output of D9's authoring surface — a `transformer-registration` `#Resource` contract in catalog_opm, rendered by a catalog_opm transformer — with every spec field derived or stamped rather than hand-written (D11), and its name instance-derived (D12). The authoring-surface shapes are not core delta and live in `../contracts/contracts.cue`. `target.cue` splits the CR as `#TransformerRegistrationSpec` (the claim) and `#TransformerRegistrationStatus` (the verdict); the Go types land in `opm-operator/api/v1alpha1/`, and this section specifies the CUE-level contract they must satisfy.
 
 ### Shape
 
@@ -167,9 +167,12 @@ A cluster-scoped custom resource through which a provider module registers its c
 ### Constraints
 
 - The CR MUST be cluster-scoped, and tenant roles MUST NOT carry create on it — the RBAC gate rides the per-tenant ServiceAccount impersonation the operator already performs during apply (D3).
-- `provides` MUST be verified against the subscribed catalogs' contract maps (D1); a claim naming a contract no subscribed catalog defines MUST be rejected at acceptance.
+- `catalog` MUST name a published catalog artifact: acceptance MUST import its root package and require a `#Catalog` value, refusing any other artifact kind by shape (D10). Transformer code MUST NOT ride the CR in any form; the registry is the sole code channel.
+- `providerRef` MUST be stamped by the rendering transformer from instance metadata and MUST NOT be an authorable field of the contract's spec (D11).
+- The CR's name MUST be instance-derived (dot-joined `namespace.name`, D12), so a duplicate provider is refused at acceptance naming the claimant rather than colliding at apply.
+- `provides` MUST be verified against the subscribed catalogs' contract maps (D1) **and** for exact equality against the reconciler's re-derivation of the provider set from the fetched catalog (D11); drift in either direction MUST reject the claim naming both lists. A claim naming a contract no subscribed catalog defines MUST be rejected at acceptance.
 - `version` MUST be scalar: the value written is the value used, with nothing to resolve (0010 D14).
-- Activation MUST be gated on `providerRef` being Ready, so a transformer never registers ahead of its CRDs; `active` MUST imply `accepted`.
+- Activation MUST be gated on `providerRef` being Ready, so a transformer never registers ahead of its CRDs; `active` MUST imply `accepted`. The readiness aggregation MUST NOT let the registration CR gate its own package (OQ11).
 - Acceptance MUST be centralized in the Platform reconciler; accepted claims MUST be recorded in `Platform.status.registry`, never written into the Platform CR's spec.
 - Deletion MUST be refused while `dependentInstances > 0`, naming the count.
 - A claim naming a contract already provided by an active subscription or registration MUST be rejected (0010 D37's one-provider rule, kept by D2).

@@ -14,16 +14,18 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 
 **Contracts and adapters stay in one CUE module** (D4). Recorded as a decision rather than left undecided, because a contract FQN embeds its declaring catalog's path: splitting rides 0010's break nearly free and costs a second flag day later. With D1 in place a single catalog can already say "I define these and implement only some of them", which is what the split was wanted for.
 
+**The registration is authored as a `#Resource` contract and every field of the claim is derived or stamped** (D9–D12, 2026-08-21). catalog_opm publishes a `transformer-registration` resource contract and the transformer that renders D3's CR, so registration is self-hosting on the platform's own machinery and `#Module` is unchanged — no authored field, no second emission path, and the RBAC gate keeps its footing (the CR must be rendered output applied under the tenant impersonation). The claim names a published **catalog** artifact only, refused structurally otherwise, and carries no code and no author-trusted data: `catalog`/`version`/`provides` derive from the provider catalog's identity package via the module's own dependency, `providerRef` and the dot-joined instance name are stamped at render, and acceptance verifies `provides` for exact equality against its own re-derivation. The one human decision in the flow is the catalog version in the module's `cue.mod`. Providers wanting one repository publish catalog and module in lockstep; module-hosted transformers wait in D10's alternatives as an additive generalization.
+
 ## Documents
 
 1. [01-problem.md](01-problem.md) — the three gaps, measured 2026-08-05 against `core/src/catalog.cue`, `materialize/index.go` and `compile/match.go` (pre-0019 anchors, kept dated) and restated against 0019's single-build pipeline
 2. [02-design.md](02-design.md) — contract member maps, the one-provider rule and its refusal sites, the registration CR, and the packaging decision
-3. [03-decisions.md](03-decisions.md) — D1..D5 + Open Questions OQ1..OQ10
+3. [03-decisions.md](03-decisions.md) — D1..D12 + Open Questions OQ1..OQ12
 4. [04-graduation.md](04-graduation.md) — per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — risks, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md) — operational concerns (PRR-lite)
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable files, never as fenced blocks inside markdown.
+Pure-CUE schema definitions live in [`schemas/`](schemas/) (the core delta) and [`contracts/`](contracts/) (the D9–D12 authoring surface: catalog-side contract, derivation, stamps, acceptance checks) as compilable files, never as fenced blocks inside markdown.
 
 ## Scope
 
@@ -35,12 +37,16 @@ Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable files, 
 - Keeping 0010 D37's exactly-one-provider rule, with better refusal sites: over-subscription reported by the inventory at platform assembly naming both paths, and refused at registration acceptance naming the claimant (D2, as revised).
 - D5's hard guard on comparable predicates within one catalog-fulfilled bucket (detection shape OQ9, site OQ10).
 - A cluster-scoped `TransformerRegistration` CR with claim/accept, health-gated activation, and a deletion finalizer (D3).
+- The registration's authoring surface (D9): the `transformer-registration` `#Resource` contract and rendering transformer in catalog_opm; `#Module` unchanged.
+- Catalog-only claim coordinates with structural refusal of other artifact kinds, and the no-code-on-the-CR rule (D10); the lockstep two-artifact provider release flow.
+- Full derivation and stamping of the claim (D11) — identity-package interpolation, `provides` fold, `providerRef` and instance-derived CR naming (D12) — with exact-equality verification at acceptance.
 - `Platform.status.registry` as the effective set, and the identity of the platform package the operator regenerates from it (OQ8 — the store key this bullet used to name was deleted with the store by 0019 D8).
 - `opm platform check` — the pre-flight the inventory makes possible.
 
 ### Out of scope
 
 - **Splitting contracts and adapters into separate CUE modules** — decided against in D4, deliberately and now.
+- **Transformers shipped inside module artifacts, or riding the CR** — decided against in D10; the additive generalization (an optional `package` coordinate plus publish-gate coverage) waits in D10's alternatives.
 - **Provider routing of any kind — classes included.** Adopted 2026-08-05, rejected 2026-08-20 (D2, as revised); the class design waits in D2's alternatives for a successor entry with a real two-engine instance.
 - **Refinement / override semantics in the matcher** ("most specific predicate wins"). OQ1 resolved by D5's guard instead: comparable predicates refuse, never order. Successor material.
 - **Capability-based routing** — a module declaring RPO or retention and the platform routing on it. The likely shape of the successor routing entry.
@@ -70,5 +76,5 @@ None at this stage. Update when implementation lands.
 | `opm-operator/internal/platform/store.go` | The held slot 0019 D8 deletes; its re-key question became OQ8's platform-package regeneration identity |
 | `opm-operator/internal/controller/platform_controller.go` | Claim validation and acceptance |
 | `opm-operator/docs/TENANCY.md` | The per-tenant ServiceAccount model D3's RBAC gate rests on |
-| `catalog_opm/src/catalog.cue` | First catalog to list its contracts in the new maps |
+| `catalog_opm/src/catalog.cue` | First catalog to list its contracts in the new maps; also gains D9's registration pair (`src/resources/` contract + `src/transformers/` renderer) |
 | `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |

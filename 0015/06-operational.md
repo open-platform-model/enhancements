@@ -22,6 +22,7 @@ New diagnostics: the `unfulfilled` and `overSubscribed` reports at platform-pack
 - **library** — re-baselined: the surfaces this entry originally extended (`MaterializedPlatform`, `indexCatalogs`) are deleted by 0019, so the library delta shrinks to reading the inventory and routing verdicts off built values, the OQ2 default fill, and OQ8's regeneration hooks. Go-major only if a public kernel surface moves; which surfaces exist to move depends on where 0019's slices leave the kernel.
 - **opm-operator** — a new CRD and a `PlatformStatus` addition. Additive to the API, but the first reconcile after upgrade regenerates the platform package and re-renders everything — and every claim change does the same (OQ8).
 - **cli** — additive (`opm platform check`), plus whatever OQ3 requires for effective-registry retrieval.
+- **catalog** — additive: `catalog_opm` populates the contract maps and gains D9's registration pair (the `transformer-registration` resource contract at `v1alpha1` plus its rendering transformer); a normal minor release.
 
 The ordering constraint that matters: **the whole entry extends 0019's pipeline:** the inventory fold needs D5's embedded catalogs (`core-registry-import`), the routing rungs need the match glue (`library-match-in-build`), and D3's acceptance flow needs the generation step (`opm-operator-platform-generation`), so this entry cannot ship ahead of those slices either.
 
@@ -68,3 +69,11 @@ Six areas, with a genuine ordering constraint rather than a convention, which is
 Each hand-off produces something concrete the next consumes: `core` publishes a build carrying the new shapes, the inventory fold and the routing assertion; `library` publishes a kernel that surfaces them through the render build's diagnostics and the generation step; `catalog_opm` publishes a build whose contract maps are populated, which is what makes the readiness answer non-trivial; `opm-operator` consumes both and adds the CRD. The `cli` slice depends on OQ3's resolution rather than on code, so it can be planned but not written until that question closes.
 
 The two catalog slices are `migration` phase, not `implementation` — they push bytes rather than define a system, and under the slicing rules that ordering is enforced as an edge rule. The provider-catalog slice is deliberately last: it is the end-to-end proof that the k8up path from `01-problem.md` works on a cluster, including a second registration being refused at acceptance, and it is worth nothing if it runs before the pieces it exercises exist.
+
+**Provider release ordering (D10/D11) — the flow every provider repo automates.** A provider maintaining catalog and module in one repository publishes two artifacts in lockstep, and the ordering is hard, not conventional: the module's registration spec derives from the catalog dependency its `cue.mod` resolves, so the catalog build must exist in the registry before the module can tidy against it.
+
+1. Publish the provider catalog (release-please → GHCR, the 0011 path).
+2. Bump the catalog dependency in the module's `cue.mod` (the `task deps:update` shape — mechanical, and the diff is the review surface: it is the only authored fact in the claim).
+3. Publish the module. Its registration now pins exactly the catalog version it was built against.
+
+Iteration inside the awkward middle uses the existing `-dev.*` branch-publish prerelease tags, so a provider developer builds against dev catalog builds and the release pipeline runs the sequenced pair. No step requires a local registry (Registry Policy rules 1–3 unchanged).

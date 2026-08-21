@@ -31,6 +31,12 @@
 //   #EffectiveRegistry              NEW      (D3) spec subscriptions unified with active claims, and the regenerated platform package's identity (OQ3, OQ8)
 //
 // Unresolved fields carry `// OQN:` markers pointing at ../03-decisions.md.
+//
+// The AUTHORING surface for #TransformerRegistration — the catalog_opm
+// contract member a provider module attaches, the derivation of the spec
+// from the provider catalog's identity package, the render-time stamping of
+// providerRef and the CR name, and the acceptance-side verifications
+// (D9-D12) — is NOT core delta and lives in ../contracts/contracts.cue.
 package schema
 
 // ---------------------------------------------------------------------------
@@ -200,26 +206,43 @@ package schema
 // D3 — transformer registration.
 // ---------------------------------------------------------------------------
 
-// The claim a provider module ships. Cluster-scoped, so a tenant
-// ServiceAccount cannot create one — which is the RBAC gate, using the
-// impersonation opm-operator already performs during apply.
+// The claim a provider module ships — as rendered output of D9's contract-
+// and-transformer pair, never authored as a raw object. Cluster-scoped, so a
+// tenant ServiceAccount cannot create one — which is the RBAC gate, using
+// the impersonation opm-operator already performs during apply. Its name is
+// instance-derived, dot-joined "namespace.name" (D12), so duplicate claims
+// are arbitrated at acceptance, never at SSA apply. Every field below is
+// derived or stamped (D11); the CR carries no author-trusted data.
 #TransformerRegistrationSpec: {
-	// The catalog whose transformers this registers.
+	// The catalog whose transformers this registers. A published CATALOG
+	// artifact only (D10): acceptance imports its root package and requires
+	// a #Catalog value, so a module artifact is refused by shape. Derived
+	// from the provider catalog's identity package via the module's cue.mod
+	// dependency, never hand-authored (D11).
 	catalog!: #ModulePath
 
-	// The build. Scalar, per 0010 D14 — nothing resolves it.
+	// The build. Scalar, per 0010 D14 — nothing resolves it. Derived from
+	// the same identity package as `catalog`, so the claim cannot name a
+	// version the module was not built against (D11).
 	version!: #Version
 
 	// The provider's own ModulePackage. Activation is gated on this being
-	// Ready, so a transformer never registers ahead of its CRDs.
+	// Ready, so a transformer never registers ahead of its CRDs (readiness
+	// definition per OQ11 — it must exclude this CR itself). STAMPED by the
+	// rendering transformer from #TransformerContext instance metadata and
+	// not authorable: the provider IS the instance that rendered the claim
+	// (D11).
 	providerRef!: {
 		name!:      string
 		namespace!: string
 	}
 
-	// What the registration claims to provide. VERIFIED against the
-	// subscribed catalogs' contract maps (D1) rather than trusted — a claim
-	// naming a contract no catalog defines is rejected at acceptance.
+	// What the registration claims to provide. Derived at authoring as the
+	// fold over the provider catalog's own transformers' provider-fulfilled
+	// demands, and VERIFIED at acceptance for exact equality against the
+	// reconciler's re-derivation from the fetched catalog plus the
+	// subscribed catalogs' contract maps (D1, D11) — drift in either
+	// direction refuses the claim naming both lists.
 	provides!: [...#ContractFQN]
 
 }

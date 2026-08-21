@@ -9,6 +9,7 @@ This document answers the question: "What is the proposed solution and how does 
 - **A second provider of one contract is refused loudly, where the failure can be named.** One provider per contract per cluster is the supported state (0010 D37, kept unamended); the refusal names both catalog paths at platform assembly and names the claimant at registration acceptance. Routing between providers is a successor entry.
 - **A module never names a provider.** It declares a contract. The moment a module can say "k8up" it has stopped consuming a contract.
 - **A provider's runtime installation and its transformer registration are one act, gated by the permission that already governs the cluster.** Registering an adapter is a platform-team privilege, enforced by RBAC rather than by convention.
+- **The claim carries no author-trusted data.** Every field of the shipped CR is derived from the provider catalog's identity package or stamped from instance identity at render; the only authored fact in the flow is the module's catalog dependency version, and acceptance's only free variable is which identity applied the claim.
 - **A registration that is not backed by a healthy provider is not active**, so no render targets CRDs that do not exist yet.
 - **Removing a provider is refused while consumers depend on it**, rather than silently breaking their next render.
 - **Nothing here adds ordering or arbitration to the matcher.** Whatever routing ships must reduce to the predicate the matcher already evaluates — in Go at `compile/match.go` when this entry was drafted, in the render build's CUE match glue since 0019 D10, with the same rungs either way.
@@ -16,6 +17,7 @@ This document answers the question: "What is the proposed solution and how does 
 ## Non-Goals
 
 - **Splitting contracts and adapters into separate CUE modules.** Decided against in D4, deliberately and now rather than by default, because riding 0010's FQN break is nearly free and a standalone break later is not.
+- **Transformers shipped inside module artifacts, or riding the CR.** Decided against in D10: a registration names a published catalog artifact only, refused structurally otherwise, and the CR is pure data. The generalization (an optional `package` field selecting a `#Catalog` subpackage, plus publish-gate coverage for module artifacts) is preserved in D10's alternatives and reachable additively if a real need arrives.
 - **Provider routing of any kind — classes included.** Adopted 2026-08-05, rejected 2026-08-20 (D2, as revised): 0010 D37's one-provider rule stands, and the class design is preserved in D2's alternatives for the successor entry that picks routing up against a real two-engine instance.
 - **Refinement / override semantics in the matcher** — "the most specific transformer in a bucket wins". OQ1 resolved by D5's guard instead: comparable predicates are refused, not ordered. Refinement is the only shape that expresses "override" and the only one that puts ordering into a matcher that has deliberately had none since 0001; successor material.
 - **Capability-based routing** — a module declaring RPO, retention or "must support hooks" and the platform routing to whichever provider satisfies it. The likely shape of the successor routing entry; nothing here forecloses it.
@@ -33,22 +35,28 @@ That converts three things from derivations into lookups. The platform can enume
 
 **2. One provider per contract, refused loudly** (D2, as revised 2026-08-20; 0010 D37 stands unamended). The entry originally adopted provider classes here — StorageClass's shape, carried to matching by 0010 D36's `matchLabels` — and rejected them: the vocabulary is an operator-facing concept to design and operate, the invisible default re-route is StorageClass's known failure mode, and the default fill needed its own unresolved design, all ahead of any real two-engine requirement. What replaces them is nothing but better diagnostics: with D1's inventory the second provider is *over-subscription*, reported at platform assembly naming both catalog paths, and with D3 a second registration is refused at acceptance naming the claimant. Routing between providers — classes or capabilities — is a successor entry, designed against a real instance when one arrives, which is what 0010 D32 prescribed for arbitration all along. The full class design survives in D2's *Alternatives considered*.
 
-**3. Registration is a cluster-scoped CR, gated by the RBAC the operator already has** (D3). `opm-operator` already impersonates a per-tenant ServiceAccount during apply (`docs/TENANCY.md`, `--default-service-account` lockdown). A cluster-scoped `TransformerRegistration` that a tenant ServiceAccount cannot create is therefore a gate that exists today rather than a new permission model: a provider module ships the CR among its rendered resources, and only a module applied under a platform-team identity can create it.
+**3. Registration is a cluster-scoped CR, gated by the RBAC the operator already has** (D3), **and authored as a contract-and-transformer pair** (D9). `opm-operator` already impersonates a per-tenant ServiceAccount during apply (`docs/TENANCY.md`, `--default-service-account` lockdown). A cluster-scoped `TransformerRegistration` that a tenant ServiceAccount cannot create is therefore a gate that exists today rather than a new permission model: a provider module ships the CR among its rendered resources, and only a module applied under a platform-team identity can create it.
+
+How the CR gets *into* the rendered resources is D9's authoring surface, and it is the platform's own machinery eating its own dog food: catalog_opm publishes a `transformer-registration` `#Resource` contract (`fulfilment: "catalog"`) and the transformer that renders it. A provider module attaches the resource to a component; the transformer selects on the contract's FQN alone (no `matchLabels`, its own bucket, D5's guard untouched) and emits the CR. `#Module` is unchanged — no authored field, no second emission path, and core stays runtime-neutral: a non-Kubernetes runtime ships a different transformer for the same contract. The RBAC gate depends on this shape — the CR must be *rendered output applied under the tenant impersonation*, or the gate would have to be reimplemented inside the reconciler.
+
+The spec is derived, the stamps structural (D10/D11/D12): the provider catalog exports a pre-bound value whose `catalog`/`version` interpolate from its identity package and whose `provides` folds over its own transformers' provider-fulfilled demands; the rendering transformer stamps `providerRef` and the dot-joined `namespace.name` CR name from instance identity. `spec.catalog` may name a published **catalog** artifact only — acceptance imports its root package and requires a `#Catalog` value, so a module artifact fails by shape — and transformer code never rides the CR; the registry stays the sole code channel. A provider wanting one repository publishes catalog and module in lockstep (`06-operational.md`).
 
 The CR is a **claim**, not a fact:
 
 ```
-  k8up ModulePackage
-        │ renders (needs cluster-admin SA to apply)
+  k8up module: component carries the transformer-registration #Resource
+        │ rendered by catalog_opm's transformer (D9); spec derived from the
+        │ k8up catalog's identity package, providerRef + name stamped (D11/D12)
         ▼
-  TransformerRegistration/k8up            ── cluster-scoped, RBAC-gated
-    spec.catalog:     opmodel.dev/catalogs/k8up@v1
-    spec.version:     1.2.0
-    spec.providerRef: ModulePackage/k8up             ── health gate
-    spec.provides:    [".../traits/backup@v1beta1"]  ── declared, then verified
+  TransformerRegistration/backup-system.k8up   ── cluster-scoped, RBAC-gated
+    spec.catalog:     opmodel.dev/catalogs/k8up@v1      ── derived (D11)
+    spec.version:     1.2.0                             ── derived (D11)
+    spec.providerRef: ModulePackage/k8up                ── stamped; health gate
+    spec.provides:    [".../traits/backup@v1beta1"]     ── derived, then verified
         │
-        │  PlatformReconciler validates: catalog resolvable, declared contracts
-        │  exist and are not already provided, providerRef is Ready
+        │  PlatformReconciler validates: artifact is a #Catalog (D10), provides
+        │  equals the re-derived provider set (D11), contracts exist and are
+        │  not already provided, providerRef is Ready
         ▼
   Platform.status.registry   ── the EFFECTIVE set: spec subscriptions + accepted claims
         │
@@ -68,6 +76,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 - **`#ContractInventory`** — the fold the platform value computes once the maps exist (0019 D5 embeds the catalogs, so it is derivable in core beside `#composedTransformers`): defined contracts per subscribed catalog, required-by sets from adapters, and the derived `unfulfilled` / `overSubscribed` reports. This is the value a `Platform` readiness condition and a CLI pre-flight both read.
 - **`#ContractRouting`** — the arity relation asserted on the platform value: 0010 D37's exactly-one for provider-fulfilled contracts, `overSubscribed` refusal naming both paths, and catalog buckets deliberately unconstrained (D5's guard is OQ9/OQ10-gated).
 - **`#TransformerRegistration`** — the CR's spec and status, expressed as a CUE shape so the claim/accept split and the activation preconditions are checkable before they are Go types.
+- **The authoring surface** (D9–D12) — not core delta; compilable in [`contracts/contracts.cue`](../0015/contracts/contracts.cue): `#TransformerRegistrationContract` (the catalog_opm resource member), `#PreBoundRegistration` (the identity-package derivation of `catalog`/`version`/`provides`), `#RenderedRegistration` (the `providerRef` and CR-name stamps), `#ClaimedArtifactGate` (D10's catalog-only shape refusal) and `#ProvidesVerification` (D11's exact-equality acceptance check), each with pinned k8up-cast examples.
 - **`#EffectiveRegistry`** — spec subscriptions unified with accepted claims, and the identity the operator stamps on the platform package it regenerates from the set (0019 D6; the store this digest originally keyed is deleted by 0019 D8). Naming the identity in the schema is what stops OQ8's regeneration question being answered incidentally in the reconciler.
 
 ## Integration Points
@@ -77,6 +86,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 - `core/src/catalog.cue:70-76` — `#resources`, `#traits`, `#blueprints` added beside `#transformers`, each with a `modulePath` stamping pattern constraint. The existing `#transformers` constraint is the template; the doc comment reserving these maps as "an additive extension if introspection demand surfaces later" is the line being cashed in.
 - `core/src/platform.cue` — the contract-inventory fold and the `#ContractRouting` assertion, derived beside `#composedTransformers` on `#Platform`, whose registry entries 0019 D5 reshapes to `{enable, #catalog}` with the catalog embedded whole — the embedding is what makes both derivable here rather than computed in Go.
 - `core/SPEC.md` — §3.6 (`#Catalog` shape and constraints) gains the three maps and their stamps; §3.4 (`#Platform`) gains the inventory and routing derivations. §4.1's "Why match is FQN-keyed and always unifies" needs a paragraph on why D5's duplicate guard is asserted at platform assembly and is not a matcher change.
+- `core/src/module.cue` — **deliberately untouched** (D9). Registration ships as a contract attachment inside `#components`, so `#Module` needs no authored field; the derived `#provides` introspection fold is deferred until a consumer (an 0011-family gate, `opm module inspect`) exists.
 
 **library** — re-baselined 2026-08-20 on 0019's acceptance. The surfaces this entry originally extended — `opm/materialize/index.go`, `opm/compile/match.go`, `opm/materialize/types.go` — are deleted by 0019 D5/D10/D17; the dated measurements against them stay in `01-problem.md` and `03-decisions.md`. The post-0019 surfaces:
 
@@ -89,7 +99,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 
 - `api/v1alpha1/` (new) — `TransformerRegistration`, cluster-scoped. `spec.{catalog,version,providerRef,provides}`, `status.{accepted,active,conditions}`.
 - `api/v1alpha1/platform_types.go:74-94` — `PlatformStatus` gains `registry`: the effective set (spec subscriptions + accepted claims) and a readiness condition covering unfulfilled contracts.
-- `internal/controller/platform_controller.go` — claim validation and acceptance; watches `TransformerRegistration` and the referenced `ModulePackage`s.
+- `internal/controller/platform_controller.go` — claim validation and acceptance; watches `TransformerRegistration` and the referenced `ModulePackage`s. Acceptance gains D10's artifact-kind check (the fetched artifact's root package must be a `#Catalog` value) and D11's provides-equality check (re-derive the provider set from the fetched catalog, refuse on drift naming both lists); the ModulePackage readiness aggregation must exclude the registration CR itself (OQ11).
 - Platform-package regeneration — 0019 D8 deletes `internal/platform/store.go`'s held slot, so there is no cache to re-key; instead an accepted or revoked claim regenerates the platform package the operator builds renders from (0019 D6). What triggers regeneration, what identity the package carries, and the fleet-wide re-render blast radius are OQ8.
 - The registration finalizer — refuses deletion while instances demand contracts the registration provides, which needs a reverse index from contract FQN to ModuleInstance.
 - `config/rbac/` — the tenant role must **not** carry create on `transformerregistrations`; the platform-admin role must.
@@ -101,8 +111,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 
 **catalog repos**
 
-- `catalog_opm` — `src/catalog.cue` lists its resources, traits and blueprints in the new maps. Mechanical; the values already exist and are already imported by the transformers that demand them.
-- A provider catalog (`catalog_k8up` as the first) — contract import, adapter, and the `TransformerRegistration` shipped by the corresponding module.
+- `catalog_opm` — `src/catalog.cue` lists its resources, traits and blueprints in the new maps (mechanical; the values already exist and are already imported by the transformers that demand them), **and gains the registration pair** (D9): the `transformer-registration` resource contract plus the transformer rendering the CR with D11's stamps and D12's naming.
+- A provider catalog (`catalog_k8up` as the first) — contract import, adapter, and the exported pre-bound registration value (D11: `catalog`/`version` interpolated from its identity package, `provides` folded from its own transformers). The corresponding module attaches that value to a component; the two artifacts publish in lockstep, catalog before module (D10, `06-operational.md`). Note the dependency this creates deliberately: the provider *module* depends on catalog_opm for the registration contract (it already does in practice for the primitives deploying the provider); provider *catalogs* stay independent of the base catalog, per the position carried in OQ7.
 
 ## Before / After
 
@@ -114,4 +124,4 @@ After: the contract is a member of `#catalog.#traits`, the platform's embedded c
 
 **Installing a provider.** Before: `kubectl apply` the k8up ModulePackage, then edit the cluster Platform CR to add the subscription, and hope the CRDs are established before the first consumer renders.
 
-After: the k8up module ships a `TransformerRegistration` among its resources. Applying it requires the platform-admin ServiceAccount, so a tenant cannot register an adapter. The Platform reconciler accepts the claim and holds it inactive until `ModulePackage/k8up` is Ready. `kubectl get transformerregistrations` enumerates what the cluster can render. Deleting it while seven instances demand `backup` is refused, naming the seven.
+After: the k8up module attaches the k8up catalog's pre-bound `transformer-registration` resource to a component — one line, nothing authored (D9/D11) — and catalog_opm's transformer renders the `TransformerRegistration` among its resources, spec derived from the k8up catalog's identity package, `providerRef` and name stamped from the instance. Applying it requires the platform-admin ServiceAccount, so a tenant cannot register an adapter. The Platform reconciler verifies the artifact is a catalog and the claim equals the derived provider set (D10/D11), accepts, and holds the claim inactive until `ModulePackage/k8up` is Ready. `kubectl get transformerregistrations` enumerates what the cluster can render. Deleting it while seven instances demand `backup` is refused, naming the seven.
