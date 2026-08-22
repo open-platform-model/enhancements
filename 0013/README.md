@@ -1,5 +1,7 @@
 # Enhancement 0013 — Attribute-Declared Secret Fields
 
+> **Mechanism removed 2026-08-22.** This entry was written before decisions carried a `**Kind:**` line, and it recorded construction detail — file names, directory spellings, internal identifiers, per-repo worklists — alongside its contracts. That detail has been removed from `03-decisions.md`, `02-design.md`, `06-operational.md` and this file; `## Integration Points` is now `## Affected Surfaces`, stated at the intent level. **Nothing was reversed and no decision changed its answer.** Measured evidence, `Source:` citations and *Alternatives considered* were kept in full, including their file references — those are provenance, not instructions. The removed text is in git history; construction detail belongs to the implementing repo's own change record.
+
 OPM currently makes a sensitive field carry its own routing — `$opm`, `$secretName`, `$dataKey` — inside the value, forcing every module to state that routing a second time by hand. This enhancement moves the routing to an inert CUE field attribute on the declaring field, keeps a narrowed `#Secret` type as the deployer's fulfilment slot, and moves discovery and resolution into the library kernel.
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives in this README.
@@ -86,31 +88,12 @@ None at this stage. Update this section when implementation lands.
 
 ## Cross-References
 
-Every path below exists today.
-
 | Document | Purpose |
 | -------- | ------- |
 | `core/openspec/config.yaml`, `library/CONSTITUTION.md`, `cli/CONSTITUTION.md` | Design principles governing changes in the touched repos (core carries its constitution in `openspec/config.yaml`) |
-| `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the `core/src/*.cue` slice; also carries a stale helper list this enhancement corrects |
-| `core/src/schemas.cue` | The dead secret block deleted by D9 |
-| `core/src/transformer.cue` | `#ComponentTransformer` and `#TransformerContext` — gains the `secrets` field |
-| `core/src/module_instance.cue` | Carries the comments describing the removed `opm-secrets` synthesis |
-| `core/SPEC.md` | §1 misdescribes `#Secret` as a Primitive; §513/§521 record the synthesis removal |
-| `core/.tasks/spec-tracked.txt` | Tracked-construct list; `#Secret` is absent from it despite SPEC.md §1 |
-| `catalog_opm/src/resources/v1beta1/secret.cue` | The duplicated contract type and discovery pyramid deleted by D9 (path moved by 0010 D49's version-segment filing) |
-| `catalog_opm/src/resources/v1beta1/container.cue` | `#EnvVarSchema.from` — stays typed `#Secret`, now core's narrowed one (D10/D12) |
-| `catalog_opm/src/transformers/container_helpers.cue` | Both consumption sites — env (`:52-89`) and volume (`:368-388`) — move onto `#context.secrets` |
-| `catalog_opm/src/transformers/secret_transformer.cue` | Loses the `opm-secrets` branch and all name computation |
-| `library/opm/schema/paths.go` | `Config` is the discovery root; gains the `#context.secrets` path constant |
-| `library/opm/schema/context.go` | `BuildTransformerContext` — unchanged by this design; listed because the first draft would have touched it |
-| `library/opm/kernel/phases.go` | Where Discover / Resolve are wired; `Validate` keeps using supplied values (OQ2) |
-| `library/opm/kernel/synth.go` | Synthesises the secrets component with a platform-supplied FQN |
-| `library/opm/compile/execute.go` | Gains the `.value`-on-a-resolved-secret diagnostic |
-| `modules/metallb/module.cue`, `modules/metallb/components.cue` | The only fleet module carrying a secret; RBAC `resourceNames` moves with the object name |
-| `modules/DESIGN_PATTERNS.md` | `schemas.#Secret` pattern section (`:84-110`) and summary row (`:630`) |
-| `cli/tests/fixtures/valid/secrets-module/module.cue` | Fixture ported to the attribute form |
-| `cli/openspec/specs/auto-secrets-injection/spec.md` | Already Superseded; retired by this enhancement |
+| `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the core schema slice; also carries a stale helper list this enhancement corrects |
+| `core/SPEC.md` | Misdescribes `#Secret` as a Primitive, and records the synthesis removal |
 | `cli/docs/rfc/0002-sensitive-data-model.md` | The original sensitive-data RFC whose redaction goal this design finally delivers |
-| `enhancements/0009/research/cue-attribute-longevity.md` | Evidence that depending on CUE attributes is safe |
-| `enhancements/0010/03-decisions.md` | OQ9 — whose candidate (b) D8 resolves |
-| `enhancements/0011/02-design.md` | The `@opm(identity, owner=publish)` precedent D2 follows |
+| Enhancement [0009](../0009/) | Evidence that depending on CUE attributes is safe (`research/cue-attribute-longevity.md`) |
+| Enhancement [0010](../0010/) | OQ9, whose candidate (b) D8 resolves |
+| Enhancement [0011](../0011/) | The `@opm(identity, owner=publish)` attribute precedent D2 follows |

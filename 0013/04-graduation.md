@@ -15,7 +15,7 @@ The enhancement is ready to be implemented when:
 - `semver` in `config.yaml` is set. Expected `major`: `core` removes published definitions and narrows `#Secret`'s arms, and `catalog_opm` narrows `#SecretSchema.data` — both breaking for any consumer using them.
 - `affects` is final; `area` appears in `affects`.
 - `README.md ## Scope` carries `### In scope` and `### Out of scope`.
-- The Cross-References table in `README.md` lists every file path the implementation will touch, and every path in it exists today.
+- The Cross-References table in `README.md` names the design documents and sibling entries a reader needs, and no implementation file paths.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 
 ## accepted → implemented
