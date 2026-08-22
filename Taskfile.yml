@@ -212,12 +212,12 @@ tasks:
           local dec="$dir/03-decisions.md"
           [ -f "$dec" ] || return 0
 
-          local oqfile="" c
-          for c in "$dir/03-decisions.md" "$dir/README.md"; do
-            if [ -f "$c" ] && grep -q '^## Open Questions' "$c" 2>/dev/null; then
-              oqfile="$c"; break
-            fi
-          done
+          # Single canonical OQ location (07-questions.md); empty when the
+          # file carries no block yet.
+          local oqfile=""
+          if [ -f "$dir/07-questions.md" ] && grep -q '^## Open Questions' "$dir/07-questions.md" 2>/dev/null; then
+            oqfile="$dir/07-questions.md"
+          fi
 
           # Every grep below may legitimately match nothing; `set -e` would
           # otherwise abort the whole substitution on the first empty result.
@@ -283,8 +283,8 @@ tasks:
             ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
           fi
 
-          # 4. Placeholder strings in the six mandatory docs (+ README).
-          for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
+          # 4. Placeholder strings in the seven mandatory docs (+ README).
+          for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md; do
             local path="$dir/$doc"
             [ -f "$path" ] || { errors="${errors}\n    missing mandatory doc: $doc"; continue; }
             local hits; hits=$(placeholders_in_file "$path")
@@ -375,6 +375,15 @@ tasks:
           # 9. One-way rule: delivery plans live in plans/, never inside an entry.
           [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
           [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+
+          # Open Questions live only in 07-questions.md — single canonical
+          # location. A block in the decision log or README is a migration
+          # regression.
+          for stray in "$dir/03-decisions.md" "$dir/README.md"; do
+            if [ -f "$stray" ] && grep -q '^## Open Questions' "$stray" 2>/dev/null; then
+              errors="${errors}\n    '## Open Questions' in $(basename "$stray") — the register moved to 07-questions.md (single canonical location)"
+            fi
+          done
 
           if [ -n "$errors" ]; then
             printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
@@ -498,12 +507,12 @@ tasks:
           local dec="$dir/03-decisions.md"
           [ -f "$dec" ] || return 0
 
-          local oqfile="" c
-          for c in "$dir/03-decisions.md" "$dir/README.md"; do
-            if [ -f "$c" ] && grep -q '^## Open Questions' "$c" 2>/dev/null; then
-              oqfile="$c"; break
-            fi
-          done
+          # Single canonical OQ location (07-questions.md); empty when the
+          # file carries no block yet.
+          local oqfile=""
+          if [ -f "$dir/07-questions.md" ] && grep -q '^## Open Questions' "$dir/07-questions.md" 2>/dev/null; then
+            oqfile="$dir/07-questions.md"
+          fi
 
           # Every grep below may legitimately match nothing; `set -e` would
           # otherwise abort the whole substitution on the first empty result.
@@ -562,7 +571,7 @@ tasks:
           ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
         fi
 
-        for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md; do
+        for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md; do
           path="$dir/$doc"
           [ -f "$path" ] || { errors="${errors}\n    missing mandatory doc: $doc"; continue; }
           hits=$(placeholders_in_file "$path")
@@ -642,6 +651,15 @@ tasks:
         [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
         [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
 
+        # Open Questions live only in 07-questions.md — single canonical
+        # location. A block in the decision log or README is a migration
+        # regression.
+        for stray in "$dir/03-decisions.md" "$dir/README.md"; do
+          if [ -f "$stray" ] && grep -q '^## Open Questions' "$stray" 2>/dev/null; then
+            errors="${errors}\n    '## Open Questions' in $(basename "$stray") — the register moved to 07-questions.md (single canonical location)"
+          fi
+        done
+
         if [ -n "$errors" ]; then
           printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
           exit 1
@@ -657,7 +675,7 @@ tasks:
 
         - accepted+   → README has '## Scope' with In/Out subsections
         - accepted+   → 03-decisions.md has at least one '### DN:' heading
-        - accepted+   → 03-decisions.md has '## Open Questions' block
+        - accepted+   → 07-questions.md has '## Open Questions' block
         - accepted+   → 04-graduation.md has 'draft → accepted' section
         - draft/acc   → one-way smell: no *.md names a plan file
                         (plan.yaml / PLAN.md) — plans live in plans/
@@ -797,9 +815,9 @@ tasks:
               # Accept '### DN:' or '## DN —' style headings.
               grep -qE '^##+ D[0-9]+' "$dir/03-decisions.md" 2>/dev/null \
                 || warnings="${warnings}\n    03-decisions.md: no '### DN:' decision heading found"
-              # Open Questions block — may live in decisions or README.
-              if ! grep -qE '^## Open Questions' "$dir/03-decisions.md" "$dir/README.md" 2>/dev/null; then
-                warnings="${warnings}\n    missing '## Open Questions' block (looked in 03-decisions.md and README.md)"
+              # Open Questions block — single canonical location.
+              if ! grep -qE '^## Open Questions' "$dir/07-questions.md" 2>/dev/null; then
+                warnings="${warnings}\n    missing '## Open Questions' block in 07-questions.md"
               fi
             else
               warnings="${warnings}\n    03-decisions.md missing"
@@ -1008,10 +1026,10 @@ tasks:
           yq -i '.affects += ["core"]' "$NEW_DIR/config.yaml"
         fi
 
-        # Replace {Enhancement Title} placeholder in README + the six split
+        # Replace {Enhancement Title} placeholder in README + the seven split
         # docs (+ schemas/spec.md when CORE_SCHEMA=true kept schemas/).
         ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
-        for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md schemas/spec.md; do
+        for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md schemas/spec.md; do
           # if/then rather than `[ -f ] && sed`: schemas/spec.md is absent on
           # CORE_SCHEMA=false scaffolds and the failing AND-list would abort
           # the script under set -e.
@@ -1037,7 +1055,7 @@ tasks:
         else
           echo "  2. Non-core compilable CUE? Scaffold it with: task new:contracts ID=$NEW_ID"
         fi
-        echo "  3. Add Open Questions to $NEW_DIR/03-decisions.md; fill decisions iteratively"
+        echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively"
         echo "  4. Update $NEW_DIR/README.md scope + cross-references"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
         echo "  6. Regenerate index:   task index"
@@ -1426,7 +1444,7 @@ tasks:
       Usage:
         task questions:list ID=0001
 
-      Reads NNNN/03-decisions.md (or NNNN/README.md as fallback), parses
+      Reads NNNN/07-questions.md (the single canonical location), parses
       the `## Open Questions` block, and emits a human-readable table
       grouped by `### ` subheading.
 
@@ -1454,18 +1472,15 @@ tasks:
 
         [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
 
-        # The Open Questions block may live in 03-decisions.md (canonical)
-        # or README.md (allowed by the enhancements skill, line ~203). Try
-        # the canonical location first.
+        # The Open Questions block lives in 07-questions.md — the single
+        # canonical location (vet errors on a block anywhere else).
         OQ_FILE=""
-        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
-          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
-            OQ_FILE="$candidate"; break
-          fi
-        done
+        if [ -f "$ID/07-questions.md" ] && grep -q '^## Open Questions' "$ID/07-questions.md" 2>/dev/null; then
+          OQ_FILE="$ID/07-questions.md"
+        fi
 
         if [ -z "$OQ_FILE" ]; then
-          printf "${DIM}No ## Open Questions block in %s/03-decisions.md or %s/README.md.${RESET}\n" "$ID" "$ID"
+          printf "${DIM}No ## Open Questions block in %s/07-questions.md.${RESET}\n" "$ID"
           exit 0
         fi
 
@@ -1601,11 +1616,9 @@ tasks:
         [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
 
         OQ_FILE=""
-        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
-          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
-            OQ_FILE="$candidate"; break
-          fi
-        done
+        if [ -f "$ID/07-questions.md" ] && grep -q '^## Open Questions' "$ID/07-questions.md" 2>/dev/null; then
+          OQ_FILE="$ID/07-questions.md"
+        fi
 
         [ -n "$OQ_FILE" ] || exit 0
 
@@ -1781,11 +1794,9 @@ tasks:
 
         # COLLAPSE / KEEP: resolved OQs still carrying prose after Status:.
         OQ_FILE=""
-        for candidate in "$ID/03-decisions.md" "$ID/README.md"; do
-          if [ -f "$candidate" ] && grep -q '^## Open Questions' "$candidate" 2>/dev/null; then
-            OQ_FILE="$candidate"; break
-          fi
-        done
+        if [ -f "$ID/07-questions.md" ] && grep -q '^## Open Questions' "$ID/07-questions.md" 2>/dev/null; then
+          OQ_FILE="$ID/07-questions.md"
+        fi
         [ -n "$OQ_FILE" ] || exit 0
 
         # Same bullet state machine as questions:list, extended to measure the
@@ -1841,66 +1852,6 @@ tasks:
           END { flush() }
         ' "$OQ_FILE"
 
-  new:plan:
-    desc: Scaffold plan.yaml inside an enhancement (structured slice plan; optional)
-    summary: |
-      Usage:
-        task new:plan ID=0009
-
-      Creates NNNN/plan.yaml with an empty `slices: []`. Add one entry per
-      slice — see 0000/README.md ## Slice Plan for the field reference.
-      Only useful once config.yaml.affects spans more than one repo, or a
-      single repo's work needs an explicit landing order; most
-      enhancements never need this file.
-    vars:
-      ID: '{{.ID | default ""}}'
-    preconditions:
-      - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task new:plan ID=<4-digit-id>'
-    cmds:
-      - |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        ID="{{.ID}}"
-
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        PLAN="$ID/plan.yaml"
-        if [ -e "$PLAN" ]; then
-          echo "Already exists: $PLAN" >&2
-          exit 1
-        fi
-
-        cat > "$PLAN" <<'EOF'
-        # Structured slice plan for this enhancement. Optional — see
-        # 0000/README.md ## Slice Plan for the field reference and the
-        # workflow this feeds (task vet, task plan:graph, task plan:ready,
-        # task slice:seed). Delete this file if the enhancement never
-        # grows past one slice.
-        #
-        # Every slice declares a phase:
-        #
-        #   implementation — defines the system. Schema, code and docs:
-        #                    core, library, cli, opm-operator, opmodel.dev.
-        #   migration      — moves already-published artifacts onto those
-        #                    definitions: the official catalogs, the module
-        #                    fleet, the release pins.
-        #
-        # The test is what the slice is FOR, not which files it touches: a
-        # slice that edits source AND republishes is `migration` when
-        # republishing is its purpose. Implementation lands first, and
-        # `task vet` enforces it as an edge rule — no implementation slice
-        # may depend on a migration slice.
-        slices: []
-        EOF
-
-        echo "Created $PLAN"
-        echo
-        echo "Next steps:"
-        echo "  1. Add one entry per slice: id, repo, concern, depends_on, status"
-        echo "  2. Validate:            task vet:one ID=$ID"
-        echo "  3. Render the DAG:      task plan:graph ID=$ID"
-        echo "  4. Check what's ready:  task plan:ready ID=$ID"
-
   new:contracts:
     desc: Scaffold contracts/ inside an enhancement (non-core compilable CUE; optional)
     summary: |
@@ -1941,433 +1892,3 @@ tasks:
         echo "Next steps:"
         echo "  1. Replace the template .cue with your contracts (package name stays 'contracts')"
         echo "  2. Validate: task vet:one ID=$ID"
-
-  plan:graph:
-    desc: (Re)generate NNNN/PLAN.md — Mermaid DAG of one enhancement's slice plan
-    summary: |
-      Usage:
-        task plan:graph ID=0009
-
-      Reads NNNN/plan.yaml and writes NNNN/PLAN.md: a Mermaid DAG (one node
-      per slice, coloured by status; depends_on renders as an edge into the
-      dependent slice) plus a flat table. A cross-enhancement depends_on
-      ("NNNN:slice-id") renders as a peripheral dashed node, mirroring
-      GRAPH.md's legacy-node treatment. No-op (prints a message, does not
-      fail) when plan.yaml doesn't exist — nothing to render for an
-      enhancement that never needed a slice plan.
-    vars:
-      ID: '{{.ID | default ""}}'
-    preconditions:
-      - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task plan:graph ID=<4-digit-id>'
-      - sh: command -v yq >/dev/null 2>&1
-        msg: "yq is required"
-    cmds:
-      - |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        ID="{{.ID}}"
-
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        PLAN="$ID/plan.yaml"
-        OUT="$ID/PLAN.md"
-
-        if [ ! -f "$PLAN" ]; then
-          echo "No $PLAN — nothing to render (slice plans are optional)." >&2
-          exit 0
-        fi
-
-        n=$(yq -r '.slices | length' "$PLAN")
-        TITLE=$(yq -r '.title' "$ID/config.yaml" 2>/dev/null || echo "$ID")
-
-        {
-        echo "# Slice Plan — $TITLE"
-        echo
-        echo '<!-- Generated by `task plan:graph` — do not edit by hand. -->'
-        echo
-        echo '```mermaid'
-        echo 'graph LR'
-        echo '  classDef planned     fill:#fef3c7,stroke:#b45309,color:#000'
-        echo '  classDef in_progress fill:#dbeafe,stroke:#1d4ed8,color:#000'
-        echo '  classDef done        fill:#dcfce7,stroke:#15803d,color:#000'
-        echo '  classDef cancelled   fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
-        echo '  classDef other       fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
-        echo
-
-        declare -A seen_other
-
-        # Nodes are grouped into one subgraph per phase, so the
-        # implementation-then-migration split is the first thing the diagram
-        # shows. A phase with no slices emits no subgraph at all rather than
-        # an empty box. Cross-enhancement peripheral nodes (X_*) are emitted
-        # later, with the edges, and deliberately sit outside both subgraphs
-        # — they belong to neither phase of THIS plan.
-        emit_phase_subgraph() {
-          local want="$1" label="$2" sgid="$3"
-          local any=0 j
-          for ((j = 0; j < n; j++)); do
-            if [ "$(yq -r ".slices[$j].phase" "$PLAN")" = "$want" ]; then
-              any=1
-              break
-            fi
-          done
-          [ "$any" -eq 1 ] || return 0
-
-          printf '  subgraph %s["%s"]\n' "$sgid" "$label"
-          for ((j = 0; j < n; j++)); do
-            [ "$(yq -r ".slices[$j].phase" "$PLAN")" = "$want" ] || continue
-            local id status repo concern cls
-            id=$(yq -r ".slices[$j].id" "$PLAN")
-            status=$(yq -r ".slices[$j].status" "$PLAN")
-            repo=$(yq -r ".slices[$j].repo" "$PLAN")
-            concern=$(yq -r ".slices[$j].concern" "$PLAN" | tr -d '`' | tr '"' "'" | tr '\n' ' ')
-            if [ "${#concern}" -gt 50 ]; then concern="${concern:0:49}…"; fi
-            cls=$(echo "$status" | tr '-' '_')
-            printf '    S_%s["%s (%s)\\n%s"]:::%s\n' "$id" "$id" "$repo" "$concern" "$cls"
-          done
-          echo '  end'
-        }
-
-        emit_phase_subgraph implementation "Implementation — schema, code, docs" PHASE_IMPL
-        emit_phase_subgraph migration      "Migration — published artifacts" PHASE_MIGR
-        echo
-
-        for ((i = 0; i < n; i++)); do
-          id=$(yq -r ".slices[$i].id" "$PLAN")
-          while IFS= read -r dep; do
-            [ -z "$dep" ] && continue
-            case "$dep" in
-              [0-9][0-9][0-9][0-9]:*)
-                node="X_$(echo "$dep" | tr ':' '_')"
-                if [ -z "${seen_other[$node]:-}" ]; then
-                  printf '  %s["%s"]:::other\n' "$node" "$dep"
-                  seen_other[$node]=1
-                fi
-                printf '  %s -->|depends_on| S_%s\n' "$node" "$id"
-                ;;
-              *)
-                printf '  S_%s -->|depends_on| S_%s\n' "$dep" "$id"
-                ;;
-            esac
-          done < <(yq -r ".slices[$i].depends_on[]?" "$PLAN")
-        done
-
-        echo '```'
-        echo
-        echo '| ID | Phase | Repo | Status | Depends on | Concern |'
-        echo '| -- | ----- | ---- | ------ | ---------- | ------- |'
-        # Implementation rows first, then migration — the table reads in
-        # landing order rather than in file order.
-        for want in implementation migration; do
-          for ((i = 0; i < n; i++)); do
-            phase=$(yq -r ".slices[$i].phase" "$PLAN")
-            [ "$phase" = "$want" ] || continue
-            id=$(yq -r ".slices[$i].id" "$PLAN")
-            repo=$(yq -r ".slices[$i].repo" "$PLAN")
-            status=$(yq -r ".slices[$i].status" "$PLAN")
-            concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
-            deps=$(yq -r ".slices[$i].depends_on | join(\", \")" "$PLAN")
-            printf '| %s | %s | %s | %s | %s | %s |\n' "$id" "$phase" "$repo" "$status" "${deps:--}" "$concern"
-          done
-        done
-        } > "$OUT"
-
-        echo "Wrote $OUT"
-
-  plan:ready:
-    desc: Slices whose dependencies are all done, grouped by phase (implementation then migration)
-    summary: |
-      Usage:
-        task plan:ready ID=0009
-
-      Reads NNNN/plan.yaml and computes the topological frontier: every
-      slice whose depends_on are all `done` — a local slice id checked
-      against this plan, a cross-enhancement "NNNN:slice-id" checked
-      against that enhancement's own plan.yaml (treated as unresolved if
-      that plan.yaml doesn't exist yet or doesn't have the slice) — and
-      whose own status is `planned` or `in-progress`. This is the
-      order-of-procedure answer: what can start right now, without
-      hand-tracking the dependency graph.
-
-      Output is grouped into an IMPLEMENTATION section and a MIGRATION
-      section. The MIGRATION header is annotated with how many
-      implementation slices have not yet reached done/cancelled — that is
-      INFORMATIONAL, not a gate. Readiness stays purely DAG-derived, so a
-      migration slice whose own dependencies are satisfied is listed even
-      while unrelated implementation work is still open. The hard rule
-      (no implementation slice may depend on a migration slice) is
-      enforced by `task vet`, not here.
-
-      Rows are tab-separated: ID  REPO  STATUS  CONCERN
-    vars:
-      ID: '{{.ID | default ""}}'
-    preconditions:
-      - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task plan:ready ID=<4-digit-id>'
-      - sh: command -v yq >/dev/null 2>&1
-        msg: "yq is required"
-    cmds:
-      - |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        ID="{{.ID}}"
-
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        PLAN="$ID/plan.yaml"
-        [ -f "$PLAN" ] || { echo "No $PLAN — nothing to compute." >&2; exit 0; }
-
-        n=$(yq -r '.slices | length' "$PLAN")
-
-        dep_done() {
-          local dep="$1"
-          case "$dep" in
-            [0-9][0-9][0-9][0-9]:*)
-              local other="${dep%%:*}" other_slice="${dep#*:}"
-              [ -f "$other/plan.yaml" ] || return 1
-              local st
-              st=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .status" "$other/plan.yaml" 2>/dev/null)
-              [ "$st" = "done" ]
-              ;;
-            *)
-              local st
-              st=$(yq -r ".slices[] | select(.id == \"$dep\") | .status" "$PLAN" 2>/dev/null)
-              [ "$st" = "done" ]
-              ;;
-          esac
-        }
-
-        # Implementation slices not yet done/cancelled. Annotates the
-        # MIGRATION header so the reader sees that migration is running
-        # ahead of unfinished implementation work — informational only; it
-        # never suppresses a row (see the summary above).
-        impl_open=0
-        for ((i = 0; i < n; i++)); do
-          [ "$(yq -r ".slices[$i].phase" "$PLAN")" = "implementation" ] || continue
-          st=$(yq -r ".slices[$i].status" "$PLAN")
-          case "$st" in done|cancelled) ;; *) impl_open=$((impl_open + 1)) ;; esac
-        done
-
-        emit_group() {
-          local want="$1" heading="$2"
-          local rows="" i id status repo concern all_done dep
-
-          for ((i = 0; i < n; i++)); do
-            [ "$(yq -r ".slices[$i].phase" "$PLAN")" = "$want" ] || continue
-            id=$(yq -r ".slices[$i].id" "$PLAN")
-            status=$(yq -r ".slices[$i].status" "$PLAN")
-            [ "$status" = "planned" ] || [ "$status" = "in-progress" ] || continue
-
-            all_done=1
-            while IFS= read -r dep; do
-              [ -z "$dep" ] && continue
-              dep_done "$dep" || { all_done=0; break; }
-            done < <(yq -r ".slices[$i].depends_on[]?" "$PLAN")
-            [ "$all_done" -eq 1 ] || continue
-
-            repo=$(yq -r ".slices[$i].repo" "$PLAN")
-            concern=$(yq -r ".slices[$i].concern" "$PLAN" | tr '\n' ' ')
-            rows="${rows}$(printf '%s\t%s\t%s\t%s' "$id" "$repo" "$status" "$concern")"$'\n'
-          done
-
-          printf '%s\n' "$heading"
-          if [ -z "$rows" ]; then
-            printf '(none ready)\n'
-          else
-            printf 'ID\tREPO\tSTATUS\tCONCERN\n'
-            printf '%s' "$rows"
-          fi
-        }
-
-        emit_group implementation 'IMPLEMENTATION'
-        echo
-        if [ "$impl_open" -gt 0 ]; then
-          emit_group migration "$(printf 'MIGRATION  (%d implementation slice(s) still open)' "$impl_open")"
-        else
-          emit_group migration 'MIGRATION'
-        fi
-
-  decisions:uncovered:
-    desc: Decisions this entry records that no slice implements
-    summary: |
-      Usage:
-        task decisions:uncovered ID=0010
-
-      The inverse of `plan.yaml`'s `decisions` field. Lists every `### DN:`
-      heading in NNNN/03-decisions.md that no slice claims — the audit
-      0010's 2026-08-05 history event describes doing BY HAND, which found
-      seven pieces of decided work with no slice. D36's library half was the
-      significant one: real code (compile/match.go:111 and two further
-      readers) whose absence would have shipped a schema whose matching read
-      a field the design had emptied.
-
-      Coverage is counted ACROSS ENTRIES. A decision here is covered when a
-      slice in this plan cites it as "DN", or when a slice in ANY other
-      entry's plan cites it as "NNNN:DN" — which is the real case: 0011's
-      cli-catalog-gates carries 0010's D17, D21, D25 and D42, and
-      those would read as uncovered under a local-only scan.
-
-      Two exclusions, both deliberate. A tombstoned heading
-      (`### D12: (merged into D10, …)`) is a retired NUMBER rather than
-      unimplemented work. A key in `plan.yaml`'s `unsliced` map is a
-      recorded claim that the decision needs no slice, and its reason is
-      printed beside it so the claim is reviewed rather than trusted.
-
-      NOT a gate. `task vet` checks that every cited number RESOLVES;
-      whether every decision is carried is a judgement about an entry's
-      readiness, and a hard failure would block any entry whose design is
-      legitimately ahead of its plan.
-
-      Rows are tab-separated: DN  STATUS  HEADING
-    vars:
-      ID: '{{.ID | default ""}}'
-    preconditions:
-      - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task decisions:uncovered ID=<4-digit-id>'
-      - sh: command -v yq >/dev/null 2>&1
-        msg: "yq is required"
-    cmds:
-      - |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        ID="{{.ID}}"
-
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        LOG="$ID/03-decisions.md"
-        [ -f "$LOG" ] || { echo "No $LOG — nothing to check." >&2; exit 0; }
-        PLAN="$ID/plan.yaml"
-
-        # Covered: cited locally as "DN", or by any other entry as "ID:DN".
-        covered=""
-        if [ -f "$PLAN" ]; then
-          covered=$(yq -r '.slices[].decisions[]?' "$PLAN" 2>/dev/null | grep -E '^D[0-9]+$' || true)
-        fi
-        for other in [0-9][0-9][0-9][0-9]; do
-          [ -f "$other/plan.yaml" ] || continue
-          [ "$other" = "$ID" ] && continue
-          more=$(yq -r '.slices[].decisions[]?' "$other/plan.yaml" 2>/dev/null \
-                 | sed -n "s|^${ID}:\\(D[0-9]\\+\\)$|\\1|p" || true)
-          covered=$(printf '%s\n%s' "$covered" "$more")
-        done
-
-        # Deliberately unsliced, with the recorded reason.
-        declare -A why=()
-        if [ -f "$PLAN" ]; then
-          # Read keys, then look each value up on its own. `yq` here is
-          # mikefarah's Go implementation, which has no jq-style `gsub` and no
-          # `@tsv` — and a folded `>` reason arrives with a trailing newline
-          # that would otherwise break the row. Trim it in bash.
-          while IFS= read -r k; do
-            [ -z "$k" ] && continue
-            # Trim with sed, not the ${v%"${v##*[![:space:]]}"} idiom — Task's
-            # embedded shell (mvdan/sh) mistranslates that bracket expression
-            # into an invalid Go regexp and panics outright.
-            v=$(yq -r ".unsliced[\"$k\"]" "$PLAN" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]*$//')
-            case "$k" in "$ID:"*) k="${k#*:}" ;; esac
-            why["$k"]="$v"
-          done < <(yq -r '.unsliced // {} | keys | .[]' "$PLAN" 2>/dev/null || true)
-        fi
-
-        rows=""; n_tomb=0; n_uns=0
-        while IFS= read -r line; do
-          dn=$(printf '%s' "$line" | sed -E 's/^#{2,4} (D[0-9]+):.*/\1/')
-          rest=$(printf '%s' "$line" | sed -E 's/^#{2,4} D[0-9]+: ?//')
-          case "$rest" in
-            "(merged into"*|"(superseded"*|"(retired"*) n_tomb=$((n_tomb+1)); continue ;;
-          esac
-          if printf '%s\n' "$covered" | grep -qx "$dn"; then continue; fi
-          if [ -n "${why[$dn]:-}" ]; then
-            n_uns=$((n_uns+1))
-            rows="${rows}${dn}\tunsliced\t${why[$dn]}\n"
-            continue
-          fi
-          rows="${rows}${dn}\tUNCOVERED\t${rest}\n"
-        done < <(grep -E '^#{2,4} D[0-9]+:' "$LOG" || true)
-
-        n_unc=$(printf '%b' "$rows" | grep -c 'UNCOVERED' || true)
-        echo "$ID — $n_unc uncovered, $n_uns deliberately unsliced, $n_tomb tombstoned"
-        if [ "$n_unc" -eq 0 ] && [ "$n_uns" -eq 0 ]; then
-          echo "(every decision is carried by a slice)"
-          exit 0
-        fi
-        echo
-        printf 'DN\tSTATUS\tHEADING\n'
-        printf '%b' "$rows"
-
-  slice:seed:
-    desc: Print a seed stub for one slice, sized to hand to the target repo's own OpenSpec `new` flow
-    summary: |
-      Usage:
-        task slice:seed ID=0009 SLICE=cli-kernel-adoption
-
-      Looks up the slice in NNNN/plan.yaml and prints its repo, concern,
-      status, and any dependencies not yet `done` (as a warning, not a
-      block — the seed still prints). This repo does not reach into
-      another repo's tooling: copy the stub into that repo's own
-      `openspec new` (or whichever workflow it uses) rather than expecting
-      this task to invoke it.
-    vars:
-      ID:    '{{.ID    | default ""}}'
-      SLICE: '{{.SLICE | default ""}}'
-    preconditions:
-      - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task slice:seed ID=<4-digit-id> SLICE=<slice-id>'
-      - sh: '[ -n "{{.SLICE}}" ]'
-        msg: 'SLICE is required. Usage: task slice:seed ID=<4-digit-id> SLICE=<slice-id>'
-      - sh: command -v yq >/dev/null 2>&1
-        msg: "yq is required"
-    cmds:
-      - |
-        #!/usr/bin/env bash
-        set -euo pipefail
-        ID="{{.ID}}"
-        SLICE="{{.SLICE}}"
-
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        PLAN="$ID/plan.yaml"
-        [ -f "$PLAN" ] || { echo "No $PLAN" >&2; exit 1; }
-
-        FOUND=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .id" "$PLAN")
-        [ -n "$FOUND" ] || { echo "No slice '$SLICE' in $PLAN" >&2; exit 1; }
-
-        REPO=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .repo" "$PLAN")
-        CONCERN=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .concern" "$PLAN")
-        STATUS=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .status" "$PLAN")
-        PHASE=$(yq -r ".slices[] | select(.id == \"$SLICE\") | .phase" "$PLAN")
-        TITLE=$(yq -r '.title' "$ID/config.yaml")
-
-        echo "Unresolved dependencies:"
-        UNRESOLVED=0
-        while IFS= read -r dep; do
-          [ -z "$dep" ] && continue
-          st=""
-          case "$dep" in
-            [0-9][0-9][0-9][0-9]:*)
-              other="${dep%%:*}"; other_slice="${dep#*:}"
-              [ -f "$other/plan.yaml" ] && st=$(yq -r ".slices[] | select(.id == \"$other_slice\") | .status" "$other/plan.yaml" 2>/dev/null)
-              ;;
-            *)
-              st=$(yq -r ".slices[] | select(.id == \"$dep\") | .status" "$PLAN" 2>/dev/null)
-              ;;
-          esac
-          if [ "$st" != "done" ]; then
-            echo "  - $dep (status: ${st:-unknown})"
-            UNRESOLVED=1
-          fi
-        done < <(yq -r ".slices[] | select(.id == \"$SLICE\") | .depends_on[]?" "$PLAN")
-        [ "$UNRESOLVED" -eq 0 ] && echo "  none"
-        echo
-
-        echo "----------------------------------------------------------------"
-        printf 'Repo:    %s\n' "$REPO"
-        printf 'Phase:   %s\n' "$PHASE"
-        printf 'Status:  %s (enhancements/%s/plan.yaml)\n' "$STATUS" "$ID"
-        echo
-        printf '%s\n' "$CONCERN"
-        echo
-        printf 'Part of enhancements/%s (%s).\n' "$ID" "$TITLE"
-        echo "See its README.md and 02-design.md / 03-decisions.md for full design context."
-        echo
-        echo "On completion:"
-        printf '  - set status: done and openspec_ref in enhancements/%s/plan.yaml\n' "$ID"
-        printf '  - append a history event in enhancements/%s/config.yaml citing the same openspec_ref\n' "$ID"
-        echo "----------------------------------------------------------------"

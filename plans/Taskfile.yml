@@ -289,14 +289,14 @@ tasks:
             done < <(yq -r ".slices[$i].decisions[]?" "$plan" 2>/dev/null)
 
             # OQ claims — "NNNN:OQ9" must name an OQ bullet in that entry's
-            # Open Questions block (03-decisions.md or README.md).
+            # Open Questions register (07-questions.md).
             local oref onum odir
             while IFS= read -r oref; do
               [ -z "$oref" ] && continue
               odir="$ENTRIES/${oref%%:*}"; onum="${oref#*:}"
               if [ ! -d "$odir" ]; then
                 out="${out}\n    slice '$id': resolves '$oref' — no such enhancement '${oref%%:*}'"
-              elif ! grep -qE "^-[[:space:]]+\*\*${onum}:" "$odir/03-decisions.md" "$odir/README.md" 2>/dev/null; then
+              elif ! grep -qE "^-[[:space:]]+\*\*${onum}:" "$odir/07-questions.md" 2>/dev/null; then
                 out="${out}\n    slice '$id': resolves '$oref' — no '$onum:' bullet in ${oref%%:*}'s Open Questions"
               fi
             done < <(yq -r ".slices[$i].resolves[]?" "$plan" 2>/dev/null)
@@ -731,7 +731,7 @@ tasks:
           [ -d "$dir" ] || continue
           eid=$(basename "$dir")
           [ "$eid" = "0000" ] && continue
-          for f in "$dir/03-decisions.md" "$dir/README.md"; do
+          for f in "$dir/07-questions.md"; do
             [ -f "$f" ] || continue
             # Track the last OQ bullet seen; emit when a line inside it
             # carries the deferred status.
