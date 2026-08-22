@@ -102,7 +102,7 @@ Execution sequencing lives outside the entries, in [`plans/`](plans/) — one de
 Two gates run against every entry:
 
 - **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule — delivery plans live in `plans/`, validated by `task plans:vet`), and no `## Open Questions` block outside `07-questions.md` (single canonical location).
-- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, one-way smell (plan-file names in draft/accepted prose), mechanism smell (file:line refs in the decision log), evidence nudge (no research/, experiments/, or Measured claim), implementation snapshot quote block, deviations section, and supersession quote block.
+- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, one-way smell (plan-file names in draft/accepted prose), mechanism smell (path and identifier references in entry prose — an entry records contracts, never how a repo names or lays out its files), evidence nudge (no research/, experiments/, or Measured claim), implementation snapshot quote block, deviations section, and supersession quote block.
 
 Run `task vet` before any PR that touches an enhancement; run `task check` before promoting a status (draft → accepted, accepted → implemented).
 
