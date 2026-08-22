@@ -127,7 +127,7 @@ Keep the bullet's `- **OQN: …** Status: …` shape exactly. `task questions:li
 `superseded` only. The design intent now belongs to the successor; this entry becomes the record that it existed and what it settled.
 
 - **`README.md`** — keep the `> **Superseded by NNNN (YYYY-MM-DD).**` banner and its migration paragraph. Keep `## Scope`. Everything else reduces to a short statement of what the entry still usefully holds.
-- **`01`, `02`, `04`, `05`, `06`** — each collapses to a few sentences: what it covered, which successor owns it now. A stubbed document is not an empty one; a reader who lands here from a cross-reference needs to know where to go.
+- **`01`, `02`, `04`, `05`, `06`** — each collapses to a few sentences: what it covered, which successor owns it now. A stubbed document is not an empty one; a reader who lands here from a cross-reference needs to know where to go. (`07-questions.md` is not stubbed — its bullets collapse under COLLAPSE-OQ, keeping every `OQN` and its final status.)
 - **`03-decisions.md`** — keep every `### DN:` heading, a one-or-two-sentence `**Decision:**`, and `**Alternatives considered:**` in full. Drop `**Rationale:**`. Keep `**Source:**` when it cites an `experiments/` or `research/` file that still lives in the entry, so the pointer is not orphaned.
 - **`experiments/` and `research/`** — never touched. The measurements are usually the expensive part of a superseded entry and they remain valid evidence for the successor.
 
@@ -151,7 +151,7 @@ Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, 
 1. Read `config.yaml`. Branch on `status` per the table above; refuse `implemented` here, before doing any other work.
 2. Run `task questions:open ID=$ID`. If it returns rows and the status is `accepted`, stop — unresolved OQs at `accepted` are a gate failure. Route to `enhancement-open-questions` first.
 3. Run `task compact:plan ID=$ID`. This is the candidate list, not the plan: it finds relation phrases, resolved OQs still carrying prose, and heading trailers. It has no judgment about which ones should merge.
-4. Read `03-decisions.md` and the narrative documents in full. Cache them. Compaction needs whole-document context — a merge decided from grep output alone will get the alternatives wrong.
+4. Read `03-decisions.md`, `07-questions.md`, and the narrative documents in full. Cache them. Compaction needs whole-document context — a merge decided from grep output alone will get the alternatives wrong.
 5. Capture mtimes of every file you intend to write.
 
 ### 2. Manifest — approval gate
@@ -229,7 +229,7 @@ Mixing compaction into a content change makes the two indistinguishable in revie
 | Artefact | Path | Authority |
 | --- | --- | --- |
 | Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Numbers immutable; bodies revised in place while `draft`, edited only through this skill from `accepted`. Merged content sits at the lowest number; vacated numbers hold tombstones. |
-| Open Questions | `enhancements/NNNN/03-decisions.md ## Open Questions` (canonical) or `README.md` (fallback) | Bullet shape is parser-bound. Only resolved/deferred bullets collapse. |
+| Open Questions | `enhancements/NNNN/07-questions.md ## Open Questions` — the single canonical location | Bullet shape is parser-bound. Only resolved/deferred bullets collapse. |
 | Narrative documents | `enhancements/NNNN/01-problem.md` … `06-operational.md` | Mutable. Must state current truth after a weave. |
 | Provenance | `enhancements/NNNN/config.yaml history` + git | The only append-only structure. One rolled-up event per compaction pass, mandatory. |
 | Candidate detection | `enhancements/Taskfile.yml :: compact:plan` | Read-only. Finds candidates; exercises no judgment. |

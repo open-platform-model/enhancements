@@ -72,6 +72,7 @@ These invariants hold across every enhancement; violations fail PR review even i
 - **The one-way rule: plans cite enhancements; enhancements never cite plans.** Delivery plans (`plans/<slug>/plan.yaml`) reference entries by number (`NNNN`, `NNNN:D34`, `NNNN:OQ9`). No entry document, config field, or history event names a plan slug, a slice id, a plan file, or an OpenSpec change slug — a generic statement ("tracked in a delivery plan under `plans/`") is fine, a specific pointer is not. `task vet` fails a plan file inside an entry; `task check` warns on plan-file names in draft/accepted prose; `history[].slice` is legacy and never written in new events.
 - **Decisions are Kind-gated.** Every `DN` carries `**Kind:** contract | policy | scope` and passes the admission test: *would this still bind a from-scratch rewrite of the affected repos?* Mechanism decisions (how a repo achieves the contract) belong in the implementing slice's OpenSpec change. Measured evidence that constrains a contract stays attached to the contract decision.
 - **2026-08-21 delivery-plan extraction carve-out.** Moving `plan.yaml`/`PLAN.md` out of the six plan-bearing entries into `plans/` (and rewording their in-entry file references) was applied to the frozen `implemented` entries 0010/0011 too, as a one-time, structure-only exception to the freeze invariant, recorded per-entry as a history event. No prose, decision content, or CUE was rewritten.
+- **Open Questions live in `07-questions.md` — single canonical location.** Every entry carries the seven split documents; the OQ register (`OQN` bullets with `Status:` lines) is `07-questions.md` and nowhere else. `task vet` fails an `## Open Questions` block in `03-decisions.md` or `README.md`. **2026-08-22 extraction carve-out:** moving the register out of `03-decisions.md` (and repointing in-entry location references) was applied to every entry including frozen ones, as a one-time, structure-only exception recorded per-entry as a history event. No question prose, decision content, or CUE was rewritten.
 - **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge or retraction keeps a one-line tombstone.
 - **Decision-body mutability is status-gated.** While `draft`, decisions are revised **in place** — the log never holds two conflicting decisions, and evidence-backed old positions fold into *Alternatives considered*. From `accepted`, bodies are protected: a change is a *new* `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and existing bodies move only through the `enhancement-compaction` skill (weave, OQ collapse, supersession stub). `implemented` entries are frozen.
 - **Don't hard-wrap prose in `.md` files.**
@@ -108,11 +109,12 @@ Sibling skills to load when applicable:
   README.md                 What this enhancement is + reading order
   config.yaml               Sole metadata source (id, status, area, semver, history, refs)
   01-problem.md             Problem statement + scope
-  02-design.md              Design + open questions
+  02-design.md              Design (high-level approach, affected surfaces)
   03-decisions.md           Decision log (D1, D2, …) — numbers immutable; bodies revised in place while draft, protected from accepted
   04-graduation.md          Promotion gates per status transition
   05-risks.md               Risks, mitigations, blast radius
   06-operational.md         Migration, rollout, observability
+  07-questions.md           Open Questions register (OQ1, OQ2, …) — single canonical location, numbers immutable
   schemas/                  Core-schema delta (iff core_schema: true): target.cue + examples.cue + spec.md
   contracts/                Optional — non-core compilable CUE (procedures, behaviour contracts, taxonomies)
 NNNN/                       One per enhancement (id-only directory name)
@@ -164,7 +166,7 @@ new → fill problem + design → accrete decisions → freeze (accepted) → sh
 | Phase | Command / action | Skill section |
 | --- | --- | --- |
 | 1. Create | `task new SLUG=foo TITLE="Foo Bar"` | `enhancements ## Phase 1 — Create` |
-| 2. Iterate | Edit `01..06`, `schemas/` (core entries) / `contracts/`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
+| 2. Iterate | Edit `01..07`, `schemas/` (core entries) / `contracts/`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
 | 3. Promote `draft → accepted` | `task vet:one` + `task check`; resolve every contract-level OQ (implementation-level ones may close `deferred-to-implementation`); set `semver` | `enhancements ## Phase 3 — Promote` |
 | 4. Implement | Delivery runs under `plans/` and per-repo OpenSpec; append plan-blind `history` milestones here; set `implementation.status: complete` at the end | `enhancements ## Phase 4 — Implement` |
 | 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
@@ -177,7 +179,7 @@ Each phase has gating criteria and a concrete checklist. The `enhancements` skil
 
 - **Always load the `enhancements` skill** before doing workflow work (create, edit `config.yaml`, promote status, append history, add cross-refs, run any `task` other than read-only `list`/`show`).
 - **Preserve research evidence under `NNNN/research/`.** When an enhancement's design rests on external research — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — write the cited findings to `NNNN/research/` (primary dossier as `research/findings.md`; topic-named files for further write-ups) so the evidence travels with the design rather than living only in a chat transcript. Keep it cited and dated, distinguish verified facts from recommendations, and reference it back from the `Source:` lines in `03-decisions.md` (and from `01-problem.md` / `05-risks.md` where it drives a claim). `research/` is for *gathered* evidence (read-only synthesis); `experiments/` is for *authored* runnable proofs — keep the two distinct. `research/` is optional and not gated by `task vet`. See `0000/README.md ## Research` for the full convention.
-- If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `06-operational.md`.
+- If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `07-questions.md`.
 - Run `task vet` after any `config.yaml`, `schemas/`, or `contracts/` edit — hard gate, PR-blocking.
 - Run `task index` after any `config.yaml` change; `task graph` after any cross-ref change.
 - **Track cross-repo sequencing in a delivery plan under `plans/`, never inside an entry.** `06-operational.md ## Cross-Repo Coordination` states the ordering constraints as design facts; the plan encodes the order and per-slice status, and cites the entry — never the reverse. Load `delivery-plans` before scaffolding (`task plans:new`) or editing one; run `task plans:vet` after every edit and `task plans:graph` to refresh `PLAN.md`. Optional — `task plans:vet` nudges (does not block) when an `accepted` multi-repo entry has none yet.

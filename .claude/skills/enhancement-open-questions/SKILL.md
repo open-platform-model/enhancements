@@ -1,6 +1,6 @@
 ---
 name: enhancement-open-questions
-description: Interactive walk through an enhancement's Open Questions — present each OQ's context plus alternatives plus an evidence-bearing recommendation, then on user decision write a four-field `### DN:` block to `03-decisions.md`, rewrite the OQ's `Status:` line, optionally tighten `// OQN:` markers in the `schemas/`/`contracts/` CUE, bump `config.yaml.updated`, and append a single rolled-up `history` event at the end. Load before invoking `/enhancement-open-questions`, when iterating an enhancement's decisions in Phase 2 of the enhancements workflow, or when patching unresolved OQs that `task check` flagged before promoting `draft → accepted`.
+description: Interactive walk through an enhancement's Open Questions — present each OQ's context plus alternatives plus an evidence-bearing recommendation, then on user decision write a four-field `### DN:` block to `03-decisions.md`, rewrite the OQ's `Status:` line in `07-questions.md`, optionally tighten `// OQN:` markers in the `schemas/`/`contracts/` CUE, bump `config.yaml.updated`, and append a single rolled-up `history` event at the end. Load before invoking `/enhancement-open-questions`, when iterating an enhancement's decisions in Phase 2 of the enhancements workflow, or when patching unresolved OQs that `task check` flagged before promoting `draft → accepted`.
 user-invocable: true
 ---
 
@@ -13,7 +13,7 @@ This skill walks an enhancement's `## Open Questions` block interactively. It is
 Load this skill when any of the following is true:
 
 - You are invoking `/enhancement-open-questions ID=NNNN`.
-- You are in Phase 2 (Iterate) of the enhancements workflow and the user wants to resolve one or more Open Questions interactively, not freehand-edit `03-decisions.md`.
+- You are in Phase 2 (Iterate) of the enhancements workflow and the user wants to resolve one or more Open Questions interactively, not freehand-edit `07-questions.md` / `03-decisions.md`.
 - `task check ID=NNNN` flagged unresolved OQs and you are about to promote `draft → accepted` (per `enhancements` skill, every OQ must be resolved at promotion time).
 - `task questions:open ID=NNNN` returns one or more rows and you need to clear them coherently.
 
@@ -54,8 +54,8 @@ Read `config.yaml.status` first thing. Behavior by status:
 
 ### Preflight (once per session)
 
-1. Read `$ID/config.yaml`, `$ID/02-design.md`, `$ID/03-decisions.md`, and every `.cue` file under `$ID/schemas/` and `$ID/contracts/` (whichever exist — `schemas/` only on `core_schema: true` entries). Cache in session context. **Do not re-read on each OQ** — token discipline matters across long walks.
-2. Capture mtimes of `$ID/03-decisions.md`, the cached `.cue` files, `$ID/config.yaml`. Used for race detection before each per-OQ write.
+1. Read `$ID/config.yaml`, `$ID/02-design.md`, `$ID/03-decisions.md`, `$ID/07-questions.md`, and every `.cue` file under `$ID/schemas/` and `$ID/contracts/` (whichever exist — `schemas/` only on `core_schema: true` entries). Cache in session context. **Do not re-read on each OQ** — token discipline matters across long walks.
+2. Capture mtimes of `$ID/03-decisions.md`, `$ID/07-questions.md`, the cached `.cue` files, `$ID/config.yaml`. Used for race detection before each per-OQ write.
 3. Compute next decision number: highest `^### D[0-9]+:` in `03-decisions.md` plus 1 — counting tombstone stubs, which hold numbers that are retired but never reusable. Never reuse, never backfill.
 4. Run `task questions:open ID=$ID`. Filter the resulting TSV by `OQ=` / `ONLY=` if provided. This is the walk queue.
 5. If the queue is empty, report and exit. Do not invent OQs.
@@ -64,7 +64,7 @@ Read `config.yaml.status` first thing. Behavior by status:
 
 1. **Present.** Restate the OQ. Surface:
    - Gated design surface: `grep -n "OQ$K\b" 02-design.md` and excerpt the surrounding sentences.
-   - Related decisions: `grep -nE "OQ$K\\b" 03-decisions.md` restricted to lines inside `## Decisions` (above `## Open Questions`).
+   - Related decisions: `grep -nE "OQ$K\\b" 03-decisions.md` restricted to lines inside `## Decisions`.
    - CUE markers: `grep -rnE "OQ$K\\b" schemas/ contracts/ --include='*.cue' 2>/dev/null`. Show line numbers with two lines of context above and below.
    - Experiment evidence (only if `Status: informed-by-exp-NN` or `supported-by-exp-NN`): read `experiments/NN-*/README.md` and quote the Outcome section.
    - Alternatives the OQ bullet enumerates.
@@ -82,7 +82,7 @@ Read `config.yaml.status` first thing. Behavior by status:
    - **Skip** — no edits. Move on. The OQ stays `open`.
 4. **Write.** Before any write:
    - Re-stat the file. If mtime has advanced since the preflight capture and the skill did not write, surface "external edit detected — re-read or abort?" and stop. Number allocation is impossible to get right through a stale view — the file may have grown a `DN` you are about to collide with.
-   - For a Decide outcome: insert the new `### DN:` block immediately before `^## Open Questions$` with a trailing `---\n\n` separator (matches the cadence used in `0001`) — or, for a draft in-place revision, rewrite the existing `### DN:` block where it stands. Rewrite the OQ's `Status:` line in place — keep the bullet text identical except for the `Status:` span.
+   - For a Decide outcome: append the new `### DN:` block at the end of `03-decisions.md`'s decision log (before any trailing pointer/`## Recorded Non-Issues` material), separated by `---\n\n` (matches the cadence used in `0001`); the OQ's `Status:` rewrite lands in `07-questions.md` — or, for a draft in-place revision, rewrite the existing `### DN:` block where it stands. Rewrite the OQ's `Status:` line in place — keep the bullet text identical except for the `Status:` span.
    - For Defer / Answer: rewrite the `Status:` line only. No new DN block.
 5. **CUE markers.** After a Decide outcome only: if the marker grep over `schemas/`/`contracts/` returned any matches, prompt:
    ```
@@ -164,8 +164,8 @@ After the queue is exhausted (or the user exits early):
 
 | Artefact | Path | Authority |
 | --- | --- | --- |
-| Open Questions block | `enhancements/NNNN/03-decisions.md ## Open Questions` (canonical) or `enhancements/NNNN/README.md ## Open Questions` (fallback) | Source of truth for what's unresolved. Walk modifies only the `Status:` line of each bullet. |
-| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Walk appends `### DN:` blocks immediately before `## Open Questions`; on `draft` entries it may also revise an existing block in place when a resolution changes it. Numbers are never reused; body edits on `accepted` entries belong to `enhancement-compaction`. |
+| Open Questions register | `enhancements/NNNN/07-questions.md ## Open Questions` — the single canonical location (`task vet` errors on a block anywhere else) | Source of truth for what's unresolved. Walk modifies only the `Status:` line of each bullet. |
+| Decision log | `enhancements/NNNN/03-decisions.md ## Decisions` | Walk appends `### DN:` blocks at the end of the decision log; on `draft` entries it may also revise an existing block in place when a resolution changes it. Numbers are never reused; body edits on `accepted` entries belong to `enhancement-compaction`. |
 | Decision block format | `.claude/skills/enhancements/SKILL.md ## Phase 2 — Iterate` | Four-field shape. This skill defers to that one verbatim. |
 | CUE markers | `enhancements/NNNN/schemas/*.cue`, `enhancements/NNNN/contracts/*.cue` | `// OQN:` comments. Walk edits these only with user confirmation; validates via `cue vet`. |
 | Metadata + history | `enhancements/NNNN/config.yaml` | `updated` bumps at end of walk. `history` event appended at end. |

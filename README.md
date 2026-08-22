@@ -36,10 +36,11 @@ enhancements/
     ├── README.md           index, summary, scope, cross-references
     ├── 01-problem.md       why this enhancement needs to exist
     ├── 02-design.md        what the solution is and how it works
-    ├── 03-decisions.md     DN decision log + Open Questions (numbers immutable; bodies in-place while draft, protected from accepted)
+    ├── 03-decisions.md     DN decision log (numbers immutable; bodies in-place while draft, protected from accepted)
     ├── 04-graduation.md    draft → accepted → implemented gates
     ├── 05-risks.md         risks, drawbacks, alternatives not taken
     ├── 06-operational.md   PRR-lite: observability, semver, deprecation, rollback, cross-repo coordination
+    ├── 07-questions.md     OQN Open Questions register (numbers immutable; single canonical location)
     ├── schemas/            (iff core_schema: true) the core-schema delta — vettable, referencable, tested
     │   ├── cue.mod/module.cue
     │   ├── target.cue      the proposed opmodel.dev/core delta (may import published core)
@@ -62,10 +63,11 @@ Start at the entry's `README.md` — it has the summary, scope, and cross-refere
 
 1. **`01-problem.md`** — current state, gap, concrete example, user stories. Answers "why does this exist?".
 2. **`02-design.md`** — goals, non-goals, high-level approach, affected surfaces, before/after. Answers "what changes?".
-3. **`03-decisions.md`** — every architectural choice with alternatives, rationale, and source. Open Questions track what is still unresolved.
+3. **`03-decisions.md`** — every architectural choice with alternatives, rationale, and source.
 4. **`04-graduation.md`** — gates that must hold to advance status.
 5. **`05-risks.md`** — honest costs: risks, drawbacks, high-level alternatives ruled out.
 6. **`06-operational.md`** — production-readiness questionnaire (five prompts).
+7. **`07-questions.md`** — the Open Questions register: what is still unresolved, each `OQN` with a `Status:` line. The single canonical location.
 
 Compilable CUE lives outside the markdown; the documents reference shapes by name, not by re-pasting code blocks. `schemas/` exists **iff** the enhancement adds or changes `opmodel.dev/core` definitions (`config.yaml.core_schema: true`) and holds exactly that delta — `target.cue` (the proposed definitions), `examples.cue` (concrete instances whose unification is the test), and `spec.md` (the specification changes, pre-drafting the core SPEC.md co-update). Everything else expressible as CUE — decision procedures, contracts over Go behaviour, taxonomies — goes in the optional `contracts/`.
 
@@ -99,7 +101,7 @@ Execution sequencing lives outside the entries, in [`plans/`](plans/) — one de
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the six mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, and no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule — delivery plans live in `plans/`, validated by `task plans:vet`).
+- **`task vet`** — hard gate (PR-blocking). CUE schema validation of `config.yaml`, cross-reference existence, placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and from `accepted` carries `examples.cue` + `spec.md`), `contracts/` compiles when present, no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule — delivery plans live in `plans/`, validated by `task plans:vet`), and no `## Open Questions` block outside `07-questions.md` (single canonical location).
 - **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, one-way smell (plan-file names in draft/accepted prose), mechanism smell (file:line refs in the decision log), evidence nudge (no research/, experiments/, or Measured claim), implementation snapshot quote block, deviations section, and supersession quote block.
 
 Run `task vet` before any PR that touches an enhancement; run `task check` before promoting a status (draft → accepted, accepted → implemented).

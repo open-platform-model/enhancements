@@ -1,6 +1,6 @@
 ---
 name: enhancements
-description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events as delivery milestones land, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
+description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the seven split documents, schemas/, contracts/), promoting an enhancement's status (draft → accepted → implemented → superseded), appending history events as delivery milestones land, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..06.
 user-invocable: true
 ---
 
@@ -13,7 +13,7 @@ This skill is the **authoritative protocol** for working with OPM enhancement pr
 Load this skill when any of the following is true:
 
 - Creating a new enhancement (about to invoke `task new` or write `enhancements/NNNN/` files).
-- Editing an existing enhancement's `config.yaml`, `README.md`, or any of the six split documents (`01-problem.md` through `06-operational.md`).
+- Editing an existing enhancement's `config.yaml`, `README.md`, or any of the seven split documents (`01-problem.md` through `07-questions.md`).
 - Editing anything under `enhancements/NNNN/schemas/` (the core-schema delta) or `enhancements/NNNN/contracts/` (non-core compilable CUE).
 - Promoting an enhancement's `status` (draft → accepted → implemented → superseded).
 - Recording a new event in `config.yaml.history` as a delivery milestone lands.
@@ -30,7 +30,7 @@ Sibling skills carry parallel protocols you may also need to load:
 - **`enhancement-diagrams`** — when a design discussion or Open-Questions walk would benefit from a diagram. Mermaid for relationships between enhancements/slices, ASCII for how a single enhancement's design/mechanism works — the two are never interchangeable by default. Load before sketching either, or before adding a diagram to `01-problem.md`/`02-design.md`/`05-risks.md`.
 - **`core-schema-edit`** (at `core/.claude/skills/core-schema-edit/`) — when implementing a slice that touches `core/*.cue`. The enhancement's accepted-to-implemented work routes there.
 
-If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `06-operational.md`, and inspect the compilable CUE under `schemas/` (core entries) or `contracts/`. The skill matters when you are about to *change* something.
+If your task is only to *read* an existing enhancement to learn what was decided, you do not need this skill — open its `README.md`, walk `01-problem.md` through `07-questions.md`, and inspect the compilable CUE under `schemas/` (core entries) or `contracts/`. The skill matters when you are about to *change* something.
 
 ## Repo rules — invariants
 
@@ -67,7 +67,7 @@ What the task does:
 - Computes the next id from the highest existing `NNNN/` directory (excluding `0000`).
 - Copies `0000/` to `NNNN/` — keeping `schemas/` only when `CORE_SCHEMA=true` (the enhancement adds or changes `opmodel.dev/core` definitions); `contracts/` is never auto-copied.
 - Fills `config.yaml`: id, slug, title, area (defaults to `cross-cutting`), affects (defaults to `[area]`, plus `core` when `CORE_SCHEMA=true`), `core_schema`, created/updated to today, authors, and seeds `history` with `{date: today, event: "Drafted"}`.
-- Replaces `{Enhancement Title}` placeholders across the six split documents + README (+ `schemas/spec.md` when kept).
+- Replaces `{Enhancement Title}` placeholders across the seven split documents + README (+ `schemas/spec.md` when kept).
 - Updates `schemas/cue.mod/module.cue` to set `module: "enhancements.opmodel.dev/NNNN/schemas@v0"`.
 - Prints the recommended next steps.
 
@@ -75,8 +75,8 @@ After `task new`:
 
 1. Write `01-problem.md` first — full prose. The Concrete Example section is the most important — it makes the problem tangible.
 2. Write `02-design.md` next — full prose. Goals and Non-Goals together define the boundary; the High-Level Approach should be understandable without deep implementation knowledge.
-3. Core-schema entries (`core_schema: true`): sketch the delta in `schemas/target.cue` — delta-manifest header (each definition marked NEW or CHANGED vs core), unresolved fields marked with `// OQN:` comments pointing at the corresponding Open Question in `03-decisions.md`. Grow `examples.cue` and `spec.md` alongside; both are required before `draft → accepted`. Non-core entries with compilable-CUE needs: `task new:contracts ID=NNNN`.
-4. Seed `03-decisions.md ## Open Questions` with the questions the design surfaces. Fill `## Decisions` iteratively as choices land.
+3. Core-schema entries (`core_schema: true`): sketch the delta in `schemas/target.cue` — delta-manifest header (each definition marked NEW or CHANGED vs core), unresolved fields marked with `// OQN:` comments pointing at the corresponding Open Question in `07-questions.md`. Grow `examples.cue` and `spec.md` alongside; both are required before `draft → accepted`. Non-core entries with compilable-CUE needs: `task new:contracts ID=NNNN`.
+4. Seed `07-questions.md ## Open Questions` with the questions the design surfaces. Fill `03-decisions.md ## Decisions` iteratively as choices land. The register is the **single canonical location** — `task vet` fails an `## Open Questions` block in `03-decisions.md` or `README.md`.
 5. Update `04-graduation.md`, `05-risks.md`, `06-operational.md` as the design firms up. They start as scaffolds and mature alongside the decision log.
 6. Before opening a PR: `task vet:one ID=NNNN && task index`.
 
@@ -197,7 +197,7 @@ Notation: **[H]** = hard, enforced by `task vet` (PR-blocking). **[S]** = soft, 
 The cheap-entry state. Be lenient — this is where ideas form.
 
 - **[H]** `id` matches directory name (four digits, no slug suffix)
-- **[H]** the six mandatory documents (`README.md`, `01-problem.md`, `02-design.md`, `03-decisions.md`, `04-graduation.md`, `05-risks.md`, `06-operational.md`) exist
+- **[H]** the seven mandatory documents (`README.md`, `01-problem.md`, `02-design.md`, `03-decisions.md`, `04-graduation.md`, `05-risks.md`, `06-operational.md`, `07-questions.md`) exist
 - **[H]** no `{Capitalised}` placeholder strings outside code fences, HTML comments, or single-line backtick spans
 - **[H]** `area ∈ affects`
 - **[H]** `created` set, `updated >= created`
@@ -207,6 +207,7 @@ The cheap-entry state. Be lenient — this is where ideas form.
 - **[H]** `contracts/`, when present, is non-empty and compiles via `cue vet ./...`
 - **[H]** if `experiments/` exists: index `README.md` is present and every `NN-*/` subdirectory has its own `README.md`
 - **[H]** no `plan.yaml` or `PLAN.md` inside the entry — delivery plans live in `plans/<slug>/` (the one-way rule)
+- **[H]** no `## Open Questions` block in `03-decisions.md` or `README.md` — the register lives in `07-questions.md` only
 
 Not required at draft: `semver`, scope section, decisions content, Open Questions list, implementation block.
 
@@ -221,7 +222,7 @@ Everything `draft` requires, plus:
 - **[H]** if `core_schema: true`: `schemas/spec.md` exists and `schemas/` has at least one companion `.cue` beside `target.cue` (convention: `examples.cue`)
 - **[S]** `README.md` contains `## Scope` with `### In scope` and `### Out of scope`
 - **[S]** `03-decisions.md` contains at least one `### DN:` heading
-- **[S]** `03-decisions.md` contains `## Open Questions` block (may say "None")
+- **[S]** `07-questions.md` contains `## Open Questions` block (may say "None")
 - **[S]** `04-graduation.md` contains both `## draft → accepted` and `## accepted → implemented` sections
 - **[S]** no `*.md` names a plan file, every decision carries `**Kind:**` (checked on drafts), mechanism smells and missing evidence warned (see `task check`'s summary); the delivery-plan coverage nudge for accepted multi-repo entries lives in `task plans:vet` (see `delivery-plans`)
 
@@ -258,7 +259,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffolding a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffolding an experiment inside an entry. **Load `enhancement-experiments` skill first.** |
 | `task experiments:list ID=NNNN` | Browsing experiments for one entry; parses `Status:` from each per-experiment README. |
-| `task questions:list ID=NNNN` | Listing `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
+| `task questions:list ID=NNNN` | Listing the `07-questions.md` register for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial). Consumed by the `enhancement-open-questions` skill walk. |
 | `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Consumed by the `enhancement-compaction` skill. Read-only; it proposes nothing and writes nothing. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
