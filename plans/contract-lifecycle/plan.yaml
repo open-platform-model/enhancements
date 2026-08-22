@@ -1,0 +1,93 @@
+# Delivery plan. See plans/README.md for the field reference,
+# the implementation/migration phase split, and the one-way
+# reference rule (plans cite enhancements; never the reverse).
+#
+# The seam between implementation and migration falls after the CLI gate is
+# wired, because catalog_opm's first promotion is only a proof of the design
+# if the gate that constrains it is running when it publishes.
+implements:
+  - "0020"
+
+title: Contract Promotion and Retirement
+
+slices:
+  - id: core-lifecycle-schema
+    repo: core
+    phase: implementation
+    concern: >-
+      Add #Tombstone, #Catalog.#removed, promotedFrom on the three contract
+      kinds, and the #PromotionGate / #TombstoneGate definitions, with the
+      SPEC.md sections for each.
+    depends_on: []
+    decisions:
+      - "0020:D1"
+      - "0020:D8"
+      - "0020:D9"
+      - "0020:D11"
+    status: planned
+
+  - id: library-lifecycle-compat
+    repo: library
+    phase: implementation
+    concern: >-
+      Extend opm/compat's published-history walk with the three cross-build
+      rules: cross-level promotion comparison, absent-and-not-tombstoned,
+      and the seasoning floor on withdrawal.
+    depends_on:
+      - core-lifecycle-schema
+    decisions:
+      - "0020:D2"
+      - "0020:D3"
+      - "0020:D6"
+      - "0020:D7"
+      - "0020:D10"
+    status: planned
+
+  - id: cli-lifecycle-gates
+    repo: cli
+    phase: implementation
+    concern: >-
+      Wire the promotion and tombstone gates into opm catalog publish beside
+      the existing compatibility gate, and surface lifecycle state through
+      opm catalog registry check as a D35-style aid.
+    depends_on:
+      - library-lifecycle-compat
+    decisions:
+      - "0020:D2"
+      - "0020:D6"
+      - "0020:D10"
+    status: planned
+
+  - id: docs-contract-lifecycle
+    repo: opmodel.dev
+    phase: implementation
+    concern: >-
+      Reference documentation for the ladder, what promotion means and costs,
+      how retirement is recorded, and the guidance against rung-skipping that
+      D5 keeps out of the gate.
+    depends_on:
+      - core-lifecycle-schema
+    decisions:
+      - "0020:D5"
+    status: planned
+
+  - id: catalog-first-promotion
+    repo: catalog
+    phase: migration
+    concern: >-
+      Author catalog_opm's tombstone map and carry out the first real
+      promotion by dual-shipping, as the proof case for the design against a
+      live fleet.
+    depends_on:
+      - cli-lifecycle-gates
+    decisions:
+      - "0020:D4"
+    status: planned
+
+unsliced:
+  "0020:D12": >-
+    A scope decision that places the cluster-side guard against stranding live
+    dependents outside this design entirely. It is delivered, if at all, in
+    opm-operator beside enhancement 0015's registration finalizer, and needs a
+    dependent-side data shape that does not exist yet. No slice here carries it
+    by intent.
