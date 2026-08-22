@@ -27,6 +27,8 @@ Each decision carries a `**Kind:**` line plus the same four-field shape: Decisio
 
 A *mechanism* decision — how a repo achieves the contract (algorithm choice, code placement, internal wiring) — fails the test and belongs in the implementing slice's OpenSpec change in the target repo, decided when the code in front of the implementer is current. Measured evidence that *constrains* a contract (an experiment proving a primitive cannot express a rule) stays here, attached to the contract decision it constrains; the winning implementation design does not.
 
+**Prescriptive versus evidential.** The line that keeps mechanism out in practice: an entry never tells a repo *how to name a file, spell an identifier, lay out a directory, or structure its code*. Naming a path to **prove** something, or to say where something is emitted today, is evidence and is wanted. Ask: would deleting the named path change what an implementer is **obliged** to do, or only what a reader can **verify**? Obliged means it is prescription and does not belong here; verify means it is provenance and stays. A decision may state that a name is part of the published contract — a member name that reaches a key, a command's flag — because that is what a consumer observes; it may not state what the file holding it is called.
+
 ---
 
 ## Decisions

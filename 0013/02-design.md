@@ -134,60 +134,33 @@ Full surface in [`schemas/target.cue`](schemas/target.cue). The headline shapes:
 
 Notably absent, and deliberately: any addition to `#TransformerContext`. Because the object name travels inside the value, `core` needs **no** new field (D11).
 
-## Integration Points
+## Affected Surfaces
 
-### `core` (`opmodel.dev/core@v1`)
+What a consumer observes differently, per repo. Construction detail — which file a change lands in, how a package is laid out, what an internal symbol is called — belongs to the implementing repo, decided against the code as it stands then.
 
-| Target | Change |
-| --- | --- |
-| `src/schemas.cue` | **Narrow** `#Secret` to `#SecretLiteral \| #SecretRef` (six lines). **Delete** `#SecretType`, `#SecretK8sRef`, `$opm`/`$secretName`/`$dataKey`, `#SecretSchema`, `#SecretContentHash`, `#SecretImmutableName`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`. Keep `#ContentHash`, `#ConfigMapSchema`, `#ImmutableName`. |
-| `src/transformer.cue` | **No change.** |
-| `SPEC.md` §1 | **Correct** the Primitives sentence: `#Secret` is a type, not a Primitive — it has no `metadata`, no `fqn`, no version. Co-update gated by the pre-commit hook and CI; load `core-schema-edit` before touching `src/*.cue`. |
-| `src/INDEX.md` | Regenerate (`task generate:index`). |
-| `.claude/skills/core-schema-edit/SKILL.md:13` | **Remove** stale helper names `#OpmSecretsComponent`, `#SecretsResourceFQN` (already deleted) and the removed secret helpers. |
+### `core`
 
-### `library` (the kernel)
+`#Secret` narrows to a literal-or-reference union. The whole discovery and grouping vocabulary published alongside it is withdrawn: the secret type discriminator, the Kubernetes reference shape, the `$opm` / `$secretName` / `$dataKey` marker fields, the content-hash and immutable-name helpers, and the auto-discovery and grouping helpers. The general-purpose content-hash, ConfigMap and immutable-name helpers stay. `SPEC.md` gains a correction: `#Secret` is a type, not a Primitive — it carries no `metadata`, no `fqn` and no version.
 
-| Target | Change |
-| --- | --- |
-| `opm/secret/` | **New package.** `Discover(configSchema cue.Value) ([]Decl, error)` and `Resolve(decls, values, instanceName) (*Resolution, error)`, where `Resolution` carries the rewritten values, the group plans, and the unfulfilled list. |
-| `opm/schema/paths.go` | Reuse `Config` (`cue.MakePath(cue.Def("config"))`) as the discovery root — already defined and already used by `kernel.Validate`. |
-| `opm/schema/context.go` | **No change.** |
-| `opm/kernel/phases.go` | **Wire** Discover → Resolve before the component build. `Validate` keeps running against the *supplied* values, unchanged — see OQ2 for whether this needs a second build. |
-| `opm/kernel/synth.go` | **Synthesise** the secrets component from the plans, with the resource FQN drawn from the materialized platform. |
-| `opm/compile/execute.go` | **New diagnostic:** catch the "module read `.value` of a resolved secret" error and re-report it against the config path (see `05-risks.md`). |
+A module that wrote the withdrawn marker fields no longer type-checks. That is the intended break; the attribute form replaces it.
 
-### `catalog_opm` (`opmodel.dev/catalogs/opm@v1`)
+### `library`
 
-| Target | Change |
-| --- | --- |
-| `src/resources/secret.cue` | **Delete** the duplicated contract type and the discovery pyramid; import `#Secret` from core (D12). Keep `#SecretsResource`, `#Secrets`, `#SecretSchema`, `#SecretDefaults` for the hand-authored path, with `data` narrowed to `string`. |
-| `src/transformers/container_helpers.cue:52-89` | **Replace** `$secretName`/`$dataKey` dispatch with a two-field read of `.ref` / `.key`. |
-| `src/transformers/container_helpers.cue:368-388` | **Replace** the volume-side name computation with a read of `.ref`. Deletes the second derivation. |
-| `src/transformers/secret_transformer.cue:63-66` | **Delete** the `opm-secrets` branch and all name computation; render `spec.secrets` entries verbatim. |
-| `src/resources/container.cue:109` | `#EnvVarSchema.from` stays typed `#Secret` — now core's narrowed one. |
-| `src/INDEX.md` | Regenerate (`task generate:index`). |
+The kernel gains secret discovery and resolution as a phase of its own, running before the component build: it finds attribute-marked fields in a module's config schema, rewrites the values so a marked field carries a reference rather than a literal, and reports which marked fields no value supplied. Validation continues to run against the values the deployer supplied, unchanged.
+
+The kernel also synthesises the secrets component from the resolution, drawing the resource FQN from the materialized platform, and gains one diagnostic: a module that reads a resolved secret's literal value is told so against the config path it wrote, rather than through a CUE error about a field that no longer exists.
+
+### `catalog_opm`
+
+The catalog stops defining its own copy of the secret contract type and consumes core's. Both transformer paths that computed a secret's Kubernetes name — the environment-variable path and the volume path — stop computing it and read the reference the kernel resolved, which is what removes the second derivation this entry exists to eliminate. The hand-authored secrets path survives unchanged for deployers who want it, with its `data` narrowed to strings.
 
 ### `modules`
 
-| Target | Change |
-| --- | --- |
-| `metallb/module.cue` | `memberlistKey` becomes `#Secret @opm(secret, group=memberlist, key=secretkey)`. |
-| `metallb/components.cue:374-378` | **Delete** the hand-written `spec.secrets` map. |
-| `metallb/components.cue` RBAC | Rendered object name changes `metallb-speaker-memberlist` → `metallb-memberlist`; the `resourceNames` scoping must move with it. |
-| Instance values | **No change** — `{value: "…"}` is already the shape. |
-| `DESIGN_PATTERNS.md:84-110` | Rewrite the `schemas.#Secret` pattern section. |
+A module marks a secret field with an attribute (`@opm(secret, group=…, key=…)`) instead of hand-writing a `spec.secrets` map. One rendered object name changes as a result, `metallb-speaker-memberlist` to `metallb-memberlist`, so any RBAC scoping that names it moves with it. Instance values files do not change shape.
 
 ### `cli`
 
-| Target | Change |
-| --- | --- |
-| `tests/fixtures/valid/secrets-module/module.cue` | Port to the attribute form. |
-| `openspec/specs/auto-secrets-injection/spec.md` | Already marked Superseded and pointing at the retired `v1alpha1/`; retire the spec. |
-| `opm module inspect` | **New output section** listing declared secrets, their groups and keys, and which are unfulfilled. |
-| `opm secrets template` | **New command** (D14). Walks Discover with no values present; emits a skeleton values file (YAML/JSON) containing exactly the marked paths, ready to populate and encrypt with `sops -e`. |
-| `opm module vet` | **Secrets-aware messaging** (D14). Intercept CUE incompleteness errors at marked paths; report one grouped "unfulfilled secrets" list naming each path, group, and key, pointing at `opm secrets template`. |
-| Values input | **SOPS decrypt** (D14). Accept a SOPS-encrypted values file, decrypted via the `getsops/sops/v3` library before values enter the kernel. The kernel contract is unchanged. |
+Three consumer-visible additions, all from D14: `opm module inspect` reports a module's declared secrets, their groups and keys, and which are unfulfilled; a new `opm secrets template` command emits a skeleton values file containing exactly the marked paths, ready to populate and encrypt; and `opm module vet` intercepts incompleteness at a marked path and reports one grouped "unfulfilled secrets" list pointing at that command. Values input additionally accepts a SOPS-encrypted file, decrypted before values reach the kernel. The kernel contract is unchanged by that last one.
 
 ## Before / After
 

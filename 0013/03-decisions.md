@@ -142,7 +142,9 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D9: The dead and duplicated secret machinery is deleted, not deprecated
 
-**Decision:** `core/src/schemas.cue` loses its entire secret block, and `catalog_opm/src/resources/secret.cue` loses the duplicate. No aliases, no transition shims. `#SecretsResource` / `#SecretSchema` survive in the catalog for hand-authored Secret data, with `data` narrowed from `#Secret | string` to `string`.
+**Mechanism removed 2026-08-22** — construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
+
+**Decision:** Core withdraws its entire secret block and the catalog drops its duplicate of the contract type. No aliases, no transition shims: a module written against the withdrawn shapes stops type-checking rather than being carried by a compatibility layer. `#SecretsResource` / `#SecretSchema` survive in the catalog for hand-authored Secret data, with `data` narrowed from `#Secret | string` to `string`.
 
 **Alternatives considered:**
 
@@ -283,7 +285,9 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 **Resolves OQ2.**
 
-**Decision:** Resolve-in-place is implemented by assembling the render build **without** the deployer's original values conjunct — never by overriding it. Measured against the published kernel (`github.com/open-platform-model/library v1.0.0-alpha.12`, `opmodel.dev/core@v2` at `v2.0.0-alpha.4`), both candidate mechanisms work today through existing public entry points: **fill-style** (load the instance spec with values omitted; hand the resolved values to `ProcessModuleInstance`, whose existing `ValidateConfig` + `FillPath` seam fills them — the natural fit for parameter-carried values: CLI flags, CR decode) and **bake-style** (bake the resolved values at load time via `loaderfile.BuildInstanceOverlayAt`, the overlay mechanism `synth.Instance` already uses — the natural fit for package-staged loads). The pipeline needs exactly **one component-graph build**: the deployer's raw values are validated in their own evaluation by the existing, separate `Kernel.Validate` phase, and the render build carries the resolved statement only.
+**Mechanism removed 2026-08-22** — construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
+
+**Decision:** Resolve-in-place is achieved by assembling the render build **without** the deployer's original values conjunct — never by overriding it. That is the constraint; which of the two viable mechanisms delivers it is the kernel's to choose. Measured against the published kernel (`github.com/open-platform-model/library v1.0.0-alpha.12`, `opmodel.dev/core@v2` at `v2.0.0-alpha.4`), both work today through existing public entry points, with no new seam required: a **fill-style** path that loads the instance spec with values omitted and fills the resolved ones through the existing validate-and-fill seam — the natural fit for parameter-carried values such as CLI flags and CR decode — and a **bake-style** path that bakes them at load time through the overlay mechanism synthetic instances already use, the natural fit for package-staged loads. The pipeline needs exactly **one component-graph build**: the deployer's raw values are validated in their own evaluation by the existing, separate validation phase, and the render build carries the resolved statement only.
 
 **Alternatives considered:**
 
@@ -299,7 +303,9 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data — not AST, not FillPath-graft
 
-**Decision:** `library/opm/secret`'s Resolve produces the resolved values by decoding the concrete values `cue.Value` to Go data, splicing `{ref, key}` at each marked path, and encoding a fresh `cue.Value` — experiment 02's prototype mechanism, now also the measured-fastest. The rewrite operates on *evaluated data*, never on source: the deployer's file is untouched on disk, and marked-field attributes are read through the `cue.Value.Attribute` API, so no AST is parsed, patched, or round-tripped anywhere in the pass.
+**Mechanism removed 2026-08-22** — construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
+
+**Decision:** Resolution operates on *evaluated data*, never on source. Two properties are contract: **the deployer's file is untouched on disk**, and marked-field attributes are read from values rather than from parsed source, so nothing in the pass parses, patches or round-trips an AST. The mechanism that delivers them — decode the concrete values to Go data, splice `{ref, key}` at each marked path, encode a fresh value — is experiment 02's prototype and is also the measured-fastest; it is recorded below as evidence that resolution costs nothing the design has to bend around, not as a constraint on the implementing repo.
 
 **Alternatives considered:**
 

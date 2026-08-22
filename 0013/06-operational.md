@@ -8,7 +8,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 Four new diagnostics, all from the library kernel:
 
-- **Module reads `.value` of a resolved secret** (`opm/compile/execute.go`). The most important one, because the bare CUE error (`undefined field: value`) does not say why. The kernel knows which paths it rewrote, so it re-reports against the config path: *"module reads `.value` of the secret at `db.password`; secret data is not readable during render."*
+- **Module reads `.value` of a resolved secret.** The most important one, because the bare CUE error (`undefined field: value`) does not say why. The kernel knows which paths it rewrote, so it re-reports against the config path: *"module reads `.value` of the secret at `db.password`; secret data is not readable during render."*
 - **Unknown `@opm` marker kind** (`opm/secret`). A warning listing the field path and the unrecognised position-0 value — the first defence against a mistyped marker. Surfaced in normal output, not behind a verbose flag.
 - **Field typed `#Secret` that discovery did not find** (`opm/secret`). A contradiction, and a hard error: it catches the mistyped-*argument* case the warning above misses.
 - **Group disagreement** (`opm/secret`). Two members of one group declaring different `type` or `immutable`, with both config paths named.
@@ -53,8 +53,8 @@ Everything below is removed in the same release that lands the enhancement.
 | `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets` (both copies) | `library/opm/secret.Discover` |
 | `#SecretContentHash`, `#SecretImmutableName` (both copies) | kernel-side hashing in Resolve (D5, D11) |
 | `core`'s `#SecretSchema` | `catalog_opm`'s `#SecretSchema`, `data` narrowed to `string` |
-| `opm-secrets` component-name special case (`secret_transformer.cue:63-66`) | instance-scoped naming (D6) |
-| Name computation in `container_helpers.cue:78` and `:374-379` | reading `.ref` from the resolved value (D11) |
+| The `opm-secrets` component-name special case in the secret transformer | instance-scoped naming (D6) |
+| Secret-name computation in both transformer consumption sites | reading `.ref` from the resolved value (D11) |
 | `cli/openspec/specs/auto-secrets-injection/spec.md` | retired; already marked Superseded |
 | `core-schema-edit` SKILL.md entries for the removed helpers | updated list |
 
@@ -82,9 +82,9 @@ Strict order — each step consumes a published artifact from the one before.
 
 1. **`core`** — narrow `#Secret`; delete the dead machinery; correct `SPEC.md` §1; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v2.0.0-alpha.N`.
 2. **`library`** — implement `opm/secret` (Discover, Resolve), wire the phases, add the `.value` diagnostic. Consumes the new core alpha. Publishes a new library tag. The build shape is settled (D16, measured by experiment 03): raw values validate in the existing separate `Validate` evaluation, one component-graph build assembled from resolved values only, rewrite via decode → splice → encode (D17).
-3. **`catalog_opm`** — drop the duplicate and import core's `#Secret`; rewrite both consumption sites to read `.ref` / `.key`; strip name computation from `secret_transformer.cue`. Consumes the new core alpha. Publishes a new `v2.x.x-alpha.x`.
+3. **`catalog_opm`** — drop the duplicate and import core's `#Secret`; rewrite both consumption sites to read `.ref` / `.key`; strip the name computation from the secret transformer. Consumes the new core alpha. Publishes a new `v2.x.x-alpha.x`.
 4. **`cli`** and **`opm-operator`** — bump to the new library; port the `secrets-module` fixture; add the `opm module inspect` secrets section. These two can land in parallel.
-5. **`modules`** — migrate `metallb` onto the new core + catalog pins. **Migration step, not a code change:** the rendered Secret name changes, and `components.cue`'s RBAC `resourceNames` scoping references the rendered object name. Both must change together, and the module must be re-rendered and diffed against the running cluster before apply. Instance values need no edit.
+5. **`modules`** — migrate `metallb` onto the new core + catalog pins. **Migration step, not a code change:** the rendered Secret name changes, and the module's RBAC `resourceNames` scoping references the rendered object name. Both must change together, and the module must be re-rendered and diffed against the running cluster before apply. Instance values need no edit.
 6. **`opmodel.dev`** — regenerate the schema reference; rewrite the secrets section of the authoring docs around the routing/fulfilment split.
 7. **`modules/DESIGN_PATTERNS.md`** — rewrite the `schemas.#Secret` pattern section (`:84-110`) and the summary-table row (`:630`).
 

@@ -44,7 +44,10 @@ differently — a schema shape, a command's semantics, a refusal rule, a
 naming guarantee. Intent-level only: **no file paths, no line numbers, no
 function names** — the construction roadmap belongs to the delivery plan's
 slices and their OpenSpec changes in the target repos, written when the
-code in front of the implementer is current. An ASCII component/dependency
+code in front of the implementer is current. A name that is part of the
+published contract (one that reaches a key, a demand string, or a command's
+surface) is a contract statement and belongs here; the file that holds it
+does not. An ASCII component/dependency
 diagram can make cross-repo wiring easier to follow than separate bullet
 lists.}
 

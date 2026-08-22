@@ -786,11 +786,30 @@ tasks:
           # construction detail that belongs in the implementing slice's
           # OpenSpec change rather than the design record. Measured
           # constraints stay — this is a smell count, not a gate.
-          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
-            local mech
-            mech=$(grep -cE '\.(go|cue|md):[0-9]+|\b[a-zA-Z_][a-zA-Z0-9_]+\(\)' "$dir/03-decisions.md" 2>/dev/null || true)
-            if [ "${mech:-0}" -gt 0 ]; then
-              warnings="${warnings}\n    03-decisions.md: $mech mechanism smell(s) (file:line refs or function() tokens) — construction detail belongs in the implementing slice"
+          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; }; then
+            local mech doc
+            for doc in 03-decisions.md 02-design.md; do
+              [ -f "$dir/$doc" ] || continue
+              # EVIDENTIAL citations are the desired state, not a smell: a
+              # path in a Source line, or in a dated measurement, is
+              # provenance the repo wants kept. Counting them would reward
+              # deleting exactly what the rule protects. Filter them out
+              # before counting, so what remains is prescription.
+              mech=$(grep -vE '^\*\*(Source|Revised):|[Mm]easured|read (from|the same day)|verified' "$dir/$doc" 2>/dev/null \
+                | grep -cE '\.(go|cue|md|ya?ml|sh):[0-9]+|\b[a-zA-Z_][a-zA-Z0-9_]+\(\)' 2>/dev/null || true)
+              if [ "${mech:-0}" -gt 0 ]; then
+                warnings="${warnings}\n    $doc: $mech mechanism smell(s) — an entry records contracts, not how a repo names or lays out its files"
+              fi
+            done
+            # A bare slice / OpenSpec-change name in entry prose is the
+            # one-way rule's edge: the existing check greps only for
+            # plan.yaml/PLAN.md, so a slice id written as prose slips past.
+            if [ -f "$dir/03-decisions.md" ]; then
+              local slices
+              slices=$(grep -coE '\b(slice|OpenSpec change) [`a-z][a-z0-9-]+' "$dir/03-decisions.md" 2>/dev/null || true)
+              if [ "${slices:-0}" -gt 0 ]; then
+                warnings="${warnings}\n    03-decisions.md: $slices slice/OpenSpec-change name(s) in prose — plans cite entries, never the reverse"
+              fi
             fi
           fi
 

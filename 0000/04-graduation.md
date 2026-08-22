@@ -19,6 +19,10 @@ The enhancement is ready to be implemented when:
 - {Every decision in `03-decisions.md` carries a valid `**Kind:**`
   (contract | policy | scope) and passes the admission test — mechanism
   decisions have been moved out or left to the implementing slices.}
+- {No document in the entry prescribes mechanism: no filename, identifier
+  spelling, directory layout, or code structure is stated as instruction.
+  Paths cited as evidence are fine; paths cited as the address of an edit
+  are not.}
 - {If `core_schema: true`: `schemas/` compiles (`cue vet ./...` passes),
   `examples.cue` carries concrete instances that actually exercise every
   new or changed definition, and `spec.md` drafts the core SPEC.md delta
