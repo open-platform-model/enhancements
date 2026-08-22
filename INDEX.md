@@ -23,6 +23,7 @@
 | [0017](./0017/) | cross-cutting | draft | - | not-started | 2026-08-22 — Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only. | Layered Defaults |
 | [0018](./0018/) | opmodel.dev | draft | - | not-started | 2026-08-22 — Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only. | Documentation Architecture |
 | [0019](./0019/) | library | accepted | major | not-started | 2026-08-22 — Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only. | Kernel render path parity with pure CUE |
+| [0020](./0020/) | cross-cutting | draft | minor | not-started | 2026-08-22 — Decisions D1..D12 drafted: promotion declared and gated (D1-D3), dual-shipping as the promotion mechanism (D4), rung-skipping permitted (D5), tombstones for beta/GA removal (D6-D9), a seasoning floor on withdrawal (D10), alpha and transformer carve-outs (D11), and the cluster-side dependent guard scoped out (D12). Open Questions OQ1..OQ8 seeded; four are contract-level. | Contract Promotion and Retirement |
 
 ## Status legend
 
