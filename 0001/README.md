@@ -1,7 +1,7 @@
 # Enhancement 0001 — `#Platform` Redesign Umbrella
 
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the
-six split documents and the Cross-References table; everything else lives in
+seven split documents and the Cross-References table; everything else lives in
 the split files.
 
 > **Implementation status (2026-07-20).** Shipped. Every producer-side slice landed — `core/` schema (`opmodel.dev/core@v0`), `library/` kernel (v0.3.0+: OCI schema loader, `Materialize`, concurrent render, `SynthesizePlatform`), the repackaged catalog (`opmodel.dev/catalogs/opm@v0`), and the full `opm-operator/` rewrite onto the kernel (2026-06-12). The final consumer gate — the `cli/` rewrite onto the library kernel — landed via enhancement [0006](../0006/)'s kernel-adoption slice (C2) on 2026-07-20 (cli `1.0.0-alpha.4`); verified in `cli/`: `go.mod` requires `github.com/open-platform-model/library`, the `pkg/render/` fork is deleted, and render / materialize / compile / handoff-verify all flow through `kernel.New` → `Compile` / `Materialize`. The workspace `modules/*` mass-rewire (D23 non-blocking wave) is consumer maintenance on each module's own cadence and never gated graduation. See `## Deviations from Design` below and `04-graduation.md` for the `accepted → implemented` criteria.
@@ -14,10 +14,11 @@ Reshapes `#Platform` from an Id-keyed registry of fully-imported `#Module` value
 
 1. [01-problem.md](01-problem.md) — Why today's Module-valued `#registry`, MAJOR-only FQNs, dual-role `#Module.#defines`, and missing `#ctx` together close doors that real multi-tenant platforms need open
 2. [02-design.md](02-design.md) — Path-keyed `#registry`, kernel `Materialize` step, SemVer FQNs, plain-CUE catalogs with publish-time `Catalog` stamping, always-unify match, inline `#ctx { release, components }` channel with per-component `#names` as the source of truth
-3. [03-decisions.md](03-decisions.md) — Decision log (filled iteratively) and Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (filled iteratively)
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE schema sketches live under [`schemas/`](schemas/) and mature alongside `03-decisions.md`.
 

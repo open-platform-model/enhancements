@@ -20,6 +20,7 @@ This enhancement renames the whole family to `Instance` vocabulary **cross-cutti
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented), with per-repo slice criteria
 5. [05-risks.md](05-risks.md) — API-group orphan risk, lockstep sequencing, breaking-rename drawbacks, alternatives
 6. [06-operational.md](06-operational.md) — PRR-lite (semver, reinstall-based rollback, cross-repo sequencing)
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE schema in [`schemas/target.cue`](schemas/target.cue).
 

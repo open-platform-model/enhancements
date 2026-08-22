@@ -16,14 +16,15 @@ And one convention that exists because OPM enforces across four layers: every no
 
 ## Documents
 
-The six split documents below are mandatory and always present.
+The seven split documents below are mandatory and always present.
 
 1. [01-problem.md](01-problem.md): documentation exists and describes a version of OPM that has not existed since April; coverage is inverted against usage
 2. [02-design.md](02-design.md): eight reader-state sections, generated facts versus authored guidance, enforcement badges
-3. [03-decisions.md](03-decisions.md): decision log + Open Questions
+3. [03-decisions.md](03-decisions.md): decision log
 4. [04-graduation.md](04-graduation.md): per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md): Open Questions register
 
 Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose.
 

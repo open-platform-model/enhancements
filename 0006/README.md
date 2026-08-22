@@ -2,7 +2,7 @@
 
 > **Implementation status (2026-07-20).** Complete — all nine planned slices resolved: A1/A2/A4/A6/B2/C1/C2/C3/A5 implemented (A3 reverted by D31, B1 cancelled with it; see [`planned-changes.md`](planned-changes.md) for per-slice landing notes). The headline path works end-to-end and is live-verified: `opm operator install` → CR-backed inventory apply → kernel render parity → `opm instance handoff` with zero workload disruption, plus the operator-managed thin-editor/delete modes. Shipped across cli 1.0.0-alpha.4, opm-operator v1.0.0-alpha.4, and opm-kind-demo#1. Open questions OQ15/OQ16/OQ18 are deferred follow-ons, not gaps in this scope — see Deviations below.
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the six split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
 ## Summary
 
@@ -14,10 +14,11 @@ This enhancement promotes the storage/handoff design of `cli/docs/rfc/0007` (and
 
 1. [01-problem.md](01-problem.md) — Why two disjoint inventory stores (CLI Secret vs operator CR) and two divergent render pipelines (CLI `pkg/render` vs library kernel) make the learner-to-operator path impossible and handoff unsafe
 2. [02-design.md](02-design.md) — CR-backed inventory, full library-kernel adoption for render/match, CLI-side SSA apply, `spec.owner` marker, `opm operator install`, `opm instance handoff`
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D35) and Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D35)
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE / Go-shape sketches live under [`schemas/`](contracts/).
 

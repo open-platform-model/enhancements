@@ -30,7 +30,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-26"
-updated: "2026-08-21"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -233,6 +233,8 @@ history:
     event: "IMPLEMENTED — every slice is done and the entry is frozen. The last to land was modules-fleet-republish; the pre-flip compaction pass was a single relation hoist on D49. Seven deviations recorded in README.md, the substantive one being that modules-identity-authoring landed the identity packages without the D12 metadata derivation its concern claimed, caught by the publish gate during the republish and fixed across all 20 modules."
   - date: "2026-08-21"
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 related:
   - "0001"
   - "0011"

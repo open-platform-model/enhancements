@@ -3,7 +3,7 @@
 This directory is the canonical copy-from template for OPM enhancements. To
 create a new enhancement, copy the entire directory to `enhancements/NNNN/`
 (the next available four-digit id) and fill in every `{Capitalised}` placeholder
-across the README and the six split documents.
+across the README and the seven split documents.
 
 See [`config.yaml`](config.yaml) for the metadata contract — it is the sole
 source of metadata; no parallel metadata table lives in this README.
@@ -27,15 +27,16 @@ exists only when implementation.status reaches `complete`).
 
 ## Documents
 
-The six split documents below are mandatory and always present. Add optional
+The seven split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md) — OPM renders but cannot execute operations; side scripts and Helm-style hooks are the anti-pattern
 2. [02-design.md](02-design.md) — A second kernel half (planner + orchestrator) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
-3. [03-decisions.md](03-decisions.md) — Decision log + Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log
 4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
 files, never as fenced blocks inside markdown.
@@ -176,7 +177,7 @@ To create a new enhancement from this template:
    in `config.yaml`, not by renumbering.
 2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
 3. Overwrite every `{Capitalised}` placeholder string across the README and
-   the six split documents.
+   the seven split documents.
 4. Fill `config.yaml` with real values: id matches the directory name, slug
    is short kebab-case, title is human-readable, area + affects describe
    ownership, created + updated set to today's date.

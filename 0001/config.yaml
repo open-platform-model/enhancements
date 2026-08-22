@@ -14,7 +14,7 @@ affects:
 
 core_schema: true
 created: "2026-05-23"
-updated: "2026-08-20"
+updated: "2026-08-22"
 
 authors:
   - emil@jacero.se
@@ -76,6 +76,8 @@ history:
   - {date: "2026-07-24", event: "Implemented — accepted → implemented. Final graduation gate closed: enhancement 0006's CLI kernel-adoption slice (C2, D9) landed 2026-07-20 in cli 1.0.0-alpha.4, completing the last accepted→implemented criterion (the cli/ rewrite onto the library kernel). Verified in cli/ today: go.mod requires github.com/open-platform-model/library v1.0.0-alpha.8; the pkg/render fork is deleted (directory gone); 13 Go files import open-platform-model/library/opm; render (internal/workflow/render/kernel.go NewKernel → kernel.New + WithRegistry + WithSchemaLoader → env.kernel.Compile), platform materialize (internal/platform/materialize.go → MaterializedPlatform), and handoff verify (internal/workflow/handoff/verify.go → k.Compile) all flow through the kernel — full adoption, not a token import. All producer + consumer rewrites now complete: core@v0, library v0.3.0+, catalogs/opm@v0, opm-operator (2026-06-12), cli (via 0006, 2026-07-20). Workspace modules/* mass-rewire stays non-blocking consumer maintenance (D23 wave). implementation.status in-progress → complete; implementation.date 2026-07-20 (CLI slice landing = final piece). README gains the implementation-status quote block and a fourth Deviations entry (CLI rewrite carved into 0006).", semver: minor}
   - date: "2026-08-20"
     event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0001/schemas, CUE v0.17.0. Structure/metadata only."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 
 related:
   - "0006"

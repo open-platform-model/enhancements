@@ -20,10 +20,11 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 
 1. [01-problem.md](01-problem.md) — the three gaps, measured 2026-08-05 against `core/src/catalog.cue`, `materialize/index.go` and `compile/match.go` (pre-0019 anchors, kept dated) and restated against 0019's single-build pipeline
 2. [02-design.md](02-design.md) — contract member maps, the one-provider rule and its refusal sites, the registration CR, and the packaging decision
-3. [03-decisions.md](03-decisions.md) — D1..D15 + Open Questions OQ1..OQ12
+3. [03-decisions.md](03-decisions.md) — D1..D15
 4. [04-graduation.md](04-graduation.md) — per-status gates (draft → accepted → implemented)
 5. [05-risks.md](05-risks.md) — risks, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md) — operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md) — Open Questions OQ1..OQ12
 
 Pure-CUE schema definitions live in [`schemas/`](schemas/) (the core delta) and [`contracts/`](contracts/) (the D9–D12 authoring surface: catalog-side contract, derivation, stamps, acceptance checks) as compilable files, never as fenced blocks inside markdown.
 

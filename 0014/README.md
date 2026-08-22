@@ -1,6 +1,6 @@
 # Enhancement 0014 — Export a Deployed Instance as GitOps Manifests
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the six split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
 ## Summary
 
@@ -27,10 +27,11 @@ exists only when implementation.status reaches `complete`).
 
 1. [01-problem.md](01-problem.md) — Handoff moves the manager, not the definition; why a CR dump is incomplete in ways that change apply identity and deletion behaviour
 2. [02-design.md](02-design.md) — Read the live CR, run handoff's gate chain, complete the apply-bearing fields, compose a per-instance directory
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D4) and six Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D4)
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue) — the request shapes, the ordered gate chain, the render-bearing / apply-bearing / cluster-side field partition (enforced by the schema, so a policy that copied a cluster-side field fails `cue vet`), the exported document set, the report, and the adoption property.
 

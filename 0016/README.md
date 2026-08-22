@@ -1,6 +1,6 @@
 # Enhancement 0016 — Initialize a Module Instance Package from a Published Module
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the six split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
 ## Summary
 
@@ -25,10 +25,11 @@ exists only when implementation.status reaches `complete`).
 
 1. [01-problem.md](01-problem.md) — No path from a published module to a runnable instance package; author intent for "what a new deployment starts as" has no home on `#Module`
 2. [02-design.md](02-design.md) — Acquire the module from the registry, pick a values source (`initValues` → `debugValues` → empty), render the standalone three-file package
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D3) and six Open Questions
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D3)
 4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md) — Open Questions register
 
 Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the `#Module` delta (`initValues` beside `debugValues`) — and [`contracts/contracts.cue`](contracts/contracts.cue) — the command's request shape, the values-source ladder, the exact generated file set, and the user-facing report.
 

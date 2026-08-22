@@ -34,7 +34,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-07-26"
-updated: "2026-08-21"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Design impact: new commands, and a namespace OPM shapes only where it owns the
@@ -167,6 +167,8 @@ history:
     event: "IMPLEMENTED — every slice is done and the entry is frozen. The last to land was registry-cleanup-operator, whose GHCR deletion had been held behind its own precondition. Six deviations recorded in README.md; the pre-implementation note about the unbuilt major-agreement backstop is resolved and folded into the first, both ends having landed. No compaction was needed: D23 already carried its Amends field, and the entry holds no stacked reversal and no unresolved question."
   - date: "2026-08-21"
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 related:
   - "0010"
 # Lifecycle relationships.

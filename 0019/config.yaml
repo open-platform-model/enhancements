@@ -18,7 +18,7 @@ affects:
   - modules
 core_schema: true
 created: "2026-08-19"
-updated: "2026-08-21"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -95,6 +95,8 @@ history:
     event: "Compacted: OQ relations hoisted into structured Resolves fields on D5-D9, D11-D14 and D18, and three narrative revised-qualifiers dropped (the D5 target caption in 02-design.md, the rendered-names heading in 06-operational.md, the two README scope bullets). No weaves or tombstones owed: the entry was maintained under the in-place rule and the OQ block collapsed at the flip."
   - date: "2026-08-21"
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"

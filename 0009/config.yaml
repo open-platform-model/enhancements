@@ -23,7 +23,7 @@ affects:
   - opm-operator
 core_schema: true
 created: "2026-06-29"
-updated: "2026-08-21"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -47,6 +47,8 @@ history:
     event: "Schemas convention follow-up: examples.cue authored (nine assertion pins over the four primitives, recorded must-fail cases) and schemas/spec.md drafted (four NEW primitive sections + two OQ-gated CHANGED sketches)."
   - date: "2026-08-21"
     event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

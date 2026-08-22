@@ -26,7 +26,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-06-17"
-updated: "2026-08-20"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Assessed impact at the point of supersession: the design this entry reached
@@ -100,6 +100,8 @@ history:
       05-risks' per-site Blast Radius audit, measured against real code and reproduced nowhere
       else, plus all of experiments/ and research/. No decision or OQ number was reused or
       renumbered. Entry size 187KB -> 60KB.
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 related: ["0001", "0002", "0006"]
 # Lifecycle relationships.
 supersedes: []

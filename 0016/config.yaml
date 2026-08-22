@@ -19,7 +19,7 @@ affects:
   - library
 core_schema: true
 created: "2026-08-13"
-updated: "2026-08-21"
+updated: "2026-08-22"
 authors:
   - emil@jacero.se
 # Implementation tracking. status: not-started | in-progress | partial | complete.
@@ -49,6 +49,8 @@ history:
     event: "Schemas convention follow-up: CLI request/report contracts moved from schemas/ to contracts/ (schemas/ keeps only the #ModuleInitSurface core delta); examples.cue and schemas/spec.md authored."
   - date: "2026-08-21"
     event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
+  - date: "2026-08-22"
+    event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
 # Peer enhancements this one builds on or interacts with.
 # 0002: the Instance vocabulary this entry is written in. 0011: publish-time
 # gates — the candidate home for an initValues-conformance check (OQ5).
