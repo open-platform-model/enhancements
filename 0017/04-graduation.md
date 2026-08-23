@@ -1,6 +1,6 @@
 # Graduation Criteria — Layered Defaults
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle.
+This document records the entry-specific gates that must hold before this design is frozen.
 
 ## draft → accepted
 
@@ -15,15 +15,3 @@ The enhancement is ready to be implemented when:
 - `schemas/target.cue` and `contracts/contracts.cue` compile and the `#LayerContract` rules (`contracts/contracts.cue`) match core SPEC.md §6 verbatim.
 - `semver` set (`major` — core `feat!` plus catalog `feat!`), a delivery plan scaffolded (affects spans five repos).
 - No `{Capitalised}` placeholders; Cross-References table paths verified to exist.
-
-## accepted → implemented
-
-The enhancement is shipped when:
-
-- **core**: optionality-aware projection landed with regression fixtures for the five-case matrix; SPEC.md §2.2/§3.1/§6 co-updated (L5 reworded to the kernel guarantee); shipped in a `v2.0.0-alpha.N` release.
-- **library**: finalize-before-fill landed on all three paths (single-source, `ValidateConfigDetailed`, synth/debugValues) with test coverage including the default-as-commitment case (a config default violating a downstream constraint errors; the silent-substitution behavior is gone) and absence preservation.
-- **catalog**: workload blueprints carry per-kind narrowing + defaults per OQ1's answer; transformer regression fixtures include blueprint-path components; catalog_opm issue 40's audit either landed or explicitly split out with its remaining scope recorded there.
-- **compatibility**: the D8 matrix runs green in CI (core or cli slice owns it); plain `cue vet` passes across the fleet against the released core and catalog.
-- **cli**: templates render out of the box (`opm inst build` in CI against every generated template); hand-set strategy lines removed from templates.
-- **modules**: extracted boilerplate deleted from the v2 stateless-workload modules; render diff matches OQ1's expectation (empty under the opinionated posture).
-- `config.yaml.implementation.status: complete` with `date`; history events name each landing with its slice ref; README carries the implementation-status quote block and a `## Deviations from Design` section.

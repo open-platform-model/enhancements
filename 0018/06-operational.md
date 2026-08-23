@@ -8,7 +8,7 @@ Three signals are mechanical and belong in CI: `task generate` succeeding on a c
 
 Two signals are not mechanical and are stated so nobody expects them to be. Whether a Concepts page still describes the mechanism accurately cannot be checked by a linter; it is caught by review when the mechanism changes, or not at all. Whether a page is useful is a review judgement, not a gate.
 
-The verification gate in `04-graduation.md` is deliberately a walk rather than an assertion: someone follows Start here on a clean machine and reaches a rendered module. That is the only end-to-end signal that catches a documentation set which passes every mechanical check and still does not work.
+The verification gate is deliberately a walk rather than an assertion: someone follows Start here on a clean machine and reaches a rendered module. That is the only end-to-end signal that catches a documentation set which passes every mechanical check and still does not work.
 
 ## Semver Impact
 

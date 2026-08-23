@@ -4,7 +4,7 @@ Status: Concluded
 
 ## Hypothesis
 
-D9 gives `opm catalog publish` a compatibility gate enforcing enhancement 0010 D27's additive-only promise: *inside one `apiVersion` a contract may add but never remove; a newly added field must be optional or defaulted; an existing field's default is immutable.* D9 names no implementation, and says why — *"whether `cue.Value.Subsume` can express the rule reliably across two builds — with CUE's closedness and default handling in play — is unmeasured"* — and `04-graduation.md` makes sequencing that measurement a gate rather than a nicety, because **a gate that cannot be built as described would send 0010 D27 back to publisher discipline.**
+D9 gives `opm catalog publish` a compatibility gate enforcing enhancement 0010 D27's additive-only promise: *inside one `apiVersion` a contract may add but never remove; a newly added field must be optional or defaulted; an existing field's default is immutable.* D9 names no implementation, and says why — *"whether `cue.Value.Subsume` can express the rule reliably across two builds — with CUE's closedness and default handling in play — is unmeasured"* — and sequencing that measurement was made a gate rather than a nicety, because **a gate that cannot be built as described would send 0010 D27 back to publisher discipline.**
 
 This experiment is that measurement.
 

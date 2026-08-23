@@ -290,7 +290,7 @@ import "strings"
 //
 // The property that distinguishes this entry from 0006's OQ15/OQ16, which were
 // the documented-convention approach: recorded 2026-07-01, still unimplemented
-// on 2026-07-27. Stated here as a contract because 04-graduation.md makes it a
+// on 2026-07-27. Stated here as a contract because the acceptance criteria make it a
 // gate: an implementor may not execute a delete the plan marked "skip".
 
 #Conformance: {

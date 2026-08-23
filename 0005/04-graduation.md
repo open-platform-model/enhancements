@@ -1,6 +1,6 @@
 # Graduation Criteria — Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not implementation milestones — implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -13,16 +13,3 @@ The design is ready to be sliced for implementation when:
 - `config.yaml` cross-refs (`related`, `supersedes`, `superseded_by`) are final and resolve.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each exists today.
-
-## accepted → implemented
-
-The enhancement is shipped when:
-
-- The generator exists and reproducibly emits both projections from a pinned Kubernetes minor's OpenAPI and from at least one CRD bundle.
-- `catalog_kubernetes` is regenerated output (open projection), with the `#Objects` hatch retained, and its publish flow runs the generator.
-- `catalog_opm` consumes the shared strict types (independently-vendored types dropped) and exposes the trapdoor/override field on its blueprints.
-- Each generated resource carries lifecycle metadata; `library` reads `applyPhase` (replacing the hardcoded `resourceorder` list) and exposes readiness/prune metadata.
-- `opm-operator` reconciles using the lifecycle metadata (ordering, readiness reporting, pruning via ownerReferences + SSA), with test coverage on the new paths.
-- At least one provider golden-path composition example exists and validates end-to-end.
-- `opmodel.dev` documents the generation workflow and the composition pattern.
-- `config.yaml.implementation.status = complete` with `date` set; `history` names each landing milestone; `README.md` carries the implementation-status quote block and a `## Deviations from Design` section.

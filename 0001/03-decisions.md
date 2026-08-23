@@ -209,7 +209,7 @@ Source tree is byte-clean after; only `version_override.cue` differs in `.build/
 **Alternatives considered:**
 
 - Cut `@v1` now as the natural home for the redesign ("breaking change deserves a major bump"). Rejected: applies post-1.0 SemVer semantics to a pre-1.0 module. Forces a backwards-compatibility promise the schema is not ready to make.
-- Hedge the publish target as `@v0 or @v1 depending on cumulative break` (the prior wording in 04-graduation.md / 06-operational.md). Rejected: leaves the target unfrozen at the moment slices are being drafted; future iterations could quietly resolve the hedge toward `@v1` and lock the user into a stability commitment they did not authorise.
+- Hedge the publish target as `@v0 or @v1 depending on cumulative break` (the prior wording in `06-operational.md`). Rejected: leaves the target unfrozen at the moment slices are being drafted; future iterations could quietly resolve the hedge toward `@v1` and lock the user into a stability commitment they did not authorise.
 - Pin every break to a separate `@v0` *patch* under the pre-1.0 rule. Rejected: pre-1.0 SemVer allows patches to be non-breaking only; CUE module tooling and consumer mental models both treat the `@v0 → @v0+1minor` step as the canonical break boundary.
 
 **Rationale:** Stability of `@v0 → @v1` is a user signal, not a side effect of accumulated breakage. Locking the target at `@v0` keeps the redesign work coherent with the user's deliberate "earn `@v1` before claiming it" stance. The pre-1.0 versioning rule (`06-operational.md ## Semver Impact`) already accommodates the breaks this umbrella introduces.

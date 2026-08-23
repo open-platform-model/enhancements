@@ -1,6 +1,6 @@
 # Graduation Criteria — Kernel render path parity with pure CUE
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not as implementation milestones; implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 The entry graduates **as one unit** — there is no per-phase acceptance — but implementation is phased, and the structural guarantee that Phase A is never hostage to Phase B is a gate item here: the delivery plan must show no Phase A slice depending on any Phase B slice.
 
@@ -22,36 +22,3 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
 - A delivery plan exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, each verified to exist.
 - A compaction pass collapses the resolved-OQ prose at the flip: `enhancement-compaction` gates COLLAPSE-OQ to `accepted`, so the collapse lands as the first commit after the status flips, folding the ratified questions to their D-references.
-
-## accepted → implemented
-
-**Phase A — parity on the current path** (steps 1-7 of `06-operational.md`'s order: the library slices, then the naming pair, then the fleet):
-
-- The parity harness exists in `library`, runs in CI, and passes for every fixture it covers. Its first recorded failure (the definition strip) is preserved in the slice's history as D1's evidence.
-- `#component` is filled from the unstripped component value, and a regression test asserts a transformer renders `#component.#names.dns.fqdn`.
-- `#moduleInstance` is filled, with tests covering both a plain read and the self-referential case where the filled instance contains the component being rendered. Closes open-platform-model/library#65.
-- `TestFlow_WebApp_OnOpmPlatform` constructs its instance without `LookupPath` plus `FillPath`, and `#instance` wires correctly on that path; `cli` and `opm-operator` are swept for the same construction shape before the exposing slice lands.
-- `FinalizeValue` no longer runs in the render path. Its removal from the public kernel surface carries a `MIGRATIONS.md` entry, and `cli` and `opm-operator` are checked for callers.
-- The D14 ordering note ships with the strip-removal slice (a server-side-apply diff on first reconcile for modules assembling environments conditionally), and `library`'s security-audit skill stops describing `FinalizeValue` as the constraint-bypass guard: the same slice records that unification itself enforces the constraints the strip was credited with.
-- Both closedness regression guards and the `cueregression` canary pair still pass, unchanged.
-- `core` ships D16's instance-qualified `resourceName` default with the validated branch and a legibility assertion scoped to default-selected names (the SKETCH at the field is resolved in the slice), `SPEC.md` co-updated under `core-schema-edit`; `schemas/examples.cue`'s pins, including the must-fail cases, hold against the landed schema.
-- Every `catalogs/opm` transformer reads `#component.#names` for its primary object per D15's carve-outs; `#ResourceNameTrait` and `#WorkloadName` are deleted with their fixtures migrated; the release pins the D16 core build; no default-named golden fixture changes by a byte.
-- The `modules` v2 staging fleet validates under the new naming, with the residual renames (explicit `metadata.resourceName`, former trait users) recorded in the slice.
-
-**Phase B — the single-build collapse** (cross-repo; sequenced by the delivery plan):
-
-- `core` ships D5's registry reshape (`#CatalogEntry`, `version!` removed, `#composedTransformers` derived) and D17's `#matchers` removal, with the `SPEC.md` co-update under the `core-schema-edit` protocol; `schemas/examples.cue`'s absence assertion holds.
-- The render-build assembler exists in `library`: stage, write `cue.mod` and `local-module.cue` honouring OQ6's invariant, build once, read `rendered` and `diagnostics`. The parity harness proves the new path produces what the old path produced, fixture by fixture, before the old path is removed.
-- Matching runs inside the build per D10, gated on reproducing the kernel's exact pair set against the vendored kernel record; `excludeProvenance` and its denylist are deleted in the same slice.
-- D7's skew comparison ships with its caller-supplied policy, defaulting to warn-and-render and reading the two committed resolutions per D18; `cli` and `opm-operator` each expose their surface, and the resolved-versions data rides every compile's diagnostics.
-- `opm/materialize` shrinks or is deleted, gated on D5 having landed in `core`.
-- ADR-002 gains its superseded-by header, the new ADR states the shares-nothing and `cue.Context` lifetime rules (D8, OQ12), ADR-003's federation rationale is retired in place (its invariant survives trivially: no cross-build fill remains), and `opm-operator/internal/platform/store.go`'s single held slot is removed.
-- The operator generates the platform package its CR describes (D6), with the regeneration hook 0015's registrations will need left as a named extension point.
-- `core` ships D12's `#TransformerContext` projection with its `SPEC.md` co-update, and `library` deletes the corresponding Go decoding once the parity harness confirms agreement; the kernel's remaining fill is `#runtimeName`.
-
-**Entry-level closure:**
-
-- `config.yaml.implementation.status = complete` with `date` set to the landing date.
-- `history` carries an event per landing milestone, each naming its OpenSpec slice.
-- `README.md` carries an `> **Implementation status (YYYY-MM-DD).**` quote block whose date matches `implementation.date`.
-- `## Deviations from Design` in `README.md` lists every deliberate divergence, or says "None".

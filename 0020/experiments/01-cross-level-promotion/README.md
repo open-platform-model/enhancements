@@ -18,7 +18,7 @@ What has never been run is that walk over operands whose `apiVersion` differs. T
 
 **The hypothesis holds** if the walk returns D27-correct verdicts on a matrix of cross-level pairs with the identity fields excluded, and the alpha-operand case is unambiguously decidable.
 
-**The hypothesis is refuted** if the comparison cannot be made correct without changing the comparator itself, rather than only its inputs. `04-graduation.md` makes this experiment a gate on `accepted → implemented` precisely so that outcome sends D2 back for redesign rather than shipping on assumption.
+**The hypothesis is refuted** if the comparison cannot be made correct without changing the comparator itself, rather than only its inputs. The acceptance criteria make this experiment a gate on `accepted → implemented` precisely so that outcome sends D2 back for redesign rather than shipping on assumption.
 
 ## Setup
 

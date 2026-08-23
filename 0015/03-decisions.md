@@ -288,7 +288,7 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 - **Shape the CRD's status so kstatus computes it Current on apply** (no recognized conditions). Works until someone adds the conditions D3 wants for observability, at which point readiness semantics silently flip — the exclusion must be stated in the aggregation, not implied by a status shape.
 - **Refuse pure-registration modules** (require a workload). Rejected: the no-runtime provider is a real case, not a degenerate one, and refusing it would force a placeholder workload into every pure-CUE provider catalog's module.
 
-**Rationale:** "Sound good" to the two rules as stated (author, 2026-08-21). The readiness definition must live in opm-operator's aggregation as an explicit, tested exclusion rather than be discovered as a stuck cluster; `04-graduation.md`'s envtest obligation covers it (a provider module reaches active with no manual intervention).
+**Rationale:** "Sound good" to the two rules as stated (author, 2026-08-21). The readiness definition must live in opm-operator's aggregation as an explicit, tested exclusion rather than be discovered as a stuck cluster; the envtest obligation covers it (a provider module reaches active with no manual intervention).
 
 **Source:** User decision 2026-08-21. Mechanism read the same day: `opm-operator/internal/apply/manager.go` (kstatus polling via flux `ResourceManager`).
 

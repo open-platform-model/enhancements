@@ -88,4 +88,4 @@ config: resourceName "config", fqdn "config.default.svc.cluster.local",
 
 ### Deliberately not done
 
-No diff against the kernel's actual rendered output. That comparison is the parity harness itself, which is slice 1 of this enhancement, and building a one-off version here would prejudge the equality question that `04-graduation.md` holds as a gate item. Note also that the kernel's flow fixture hardcodes an instance `uuid` rather than letting core compute it from the fqn, so a naive diff would differ on labels for reasons unrelated to this entry.
+No diff against the kernel's actual rendered output. That comparison is the parity harness itself, which is slice 1 of this enhancement, and building a one-off version here would prejudge the equality question that the acceptance criteria hold as a gate item. Note also that the kernel's flow fixture hardcodes an instance `uuid` rather than letting core compute it from the fqn, so a naive diff would differ on labels for reasons unrelated to this entry.

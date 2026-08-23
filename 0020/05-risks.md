@@ -2,7 +2,7 @@
 
 ## Risks and Mitigations
 
-**The seasoning floor is unsatisfiable, or trivially satisfiable, against the fleet as it exists.** Measured 2026-08-22, `catalog_opm` publishes only `1.0.0-alpha.*` builds. A release-counted floor could be cleared in an afternoon by publishing throwaway patches; a time-counted floor cannot be cleared at all by a catalog that has not existed long enough. Either way the rule ships as theatre. *Mitigation:* OQ1 and OQ2 are contract-level gates on `accepted`, and `04-graduation.md` requires the value to be defensible against the actual fleet rather than against a hypothetical one.
+**The seasoning floor is unsatisfiable, or trivially satisfiable, against the fleet as it exists.** Measured 2026-08-22, `catalog_opm` publishes only `1.0.0-alpha.*` builds. A release-counted floor could be cleared in an afternoon by publishing throwaway patches; a time-counted floor cannot be cleared at all by a catalog that has not existed long enough. Either way the rule ships as theatre. *Mitigation:* OQ1 and OQ2 are contract-level gates on `accepted`, and the acceptance criteria require the value to be defensible against the actual fleet rather than against a hypothetical one.
 
 **The raw `k8s-*` family cannot obey the promotion rule.** Enhancement 0010 D48 fixes those contracts' `apiVersion` to the upstream Kubernetes API version. A promotion rule that assumes the author owns the level is wrong for roughly a third of the catalog's surface. *Mitigation:* OQ4 is a contract-level gate on `accepted`. The likely answer is exemption from D1 and D2 with D6 still applying, because upstream does remove API versions and consumers still need to hear about it.
 

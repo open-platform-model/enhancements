@@ -1,10 +1,13 @@
 # Graduation Criteria — CUE-Native CRD Schemas as Single Source of Truth
 
-This document records the gates that must hold before the enhancement
-advances along the design lifecycle. The validator (future) checks the
-gate items at each promotion. Treat these as design acceptance criteria,
-not as implementation milestones — implementation progress lives in
-`config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this
+design is frozen. Treat them as design acceptance criteria, not as
+implementation milestones: delivery is tracked on the plans side and read
+back with `task delivery` — this entry stores nothing about it.
+
+Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
+resolve) are not repeated here — they live in `gates.cue` and `task vet`.
+What belongs here is what is true of THIS design and no other.
 
 ## draft → accepted
 
@@ -18,16 +21,3 @@ The enhancement is ready to be implemented when:
 - `semver` in `config.yaml` is set (major / minor / none), informed by OQ5.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each path exists today (or is explicitly marked *(new)*).
-
-## accepted → implemented
-
-The enhancement is shipped when:
-
-- `core/` carries `#CRD` (and friends) and the `#CRD` instances for every in-scope kind, with the matching `core/SPEC.md` section co-committed (via the `core-schema-edit` protocol); the existing `#ModuleInstance`/`#Platform` field shapes are reused, not forked.
-- `opm-operator/cmd/crdgen` exists, consumes the published `opmodel.dev/core`, and emits both the CRD YAML (`config/crd/bases/*.yaml`) and the Go API types (`api/v1alpha1/*_types.go`), with controller-gen `object` producing `zz_generated.deepcopy.go` over the generated structs.
-- The hand-authored API structs are deleted (not aliased); non-type helpers (`conditions.go`, `groupversion_info.go`, `GetConditions`/`SetConditions`) are relocated to clearly non-generated files.
-- `opm-operator` builds and its controller tests pass against the generated types; `cli` builds unchanged against the generated `api/v1alpha1` types (the 0006 consumer contract).
-- The `crdgen:check` CI gate is wired and demonstrated to fail on an intentional drift, then pass on regeneration (D7).
-- The regenerated CRD YAML is byte-compatible (modulo formatting) with the previously shipped CRDs for unchanged fields — i.e. no accidental schema change rides along; any deliberate difference is listed in `README.md ## Deviations from Design`.
-- `config.yaml.implementation.status = complete` with `date` set to the landing date; `history` carries events naming the `core` and `opm-operator` landings (with `slice:` refs where the target repo used OpenSpec).
-- `README.md` carries an `> **Implementation status (YYYY-MM-DD).**` quote block whose date matches `implementation.date`, and `## Deviations from Design` lists every deliberate divergence (or says "None").

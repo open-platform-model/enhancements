@@ -1,10 +1,13 @@
 # Graduation Criteria — {Enhancement Title}
 
-This document records the gates that must hold before the enhancement
-advances along the design lifecycle. The validator (future) checks the
-gate items at each promotion. Treat these as design acceptance criteria,
-not as implementation milestones — implementation progress lives in
-`config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this
+design is frozen. Treat them as design acceptance criteria, not as
+implementation milestones: delivery is tracked on the plans side and read
+back with `task delivery` — this entry stores nothing about it.
+
+Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
+resolve) are not repeated here — they live in `gates.cue` and `task vet`.
+What belongs here is what is true of THIS design and no other.
 
 ## draft → accepted
 
@@ -32,25 +35,3 @@ The enhancement is ready to be implemented when:
   and resolve to existing enhancements.}
 - {`semver` in `config.yaml` is set (major / minor / none).}
 - {No `{Capitalised}` placeholder strings remain in any markdown file.}
-
-## accepted → implemented
-
-The enhancement is shipped when:
-
-- {Every contract named in `## Affected Surfaces` holds in the shipped
-  code — the delivery of this design is complete (the plan side owns the
-  slice-by-slice record; this entry never names it). Core-schema deltas
-  land per `schemas/spec.md` via the `core-schema-edit` skill.}
-- {Every `deferred-to-implementation` Open Question was claimed and
-  resolved during delivery (`task plans:deferred` reports none left for
-  this entry).}
-- {Contract-level deviations discovered during delivery are recorded as
-  amending `DN`s (never silent divergence); mechanical deviations stay in
-  the implementing slices' own records.}
-- {`config.yaml.implementation.status = complete` with `date` set to
-  the landing date.}
-- {`history` carries one or more events naming the landing milestone(s).}
-- {`README.md` carries an `> **Implementation status (YYYY-MM-DD).**`
-  quote block whose date matches `implementation.date`.}
-- {`## Deviations from Design` in `README.md` lists every deliberate
-  divergence from the design (or says "None").}

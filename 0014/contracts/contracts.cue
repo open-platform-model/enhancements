@@ -291,7 +291,7 @@ fieldPolicies: #Policies & [
 // Conformance
 // ---------------------------------------------------------------------------
 
-// #AdoptionProperty is the claim the e2e case in 04-graduation.md asserts.
+// #AdoptionProperty is the claim the e2e case asserts.
 // It restates 0006 D40's inventory-stable criterion for a GitOps applier
 // rather than for the operator's first post-handoff reconcile.
 //

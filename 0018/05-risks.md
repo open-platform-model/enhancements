@@ -10,7 +10,7 @@
 
 **The doc-comment CI gate becomes a rubber stamp.** A gate that only checks presence invites a one-word comment that satisfies the check and helps nobody. *Mitigation:* the gate checks presence; review checks usefulness. Stating that split honestly is better than pretending a linter can judge prose.
 
-**The site cannot render.** The Hugo theme is disabled for an i18n incompatibility, and no section currently renders to HTML. Content written against a site that does not build is unverifiable. *Mitigation:* the theme question is explicitly a non-goal of this entry, but it blocks the verification gate in `04-graduation.md`. If it is not resolved independently, this entry cannot reach `implemented`.
+**The site cannot render.** The Hugo theme is disabled for an i18n incompatibility, and no section currently renders to HTML. Content written against a site that does not build is unverifiable. *Mitigation:* the theme question is explicitly a non-goal of this entry, but it blocks the verification gate. If it is not resolved independently, this entry cannot reach `implemented`.
 
 **Backfilling doc comments changes published catalog bytes.** Comments are part of the CUE source, so a backfill is a catalog release. *Mitigation:* comments are additive and change no contract, so the compatibility gate passes trivially. The release is ordinary. Worth stating because "documentation-only" is not the same as "no artifact changes" in this workspace.
 

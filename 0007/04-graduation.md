@@ -1,6 +1,6 @@
 # Graduation Criteria — Manifest Passthrough: Side-Channel Raw and Kustomize Manifests
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not implementation milestones — implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -14,18 +14,3 @@ The enhancement is ready to be implemented when:
 - `semver` in `config.yaml` is set — expected `none` for `opmodel.dev/core` (D1: core untouched); the operator CRD addition is an additive, optional field.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each path exists today.
-
-## accepted → implemented
-
-The enhancement is shipped when:
-
-- The operator's `ModuleInstance` and `ModulePackage` CRD specs carry the optional `extraManifests` field; CRDs are regenerated under `opm-operator/config/crd`.
-- The shared passthrough renderer (embedding `sigs.k8s.io/kustomize/api/krusty`) exists at the location chosen by OQ5, with hardened options per OQ6, and unit tests covering raw decode and a kustomize build.
-- The operator render path folds passthrough output into the resource list before labeling/inventory/apply/prune, with tests proving side objects are stamped with the release UUID, recorded in `status.inventory`, and pruned on release deletion (the `01-problem.md` web-app scenario, end to end).
-- The CLI `instance build`/`apply` honor the same declaration and serialize/apply passthrough objects alongside rendered output, with test coverage.
-- Collision behavior (OQ7) is enforced and tested.
-- `core/` and `library/` carry **no** changes (verified — the non-goal held).
-- `config.yaml.implementation.status = complete` with `date` set to the landing date.
-- `history` carries events naming each landing milestone (operator slice, CLI slice), with `slice` refs where the target repo used OpenSpec.
-- `README.md` carries an `> **Implementation status (YYYY-MM-DD).**` quote block whose date matches `implementation.date`.
-- `## Deviations from Design` in `README.md` lists every deliberate divergence (or says "None").

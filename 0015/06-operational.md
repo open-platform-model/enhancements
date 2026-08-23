@@ -46,7 +46,7 @@ Nothing is removed from `core` by this entry.
 
 ## Cross-Repo Coordination
 
-Six areas, with a genuine ordering constraint rather than a convention, which is why `04-graduation.md` makes a delivery plan a gate for acceptance rather than a suggestion.
+Six areas, with a genuine ordering constraint rather than a convention, which is why the acceptance criteria make a delivery plan a gate for acceptance rather than a suggestion.
 
 ```
   0019 core-registry-import ·      (embedded catalogs, match glue, generated platform

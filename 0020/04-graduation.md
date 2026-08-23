@@ -1,6 +1,6 @@
 # Graduation Criteria — Contract Promotion and Retirement
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not as implementation milestones; implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -14,16 +14,3 @@ This document records the gates that must hold before the enhancement advances a
 - `related`, `supersedes`, `superseded_by` are final and resolve.
 - `semver` is set.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
-
-## accepted → implemented
-
-- **The cross-level promotion comparison is measured before it is called done.** Enhancement 0011 D9 shipped with no named implementation because `cue.Value.Subsume`'s cross-build behaviour was unmeasured, and that entry's `04-graduation.md` made sequencing the measurement a gate; `experiments/03-d27-compat-gate` then ruled Subsume out in both directions (10/14 and 8/14 on disjoint failure sets) and established the three-rule field-wise walk at 14/14. This entry inherits that comparator but hands it a predecessor at a **different level**, which is the part that has never been run. The measurement lives in `experiments/01-cross-level-promotion/` and must be concluded, with an outcome recorded, before this entry can flip. If it returns a negative, D2 goes back for redesign rather than shipping on assumption.
-- **The seasoning floor is measured against a real history**, not only against fixtures: the query "when did this key first appear" must be shown to work over `catalog_opm`'s actual published builds, including its prerelease-only stretch, because 0011 D23 records that a selector which looks right on a prerelease-only history can be wrong the day a stable ships.
-- Every contract named in `## Affected Surfaces` holds in the shipped code. Core-schema deltas land per `schemas/spec.md` via the `core-schema-edit` skill.
-- **The lifecycle report, if it ships, has enhancement 0015 D1 behind it.** This is a gate on the report, not on the entry: measured 2026-08-22, the publish gates enumerate members by filesystem walk over 0010 D49's filing and read a published build the same way, so D2, D3, D6 and D7 do not wait on 0015. A value-level inventory does, and shipping a report that silently omits the members a filesystem walk would have found would be worse than shipping no report.
-- Every `deferred-to-implementation` Open Question was claimed and resolved during delivery.
-- Contract-level deviations discovered during delivery are recorded as amending `DN`s.
-- `config.yaml.implementation.status = complete` with `date` set to the landing date.
-- `history` carries one or more events naming the landing milestone(s), in plan-blind wording.
-- `README.md` carries an `> **Implementation status (YYYY-MM-DD).**` quote block whose date matches `implementation.date`.
-- `## Deviations from Design` in `README.md` lists every deliberate divergence (or says "None").

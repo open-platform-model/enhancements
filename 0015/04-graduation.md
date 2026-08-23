@@ -1,6 +1,6 @@
 # Graduation Criteria — Catalog Contracts and Transformer Registration
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. Treat these as design acceptance criteria, not implementation milestones — implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -17,19 +17,3 @@ This document records the gates that must hold before the enhancement advances a
 - **A delivery plan exists.** `affects` spans six areas with a real ordering constraint — `core` before `library` before `opm-operator`, and the catalog listing before any provider catalog — so a structured delivery plan (see `plans/`) is required rather than optional.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - Cross-References table in `README.md` lists every file path the implementation will touch, and each exists today.
-
-## accepted → implemented
-
-- `core/src/catalog.cue` carries the three contract maps with their stamping constraints; `platform.cue` carries the inventory fold and the `#ContractRouting` assertion. `core/SPEC.md` co-updated per the `core-schema-edit` protocol, §3.4, §3.6 and §4.1.
-- The contract inventory is derived on the platform value (the fold 0019 D5 makes possible), and the D37 arity guard is rewritten as the `#ContractRouting` assertion against it — refusing at platform-package generation and reporting the zero case, which the pre-0019 guard could not.
-- The render build's match glue is **unchanged** by this entry — no new rung, no reordering; D5's guard asserts at platform assembly. Verified by diff against the glue as 0019's `library-match-in-build` slice landed it.
-- The missed-demand diagnostic distinguishes "defined by a subscribed catalog, unimplemented" from "unknown key" — a verdict-data split in the render build's diagnostics under 0019 D10 — with a test for each arm. 0010 OQ3 closed and marked so in 0010.
-- D5's duplicate guard lands wherever OQ9/OQ10 put it, with a test that comparable predicates refuse naming both FQNs and that the shipped 8-transformer `#ContainerResource` bucket still composes.
-- `opm-operator` ships `TransformerRegistration` with claim validation, health-gated activation (latching, per D3), the deletion finalizer, and `Platform.status.registry`. RBAC verified from both sides: a tenant ServiceAccount is refused create, a platform-admin one is not — an envtest case, not a manifest review.
-- D16's shrink guard lands at the site the slice picks, with a test that a provider upgrade whose re-derived `provides` drops a contract with dependent instances is refused while the previously accepted claim stays effective, naming the dropped contracts and the count — and that an upgrade with an unchanged `provides` passes.
-- The slice decides D11's deferred `providerRef` verification (candidate: 0010 D41 owner-label match) and covers the hand-applied-stray arm in the same envtest family as the RBAC checks.
-- Platform-package regeneration lands wherever OQ8 put it, with a test that an accepted claim regenerates the package (and re-renders) and an unrelated Platform status write does not.
-- `opm platform check` exists and reports unfulfilled contracts and over-subscribed ones.
-- `catalog_opm` lists its resources, traits and blueprints in the new maps, published.
-- At least one real provider catalog and its module ship end to end — the k8up path from `01-problem.md`, on a cluster, including a second registration for the same contract being refused at acceptance.
-- `config.yaml.implementation.status = complete` with `date`; `history` names each landing; `README.md` carries the implementation-status quote block with a matching date; `## Deviations from Design` lists every divergence or says "None".

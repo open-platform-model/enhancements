@@ -33,9 +33,9 @@
 # deployment onto it is separate work, handled afterwards and privately.
 # Named here so it is not rediscovered as a gap:
 #   - the live-instance relabel pass and its positive check
-#     (04-graduation.md accepted->implemented gate)
+#     (a delivery gate for 0010)
 #   - the workload-type cutover on already-deployed objects
-#     (04-graduation.md gate; see 05-risks.md for why it is a recreate)
+#     (a delivery gate; see 0010/05-risks.md for why it is a recreate)
 #   - rewriting a live Platform's subscriptions from `range` to the D14
 #     scalar `version`
 #   - the deployment repositories' own v0 -> v1 migration
@@ -44,7 +44,7 @@
 #
 # 0011 D17's registry cleanup was on that list until 2026-08-05 and has
 # MOVED: items 2-4 are now 0011's own `registry-cleanup` slice, since its
-# 04-graduation.md required them while both plans disowned them. Item 1
+# 0010's delivery criteria required them while both plans disowned them. Item 1
 # (legacy v1alpha1) stays out, gated on the v0 -> v1 fleet migration.
 #
 # A `releases-repin` slice was cancelled on 2026-08-05 and then DELETED

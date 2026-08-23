@@ -1,6 +1,6 @@
 # Graduation Criteria — Kubernetes as a First-Class Kernel Platform
 
-These are design acceptance criteria, not implementation milestones. Implementation progress lives in `config.yaml.implementation` and the `history` list.
+These are design acceptance criteria, not implementation milestones. Delivery is tracked on the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -16,15 +16,3 @@ These are design acceptance criteria, not implementation milestones. Implementat
 - `config.yaml.affects` is final and lists every repo shipping code.
 - The Cross-References table in `README.md` lists every file path implementation will touch, and each exists today.
 - `05-risks.md` and `06-operational.md` carry concrete content, in particular a stated position on the `apimachinery` MVS floor and on the rollback story for a kernel that both frontends pin at the same version.
-
-## accepted → implemented
-
-- Every duplicated artefact named in `02-design.md ## Integration Points` is **deleted** from `cli` and `opm-operator`, not aliased or wrapped: `pkg/core/{labels,resource,convert}.go`, `pkg/resourceorder/`, the operator's `internal/inventory/`, the CLI's `pkg/inventory/`, and the CLI's `ComputeRenderDigest` with its hand-maintained parity comment.
-- The three divergences from `01-problem.md` are closed and each has a regression test in the kernel: the CLI no longer deletes `CustomResourceDefinition`s, the CLI applies the delete-time ownership guard, and the operator applies an apply-time collision guard (subject to OQ8's resolution).
-- A conformance test in `library` asserts that a frontend cannot execute a delete that the kernel's plan marked `Skip`. This is the graduation criterion that distinguishes this entry from 0006's OQ15/OQ16 — without it, the design goal "divergence becomes a compile error, not a review comment" has not been met and the entry should not be marked implemented.
-- The deletion protocol is kernel-owned end to end: `handleDeletion`'s branching is `MayReleaseHold` calls, and the operator retains only the patch and the impersonation setup.
-- OQ4's resolution is realised — either ownerReferences are stamped where the resolution says they are, with the `spec.prune` interaction handled explicitly, or the entry records that none are stamped and why.
-- `library/CONSTITUTION.md` is amended for Principle III's package list and Principle IV's runtime-concerns clause, with an ADR under `library/adr/` recording the amendment and its bounds (`apimachinery` only; no `client-go`, `controller-runtime`, or Flux).
-- `library/MIGRATIONS.md` carries an entry per breaking change, satisfying the repo's `migration-guard` contract.
-- Both frontends build against one published `library` version, and `cli/go.mod` still carries no `opm-operator` edge (0006 D13's surviving clause).
-- `config.yaml.implementation.status = complete` with `date` set to the final landing date; `history` names each slice; `README.md` carries the implementation-status quote block with a matching date and a filled `## Deviations from Design`.

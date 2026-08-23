@@ -1,6 +1,6 @@
 # Graduation Criteria — Export a Deployed Instance as GitOps Manifests
 
-This document records the gates that must hold before the enhancement advances along the design lifecycle. These are design acceptance criteria, not implementation milestones — implementation progress lives in `config.yaml.implementation` and the `history` list.
+This document records the entry-specific gates that must hold before this design is frozen. These are design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
 
 ## draft → accepted
 
@@ -16,17 +16,3 @@ This document records the gates that must hold before the enhancement advances a
 - `semver` in `config.yaml` is set.
 - No placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each path exists today.
-
-## accepted → implemented
-
-- `opm instance export` exists in `cli/internal/cmd/instance/export.go` and is registered on the `instance` command group.
-- The gate chain in `cli/internal/workflow/export/` runs the same verification primitive as handoff, with exactly one implementation of `VerificationDigest` in the tree.
-- Every field class named in `02-design.md` is implemented as specified: render-bearing fields copied verbatim, apply-bearing fields completed per OQ1's resolution and reported, cluster-side fields dropped.
-- Unit coverage for completion and composition (table-driven over `Record` fixtures; no cluster required), including the byte-stability property — exporting the same record twice yields identical bytes.
-- An e2e case in `cli/tests/e2e/` covering the full arc: CLI apply, handoff, export, apply the exported tree, assert the inventory entry set is unchanged and no workload was replaced. This is the executable form of `#AdoptionProperty` and is the gate that proves the enhancement's headline claim.
-- A refusal test per gate: local-provenance instance, missing module version, absent `lastAppliedRenderDigest`, digest mismatch without `--force`. Each asserts nothing was written to the out-dir.
-- `cli/README.md` documents the command; the generated CLI reference on `opmodel.dev` is regenerated.
-- `config.yaml.implementation.status = complete` with `date` set to the landing date.
-- `history` carries one or more events naming the landing milestone(s).
-- `README.md` carries an implementation-status quote block whose date matches `implementation.date`.
-- `## Deviations from Design` in `README.md` lists every deliberate divergence (or says "None").

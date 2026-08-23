@@ -7,7 +7,7 @@
 # here republishes artifacts. The A/B split is carried by the dependency
 # graph: no library-parity-* / library-*-fill / library-finalize-removal slice
 # depends on anything in Phase B, which is the structural guarantee
-# 04-graduation.md gates on.
+# the entry's delivery criteria gate on.
 title: "Kernel render path parity with pure CUE"
 implements: ["0019"]
 slices:
