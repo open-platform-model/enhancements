@@ -26,9 +26,22 @@ import "strings"
 // Slug captures the long form; README/01/02/… docs carry full prose.
 #TitleStr: string & strings.MinRunes(1) & strings.MaxRunes(80)
 
-#Status:       "draft" | "accepted" | "implemented" | "superseded"
-#ImplStatus:   "not-started" | "in-progress" | "partial" | "complete"
+// Design lifecycle. There is no `implemented` state and no implementation
+// axis: whether a design has been delivered is DERIVED from the plans side
+// (`task delivery`), never asserted here. An entry that stores delivery
+// progress becomes a logbook, which is what this vocabulary exists to
+// prevent. `accepted` is the resting state; `rejected` and `superseded`
+// are the two terminal ones.
+#Status:       "draft" | "accepted" | "rejected" | "superseded"
 #SemverImpact: "major" | "minor" | "none"
+
+// Cutover for the history-event length cap. Events dated on or before this
+// are grandfathered: 319 of the 724 events written before it exceed the cap
+// and the longest runs 7619 characters, and `history` is the repo's one
+// strictly append-only structure — capping retroactively would mean
+// rewriting it. New events are capped instead, which is where the rule can
+// actually bind.
+#HistoryCapCutover: "2026-08-23"
 
 // Controlled vocabulary of OPM areas. `area` names the single primary owner;
 // `affects` lists every repo that ships code, schema, or content changes
@@ -61,12 +74,36 @@ import "strings"
 	event!:  string & strings.MinRunes(1)
 	slice?:  string
 	semver?: #SemverImpact
+
+	// DESIGN milestones only — what happened to the design (drafted,
+	// decisions locked, an OQ resolved, scope changed, accepted,
+	// rejected, superseded). Never delivery progress: what shipped is
+	// derived from the plans side. `task check` greps new events for
+	// delivery verbs.
+	//
+	// The cap is the "an event is one line" rule made mechanical, the
+	// same device as plans/schema.cue's 240-rune #SliceConcernStr. Prose
+	// growing past it is the signal that the content belongs in a
+	// document, a decision, or git — not in structured metadata.
+	if date > #HistoryCapCutover {
+		event: strings.MaxRunes(200)
+	}
 }
 
 #EnhancementConfig: {
-	id!:      #IDStr
-	slug!:    #SlugStr
-	title!:   #TitleStr
+	id!:    #IDStr
+	slug!:  #SlugStr
+	title!: #TitleStr
+
+	// One line: the capability OPM will have and does not today, or the
+	// rework of one it has. This is the `feature` admission gate's answer
+	// made durable (see gates.cue) — `task new` refuses without it.
+	//
+	// It is also what makes the archive readable: `task archive:list`
+	// renders rejected ideas by summary, so a new entry can be checked
+	// against prior art without opening eight documents each.
+	summary!: string & strings.MinRunes(1) & strings.MaxRunes(200)
+
 	status!:  #Status
 	area!:    #Area
 	affects!: [...#Area]
@@ -84,37 +121,35 @@ import "strings"
 	core_schema!: bool
 	created!: #DateStr
 	// ISO 8601 strings sort lexicographically — `>=created` enforces monotonic time.
-	updated!:        #DateStr & >=created
-	authors!:        [_, ...string]
-	implementation!: #ImplementationStatus
-	history!:        [...#HistoryEvent]
-	related!:        [...#CrossRefStr]
-	supersedes!:     [...#CrossRefStr]
-	superseded_by!:  null | #CrossRefStr
+	updated!:       #DateStr & >=created
+	authors!:       [_, ...string]
+	history!:       [...#HistoryEvent]
+	related!:       [...#CrossRefStr]
+	supersedes!:    [...#CrossRefStr]
+	superseded_by!: null | #CrossRefStr
+
+	// Archived ids this entry re-opens. A rejected idea legitimately
+	// returns when circumstances change; what is not legitimate is
+	// re-proposing it silently. Deliberately one-way — the archived entry
+	// is frozen and gets no back-link, unlike supersedes/superseded_by.
+	revives!: [...#CrossRefStr]
 
 	// Optional metadata. Status-conditional constraints below tighten them.
 	semver?: #SemverImpact
 
-	// Cross-field rules. status (design lifecycle) and implementation.status
-	// (code lifecycle) are independent axes; these constraints couple them
-	// only where the combination would be incoherent.
+	// Why this idea was not accepted. Required at `rejected`, mirroring
+	// plans/schema.cue's `cancelled_reason` on a cancelled slice: the id
+	// is kept forever, so the record has to say why it stopped.
+	rejected_reason?: string & strings.MinRunes(1)
 
-	// semver becomes required once design impact is known (anything past draft).
-	if status != "draft" {
+	// Cross-field rules.
+
+	// semver states the design's impact, so it is owed exactly when a
+	// design was agreed. A rejected entry owes nothing: it was never
+	// accepted, and forcing an impact assessment out of an idea being
+	// killed is the kind of friction that stops people killing ideas.
+	if status == "accepted" || status == "superseded" {
 		semver!: #SemverImpact
-	}
-
-	// accepted = design frozen, code in flight. Cannot be `complete` (that's
-	// what `implemented` is for).
-	if status == "accepted" {
-		implementation: status: "not-started" | "in-progress" | "partial"
-	}
-
-	// implemented = all design intent shipped. `partial`/`in-progress` here
-	// would mean we lied about the status; carve remaining work into a new
-	// enhancement instead.
-	if status == "implemented" {
-		implementation: status: "complete"
 	}
 
 	// Tighten the null|#CrossRefStr to non-null when the entry is actually
@@ -122,27 +157,11 @@ import "strings"
 	if status == "superseded" {
 		superseded_by: #CrossRefStr
 	}
-}
 
-#ImplementationStatus: {
-	status!: #ImplStatus
-	notes?:  string
-
-	// `date` is the canonical completion date. It is only meaningful — and
-	// only allowed — when status reaches `complete`. Snapshot dates on
-	// `partial`/`in-progress`/`not-started` go stale immediately and just
-	// add noise; keep them out of structured metadata. Even at `complete`,
-	// `date` is optional: some enhancements (especially umbrellas) reach
-	// completion through a sequence of separate landings and the meaningful
-	// date lives in the history list and the impl-status quote block in
-	// README.md.
-	if status == "complete" {
-		date!: #DateStr
-	}
-	if status != "complete" {
-		// Forbid `date` by constraining the optional field to bottom — if
-		// the field is present, validation fails.
-		date?: _|_
+	// A killed idea keeps its id forever (citations must keep resolving)
+	// and must say why it stopped. `task reject` writes both.
+	if status == "rejected" {
+		rejected_reason!: string & strings.MinRunes(1)
 	}
 }
 

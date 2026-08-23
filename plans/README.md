@@ -7,7 +7,7 @@ A delivery plan is the structured execution layer for one or more enhancement de
 References between plans and enhancements flow in exactly one direction:
 
 - **Plans cite enhancements — allowed and validated.** `implements` names the entries a plan delivers (`"0015"`), a slice's `decisions` cites the decisions it implements (`"0015:D9"`), and `resolves` claims deferred Open Questions (`"0015:OQ9"`). `DN`/`OQN` numbers are immutable in the enhancements repo precisely so external citations like these keep resolving forever.
-- **Enhancements never cite plans — forbidden.** No enhancement document, `config.yaml` field, or history event may name a plan slug, a slice id, a plan file, or an OpenSpec change slug. A generic statement ("cross-repo sequencing is a delivery concern, tracked under `plans/`") is fine; a specific pointer is not. When a plan completes, the enhancement records the plain fact (`implementation.status: complete`, a dated history event) without naming who delivered it.
+- **Enhancements never cite plans — forbidden.** No enhancement document, `config.yaml` field, or history event may name a plan slug, a slice id, a plan file, or an OpenSpec change slug. A generic statement ("cross-repo sequencing is a delivery concern, tracked under `plans/`") is fine; a specific pointer is not. When a plan completes, the enhancement records **nothing**: `task delivery` derives the state from this file. There is no implementation field and no `implemented` status for a pointer to hide in.
 
 This keeps enhancements what they are meant to be — intent, evidence, and schema changes — and puts construction sequencing where it can change freely.
 
@@ -103,4 +103,4 @@ task plans:seed SLUG=foo SLICE=cli-kernel-adoption   # print a seed stub sized f
 
 ## When a slice lands
 
-Update its `status` (and `openspec_ref`) here. When the whole plan completes, record the fact on the implemented enhancement — `implementation.status: complete`, the dated history event, the README snapshot block — **without naming this plan**. Contract-level deviations discovered during delivery are amending `DN`s on the enhancement (its own protocol governs that); mechanical deviations stay in the slice's OpenSpec record.
+Update its `status` (and `openspec_ref`) here. When the whole plan completes, **nothing needs recording on the enhancement**: `task delivery` derives the state from this file, so there is no flag to set and nothing that could name this plan by accident. Contract-level deviations discovered during delivery are amending `DN`s on the enhancement (its own protocol governs that); mechanical deviations stay in the slice's OpenSpec record.

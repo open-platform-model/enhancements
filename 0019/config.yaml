@@ -1,8 +1,13 @@
 id: "0019"
 slug: kernel-cue-parity
 title: Kernel render path parity with pure CUE
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  Make the Go kernel's render path match pure CUE unification exactly, by folding matching into the single build so parity is structural rather than maintained by hand.
 status: accepted
-# Aggregate design impact (04-graduation.md names both breaks): FinalizeValue
+# Aggregate design impact (both breaks are named at acceptance): FinalizeValue
 # leaves the kernel surface in Phase A; version! leaves #Subscription in Phase B.
 semver: major
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
@@ -18,13 +23,9 @@ affects:
   - modules
 core_schema: true
 created: "2026-08-19"
-updated: "2026-08-22"
+updated: "2026-08-23"
 authors:
   - emil@jacero.se
-# Implementation tracking. status: not-started | in-progress | partial | complete.
-# `date` and `notes` allowed only when status reaches `complete`.
-implementation:
-  status: not-started
 # Append-only timeline of milestones.
 history:
   - date: "2026-08-19"
@@ -61,7 +62,6 @@ history:
     event: "D8 locked by user decision: ADR-002 is SUPERSEDED rather than amended, and its shared-materialized-platform model is replaced by a rule with no shared built value in it, each render its own CUE build in its own cue.Context and that context not outliving the render. Concurrency is across renders, never within one. Rejected alternatives and why: a mutex around the shared platform costs 2.5x to 5.5x throughput and still retains 348 MB per render; per-worker private platform copies rest on the same independence assumption ADR-002 already lost and are the per-worker-retained-context shape at another granularity (41.9 MB to 581.8 MB per render); leaving the ADR standing would have the next person implement it again, since store.go is built around it. What makes it a supersession rather than a bug fix is that the ADR's trade no longer exists: it traded a safety assumption for speed, and experiments 07 and 08 show the shared model is also the slower one at every module size once holding the platform forces the serialisation its races require. Resolves OQ13 and gives OQ12's context-lifetime rule a home. Lands as a library slice (superseded-by header on ADR-002, a new ADR carrying both rules) plus the removal of opm-operator's single held platform slot. Two measurements recorded alongside it in 06-operational.md and experiment 08's README: CUE evaluates one build single-threaded (1.04 cores with the collector off, so the pairs offer no within-render parallelism and the extra 59 percent of CPU at default settings is the collector), and peak resident memory per concurrent render fits 61 MB + 7.75 MB per component with R2 0.9997, which makes memory rather than core count the constraint that sizes a render pool."
   - date: "2026-08-19"
     event: "Follow-up measurements on experiment 08's harness (-timesplit), answering whether one large render can be sped up by building the #ModuleInstance once and then executing the matched pairs in parallel. It cannot, for two independent reasons. There is no separate pair phase: forcing `rendered` concrete after BuildInstance returns costs 3.0 ms of an 1831 ms render for 387 objects, reproducing experiment 04's finding 4 at 64 times the module size, so CUE has already evaluated every pair by the time the build call returns. And restructuring so each build renders only a subset buys almost nothing, because rendering one component of a 129-component instance still costs 1303 ms against 1860 ms for all of them. Measured across six fixture and style combinations, 46 to 76 percent of a render is a fixed floor every split re-pays, an Amdahl bound capping the scheme at 1.31x to 2.16x for K times the working set against the 4.0x to 4.3x that rendering different instances concurrently already gets for 1x the memory each. This also corrects an estimate in an earlier draft of experiment 08's README, which projected roughly 4x by applying experiment 07's 14.01 ms-per-component slope to a subset build; that slope conflates about 4.3 ms of splittable transform work with about 9.3 ms of component construction that no split avoids. The transformer step is 1.3 to 1.5 ms per rendered object on the shallow fixture and 2.2 to 2.4 ms on the deep one, and it is IDENTICAL between blueprint and raw authoring (4.32 against 4.29 ms per component on the fleet), which pins the entire blueprint tax experiment 07 measured on component construction rather than on transformation. The practical lever on a large module is authoring style rather than concurrency: raw primitives at 7.71 ms per component against 14.01 for blueprints take the same fleet from about 1.9 s to about 1.1 s, a larger win than the splitting asymptote at no extra memory or cores."
-
   - date: "2026-08-19"
     event: "Experiment 05-match-in-one-build concluded, hypothesis held on all four claims, discharging the four undecided items in 02-design.md's What-matching-costs section. One glue shape (verdicts as data, the fail-closed gate as one unification, bottoms confined behind == _|_ guards) expresses all three matcher rungs plus D28 in ~230 lines of CUE and reproduces the kernel's exact pair set against a VENDORED kernel record (capture/ runs the real kernel over the flow-test fixtures; every other verdict surface agrees too). D30 is a federation artifact: in one build the component's embedded copy and the transformer's required copy resolve to the same catalog bytes, the denylisted provenance fields are asserted EQUAL, plain & disqualifies nothing healthy and still disqualifies a genuinely conflicting required copy, reported as data naming component, transformer and FQN, while the unnarrowed candidate pairs beside it - so excludeProvenance is deleted rather than ported and the parity harness loses its one stated exemption. D28 fail-closed survives with the gate expressible in-build: probed through the Go API, diagnostics stays fully readable and concrete via LookupPath while the gate is failing, so oerrors decoded from a diagnostics field coexist with in-build refusal (the CLI conflates them; the kernel does not). Two measured boundaries: an unhandled trait with UNSTATED posture refuses as an incomplete-value error naming core trait.cue's own optional field (incomplete is not detectable as data - guards resolve defaults, so stated postures classify cleanly), and an incomplete (non-error) pair output is invisible to == _|_, landing non-concrete in rendered where cue vet -c names the pair key - error-class failures isolate as data, incompleteness stays a per-pair-attributable build refusal. Finding beyond the claims: the catalog's D25 provenance stamp REFUSES a foreign transformer unified into its member map, so multi-catalog composition is a map fold, never unification into one catalog's map."
   - date: "2026-08-19"
@@ -97,6 +97,8 @@ history:
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
   - date: "2026-08-22"
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
+  - date: "2026-08-23"
+    event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"
@@ -105,4 +107,7 @@ related:
   - "0015"
 # Lifecycle relationships.
 supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
 superseded_by: null

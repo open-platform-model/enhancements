@@ -68,9 +68,14 @@ tasks:
         # per-column widths in a single in-memory render. Avoids `column -t`
         # because that tool counts ANSI escapes as visible chars and breaks
         # header bolding.
+        # DELIVERY is derived from plans/, never read from the entry — see
+        # scripts/delivery.sh. Computing it here rather than storing it is
+        # what keeps an entry from accumulating delivery state.
+        DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
+
         {
-          printf 'ID\tSTATUS\tSEMVER\tAREA\tIMPL\tIMPL-DATE\tTITLE\n'
-          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          printf 'ID\tSTATUS\tSEMVER\tAREA\tDELIVERY\tTITLE\n'
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             # Skip 0000 (reserved template id).
@@ -78,11 +83,10 @@ tasks:
             status=$(yq -r '.status' "$cfg")
             semver=$(yq -r '.semver // "-"' "$cfg")
             area=$(yq -r '.area' "$cfg")
-            impl=$(yq -r '.implementation.status // "n/a"' "$cfg")
-            impl_date=$(yq -r '.implementation.date // "-"' "$cfg")
+            deliv=$(printf '%s\n' "$DELIV" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
             title=$(yq -r '.title' "$cfg")
-            printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-              "$id" "$status" "$semver" "$area" "$impl" "$impl_date" "$title"
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+              "$id" "$status" "$semver" "$area" "${deliv:--}" "$title"
           done
         } | awk -F'\t' '
           {
@@ -107,6 +111,87 @@ tasks:
           }
         '
 
+  delivery:
+    desc: Derived delivery state per enhancement (reverse index over plans/)
+    summary: |
+      An entry carries no implementation field and no `implemented` status.
+      Whether a design has been delivered is a fact about the plan that
+      delivers it, so it is COMPUTED from plans/ rather than asserted in the
+      entry — a stored flag is a human assertion that goes stale.
+
+      States:
+        unplanned  no plan's `implements` names this id
+        planned    a plan exists, no slice has started
+        in-flight  a slice is in-progress or done, not all done
+        delivered  every non-cancelled slice done AND every DN covered
+        rejected   the idea was killed; delivery was never owed
+
+      `delivered` is deliberately stronger than the flag it replaced: a
+      design is not delivered while a decision it made has no slice
+      carrying it. Coverage counts decisions carried by a DONE slice in ANY
+      plan (a decision of one entry is legitimately carried by a slice in
+      another entry's plan), plus decisions a plan excuses in `unsliced`.
+
+      Usage:
+        task delivery              # every enhancement
+        task delivery ID=0015      # one enhancement, with detail
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RESET='\033[0m'
+        TARGET="{{.ID}}"
+
+        rows=$(./scripts/delivery.sh ${TARGET:+$TARGET})
+        [ -n "$rows" ] || { echo "No enhancement matched${TARGET:+: $TARGET}" >&2; exit 1; }
+
+        if [ -n "$TARGET" ]; then
+          IFS=$'\t' read -r id state plans slices uncovered unclaimed <<<"$rows"
+          title=$(yq -r '.title' "$TARGET/config.yaml" 2>/dev/null \
+                  || yq -r '.title' "archive/$TARGET/config.yaml" 2>/dev/null)
+          printf "${BOLD}%s${RESET}  %s\n\n" "$id" "$title"
+          printf "  %-14s %s\n" "delivery:" "$state"
+          printf "  %-14s %s\n" "plans:"    "$plans"
+          printf "  %-14s %s\n" "slices:"   "$slices"
+          printf "  %-14s %s\n" "uncovered:" "$uncovered"
+          printf "  %-14s %s\n" "unclaimed OQs:" "$unclaimed"
+          if [ "$uncovered" != "0" ] && [ "$uncovered" != "-" ]; then
+            echo
+            printf "  ${YELLOW}%s decision(s) carried by no done slice and not excused in a plan's \`unsliced\`.${RESET}\n" "$uncovered"
+            echo "  Run 'task plans:uncovered' for the list."
+          fi
+          exit 0
+        fi
+
+        {
+          printf 'ID\tDELIVERY\tSLICES\tUNCOVERED\tPLAN\n'
+          printf '%s\n' "$rows" | awk -F'\t' '{printf "%s\t%s\t%s\t%s\t%s\n", $1, $2, $4, $5, $3}'
+        } | awk -F'\t' '
+          { rows[NR]=$0; for (i=1;i<=NF;i++) if (length($i)>w[i]) w[i]=length($i); nc = NF>nc?NF:nc }
+          END {
+            BOLD="\033[1m"; RESET="\033[0m"
+            for (n=1;n<=NR;n++) {
+              split(rows[n], c, "\t"); line=""
+              for (i=1;i<=nc;i++) line = (i==nc) ? line c[i] : line sprintf("%-*s  ", w[i], c[i])
+              if (n==1) printf "%s%s%s\n", BOLD, line, RESET; else print line
+            }
+          }
+        '
+
+  delivery:data:
+    desc: TSV of derived delivery state — machine-readable, for agents and gates
+    summary: |
+      Columns: id, state, plans, slices_done/total, uncovered_decisions,
+      unclaimed_deferred_oqs. Consumed by `task gate` and by agents asking
+      "what is done?" without reading every plan.
+    cmds:
+      - ./scripts/delivery.sh {{.ID}}
+
   vet:
     desc: Validate every enhancement's config.yaml against schema.cue + consistency checks
     preconditions:
@@ -122,12 +207,21 @@ tasks:
         FAIL=0
         WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
 
-        # Build set of existing four-digit ids (current workspace).
+        # Build set of existing four-digit ids (current workspace). Archived
+        # (rejected) entries count: an id is never reused, so a `related`
+        # pointing at an idea that was later killed must keep resolving.
         EXISTING_IDS=""
-        for d in [0-9][0-9][0-9][0-9]/; do
+        for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
           [ -d "$d" ] || continue
           EXISTING_IDS="${EXISTING_IDS} $(basename "$d")"
         done
+
+        # Derived delivery state, computed once per run. Used for the
+        # schemas/ exemption below.
+        DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
+        delivery_of() {
+          printf '%s\n' "$DELIV" | awk -F'\t' -v i="$1" '$1==i {print $2; exit}'
+        }
 
         # Build set of existing legacy three-digit ids (library/enhancements/).
         # Empty if the library repo is absent — legacy refs then resolve as
@@ -322,7 +416,13 @@ tasks:
               if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
                 errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
               fi
-              if [ "$status" = "accepted" ]; then
+              # The delta files exist so the spec is drafted BEFORE the core
+              # slice writes it. Once the design is delivered that purpose is
+              # spent — the spec landed in core/SPEC.md — so a delivered
+              # entry is exempt. This used to be keyed on `status:
+              # implemented`; delivery is now derived, so the exemption
+              # follows the derivation rather than a hand-set flag.
+              if [ "$status" = "accepted" ] && [ "$(delivery_of "$id")" != "delivered" ]; then
                 [ -f "$dir/schemas/spec.md" ] \
                   || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
                 local companions
@@ -375,6 +475,11 @@ tasks:
           # 9. One-way rule: delivery plans live in plans/, never inside an entry.
           [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
           [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+          # Any other file whose NAME says it is a plan. 0006/planned-changes.md
+          # was an in-entry slice plan naming OpenSpec changes, and it slipped
+          # past a check that knew only the two canonical filenames.
+          planlike=$(find "$dir" -maxdepth 1 -type f \( -iname '*plan*.md' -o -iname '*plan*.yaml' \) -printf '%f ' 2>/dev/null || true)
+          [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike — delivery plans live in plans/<slug>/ (one-way rule)"
 
           # Open Questions live only in 07-questions.md — single canonical
           # location. A block in the decision log or README is a migration
@@ -392,9 +497,53 @@ tasks:
           printf "${GREEN}ok${RESET}   %s\n" "$cfg"
         }
 
+        # The admission rubric is data, so it is validated like any other
+        # contract in this repo. A malformed gate would otherwise fail
+        # silently at the moment someone is relying on it.
+        if [ -f gates.cue ]; then
+          if gates_out=$(cue vet gates.cue 2>&1); then
+            printf "${GREEN}ok${RESET}   gates.cue\n"
+          else
+            printf "${RED}FAIL${RESET} gates.cue\n%s\n" "$(echo "$gates_out" | sed 's/^/      /')"
+            FAIL=1
+          fi
+        fi
+
+        # Archived (rejected) entries get REDUCED validation: schema plus the
+        # placement rules below, and none of the prose gates. A killed draft
+        # is incomplete by definition — demanding seven finished documents
+        # before allowing a kill would make the kill path more expensive than
+        # the finish path, which is how repos accumulate zombie drafts.
+        for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          errors=""
+          dir=$(dirname "$cfg")
+          id=$(yq -r '.id' "$cfg")
+          [ "$id" = "$(basename "$dir")" ] || errors="${errors}\n    id '$id' != directory name '$(basename "$dir")'"
+          if ! cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
+            errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
+          fi
+          st=$(yq -r '.status' "$cfg")
+          [ "$st" = "rejected" ] \
+            || errors="${errors}\n    status is '$st' but the entry lives in archive/ — only rejected entries are archived"
+          if [ -n "$errors" ]; then
+            printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
+            FAIL=1
+          else
+            printf "${GREEN}ok${RESET}   %s (archived)\n" "$cfg"
+          fi
+        done
+
         for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           id=$(yq -r '.id' "$cfg")
+          # A rejected entry belongs in archive/, where the reduced checks
+          # above apply. Left in place it would be gated as live work.
+          if [ "$(yq -r '.status' "$cfg")" = "rejected" ]; then
+            printf "${RED}FAIL${RESET} %s\n    status is rejected but the entry is not in archive/ — use 'task reject ID=%s REASON=...'\n" "$cfg" "$id"
+            FAIL=1
+            continue
+          fi
           # Skip the template — its placeholders are part of the design.
           # The template's config.yaml is still vetted (it's reserved id
           # 0000 and must pass the schema), but doc placeholders are
@@ -440,18 +589,28 @@ tasks:
         WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
         ID="{{.ID}}"
 
-        if [ ! -d "$ID" ]; then
-          echo "No enhancement directory: $ID" >&2
+        # An id resolves to a live entry or an archived (rejected) one.
+        DIR="$ID"
+        [ -d "$DIR" ] || DIR="archive/$ID"
+        if [ ! -d "$DIR" ]; then
+          echo "No enhancement directory: $ID (looked in ./ and archive/)" >&2
           exit 1
         fi
-        cfg="$ID/config.yaml"
+        cfg="$DIR/config.yaml"
         [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
 
         EXISTING_IDS=""
-        for d in [0-9][0-9][0-9][0-9]/; do
+        for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
           [ -d "$d" ] || continue
           EXISTING_IDS="${EXISTING_IDS} $(basename "$d")"
         done
+
+        # Derived delivery state, computed once per run. Used for the
+        # schemas/ exemption below.
+        DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
+        delivery_of() {
+          printf '%s\n' "$DELIV" | awk -F'\t' -v i="$1" '$1==i {print $2; exit}'
+        }
         EXISTING_LEGACY_IDS=""
         if [ -d "$WORKSPACE_ROOT/library/enhancements" ]; then
           for d in "$WORKSPACE_ROOT/library/enhancements/"[0-9][0-9][0-9]-*/; do
@@ -603,7 +762,13 @@ tasks:
               if ! schemas_out=$(cd "$dir/schemas" && cue vet ./... 2>&1); then
                 errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
               fi
-              if [ "$status" = "accepted" ]; then
+              # The delta files exist so the spec is drafted BEFORE the core
+              # slice writes it. Once the design is delivered that purpose is
+              # spent — the spec landed in core/SPEC.md — so a delivered
+              # entry is exempt. This used to be keyed on `status:
+              # implemented`; delivery is now derived, so the exemption
+              # follows the derivation rather than a hand-set flag.
+              if [ "$status" = "accepted" ] && [ "$(delivery_of "$id")" != "delivered" ]; then
                 [ -f "$dir/schemas/spec.md" ] \
                   || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
                 companions=$(find "$dir/schemas" -maxdepth 1 -name '*.cue' ! -name 'target.cue' 2>/dev/null | head -1)
@@ -650,6 +815,11 @@ tasks:
         # 9. One-way rule: delivery plans live in plans/, never inside an entry.
         [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
         [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+        # Any other file whose NAME says it is a plan. 0006/planned-changes.md
+        # was an in-entry slice plan naming OpenSpec changes, and it slipped
+        # past a check that knew only the two canonical filenames.
+        planlike=$(find "$dir" -maxdepth 1 -type f \( -iname '*plan*.md' -o -iname '*plan*.yaml' \) -printf '%f ' 2>/dev/null || true)
+        [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike — delivery plans live in plans/<slug>/ (one-way rule)"
 
         # Open Questions live only in 07-questions.md — single canonical
         # location. A block in the decision log or README is a migration
@@ -676,7 +846,10 @@ tasks:
         - accepted+   → README has '## Scope' with In/Out subsections
         - accepted+   → 03-decisions.md has at least one '### DN:' heading
         - accepted+   → 07-questions.md has '## Open Questions' block
-        - accepted+   → 04-graduation.md has 'draft → accepted' section
+        - accepted+   → 04-graduation.md has a 'draft → accepted' section
+                        and NO 'accepted → implemented' section
+        - draft       → 07-questions.md: no question left marked
+                        'Blocking: acceptance' (promotion refuses)
         - draft/acc   → one-way smell: no *.md names a plan file
                         (plan.yaml / PLAN.md) — plans live in plans/
         - draft       → every decision carries '**Kind:** contract |
@@ -690,9 +863,7 @@ tasks:
                         accepted)
         - any         → schemas/spec.md follows the four-part
                         Definition/Shape/Constraints/Rationale format
-        - implemented → README has '> **Implementation status (YYYY-MM-DD).**'
-                        quote block, date matching implementation.date
-        - implemented → README has '## …Deviation…' section
+        - rejected    → README has '> **Rejected (YYYY-MM-DD).**' quote block
         - superseded  → README has '> **Superseded by NNNN …**' quote block
 
       Usage:
@@ -727,16 +898,15 @@ tasks:
         check_one() {
           local cfg="$1"
           local dir; dir=$(dirname "$cfg")
-          local id status impl_date
+          local id status
           id=$(yq -r '.id' "$cfg")
           status=$(yq -r '.status' "$cfg")
-          impl_date=$(yq -r '.implementation.date // ""' "$cfg")
           local core_schema; core_schema=$(yq -r '.core_schema // "false"' "$cfg")
           local warnings=""
 
           # Soft mirror of vet's accepted-gate: while still draft, nudge
           # toward the files the draft → accepted promotion will require.
-          # Silent on implemented/superseded — grandfathered (their spec
+          # Silent on delivered/superseded entries — their spec landed in
           # landed in core/SPEC.md).
           if [ "$core_schema" = "true" ] && [ "$status" = "draft" ] && [ -d "$dir/schemas" ]; then
             [ -f "$dir/schemas/spec.md" ] \
@@ -822,7 +992,7 @@ tasks:
             fi
           fi
 
-          if [ "$status" = "accepted" ] || [ "$status" = "implemented" ] || [ "$status" = "superseded" ]; then
+          if [ "$status" = "accepted" ] || [ "$status" = "superseded" ]; then
             grep -qE '^## Scope'         "$dir/README.md" 2>/dev/null \
               || warnings="${warnings}\n    README.md: missing '## Scope' section"
             grep -qE '^### In scope'     "$dir/README.md" 2>/dev/null \
@@ -842,25 +1012,33 @@ tasks:
               warnings="${warnings}\n    03-decisions.md missing"
             fi
 
+            # 04-graduation.md keeps the entry-specific `draft → accepted`
+            # criteria. The `accepted → implemented` half was removed: there
+            # is no `implemented` status, and that half had become the
+            # repo's largest reservoir of file-path prescription.
             if [ -f "$dir/04-graduation.md" ]; then
-              grep -qE '^## draft → accepted'         "$dir/04-graduation.md" 2>/dev/null \
+              grep -qE '^## draft → accepted' "$dir/04-graduation.md" 2>/dev/null \
                 || warnings="${warnings}\n    04-graduation.md: missing '## draft → accepted' section"
-              grep -qE '^## accepted → implemented'   "$dir/04-graduation.md" 2>/dev/null \
-                || warnings="${warnings}\n    04-graduation.md: missing '## accepted → implemented' section"
+              ! grep -qE '^## accepted → implemented' "$dir/04-graduation.md" 2>/dev/null \
+                || warnings="${warnings}\n    04-graduation.md: has an '## accepted → implemented' section — delivery is derived from plans/, not gated here"
+            fi
+
+            # Per-question blocking rules live on the question itself, where
+            # whoever answers it can see them and `task promote` can read them.
+            if [ "$status" = "draft" ] && [ -f "$dir/07-questions.md" ]; then
+              local blockers
+              blockers=$(grep -cE 'Blocking: acceptance' "$dir/07-questions.md" 2>/dev/null || true)
+              if [ "${blockers:-0}" -gt 0 ]; then
+                warnings="${warnings}\n    07-questions.md: $blockers unresolved question(s) marked 'Blocking: acceptance' — promotion refuses until they close"
+              fi
             fi
           fi
 
-          if [ "$status" = "implemented" ]; then
-            if [ -n "$impl_date" ]; then
-              local impl_re='^> \*\*Implementation status \('"${impl_date}"'\)\.\*\*'
-              grep -qE "$impl_re" "$dir/README.md" 2>/dev/null \
-                || warnings="${warnings}\n    README.md: missing '> **Implementation status (${impl_date}).**' quote block (date must match implementation.date)"
-            else
-              grep -qE '^> \*\*Implementation status \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
-                || warnings="${warnings}\n    README.md: missing '> **Implementation status (YYYY-MM-DD).**' quote block"
-            fi
-            grep -qE '^## .*[Dd]eviation' "$dir/README.md" 2>/dev/null \
-              || warnings="${warnings}\n    README.md: missing '## …Deviation…' section (may say 'None')"
+          # A rejected entry states why it stopped; the schema requires the
+          # reason, this checks the reader-facing half.
+          if [ "$status" = "rejected" ]; then
+            grep -qE '^> \*\*Rejected \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
+              || warnings="${warnings}\n    README.md: missing '> **Rejected (YYYY-MM-DD).**' quote block"
           fi
 
           if [ "$status" = "superseded" ]; then
@@ -903,14 +1081,19 @@ tasks:
         BOLD='\033[1m'; RESET='\033[0m'
         ID="{{.ID}}"
 
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        cfg="$ID/config.yaml"
+        # An id resolves to a live entry or an archived (rejected) one —
+        # ids are never reused, so exactly one of the two can match.
+        DIR="$ID"
+        [ -d "$DIR" ] || DIR="archive/$ID"
+        [ -d "$DIR" ] || { echo "No enhancement directory: $ID (looked in ./ and archive/)" >&2; exit 1; }
+        cfg="$DIR/config.yaml"
         [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
 
-        printf "${BOLD}%s${RESET}\n" "$ID"
+        printf "${BOLD}%s${RESET}%s\n" "$DIR" "$([ "$DIR" != "$ID" ] && printf '  (archived)')"
         printf "  %-16s %s\n" "id:"           "$(yq -r '.id' "$cfg")"
         printf "  %-16s %s\n" "slug:"         "$(yq -r '.slug' "$cfg")"
         printf "  %-16s %s\n" "title:"        "$(yq -r '.title' "$cfg")"
+        printf "  %-16s %s\n" "summary:"      "$(yq -r '.summary' "$cfg")"
         printf "  %-16s %s\n" "status:"       "$(yq -r '.status' "$cfg")"
         printf "  %-16s %s\n" "area:"         "$(yq -r '.area' "$cfg")"
         printf "  %-16s %s\n" "affects:"      "$(yq -r '.affects | join(", ")' "$cfg")"
@@ -919,17 +1102,20 @@ tasks:
         printf "  %-16s %s\n" "created:"      "$(yq -r '.created' "$cfg")"
         printf "  %-16s %s\n" "updated:"      "$(yq -r '.updated' "$cfg")"
         printf "  %-16s %s\n" "authors:"      "$(yq -r '.authors | join(", ")' "$cfg")"
-        printf "  %-16s %s\n" "impl status:"  "$(yq -r '.implementation.status' "$cfg")"
-        impl_date=$(yq -r '.implementation.date // "-"' "$cfg")
-        printf "  %-16s %s\n" "impl date:"    "$impl_date"
-        impl_notes=$(yq -r '.implementation.notes // ""' "$cfg")
-        [ -n "$impl_notes" ] && printf "  %-16s %s\n" "impl notes:" "$impl_notes"
+        # Delivery is DERIVED from plans/, never stored here. See
+        # scripts/delivery.sh and `task delivery ID=NNNN` for the detail.
+        deliv=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
+        printf "  %-16s %s %s\n" "delivery:" "${deliv:--}" "(derived from plans/)"
+        rejected=$(yq -r '.rejected_reason // ""' "$cfg")
+        [ -n "$rejected" ] && printf "  %-16s %s\n" "rejected:" "$rejected"
         related=$(yq -r '.related | join(", ")' "$cfg")
         printf "  %-16s %s\n" "related:"      "${related:--}"
         supersedes=$(yq -r '.supersedes | join(", ")' "$cfg")
         printf "  %-16s %s\n" "supersedes:"   "${supersedes:--}"
         sup_by=$(yq -r '.superseded_by // "-"' "$cfg")
         printf "  %-16s %s\n" "superseded_by:" "$sup_by"
+        revives=$(yq -r '(.revives // []) | join(", ")' "$cfg")
+        printf "  %-16s %s\n" "revives:"      "${revives:--}"
 
         echo
         printf "${BOLD}History (%s event(s)):${RESET}\n" "$(yq -r '.history | length' "$cfg")"
@@ -939,17 +1125,17 @@ tasks:
 
         echo
         printf "${BOLD}Documents:${RESET}\n"
-        for f in "$ID"/*.md; do
+        for f in "$DIR"/*.md; do
           [ -f "$f" ] || continue
           printf "  %s\n" "$(basename "$f")"
         done
-        if [ -d "$ID/schemas" ]; then
+        if [ -d "$DIR/schemas" ]; then
           printf "  schemas/\n"
         fi
-        if [ -d "$ID/contracts" ]; then
+        if [ -d "$DIR/contracts" ]; then
           printf "  contracts/\n"
         fi
-        if [ -d "$ID/experiments" ]; then
+        if [ -d "$DIR/experiments" ]; then
           printf "  experiments/\n"
         fi
 
@@ -973,14 +1159,24 @@ tasks:
     vars:
       SLUG:        '{{.SLUG        | default ""}}'
       TITLE:       '{{.TITLE       | default ""}}'
+      SUMMARY:     '{{.SUMMARY     | default ""}}'
+      NOT:         '{{.NOT         | default ""}}'
       AUTHOR:      '{{.AUTHOR      | default "emil@jacero.se"}}'
       AREA:        '{{.AREA        | default "cross-cutting"}}'
       CORE_SCHEMA: '{{.CORE_SCHEMA | default "false"}}'
     preconditions:
       - sh: '[ -n "{{.SLUG}}" ]'
-        msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>"'
+        msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
       - sh: '[ -n "{{.TITLE}}" ]'
-        msg: 'TITLE is required. Usage: task new SLUG=<slug> TITLE="<title>"'
+        msg: 'TITLE is required. Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
+      # The two admission answers, required so an entry cannot be scaffolded
+      # without an articulated capability. Eight files with no stated
+      # capability is where the drift starts, and this is the one place the
+      # friction costs nothing.
+      - sh: '[ -n "{{.SUMMARY}}" ]'
+        msg: 'SUMMARY is required — one line naming the capability OPM will have and does not today (the `feature` admission gate). If you cannot write it, the idea belongs in IDEAS.md, not an entry.'
+      - sh: '[ -n "{{.NOT}}" ]'
+        msg: 'NOT is required — one line saying what this is explicitly NOT. It seeds README ### Out of scope, and an unbounded entry is the one that later reads as three entries.'
       - sh: 'printf %s "{{.SLUG}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
         msg: 'SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
@@ -993,14 +1189,21 @@ tasks:
         set -euo pipefail
         SLUG="{{.SLUG}}"
         TITLE="{{.TITLE}}"
+        SUMMARY="{{.SUMMARY}}"
+        NOT="{{.NOT}}"
         AUTHOR="{{.AUTHOR}}"
         AREA="{{.AREA}}"
         CORE_SCHEMA="{{.CORE_SCHEMA}}"
         TEMPLATE_DIR="0000"
 
         # Compute next id from the highest existing NNNN/ dir (excluding 0000).
-        HIGHEST=$(find . -maxdepth 1 -type d -regex './[0-9][0-9][0-9][0-9]' -printf '%f\n' 2>/dev/null \
-          | grep -vx 0000 | sort -n | tail -1)
+        # Archived (rejected) ids count. An id is NEVER reused: reissuing a
+        # killed 0007 would silently retarget every existing citation of it.
+        # `|| true` on each arm: archive/ may not exist yet, and under
+        # `set -o pipefail` a failing find would abort the whole scaffold.
+        HIGHEST=$( { find . -maxdepth 1 -type d -regex './[0-9][0-9][0-9][0-9]' -printf '%f\n' 2>/dev/null || true
+                     find ./archive -maxdepth 1 -type d -regex './archive/[0-9][0-9][0-9][0-9]' -printf '%f\n' 2>/dev/null || true
+                   } | { grep -vx 0000 || true; } | sort -n | tail -1)
         HIGHEST="${HIGHEST:-0}"
         NEW_ID=$(awk -v n="$HIGHEST" 'BEGIN { printf "%04d", n + 1 }')
         NEW_DIR="$NEW_ID"
@@ -1026,11 +1229,12 @@ tasks:
         # quoting clean across titles with shell-meta chars.
         ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AREA_V="$AREA" \
         CREATED="$TODAY" UPDATED="$TODAY" AUTHOR_V="$AUTHOR" \
-        CORE_V="$CORE_SCHEMA" \
+        CORE_V="$CORE_SCHEMA" SUMMARY_V="$SUMMARY" \
         yq -i '
           .id          = strenv(ID)       |
           .slug        = strenv(SLUG_V)   |
           .title       = strenv(TITLE_V)  |
+          .summary     = strenv(SUMMARY_V) |
           .area        = strenv(AREA_V)   |
           .affects     = [strenv(AREA_V)] |
           .core_schema = (strenv(CORE_V) == "true") |
@@ -1062,6 +1266,27 @@ tasks:
         # suffix (enhancements.opmodel.dev/0000/schemas@v0).
         if [ -f "$NEW_DIR/schemas/cue.mod/module.cue" ]; then
           sed -i "s#enhancements.opmodel.dev/0000#enhancements.opmodel.dev/$NEW_ID#g" "$NEW_DIR/schemas/cue.mod/module.cue"
+        fi
+
+        # NOT seeds the out-of-scope half of README's scope section. The
+        # answer is required at scaffold time precisely so the boundary is
+        # stated before the prose grows past it.
+        if [ -f "$NEW_DIR/README.md" ]; then
+          ./scripts/seed_scope.sh "$NEW_DIR/README.md" "$NOT"
+        fi
+
+        # The creation-time half of the admission rubric. Printed, not
+        # enforced: `feature` is already answered by the required SUMMARY,
+        # and `prior-art` needs a human comparison against the archive.
+        if [ -f gates.cue ] && [ -f "$(echo archive/[0-9][0-9][0-9][0-9]/config.yaml | cut -d" " -f1)" ]; then
+          echo
+          echo "Prior art — check this idea against what has already been rejected:"
+          for c in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+            [ -f "$c" ] || continue
+            printf '  %s  %s\n' "$(yq -r '.id' "$c")" "$(yq -r '.summary' "$c")"
+          done
+          echo "  If this restates one of them, set revives: [\"NNNN\"] and say what changed."
+          echo
         fi
 
         echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, area=$AREA, core_schema=$CORE_SCHEMA)"
@@ -1100,29 +1325,51 @@ tasks:
           echo
           echo '<!-- Generated by `task index` — do not edit by hand. -->'
           echo
-          echo '| ID | Area | Status | Semver | Impl | Last event | Title |'
-          echo '| -- | ---- | ------ | ------ | ---- | ---------- | ----- |'
+          # `summary` replaces the old "last event" column: the point of this
+          # file is to make opaque NNNN folders browseable, and one line
+          # saying what an entry is beats the most recent thing that happened
+          # to it. Delivery is derived from plans/, never read from the entry.
+          DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
+          echo '| ID | Area | Status | Delivery | Title | Summary |'
+          echo '| -- | ---- | ------ | -------- | ----- | ------- |'
           for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             [ "$id" = "0000" ] && continue
             area=$(yq -r '.area' "$cfg")
             status=$(yq -r '.status' "$cfg")
-            semver=$(yq -r '.semver // "-"' "$cfg")
-            impl=$(yq -r '.implementation.status' "$cfg")
-            last_date=$(yq -r '.history[-1].date // "-"' "$cfg")
-            last_event=$(yq -r '.history[-1].event // "-"' "$cfg")
-            # Escape pipe chars in titles to keep markdown table intact.
+            deliv=$(printf '%s\n' "$DELIV" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
+            # Escape pipe chars to keep the markdown table intact.
             title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
-            printf '| [%s](./%s/) | %s | %s | %s | %s | %s — %s | %s |\n' \
-              "$id" "$id" "$area" "$status" "$semver" "$impl" "$last_date" "$last_event" "$title"
+            summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
+            printf '| [%s](./%s/) | %s | %s | %s | %s | %s |\n' \
+              "$id" "$id" "$area" "$status" "${deliv:--}" "$title" "$summary"
           done
+
+          # Archived (rejected) ideas. Listed here so a new proposal can be
+          # checked against prior art without leaving the index; `task
+          # archive:list` is the same data with the reasons attached.
+          if [ -f "$(echo archive/[0-9][0-9][0-9][0-9]/config.yaml | cut -d" " -f1)" ]; then
+            echo
+            echo '## Archived (rejected)'
+            echo
+            echo '| ID | Title | Summary | Why not |'
+            echo '| -- | ----- | ------- | ------- |'
+            for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+              [ -f "$cfg" ] || continue
+              id=$(yq -r '.id' "$cfg")
+              title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
+              summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
+              reason=$(yq -r '.rejected_reason // "-"' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
+              printf '| [%s](./archive/%s/) | %s | %s | %s |\n' "$id" "$id" "$title" "$summary" "$reason"
+            done
+          fi
           echo
           echo '## Status legend'
           echo
           echo '- **draft** — initial design, actively being written'
           echo '- **accepted** — design agreed upon, ready for implementation'
-          echo '- **implemented** — design has been realized in code'
+          echo '- **rejected** — the idea was not accepted; the entry lives in archive/ with its reason'
           echo '- **superseded** — replaced by a newer enhancement (see `superseded_by` in the entry'\''s config.yaml)'
         } > "$OUT"
 
@@ -1153,6 +1400,7 @@ tasks:
 
         related_edges="$TMPDIR/related"
         super_edges="$TMPDIR/super"
+        revive_edges="$TMPDIR/revives"
         legacy_refs="$TMPDIR/legacy"
 
         # Helper: encode a ref token (NNNN or legacy:NNN) → node id usable
@@ -1195,6 +1443,19 @@ tasks:
           done < <(yq -r '.supersedes[]?' "$cfg")
         done > "$super_edges"
 
+        # revives: directed, dotted (a live entry re-opening an archived
+        # idea). One-way by design — the archived entry is frozen and
+        # carries no back-link, so this is the only edge that records it.
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          id=$(yq -r '.id' "$cfg")
+          [ "$id" = "0000" ] && continue
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            echo "N$id $(node_for "$ref")"
+          done < <(yq -r '.revives[]?' "$cfg")
+        done > "$revive_edges"
+
         # Dedupe legacy refs.
         [ -f "$legacy_refs" ] && sort -u "$legacy_refs" -o "$legacy_refs"
 
@@ -1207,13 +1468,14 @@ tasks:
         echo 'graph LR'
         echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
         echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
-        echo '  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000'
+        echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
         echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
         echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
         echo
 
-        # Pass 1: workspace-root nodes (one per NNNN dir).
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+        # Pass 1: workspace-root nodes (one per NNNN dir). Archived
+        # (rejected) entries are nodes too — a `revives` edge points at one.
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           id=$(yq -r '.id' "$cfg")
           [ "$id" = "0000" ] && continue
@@ -1247,6 +1509,11 @@ tasks:
           printf '  %s -->|supersedes| %s\n' "$a" "$b"
         done < "$super_edges"
 
+        while read -r a b; do
+          [ -z "$a" ] && continue
+          printf '  %s -.->|revives| %s\n' "$a" "$b"
+        done < "$revive_edges"
+
         echo '```'
 
         echo
@@ -1256,14 +1523,14 @@ tasks:
         echo 'graph LR'
         echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
         echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
-        echo '  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000'
+        echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
         echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
         echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
         echo
         echo '  subgraph statuses ["Node statuses"]'
         echo '    Ldraft["draft"]:::draft'
         echo '    Laccepted["accepted"]:::accepted'
-        echo '    Limplemented["implemented"]:::implemented'
+        echo '    Lrejected["rejected"]:::rejected'
         echo '    Lsuperseded["superseded"]:::superseded'
         echo '    Llegacy["legacy NNN"]:::legacy'
         echo '  end'
@@ -1271,6 +1538,7 @@ tasks:
         echo '  subgraph edges ["Edge types"]'
         echo '    Erel_a["A"] ---|related| Erel_b["B"]'
         echo '    Esup_new["newer"] -->|supersedes| Esup_old["older"]'
+        echo '    Erev_new["newer"] -.->|revives| Erev_old["archived"]'
         echo '  end'
         echo '```'
         } > "$OUT"
@@ -1512,7 +1780,7 @@ tasks:
           function trim(s) {
             sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s
           }
-          function flush(   search, bold_end, title, after, dot, status, bucket) {
+          function flush(   search, bold_end, title, after, dot, status, bucket, blocking, bpos, btail, bdot) {
             if (oq_id == "") return
             search = oq_line
             sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", search)
@@ -1531,7 +1799,20 @@ tasks:
             if (status == "open") bucket = "open"
             else if (status ~ /^informed-by-exp-/ || status ~ /^supported-by-exp-/) bucket = "partial"
             else if (status ~ /^resolved-by-D/ || status ~ /^deferred/ || status == "answered") bucket = "resolved"
-            printf "%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, current_group, title
+            # Blocking: acceptance | deferrable | implementation. Absent on a
+            # question nobody has classified, which is itself worth seeing —
+            # an unclassified question is one the promotion gate cannot
+            # reason about.
+            blocking = "-"
+            bpos = index(oq_line, "Blocking:")
+            if (bpos > 0) {
+              btail = substr(oq_line, bpos + 9)
+              sub(/^[[:space:]]+/, "", btail)
+              bdot = match(btail, /[ .]/)
+              blocking = (bdot > 0) ? substr(btail, 1, bdot - 1) : btail
+              blocking = trim(blocking)
+            }
+            printf "%s\t%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, blocking, current_group, title
             oq_id = ""; oq_line = ""
           }
           BEGIN { inblock = 0; current_group = "(ungrouped)"; oq_id = ""; oq_line = "" }
@@ -1577,10 +1858,11 @@ tasks:
         printf '%s\n' "$ROWS" | awk -F'\t' '
           {
             rows[NR] = $0
-            # widths: col 1 = OQ_ID, col 2 = STATUS, col 5 = TITLE (group is header)
+            # Columns: 1 OQ_ID, 2 STATUS, 3 BUCKET, 4 BLOCKING, 5 GROUP, 6 TITLE.
             if (length($1) > w1) w1 = length($1)
             if (length($2) > w2) w2 = length($2)
-            groups[$4] = 1
+            if (length($4) > w4) w4 = length($4)
+            groups[$5] = 1
           }
           END {
             BOLD = "\033[1m"; DIM = "\033[2m"; RESET = "\033[0m"
@@ -1588,7 +1870,7 @@ tasks:
             ngroups = 0
             for (n = 1; n <= NR; n++) {
               split(rows[n], cols, "\t")
-              g = cols[4]
+              g = cols[5]
               if (!(g in seen)) { seen[g] = 1; order[++ngroups] = g }
             }
             for (gi = 1; gi <= ngroups; gi++) {
@@ -1596,10 +1878,12 @@ tasks:
               printf "%s%s%s\n", BOLD, g, RESET
               for (n = 1; n <= NR; n++) {
                 split(rows[n], cols, "\t")
-                if (cols[4] != g) continue
+                if (cols[5] != g) continue
                 style = ""
                 if (cols[3] == "resolved") style = DIM
-                printf "  %s%-*s  %-*s  %s%s\n", style, w1, cols[1], w2, cols[2], cols[5], RESET
+                # BLOCKING sits beside STATUS: "open" alone does not say
+                # whether the question actually gates promotion.
+                printf "  %s%-*s  %-*s  %-*s  %s%s\n", style, w1, cols[1], w2, cols[2], w4, cols[4], cols[6], RESET
               }
               if (gi < ngroups) printf "\n"
             }
@@ -1617,7 +1901,11 @@ tasks:
       supported-by-exp-NN — experiment evidence exists but no formal
       decision yet). Resolved OQs are omitted.
 
-      Columns: OQ_ID  STATUS  GROUP  TITLE
+      Columns: OQ_ID  STATUS  BLOCKING  GROUP  TITLE
+
+      BLOCKING is `acceptance` (task promote refuses while it is open),
+      `deferrable`, `implementation` (a slice claims it), or `-` when the
+      question has not been classified yet.
 
       Designed for `enhancement-open-questions` skill consumption. The
       human-readable counterpart with all buckets is `task questions:list`.
@@ -1648,7 +1936,7 @@ tasks:
           function trim(s) {
             sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s
           }
-          function flush(   search, bold_end, title, after, dot, status, bucket) {
+          function flush(   search, bold_end, title, after, dot, status, bucket, blocking, bpos, btail, bdot) {
             if (oq_id == "") return
             search = oq_line
             sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", search)
@@ -1667,7 +1955,20 @@ tasks:
             if (status == "open") bucket = "open"
             else if (status ~ /^informed-by-exp-/ || status ~ /^supported-by-exp-/) bucket = "partial"
             else if (status ~ /^resolved-by-D/ || status ~ /^deferred/ || status == "answered") bucket = "resolved"
-            printf "%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, current_group, title
+            # Blocking: acceptance | deferrable | implementation. Absent on a
+            # question nobody has classified, which is itself worth seeing —
+            # an unclassified question is one the promotion gate cannot
+            # reason about.
+            blocking = "-"
+            bpos = index(oq_line, "Blocking:")
+            if (bpos > 0) {
+              btail = substr(oq_line, bpos + 9)
+              sub(/^[[:space:]]+/, "", btail)
+              bdot = match(btail, /[ .]/)
+              blocking = (bdot > 0) ? substr(btail, 1, bdot - 1) : btail
+              blocking = trim(blocking)
+            }
+            printf "%s\t%s\t%s\t%s\t%s\t%s\n", oq_id, status, bucket, blocking, current_group, title
             oq_id = ""; oq_line = ""
           }
           BEGIN { inblock = 0; current_group = "(ungrouped)"; oq_id = ""; oq_line = "" }
@@ -1702,7 +2003,7 @@ tasks:
           END { flush() }
         ' "$OQ_FILE" | awk -F'\t' '
           $3 == "open" || $3 == "partial" {
-            printf "%s\t%s\t%s\t%s\n", $1, $2, $4, $5
+            printf "%s\t%s\t%s\t%s\t%s\n", $1, $2, $4, $5, $6
           }
         '
 
@@ -1749,16 +2050,26 @@ tasks:
 
         STATUS=$(yq -r '.status' "$ID/config.yaml")
 
-        case "$STATUS" in
-          draft)       ALLOWED="WEAVE,TOMBSTONE (Open Question prose is the active work surface — do not collapse)" ;;
-          accepted)    ALLOWED="WEAVE,TOMBSTONE,COLLAPSE-OQ" ;;
-          implemented) ALLOWED="NONE — frozen, compaction refused" ;;
-          superseded)  ALLOWED="STUB,COLLAPSE-OQ,TOMBSTONE" ;;
-          *)           ALLOWED="unknown status" ;;
-        esac
-        printf "STATUS\t%s\t%s\n" "$STATUS" "$ALLOWED"
+        # There is no `implemented` status any more, so the freeze that used
+        # to key on it now keys on the derived fact: an entry whose design
+        # has been DELIVERED is closed, and compaction refuses it. A rejected
+        # entry is closed for the same reason from the other end.
+        DELIVERY=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
 
-        if [ "$STATUS" = "implemented" ]; then
+        case "$STATUS" in
+          draft)      ALLOWED="WEAVE,TOMBSTONE (Open Question prose is the active work surface — do not collapse)" ;;
+          accepted)   ALLOWED="WEAVE,TOMBSTONE,COLLAPSE-OQ" ;;
+          rejected)   ALLOWED="NONE — archived, compaction refused" ;;
+          superseded) ALLOWED="STUB,COLLAPSE-OQ,TOMBSTONE" ;;
+          *)          ALLOWED="unknown status" ;;
+        esac
+        if [ "$DELIVERY" = "delivered" ]; then
+          ALLOWED="NONE — delivered, the record is closed"
+        fi
+        printf "STATUS\t%s\t%s\n" "$STATUS" "$ALLOWED"
+        printf "DELIVERY\t%s\t%s\n" "${DELIVERY:--}" "derived from plans/"
+
+        if [ "$DELIVERY" = "delivered" ] || [ "$STATUS" = "rejected" ]; then
           exit 0
         fi
 
@@ -1911,3 +2222,329 @@ tasks:
         echo "Next steps:"
         echo "  1. Replace the template .cue with your contracts (package name stays 'contracts')"
         echo "  2. Validate: task vet:one ID=$ID"
+
+  gate:
+    desc: Admission rubric for one enhancement — mechanical checks + the questions to walk
+    summary: |
+      Renders gates.cue against one entry: the deterministic half (vet,
+      blocking Open Questions, delivery plan, probe hits) plus the judgment
+      half (the questions an evaluator must answer, each with what its
+      verdict has to quote).
+
+      The split is deliberate. Regex catches the tells; the questions catch
+      the category errors. Never spend an AI pass on what grep does better.
+
+      Probe hits are printed so the walk has candidate evidence in hand —
+      that makes the quote requirement cheap to satisfy honestly and
+      awkward to fabricate.
+
+      This replaces the single-page acceptance view that 04-graduation.md
+      used to hand-maintain per entry. Generated cannot drift.
+
+      Usage:
+        task gate ID=0012              # promotion rubric
+        task gate ID=0012 WHEN=creation
+    vars:
+      ID: '{{.ID | default ""}}'
+      WHEN: '{{.WHEN | default "promotion"}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task gate ID=<4-digit-id>'
+      - sh: command -v cue >/dev/null 2>&1
+        msg: "cue is required"
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; RESET='\033[0m'
+        ID="{{.ID}}"; WHEN="{{.WHEN}}"
+
+        DIR="$ID"; [ -d "$DIR" ] || DIR="archive/$ID"
+        [ -d "$DIR" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        cfg="$DIR/config.yaml"
+
+        status=$(yq -r '.status' "$cfg")
+        title=$(yq -r '.title' "$cfg")
+        printf "${BOLD}%s${RESET}  status=%s  gate=%s\n  %s\n\n" "$ID" "$status" "$WHEN" "$title"
+
+        printf "${BOLD}Mechanical${RESET} ${DIM}(deterministic — no judgement involved)${RESET}\n"
+
+        if vet_out=$(task vet:one ID="$ID" 2>&1); then
+          printf "  %-22s ${GREEN}ok${RESET}\n" "vet"
+        else
+          printf "  %-22s ${RED}FAIL${RESET}\n%s\n" "vet" "$(echo "$vet_out" | sed 's/^/    /')"
+        fi
+
+        blockers=$(grep -oE '\*\*OQ[0-9]+:' "$DIR/07-questions.md" 2>/dev/null | tr -d '*:' | while read -r oq; do
+                     grep -E "\*\*${oq}:" "$DIR/07-questions.md" | grep -q 'Blocking: acceptance' && echo "$oq"
+                   done | paste -sd',' - | sed 's/,/, /g' || true)
+        if [ -n "$blockers" ]; then
+          printf "  %-22s ${YELLOW}%s${RESET}  (promotion refuses)\n" "blocking questions" "$blockers"
+        else
+          printf "  %-22s ${GREEN}none${RESET}\n" "blocking questions"
+        fi
+
+        deliv=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
+        printf "  %-22s %s\n" "delivery" "${deliv:--}"
+
+        # Probes come from gates.cue so the greps live with the rules they
+        # serve, not buried in this script. Exported once — cue export is not
+        # cheap and this loop reads several fields per gate.
+        RUBRIC=$(mktemp); trap 'rm -f "$RUBRIC"' EXIT
+        cue export gates.cue --out json > "$RUBRIC"
+        n_gates=$(yq -r '.gates | length' "$RUBRIC")
+        i=0
+        while [ "$i" -lt "$n_gates" ]; do
+          gid=$(yq -r ".gates[$i].id" "$RUBRIC")
+          applies=$(yq -r ".gates[$i].applies_to | join(\" \")" "$RUBRIC")
+          case " $applies " in *" $WHEN "*) : ;; *) i=$((i+1)); continue ;; esac
+          has_probe=$(yq -r ".gates[$i] | has(\"probe\")" "$RUBRIC")
+          if [ "$has_probe" = "true" ]; then
+            pat=$(yq -r ".gates[$i].probe.pattern" "$RUBRIC")
+            exc=$(yq -r ".gates[$i].probe.exclude // \"\"" "$RUBRIC")
+            glob=$(yq -r ".gates[$i].probe.files" "$RUBRIC")
+            hint=$(yq -r ".gates[$i].probe.hint" "$RUBRIC")
+            hits=$(for f in "$DIR"/$glob; do
+                     [ -f "$f" ] || continue
+                     if [ -n "$exc" ]; then
+                       grep -nE "$pat" "$f" 2>/dev/null | grep -vE "$exc" | sed "s|^|$(basename "$f"):|"
+                     else
+                       grep -nE "$pat" "$f" 2>/dev/null | sed "s|^|$(basename "$f"):|"
+                     fi
+                   done || true)
+            n=$(printf '%s' "$hits" | grep -c . || true)
+            if [ "${n:-0}" -gt 0 ]; then
+              printf "  %-22s ${YELLOW}%s hit(s)${RESET}  ${DIM}%s${RESET}\n" "probe:$gid" "$n" "$hint"
+              printf '%s\n' "$hits" | head -3 | cut -c1-140 | sed 's/^/      /'
+              [ "$n" -gt 3 ] && printf "      ${DIM}… %s more${RESET}\n" "$((n - 3))"
+            else
+              printf "  %-22s ${GREEN}0 hits${RESET}\n" "probe:$gid"
+            fi
+          fi
+          i=$((i+1))
+        done
+
+        echo
+        printf "${BOLD}Judgement${RESET} ${DIM}(walk with the enhancement-gates skill — every verdict quotes evidence)${RESET}\n"
+        i=0; walked=0
+        while [ "$i" -lt "$n_gates" ]; do
+          gid=$(yq -r ".gates[$i].id" "$RUBRIC")
+          applies=$(yq -r ".gates[$i].applies_to | join(\" \")" "$RUBRIC")
+          case " $applies " in *" $WHEN "*) : ;; *) i=$((i+1)); continue ;; esac
+          walked=$((walked+1))
+          printf "  ${BOLD}%s${RESET} — %s\n" "$gid" "$(yq -r ".gates[$i].title" "$RUBRIC")"
+          printf "      Q: %s\n" "$(yq -r ".gates[$i].question" "$RUBRIC")"
+          printf "      ${DIM}evidence: %s${RESET}\n" "$(yq -r ".gates[$i].evidence" "$RUBRIC")"
+          i=$((i+1))
+        done
+
+        echo
+        verdicts=".gates/$ID.yaml"
+        if [ -f "$verdicts" ]; then
+          hash_now=$(./scripts/entry_hash.sh "$ID")
+          hash_walked=$(yq -r '.entry_hash // ""' "$verdicts")
+          if [ "$hash_now" = "$hash_walked" ]; then
+            printf "  %s gates, verdicts recorded in %s (current)\n" "$walked" "$verdicts"
+          else
+            printf "  ${YELLOW}%s gates, verdicts in %s are STALE — the entry changed after the walk${RESET}\n" "$walked" "$verdicts"
+          fi
+        else
+          printf "  %s gates, 0 walked.  Run: /enhancement-gates ID=%s\n" "$walked" "$ID"
+        fi
+
+  promote:
+    desc: Promote draft → accepted (the sanctioned path; refuses on an open gate)
+    summary: |
+      Status flips stop being hand edits. This refuses unless:
+
+        - task vet:one passes
+        - no Open Question is still marked `Blocking: acceptance`
+        - config.yaml.semver is set
+        - a verdict file .gates/NNNN.yaml records a pass for every
+          promotion gate, with an entry_hash matching current content
+
+      The hash binding is what makes this a gate rather than a ritual: walk
+      the rubric, then edit the entry, and the verdict is automatically void.
+      The hash covers the six documents and the design-bearing config fields,
+      not `updated` or `history`, so bookkeeping edits do not force a re-walk.
+
+      Usage:
+        task promote ID=0012
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task promote ID=<4-digit-id>'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RESET='\033[0m'
+        ID="{{.ID}}"
+        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
+        cfg="$ID/config.yaml"
+
+        status=$(yq -r '.status' "$cfg")
+        [ "$status" = "draft" ] || { echo "Entry $ID is '$status', not 'draft' — nothing to promote." >&2; exit 1; }
+
+        refusals=""
+
+        task vet:one ID="$ID" >/dev/null 2>&1 \
+          || refusals="${refusals}\n  - task vet:one fails (run it for the detail)"
+
+        blockers=$(grep -oE '\*\*OQ[0-9]+:' "$ID/07-questions.md" 2>/dev/null | tr -d '*:' | while read -r oq; do
+                     grep -E "\*\*${oq}:" "$ID/07-questions.md" | grep -q 'Blocking: acceptance' && echo "$oq"
+                   done | paste -sd',' - | sed 's/,/, /g' || true)
+        [ -z "$blockers" ] \
+          || refusals="${refusals}\n  - Open Question(s) still marked 'Blocking: acceptance': $blockers"
+
+        [ "$(yq -r '.semver // ""' "$cfg")" != "" ] \
+          || refusals="${refusals}\n  - config.yaml.semver is not set (major | minor | none)"
+
+        verdicts=".gates/$ID.yaml"
+        if [ ! -f "$verdicts" ]; then
+          refusals="${refusals}\n  - no gate walk recorded ($verdicts missing). Run: /enhancement-gates ID=$ID"
+        else
+          want=$(./scripts/entry_hash.sh "$ID")
+          got=$(yq -r '.entry_hash // ""' "$verdicts")
+          if [ "$want" != "$got" ]; then
+            refusals="${refusals}\n  - $verdicts entry_hash does not match current content: the entry changed after the walk. Re-run: /enhancement-gates ID=$ID"
+          fi
+          failed=$(yq -r '[.verdicts[] | select(.verdict != "pass") | .gate] | join(", ")' "$verdicts" 2>/dev/null || true)
+          [ -z "$failed" ] || refusals="${refusals}\n  - gate verdict is not pass: $failed"
+          missing=$(comm -23 \
+            <(cue export gates.cue --out json | yq -r '.gates[] | select(.applies_to[] == "promotion") | .id' | sort) \
+            <(yq -r '.verdicts[].gate' "$verdicts" 2>/dev/null | sort) | paste -sd',' - | sed 's/,/, /g' || true)
+          [ -z "$missing" ] || refusals="${refusals}\n  - gate not walked: $missing"
+        fi
+
+        if [ -n "$refusals" ]; then
+          printf "${RED}REFUSED${RESET}%b\n" "$refusals"
+          exit 1
+        fi
+
+        TODAY=$(date +%Y-%m-%d)
+        SEMVER=$(yq -r '.semver' "$cfg")
+        EV="Accepted." SV="$SEMVER" yq -i '
+          .status = "accepted" |
+          .updated = "'"$TODAY"'" |
+          .history += [{"date": "'"$TODAY"'", "event": strenv(EV), "semver": strenv(SV)}]
+        ' "$cfg"
+        printf "${GREEN}promoted${RESET} %s draft → accepted (semver=%s)\n" "$ID" "$SEMVER"
+        echo
+        echo "Next steps:"
+        echo "  1. Scaffold the delivery plan:  task plans:new SLUG=<slug> IMPLEMENTS=$ID"
+        echo "  2. Refresh the browse aids:     task index && task graph"
+
+  reject:
+    desc: Kill an idea — archive it with a reason (ID=NNNN REASON="...")
+    summary: |
+      Moves the entry to archive/NNNN/, sets status: rejected, records the
+      reason, banners the README, and appends a history event.
+
+      The kill path is deliberately ONE command and the archived entry gets
+      REDUCED validation — schema and the reason, none of the prose gates. A
+      killed draft is incomplete by definition, and demanding seven finished
+      documents before allowing a kill would make the kill path more
+      expensive than the finish path. That inversion is how repos accumulate
+      drafts nobody believes in.
+
+      The id is kept forever: cross-references must keep resolving, and
+      `task new` will not reissue it.
+
+      Usage:
+        task reject ID=0021 REASON="Subsumed by 0015's contract maps"
+    vars:
+      ID: '{{.ID | default ""}}'
+      REASON: '{{.REASON | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task reject ID=<4-digit-id> REASON="<why>"'
+      - sh: '[ -n "{{.REASON}}" ]'
+        msg: 'REASON is required — an archived idea must say why it stopped. Usage: task reject ID=<id> REASON="<why>"'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        GREEN='\033[0;32m'; RESET='\033[0m'
+        ID="{{.ID}}"; REASON="{{.REASON}}"
+        [ -d "$ID" ] || { echo "No live enhancement directory: $ID" >&2; exit 1; }
+        [ -e "archive/$ID" ] && { echo "archive/$ID already exists" >&2; exit 1; }
+
+        status=$(yq -r '.status' "$ID/config.yaml")
+        case "$status" in
+          draft|accepted) : ;;
+          *) echo "Entry $ID is '$status' — only a draft or accepted entry can be rejected." >&2; exit 1 ;;
+        esac
+
+        TODAY=$(date +%Y-%m-%d)
+        mkdir -p archive
+        git mv "$ID" "archive/$ID" 2>/dev/null || mv "$ID" "archive/$ID"
+
+        cfg="archive/$ID/config.yaml"
+        R="$REASON" EV="Rejected: $REASON" yq -i '
+          .status = "rejected" |
+          .rejected_reason = strenv(R) |
+          .updated = "'"$TODAY"'" |
+          .history += [{"date": "'"$TODAY"'", "event": strenv(EV)}]
+        ' "$cfg"
+
+        # Reader-facing banner, mirroring the superseded convention.
+        readme="archive/$ID/README.md"
+        if [ -f "$readme" ] && ! grep -q '^> \*\*Rejected (' "$readme"; then
+          printf '> **Rejected (%s).** %s\n\n%s\n' "$TODAY" "$REASON" "$(cat "$readme")" > "$readme.tmp"
+          mv "$readme.tmp" "$readme"
+        fi
+
+        printf "${GREEN}rejected${RESET} %s → archive/%s\n" "$ID" "$ID"
+        echo "  reason: $REASON"
+        echo
+        echo "Next steps:"
+        echo "  1. task vet          # archived entries get reduced validation"
+        echo "  2. task index        # the archive table is generated"
+
+  archive:list:
+    desc: Rejected ideas with their summaries and reasons (prior art for a new entry)
+    summary: |
+      What the `prior-art` admission gate reads. A rejected idea legitimately
+      returns when circumstances change; what is not legitimate is
+      re-proposing it silently. Check here before scaffolding, and if the new
+      entry restates one of these, set `revives: ["NNNN"]` and say what
+      changed.
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
+        set -- archive/[0-9][0-9][0-9][0-9]/config.yaml
+        if [ ! -f "$1" ]; then
+          echo "No archived (rejected) enhancements."
+          exit 0
+        fi
+        for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          printf "${BOLD}%s${RESET}  %s\n" "$(yq -r '.id' "$cfg")" "$(yq -r '.title' "$cfg")"
+          printf "  %s\n" "$(yq -r '.summary' "$cfg")"
+          printf "  ${DIM}rejected %s: %s${RESET}\n\n" \
+            "$(yq -r '[.history[] | select(.event | test("^Rejected"))] | .[-1].date // "-"' "$cfg")" \
+            "$(yq -r '.rejected_reason' "$cfg")"
+        done
+
+  archive:data:
+    desc: TSV of rejected ideas — machine-readable, for the prior-art gate
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        set -- archive/[0-9][0-9][0-9][0-9]/config.yaml
+        [ -f "$1" ] || exit 0
+        for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          yq -r '[.id, .title, .summary, .rejected_reason] | @tsv' "$cfg"
+        done

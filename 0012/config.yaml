@@ -4,28 +4,25 @@
 id: "0012"
 slug: kubernetes-first-class-kernel-platform
 title: Kubernetes as a First-Class Kernel Platform
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  Move the Kubernetes runtime surface into the kernel so the deletion protocol, ownership guards and resource ordering have one implementation instead of a fork per frontend.
 status: draft
-
 # Primary owner: the kernel. The deletion protocol, the ownership vocabulary,
 # and the K8s object model all land in library/opm/; the frontends adopt.
 area: library
-
 # Every repo that ships code changes driven by this enhancement.
 affects:
   - library
   - opm-operator
   - cli
-
 core_schema: false
 created: "2026-07-27"
-updated: "2026-08-22"
-
+updated: "2026-08-23"
 authors:
   - emil@jacero.se
-
-implementation:
-  status: not-started
-
 history:
   - date: "2026-07-27"
     event: Drafted
@@ -37,7 +34,8 @@ history:
     event: "Decision Kind gate retrofit: every decision annotated with Kind (contract | policy | scope) per the new template convention. Classification only — no decision content changed."
   - date: "2026-08-22"
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
-
+  - date: "2026-08-23"
+    event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
 # 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
 #        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).
 # 0008 — CUE-native CRD types; overlaps on where the shared K8s type vocabulary lives.
@@ -48,9 +46,11 @@ related:
   - "0008"
   - "0009"
   - "0010"
-
 # NOT a supersession of 0006 as an entry — 0006 is implemented and stands.
 # This entry supersedes exactly one of its decisions (D31), recorded in
 # 03-decisions.md rather than via this field.
 supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
 superseded_by: null

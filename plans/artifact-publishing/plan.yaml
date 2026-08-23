@@ -32,7 +32,7 @@
 # ONE MIGRATION SLICE LIVES HERE — registry-cleanup, D17 items 2-4. It moves
 # and deletes already-published artifacts, so it is migration by purpose even
 # though nothing it touches is a fleet coordinate. It was previously owned by
-# neither plan: 0011's 04-graduation.md required it while this header claimed
+# neither plan: 0011's delivery criteria required it while this header claimed
 # the entry had no migration work, and 0010's plan header listed it as out of
 # scope. Adding it REVERSES that one item of the 2026-08-05 scope call; the
 # call's other two — the legacy v1alpha1 deletion and the Zot cutover — stand
@@ -278,6 +278,18 @@ slices:
     decisions: [0011:D17]
     status: done
     openspec_ref: "opm-operator/fixtures-testing-domain"
+
+  - id: cli-template-modules
+    repo: cli
+    phase: implementation
+    concern: >
+      Reserve the templates segment and publish the official scaffolds as
+      real gated modules from the cli release pipeline, replacing embedded
+      template text that nothing evaluated.
+    depends_on: ["cli-publish-pipeline"]
+    decisions: [0011:D25]
+    status: done
+    openspec_ref: "cli/2026-08-18-cli-template-modules"
 
 # Decisions this entry implements in no slice, each with the reason. Surfaced
 # by `task decisions:uncovered`, which is quiet about them once they are here.

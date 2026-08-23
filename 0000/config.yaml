@@ -10,6 +10,11 @@
 id: "0000"
 slug: template-placeholder
 title: Enhancement Template
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  {One line: the capability OPM will have and does not have today, or the rework of one it has.}
 status: draft
 
 # Which OPM area is the primary owner. See enhancements/schema.cue #Area.
@@ -35,10 +40,6 @@ updated: "2026-05-23"
 authors:
   - emil@jacero.se
 
-# Implementation tracking. status: not-started | in-progress | partial | complete.
-# `date` and `notes` allowed only when status reaches `complete`.
-implementation:
-  status: not-started
 
 # Append-only timeline of milestones. The validator (future) enforces
 # append-only via git diff against HEAD~1. Free-form `event` strings;
@@ -56,4 +57,7 @@ related: []
 
 # Lifecycle relationships.
 supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
 superseded_by: null

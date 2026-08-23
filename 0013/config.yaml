@@ -4,20 +4,22 @@
 id: "0013"
 slug: secret-field-attributes
 title: Attribute-Declared Secret Fields
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  Let a module author declare which Kubernetes object a secret key belongs in with an attribute, separating routing metadata from the deployer-supplied fulfilment data.
 status: accepted
-
 # major: core removes published definitions ($opm vocabulary, the discovery
 # pyramid, #SecretK8sRef, #SecretSchema and friends) and narrows #Secret to
 # the two-arm disjunction; catalog_opm narrows #SecretSchema.data to string.
 # Both are breaking for any consumer of the current shapes.
 semver: major
-
 # Primary owner is nobody in particular, which is why this is cross-cutting:
 # core loses a dead construct and gains one context field, library gains the
 # whole mechanism, catalog_opm loses a duplicated one, and the module authoring
 # surface changes. No single repo dominates.
 area: cross-cutting
-
 # Every repo that ships code/schema/content changes driven by this enhancement.
 affects:
   - cross-cutting
@@ -28,142 +30,29 @@ affects:
   - cli
   - opm-operator
   - opmodel.dev
-
 core_schema: true
 created: "2026-07-27"
-updated: "2026-08-22"
-
+updated: "2026-08-23"
 authors:
   - emil@jacero.se
-
-implementation:
-  status: not-started
-
 history:
   - date: "2026-07-27"
     event: Drafted
   - date: "2026-07-27"
     event: >-
-      Design recorded as D1-D9 with one open question. The entry replaces the
-      `#Secret` contract type with an inert `@opm(secret, …)` field attribute on
-      the declaring `#config` field, moves discovery from 240 lines of unrolled
-      CUE comprehension into a bounded Go walk in the library kernel, and
-      substitutes an opaque handle for every marked value before any component
-      is built — so plaintext never enters the component graph and a secret that
-      lands somewhere the target cannot express as a reference becomes
-      detectable instead of silently rendered. Secret object naming collapses
-      from three disagreeing derivations to one kernel-owned computation
-      delivered through `#TransformerContext.secrets`, which makes the currently
-      live env-vs-volume name mismatch unrepresentable. Experiment 01 measured
-      the mechanism against the real `opmodel.dev/core@v1` schema: attributes
-      survive definition-to-value unification, the `#Module`/`#ModuleInstance`
-      shape, cross-CUE-module imports, 12+ nesting levels, lists, and pattern
-      constraints, and are discoverable before values exist. OQ1 — which surface
-      chooses between the supplied and referenced fulfilment kinds — is the sole
-      blocker to acceptance.
-
+      Design recorded as D1-D9 with one open question. The entry replaces the `#Secret` contract type with an inert `@opm(secret, …)` field attribute on the declaring `#config` field, moves discovery from 240 lines of unrolled CUE comprehension into a bounded Go walk in the library kernel, and substitutes an opaque handle for every marked value before any component is built — so plaintext never enters the component graph and a secret that lands somewhere the target cannot express as a reference becomes detectable instead of silently rendered. Secret object naming collapses from three disagreeing derivations to one kernel-owned computation delivered through `#TransformerContext.secrets`, which makes the currently live env-vs-volume name mismatch unrepresentable. Experiment 01 measured the mechanism against the real `opmodel.dev/core@v1` schema: attributes survive definition-to-value unification, the `#Module`/`#ModuleInstance` shape, cross-CUE-module imports, 12+ nesting levels, lists, and pattern constraints, and are discoverable before values exist. OQ1 — which surface chooses between the supplied and referenced fulfilment kinds — is the sole blocker to acceptance.
   - date: "2026-07-27"
     event: >-
-      Design revised on review: D10 supersedes D1, D11 supersedes D4, D12 amends
-      D9, and OQ1 is closed. D1 had removed the `#Secret` contract type AND the
-      disjunction inside it, when only the routing metadata needed to move to the
-      attribute — leaving the deployer no slot in which to say "this Secret
-      already exists", and forcing the handle-plus-context-map machinery of D4 to
-      compensate. D10 restores `#Secret` narrowed to `#SecretLiteral |
-      #SecretRef`, so the ATTRIBUTE carries routing (author intent, static, in
-      the published module) and the TYPE carries fulfilment (deployer choice,
-      per environment, type-checked by CUE). D11 replaces handle substitution
-      with resolve-in-place: the kernel rewrites every secret to its `#SecretRef`
-      form, so both arms converge before render, a transformer reads two fields
-      from one branch, and the whole handle format, the `#TransformerContext`
-      addition, the `owned` flag and the output scanner are all deleted. Three
-      properties fall out that the first draft lacked: instance files for
-      supplied secrets do not change at all, plaintext in the render is
-      structurally unrepresentable rather than stripped, and a secret
-      interpolated into a rendered string fails at plain `cue vet` at authoring
-      time. Experiment 02 rebuilt as `02-resolve-in-place` and re-run: all five
-      claims held, and its Go content hash agrees with the CUE one in
-      examples.cue. OQ2 opened — whether the arm rewrite survives the real
-      kernel build path — and is now the sole blocker to acceptance.
-
+      Design revised on review: D10 supersedes D1, D11 supersedes D4, D12 amends D9, and OQ1 is closed. D1 had removed the `#Secret` contract type AND the disjunction inside it, when only the routing metadata needed to move to the attribute — leaving the deployer no slot in which to say "this Secret already exists", and forcing the handle-plus-context-map machinery of D4 to compensate. D10 restores `#Secret` narrowed to `#SecretLiteral | #SecretRef`, so the ATTRIBUTE carries routing (author intent, static, in the published module) and the TYPE carries fulfilment (deployer choice, per environment, type-checked by CUE). D11 replaces handle substitution with resolve-in-place: the kernel rewrites every secret to its `#SecretRef` form, so both arms converge before render, a transformer reads two fields from one branch, and the whole handle format, the `#TransformerContext` addition, the `owned` flag and the output scanner are all deleted. Three properties fall out that the first draft lacked: instance files for supplied secrets do not change at all, plaintext in the render is structurally unrepresentable rather than stripped, and a secret interpolated into a rendered string fails at plain `cue vet` at authoring time. Experiment 02 rebuilt as `02-resolve-in-place` and re-run: all five claims held, and its Go content hash agrees with the CUE one in examples.cue. OQ2 opened — whether the arm rewrite survives the real kernel build path — and is now the sole blocker to acceptance.
   - date: "2026-08-13"
     event: >-
-      Guarantee review against five first-class-secrets guarantees (declared in
-      the schema, discoverable without values, typed fulfilment, structural
-      absence from the render, backend-neutral routing) landed three decisions.
-      D13: discovery keys on the type as well as the marker and fails closed —
-      a `#Secret`-typed field without the attribute is discovered with
-      all-default routing, a marked non-`#Secret` field is a Discover error, so
-      forgetting the mark can never leak a literal into the component graph.
-      D14: SOPS support at the file seams — the CLI decrypts SOPS-encrypted
-      values files via the sops library on input; export-side encryption of
-      rendered Secret manifests rides 0014's export surface; companion UX is
-      `opm secrets template` (skeleton values file generated from Discover with
-      no values present) and secrets-aware `opm module vet` messaging for
-      unfulfilled secrets, replacing a rejected standalone verify command.
-      Explicitly not a third fulfilment arm, not a D8 catalog backend, and not
-      kernel code (kernel neutrality). D15: the operator path accepts
-      supplied-arm literals in a ModuleInstance CR, documented as plaintext at
-      rest in etcd with the referenced arm as production guidance; no
-      valuesFrom mechanism. Design goals, Non-Goals, and Scope updated — the
-      former blanket "encryption at rest" non-goal narrows to "implementing
-      cryptography". OQ2 unchanged as the sole acceptance blocker; an
-      experiment proving the D8 extension point with a second
-      `#SecretGroupPlan` consumer is agreed but not yet scaffolded.
-
+      Guarantee review against five first-class-secrets guarantees (declared in the schema, discoverable without values, typed fulfilment, structural absence from the render, backend-neutral routing) landed three decisions. D13: discovery keys on the type as well as the marker and fails closed — a `#Secret`-typed field without the attribute is discovered with all-default routing, a marked non-`#Secret` field is a Discover error, so forgetting the mark can never leak a literal into the component graph. D14: SOPS support at the file seams — the CLI decrypts SOPS-encrypted values files via the sops library on input; export-side encryption of rendered Secret manifests rides 0014's export surface; companion UX is `opm secrets template` (skeleton values file generated from Discover with no values present) and secrets-aware `opm module vet` messaging for unfulfilled secrets, replacing a rejected standalone verify command. Explicitly not a third fulfilment arm, not a D8 catalog backend, and not kernel code (kernel neutrality). D15: the operator path accepts supplied-arm literals in a ModuleInstance CR, documented as plaintext at rest in etcd with the referenced arm as production guidance; no valuesFrom mechanism. Design goals, Non-Goals, and Scope updated — the former blanket "encryption at rest" non-goal narrows to "implementing cryptography". OQ2 unchanged as the sole acceptance blocker; an experiment proving the D8 extension point with a second `#SecretGroupPlan` consumer is agreed but not yet scaffolded.
   - date: "2026-08-14"
     event: >-
-      Experiment 03-kernel-omission concluded — OQ2 resolved by D16, clearing
-      the last blocker to acceptance. The measurement ran the real published
-      kernel (library v1.0.0-alpha.12, core v2.0.0-alpha.4 from GHCR, no local
-      replace) against a fixture module carrying the narrowed two-arm #Secret
-      locally. 17/17 assertions: the raw-baked instance builds and validates
-      as its own artifact (statement A has a home outside the render build);
-      overriding — filling the resolved arm over the raw-baked package through
-      ProcessModuleInstance's own seam — fails with the closed-arm
-      empty-disjunction collision, proving omission is not just chosen but
-      structurally enforced; both candidate omission mechanisms work today
-      through existing public entry points (fill-style via
-      ProcessModuleInstance's ValidateConfig+FillPath seam, bake-style via
-      loaderfile.BuildInstanceOverlayAt, the overlay synth.Instance already
-      uses); and on both render artifacts the literal resolved to {ref, key},
-      the deployer-written ref passed through unchanged, no .value field
-      exists, and the plaintext is absent from the exported values subtree.
-      Consequence recorded in D16: one component-graph build suffices (raw
-      values validate in the existing separate Kernel.Validate evaluation),
-      no new kernel machinery is needed for the swap, and the D11-alternatives
-      fallbacks (#SecretBase coexistence fill, #ctx.secrets) are not needed.
-      Earlier the same day: ctx-fill and #SecretBase coexistence recorded as
-      rejected alternatives in D11 (the latter proposed and retracted after
-      the plaintext-in-graph review), and the two-statement collision was
-      demonstrated standalone with a four-case cue vet probe before being
-      reproduced at kernel scale in M2. Every open question is now resolved;
-      promotion to accepted is the next gate.
-
+      Experiment 03-kernel-omission concluded — OQ2 resolved by D16, clearing the last blocker to acceptance. The measurement ran the real published kernel (library v1.0.0-alpha.12, core v2.0.0-alpha.4 from GHCR, no local replace) against a fixture module carrying the narrowed two-arm #Secret locally. 17/17 assertions: the raw-baked instance builds and validates as its own artifact (statement A has a home outside the render build); overriding — filling the resolved arm over the raw-baked package through ProcessModuleInstance's own seam — fails with the closed-arm empty-disjunction collision, proving omission is not just chosen but structurally enforced; both candidate omission mechanisms work today through existing public entry points (fill-style via ProcessModuleInstance's ValidateConfig+FillPath seam, bake-style via loaderfile.BuildInstanceOverlayAt, the overlay synth.Instance already uses); and on both render artifacts the literal resolved to {ref, key}, the deployer-written ref passed through unchanged, no .value field exists, and the plaintext is absent from the exported values subtree. Consequence recorded in D16: one component-graph build suffices (raw values validate in the existing separate Kernel.Validate evaluation), no new kernel machinery is needed for the swap, and the D11-alternatives fallbacks (#SecretBase coexistence fill, #ctx.secrets) are not needed. Earlier the same day: ctx-fill and #SecretBase coexistence recorded as rejected alternatives in D11 (the latter proposed and retracted after the plaintext-in-graph review), and the two-statement collision was demonstrated standalone with a four-case cue vet probe before being reproduced at kernel scale in M2. Every open question is now resolved; promotion to accepted is the next gate.
   - date: "2026-08-14"
     event: >-
-      Experiment 04-rewrite-performance concluded — D17 recorded: the Resolve
-      rewrite mechanism is decode → splice → encode on evaluated data
-      (experiment 02's prototype mechanism), not AST and not FillPath-graft.
-      The experiment's own hypothesis — that a prune-graft (FillPath untouched
-      subtrees wholesale, descend only into marked branches) scales with
-      marked-path count and so wins on large sparse configs — was REFUTED:
-      decode-encode wins 12–39x on every shape including the large-2000-field
-      one-secret case constructed to favor the graft, whose per-FillPath
-      construction/re-unification overhead dominates and worsens with secret
-      count and path depth. Both mechanisms passed the correctness gate
-      (JSON-identical outputs, no plaintext survives) before timing. Absolute
-      cost is negligible either way (~4ms for a 2000-field config), so
-      performance does not constrain the design — it settles the
-      implementation choice. Rider measurement: bake-style delivery's
-      serialization of resolved values to CUE bytes costs about one extra
-      decode-encode pass; fill-style needs none. AST surgery rejected in D17
-      without timing: values are concrete data by Resolve time, and 0011's
-      StripProvenance work already measured CUE's value-to-AST round-trip as
-      fragile beyond the concrete-data subset. Earlier the same day the
-      kernel-omission re-verification passed 17/17 against library
-      v1.0.0-alpha.13.
-
+      Experiment 04-rewrite-performance concluded — D17 recorded: the Resolve rewrite mechanism is decode → splice → encode on evaluated data (experiment 02's prototype mechanism), not AST and not FillPath-graft. The experiment's own hypothesis — that a prune-graft (FillPath untouched subtrees wholesale, descend only into marked branches) scales with marked-path count and so wins on large sparse configs — was REFUTED: decode-encode wins 12–39x on every shape including the large-2000-field one-secret case constructed to favor the graft, whose per-FillPath construction/re-unification overhead dominates and worsens with secret count and path depth. Both mechanisms passed the correctness gate (JSON-identical outputs, no plaintext survives) before timing. Absolute cost is negligible either way (~4ms for a 2000-field config), so performance does not constrain the design — it settles the implementation choice. Rider measurement: bake-style delivery's serialization of resolved values to CUE bytes costs about one extra decode-encode pass; fill-style needs none. AST surgery rejected in D17 without timing: values are concrete data by Resolve time, and 0011's StripProvenance work already measured CUE's value-to-AST round-trip as fragile beyond the concrete-data subset. Earlier the same day the kernel-omission re-verification passed 17/17 against library v1.0.0-alpha.13.
   - date: "2026-08-14"
     event: Accepted
     semver: major
@@ -175,21 +64,19 @@ history:
     event: "Delivery-plan extraction: plan.yaml/PLAN.md moved out of the entry into the plans/ tree under the one-way reference rule (plans cite enhancements; enhancements never cite plans); in-entry file references reworded to the generic form. Structure/metadata only."
   - date: "2026-08-22"
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
-
-# Peer enhancements this one builds on or interacts with.
+    # Peer enhancements this one builds on or interacts with.
   - date: "2026-08-22"
     event: >-
-      Mechanism scoping pass: prescriptive construction detail removed from
-      D9, D16 and D17, from the Cross-References table, and from the
-      operational migration rows; ## Integration Points rewritten intent-level
-      as ## Affected Surfaces. No decision was reversed and no answer changed;
-      measured evidence, Source citations and Alternatives considered were
-      kept in full. Recorded under the 2026-08-22 mechanism-removal carve-out.
+      Mechanism scoping pass: prescriptive construction detail removed from D9, D16 and D17, from the Cross-References table, and from the operational migration rows; ## Integration Points rewritten intent-level as ## Affected Surfaces. No decision was reversed and no answer changed; measured evidence, Source citations and Alternatives considered were kept in full. Recorded under the 2026-08-22 mechanism-removal carve-out.
+  - date: "2026-08-23"
+    event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
 related:
   - "0009"
   - "0010"
   - "0011"
-
 # Lifecycle relationships.
 supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
 superseded_by: null

@@ -347,8 +347,11 @@ tasks:
           [ "$id" = "0000" ] && continue
           status=$(yq -r '.status' "$cfg")
           [ "$status" = "accepted" ] || continue
-          impl=$(yq -r '.implementation.status // ""' "$cfg")
-          [ "$impl" = "complete" ] && continue
+          # The entry no longer carries an implementation field. An entry
+          # that already derives `delivered` needs no coverage nudge — the
+          # plan that delivered it is what the derivation read.
+          deliv=$("$ENTRIES"/scripts/delivery.sh "$id" 2>/dev/null | cut -f2 || true)
+          [ "$deliv" = "delivered" ] && continue
           affects_n=$(yq -r '.affects | length' "$cfg" 2>/dev/null || echo 0)
           [ "$affects_n" -gt 1 ] || continue
           covered=0

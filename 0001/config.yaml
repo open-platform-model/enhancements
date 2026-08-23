@@ -1,8 +1,12 @@
 id: "0001"
 slug: platform-redesign-umbrella
 title: "#Platform Redesign Umbrella"
-status: implemented
-
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  Reshape #Platform from an Id-keyed registry of imported modules into a path-keyed map of registry subscriptions the kernel resolves against OCI at materialize time.
+status: accepted
 # `core` owns the keystone schema change; every other repo follows.
 area: core
 affects:
@@ -11,25 +15,16 @@ affects:
   - modules
   - opm-operator
   - cli
-
 core_schema: true
 created: "2026-05-23"
-updated: "2026-08-22"
-
+updated: "2026-08-23"
 authors:
   - emil@jacero.se
-
 # `core` is pre-1.0; per its versioning rules every break — including this
 # umbrella's (FQN regex, `#Module.#defines` removal, `#registry` shape) —
 # rides a minor bump within `@v0`. No `@v1` cut until `core` is signalled
 # stable. See D12.
 semver: minor
-
-implementation:
-  status: complete
-  date: "2026-07-20"
-  notes: "core/ landed + published (opmodel.dev/core@v0). library/ landed + published v0.3.0 (v0.17 recontract, OCI schema loader, Materialize, concurrent render, SynthesizeRelease/SynthesizePlatform). Catalog repackaged + published from its own catalog_opm repo (opmodel.dev/catalogs/opm@v0). opm-operator rewrite COMPLETE 2026-06-12 (10 OpenSpec slices, 2026-06-06..2026-06-12: kernel wired, Platform CRD + reconciler + generation-keyed store, kernel renderers cut over for ModuleRelease + Release, materialize self-heal, pre-0001 fork fully deleted incl. provider plumbing + v1.3.4 pin). Remaining for graduation: cli/ rewrite onto the kernel (cli imports zero library code, still carries its own pkg/render fork) + workspace modules/* rewire to core@v0/catalogs shape (D23 wave — modules/*/cue.mod still pin legacy opmodel.dev/core/v1alpha1@v1, verified 2026-06-12). | 2026-06-22 re-scope: the cli/ rewrite remainder is carved into enhancement 0006 (CLI library-kernel adoption, D9) — 0001 graduates to implemented when 0006's kernel-adoption slice lands. Workspace modules/* mass-rewire is reclassified as consumer maintenance (each module migrates on its own cadence), NOT a 0001 graduation blocker; the e2e fixtures (jellyfin/seerr/web_app) are already on core@v0 (verified 2026-06-22: 3/28 migrated). Sole remaining 0001 design blocker: cli kernel adoption via 0006. | 2026-07-24 CLOSEOUT: the cli kernel-adoption slice landed via 0006's C2 (cli 1.0.0-alpha.4, 2026-07-20), closing the final graduation gate. Verified in cli/ 2026-07-24: go.mod requires github.com/open-platform-model/library v1.0.0-alpha.8, the pkg/render fork is deleted, 13 Go files import open-platform-model/library/opm, and render/materialize/compile/handoff-verify all flow through kernel.New -> Compile/Materialize. status in-progress -> complete; date 2026-07-20 = CLI slice landing (final piece). Workspace modules/* mass-rewire remains non-blocking consumer maintenance."
-
 history:
   - {date: "2026-05-23", event: "Drafted — umbrella scope (registry/materialize/matcher + #ctx.runtime)"}
   - {date: "2026-05-23", event: "Decisions D1–D4 locked — #ctx collapsed to {release, components}; #Component.#names is source of truth; #ctx.components is CUE projection; clusterDomain moves onto #ReleaseIdentity. OQ18/OQ19/OQ20/OQ21 resolved. Spike at schemas/example_instance.cue."}
@@ -78,8 +73,12 @@ history:
     event: "Schemas convention migration: config gains core_schema: true — schemas/ is now formally the core-schema delta (target.cue + examples.cue + spec.md required from accepted); cue.mod refreshed to enhancements.opmodel.dev/0001/schemas, CUE v0.17.0. Structure/metadata only."
   - date: "2026-08-22"
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
-
+  - date: "2026-08-23"
+    event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
 related:
   - "0006"
 supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
 superseded_by: null

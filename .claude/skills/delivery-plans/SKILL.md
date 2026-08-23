@@ -73,7 +73,7 @@ That distinction does real work. A slice that edits source files *and* republish
 | `done` | Landed. `openspec_ref` set. | Terminal — other slices' `depends_on` may now resolve against it. |
 | `cancelled` | Will not ship. `cancelled_reason` set. | Terminal — id retained for any `depends_on` still citing it. |
 
-When the whole plan completes (every slice `done` or `cancelled`), close the loop on the enhancement side under its own skill: `implementation.status: complete`, the dated history event, the README snapshot block — in plan-blind wording.
+When the whole plan completes (every slice `done` or `cancelled`), **nothing is written back to the enhancement.** `task delivery` derives `delivered` from this file — every non-cancelled slice `done` and every decision carried by a done slice or excused in `unsliced`. There is no implementation field to set and no status to flip, which is also why no plan-blind wording is needed: the entry never mentions delivery at all.
 
 ## Create
 

@@ -14,8 +14,9 @@
 //   enhancements → plans   FORBIDDEN. No enhancement document, config or
 //                          history event may name a plan slug, a slice id,
 //                          or a plan file. An enhancement records design
-//                          intent; that it has been delivered is a plain
-//                          fact (`implementation.status`), never a pointer.
+//                          intent; that it has been delivered is DERIVED
+//                          from this file by `task delivery`, and stored
+//                          nowhere in the entry at all.
 //
 // Validated with:
 //   cue vet -d '#DeliveryPlan' plans/schema.cue plans/<slug>/plan.yaml
