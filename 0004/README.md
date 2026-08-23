@@ -7,16 +7,10 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout — there is no scheduled detection of upstream releases and no per-bump provenance. This enhancement adds a path-driven **Dagger** function — point it at a directory, it walks for CUE modules and bumps each via CUE's native `cue mod get` + `cue mod tidy` — invoked identically in local use (`dagger call`) and on a daily schedule in each repo's CI, where it opens a grouped, tidied, reviewable PR. Because resolution is CUE-native, no registry route table or `module.cue`-parsing regex is needed. The same function backs `task update-deps`, collapsing the manual and automated paths to one implementation.
 
 <!--
-When implementation lands (status → implemented, or implementation.status → partial+),
-add an Implementation Status quote block here. Format:
-
-  > **Implementation status (YYYY-MM-DD).** {One-paragraph summary of what
-  > shipped, with file paths to landed code. If there are deliberate deviations
-  > from the original design, point readers to the `## Deviations from Design`
-  > section below.}
-
-The date in the block MUST match `config.yaml.implementation.date` (which
-exists only when implementation.status reaches `complete`).
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment the plan
+moves, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -27,7 +21,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 1. [01-problem.md](01-problem.md) — Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
 2. [02-design.md](02-design.md) — Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
 3. [03-decisions.md](03-decisions.md) — Decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions register
@@ -149,7 +143,7 @@ To create a new enhancement from this template:
    ownership, created + updated set to today's date.
 5. Write `01-problem.md` and `02-design.md` first — full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
+6. `05-risks.md` and `06-operational.md` start as scaffolds
    and mature alongside the decision log.
 7. Sketch the target schema in `contracts/contracts.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.

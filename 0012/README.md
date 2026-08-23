@@ -19,7 +19,7 @@ This entry also re-opens a settled decision. Enhancement 0006 **D13.1** decided 
 1. [01-problem.md](01-problem.md) — One kernel, two Kubernetes runtimes: verified duplication, measured divergence, and the deletion gaps OQ10 did not identify
 2. [02-design.md](02-design.md) — A Kubernetes tier in the kernel; share every decision, share execution only where it carries no framework opinion
 3. [03-decisions.md](03-decisions.md) — Decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions register

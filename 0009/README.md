@@ -13,16 +13,10 @@ source of metadata; no parallel metadata table lives in this README.
 OPM can render declarative modules to Kubernetes but cannot describe *what should happen* — install/upgrade hooks, migrations, on-demand operations. This enhancement adds a second half to the kernel that interprets the same `#Module` for execution, introducing four operational primitives in `core` — `#Op` (a controlled smallest-denominator primitive), `#Action` (compositions over Ops), `#Lifecycle` (steps bound to fixed state-transition phases), and `#Workflow` (on-demand flows). The library acts as a pure planner + orchestrator; the executable code is pluggable and catalog-sourced, dispatched via CUE attributes, so operations are as extensible as transformers already are — without re-importing Helm's "arbitrary script as a hook" failure mode.
 
 <!--
-When implementation lands (status → implemented, or implementation.status → partial+),
-add an Implementation Status quote block here. Format:
-
-  > **Implementation status (YYYY-MM-DD).** {One-paragraph summary of what
-  > shipped, with file paths to landed code. If there are deliberate deviations
-  > from the original design, point readers to the `## Deviations from Design`
-  > section below.}
-
-The date in the block MUST match `config.yaml.implementation.date` (which
-exists only when implementation.status reaches `complete`).
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment the plan
+moves, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -33,7 +27,7 @@ documents (e.g. `experiments/`) only when a specific need surfaces.
 1. [01-problem.md](01-problem.md) — OPM renders but cannot execute operations; side scripts and Helm-style hooks are the anti-pattern
 2. [02-design.md](02-design.md) — A second kernel half (planner + orchestrator) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
 3. [03-decisions.md](03-decisions.md) — Decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions register
@@ -183,7 +177,7 @@ To create a new enhancement from this template:
    ownership, created + updated set to today's date.
 5. Write `01-problem.md` and `02-design.md` first — full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
+6. `05-risks.md` and `06-operational.md` start as scaffolds
    and mature alongside the decision log.
 7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.

@@ -41,7 +41,7 @@ The seven split documents below are mandatory and always present.
 1. [01-problem.md](01-problem.md) — Identity is stated four times, drifts, and puts a moving version inside the label on every deployed resource
 2. [02-design.md](02-design.md) — One identity per artifact, contract keys split from build keys, subscriptions that name their builds, and a committed identity file
 3. [03-decisions.md](03-decisions.md) — Decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions register

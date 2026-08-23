@@ -15,16 +15,10 @@ it matters. Write this last — once the design has settled the summary writes
 itself. Keep it free of jargon that requires reading further documents.}
 
 <!--
-When implementation lands (status → implemented, or implementation.status → partial+),
-add an Implementation Status quote block here. Format:
-
-  > **Implementation status (YYYY-MM-DD).** {One-paragraph summary of what
-  > shipped, with file paths to landed code. If there are deliberate deviations
-  > from the original design, point readers to the `## Deviations from Design`
-  > section below.}
-
-The date in the block MUST match `config.yaml.implementation.date` (which
-exists only when implementation.status reaches `complete`).
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment the plan
+moves, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -36,7 +30,7 @@ specific need surfaces.
 1. [01-problem.md](01-problem.md) — {One-line description of the problem being solved}
 2. [02-design.md](02-design.md) — {One-line description of the proposed design}
 3. [03-decisions.md](03-decisions.md) — DN decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — OQN Open Questions register
@@ -147,7 +141,7 @@ NNNN/research/
 
 ## Delivery Plan
 
-Cross-repo sequencing is a delivery concern, tracked outside this entry in a delivery plan under `plans/` (see `plans/README.md`). Plans reference this entry's decisions and Open Questions by number (`NNNN:D34`, `NNNN:OQ9`); this entry never references a plan, a slice, or a plan file — the one-way rule. When delivery completes, `config.yaml` records the plain fact (`implementation.status: complete`, a dated history event) without naming who delivered it.
+Cross-repo sequencing is a delivery concern, tracked outside this entry in a delivery plan under `plans/` (see `plans/README.md`). Plans reference this entry's decisions and Open Questions by number (`NNNN:D34`, `NNNN:OQ9`); this entry never references a plan, a slice, or a plan file — the one-way rule. When delivery completes, this entry records **nothing** — `task delivery` derives the state from the plan, so there is no field for a pointer to hide in.
 
 ## Diagrams
 
@@ -189,7 +183,7 @@ To create a new enhancement from this template:
    ownership, created + updated set to today's date.
 5. Write `01-problem.md` and `02-design.md` first — full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
+6. `05-risks.md` and `06-operational.md` start as scaffolds
    and mature alongside the decision log.
 7. If the enhancement adds or changes opmodel.dev/core definitions
    (`config.yaml.core_schema: true`), sketch the delta in

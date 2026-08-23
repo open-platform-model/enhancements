@@ -21,7 +21,7 @@ See [`config.yaml`](config.yaml) for the metadata contract — it is the sole so
 1. [01-problem.md](01-problem.md) — the four gaps, measured 2026-08-22 against `catalog_opm/src`, `core/src/catalog.cue` and `compile/match.go`
 2. [02-design.md](02-design.md) — dual-shipping, the declared promotion, the tombstone, and the distinction enhancement 0010 D34 did not draw
 3. [03-decisions.md](03-decisions.md) — D1..D12
-4. [04-graduation.md](04-graduation.md) — per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — risks, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md) — operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions OQ1..OQ8

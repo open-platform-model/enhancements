@@ -17,7 +17,7 @@ This enhancement renames the whole family to `Instance` vocabulary **cross-cutti
 1. [01-problem.md](01-problem.md) — Why "Release" mis-teaches the model (Helm overlap + under-described multiplicity), and the four inconsistent spellings across the stack
 2. [02-design.md](02-design.md) — The cross-cutting rename mapping and the three-layer (identifier / wire / cluster) analysis
 3. [03-decisions.md](03-decisions.md) — D1..D12 (D2 reverses D1 → cross-cutting + `ModulePackage`; D3–D8 resolve the wire/group/CLI/bundle/semver questions; D9–D11 add the `release.cue`→`instance.cue` convention, the rename-every-file policy, and the Go `// Was:` docstring breadcrumb; D12 generalizes that breadcrumb to every rename site across code, docs, and specs)
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented), with per-repo slice criteria
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — API-group orphan risk, lockstep sequencing, breaking-rename drawbacks, alternatives
 6. [06-operational.md](06-operational.md) — PRR-lite (semver, reinstall-based rollback, cross-repo sequencing)
 7. [07-questions.md](07-questions.md) — Open Questions register

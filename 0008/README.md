@@ -15,7 +15,7 @@ The design is grounded in a dated, primary-source research dossier ([`research/f
 1. [01-problem.md](01-problem.md) — Why defining the CRD types twice (canonical CUE in `core/` vs hand-authored Go in `opm-operator/`) is a live drift hazard now that the CLI also depends on the Go types
 2. [02-design.md](02-design.md) — CUE owns schema + validation + CRD-metadata-as-data; a Go assembler over published `core` emits CRD YAML and Go types; controller-gen retained only for deepcopy; CEL passed through verbatim
 3. [03-decisions.md](03-decisions.md) — Decision log (D1–D8)
-4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, and the Go-source-of-truth / CRD-pivot alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 7. [07-questions.md](07-questions.md) — Open Questions register

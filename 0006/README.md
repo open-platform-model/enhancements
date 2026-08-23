@@ -15,7 +15,7 @@ This enhancement promotes the storage/handoff design of `cli/docs/rfc/0007` (and
 1. [01-problem.md](01-problem.md) — Why two disjoint inventory stores (CLI Secret vs operator CR) and two divergent render pipelines (CLI `pkg/render` vs library kernel) make the learner-to-operator path impossible and handoff unsafe
 2. [02-design.md](02-design.md) — CR-backed inventory, full library-kernel adoption for render/match, CLI-side SSA apply, `spec.owner` marker, `opm operator install`, `opm instance handoff`
 3. [03-decisions.md](03-decisions.md) — Decision log (D1–D35)
-4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 7. [07-questions.md](07-questions.md) — Open Questions register

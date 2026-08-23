@@ -9,16 +9,10 @@ A published OPM module is deployed through a **module instance package** — an 
 This entry adds `opm instance init`: point the CLI at a module's OCI reference and tag, give an instance name and namespace, and get a complete, committable instance package whose boilerplate — dependency pins, majors, imports, `#module:` wiring — is derived from the acquired artifact instead of typed by hand (D1). The generated `values.cue` is populated from the module's `debugValues` by default (D2), and the enhancement proposes a new optional `#Module` field (working name `initValues`, OQ1) through which authors state what a fresh deployment should start from — taking precedence over `debugValues`, whose testing/debugging contract stays unchanged (D3).
 
 <!--
-When implementation lands (status → implemented, or implementation.status → partial+),
-add an Implementation Status quote block here. Format:
-
-  > **Implementation status (YYYY-MM-DD).** One-paragraph summary of what
-  > shipped, with file paths to landed code. If there are deliberate deviations
-  > from the original design, point readers to the `## Deviations from Design`
-  > section below.
-
-The date in the block MUST match `config.yaml.implementation.date` (which
-exists only when implementation.status reaches `complete`).
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment the plan
+moves, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -26,7 +20,7 @@ exists only when implementation.status reaches `complete`).
 1. [01-problem.md](01-problem.md) — No path from a published module to a runnable instance package; author intent for "what a new deployment starts as" has no home on `#Module`
 2. [02-design.md](02-design.md) — Acquire the module from the registry, pick a values source (`initValues` → `debugValues` → empty), render the standalone three-file package
 3. [03-decisions.md](03-decisions.md) — Decision log (D1–D3)
-4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 7. [07-questions.md](07-questions.md) — Open Questions register

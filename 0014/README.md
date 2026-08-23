@@ -11,16 +11,10 @@ This entry adds `opm instance export`: read the live `ModuleInstance`, verify th
 The design turns on two findings. First, a `kubectl` dump is not merely untidy, it is **wrong**: `ApplySpec` (`cli/internal/inventory/store.go:119`) writes only `spec.module`, `spec.owner`, and `spec.values`, so every CLI-written CR is missing `spec.serviceAccountName` and `spec.prune` — and a document without them applies under the controller's own identity and orphans its workloads on delete. Second, the conversion to GitOps changes who applies the instance from then on, which is a larger commitment than the ownership flip that preceded it; so export inherits handoff's verification gate rather than settling for a warning (**D2**). What makes both possible without conflict is the partition in `02-design.md`: `spec.module` and `spec.values` are render-bearing and are copied verbatim under the digest gate, while apply identity and deletion policy are apply-bearing, absent from the render digest, and can therefore be completed — as long as every completion is reported.
 
 <!--
-When implementation lands (status → implemented, or implementation.status → partial+),
-add an Implementation Status quote block here. Format:
-
-  > **Implementation status (YYYY-MM-DD).** One-paragraph summary of what
-  > shipped, with file paths to landed code. If there are deliberate deviations
-  > from the original design, point readers to the `## Deviations from Design`
-  > section below.
-
-The date in the block MUST match `config.yaml.implementation.date` (which
-exists only when implementation.status reaches `complete`).
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment the plan
+moves, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -28,7 +22,7 @@ exists only when implementation.status reaches `complete`).
 1. [01-problem.md](01-problem.md) — Handoff moves the manager, not the definition; why a CR dump is incomplete in ways that change apply identity and deletion behaviour
 2. [02-design.md](02-design.md) — Read the live CR, run handoff's gate chain, complete the apply-bearing fields, compose a per-instance directory
 3. [03-decisions.md](03-decisions.md) — Decision log (D1–D4)
-4. [04-graduation.md](04-graduation.md) — draft → accepted, accepted → implemented gates
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
 7. [07-questions.md](07-questions.md) — Open Questions register

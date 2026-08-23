@@ -27,7 +27,7 @@ The seven split documents below are mandatory and always present.
 1. [01-problem.md](01-problem.md): the render path forks one component into two values and hands the transformer the lossy branch; the premise that justified it does not hold in CUE; and the multi-build architecture that made it reachable is also the one that races, retains, and serialises
 2. [02-design.md](02-design.md): parity as the contract, the differential oracle, the fills, the single-build render step and the platform shape that makes it resolvable, what matching costs (measured), and the fixture that has to move first
 3. [03-decisions.md](03-decisions.md): decision log (D1 through D18)
-4. [04-graduation.md](04-graduation.md): per-status gates (draft → accepted → implemented), phased
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite), including the two-phase landing order and the interim operator stopgap
 7. [07-questions.md](07-questions.md): Open Questions register (OQ1 through OQ14)

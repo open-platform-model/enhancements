@@ -16,7 +16,7 @@ specific need surfaces.
 1. [01-problem.md](01-problem.md) — why no layer can default a component field today, and what that costs
 2. [02-design.md](02-design.md) — one defaulting role per layer; the precedence chain and its four mechanisms
 3. [03-decisions.md](03-decisions.md) — DN decision log
-4. [04-graduation.md](04-graduation.md) — Per-status gates (draft → accepted → implemented)
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
 6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md) — Open Questions register
@@ -184,7 +184,7 @@ To create a new enhancement from this template:
    ownership, created + updated set to today's date.
 5. Write `01-problem.md` and `02-design.md` first — full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `04-graduation.md`, `05-risks.md`, `06-operational.md` start as scaffolds
+6. `05-risks.md` and `06-operational.md` start as scaffolds
    and mature alongside the decision log.
 7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.

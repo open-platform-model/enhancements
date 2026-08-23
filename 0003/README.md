@@ -23,7 +23,7 @@ The seven split documents below are mandatory and always present. All but `03-de
 1. [01-problem.md](01-problem.md) — *Stub.* Identity and registry coordinates drift; the measurements that gave the entry its urgency, restated in both successors
 2. [02-design.md](02-design.md) — *Stub.* Canonical `modulePath/nameSnakeCase` mapping — and why it stopped being accurate before supersession
 3. [03-decisions.md](03-decisions.md) — **Kept in full.** D1–D27 with alternatives, supersessions marked in place
-4. [04-graduation.md](04-graduation.md) — *Stub.* Gates that were never met
+4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — *Partly kept.* Risk narrative stubbed; the per-site **Blast Radius** audit retained in full
 6. [06-operational.md](06-operational.md) — *Stub.* PRR-lite answers against the retired design
 7. [07-questions.md](07-questions.md) — Open Questions collapsed to successor pointers
