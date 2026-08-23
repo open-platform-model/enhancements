@@ -47,9 +47,9 @@ Read `config.yaml.status` first thing, before anything else.
 | Status | Behavior |
 | --- | --- |
 | `draft` | **WEAVE and TOMBSTONE, as repair only** — for reversals stacked before the in-place rule (or imported habits). A draft maintained under the current model needs neither: routine revision happens in place during Phase 2 without this skill. Leave Open Question prose alone — it is the active work surface, and its context paragraphs are what make the questions answerable. Collapsing them mid-design destroys work in progress. |
-| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass immediately before the flip to `implemented`. |
+| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass at latest before the design is delivered. |
 | delivered (derived) | **Refuse. No override, no `FORCE` flag.** The design shipped and the record is closed. What looks like a needed correction is either a new enhancement or a note in the successor. Say so and exit. |
-| `superseded` | **STUB**, plus COLLAPSE-OQ and TOMBSTONE. The narrative documents collapse to pointers at the successor. `experiments/` and `research/` are never touched under any status. |
+| `superseded` | **STUB**, plus COLLAPSE-OQ and TOMBSTONE. The narrative documents collapse to pointers at the successor. The entry lives in `archive/NNNN/` (terminal entries are always archived; `task supersede` does the move) — `task compact:plan` and this skill operate on it there. `experiments/` and `research/` are never touched under any status. |
 
 There is no override for a delivered entry. If the user insists, the honest answer is that the entry is frozen by design and the fix belongs in a new entry — offer to draft that instead.
 
@@ -124,7 +124,7 @@ Keep the bullet's `- **OQN: …** Status: …` shape exactly. `task questions:li
 
 ### STUB — collapse a superseded entry
 
-`superseded` only. The design intent now belongs to the successor; this entry becomes the record that it existed and what it settled.
+`superseded` only. The design intent now belongs to the successor; this entry becomes the record that it existed and what it settled. It sits in `archive/NNNN/` — `task supersede` archived it when the status flipped — so the stub pass edits files there, and successor links point up out of the archive (`../../MMMM/`).
 
 - **`README.md`** — keep the `> **Superseded by NNNN (YYYY-MM-DD).**` banner and its migration paragraph. Keep `## Scope`. Everything else reduces to a short statement of what the entry still usefully holds.
 - **`01`, `02`, `04`, `05`, `06`** — each collapses to a few sentences: what it covered, which successor owns it now. A stubbed document is not an empty one; a reader who lands here from a cross-reference needs to know where to go. (`07-questions.md` is not stubbed — its bullets collapse under COLLAPSE-OQ, keeping every `OQN` and its final status.)
@@ -214,7 +214,7 @@ Mixing compaction into a content change makes the two indistinguishable in revie
 
 - **Writing before the manifest is approved.** The manifest is the control. Skipping it turns this skill into an unsupervised rewrite of a design record.
 - **Dropping the overturned position instead of demoting it to an alternative.** The single most damaging failure mode. A decision that was tried and reversed is the strongest evidence in the document; deleting it guarantees someone re-proposes it. Fold it into *Alternatives considered*, marked as previously adopted.
-- **Compacting a delivered entry.** Closed means closed, and it is derived rather than declared — `task compact:plan` reports `DELIVERY delivered` and refuses. There is no flag. Same for a rejected entry in `archive/`.
+- **Compacting a delivered entry.** Closed means closed, and it is derived rather than declared — `task compact:plan` reports `DELIVERY delivered` and refuses. There is no flag. Same for a rejected entry in `archive/` — being archived is not what closes it (a superseded entry is archived too, and its STUB pass runs there); its `rejected` status is.
 - **Collapsing Open Questions on a `draft`.** Their context paragraphs are the working surface. Wait for the promotion pass.
 - **Collapsing an `answered` OQ to a bare token.** Its status line *is* the answer; nothing points at a decision. This deletes content that exists nowhere else.
 - **Renumbering to close tombstone gaps.** The gaps are the point. Other repos cite these numbers.

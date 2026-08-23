@@ -16,5 +16,5 @@ The core sequencing insight outlived the entry and is carried forward: the invar
 
 ## Where it went
 
-- **[0010 — Module and Catalog Identity](../0010/)** — `06-operational.md`
-- **[0011 — Module and Catalog Publishing](../0011/)** — `06-operational.md`
+- **[0010 — Module and Catalog Identity](../../0010/)** — `06-operational.md`
+- **[0011 — Module and Catalog Publishing](../../0011/)** — `06-operational.md`

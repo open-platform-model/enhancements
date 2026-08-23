@@ -97,6 +97,8 @@ history:
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
+  - date: "2026-08-23"
+    event: Moved to archive/ under the new terminal-entries-are-always-archived rule; relative links repointed. No content rewritten.
 related: ["0001", "0002", "0006"]
 # Lifecycle relationships.
 supersedes: []

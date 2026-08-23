@@ -34,8 +34,8 @@ enhancements/
 │   └── {slug}/             one directory per plan
 │       ├── plan.yaml       implements, slices, unsliced
 │       └── PLAN.md         generated (task plans:graph) — do not hand-edit
-├── archive/                rejected ideas — id kept forever, reduced validation
-│   └── NNNN/               same package, status: rejected + rejected_reason
+├── archive/                terminal entries (rejected, superseded) — id kept forever, reduced validation
+│   └── NNNN/               same package; status: rejected + rejected_reason, or superseded + superseded_by
 └── NNNN/                   one directory per enhancement (id-only)
     ├── config.yaml         sole source of metadata (summary, status, revives, …)
     ├── README.md           index, summary, scope, cross-references
@@ -110,7 +110,7 @@ Execution sequencing lives outside the entries, in [`plans/`](plans/) — one de
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (`rejected` only inside `archive/`, nothing live inside it).
+- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
 - **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, one-way smell (plan-file names in prose), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
 
 Run `task vet` before any PR that touches an enhancement. `task gate ID=NNNN` is the pre-promotion view, and `task promote` runs the hard half itself.
@@ -118,17 +118,19 @@ Run `task vet` before any PR that touches an enhancement. `task gate ID=NNNN` is
 ## Status lifecycle
 
 ```
-             ┌── rejected  (archive/NNNN, with a reason)
+             ┌── rejected    (archive/NNNN, with a reason)
 draft ───────┤
-             └── accepted ──── superseded  (when a successor takes over)
+             └── accepted ── superseded  (archive/NNNN, when a successor takes over)
 ```
+
+Both terminal states are **always archived**: a rejected idea and a superseded design alike end up in `archive/NNNN/`, and `task vet` fails a terminal entry left in place.
 
 | Status | Meaning |
 | --- | --- |
 | `draft` | Initial design, actively being written. Cheap entry state. |
 | `accepted` | Design agreed upon. Decision bodies are protected from here. The resting state — there is nothing after it to reach. |
 | `rejected` | The idea was not accepted. The entry moves to `archive/NNNN/` keeping its id forever, with `rejected_reason` saying why. |
-| `superseded` | Replaced by a newer enhancement. Paired with `superseded_by` here and `supersedes` on the replacement. |
+| `superseded` | Replaced by a newer enhancement. Paired with `superseded_by` here and `supersedes` on the replacement; the entry moves to `archive/NNNN/` keeping its id forever. |
 
 **There is no `implemented` status and no implementation field.** Whether a design has been delivered is a fact about the plan that delivers it, so it is *derived*:
 
@@ -179,6 +181,16 @@ Archived entries get **reduced validation** — schema and the reason, none of t
 
 A rejected idea legitimately returns when circumstances change; what is not legitimate is re-proposing it silently. The returning entry sets `revives: ["0021"]` and states what changed. `task archive:list` is the prior-art view.
 
+## Superseding a design
+
+```bash
+task supersede ID=0003 BY=0010
+```
+
+The other terminal state, under the same rule: **a terminal entry is always archived.** After the successor records its half of the link (`supersedes: ["0003"]` in its `config.yaml`), the task flips the old entry to `status: superseded`, sets `superseded_by`, appends a history event, banners the README when no hand-written banner exists yet, and moves the entry to `archive/0003/`. It refuses on a missing back-link, on a non-`accepted` entry (a replaced draft is killed with `task reject` instead), and on an unset `semver`.
+
+The archived entry then gets its compaction stub (see below) — `task compact:plan` resolves into `archive/` for exactly this case.
+
 ## Staged rollout
 
 OPM already has a maturity ladder, and it is not on the design document: catalog members carry their own `apiVersion` (`resources/v1alpha1/`, `v1beta1/`, `v1/`), and the module line ships prereleases. A rung is a property of the published artifact, which is where a consumer asks the question.
@@ -202,7 +214,7 @@ Rewriting a protected design record is a real risk, not a free lunch, so post-ac
 | `draft` | Revised in place as part of ordinary editing; the compaction skill is needed only to repair legacy stacked reversals. Open Question prose is left alone — it is the active work surface. |
 | `accepted` | Protected. Changes append a new `DN` with relation fields; the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available for as long as the entry has not been delivered. |
 | `rejected` | **Nothing changes.** The idea was killed; the archive keeps the entry as it stood. |
-| `superseded` | The narrative documents collapse to pointers at the successor; the decision log keeps its numbers and its *Alternatives considered*, so the successor does not re-litigate settled ground. `experiments/` and `research/` are never touched. |
+| `superseded` | The narrative documents collapse to pointers at the successor; the decision log keeps its numbers and its *Alternatives considered*, so the successor does not re-litigate settled ground. The pass runs on the archived entry (`archive/NNNN/`). `experiments/` and `research/` are never touched. |
 
 The test for what survives any revision or weave: **keep what would change a future decision; drop what only records that we changed our mind.**
 

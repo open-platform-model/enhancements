@@ -20,8 +20,8 @@ Two measurements gave the entry its urgency, and both are reproduced in the succ
 
 The problem statement and both measurements are **restated inline** in the successors, dated, rather than cross-referenced — neither requires reading this entry:
 
-- **[0010 — Module and Catalog Identity](../0010/)** — what an artifact's identity is and how it reaches the artifact's own bytes.
-- **[0011 — Module and Catalog Publishing](../0011/)** — the commands that write it and the registry it goes to.
+- **[0010 — Module and Catalog Identity](../../0010/)** — what an artifact's identity is and how it reaches the artifact's own bytes.
+- **[0011 — Module and Catalog Publishing](../../0011/)** — the commands that write it and the registry it goes to.
 
 ## What still lives here
 

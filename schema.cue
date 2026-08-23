@@ -31,7 +31,9 @@ import "strings"
 // (`task delivery`), never asserted here. An entry that stores delivery
 // progress becomes a logbook, which is what this vocabulary exists to
 // prevent. `accepted` is the resting state; `rejected` and `superseded`
-// are the two terminal ones.
+// are the two terminal ones, and a terminal entry ALWAYS lives in
+// archive/NNNN/ (`task reject` / `task supersede` do the move; `task vet`
+// enforces the placement in both directions).
 #Status:       "draft" | "accepted" | "rejected" | "superseded"
 #SemverImpact: "major" | "minor" | "none"
 

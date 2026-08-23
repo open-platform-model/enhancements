@@ -44,7 +44,7 @@ These hold across every enhancement in the repo. Violations fail PR review even 
 5. **Decision and OQ *numbers* are immutable; body mutability is status-gated.** `D1`, `D2`, `OQ1`, … are never reused and never renumbered — other repos cite them from commit messages and OpenSpec changes. A number vacated by a merge or retraction keeps a one-line tombstone (`### D18: (merged into D3, YYYY-MM-DD)`) so the citation still resolves. What may happen to the prose under a number depends on `status`:
    - **`draft`** — decision bodies are freely revised **in place**. The log never contains two conflicting decisions: a changed choice is an edit to the existing `DN`, not a new one. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* before overwriting; a mere sketch may be replaced outright.
    - **`accepted`** — decision bodies are **protected**. A change lands as a *new* `DN` carrying `**Amends:**` / `**Supersedes:**` relation fields; the only path to edit an existing body is the `enhancement-compaction` skill (manifest + own commit), at latest in the mandatory weave before the design is delivered.
-   - **delivered** (derived, not a status) — closed. `task compact:plan` refuses it. **`superseded`** — stubbed via compaction. **`rejected`** — archived as it stood.
+   - **delivered** (derived, not a status) — closed. `task compact:plan` refuses it. **`superseded`** — archived via `task supersede`, then stubbed via compaction. **`rejected`** — archived as it stood. Both terminal states ALWAYS live in `archive/NNNN/`; `task vet` fails a terminal entry left in place.
 6. **A delivered design is closed.** No compaction, no merging, no rewriting — `task delivery` reports it and `task compact:plan` refuses it. Corrections go in a new enhancement.
 7. **The entry stores rules and intent; every changing fact is derived.** Delivery from `plans/`, maturity from the published artifact's `apiVersion`, the gate verdict from a walk bound to a content hash. Before adding a field to `config.yaml`, ask whether its value would need updating after the design is done. If yes, it does not belong.
 7. **Don't hard-wrap prose in `.md` files.** Workspace convention.
@@ -176,16 +176,30 @@ There is no flip at the end. An entry that has been delivered simply reads `deli
 
 ### Phase 5 — Supersede
 
-When a newer enhancement fully replaces this one, both sides record the link:
+When a newer enhancement fully replaces this one, the supersession is a command, not a hand edit — and like rejection, it **always archives** the entry:
 
-- New entry: `supersedes: ["NNNN"]`, `status: draft` (or whatever its current status is).
-- Old entry: `superseded_by: "MMMM"`, `status: superseded`.
-- Old entry's README gets a top-of-file quote block:
-  ```markdown
-  > **Superseded by MMMM (YYYY-MM-DD).** Brief migration paragraph: what the new entry changes, where to look for the replacement design, whether any of this entry's decisions carry forward.
-  ```
+```bash
+# 1. Record the successor's half of the link first:
+#    MMMM/config.yaml: supersedes: ["NNNN"]
+# 2. Optionally write a rich hand-authored banner into NNNN/README.md
+#    (task supersede writes a default one only if none exists).
+task supersede ID=NNNN BY=MMMM
+```
 
-Terminal state — the design intent is now `MMMM`'s. Don't keep developing the entry, but do **compact it** (`enhancement-compaction`): the narrative documents collapse to pointers at the successor, while the decision log keeps its numbers and its *Alternatives considered* so `MMMM` does not re-litigate ground this entry already settled. `experiments/` and `research/` stay untouched — the measurements are usually the expensive part and they remain valid evidence.
+What the task does — and refuses:
+
+- Refuses unless the old entry is `accepted` (a draft replaced by a newer idea is killed with `task reject ID=NNNN REASON="superseded by MMMM: …"` instead — its design was never agreed, so there is nothing to hand over), unless `semver` is set, and unless `MMMM`'s `supersedes` already includes `NNNN` — both halves of the link exist before the move.
+- Sets `status: superseded` and `superseded_by: "MMMM"`, appends the history event, banners the README if no `> **Superseded by …**` quote block exists yet, and moves the entry to `archive/NNNN/`.
+
+The banner is a top-of-file quote block; write it by hand before running the task when the migration story deserves more than the default line:
+
+```markdown
+> **Superseded by MMMM (YYYY-MM-DD).** Brief migration paragraph: what the new entry changes, where to look for the replacement design, whether any of this entry's decisions carry forward.
+```
+
+After the move, fix relative links in the archived documents (`../MMMM/` → `../../MMMM/` for live entries) and run `task vet && task index && task graph`.
+
+Terminal state — the design intent is now `MMMM`'s. Don't keep developing the entry, but do **compact it** (`enhancement-compaction`): the narrative documents collapse to pointers at the successor, while the decision log keeps its numbers and its *Alternatives considered* so `MMMM` does not re-litigate ground this entry already settled. The stub pass runs on the archived entry — `task compact:plan` resolves into `archive/`. `experiments/` and `research/` stay untouched — the measurements are usually the expensive part and they remain valid evidence.
 
 ## Cross-references between entries
 
@@ -252,11 +266,13 @@ Not written anywhere. `task delivery ID=NNNN` computes it from `plans/`: every n
 
 ### `superseded`
 
-Terminal state.
+Terminal state, and archived like `rejected` — `task supersede` does the move.
 
-- **[H]** `superseded_by` set (non-null)
+- **[H]** the entry lives in `archive/NNNN/` (and nothing live does)
+- **[H]** `superseded_by` set (non-null); `semver` set (the design was agreed, so its impact was assessed)
 - **[H]** the replacement enhancement's `supersedes` includes this id
 - **[S]** `README.md` has top-of-file `> **Superseded by NNNN (YYYY-MM-DD).**` quote block with short migration paragraph
+- **Reduced validation** otherwise, same as `rejected`: the entry is a stubbed record whose live design is its successor's, so the prose gates have nothing left to gate.
 
 ## The Taskfile
 
@@ -278,8 +294,9 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task delivery [ID=NNNN]` | Answering "what is done?". Derived from `plans/` — this is what replaced the implementation field. |
 | `task gate ID=NNNN` | Before promoting. Mechanical checks + probe hits + the questions to walk. **Load `enhancement-gates`.** |
 | `task promote ID=NNNN` | The sanctioned `draft → accepted` path. Refuses on an open gate. |
+| `task supersede ID=NNNN BY=MMMM` | Superseding an accepted entry. Sets the link, banners the README, archives it. Refuses unless `MMMM.supersedes` already includes `NNNN`. |
 | `task reject ID=NNNN REASON="…"` | Killing an idea. Archives it with its reason; the id is never reused. |
-| `task archive:list` / `archive:data` | Checking a new idea against prior art (the `prior-art` gate). |
+| `task archive:list` / `archive:data` | Checking a new idea against prior art (the `prior-art` gate). Lists both terminal states — rejected with reasons, superseded with successors. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
 | `task graph` | After any cross-reference edit. `GRAPH.md` is generated, not hand-edited. |
 | `task plans:*` | Delivery-plan tasks (`new`, `vet`, `graph`, `ready`, `uncovered`, `deferred`, `seed`) — operate on `plans/<slug>/`, never inside an entry. **Load the `delivery-plans` skill first.** |
@@ -308,6 +325,7 @@ Workflow:
 - **Recording delivery progress in the entry.** There is no field for it any more, and `history` is capped and checked for delivery verbs. What shipped belongs to the plan; `task delivery` reads it back. An entry that narrates its own delivery is the logbook this repo removed.
 - **Re-proposing a rejected idea silently.** `task archive:data` is one command. A returning idea is legitimate; an unacknowledged one wastes the argument that killed it the first time.
 - **Hand-editing `status: accepted`.** `task promote` is the path, and it checks four things you would otherwise have to remember. A hand edit also leaves no verdict file, which `task vet` can see.
+- **Hand-editing `status: superseded`, or leaving a terminal entry live.** `task supersede` is the path — it checks both halves of the link and does the archive move. A terminal entry (`rejected` or `superseded`) always lives in `archive/NNNN/`; `task vet` fails one left in place.
 - **Filling decisions speculatively.** On a draft the fix is cheap — revise the block in place — but until then a wrong decision misleads whoever reads the log next, and once the entry is `accepted` unwinding it costs an amending `DN` plus a compaction pass. Only record decisions after they are made, with their alternatives and source. If unsure, leave it as an Open Question.
 - **Revising a draft decision carelessly.** In-place revision is the normal Phase 2 move, but it has two hard edges: an evidence-backed old position folds into *Alternatives considered* (deleting it guarantees someone re-proposes it), and a retracted number keeps a tombstone heading — it never silently disappears.
 - **Editing an `accepted` entry's decision body directly.** Protected means protected: the change is a new `DN` with a relation field, and existing bodies move only through `enhancement-compaction` with its manifest and its own commit. A direct edit after acceptance is exactly how a design record gets quietly laundered to agree with whatever was just built.

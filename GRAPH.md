@@ -12,7 +12,6 @@ graph LR
 
   N0001["0001: #Platform Redesign Umbrella"]:::accepted
   N0002["0002: Rename the Release artifact family to Instance vo…"]:::accepted
-  N0003["0003: OPM Module Publishing Workflow"]:::superseded
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
   N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::accepted
@@ -30,6 +29,7 @@ graph LR
   N0018["0018: Documentation Architecture"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::accepted
   N0020["0020: Contract Promotion and Retirement"]:::draft
+  N0003["0003: OPM Module Publishing Workflow"]:::superseded
 
   N0001 ---|related| N0002
   N0001 ---|related| N0003

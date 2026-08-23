@@ -104,6 +104,6 @@ The audit's most useful finding is how much of this enhancement D13 deletes rath
 
 ## Where it went
 
-- **[0010 — Module and Catalog Identity](../0010/)** — owns the identity change the audit below measures.
-- **[0011 — Module and Catalog Publishing](../0011/)** — owns the publish-side and fleet-migration risks.
+- **[0010 — Module and Catalog Identity](../../0010/)** — owns the identity change the audit below measures.
+- **[0011 — Module and Catalog Publishing](../../0011/)** — owns the publish-side and fleet-migration risks.
 

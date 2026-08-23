@@ -197,20 +197,27 @@ To create a new enhancement from this template:
 ### Status lifecycle
 
 - **draft** — initial design, actively being written
-- **accepted** — design agreed upon, ready for implementation
-- **implemented** — design has been realized in code
+- **accepted** — design agreed upon, ready for implementation; the resting
+  state (delivery is derived from `plans/`, never stored here)
+- **rejected** — the idea was not accepted; the entry moves to
+  `archive/NNNN/` with `rejected_reason` (`task reject`)
 - **superseded** — replaced by a newer enhancement (paired with
-  `superseded_by` on this entry and `supersedes` on the replacement)
+  `superseded_by` on this entry and `supersedes` on the replacement); the
+  entry moves to `archive/NNNN/` (`task supersede`)
+
+Both terminal states are always archived — a terminal entry never stays in
+place, and `task vet` fails one that does.
 
 ### Compaction
 
 These documents state what is true *now*. Provenance lives in git and in `config.yaml.history` — the one strictly append-only structure. `DN` and `OQN` numbers are never reused or renumbered (other repos cite them); a number vacated by a merge or retraction keeps a one-line tombstone.
 
 - **draft** — decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
-- **accepted** — decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path — weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available right up to the flip.
-- **implemented** — frozen. Nothing changes, ever.
+- **accepted** — decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path — weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available at latest until the design is delivered.
+- **delivered** (derived from `plans/`, not a status) — closed. Nothing changes, ever.
 - **superseded** — narrative documents collapse to pointers at the successor;
   the decision log keeps its numbers and its *Alternatives considered*.
+  The pass runs on the archived entry (`archive/NNNN/`).
   `experiments/` and `research/` are never touched.
 
 Run `task compact:plan ID=NNNN` for the candidate list and load the

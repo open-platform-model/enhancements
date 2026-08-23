@@ -19,7 +19,7 @@ By supersession the design above was three reversals out of date, which is preci
 
 ## Where it went
 
-- **[0010 — Module and Catalog Identity](../0010/)** — the identity shape, restated with only current answers.
-- **[0011 — Module and Catalog Publishing](../0011/)** — the publish pipeline and the registry.
+- **[0010 — Module and Catalog Identity](../../0010/)** — the identity shape, restated with only current answers.
+- **[0011 — Module and Catalog Publishing](../../0011/)** — the publish pipeline and the registry.
 
 Both start fresh decision logs at D1. `contracts/contracts.cue` in this entry still compiles and records the shape as it stood at supersession — read it as history, not as a contract.

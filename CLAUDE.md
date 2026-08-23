@@ -69,7 +69,7 @@ These invariants hold across every enhancement; violations fail PR review even i
 - **The entry stores rules and intent; every fact that changes over time is derived from where it actually lives.** This is the governing principle. Delivery derives from `plans/` (`task delivery`), maturity derives from the published artifact's `apiVersion`, the admission gate's output is the entry's own prose. Apply the test before adding any field to `config.yaml`: if the value would need updating after the design is done, it does not belong here.
 - **There is no `implemented` status and no implementation axis.** A progress field attracts progress prose, which is how entries became logbooks: `0001.implementation.notes` reached 1.5KB of dated commentary, and 319 of 724 history events exceed 200 runes. `history` survives, capped at 200 runes for events after 2026-08-23 and restricted to design milestones — delivery belongs to the plan.
 - **An entry must pass the admission rubric in `gates.cue`.** Six rules: `feature`, `contract`, `durability`, `rewrite`, `single-question`, `prior-art`. `task gate ID=NNNN` runs the deterministic half and prints the judgment half; the `enhancement-gates` skill walks it and records `.gates/NNNN.yaml`. `task promote` is the sanctioned `draft → accepted` path and refuses without a current all-pass verdict. An idea that fails `feature` goes in `IDEAS.md`, not an entry.
-- **A killed idea is archived, not deleted.** `task reject ID=NNNN REASON="…"` moves it to `archive/NNNN/` with `status: rejected` and `rejected_reason`. The id is kept forever so citations resolve and `task new` will not reissue it. Archived entries get reduced validation — schema and the reason only — because a kill path more expensive than the finish path is one nobody uses. A returning idea sets `revives: ["NNNN"]` and says what changed.
+- **A terminal entry is archived, not deleted — always.** Both terminal statuses live in `archive/NNNN/`: `task reject ID=NNNN REASON="…"` moves a killed idea there with `status: rejected` and `rejected_reason`; `task supersede ID=NNNN BY=MMMM` moves a replaced design there with `status: superseded` and `superseded_by` (refusing unless `MMMM.supersedes` already lists `NNNN`). `task vet` fails a terminal entry left in place. The id is kept forever so citations resolve and `task new` will not reissue it. Archived entries get reduced validation — schema, placement, and the reason/successor link only — because a kill path more expensive than the finish path is one nobody uses. A returning idea sets `revives: ["NNNN"]` and says what changed.
 - **Folder names are id-only.** `0001/`, `0042/` — no slug suffix. `0000` is reserved for the template.
 - **Compilable CUE is pure CUE files**, never fenced code blocks longer than a few illustrative lines. `NNNN/schemas/` is strictly the **core-schema delta** and exists **iff** `config.yaml.core_schema: true` — `target.cue` (the proposed `opmodel.dev/core` additions/changes), `examples.cue` (concrete instances + assertions; the test), `spec.md` (spec delta in core SPEC.md's four-part format; `examples.cue` + `spec.md` are hard-required from `accepted`). Non-core compilable CUE — decision procedures, kernel-behaviour contracts, CLI contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts`). `task vet` enforces the iff-rule in both directions and that `core_schema: true` implies `core ∈ affects`.
 - **2026-08-20 schemas-convention migration carve-out.** The full-sweep migration to the rule above (moving non-core CUE from `schemas/` to `contracts/`, adding `config.yaml.core_schema`, and refreshing `cue.mod` metadata) was applied to every entry **including frozen `implemented`/`superseded` ones** as a one-time, structure-only exception to the freeze invariant, recorded per-entry as a history event. Frozen prose, decision bodies, and CUE *content* were not rewritten; `implemented`/`superseded` entries stay exempt from the `examples.cue`/`spec.md` requirement (their spec landed in `core/SPEC.md`).
@@ -93,7 +93,7 @@ Read these on entry:
 
 - `CLAUDE.md` — repo orientation (this file).
 - `README.md` — what enhancements are and how to read them.
-- `INDEX.md` — browseable list of entries by id, status, area.
+- `INDEX.md` — browseable list of entries by id, area, affects, status.
 - `GRAPH.md` — Mermaid relationship diagram (supersedes / depends-on).
 - `schema.cue` — CUE schema for `config.yaml` (every entry validates against this).
 - `plans/README.md` — delivery plans: the execution layer, the one-way rule, the field reference.
@@ -135,7 +135,7 @@ plans/                      Delivery plans — the execution layer (one-way rule
   README.md                 Field reference + the one-way rule
   <slug>/plan.yaml          One per plan — implements, slices, unsliced
   <slug>/PLAN.md            Generated (task plans:graph) — do not hand-edit
-archive/NNNN/               Rejected ideas — id kept forever, reduced validation
+archive/NNNN/               Terminal entries (rejected, superseded) — id kept forever, reduced validation
 gates.cue                   Admission rubric — the six questions an entry must answer
 IDEAS.md                    One line per unformed idea (what the feature gate redirects to)
 scripts/                    delivery.sh (derived delivery), entry_hash.sh (gate binding)
@@ -170,8 +170,9 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task delivery [ID=NNNN]` | Derived delivery state per entry (`unplanned` / `planned` / `in-flight` / `delivered`), computed from `plans/`. `task delivery:data` is the TSV. **This replaces the removed implementation field** — it is how an agent answers "what is done?". |
 | `task gate ID=NNNN [WHEN=creation]` | Admission rubric: deterministic checks and probe hits, plus the questions to walk. Load `enhancement-gates` to walk them. |
 | `task promote ID=NNNN` | The sanctioned `draft → accepted` path. Refuses on an open `Blocking: acceptance` question, unset semver, or a missing/stale `.gates/NNNN.yaml`. |
+| `task supersede ID=NNNN BY=MMMM` | Supersede an accepted entry: set `superseded` + `superseded_by`, banner the README, move to `archive/NNNN/`. Refuses unless the successor's `supersedes` lists the id. |
 | `task reject ID=NNNN REASON="…"` | Kill an idea: move to `archive/NNNN/`, set `rejected` + reason, banner the README. |
-| `task archive:list` / `archive:data` | Rejected ideas with summaries and reasons — the `prior-art` gate's input. |
+| `task archive:list` / `archive:data` | Archived entries (rejected with reasons, superseded with successors) — the `prior-art` gate's input. |
 | `task index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
 | `task graph` | Regenerate `GRAPH.md` with a Mermaid relationship diagram. Run after any cross-ref edit. |
 
@@ -188,7 +189,7 @@ admit (gates) → new → fill problem + design → accrete decisions → walk g
 | 2. Iterate | Edit `01..07`, `schemas/` (core entries) / `contracts/`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
 | 3. Promote `draft → accepted` | `task gate ID=NNNN`, walk the rubric, then `task promote ID=NNNN` (refuses on any open `Blocking: acceptance` question, missing semver, or stale verdict file) | `enhancement-gates`, `enhancements ## Phase 3 — Promote` |
 | 4. Deliver | Delivery runs under `plans/` and per-repo OpenSpec. The entry records nothing about it: `task delivery` derives the state from the plan | `delivery-plans` |
-| 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
+| 5. Supersede | New entry sets `supersedes`; then `task supersede ID=NNNN BY=MMMM` flips the old entry to `superseded` and moves it to `archive/`; stub via compaction | `enhancements ## Phase 5 — Supersede` |
 | —. Reject | `task reject ID=NNNN REASON="…"` moves the entry to `archive/` with its reason | `enhancements ## Phase 5 — Supersede` |
 
 In phase 2 a draft's decisions are revised in place — no compaction involved. Compaction governs `accepted`-phase body edits (weaving the reversals appended during phases 3–4, at latest before the design is delivered) and phase 5's supersession stub — an entry whose design has been delivered is closed, and `task compact:plan` refuses it.

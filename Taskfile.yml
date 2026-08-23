@@ -208,8 +208,9 @@ tasks:
         WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
 
         # Build set of existing four-digit ids (current workspace). Archived
-        # (rejected) entries count: an id is never reused, so a `related`
-        # pointing at an idea that was later killed must keep resolving.
+        # (rejected or superseded) entries count: an id is never reused, so a
+        # `related` pointing at an entry that later went terminal must keep
+        # resolving.
         EXISTING_IDS=""
         for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
           [ -d "$d" ] || continue
@@ -509,11 +510,14 @@ tasks:
           fi
         fi
 
-        # Archived (rejected) entries get REDUCED validation: schema plus the
-        # placement rules below, and none of the prose gates. A killed draft
-        # is incomplete by definition — demanding seven finished documents
-        # before allowing a kill would make the kill path more expensive than
-        # the finish path, which is how repos accumulate zombie drafts.
+        # Archived entries get REDUCED validation: schema plus the placement
+        # rules below, and none of the prose gates. Both terminal states are
+        # archived — rejected and superseded. A killed draft is incomplete by
+        # definition — demanding seven finished documents before allowing a
+        # kill would make the kill path more expensive than the finish path,
+        # which is how repos accumulate zombie drafts. A superseded entry is
+        # a stubbed record whose live design is its successor's, so the prose
+        # gates have nothing left to gate.
         for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           errors=""
@@ -524,8 +528,28 @@ tasks:
             errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
           fi
           st=$(yq -r '.status' "$cfg")
-          [ "$st" = "rejected" ] \
-            || errors="${errors}\n    status is '$st' but the entry lives in archive/ — only rejected entries are archived"
+          case "$st" in
+            rejected) : ;;
+            superseded)
+              # The successor must carry the back-link. It may itself be
+              # archived by a later supersession, so look in both places;
+              # a legacy:NNN successor is out of scope for the check.
+              sup_by=$(yq -r '.superseded_by // ""' "$cfg")
+              case "$sup_by" in
+                legacy:*) : ;;
+                *)
+                  sup_cfg="$sup_by/config.yaml"
+                  [ -f "$sup_cfg" ] || sup_cfg="archive/$sup_by/config.yaml"
+                  if [ ! -f "$sup_cfg" ] || ! yq -e ".supersedes[] | select(. == \"$id\")" "$sup_cfg" >/dev/null 2>&1; then
+                    errors="${errors}\n    superseded_by '$sup_by' does not list '$id' in its supersedes[]"
+                  fi
+                  ;;
+              esac
+              ;;
+            *)
+              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (rejected, superseded) entries are archived"
+              ;;
+          esac
           if [ -n "$errors" ]; then
             printf "${RED}FAIL${RESET} %s%b\n" "$cfg" "$errors"
             FAIL=1
@@ -537,10 +561,16 @@ tasks:
         for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           id=$(yq -r '.id' "$cfg")
-          # A rejected entry belongs in archive/, where the reduced checks
+          # A terminal entry belongs in archive/, where the reduced checks
           # above apply. Left in place it would be gated as live work.
-          if [ "$(yq -r '.status' "$cfg")" = "rejected" ]; then
+          live_status=$(yq -r '.status' "$cfg")
+          if [ "$live_status" = "rejected" ]; then
             printf "${RED}FAIL${RESET} %s\n    status is rejected but the entry is not in archive/ — use 'task reject ID=%s REASON=...'\n" "$cfg" "$id"
+            FAIL=1
+            continue
+          fi
+          if [ "$live_status" = "superseded" ]; then
+            printf "${RED}FAIL${RESET} %s\n    status is superseded but the entry is not in archive/ — use 'task supersede ID=%s BY=<successor>'\n" "$cfg" "$id"
             FAIL=1
             continue
           fi
@@ -589,7 +619,7 @@ tasks:
         WORKSPACE_ROOT="{{.WORKSPACE_ROOT}}"
         ID="{{.ID}}"
 
-        # An id resolves to a live entry or an archived (rejected) one.
+        # An id resolves to a live entry or an archived (terminal) one.
         DIR="$ID"
         [ -d "$DIR" ] || DIR="archive/$ID"
         if [ ! -d "$DIR" ]; then
@@ -598,6 +628,41 @@ tasks:
         fi
         cfg="$DIR/config.yaml"
         [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
+
+        # Archived entries get the same REDUCED validation as in `task vet`:
+        # schema plus the placement rules, none of the prose gates.
+        if [ "$DIR" != "$ID" ]; then
+          errors=""
+          if ! cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
+            errors="${errors}\n    cue vet:\n$(echo "$cue_out" | sed 's/^/      /')"
+          fi
+          st=$(yq -r '.status' "$cfg")
+          case "$st" in
+            rejected) : ;;
+            superseded)
+              sup_by=$(yq -r '.superseded_by // ""' "$cfg")
+              case "$sup_by" in
+                legacy:*) : ;;
+                *)
+                  sup_cfg="$sup_by/config.yaml"
+                  [ -f "$sup_cfg" ] || sup_cfg="archive/$sup_by/config.yaml"
+                  if [ ! -f "$sup_cfg" ] || ! yq -e ".supersedes[] | select(. == \"$ID\")" "$sup_cfg" >/dev/null 2>&1; then
+                    errors="${errors}\n    superseded_by '$sup_by' does not list '$ID' in its supersedes[]"
+                  fi
+                  ;;
+              esac
+              ;;
+            *)
+              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (rejected, superseded) entries are archived"
+              ;;
+          esac
+          if [ -n "$errors" ]; then
+            printf "${RED}FAIL${RESET} %s (archived)%b\n" "$cfg" "$errors"
+            exit 1
+          fi
+          printf "${GREEN}ok${RESET}   %s (archived)\n" "$cfg"
+          exit 0
+        fi
 
         EXISTING_IDS=""
         for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
@@ -866,6 +931,9 @@ tasks:
         - rejected    → README has '> **Rejected (YYYY-MM-DD).**' quote block
         - superseded  → README has '> **Superseded by NNNN …**' quote block
 
+      Archived entries (rejected and superseded both live in archive/NNNN/)
+      get only their banner check — reduced validation, matching `task vet`.
+
       Usage:
         task check                # every enhancement
         task check ID=0001        # single enhancement
@@ -884,10 +952,12 @@ tasks:
 
         CFGS=()
         if [ -n "$TARGET" ]; then
-          [ -d "$TARGET" ] || { echo "No enhancement directory: $TARGET" >&2; exit 1; }
-          CFGS=("$TARGET/config.yaml")
+          DIR="$TARGET"
+          [ -d "$DIR" ] || DIR="archive/$TARGET"
+          [ -d "$DIR" ] || { echo "No enhancement directory: $TARGET (looked in ./ and archive/)" >&2; exit 1; }
+          CFGS=("$DIR/config.yaml")
         else
-          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             [ "$id" = "0000" ] && continue
@@ -903,6 +973,27 @@ tasks:
           status=$(yq -r '.status' "$cfg")
           local core_schema; core_schema=$(yq -r '.core_schema // "false"' "$cfg")
           local warnings=""
+
+          # Archived entries: reduced validation, mirroring `task vet`. Only
+          # the reader-facing banner is checked — a rejected draft is
+          # incomplete by definition, and a superseded entry is a stub.
+          case "$dir" in
+            archive/*)
+              if [ "$status" = "rejected" ]; then
+                grep -qE '^> \*\*Rejected \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
+                  || warnings="${warnings}\n    README.md: missing '> **Rejected (YYYY-MM-DD).**' quote block"
+              elif [ "$status" = "superseded" ]; then
+                grep -qE '^> \*\*Superseded by [0-9]{4}' "$dir/README.md" 2>/dev/null \
+                  || warnings="${warnings}\n    README.md: missing '> **Superseded by NNNN …**' quote block"
+              fi
+              if [ -n "$warnings" ]; then
+                printf "${YELLOW}WARN${RESET} %s (status=%s, archived)%b\n" "$cfg" "$status" "$warnings"
+                return 1
+              fi
+              printf "${GREEN}ok${RESET}   %s (status=%s, archived)\n" "$cfg" "$status"
+              return 0
+              ;;
+          esac
 
           # Soft mirror of vet's accepted-gate: while still draft, nudge
           # toward the files the draft → accepted promotion will require.
@@ -1081,7 +1172,7 @@ tasks:
         BOLD='\033[1m'; RESET='\033[0m'
         ID="{{.ID}}"
 
-        # An id resolves to a live entry or an archived (rejected) one —
+        # An id resolves to a live entry or an archived (terminal) one —
         # ids are never reused, so exactly one of the two can match.
         DIR="$ID"
         [ -d "$DIR" ] || DIR="archive/$ID"
@@ -1308,9 +1399,9 @@ tasks:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
     summary: |
       Walks every NNNN/config.yaml and writes INDEX.md with a single table
-      mapping id → area → status → title → last history event. With
-      folder names being four-digit only, INDEX.md is the canonical browse
-      surface; regenerate it after any config.yaml edit.
+      mapping id → area → affects → status → delivery → title → summary.
+      With folder names being four-digit only, INDEX.md is the canonical
+      browse surface; regenerate it after any config.yaml edit.
     preconditions:
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
@@ -1330,38 +1421,49 @@ tasks:
           # saying what an entry is beats the most recent thing that happened
           # to it. Delivery is derived from plans/, never read from the entry.
           DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
-          echo '| ID | Area | Status | Delivery | Title | Summary |'
-          echo '| -- | ---- | ------ | -------- | ----- | ------- |'
+          # Area is the primary-owner label; Affects is the real footprint.
+          # Showing only Area made multi-repo entries look single-repo.
+          echo '| ID | Area | Affects | Status | Delivery | Title | Summary |'
+          echo '| -- | ---- | ------- | ------ | -------- | ----- | ------- |'
           for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             [ "$id" = "0000" ] && continue
             area=$(yq -r '.area' "$cfg")
+            affects=$(yq -r '.affects | join(", ")' "$cfg")
             status=$(yq -r '.status' "$cfg")
             deliv=$(printf '%s\n' "$DELIV" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
             # Escape pipe chars to keep the markdown table intact.
             title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
             summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
-            printf '| [%s](./%s/) | %s | %s | %s | %s | %s |\n' \
-              "$id" "$id" "$area" "$status" "${deliv:--}" "$title" "$summary"
+            printf '| [%s](./%s/) | %s | %s | %s | %s | %s | %s |\n' \
+              "$id" "$id" "$area" "$affects" "$status" "${deliv:--}" "$title" "$summary"
           done
 
-          # Archived (rejected) ideas. Listed here so a new proposal can be
-          # checked against prior art without leaving the index; `task
-          # archive:list` is the same data with the reasons attached.
+          # Archived (terminal) entries — rejected ideas and superseded
+          # designs. Listed here so a new proposal can be checked against
+          # prior art without leaving the index; `task archive:list` is the
+          # same data with the reasons attached.
           if [ -f "$(echo archive/[0-9][0-9][0-9][0-9]/config.yaml | cut -d" " -f1)" ]; then
             echo
-            echo '## Archived (rejected)'
+            echo '## Archived (rejected / superseded)'
             echo
-            echo '| ID | Title | Summary | Why not |'
-            echo '| -- | ----- | ------- | ------- |'
+            echo '| ID | Status | Title | Summary | Why closed |'
+            echo '| -- | ------ | ----- | ------- | ---------- |'
             for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
               [ -f "$cfg" ] || continue
               id=$(yq -r '.id' "$cfg")
+              status=$(yq -r '.status' "$cfg")
               title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
               summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
-              reason=$(yq -r '.rejected_reason // "-"' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
-              printf '| [%s](./archive/%s/) | %s | %s | %s |\n' "$id" "$id" "$title" "$summary" "$reason"
+              if [ "$status" = "superseded" ]; then
+                sup_by=$(yq -r '.superseded_by // "?"' "$cfg")
+                reason="superseded by [$sup_by](./$sup_by/)"
+                [ -d "$sup_by" ] || reason="superseded by [$sup_by](./archive/$sup_by/)"
+              else
+                reason=$(yq -r '.rejected_reason // "-"' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
+              fi
+              printf '| [%s](./archive/%s/) | %s | %s | %s | %s |\n' "$id" "$id" "$status" "$title" "$summary" "$reason"
             done
           fi
           echo
@@ -1370,7 +1472,7 @@ tasks:
           echo '- **draft** — initial design, actively being written'
           echo '- **accepted** — design agreed upon, ready for implementation'
           echo '- **rejected** — the idea was not accepted; the entry lives in archive/ with its reason'
-          echo '- **superseded** — replaced by a newer enhancement (see `superseded_by` in the entry'\''s config.yaml)'
+          echo '- **superseded** — replaced by a newer enhancement; the entry lives in archive/ with `superseded_by` naming the successor'
         } > "$OUT"
 
         printf 'Wrote %s\n' "$OUT"
@@ -1413,8 +1515,10 @@ tasks:
         }
 
         # related: undirected, dedupe per pair using sorted-token form.
+        # Archived (terminal) entries keep their edges — a superseded
+        # entry's own supersedes/related links are part of the record.
         {
-          for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+          for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             [ "$id" = "0000" ] && continue
@@ -1430,7 +1534,7 @@ tasks:
         } | sort -u > "$related_edges"
 
         # supersedes: directed (newer → older). Validator forbids cycles.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           id=$(yq -r '.id' "$cfg")
           [ "$id" = "0000" ] && continue
@@ -1446,7 +1550,7 @@ tasks:
         # revives: directed, dotted (a live entry re-opening an archived
         # idea). One-way by design — the archived entry is frozen and
         # carries no back-link, so this is the only edge that records it.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           id=$(yq -r '.id' "$cfg")
           [ "$id" = "0000" ] && continue
@@ -2044,11 +2148,15 @@ tasks:
         set -uo pipefail
         ID="{{.ID}}"
 
-        [ -d "$ID" ] || { echo "No enhancement directory: $ID" >&2; exit 1; }
-        DEC="$ID/03-decisions.md"
-        [ -f "$DEC" ] || { echo "No 03-decisions.md in $ID" >&2; exit 1; }
+        # A superseded entry lives in archive/ (terminal entries are always
+        # archived) and its STUB/COLLAPSE-OQ pass legitimately runs there.
+        DIR="$ID"
+        [ -d "$DIR" ] || DIR="archive/$ID"
+        [ -d "$DIR" ] || { echo "No enhancement directory: $ID (looked in ./ and archive/)" >&2; exit 1; }
+        DEC="$DIR/03-decisions.md"
+        [ -f "$DEC" ] || { echo "No 03-decisions.md in $DIR" >&2; exit 1; }
 
-        STATUS=$(yq -r '.status' "$ID/config.yaml")
+        STATUS=$(yq -r '.status' "$DIR/config.yaml")
 
         # There is no `implemented` status any more, so the freeze that used
         # to key on it now keys on the derived fact: an entry whose design
@@ -2079,7 +2187,9 @@ tasks:
         printf "NEXT\tD%s\tnext free decision number\n" "$(( ${NEXT:-0} + 1 ))"
 
         # Other entries' ids — a line naming one is a cross-entry citation.
-        ID_ALT=$(ls -d [0-9][0-9][0-9][0-9] 2>/dev/null | grep -v "^${ID}$" | paste -sd'|' - || true)
+        # Archived ids count: they are still valid citation targets.
+        ID_ALT=$( { ls -d [0-9][0-9][0-9][0-9] 2>/dev/null; ls -d archive/[0-9][0-9][0-9][0-9] 2>/dev/null | sed 's|^archive/||'; } \
+                  | grep -v "^${ID}$" | sort -u | paste -sd'|' - || true)
 
         # WEAVE + TRAILER: walk the ## Decisions section tracking the current DN.
         awk -v ids="$ID_ALT" -v status_gate="$STATUS" '
@@ -2124,8 +2234,8 @@ tasks:
 
         # COLLAPSE / KEEP: resolved OQs still carrying prose after Status:.
         OQ_FILE=""
-        if [ -f "$ID/07-questions.md" ] && grep -q '^## Open Questions' "$ID/07-questions.md" 2>/dev/null; then
-          OQ_FILE="$ID/07-questions.md"
+        if [ -f "$DIR/07-questions.md" ] && grep -q '^## Open Questions' "$DIR/07-questions.md" 2>/dev/null; then
+          OQ_FILE="$DIR/07-questions.md"
         fi
         [ -n "$OQ_FILE" ] || exit 0
 
@@ -2440,6 +2550,101 @@ tasks:
         echo "  1. Scaffold the delivery plan:  task plans:new SLUG=<slug> IMPLEMENTS=$ID"
         echo "  2. Refresh the browse aids:     task index && task graph"
 
+  supersede:
+    desc: Mark an entry superseded by its successor and archive it (ID=NNNN BY=MMMM)
+    summary: |
+      The supersession counterpart of `task reject` — the other terminal
+      state, under the same rule: a terminal entry is ALWAYS archived. Sets
+      status: superseded and superseded_by, appends a history event, banners
+      the README when no hand-written banner exists yet, and moves the entry
+      to archive/NNNN/.
+
+      Refuses unless the successor already lists this id in its
+      `supersedes` — both halves of the link exist before the move. Only an
+      accepted entry can be superseded: a draft that a newer idea replaces
+      is killed with `task reject` instead (the schema requires semver on a
+      superseded entry, and a draft may not have one — the design was never
+      agreed, so there is nothing to hand over).
+
+      The compaction stub (enhancement-compaction skill) can run before or
+      after the move — `task compact:plan` resolves archived entries too.
+
+      Usage:
+        task supersede ID=0003 BY=0010
+    vars:
+      ID: '{{.ID | default ""}}'
+      BY: '{{.BY | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task supersede ID=<4-digit-id> BY=<successor-id>'
+      - sh: '[ -n "{{.BY}}" ]'
+        msg: 'BY is required — a superseded entry must name its successor. Usage: task supersede ID=<id> BY=<successor-id>'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        RED='\033[0;31m'; GREEN='\033[0;32m'; RESET='\033[0m'
+        ID="{{.ID}}"; BY="{{.BY}}"
+        [ -d "$ID" ] || { echo "No live enhancement directory: $ID" >&2; exit 1; }
+        [ -e "archive/$ID" ] && { echo "archive/$ID already exists" >&2; exit 1; }
+        [ "$ID" != "$BY" ] || { echo "An entry cannot supersede itself." >&2; exit 1; }
+
+        status=$(yq -r '.status' "$ID/config.yaml")
+        [ "$status" = "accepted" ] || {
+          echo "Entry $ID is '$status' — only an accepted entry can be superseded." >&2
+          echo "A draft replaced by a newer idea is killed instead: task reject ID=$ID REASON=\"superseded by $BY: ...\"" >&2
+          exit 1
+        }
+
+        # Both halves of the link, checked before anything moves. The
+        # successor may be live or (rarely, in a bulk migration) archived.
+        by_cfg="$BY/config.yaml"
+        [ -f "$by_cfg" ] || by_cfg="archive/$BY/config.yaml"
+        [ -f "$by_cfg" ] || { echo "No successor enhancement: $BY (looked in ./ and archive/)" >&2; exit 1; }
+        yq -e ".supersedes[] | select(. == \"$ID\")" "$by_cfg" >/dev/null 2>&1 || {
+          printf "${RED}REFUSED${RESET} %s does not list %s in its supersedes[] — record the successor's half of the link first.\n" "$BY" "$ID" >&2
+          exit 1
+        }
+
+        # The schema requires semver at superseded (the design was agreed,
+        # so its impact was assessed). Refuse here rather than strand an
+        # archived entry that fails vet.
+        [ "$(yq -r '.semver // ""' "$ID/config.yaml")" != "" ] || {
+          echo "config.yaml.semver is not set — a superseded entry must carry it (major | minor | none)." >&2
+          exit 1
+        }
+
+        TODAY=$(date +%Y-%m-%d)
+        mkdir -p archive
+        git mv "$ID" "archive/$ID" 2>/dev/null || mv "$ID" "archive/$ID"
+
+        cfg="archive/$ID/config.yaml"
+        BYID="$BY" EV="Superseded by $BY." yq -i '
+          .status = "superseded" |
+          .superseded_by = strenv(BYID) |
+          .updated = "'"$TODAY"'" |
+          .history += [{"date": "'"$TODAY"'", "event": strenv(EV)}]
+        ' "$cfg"
+
+        # Reader-facing banner — only when no hand-written one exists yet
+        # (the migration paragraph is usually richer written by hand first).
+        # Successor link is relative to archive/NNNN/.
+        readme="archive/$ID/README.md"
+        if [ -f "$readme" ] && ! grep -q '^> \*\*Superseded by ' "$readme"; then
+          printf '> **Superseded by %s (%s).** The design intent now lives in [%s](../../%s/); this entry is kept as the record of what it settled.\n\n%s\n' \
+            "$BY" "$TODAY" "$BY" "$BY" "$(cat "$readme")" > "$readme.tmp"
+          mv "$readme.tmp" "$readme"
+        fi
+
+        printf "${GREEN}superseded${RESET} %s → archive/%s (by %s)\n" "$ID" "$ID" "$BY"
+        echo
+        echo "Next steps:"
+        echo "  1. Fix relative links in archive/$ID/*.md (../NNNN/ → ../../NNNN/ for live entries)"
+        echo "  2. Stub the entry via the enhancement-compaction skill (task compact:plan ID=$ID)"
+        echo "  3. task vet && task index && task graph"
+
   reject:
     desc: Kill an idea — archive it with a reason (ID=NNNN REASON="...")
     summary: |
@@ -2510,13 +2715,15 @@ tasks:
         echo "  2. task index        # the archive table is generated"
 
   archive:list:
-    desc: Rejected ideas with their summaries and reasons (prior art for a new entry)
+    desc: Archived (rejected / superseded) entries with summaries and why they closed
     summary: |
-      What the `prior-art` admission gate reads. A rejected idea legitimately
-      returns when circumstances change; what is not legitimate is
-      re-proposing it silently. Check here before scaffolding, and if the new
-      entry restates one of these, set `revives: ["NNNN"]` and say what
-      changed.
+      What the `prior-art` admission gate reads. Both terminal states live
+      here: a rejected idea with its reason, a superseded design with its
+      successor. A rejected idea legitimately returns when circumstances
+      change; what is not legitimate is re-proposing it silently. Check here
+      before scaffolding, and if the new entry restates one of these, set
+      `revives: ["NNNN"]` and say what changed (a superseded design's live
+      continuation is its successor — cite that instead).
     cmds:
       - |
         #!/usr/bin/env bash
@@ -2524,20 +2731,30 @@ tasks:
         BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
         set -- archive/[0-9][0-9][0-9][0-9]/config.yaml
         if [ ! -f "$1" ]; then
-          echo "No archived (rejected) enhancements."
+          echo "No archived enhancements."
           exit 0
         fi
         for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           printf "${BOLD}%s${RESET}  %s\n" "$(yq -r '.id' "$cfg")" "$(yq -r '.title' "$cfg")"
           printf "  %s\n" "$(yq -r '.summary' "$cfg")"
-          printf "  ${DIM}rejected %s: %s${RESET}\n\n" \
-            "$(yq -r '[.history[] | select(.event | test("^Rejected"))] | .[-1].date // "-"' "$cfg")" \
-            "$(yq -r '.rejected_reason' "$cfg")"
+          if [ "$(yq -r '.status' "$cfg")" = "superseded" ]; then
+            printf "  ${DIM}superseded %s: by %s${RESET}\n\n" \
+              "$(yq -r '([.history[] | select(.event | test("^Superseded"))] | reverse | .[0].date) // "-"' "$cfg")" \
+              "$(yq -r '.superseded_by' "$cfg")"
+          else
+            printf "  ${DIM}rejected %s: %s${RESET}\n\n" \
+              "$(yq -r '([.history[] | select(.event | test("^Rejected"))] | reverse | .[0].date) // "-"' "$cfg")" \
+              "$(yq -r '.rejected_reason' "$cfg")"
+          fi
         done
 
   archive:data:
-    desc: TSV of rejected ideas — machine-readable, for the prior-art gate
+    desc: TSV of archived entries — machine-readable, for the prior-art gate
+    summary: |
+      Columns: id, title, summary, why-closed. For rejected entries the last
+      column is rejected_reason; for superseded ones it is
+      "superseded by NNNN".
     cmds:
       - |
         #!/usr/bin/env bash
@@ -2546,5 +2763,5 @@ tasks:
         [ -f "$1" ] || exit 0
         for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
-          yq -r '[.id, .title, .summary, .rejected_reason] | @tsv' "$cfg"
+          yq -r '[.id, .title, .summary, (.rejected_reason // ("superseded by " + (.superseded_by // "?")))] | @tsv' "$cfg"
         done
