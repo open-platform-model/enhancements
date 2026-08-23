@@ -93,7 +93,7 @@ gates: [...#Gate] & [
 		question:   "Does this change what a consumer can observe or rely on — core schema, kernel behaviour, CLI surface, catalog contract, operator behaviour?"
 		fails_when: "Nothing observable changes: the work is internal restructuring, or it only affects how a repo builds or tests itself."
 		redirect:   "An OpenSpec change in the owning repo."
-		evidence:   "The specific surface named, quoted from 02-design.md's Affected Surfaces. Spanning several repos is a symptom, not the test — a single-repo core reshape passes this gate and a five-repo refactor fails it."
+		evidence:   "The specific surface named, quoted from 02-design.md's Affected Surfaces. Spanning several repos is a symptom, not the test — a single-repo core reshape passes this gate and a five-repo refactor fails it. When config.yaml.affects has exactly one element, the verdict must additionally state what the entry records that the owning repo's OpenSpec change could not durably hold — a contract a consumer or another repo relies on, design intent that must outlive the change, or a seam with an actor outside the repo — quoting the sentence that carries it. An entry with no such sentence is that OpenSpec change, padded."
 	},
 	{
 		id:    "durability"
