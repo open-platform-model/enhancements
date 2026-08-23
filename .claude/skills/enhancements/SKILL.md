@@ -63,7 +63,7 @@ admit (gates) → new → problem + design → accrete decisions → walk gates 
 
 Load `enhancement-gates` and walk the `creation` rules from `gates.cue`: `feature`, `contract`, `single-question`, `prior-art`. Check `task archive:data` — if this restates a rejected idea, set `revives: ["NNNN"]` and say what changed, or drop it.
 
-If it fails `feature`, it goes in `IDEAS.md` as one line. That file exists so this gate has somewhere to send what it declines; without it, a declined idea gets scaffolded anyway and becomes the scratchpad.
+If it fails `feature`, it becomes a GitHub issue labelled `idea` (the form at `.github/ISSUE_TEMPLATE/idea.yml` applies the label). The label exists so this gate has somewhere to send what it declines; without it, a declined idea gets scaffolded anyway and becomes the scratchpad.
 
 ### Phase 1 — Create
 
@@ -71,7 +71,7 @@ If it fails `feature`, it goes in `IDEAS.md` as one line. That file exists so th
 task new SLUG=my-slug TITLE="My Title" \
   SUMMARY="the capability OPM will have and does not today" \
   NOT="what this is explicitly not"
-# Optional: AREA=cli  AUTHOR="Jane Doe"  CORE_SCHEMA=true
+# Optional: AREA=cli  AUTHOR="Jane Doe"  CORE_SCHEMA=true  ISSUE=<idea issue number>
 ```
 
 `SUMMARY` and `NOT` are **required**. They are the `feature` gate's answer and the scope boundary, made durable: `SUMMARY` becomes `config.yaml.summary` (which `task list`, `INDEX.md` and the archive listing all render), and `NOT` seeds `README.md ### Out of scope`. Scaffolding eight files without them is where the drift starts.
@@ -321,7 +321,7 @@ Workflow:
 - **Forgetting to re-run `task graph` after editing cross-references.** Same story for `GRAPH.md`.
 - **Writing CUE inside a markdown fence instead of a compilable file.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in a `.cue` file with a one-line markdown reference — in `schemas/` when it is (part of) the core-schema delta, in `contracts/` otherwise.
 - **Putting non-core CUE in `schemas/`, or a core delta in `contracts/`.** `schemas/` has exactly one meaning — the `opmodel.dev/core` delta gated by `core_schema` — and vet enforces its presence in both directions. A decision procedure or Go-behaviour contract wearing `#Def` syntax is `contracts/` material; a proposed core definition hiding in `contracts/` dodges the examples/spec.md gate.
-- **Scaffolding an entry for something that is not an enhancement.** A chore, a cleanup, a dependency bump, a note-to-self. Walk the `creation` gates first; if it fails `feature`, it is one line in `IDEAS.md`. This is the pitfall the whole rubric exists for, and the cheapest place to catch it is before eight files exist.
+- **Scaffolding an entry for something that is not an enhancement.** A chore, a cleanup, a dependency bump, a note-to-self. Walk the `creation` gates first; if it fails `feature`, it is a GitHub issue labelled `idea`. This is the pitfall the whole rubric exists for, and the cheapest place to catch it is before eight files exist.
 - **Recording delivery progress in the entry.** There is no field for it any more, and `history` is capped and checked for delivery verbs. What shipped belongs to the plan; `task delivery` reads it back. An entry that narrates its own delivery is the logbook this repo removed.
 - **Re-proposing a rejected idea silently.** `task archive:data` is one command. A returning idea is legitimate; an unacknowledged one wastes the argument that killed it the first time.
 - **Hand-editing `status: accepted`.** `task promote` is the path, and it checks four things you would otherwise have to remember. A hand edit also leaves no verdict file, which `task vet` can see.
@@ -359,7 +359,7 @@ When guidance conflicts, the most-specific source wins: target repo skill > this
 - `enhancements/Taskfile.yml` — workflow tasks source.
 - `enhancement-gates` skill (sibling) — the admission rubric walk; the only path to the verdict file `task promote` requires.
 - `enhancements/gates.cue` — the rubric itself, as data.
-- `enhancements/IDEAS.md` — where a declined idea goes.
+- `enhancements/.github/ISSUE_TEMPLATE/idea.yml`: the idea issue form; a declined idea goes to the issue tracker under label `idea` (`task ideas` lists open ones).
 - `enhancement-experiments` skill (sibling, under `enhancements/.claude/skills/`) — the experiments protocol.
 - `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — the interactive OQ-walk protocol; load when resolving Open Questions one at a time, especially before promoting `draft → accepted`.
 - `enhancement-compaction` skill (sibling, under `enhancements/.claude/skills/`) — the compaction protocol; the only body-edit path on `accepted` entries. Load before weaving an appended reversal into the decision it reverses, collapsing resolved OQ prose, or stubbing a superseded entry.

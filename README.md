@@ -19,7 +19,7 @@ task show ID=0001          # full metadata + document list for one entry
 enhancements/
 ├── schema.cue              CUE contract validating every config.yaml
 ├── gates.cue               admission rubric — the questions an entry must answer
-├── IDEAS.md                one line per unformed idea (no entry, no structure to rot)
+├── .github/                ISSUE_TEMPLATE/idea.yml, the idea issue form (label: idea)
 ├── scripts/                delivery derivation, entry hashing
 ├── Taskfile.yml            workflow tasks (vet, list, new, gate, promote, reject, …)
 ├── INDEX.md                generated browse aid — id → area → status → title
@@ -84,7 +84,7 @@ task new SLUG=platform-context TITLE="Platform Context" \
   NOT="a templating language; a runtime config store"
 ```
 
-`SUMMARY` and `NOT` are required. An entry that cannot state the capability it adds, or the boundary it will not cross, is not ready to be eight files — it is a line in [`IDEAS.md`](IDEAS.md). See [Admission](#admission).
+`SUMMARY` and `NOT` are required. An entry that cannot state the capability it adds, or the boundary it will not cross, is not ready to be eight files — it is a GitHub issue labelled `idea` on this repo. See [Admission](#admission).
 
 Auto-numbers the next four-digit id (archived ids included — an id is never reused), copies `0000/`, and fills `config.yaml` with today's date, your slug/title and the summary. Pass `CORE_SCHEMA=true` when the enhancement changes core schemas — that keeps `schemas/` (and rewrites its `cue.mod/module.cue` id); without it no `schemas/` is scaffolded, and non-core CUE is added later with `task new:contracts ID=NNNN`. Fill in `01-problem.md` and `02-design.md` first; decisions and the supporting documents accrete iteratively. See [`CLAUDE.md`](CLAUDE.md) for the full workflow.
 
@@ -167,7 +167,13 @@ The split is deliberate: `task gate` runs the deterministic half (vet, blocking 
 
 `task promote` refuses unless `vet` passes, no question is still marked `Blocking: acceptance`, `semver` is set, and `.gates/NNNN.yaml` records a pass for every gate with an `entry_hash` matching current content. Edit the entry after the walk and the verdict is automatically void.
 
-An idea that fails the `feature` gate has somewhere to go: one line in [`IDEAS.md`](IDEAS.md), which has no structure in it to rot.
+An idea that fails the `feature` gate has somewhere to go: a GitHub issue labelled `idea` on this
+repo (the [issue form](.github/ISSUE_TEMPLATE/idea.yml) applies the label). An issue has no
+structure in it to rot: no entry id, no status, no validation, nothing to keep up to date.
+Promote one by walking the creation gates and running `task new` with `ISSUE=<n>`, so the
+`Drafted` history event cites it; then close the issue with a link to the new entry. Drop one by
+closing the issue; no ceremony, no tombstone, nothing cites an open idea. `task ideas` lists the
+open ones.
 
 ## Killing an idea
 

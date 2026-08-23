@@ -43,7 +43,7 @@ For each rule, in the order `task gate` printed them:
 1. State the rule's question back, in one line, as it applies to *this* entry.
 2. Gather the evidence the rule demands. Probe hits are candidates, not verdicts: a hit inside a `**Source:**` line is provenance and passes, a hit inside a design claim is prescription and fails.
 3. Give the verdict: `pass` or `fail`, with the quote and one sentence of reasoning.
-4. On `fail`, name the rule's `redirect` destination concretely — which repo's OpenSpec change, which plan, `IDEAS.md`, or the specific edit that would fix it.
+4. On `fail`, name the rule's `redirect` destination concretely — which repo's OpenSpec change, which plan, an idea issue (label `idea` on the enhancements repo), or the specific edit that would fix it.
 
 Do not batch the rules into one answer. The value is in each being asked separately; a combined verdict is where "mostly fine" hides.
 
@@ -83,7 +83,7 @@ The `creation` gates (`feature`, `contract`, `single-question`, `prior-art`) run
 
 `task new` already forces the `feature` answer by requiring `SUMMARY`, and the `NOT` answer by requiring the out-of-scope line. What it cannot do mechanically is `prior-art`: run `task archive:data`, compare, and if this restates a rejected idea, either set `revives: ["NNNN"]` and state what changed, or drop it. A rejected idea legitimately returns when circumstances change; re-proposing one silently is what the gate stops.
 
-**If the idea fails `feature` at creation, it has somewhere to go.** A one-line entry in `IDEAS.md` costs nothing and rots nothing, because there is no structure in it to rot. Scaffolding an entry for a half-formed idea is what produces the scratchpad.
+**If the idea fails `feature` at creation, it has somewhere to go.** A GitHub issue labelled `idea` costs nothing and rots nothing, because there is no structure in it to rot. Scaffolding an entry for a half-formed idea is what produces the scratchpad.
 
 ## What this skill does not do
 

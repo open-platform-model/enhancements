@@ -1230,6 +1230,14 @@ tasks:
           printf "  experiments/\n"
         fi
 
+  ideas:
+    desc: List open idea issues (label `idea` on GitHub; the pre-entry intake)
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "task ideas needs the GitHub CLI (gh)"
+    cmds:
+      - gh issue list --label idea --state open
+
   new:
     desc: Scaffold a new enhancement from 0000/ (auto-numbers id; fills config.yaml + doc titles)
     summary: |
@@ -1247,6 +1255,9 @@ tasks:
       schemas/ from 0000, sets core_schema: true, and ensures "core" is in
       affects. Non-core compilable CUE gets scaffolded later on demand via
       `task new:contracts ID=NNNN`.
+      ISSUE optionally names the idea issue this entry was promoted from;
+      the Drafted history event then cites it, and the final next-step
+      reminds you to close the issue with a link to the entry.
     vars:
       SLUG:        '{{.SLUG        | default ""}}'
       TITLE:       '{{.TITLE       | default ""}}'
@@ -1255,6 +1266,7 @@ tasks:
       AUTHOR:      '{{.AUTHOR      | default "emil@jacero.se"}}'
       AREA:        '{{.AREA        | default "cross-cutting"}}'
       CORE_SCHEMA: '{{.CORE_SCHEMA | default "false"}}'
+      ISSUE:       '{{.ISSUE       | default ""}}'
     preconditions:
       - sh: '[ -n "{{.SLUG}}" ]'
         msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
@@ -1265,13 +1277,15 @@ tasks:
       # capability is where the drift starts, and this is the one place the
       # friction costs nothing.
       - sh: '[ -n "{{.SUMMARY}}" ]'
-        msg: 'SUMMARY is required — one line naming the capability OPM will have and does not today (the `feature` admission gate). If you cannot write it, the idea belongs in IDEAS.md, not an entry.'
+        msg: 'SUMMARY is required — one line naming the capability OPM will have and does not today (the `feature` admission gate). If you cannot write it, the idea belongs in a GitHub issue labelled idea, not an entry.'
       - sh: '[ -n "{{.NOT}}" ]'
         msg: 'NOT is required — one line saying what this is explicitly NOT. It seeds README ### Out of scope, and an unbounded entry is the one that later reads as three entries.'
       - sh: 'printf %s "{{.SLUG}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
         msg: 'SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
         msg: 'CORE_SCHEMA must be true or false'
+      - sh: '[ -z "{{.ISSUE}}" ] || printf %s "{{.ISSUE}}" | grep -Eq "^[0-9]+$"'
+        msg: 'ISSUE must be the numeric id of the originating idea issue'
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
     cmds:
@@ -1285,6 +1299,7 @@ tasks:
         AUTHOR="{{.AUTHOR}}"
         AREA="{{.AREA}}"
         CORE_SCHEMA="{{.CORE_SCHEMA}}"
+        ISSUE="{{.ISSUE}}"
         TEMPLATE_DIR="0000"
 
         # Compute next id from the highest existing NNNN/ dir (excluding 0000).
@@ -1316,11 +1331,20 @@ tasks:
 
         TODAY=$(date +%Y-%m-%d)
 
+        # Provenance: an entry promoted from an idea issue records the
+        # issue in its Drafted event (the issue is closed with a link back
+        # once the entry lands; see the printed next steps).
+        if [ -n "$ISSUE" ]; then
+          DRAFT_EVENT="Drafted from idea #$ISSUE."
+        else
+          DRAFT_EVENT="Drafted"
+        fi
+
         # Fill config.yaml. yq strenv() reads from environment to keep
         # quoting clean across titles with shell-meta chars.
         ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AREA_V="$AREA" \
         CREATED="$TODAY" UPDATED="$TODAY" AUTHOR_V="$AUTHOR" \
-        CORE_V="$CORE_SCHEMA" SUMMARY_V="$SUMMARY" \
+        CORE_V="$CORE_SCHEMA" SUMMARY_V="$SUMMARY" EVENT_V="$DRAFT_EVENT" \
         yq -i '
           .id          = strenv(ID)       |
           .slug        = strenv(SLUG_V)   |
@@ -1332,7 +1356,7 @@ tasks:
           .created     = strenv(CREATED)  |
           .updated     = strenv(UPDATED)  |
           .authors     = [strenv(AUTHOR_V)] |
-          .history     = [{"date": strenv(CREATED), "event": "Drafted"}]
+          .history     = [{"date": strenv(CREATED), "event": strenv(EVENT_V)}]
         ' "$NEW_DIR/config.yaml"
 
         # core_schema implies "core" ∈ affects (vet enforces it).
@@ -1394,6 +1418,10 @@ tasks:
         echo "  4. Update $NEW_DIR/README.md scope + cross-references"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
         echo "  6. Regenerate index:   task index"
+        if [ -n "$ISSUE" ]; then
+          echo "  7. Close idea issue #$ISSUE with a link to $NEW_DIR/:"
+          echo "     gh issue close $ISSUE --comment \"Promoted to enhancement $NEW_ID.\""
+        fi
 
   index:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders

@@ -1,0 +1,27 @@
+# The pre-entry intake. An idea worth not losing, but that cannot yet answer
+# the `feature` admission gate ("what capability will OPM have that it does
+# not have today?"), lands here instead of becoming an entry. An issue has no
+# structure in it to rot: no id, no status, no validation, nothing to keep up
+# to date. Promotion path: walk the creation gates in gates.cue, run
+# `task new ... ISSUE=<n>`, close the issue with a link to the new entry.
+# Dropping an idea is closing the issue; no ceremony, no tombstone.
+name: Idea
+description: An idea worth not losing that cannot yet name the capability OPM will have and does not have today.
+title: "idea: "
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: A line or two. Keep it short; the admission rubric decides later whether it becomes an entry.
+      placeholder: Short statement of the idea.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Optional. Links, prior art, why now.
+    validations:
+      required: false

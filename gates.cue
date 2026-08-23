@@ -83,7 +83,7 @@ gates: [...#Gate] & [
 		applies_to: ["creation", "promotion"]
 		question:   "Does this name a capability OPM will have and does not have today, or a rework of one it has?"
 		fails_when: "The subject is a bug fix, a cleanup, a dependency bump, a docs pass, a rename with no contract change, a process change, or a note-to-self."
-		redirect:   "An OpenSpec change in the owning repo. A half-formed idea with no capability yet goes in IDEAS.md, not an entry."
+		redirect:   "An OpenSpec change in the owning repo. A half-formed idea with no capability yet goes to a GitHub issue labelled idea on this repo, not an entry."
 		evidence:   "config.yaml.summary quoted, plus the sentence in 01-problem.md naming what cannot be done today."
 	},
 	{
