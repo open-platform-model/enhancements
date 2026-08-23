@@ -6,21 +6,21 @@
 graph LR
   classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
   classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
-  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000
+  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
   classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
   classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
-  N0001["0001: #Platform Redesign Umbrella"]:::implemented
-  N0002["0002: Rename the Release artifact family to Instance vo…"]:::implemented
+  N0001["0001: #Platform Redesign Umbrella"]:::accepted
+  N0002["0002: Rename the Release artifact family to Instance vo…"]:::accepted
   N0003["0003: OPM Module Publishing Workflow"]:::superseded
   N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
-  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::implemented
+  N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::accepted
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
-  N0010["0010: Module and Catalog Identity"]:::implemented
-  N0011["0011: Module and Catalog Publishing"]:::implemented
+  N0010["0010: Module and Catalog Identity"]:::accepted
+  N0011["0011: Module and Catalog Publishing"]:::accepted
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
@@ -81,14 +81,14 @@ graph LR
 graph LR
   classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
   classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
-  classDef implemented fill:#dcfce7,stroke:#15803d,color:#000
+  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
   classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
   classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 
   subgraph statuses ["Node statuses"]
     Ldraft["draft"]:::draft
     Laccepted["accepted"]:::accepted
-    Limplemented["implemented"]:::implemented
+    Lrejected["rejected"]:::rejected
     Lsuperseded["superseded"]:::superseded
     Llegacy["legacy NNN"]:::legacy
   end
@@ -96,5 +96,6 @@ graph LR
   subgraph edges ["Edge types"]
     Erel_a["A"] ---|related| Erel_b["B"]
     Esup_new["newer"] -->|supersedes| Esup_old["older"]
+    Erev_new["newer"] -.->|revives| Erev_old["archived"]
   end
 ```

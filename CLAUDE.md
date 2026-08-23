@@ -65,7 +65,11 @@ This repo holds OPM enhancement proposals. Each entry under `NNNN/` is a design 
 
 These invariants hold across every enhancement; violations fail PR review even if `task vet` does not catch them. The `enhancements` skill carries the full rule text and the rationale.
 
-- **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`.
+- **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`. Every entry carries a one-line `summary` — the capability it adds — which `task new` requires and the archive listing renders.
+- **The entry stores rules and intent; every fact that changes over time is derived from where it actually lives.** This is the governing principle. Delivery derives from `plans/` (`task delivery`), maturity derives from the published artifact's `apiVersion`, the admission gate's output is the entry's own prose. Apply the test before adding any field to `config.yaml`: if the value would need updating after the design is done, it does not belong here.
+- **There is no `implemented` status and no implementation axis.** A progress field attracts progress prose, which is how entries became logbooks: `0001.implementation.notes` reached 1.5KB of dated commentary, and 319 of 724 history events exceed 200 runes. `history` survives, capped at 200 runes for events after 2026-08-23 and restricted to design milestones — delivery belongs to the plan.
+- **An entry must pass the admission rubric in `gates.cue`.** Six rules: `feature`, `contract`, `durability`, `rewrite`, `single-question`, `prior-art`. `task gate ID=NNNN` runs the deterministic half and prints the judgment half; the `enhancement-gates` skill walks it and records `.gates/NNNN.yaml`. `task promote` is the sanctioned `draft → accepted` path and refuses without a current all-pass verdict. An idea that fails `feature` goes in `IDEAS.md`, not an entry.
+- **A killed idea is archived, not deleted.** `task reject ID=NNNN REASON="…"` moves it to `archive/NNNN/` with `status: rejected` and `rejected_reason`. The id is kept forever so citations resolve and `task new` will not reissue it. Archived entries get reduced validation — schema and the reason only — because a kill path more expensive than the finish path is one nobody uses. A returning idea sets `revives: ["NNNN"]` and says what changed.
 - **Folder names are id-only.** `0001/`, `0042/` — no slug suffix. `0000` is reserved for the template.
 - **Compilable CUE is pure CUE files**, never fenced code blocks longer than a few illustrative lines. `NNNN/schemas/` is strictly the **core-schema delta** and exists **iff** `config.yaml.core_schema: true` — `target.cue` (the proposed `opmodel.dev/core` additions/changes), `examples.cue` (concrete instances + assertions; the test), `spec.md` (spec delta in core SPEC.md's four-part format; `examples.cue` + `spec.md` are hard-required from `accepted`). Non-core compilable CUE — decision procedures, kernel-behaviour contracts, CLI contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts`). `task vet` enforces the iff-rule in both directions and that `core_schema: true` implies `core ∈ affects`.
 - **2026-08-20 schemas-convention migration carve-out.** The full-sweep migration to the rule above (moving non-core CUE from `schemas/` to `contracts/`, adding `config.yaml.core_schema`, and refreshing `cue.mod` metadata) was applied to every entry **including frozen `implemented`/`superseded` ones** as a one-time, structure-only exception to the freeze invariant, recorded per-entry as a history event. Frozen prose, decision bodies, and CUE *content* were not rewritten; `implemented`/`superseded` entries stay exempt from the `examples.cue`/`spec.md` requirement (their spec landed in `core/SPEC.md`).
@@ -74,9 +78,11 @@ These invariants hold across every enhancement; violations fail PR review even i
 - **Prescriptive mechanism is out of bounds, everywhere in an entry — not just the decision log.** An enhancement never tells a repo how to name a file, spell an identifier, lay out a directory, or structure its code; those are the target repo's to decide, and it decides them with the current code in front of it. **Evidential** citation stays: naming a file to prove a claim, or to say where something is emitted today, is provenance and is wanted. The test between them: *would deleting the named path change what an implementer is obliged to do, or only what a reader can verify?* Obliged → cut it. Verify → keep it. This governs `03-decisions.md`, `02-design.md`, `06-operational.md` and `README.md` alike.
 - **2026-08-21 delivery-plan extraction carve-out.** Moving `plan.yaml`/`PLAN.md` out of the six plan-bearing entries into `plans/` (and rewording their in-entry file references) was applied to the frozen `implemented` entries 0010/0011 too, as a one-time, structure-only exception to the freeze invariant, recorded per-entry as a history event. No prose, decision content, or CUE was rewritten.
 - **2026-08-22 mechanism-removal carve-out.** The retroactive removal of prescriptive mechanism from the ten pre-Kind-gate entries (0001, 0002, 0003, 0004, 0006, 0010, 0011, 0013, 0015, 0019) was applied to the `accepted` and frozen `implemented`/`superseded` ones alike, as a one-time exception to the freeze invariant and to the compaction-only rule, recorded per-entry as a history event and marked in each entry's `README.md`. **Unlike the three carve-outs above, this one does rewrite prose and decision bodies.** What it may do is bounded: it removes construction detail and restates clauses in evidential voice. It never reverses a decision, never changes an answer, never renumbers, never deletes a `DN`, and never removes measured evidence, a `Source:` citation, or an *Alternatives considered* bullet. 0001 and 0002 receive the `README.md` banner only — their decisions are mechanism end to end and editing them would leave nothing behind. `enhancement-compaction` still refuses `implemented` entries; this pass ran outside it under explicit owner authorisation, and is not a precedent for any other body edit.
+- **Every unresolved Open Question carries `Blocking:`** — `acceptance` (with the reason inline), `deferrable`, or `implementation`. `task promote` refuses while any `Blocking: acceptance` question is open. This replaced the per-entry gate document: a blocking rule belongs on the question someone is answering, not one cross-reference away.
+- **2026-08-23 lifecycle-reshape carve-out.** Removing the `implementation` block, retiring the `implemented` status (its five entries become `accepted`, their delivery now derived), removing the `## accepted → implemented` half of `04-graduation.md` from every entry (the `## draft → accepted` half stays), and adding `summary` / `revives` was applied to frozen entries too, as a one-time exception to the freeze invariant, recorded per-entry as a history event. **What it rewrote is bounded:** metadata, the removed delivery half of the gate document, and in-entry *references* to that half (reworded to name the criteria rather than the file, as the delivery-plan carve-out did). No decision body, no risk, no design prose, and no CUE was rewritten. The delivery half went because there is no `implemented` status for it to gate and it had become the repo's largest concentration of file-path prescription (0012 named packages to delete; 0010's ran 3696 words). What it stated that was contract rather than construction is already in the decision log. The acceptance half stays and is unchanged; per-question blocking rules were additionally mirrored onto the questions themselves as `Blocking:` fields, where `task promote` can read them.
 - **Open Questions live in `07-questions.md` — single canonical location.** Every entry carries the seven split documents; the OQ register (`OQN` bullets with `Status:` lines) is `07-questions.md` and nowhere else. `task vet` fails an `## Open Questions` block in `03-decisions.md` or `README.md`. **2026-08-22 extraction carve-out:** moving the register out of `03-decisions.md` (and repointing in-entry location references) was applied to every entry including frozen ones, as a one-time, structure-only exception recorded per-entry as a history event. No question prose, decision content, or CUE was rewritten.
 - **`config.yaml.history` is append-only; decision and OQ *numbers* are immutable.** `DN` and `OQN` are never reused and never renumbered — external citations depend on them. A number vacated by a merge or retraction keeps a one-line tombstone.
-- **Decision-body mutability is status-gated.** While `draft`, decisions are revised **in place** — the log never holds two conflicting decisions, and evidence-backed old positions fold into *Alternatives considered*. From `accepted`, bodies are protected: a change is a *new* `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and existing bodies move only through the `enhancement-compaction` skill (weave, OQ collapse, supersession stub). `implemented` entries are frozen.
+- **Decision-body mutability is status-gated.** While `draft`, decisions are revised **in place** — the log never holds two conflicting decisions, and evidence-backed old positions fold into *Alternatives considered*. From `accepted`, bodies are protected: a change is a *new* `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and existing bodies move only through the `enhancement-compaction` skill (weave, OQ collapse, supersession stub). an entry whose design has been **delivered** is closed, and `task compact:plan` refuses it.
 - **Don't hard-wrap prose in `.md` files.**
 - **Don't reference `library/enhancements/` content directly** in new entries. Use the `legacy:NNN` cross-ref form when historical link matters.
 - **Don't fork content from the frozen library entries.** Fresh prose.
@@ -96,11 +102,12 @@ Read these on entry:
 
 Sibling skills to load when applicable:
 
+- **`enhancement-gates`** (`.claude/skills/enhancement-gates/SKILL.md`) — the admission rubric walk. Load before creating an enhancement (does this deserve to be one?) and before promoting `draft → accepted`. It is the only path to the `.gates/NNNN.yaml` verdict file that `task promote` requires, and every verdict it records must quote evidence from the entry.
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — when creating, updating, validating, or concluding experiments under `enhancements/NNNN/experiments/`. Load whenever you are about to invoke `task new:experiment` or `task experiments:list`, or edit any file under `experiments/`.
 - **`delivery-plans`** (`.claude/skills/delivery-plans/SKILL.md`) — when planning, tracking, or seeding the per-repo delivery of enhancements via `plans/<slug>/plan.yaml`. Load before `task plans:new`, before editing a plan, before promoting `draft → accepted` on an entry whose `affects` spans more than one repo, or before `task plans:seed`.
 - **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when a design discussion or Open-Questions walk would benefit from a diagram. Mermaid for relationships between enhancements/slices; ASCII for how a single enhancement's design/mechanism works — never interchangeable by default. Load before sketching either, live or persisted into `01-problem.md`/`02-design.md`/`05-risks.md`.
 - **`enhancement-open-questions`** (`.claude/skills/enhancement-open-questions/SKILL.md`) — when walking an enhancement's `## Open Questions` block interactively (one OQ at a time, with context + alternatives + a decision write-back). Load before invoking `/enhancement-open-questions ID=NNNN`, or when `task questions:open ID=NNNN` returns rows that need resolution.
-- **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — the only body-edit path on `accepted` entries: weaving an appended reversal into the decision it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before touching anything under an existing `DN` / `OQN` on an `accepted` or `superseded` entry, or when `task compact:plan ID=NNNN` returns candidates. Not needed for in-place revision of a `draft` decision (ordinary Phase 2 editing). Refuses on `implemented` entries.
+- **`enhancement-compaction`** (`.claude/skills/enhancement-compaction/SKILL.md`) — the only body-edit path on `accepted` entries: weaving an appended reversal into the decision it amends, collapsing resolved Open Question prose, or stubbing a superseded entry. Load before touching anything under an existing `DN` / `OQN` on an `accepted` or `superseded` entry, or when `task compact:plan ID=NNNN` returns candidates. Not needed for in-place revision of a `draft` decision (ordinary Phase 2 editing). Refuses on delivered and rejected entries.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — when implementing a slice that touches `core/*.cue`. Enforces the SPEC.md co-update protocol. Required reading before editing the core schema; the pre-commit hook and CI gate will refuse the commit otherwise.
 - **`openspec-*`** (per-repo, under each target repo's `.claude/skills/` or `.opencode/skills/`) — when slicing the enhancement's accepted design into per-repo OpenSpec changes for execution.
 
@@ -113,10 +120,10 @@ Sibling skills to load when applicable:
   01-problem.md             Problem statement + scope
   02-design.md              Design (high-level approach, affected surfaces)
   03-decisions.md           Decision log (D1, D2, …) — numbers immutable; bodies revised in place while draft, protected from accepted
-  04-graduation.md          Promotion gates per status transition
+  04-graduation.md          Entry-specific `draft → accepted` gates (no delivery half — delivery is derived)
   05-risks.md               Risks, mitigations, blast radius
   06-operational.md         Migration, rollout, observability
-  07-questions.md           Open Questions register (OQ1, OQ2, …) — single canonical location, numbers immutable
+  07-questions.md           Open Questions register (OQ1, …) — numbers immutable; each unresolved one carries Blocking:
   schemas/                  Core-schema delta (iff core_schema: true): target.cue + examples.cue + spec.md
   contracts/                Optional — non-core compilable CUE (procedures, behaviour contracts, taxonomies)
 NNNN/                       One per enhancement (id-only directory name)
@@ -128,6 +135,10 @@ plans/                      Delivery plans — the execution layer (one-way rule
   README.md                 Field reference + the one-way rule
   <slug>/plan.yaml          One per plan — implements, slices, unsliced
   <slug>/PLAN.md            Generated (task plans:graph) — do not hand-edit
+archive/NNNN/               Rejected ideas — id kept forever, reduced validation
+gates.cue                   Admission rubric — the six questions an entry must answer
+IDEAS.md                    One line per unformed idea (what the feature gate redirects to)
+scripts/                    delivery.sh (derived delivery), entry_hash.sh (gate binding)
 CLAUDE.md                   This file — orientation
 README.md                   How to read enhancements
 INDEX.md                    Generated browse aid (run `task index` after config.yaml edits)
@@ -147,7 +158,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task show ID=NNNN` | Full metadata + history list + document list for one entry. |
 | `task vet` | **Hard gate** (PR-blocking). CUE schema validation, cross-ref existence, placeholder absence, `area ∈ affects`, the `core_schema` rules (`schemas/` iff `core_schema: true`, compiles, `core ∈ affects`, `examples.cue` + `spec.md` from `accepted`), `contracts/` compiles when present, experiments structure when present. |
 | `task vet:one ID=NNNN` | Same gate, single entry. |
-| `task check [ID=NNNN]` | **Soft gate** (pre-PR aid). Per-status prose conventions: scope section, decision headings + Kind gate, OQ block, one-way smell (plan-file names in prose), mechanism smell, evidence nudge, implementation snapshot, deviations, supersession quote block. |
+| `task check [ID=NNNN]` | **Soft gate** (pre-PR aid). Per-status prose conventions: scope section, decision headings + Kind gate, OQ block, unresolved `Blocking: acceptance` questions, one-way smell, mechanism smell, evidence nudge, rejection and supersession quote blocks. |
 | `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…] [CORE_SCHEMA=true]` | Scaffold a new entry from `0000/`. `CORE_SCHEMA=true` keeps `schemas/` (core-schema delta) and sets `core_schema: true`. |
 | `task new:contracts ID=NNNN` | Scaffold the optional `contracts/` (non-core compilable CUE) inside an entry. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffold an experiment inside an entry. Load `enhancement-experiments` skill first. |
@@ -156,24 +167,31 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task questions:list ID=NNNN` | List `## Open Questions` for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
 | `task questions:open ID=NNNN` | TSV of unresolved Open Questions (open + partial buckets only). Consumed by the `enhancement-open-questions` skill. |
 | `task compact:plan ID=NNNN` | TSV of compaction candidates — stacked reversals, resolved OQs still carrying prose, relation trailers in headings. Read-only; consumed by the `enhancement-compaction` skill. |
+| `task delivery [ID=NNNN]` | Derived delivery state per entry (`unplanned` / `planned` / `in-flight` / `delivered`), computed from `plans/`. `task delivery:data` is the TSV. **This replaces the removed implementation field** — it is how an agent answers "what is done?". |
+| `task gate ID=NNNN [WHEN=creation]` | Admission rubric: deterministic checks and probe hits, plus the questions to walk. Load `enhancement-gates` to walk them. |
+| `task promote ID=NNNN` | The sanctioned `draft → accepted` path. Refuses on an open `Blocking: acceptance` question, unset semver, or a missing/stale `.gates/NNNN.yaml`. |
+| `task reject ID=NNNN REASON="…"` | Kill an idea: move to `archive/NNNN/`, set `rejected` + reason, banner the README. |
+| `task archive:list` / `archive:data` | Rejected ideas with summaries and reasons — the `prior-art` gate's input. |
 | `task index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
 | `task graph` | Regenerate `GRAPH.md` with a Mermaid relationship diagram. Run after any cross-ref edit. |
 
 ### Workflow phases
 
 ```
-new → fill problem + design → accrete decisions → freeze (accepted) → ship (implemented) → archive history
+admit (gates) → new → fill problem + design → accrete decisions → walk gates → promote (accepted) → deliver via plans/
 ```
 
 | Phase | Command / action | Skill section |
 | --- | --- | --- |
-| 1. Create | `task new SLUG=foo TITLE="Foo Bar"` | `enhancements ## Phase 1 — Create` |
+| 0. Admit | Walk the `creation` gates; check `task archive:data` for prior art | `enhancement-gates` |
+| 1. Create | `task new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…"` | `enhancements ## Phase 1 — Create` |
 | 2. Iterate | Edit `01..07`, `schemas/` (core entries) / `contracts/`, append `history`, bump `updated` | `enhancements ## Phase 2 — Iterate` |
-| 3. Promote `draft → accepted` | `task vet:one` + `task check`; resolve every contract-level OQ (implementation-level ones may close `deferred-to-implementation`); set `semver` | `enhancements ## Phase 3 — Promote` |
-| 4. Implement | Delivery runs under `plans/` and per-repo OpenSpec; append plan-blind `history` milestones here; set `implementation.status: complete` at the end | `enhancements ## Phase 4 — Implement` |
+| 3. Promote `draft → accepted` | `task gate ID=NNNN`, walk the rubric, then `task promote ID=NNNN` (refuses on any open `Blocking: acceptance` question, missing semver, or stale verdict file) | `enhancement-gates`, `enhancements ## Phase 3 — Promote` |
+| 4. Deliver | Delivery runs under `plans/` and per-repo OpenSpec. The entry records nothing about it: `task delivery` derives the state from the plan | `delivery-plans` |
 | 5. Supersede | New entry sets `supersedes`; old entry sets `superseded_by` + `status: superseded`; old entry compacted to stubs | `enhancements ## Phase 5 — Supersede` |
+| —. Reject | `task reject ID=NNNN REASON="…"` moves the entry to `archive/` with its reason | `enhancements ## Phase 5 — Supersede` |
 
-In phase 2 a draft's decisions are revised in place — no compaction involved. Compaction governs `accepted`-phase body edits (weaving the reversals appended during phases 3–4, at latest immediately before the `implemented` flip) and phase 5's supersession stub — never phase 4's aftermath: the flip to `implemented` freezes an entry permanently.
+In phase 2 a draft's decisions are revised in place — no compaction involved. Compaction governs `accepted`-phase body edits (weaving the reversals appended during phases 3–4, at latest before the design is delivered) and phase 5's supersession stub — an entry whose design has been delivered is closed, and `task compact:plan` refuses it.
 
 Each phase has gating criteria and a concrete checklist. The `enhancements` skill is the authoritative source; load it before promoting any status.
 
