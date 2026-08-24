@@ -30,6 +30,7 @@ graph LR
   N0019["0019: Kernel render path parity with pure CUE"]:::accepted
   N0020["0020: Contract Promotion and Retirement"]:::draft
   N0021["0021: OPM Versioning Policy"]:::draft
+  N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::superseded
 
   N0001 ---|related| N0002
@@ -69,12 +70,14 @@ graph LR
   N0011 ---|related| N0018
   N0011 ---|related| N0020
   N0011 ---|related| N0021
+  N0011 ---|related| N0022
   N0013 ---|related| N0014
   N0013 ---|related| N0018
   N0014 ---|related| N0016
   N0015 ---|related| N0019
   N0015 ---|related| N0020
   N0016 ---|related| N0019
+  N0016 ---|related| N0022
   N0020 ---|related| N0021
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003

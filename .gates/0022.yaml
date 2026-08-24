@@ -1,0 +1,20 @@
+entry: "0022"
+entry_hash: "41b6db95281b7c9bd435d64a601de5ef3e18b2953d0d4ca0f04108b0e14f7232"
+walked: "2026-08-24"
+verdicts:
+  - gate: feature
+    verdict: pass
+    evidence: "config.yaml summary: 'OPM tooling learns an artifact's kind, identity and core/catalog compatibility from the module.cue blob alone, without the zip, through a gate-checked custom block CUE already carries.' 01-problem.md Current State: 'What a consumer can learn about an artifact today without the zip is therefore its dependency pins and its path. Kind is inferred from the path prefix, and only inside domains OPM owns'; Gap 3: 'Nothing records who published. No annotation, no field.'"
+    reasoning: "Names two capabilities OPM lacks (declared kind and compatibility readable from the module-file blob; publisher provenance on the manifest) rather than a chore. Adversarial check: the block duplicates deps, so is it a feature? Kind and identity.Version are not derivable from the file at all outside OPM domains, and the gate that keeps the duplication honest is new surface."
+  - gate: contract
+    verdict: pass
+    evidence: "02-design.md Schema / API Surface: 'Core: two new publish-gate definitions (§5 of SPEC.md, beside #IdentityPackage): #ModuleFileCustom … #ModuleFileCustomGate'; 'Publish applies the gate when the block is present; refusal names the conflicting field'; 'Publish writes annotations: CUE's org.cuelang.vcs-* and OPM's dev.opmodel.* keys'. affects lists core, cli, catalog, modules, opmodel.dev."
+    reasoning: "Changes what consumers can rely on: a core-shipped gate every publisher must satisfy, a new publish refusal, a key in every artifact's committed module.cue, and manifest annotations. affects has five elements, so the single-repo clause does not apply; the seam is with 0011's accepted publish contract (D2/D16 respected, D3/D8 amended)."
+  - gate: single-question
+    verdict: pass
+    evidence: "02-design.md Design Goals: 'A consumer that holds an artifact's cue.mod/module.cue learns its kind, its identity, its core line and the catalogs it was built against, without the zip' and 'The block cannot lie: every value that repeats something … is asserted equal at publish'. Decision headings D1 (where), D2 (what), D3 (which artifacts), D4 (kept true how), D5 (written by whom), D6 (push-time facts elsewhere), D7 (first reader), D8 (floor) all answer one question: which facts about an artifact live in the module-file blob and how they stay true."
+    reasoning: "D6 (annotations) is the closest candidate for a second question and is the complement of the same one: it says where the facts that cannot live in the tree go. No decision stands on a different premise."
+  - gate: prior-art
+    verdict: pass
+    evidence: "task archive:data lists one entry: 0003 'OPM Module Publishing Workflow: Bind a module's four separately-set identity coordinates to one canonical registry path, enforced where modules are consumed rather than where they are published.' (superseded by 0010). This entry's summary: 'OPM tooling learns an artifact's kind, identity and core/catalog compatibility from the module.cue blob alone'."
+    reasoning: "0003 was about binding identity coordinates and was superseded, not rejected; its concern (one canonical path) is what 0010 settled and what this entry's gate leans on via 0010 D1. No archived entry proposes tooling metadata in the module file or manifest annotations. revives stays empty."

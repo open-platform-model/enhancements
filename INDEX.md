@@ -24,6 +24,7 @@
 | [0019](./0019/) | library | library, core, catalog, opm-operator, cli, modules | accepted | not-started | Kernel render path parity with pure CUE | Make the Go kernel's render path match pure CUE unification exactly, by folding matching into the single build so parity is structural rather than maintained by hand. |
 | [0020](./0020/) | cross-cutting | cross-cutting, core, library, cli, catalog, opmodel.dev | draft | not-started | Contract Promotion and Retirement | Promote a contract by dual-shipping both levels in one build with the promotion declared, and require a tombstone with a reason when a published key stops shipping. |
 | [0021](./0021/) | cross-cutting | cross-cutting, core, catalog, modules, cli, library, opm-operator, opmodel.dev | draft | not-started | OPM Versioning Policy | One versioning policy that names every published OPM artifact class, defines its compatibility surface and bump rules, and states how each rule is enforced |
+| [0022](./0022/) | core | core, cli, catalog, modules, opmodel.dev | draft | not-started | Machine-Readable Artifact Metadata in cue.mod/module.cue | OPM tooling learns an artifact's kind, identity and core/catalog compatibility from the module.cue blob alone, without the zip, through a gate-checked custom block CUE already carries. |
 
 ## Archived (rejected / superseded)
 
