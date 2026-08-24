@@ -23,7 +23,10 @@ package e0019x09
 }
 
 // StatefulSet pods get stable DNS <sts>-<n>.<svc>.<ns>.svc.<domain>; the API
-// server's bespoke check is "must not contain dots". DNS-1123 label.
+// server enforces the label rule on BOTH axes — "must not contain dots" AND
+// "must be no more than 63 characters" (64 refused, bisected 2026-08-24).
+// #NameType IS the label rule, so this one constraint captures dots and
+// length at once; nothing further to declare.
 #StatefulWorkloadBlueprint: #Blueprint & {
 	metadata: name: "stateful-workload"
 	#nameConstraint: #NameType

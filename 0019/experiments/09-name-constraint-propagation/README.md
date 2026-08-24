@@ -14,11 +14,14 @@ comprehensions — the `matchLabels` wholesale-unification pattern applied to a
 scalar — with no per-kind knowledge in core and no precedence rule anywhere.
 
 Motivating matrix, measured against a live k8s v1.33.0 API server
-(server-side dry-run, 2026-08-24): dots accepted on Deployment, DaemonSet,
-ConfigMap, StorageClass, CSIDriver (`zfs.csi.openebs.io`); refused on Service
-(DNS-1035: "must start with an alphabetic character"), StatefulSet and
-Namespace (bespoke "must not contain dots"). The rule is exactly: a name is
-dot-restricted iff it becomes a DNS label.
+(server-side dry-run, 2026-08-24; length limits bisected same day): dots
+accepted on Deployment, DaemonSet, ConfigMap, StorageClass, CSIDriver
+(`zfs.csi.openebs.io`), all at the 253-rune subdomain budget (253 accepted,
+254 refused); refused on Service (DNS-1035: "must start with an alphabetic
+character", 63-rune cap) and on StatefulSet and Namespace ("must not contain
+dots" — and StatefulSet refuses 64 runes too: the label rule on both axes).
+The rule is exactly: a name is dot-restricted iff it becomes a DNS label, and
+the dot-restricted kinds carry the 63-rune budget with it.
 
 ## Setup
 
@@ -96,5 +99,16 @@ Also confirmed by construction: the D16 qualified default
 `#NameType` labels — so only an *explicit* override can ever meet a dot
 constraint. The default path is structurally safe; validation cost lands
 solely on deliberate overrides.
+
+Two length findings folded in after conclusion (2026-08-24, same live
+server): **StatefulSet's cap is 63 runes as well as dotless** — the label
+rule on both axes — so the blueprint's single `#nameConstraint: #NameType`
+captures length and dots at once, and no length-only constraint type is
+needed. And the measurement that likely seeds the folk "64-char name limit":
+**label values** cap at 63 — `kubectl create deployment <253 chars>` fails on
+its derived `app: <name>` label, not on `metadata.name`; the same name passes
+via apply with independent labels. The shipped catalogs put only component
+names (`#NameType`) in label values, never `resourceName`; D19 records that
+as a sweep rule so the 253-rune override ceiling cannot leak into a label.
 
 Evidence for D19–D21 in `03-decisions.md`.
