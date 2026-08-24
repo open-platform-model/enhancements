@@ -3,8 +3,8 @@
 //
 // Delta manifest (vs opmodel.dev/core@v2):
 //
-//   - #Module — CHANGED: gains one new optional field, initValues (working
-//     name, OQ1), beside the existing debugValues. Modeled standalone here
+//   - #Module — CHANGED: gains one new optional field, initValues (D4),
+//     beside the existing debugValues. Modeled standalone here
 //     as #ModuleInitSurface — the slice of #Module this enhancement
 //     touches, with `_` placeholders for the untouched rest; the real
 //     change lands in core/src/module.cue under the core-schema-edit
@@ -14,8 +14,7 @@
 // #ScaffoldedPackage, #ValuesSource) live in ../contracts/contracts.cue —
 // they propose no core surface.
 //
-// Fields gated on an Open Question carry an `// OQN:` marker pointing at
-// ../03-decisions.md.
+// Every Open Question is resolved (07-questions.md); no field is gated.
 package schema
 
 // #ModuleInitSurface: the slice of core's #Module this enhancement touches.
@@ -36,8 +35,9 @@ package schema
 	// instance package starts from. When present, instance init renders
 	// this into the generated values.cue and never reads debugValues (D3).
 	//
-	// OQ1: field name (initValues vs instanceValues vs a structured init:
-	// block), whether the schema asserts it satisfies #config, and whether
-	// it must be concrete.
+	// Open and optional by decision (D4): the schema does NOT assert it
+	// satisfies #config (conformance is observed by instance vet and,
+	// optionally, a 0011 publish gate), and it MAY be non-concrete, in
+	// which case it renders as partially-filled scaffolding.
 	initValues?: _
 }

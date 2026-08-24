@@ -29,6 +29,7 @@ graph LR
   N0018["0018: Documentation Architecture"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::accepted
   N0020["0020: Contract Promotion and Retirement"]:::draft
+  N0021["0021: OPM Versioning Policy"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::superseded
 
   N0001 ---|related| N0002
@@ -61,16 +62,20 @@ graph LR
   N0010 ---|related| N0018
   N0010 ---|related| N0019
   N0010 ---|related| N0020
+  N0010 ---|related| N0021
   N0011 ---|related| N0013
   N0011 ---|related| N0015
   N0011 ---|related| N0016
   N0011 ---|related| N0018
   N0011 ---|related| N0020
+  N0011 ---|related| N0021
   N0013 ---|related| N0014
   N0013 ---|related| N0018
   N0014 ---|related| N0016
   N0015 ---|related| N0019
   N0015 ---|related| N0020
+  N0016 ---|related| N0019
+  N0020 ---|related| N0021
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003
 ```

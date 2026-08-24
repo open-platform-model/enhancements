@@ -16,26 +16,26 @@ exampleWithInitValues: #ModuleInitSurface & {
 		logLevel: "debug" | "info" | "warn" | *"info"
 	}
 	debugValues: {
-		image:    "jellyfin/jellyfin:latest"
+		image:    "quay.io/jetstack/cert-manager-controller:latest"
 		replicas: 3
 		logLevel: "debug"
 	}
 	initValues: {
-		image:    "jellyfin/jellyfin:10.9.0"
+		image:    "quay.io/jetstack/cert-manager-controller:v1.21.0"
 		replicas: 1
 		logLevel: "info"
 	}
 }
 
-// initValues is *intended* to satisfy #config (whether the schema asserts
-// this is OQ1). For this example the intent is checked explicitly: the
+// initValues is *intended* to satisfy #config; the schema does not assert
+// it (D4). For this example the intent is checked explicitly: the
 // unification below fails `cue vet` if the example's initValues ever stop
 // conforming to its #config.
 _assertInitValuesConform: exampleWithInitValues.#config & exampleWithInitValues.initValues
 
 // Pin the author-curated content — init renders initValues, never
 // debugValues, when the field is present (D3).
-_assertInitImage:    exampleWithInitValues.initValues.image & "jellyfin/jellyfin:10.9.0"
+_assertInitImage:    exampleWithInitValues.initValues.image & "quay.io/jetstack/cert-manager-controller:v1.21.0"
 _assertInitReplicas: exampleWithInitValues.initValues.replicas & 1
 _assertInitLogLevel: exampleWithInitValues.initValues.logLevel & "info"
 
@@ -46,14 +46,14 @@ _assertInitLogLevel: exampleWithInitValues.initValues.logLevel & "info"
 exampleLegacyModule: #ModuleInitSurface & {
 	#config: {
 		image: string
-		port:  int & >0 & <65536 | *8096
+		securePort: int & >0 & <65536 | *10250
 	}
 	debugValues: {
-		image: "jellyfin/jellyfin:latest"
-		port:  8096
+		image: "quay.io/jetstack/cert-manager-controller:latest"
+		securePort: 10250
 	}
 }
 
 // Pin the fallback source's content — this is what D2 scaffolds from.
-_assertLegacyDebugImage: exampleLegacyModule.debugValues.image & "jellyfin/jellyfin:latest"
-_assertLegacyDebugPort:  exampleLegacyModule.debugValues.port & 8096
+_assertLegacyDebugImage: exampleLegacyModule.debugValues.image & "quay.io/jetstack/cert-manager-controller:latest"
+_assertLegacyDebugPort:  exampleLegacyModule.debugValues.securePort & 10250

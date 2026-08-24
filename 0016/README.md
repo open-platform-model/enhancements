@@ -6,7 +6,7 @@ See [`config.yaml`](config.yaml) for metadata. This README is the index of the s
 
 A published OPM module is deployed through a **module instance package** — an on-disk CUE package (`cue.mod/module.cue`, `instance.cue`, `values.cue`) that imports the module, embeds `core.#ModuleInstance`, and supplies `values` satisfying the module's `#config`. Nothing generates that package today: `opm module init` scaffolds modules for authors, and the library's `synth.Instance` builds instances only in memory, so deployers hand-copy an example package and mutate it until CUE stops complaining.
 
-This entry adds `opm instance init`: point the CLI at a module's OCI reference and tag, give an instance name and namespace, and get a complete, committable instance package whose boilerplate — dependency pins, majors, imports, `#module:` wiring — is derived from the acquired artifact instead of typed by hand (D1). The generated `values.cue` is populated from the module's `debugValues` by default (D2), and the enhancement proposes a new optional `#Module` field (working name `initValues`, OQ1) through which authors state what a fresh deployment should start from — taking precedence over `debugValues`, whose testing/debugging contract stays unchanged (D3).
+This entry adds `opm instance init`: name a published module (its module path, no major needed), an instance name and a namespace, and get a complete, committable instance package whose boilerplate (dependency pins, majors, imports, `#module:` wiring) is derived from the acquired module instead of typed by hand (D1). The command mirrors `opm module init` parameter for parameter, and when no version is given it picks the newest module line this CLI's core major can build (D5). The generated `values.cue` is populated from the module's new optional `initValues` field when the author set one (D3, D4), from `debugValues` otherwise (D2), and is empty with a warning when neither is usable (D6). The renderer is CLI-side (D7), init does not validate what it wrote (D8), and the generated module file pins the module exactly with a complete dependency closure (D9).
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
@@ -18,12 +18,12 @@ lands, which is exactly the drift the implementation axis was removed to stop.
 ## Documents
 
 1. [01-problem.md](01-problem.md) — No path from a published module to a runnable instance package; author intent for "what a new deployment starts as" has no home on `#Module`
-2. [02-design.md](02-design.md) — Acquire the module from the registry, pick a values source (`initValues` → `debugValues` → empty), render the standalone three-file package
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D3)
+2. [02-design.md](02-design.md) — Resolve and acquire the module, pick a values source (`initValues` → `debugValues` → empty), render the standalone three-file package
+3. [03-decisions.md](03-decisions.md) — Decision log (D1–D9)
 4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
 6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md) — Open Questions register
+7. [07-questions.md](07-questions.md) — Open Questions register (OQ1–OQ6, all resolved)
 
 Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the `#Module` delta (`initValues` beside `debugValues`) — and [`contracts/contracts.cue`](contracts/contracts.cue) — the command's request shape, the values-source ladder, the exact generated file set, and the user-facing report.
 
@@ -31,26 +31,32 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) — the 
 
 ### In scope
 
-- `opm instance init <module-ref>` — resolves the module through standard `CUE_REGISTRY` routing, acquires it via the existing kernel acquire path, and writes a standalone instance package: `cue.mod/module.cue` (module pinned to the resolved tag, core at the module's major), `instance.cue`, `values.cue` (D1). Exact flag surface pending OQ2.
-- The values-source precedence ladder: the new `#Module` field when present, `debugValues` otherwise, an empty/skeleton scaffold when neither is usable (D2, D3; empty-case shape pending OQ3) — with the source named in the command output.
-- One additive optional field on core's `#Module` carrying the author-intended init values (D3; name/shape pending OQ1), landed under the `core-schema-edit` protocol.
-- Generated output that loads through `LoadInstancePackage` unchanged — init output is immediately valid input to `opm instance build`, `opm instance apply`, and the operator's ModulePackage path.
-- Whatever renderer-sharing with `library/opm/helper/synth` OQ4 settles on.
+- `opm instance init [instance-name] [module-path] --namespace <ns> [--version] [--dir] [--module-path]`, a mirror of `opm module init` that resolves the module through standard `CUE_REGISTRY` routing, acquires it via the existing kernel acquire path, and writes a standalone instance package: `cue.mod/module.cue`, `instance.cue`, `values.cue` (D1, D5).
+- Version selection: `--version vN` floats within a major, an exact SemVer pins; omitted, the newest release of the highest major whose core dependency matches this CLI's core major (D5).
+- The values-source precedence ladder: `initValues` when present, `debugValues` otherwise, `values: {}` with a warning when neither is usable (D2, D3, D6), with the source named in the command output.
+- One additive optional field on core's `#Module`, `initValues?: _`, carrying the author-intended init values (D3, D4), landed under the `core-schema-edit` protocol.
+- A generated `cue.mod/module.cue` with the module pinned exactly, core at the module's major, a complete dependency closure, and a local placeholder module path (D9).
+- Generated output that loads through `LoadInstancePackage` unchanged: init output is immediately valid input to `opm instance build`, `opm instance apply`, and the operator's ModulePackage path.
+- The renderer lives in the CLI beside `opm module init`; `library` ships nothing (D7).
 
 ### Out of scope
 
 - **Deploying or applying anything.** Init writes local files; existing build/apply commands execute them.
 - **Exporting a *deployed* instance to files.** That is enhancement [0014](../0014/) (cluster → git); this entry is registry → disk, pre-deployment.
 - **Changing `debugValues`' contract.** It remains the testing/debugging fixture; this entry only additionally reads it as a fallback.
-- **Interactive/wizard-driven values collection, registry search/discovery, and version-bump ergonomics for already-generated packages** — candidate follow-ons, not part of this design.
+- **Interactive/wizard-driven values collection, a `#config`-derived skeleton, registry search/discovery, and version-bump ergonomics for already-generated packages** — candidate follow-ons, not part of this design.
+- **Validating the generated package at init time.** The report names `opm instance vet`; running it is the user's next step (D8).
+- **A publish-time gate on `initValues` conformance.** If wanted, it is [0011](../0011/)'s decision.
 - **`opm module init`** (author-side module scaffolding) — untouched.
+- **Anything outside the core v2 line.** Pre-v2 module majors exist on GHCR; they appear in this design only as lines the D5 walk skips.
 - **Operator and modules-fleet changes.** The operator consumes instance packages through existing paths; module authors adopt the new field at their own pace.
 
 ## Relationship to adjacent enhancements
 
 - **[0002](../0002/)** renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary (`#ModuleInstance`, instance packages).
 - **[0014](../0014/)** covers the opposite direction of the same lifecycle: 0014 turns a *deployed* instance into committable files; 0016 turns a *published module* into committable files before any deployment exists. Both produce GitOps-ready artifacts and deliberately share the "generated, not hand-assembled" stance.
-- **[0011](../0011/)** owns publish-time gates; OQ5 notes a potential hook (validating `initValues` against `#config` at publish) that would land there, not here.
+- **[0019](../0019/)** is the kernel render path the generated package is handed to, and this entry lands after it. Three of its decisions bear directly on init's output: catalog version skew between a module and its platform becomes a kernel-detected, warn-and-render signal (D7, D18), which is the failure experiment 03 met as "unresolved demands" against a platform on a different catalog pin; the render step becomes one CUE build with a render `cue.mod` derived by promotion from the inputs (D9, D13), the same derivation D9 here performs for the generated module file; and the platform reshape (D5, D6) defines what `opm instance vet`/`build` evaluate against. Init's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`.
+- **[0011](../0011/)** owns publish-time gates and the `opm module init` scaffolding this command mirrors (D5); a publish-time check that `initValues` satisfies `#config` would land there, not here (D8).
 
 ## Deviations from Design
 
@@ -62,9 +68,12 @@ None at this stage. Update this section when implementation lands and any delibe
 | -------- | ------- |
 | `core/src/module.cue` | `#Module` — gains the optional init-values field beside `debugValues` |
 | `core/SPEC.md` | Co-updated specification section for the new field (`core-schema-edit` protocol) |
-| `cli/internal/cmd/instance/instance.go` | Instance command group — registers the new init subcommand |
-| `cli/internal/cmd/module/init.go` | Existing author-side scaffolding — the sibling command this one deliberately does not touch |
-| `library/opm/helper/synth/instance.go` | In-memory instance synthesis — renderer-sharing candidate (OQ4) and the documented `debugValues` frontend-policy boundary |
+| `cli/internal/cmd/instance/instance.go` | Instance command group the new init subcommand joins |
+| `cli/internal/cmd/module/init.go` | The sibling command whose parameters, prompting and exit codes D5 mirrors |
+| `cli/internal/scaffold/ref.go` | The reference grammar (`@vN` float, exact pin) and version resolution D5 reuses |
+| `library/opm/materialize/enumerate.go` | Evidence that listing a major-free module path enumerates every published major (D5) |
+| `library/opm/schema/loader.go` | `DefaultSchemaModule`, the core major a CLI build is bound to (D5) |
+| `library/opm/helper/synth/instance.go` | In-memory instance synthesis: the documented `debugValues` frontend-policy boundary this entry defines for one frontend; unchanged (D7) |
 | `library/opm/helper/loader/file/instance_test.go` | `LoadInstancePackage` behavior the generated package must satisfy |
-| `modules/jellyfin/module.cue` | Concrete `#config`/`debugValues` example used throughout the entry |
+| `modules/cert_manager/module.cue` | Concrete `#config`/`debugValues` example used throughout the entry |
 | `opm-kind-demo/web_app/instance.cue` | The hand-written instance-package shape init generates instead |

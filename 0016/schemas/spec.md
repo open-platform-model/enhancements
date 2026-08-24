@@ -6,7 +6,7 @@ One CHANGED construct. This pre-drafts the core/SPEC.md co-update the core slice
 
 ### Definition
 
-`#Module` gains one new optional field, `initValues` (working name; final name and shape are OQ1), carrying the author-intended starting values for a freshly initialized module instance package: the content instance-init tooling renders into the generated `values.cue`. The existing `debugValues` field's meaning — concrete example values for testing and debugging — is unchanged; it additionally becomes the *documented fallback* template source for instance init when `initValues` is absent (D2). The two fields state different author intents: `initValues` is "what a new deployment of my module should start from"; `debugValues` remains "what I test with".
+`#Module` gains one new optional field, `initValues` (D4), carrying the author-intended starting values for a freshly initialized module instance package: the content instance-init tooling renders into the generated `values.cue`. The existing `debugValues` field's meaning — concrete example values for testing and debugging — is unchanged; it additionally becomes the *documented fallback* template source for instance init when `initValues` is absent (D2). The two fields state different author intents: `initValues` is "what a new deployment of my module should start from"; `debugValues` remains "what I test with".
 
 ### Shape
 
@@ -17,17 +17,17 @@ Delta only — the rest of `#Module` is unchanged (full modeled slice in `target
     // ... unchanged ...
     #config:     _   // unchanged
     debugValues: _   // contract unchanged; documented fallback init template source (D2)
-    initValues?: _   // NEW, optional: author-intended init template (working name, OQ1)
+    initValues?: _   // NEW, optional: author-intended init template (D4)
 }
 ```
 
 ### Constraints
 
 - Added: `initValues` is OPTIONAL. The change is additive — a `#Module` without it MUST remain valid, so no published module is invalidated and consumers that never read the field are unaffected.
-- Added: `initValues`, when present, is intended to satisfy `#config` and SHOULD do so. Whether the schema asserts this via unification, or leaves conformance to init-time reporting, is unresolved (OQ1; init-time handling of a non-conforming template source is OQ5).
-- Added: instance-init tooling MUST use `initValues` when present and MUST NOT read `debugValues` in that case (D3); when `initValues` is absent it uses `debugValues` as the fallback template source (D2). The behavior when neither yields usable content is unresolved (OQ3).
+- Added: `initValues`, when present, is intended to satisfy `#config` and SHOULD do so. The schema does NOT assert this (D4); conformance is observed where the value is consumed (`opm instance vet` on the generated package, and a publish-time gate if 0011 adopts one). Init itself does not validate (D8).
+- Added: instance-init tooling MUST use `initValues` when present and MUST NOT read `debugValues` in that case (D3); when `initValues` is absent it uses `debugValues` as the fallback template source (D2); when neither is usable it MUST still produce a package with an empty `values` and MUST warn (D6).
 - Added: `initValues` carries a CUE value, not a text template — rendering it into a generated `values.cue` MUST be serialization, never template expansion.
-- Open (OQ1): whether `initValues` MUST be concrete or MAY carry defaults/optional parts that render as partially-filled scaffolding.
+- Added: `initValues` MAY be non-concrete; defaults and optional parts render as partially-filled scaffolding (D4).
 - Unchanged: `debugValues` keeps its existing constraint (`SHOULD satisfy #config`, validated at runtime by the schema fixture harness) with no tightening or loosening.
 
 ### Rationale

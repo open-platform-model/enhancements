@@ -6,11 +6,11 @@ Deploying a published OPM module requires a **module instance package**: an on-d
 
 Nothing creates that package. Today there are exactly three adjacent capabilities, none of which produces an on-disk instance package from a published module:
 
-- **`opm module init`** (`cli/internal/cmd/module/init.go`) scaffolds a new *module* — the author-side artifact — from embedded templates (`cli/internal/templates/{simple,standard,advanced}`). It knows nothing about published modules or instances.
+- **`opm module init`** (`cli/internal/cmd/module/init.go`) scaffolds a new *module*, the author-side artifact, by fetching a published template module (`opmodel.dev/templates/{minimal,standard,advanced}`, or any published module via `--from`) and re-identifying it. It produces modules, not instances, and its template is a donor to copy, not a dependency to deploy.
 - **`synth.Instance`** (`library/opm/helper/synth/instance.go`) synthesizes an *in-memory* instance package from an acquired module — it overlays a generated `instance.cue` (and optionally `values.cue`) into the module's staged source tree and evaluates it in one build. It is deliberately ephemeral: nothing is written to disk, and it explicitly refuses to fall back to `debugValues` ("that is a frontend policy concern" — the policy this enhancement now defines for one frontend).
 - **`#Module.debugValues`** (`core/src/module.cue:105`) carries concrete example values "for testing and debugging". The CLI uses it for `opm module build` dry-runs, but no tool ever surfaces it to a *deployer* as a starting point for their own values.
 
-So the deployer-facing gap: a user who finds a published module (an OCI artifact in a CUE registry, e.g. `ghcr.io/open-platform-model/opmodel.dev/modules/jellyfin` at some tag) and wants a committable, editable deployment definition has to hand-write the whole package.
+So the deployer-facing gap: a user who finds a published module (an OCI artifact in a CUE registry, e.g. `ghcr.io/open-platform-model/opmodel.dev/modules/cert_manager` at some tag) and wants a committable, editable deployment definition has to hand-write the whole package.
 
 ## Gap / Pain
 
@@ -24,12 +24,12 @@ The third point is why this enhancement touches `core/` and not only `cli/`: the
 
 ## Concrete Example
 
-The `jellyfin` module is published as `opmodel.dev/modules/jellyfin@v3`, version `3.0.0`. Its `#config` (`modules/jellyfin/module.cue`) covers image, port, PUID/PGID, timezone, storage volumes, optional hardware transcoding, optional HTTPRoute. A user wanting to deploy it today must produce, by hand:
+The `cert_manager` module is published as `opmodel.dev/modules/cert_manager@v2`, version `2.0.1`. Its `#config` (`modules/cert_manager/module.cue`) covers the image, per-component (controller, webhook, cainjector) log levels, replicas and resources, and the leader-election namespace. A user wanting to deploy it today must produce, by hand:
 
 ```text
-jellyfin-instance/
+cert-manager-instance/
   cue.mod/module.cue    # module path? language version? which deps, which versions?
-  instance.cue          # imports core@v2 and jellyfin@v3, #ModuleInstance, #module wiring
+  instance.cue          # imports core@v2 and cert_manager@v2, #ModuleInstance, #module wiring
   values.cue            # a values: struct satisfying #config they have never seen
 ```
 
@@ -38,14 +38,14 @@ Their realistic path is copying `opm-kind-demo/web_app/instance.cue` and mutatin
 What the user should be able to run instead:
 
 ```text
-opm instance init opmodel.dev/modules/jellyfin@v3 --version 3.0.0 --name jellyfin --namespace media
+opm instance init cert-manager opmodel.dev/modules/cert_manager --namespace cert-manager
 ```
 
-and get that directory generated — boilerplate correct by construction, `values.cue` pre-populated from what the module author designated for exactly this purpose (falling back to `debugValues` when they designated nothing).
+and get that directory generated: the newest cert_manager line this CLI can build, boilerplate correct by construction, `values.cue` pre-populated from what the module author designated for exactly this purpose (falling back to `debugValues` when they designated nothing).
 
 ## User Stories
 
-- As a **deployer** (platform user consuming published modules), I want to point the CLI at a module OCI reference and tag and get a runnable, committable instance package so that my first `opm instance build` succeeds before I have edited anything. Today: I hand-assemble three files from an example belonging to a different module.
+- As a **deployer** (platform user consuming published modules), I want to name a published module and get a runnable, committable instance package so that my first `opm instance build` succeeds before I have edited anything. Today: I hand-assemble three files from an example belonging to a different module.
 - As a **module author**, I want to control what a freshly initialized instance's `values.cue` contains so that new users start from my intended defaults rather than from my debug fixture. Today: no field on `#Module` carries that intent; `debugValues` is the only values-shaped example and its contract is debugging.
 - As a **GitOps operator**, I want initialized instance packages to be well-formed on-disk packages so that the same directory feeds `opm instance build`, `opm instance apply`, and the operator's ModulePackage path without rework. Today: only hand-written packages exist, with hand-introduced drift.
 

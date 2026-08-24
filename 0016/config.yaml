@@ -12,19 +12,17 @@ area: cli
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
 #
-# cli: the new `opm instance init` command. core: one additive optional field
-# on #Module (the init-values template, D3). library: conditional on OQ4 —
-# listed because the leading option generalizes helper/synth's instance-file
-# renderer so CLI init and in-memory synth share one generator; drop it if OQ4
-# resolves to a CLI-side renderer. opmodel.dev regenerates the CLI reference
-# mechanically after landing and ships nothing gated by this entry.
+# cli: the new `opm instance init` command and its renderer (D7). core: one
+# additive optional field on #Module (initValues, D3/D4). library ships
+# nothing: the renderer is CLI-side (D7). opmodel.dev regenerates the CLI
+# reference mechanically after landing and ships nothing gated by this entry.
 affects:
   - cli
   - core
-  - library
 core_schema: true
+semver: minor
 created: "2026-08-13"
-updated: "2026-08-23"
+updated: "2026-08-24"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -44,15 +42,24 @@ history:
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
+  - date: "2026-08-24"
+    event: 'Open Questions walked: OQ1-OQ6 resolved by D4-D9 (initValues shape, module-init-mirrored surface, empty fallback, CLI-side renderer, no init vet, pinned deps); library out of affects; semver minor.'
+  - date: "2026-08-24"
+    event: 'Experiments 01-08 concluded on cert_manager/metallb. D4 revised (defaults resolve, optionals dropped), D5 revised (publish selector, skip no-core majors, all-or-nothing write), core floor recorded.'
+  - date: "2026-08-24"
+    event: 'Dependency on 0019 recorded: the cli slice lands after 0019 render-path changes (skew signal D7/D18, single build D9, derived render cue.mod D13); related and ordering constraint updated.'
 # Peer enhancements this one builds on or interacts with.
 # 0002: the Instance vocabulary this entry is written in. 0011: publish-time
 # gates — the candidate home for an initValues-conformance check (OQ5).
 # 0014: the opposite direction of the same lifecycle (deployed instance →
-# files vs published module → files).
+# files vs published module → files). 0019: the kernel render path this
+# entry's generated package is handed to; 0016 lands after 0019's render
+# changes (see 06-operational.md, Cross-Repo Coordination).
 related:
   - "0002"
   - "0011"
   - "0014"
+  - "0019"
 # Lifecycle relationships.
 supersedes: []
 # Archived ids this entry re-opens. One-way: the archived entry is frozen
