@@ -1,0 +1,15 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-06-30"
+    summary: >-
+      Release-to-Instance vocabulary rename delivered across core, library,
+      opm-operator and cli before delivery tracking existed; recorded
+      retrospectively as one landing.
+    change:
+      kind: retrospective
+      repo: core
+      note: >-
+        Landed as the C/K/L/O/X waves over 2026-06-26..30, before plans/ or
+        this log existed; per-wave detail is in config.yaml history.
+    decisions: [D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15]

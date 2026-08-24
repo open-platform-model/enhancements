@@ -1,0 +1,139 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+#
+# Cross-entry carriage: core-identity-package and cli-catalog-gates are
+# 0011-driven changes that also carried decisions of this entry; they appear
+# in 0011/delivery.yaml too, each side listing its own decisions.
+log:
+  - date: "2026-08-07"
+    summary: >-
+      Module, instance and catalog identity: #ModulePathType gains vN suffixes
+      and underscores, #PackagePathType splits off, fqn == modulePath,
+      registryPath, snake name, instance fqn/uuid.
+    change: { kind: openspec, repo: core, change: core-identity-shape }
+    decisions: [D1, D2, D3, D6, D8, D41, D43, D45]
+  - date: "2026-08-07"
+    summary: >-
+      Contract keys split from implementation keys: #ContractFQNType and
+      primitives, authored fqn, primitive-versus-adapter.
+    change: { kind: openspec, repo: core, change: core-primitive-keying }
+    decisions: [D4, D21, D25, D33, D34, D44]
+  - date: "2026-08-07"
+    summary: >-
+      Platform and match surface: #SubscriptionFilter deleted for a scalar
+      version, matchLabels on the four kinds with #LabelWorkloadType deleted,
+      fulfilment on #Resource and #Trait, plus the D28 #Trait.optional gate.
+    change: { kind: openspec, repo: core, change: core-platform-and-match }
+    decisions: [D14, D28, D32, D36, D37]
+  - date: "2026-08-08"
+    summary: >-
+      #IdentityPackage and #CatalogMemberFQNGate shipped in core (0011-driven
+      change; carried this entry's D40).
+    change: { kind: openspec, repo: core, change: core-identity-package }
+    decisions: [D40]
+  - date: "2026-08-09"
+    summary: >-
+      SPEC.md coherence pass across the four schema slices, examples
+      re-vetted, the alpha carrying all four published at v2.0.0-alpha.4.
+    change: { kind: openspec, repo: core, change: core-alpha-release }
+  - date: "2026-08-10"
+    summary: >-
+      The D49 gate amendment: a contract kind's declaredModulePath becomes
+      kindPrefix[kind] + "/" + apiVersion; transformers unchanged, FQN
+      construction untouched. SPEC.md co-update.
+    change: { kind: pr, repo: core, number: 46 }
+    decisions: [D49]
+  - date: "2026-08-10"
+    summary: >-
+      Catalog authored against core v2 on the module major v2: identity
+      subpackages committed, every leaf re-keyed, matching moved to
+      matchLabels.
+    change: { kind: pr, repo: catalog, number: 30 }
+    decisions: [D5, D42]
+  - date: "2026-08-10"
+    summary: >-
+      catalog_opm absorbs catalog_kubernetes and catalog_opm_experimental:
+      version-segment filing, one schema tree, no-downward-dependency vet
+      check, tombstones.
+    change: { kind: pr, repo: catalog, number: 34 }
+    decisions: [D47, D48, D49]
+  - date: "2026-08-11"
+    summary: >-
+      Library import rewrite to the core v2 major; fixtures re-landed against
+      the consolidated catalog_opm with D49 versioned imports; drops the
+      fixture catalog.
+    change: { kind: openspec, repo: library, change: library-core-retarget }
+    decisions: [D42, D47, D49]
+  - date: "2026-08-11"
+    summary: >-
+      Module fleet ported to the OPM v2 line: identity subpackage and metadata
+      wiring per module, blueprint imports on D49 versioned paths, absorbed
+      catalog subscriptions re-pinned. Source only.
+    change: { kind: pr, repo: modules, number: 28 }
+    decisions: [D2, D42, D47, D48]
+  - date: "2026-08-12"
+    summary: >-
+      Identity verified where artifacts are read (modulePath vs fetched
+      coordinate, version vs tag); D14 deletes materialize/filter.go; one
+      major-agreement check survives beside the subscription.
+    change: { kind: openspec, repo: library, change: library-acquire-and-subscription }
+    decisions: [D9, D11, D14, D41]
+  - date: "2026-08-13"
+    summary: >-
+      The match rung becomes load-bearing: provenance denylist, contract-key
+      diagnostics, unresolved demand errors, single-provider guard,
+      matchLabels reads, kube-aware FQN comparator, own-graph test.
+    change: { kind: openspec, repo: library, change: library-matching }
+    decisions: [D4, D10, D26, D28, D30, D32, D34, D36, D37]
+  - date: "2026-08-15"
+    summary: >-
+      CLI core imports rewritten to v2, retargeted to the new library;
+      address-composition deleted; resolved coordinate written into
+      spec.module.{path,version}; D19 warning.
+    change: { kind: openspec, repo: cli, change: cli-coordinate-adoption }
+    decisions: [D19, D42, D47, D49]
+  - date: "2026-08-15"
+    summary: >-
+      Operator retargeted to the core-v2 library line; the D14
+      filter-to-version CRD reshape rode this change per the 2026-08-12
+      deviation; no feature or adoption code (D18).
+    change: { kind: openspec, repo: opm-operator, change: operator-library-retarget }
+    decisions: [D14, D18, D42, D49]
+  - date: "2026-08-15"
+    summary: >-
+      Operator examples fleet re-pinned to core v2 and D49 versioned paths;
+      the release waited for both operator changes.
+    change: { kind: openspec, repo: opm-operator, change: examples-fleet-core-v2 }
+    decisions: [D42, D49]
+  - date: "2026-08-17"
+    summary: >-
+      Both gates on opm catalog publish (0011-driven change; carried this
+      entry's compatibility-gate decisions, including D17's level rules).
+    change: { kind: openspec, repo: cli, change: cli-catalog-gates }
+    decisions: [D17, D21, D25, D28, D35, D42, D49]
+  - date: "2026-08-18"
+    summary: >-
+      Published the catalog-author contract (additive-only rule keyed to
+      level, verified only via opm catalog publish) plus the
+      registry-namespaces reference: owned prefixes, enforcement points.
+    change: { kind: openspec, repo: opmodel.dev, change: docs-catalog-contract }
+    decisions: [D4, D27, D34, D35]
+  - date: "2026-08-18"
+    summary: >-
+      Release of the consolidated catalog_opm cut through opm catalog publish
+      (v2.0.0-alpha.4). The first act that changed a published artifact.
+    change: { kind: pr, repo: catalog, number: 43 }
+  - date: "2026-08-18"
+    summary: >-
+      Fleet republished through opm module publish against the released
+      catalogs. The only fleet republish in the 0010/0011 pair.
+    change: { kind: pr, repo: modules, number: 31 }
+no_work:
+  D7: >-
+    Its holding (a module's identity file writes metadata directly, declaring
+    no top-level field) is REVERSED by the decision now stated at D2. What
+    survives is the measurement D2 leans on, which is evidence, not work.
+  D16: >-
+    A decision NOT to add a field. #Catalog gains no name, so there is
+    nothing to implement; the same reader-set argument D33 uses to delete
+    #definitionName.

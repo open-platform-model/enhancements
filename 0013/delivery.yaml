@@ -1,0 +1,10 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log: []
+no_work:
+  D1: >-
+    Superseded by D10 the day it was written; retained position only, no work
+    to carry.
+  D4: >-
+    Superseded by D11 the day it was written; retained position only, no work
+    to carry.

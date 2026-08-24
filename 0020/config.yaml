@@ -27,7 +27,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-08-22"
-updated: "2026-08-23"
+updated: "2026-08-24"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -45,6 +45,8 @@ history:
       Decisions D1..D12 drafted: promotion declared and gated (D1-D3), dual-shipping as the promotion mechanism (D4), rung-skipping permitted (D5), tombstones for beta/GA removal (D6-D9), a seasoning floor on withdrawal (D10), alpha and transformer carve-outs (D11), and the cluster-side dependent guard scoped out (D12). Open Questions OQ1..OQ8 seeded; four are contract-level.
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
+  - date: "2026-08-24"
+    event: 'Delivery-log adoption: forecast plans retired; landed changes and no-work claims recorded in delivery.yaml in the entry; delivery state derived as not-started/in-progress/implemented.'
 # Peer enhancements this one builds on or interacts with.
 # Accepts new four-digit ids ("0042") and legacy three-digit refs
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.

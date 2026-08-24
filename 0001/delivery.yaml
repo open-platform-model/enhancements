@@ -1,0 +1,15 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-07-24"
+    summary: >-
+      Platform redesign delivered across core, library, catalog, cli and
+      opm-operator before delivery tracking existed; recorded retrospectively
+      as one landing. All of it shipped, so the decision list is complete.
+    change:
+      kind: retrospective
+      repo: core
+      note: >-
+        Landed across five repos over 2026-05..2026-07, before plans/ or this
+        log existed; no per-change record to cite.
+    decisions: [D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25]

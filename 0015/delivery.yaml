@@ -1,0 +1,9 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log: []
+no_work:
+  D4: >-
+    Decides against building a packaging split; no code anywhere.
+  D7: >-
+    Records that no transformer-predicate stability rule ships; the widening
+    gate is deferred to the 0011 publish-gate family.

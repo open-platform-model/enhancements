@@ -1,0 +1,100 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+#
+# Cross-entry carriage: core-identity-package and cli-catalog-gates also
+# carried 0010 decisions (logged in 0010/delivery.yaml); docs-catalog-contract
+# is a 0010-driven change that carried this entry's D13/D14.
+log:
+  - date: "2026-08-08"
+    summary: >-
+      #IdentityPackage and #CatalogMemberFQNGate in core: publish validates
+      identity and every catalog member by unification, and CUE produces the
+      diagnostic rather than a hand-rolled comparison.
+    change: { kind: openspec, repo: core, change: core-identity-package }
+    decisions: [D21, D22]
+  - date: "2026-08-12"
+    summary: >-
+      The D9 three-rule field-wise compatibility walk (measured against
+      cue.Value.Subsume: 10/14 and 8/14 on disjoint sets), with predecessor
+      selection moved out of filter.go.
+    change: { kind: openspec, repo: library, change: library-compat-comparator }
+    decisions: [D9]
+  - date: "2026-08-16"
+    summary: >-
+      One publish pipeline, two entry points: decode, read identity, derive
+      coordinates, run the gates, push, with the dry-run plan output.
+      Refusals 1-8 and 10, plus the D16/D18 checks in opm module vet.
+    change: { kind: openspec, repo: cli, change: cli-publish-pipeline }
+    decisions: [D1, D2, D4, D6, D12, D15, D16, D18, D21]
+  - date: "2026-08-16"
+    summary: >-
+      The commands that write source and never invent identity: opm
+      module|catalog version set (surgical AST rewrite measured in
+      experiments/01) and opm mod init as scaffold and repair.
+    change: { kind: openspec, repo: cli, change: cli-authoring-commands }
+    decisions: [D3, D8, D12, D16, D20]
+  - date: "2026-08-17"
+    summary: >-
+      opm registry login [host]: resolves its no-arg target through the
+      existing ResolveRegistry precedence and writes to the credential store
+      CUE itself reads, because CUE performs the push.
+    change: { kind: openspec, repo: cli, change: cli-login }
+    decisions: [D11, D24]
+  - date: "2026-08-17"
+    summary: >-
+      Both gates on opm catalog publish: the compatibility gate plus opm
+      catalog registry check [--compat] as an aid; members refused against
+      pinned optional.
+    change: { kind: openspec, repo: cli, change: cli-catalog-gates }
+    decisions: [D7, D9, D22, D23]
+  - date: "2026-08-18"
+    summary: >-
+      catalog_opm's release.yml switched to opm catalog publish; the
+      copy-and-stamp task deleted. Catalogs went first because modules build
+      against them.
+    change: { kind: pr, repo: catalog, number: 42 }
+  - date: "2026-08-18"
+    summary: >-
+      Checksum-driven publish and versions.yml deleted; fleet publishing cut
+      over to release-please and opm module publish. Coordinates unchanged.
+    change: { kind: openspec, repo: modules, change: modules-publish-cutover }
+    decisions: [D13, D17]
+  - date: "2026-08-18"
+    summary: >-
+      D17 item 3 for the cli's own fixture: relocated to
+      testing.opmodel.dev/modules/cli/* and published to GHCR through the
+      gated publish pipeline.
+    change: { kind: openspec, repo: cli, change: fixture-testing-domain }
+    decisions: [D17]
+  - date: "2026-08-18"
+    summary: >-
+      The templates segment reserved and the official scaffolds published as
+      real gated modules from the cli release pipeline, replacing embedded
+      template text nothing evaluated.
+    change: { kind: openspec, repo: cli, change: cli-template-modules }
+    decisions: [D25]
+  - date: "2026-08-18"
+    summary: >-
+      The registry-namespaces reference published (0010-driven change):
+      owned prefixes and enforcement points, carrying D13's namespace holding
+      and D14's documented platform-segment reservation.
+    change: { kind: openspec, repo: opmodel.dev, change: docs-catalog-contract }
+    decisions: [D13, D14]
+  - date: "2026-08-19"
+    summary: >-
+      D17 items 2-3 for the operator fleet: modules/test/* relocated to
+      testing.opmodel.dev/modules/operator/* with identity packages and gated
+      publishing; old packages and -e2e tags deleted.
+    change: { kind: openspec, repo: opm-operator, change: fixtures-testing-domain }
+    decisions: [D17]
+no_work:
+  D5: >-
+    Its namespace half is REVERSED by D13, which is carried by the modules
+    publish cutover. What survives is the hosts-rather-than-indexes holding,
+    a property of what the registry IS, established by the CUE resolution
+    argument rather than by anything anyone builds.
+  D10: >-
+    Tag immutability is enforced by the REGISTRY, not by OPM. It gates on the
+    Zot cutover, recorded as out of scope for both 0010 and 0011 with no
+    owner and no date. Attaching it to a CLI change would claim an
+    enforcement OPM does not have.

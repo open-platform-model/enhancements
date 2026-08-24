@@ -1,0 +1,9 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log: []
+no_work:
+  D5: >-
+    A decision to write nothing. Secrets documentation is owned by
+    enhancement 0013's docs work, amended 2026-08-18 to author the first
+    secrets docs rather than rewrite any. This entry's only obligation is to
+    leave the gap visible and linked.

@@ -35,7 +35,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-26"
-updated: "2026-08-23"
+updated: "2026-08-24"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -226,6 +226,8 @@ history:
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
+  - date: "2026-08-24"
+    event: 'Delivery-log adoption: forecast plans retired; landed changes and no-work claims recorded in delivery.yaml in the entry; delivery state derived as not-started/in-progress/implemented.'
 related:
   - "0001"
   - "0011"

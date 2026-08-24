@@ -1,0 +1,9 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log: []
+no_work:
+  D12: >-
+    A scope decision that places the cluster-side guard against stranding
+    live dependents outside this design entirely. It is delivered, if at all,
+    in opm-operator beside enhancement 0015's registration finalizer, and
+    needs a dependent-side data shape that does not exist yet.
