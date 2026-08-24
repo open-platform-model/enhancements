@@ -11,6 +11,12 @@ _instance: #InstanceIdentity & {
 	namespace: "media"
 }
 
+// The workload-type key is REQUIRED on the container resource (mirrors
+// container.cue:29); the original cases answer it "stateless", which
+// contributes top and leaves their results untouched.
+_stateless: matchLabels: "core.opmodel.dev/workload-type": "stateless"
+_stateful: matchLabels:  "core.opmodel.dev/workload-type": "stateful"
+
 // ---------------------------------------------------------------------------
 // CASE 1 — dot-neutral component, default name. The baseline: nothing
 // tightens, the D16 qualified default renders, DNS projects from it.
@@ -18,7 +24,7 @@ _instance: #InstanceIdentity & {
 
 case1: #Component & {
 	metadata: name: "web"
-	#resources: container: #ContainerResource
+	#resources: container: #ContainerResource & _stateless
 	#instance: _instance
 }
 
@@ -39,7 +45,7 @@ case2: #Component & {
 		name:         "exporter"
 		resourceName: "metrics.internal.example"
 	}
-	#resources: container: #ContainerResource
+	#resources: container: #ContainerResource & _stateless
 	#instance: _instance
 }
 
@@ -54,7 +60,7 @@ _case2OverrideWins: true
 
 case3: #Component & {
 	metadata: name: "web2"
-	#resources: container: #ContainerResource
+	#resources: container: #ContainerResource & _stateless
 	#traits: expose: #ExposeTrait
 	#instance: _instance
 }
@@ -70,7 +76,7 @@ _case3StillQualified: true
 
 case4: #Component & {
 	metadata: name: "db"
-	#resources: container: #ContainerResource
+	#resources: container: #ContainerResource & _stateless
 	#traits: expose: #ExposeTrait
 	#blueprints: "stateful-workload": #StatefulWorkloadBlueprint
 	#instance: _instance
@@ -88,7 +94,7 @@ _case4Composed: true
 //   		name:         "web3"
 //   		resourceName: "web.internal.example"
 //   	}
-//   	#resources: container: #ContainerResource
+//   	#resources: container: #ContainerResource & _stateless
 //   	#traits: expose: #ExposeTrait
 //   	#instance: _instance
 //   }
@@ -117,7 +123,7 @@ _case4Composed: true
 //
 //   caseFailB: #Component & {
 //   	metadata: name: "web"
-//   	#resources: container: #ContainerResource
+//   	#resources: container: #ContainerResource & _stateless
 //   	#traits: expose: #ExposeTrait
 //   	#instance: #InstanceIdentity & {
 //   		name:      "1prod"
@@ -147,7 +153,7 @@ _case4Composed: true
 //   		name:         "db2"
 //   		resourceName: "db.internal"
 //   	}
-//   	#resources: container: #ContainerResource
+//   	#resources: container: #ContainerResource & _stateless
 //   	#blueprints: "stateful-workload": #StatefulWorkloadBlueprint
 //   	#instance: _instance
 //   }
@@ -171,7 +177,7 @@ _case4Composed: true
 //   		name:         "big"
 //   		resourceName: strings.Repeat("a", 254)
 //   	}
-//   	#resources: container: #ContainerResource
+//   	#resources: container: #ContainerResource & _stateless
 //   	#instance: _instance
 //   }
 //
@@ -183,4 +189,67 @@ _case4Composed: true
 // Both branches die (default by conflict with the explicit value, explicit
 // by MaxRunes(253)) → empty disjunction → refusal. The MaxRunes violation
 // itself is buried below the conflict line; same legibility note as A/B.
+// ---------------------------------------------------------------------------
+
+// ===========================================================================
+// EXTENSION 2026-08-24 — resource-owned CONDITIONAL constraint.
+// A raw #Container answers workload-type on the resource entry (no blueprint
+// attached). The resource reads its OWN label and contributes #NameType only
+// when it is "stateful".
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// CASE 5 — raw stateful container, default name. The constraint arrives from
+// the resource itself; the qualified default satisfies it.
+// ---------------------------------------------------------------------------
+
+case5: #Component & {
+	metadata: name: "cache"
+	#resources: container: #ContainerResource & _stateful
+	#instance: _instance
+}
+
+_case5RawStatefulDefault: case5.#names.resourceName == "prod-cache"
+_case5RawStatefulDefault: true
+
+// ---------------------------------------------------------------------------
+// CASE 6 — raw STATELESS container, dotted override. The conditional falls
+// through to top, so the #ObjectNameType ceiling stays: the dots survive.
+// This is the control that proves the condition is read, not the constant.
+// ---------------------------------------------------------------------------
+
+case6: #Component & {
+	metadata: {
+		name:         "exporter2"
+		resourceName: "metrics.internal.example"
+	}
+	#resources: container: #ContainerResource & _stateless
+	#instance: _instance
+}
+
+_case6StatelessKeepsDots: case6.#names.resourceName == "metrics.internal.example"
+_case6StatelessKeepsDots: true
+
+// ---------------------------------------------------------------------------
+// MUST FAIL E — raw STATEFUL container, dotted override, NO blueprint. This
+// is the gap in D21 as written: the StatefulSet transformer matches on the
+// label, so this component renders a StatefulSet, and the blueprint that
+// carried the constraint is not attached.
+//
+//   caseFailE: #Component & {
+//   	metadata: {
+//   		name:         "cache2"
+//   		resourceName: "cache.internal"
+//   	}
+//   	#resources: container: #ContainerResource & _stateful
+//   	#instance: _instance
+//   }
+//
+// Observed (cue v0.17.1) — refused, same shape as MUST FAIL C, the decisive
+// line naming the label regex with types.cue as the constraint site:
+//   caseFailE.metadata.resourceName: 4 errors in empty disjunction:
+//   caseFailE.metadata.resourceName: conflicting values "prod-cache2" and
+//     "cache.internal"
+//   invalid value "cache.internal"
+//     (out of bound =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
 // ---------------------------------------------------------------------------

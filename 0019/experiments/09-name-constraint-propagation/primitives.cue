@@ -7,11 +7,26 @@
 // path: no constraint declared, nothing tightens.
 package e0019x09
 
-// Dot-neutral: the common case. Declares NO #nameConstraint, so a component
-// made only of these keeps the full #ObjectNameType ceiling — dots allowed,
-// matching what the API server admits for Deployment/DaemonSet.
+// The common case, and (extension 2026-08-24) the first CONDITIONAL
+// constraint: the resource computes its own #nameConstraint from its own
+// matching key. Mirrors catalog_opm/opm/resources/v1beta1/container.cue:29,
+// where the workload-type key is REQUIRED on the resource and answered by a
+// blueprint or inline on the #resources entry (never on the component —
+// core's _matchLabelsAreDerived refuses that). Because the answer lives on
+// the primitive, the primitive can read it: a raw #Container labelled
+// "stateful" renders a StatefulSet (statefulset_transformer.cue matches on
+// this label, not on the blueprint), so it must carry the label rule with
+// no blueprint attached. Every other workload type contributes top.
+//
+// The list-index form, not `| *`: a default arm would win over the concrete
+// one (same trap as name_helpers.cue's #WorkloadName).
 #ContainerResource: #Resource & {
 	metadata: name: "container"
+	matchLabels: "core.opmodel.dev/workload-type"!: "stateless" | "stateful" | "daemon" | "task" | "scheduled-task"
+	#nameConstraint: [
+		if matchLabels["core.opmodel.dev/workload-type"] == "stateful" {#NameType},
+		_,
+	][0]
 }
 
 // Service's name IS the first DNS label of <name>.<ns>.svc.<domain>, and its

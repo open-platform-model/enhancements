@@ -45,7 +45,12 @@ v0.17.1. Copied (never referenced), then cut to the naming surface:
   baseline.
 - `cases.cue` — four pass cases pinned by hidden assertions
   (`_matchLabelsAreDerived` style) and four must-fail cases, commented out
-  with observed error text.
+  with observed error text. Extension 2026-08-24: `#ContainerResource` gains
+  the REQUIRED `workload-type` matching key (copied from
+  `catalog_opm/opm/resources/v1beta1/container.cue:29`) and a
+  `#nameConstraint` computed from it (list-index form, `#NameType` when
+  "stateful", top otherwise); the original cases answer the key "stateless";
+  two pass cases (5, 6) and one must-fail case (E) added.
 
 ## Run
 
@@ -110,5 +115,21 @@ its derived `app: <name>` label, not on `metadata.name`; the same name passes
 via apply with independent labels. The shipped catalogs put only component
 names (`#NameType`) in label values, never `resourceName`; D19 records that
 as a sweep rule so the 253-rune override ceiling cannot leak into a label.
+
+**Extension 2026-08-24 — resource-owned conditional constraint: held.** D21
+as first written put the stateful constraint on the blueprint only, but
+`statefulset_transformer.cue` matches on the `workload-type: stateful` label,
+which a raw `#Container` answers on its own `#resources` entry with no
+blueprint attached — a gap. Measured: the resource can compute its own
+constraint from its own label. `case5` (raw stateful, default) resolves
+`prod-cache` with the entry's `#nameConstraint` reading as the `#NameType`
+conjunction; `case6` (raw stateless, dotted override) keeps
+`metrics.internal.example`, proving the condition is read rather than the
+constant; `caseFailE` (raw stateful, `cache.internal`) is refused naming the
+DNS-1123 label regex. The condition works because the key is answered ON the
+primitive (core's `_matchLabelsAreDerived` refuses a component-authored key),
+so the value is concrete where the comprehension reads it. Consequence for
+D21: the constraint belongs on the resource that owns the label; the
+blueprint's declaration becomes redundant rather than the only source.
 
 Evidence for D19–D21 in `03-decisions.md`.

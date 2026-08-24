@@ -106,6 +106,16 @@ history:
       D19-D21 appended (amend D15/D16): sweep extends to catalogs/k8s,
       CSIDriver joins the exact-name carve-outs, three name types by
       server rule, primitive-declared #nameConstraint. Exp 09 held.
+  - date: "2026-08-24"
+    event: >-
+      Exp 09 extended (resource-owned conditional #nameConstraint from its
+      own workload-type key: held). Exp 10 concluded: always-read
+      expose.name with wrapper default held; Path C refuted.
+  - date: "2026-08-24"
+    event: >-
+      D22-D23 appended (amend D15/D20/D21): always-read Expose name with
+      component-level default from #names.dns.short; resource-owned
+      conditional #nameConstraint for stateful.
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"

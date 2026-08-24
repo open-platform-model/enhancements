@@ -18,6 +18,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 07 | module-scale-cost | Concluded |
 | 08 | concurrent-render-at-scale | Concluded |
 | 09 | name-constraint-propagation | Concluded |
+| 10 | service-name-source | Concluded |
 
 ## Reading 02 and 03 together
 
@@ -132,4 +133,20 @@ unifies — the matchLabels pattern applied to a scalar. Concluded held, after
 one refutation worth remembering on its own: the `!= _|_` existence guard is
 false for a NON-CONCRETE value on cue v0.17.1, so an optional constraint slot
 behind that guard silently never propagates. The landed shape is a top-default
-slot unified unconditionally.
+slot unified unconditionally. Extended 2026-08-24: a resource can compute its
+own constraint from its own matching key (raw stateful `#Container`, no
+blueprint), closing the gap that the StatefulSet transformer matches on the
+label rather than the blueprint.
+
+## 10 reads the Service name from one field
+
+10 measures where the Service name comes from once `#ExposeSchema.name` is
+the field the transformer always reads. Held: the default
+(`#names.dns.short`) is expressible on the `#Expose` wrapper, which must
+re-declare `#names` to reference it (the same lexical rule as `#transform`
+slots), and Service, workload and DNS agree by default and under a
+`resourceName` override. Measured cost: under an `expose.name` override the
+`#names.dns.*` projection follows the workload, not the Service. Refuted:
+"Path C", the field acting as a constraint the trait feeds into
+`resourceName` — on the `#traits` entry the field is only ever the type, and
+feeding the value back creates a cycle the `spec` comprehension guard drops.

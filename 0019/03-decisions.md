@@ -355,4 +355,41 @@ It lands as `core-resourcename-default` with no dependency on any other slice, *
 
 **Source:** User decision 2026-08-24: the propagation question posed as "how do we ensure we allow dots in all components metadata.resourceName override except for when we define a #StatefulWorkload or Service or Namespace"; primitive-declared constraints accepted as recommended. Validated by `experiments/09-name-constraint-propagation/` — outcome 2026-08-24 (hypothesis held after the guard-spelling refutation).
 
+### D22: The Service name is one always-read field on the Expose trait, defaulting to the component's short DNS name
+
+**Kind:** contract
+
+**Amends:** D15, D20
+
+**Decision:** The name of the Service a component renders is carried by exactly one field, the Expose trait's `name`, and the Service transformer reads that field and nothing else: no hand-rolled formula, no fallback. The field is **required** and typed DNS-1035 (`#ServiceNameType`, D20), so a dot or a leading digit refuses at authoring time. Its **default is the component's `#names.dns.short`**, which after D16 and D21 is the instance-qualified `resourceName` already guaranteed to be a valid Service name by Expose's own `#nameConstraint`; so by default the Service, the workload and the `#names.dns.*` projection agree by construction. The default is supplied at the **component level** (the catalog's Expose component wrapper), the only site where the projection is in scope: the trait's spec schema has no path to the owning component (measured), and the wrapper reaches `#names` only by re-declaring it, because CUE resolves references lexically and unification with `#Component` does not bring the slot into scope (measured: `reference "#names" not found` without the re-declaration). That re-declaration rule is the same authoring obligation D11 records for `#transform` slots, now stated for component wrappers too. An **explicit `name` renames the Service only**: the workload keeps `metadata.resourceName`, and `#names.dns.*` follows the workload, not the Service (measured: Service `istiod`, workload `istio-istiod`, projection `istio-istiod.istio-system.svc.cluster.local`). An author who wants the workload, the Service and the projection to share an exact name sets `metadata.resourceName` instead, which Expose's constraint admits when it is DNS-1035-shaped. Attaching the Expose trait without the wrapper leaves the required field unset and refuses at vet (measured: `field is required but not present`), so a Service can never render unnamed. D15's carve-out bullet naming the Service exact-name knob as a derived secondary name is amended accordingly: the knob is the primary source of the Service name, defaulted from the projection rather than derived beside it. D20's typing of the field stands.
+
+**Alternatives considered:**
+
+- **Derive the field from `resourceName` outright (read-only, no override), exact Service names authored on `metadata.resourceName`.** Rejected by the author (2026-08-24): it forces the workload to carry the Service's exact name whenever the Service needs one, and removes the expose block as the place a reader expects the Service name to be written.
+- **"Path C": the field acts as a constraint the trait feeds into `resourceName` through its `#nameConstraint`, so a Service override renames the workload too and the projection can never diverge.** Refuted by experiment 10 in both spellings: on the `#traits` entry the field is only ever the type, never the author's value (that lands on the component's `spec`), so the constraint degrades to `#ServiceNameType` and the override never reaches `resourceName`; feeding the component's value back onto the entry creates a cycle through the `spec` comprehension guard, which drops the field and refuses the author's own `spec.expose` as not allowed.
+- **Keep the default inside the transformer (today's list-index at `service_transformer.cue:95-98`).** Rejected: it keeps the name a render-time fact that the component cannot see, so `#names.dns.*` and the rendered Service can only agree by coincidence, which is the divergence D15 exists to end.
+- **Make the `dns` projection follow the Service instead of the workload.** Not rejected, not decided here: it requires the projection to derive from a primitive-declared network identity rather than from `resourceName`, the claim experiment 09 explicitly left open. Until it is measured, the divergence under an explicit `name` is a documented fact of the projection, and D22's `resourceName` spelling is the way to avoid it.
+
+**Rationale:** One field, always read, gives the Service exactly the read-only-names contract D15 gives every primary object, with the exact-name case written where the Service is declared. Defaulting from the projection makes the common case correct by construction and the divergent case an explicit author act. The measured lexical rule is recorded because it is invisible in review: a wrapper that omits the re-declaration fails to compile, which is loud, but the reason is not obvious to someone who has never met the `#transform` version of the same rule.
+
+**Source:** User decision 2026-08-24: "I still think expose.name should always be used, so the transformers always look at that for services, but the field is by default the #names.dns.short"; wrapper-hosted default confirmed same day ("it should work because it technically has access to the #names.dns.short field"). Validated by `experiments/10-service-name-source/` — outcome 2026-08-24 (held for the always-read field with a wrapper-hosted default; Path C refuted).
+
+### D23: A primitive computes its `#nameConstraint` from its own state; the stateful constraint lives on the container resource
+
+**Kind:** contract
+
+**Amends:** D21
+
+**Decision:** A primitive's `#nameConstraint` may be a **function of the primitive's own fields**, not only a constant type. The stateful label rule is declared on the **container resource**, keyed off the value of its own `workload-type` matching key: `#NameType` when the key reads `stateful`, top otherwise. The stateful-workload blueprint's declaration (D21) becomes redundant rather than the sole source. This closes a gap in D21 as first written: the StatefulSet transformer matches on the label, not on the blueprint, and a raw container component answers the key on its own `#resources` entry with no blueprint attached, so under D21 alone it rendered a StatefulSet with no name constraint and a dotted override reached the API server. The condition is readable because the key is answered **on the primitive**: core's `_matchLabelsAreDerived` refuses a component-authored key, so the value is concrete exactly where the component's comprehension reads it (measured: raw stateful default resolves `prod-cache` with the entry's constraint reading as `#NameType`; raw stateless with a dotted override keeps the dots; raw stateful with `cache.internal` refuses naming the DNS-1123 label regex). The list-index spelling is load-bearing: a default arm would win over the concrete one.
+
+**Alternatives considered:**
+
+- **Blueprint-only constraint (D21 as written).** Insufficient: it protects only components that attach the blueprint, while the transformer that renders the StatefulSet keys on the label.
+- **Key the constraint off the component's derived `matchLabels` in core.** Already rejected by D21: it hard-codes primitive knowledge into `#Component` and every new dot-hostile kind becomes a core edit.
+- **Constrain at the transformer.** Already rejected by D21: refusal moves from authoring time to render time, and D15 makes transformers read-only consumers of names.
+
+**Rationale:** The matchLabels precedent D21 invokes says every fact traces to a primitive; a fact that depends on the primitive's own configuration still lives on the primitive, computed there. The label is the thing the StatefulSet transformer keys on, so the constraint must key on the same thing, and the only place both are visible together is the resource that declares the key.
+
+**Source:** User decision 2026-08-24 (the resource-owned conditional spelling accepted: "I like this approach"). Validated by `experiments/09-name-constraint-propagation/` — extension outcome 2026-08-24 (held).
+
 Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.
