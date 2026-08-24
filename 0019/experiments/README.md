@@ -17,6 +17,7 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 06 | concurrent-render | Concluded |
 | 07 | module-scale-cost | Concluded |
 | 08 | concurrent-render-at-scale | Concluded |
+| 09 | name-constraint-propagation | Concluded |
 
 ## Reading 02 and 03 together
 
@@ -120,3 +121,15 @@ safely deploy, the single build wins at every size, from 2.48x at two components
 to 5.49x at 129. One correction rides along: today's path retains 348 MB per
 render too, so per-render retention is a property of holding a cue.Context
 rather than a cost the collapse introduces.
+
+## 09 stands alone
+
+09 validates the D19–D21 naming amendments rather than the render collapse:
+that `resourceName`'s ceiling can widen to a DNS-1123 subdomain (dots, 253
+runes) while Service/StatefulSet/Namespace stay protected by a
+`#nameConstraint` slot the dot-hostile primitive declares and the component
+unifies — the matchLabels pattern applied to a scalar. Concluded held, after
+one refutation worth remembering on its own: the `!= _|_` existence guard is
+false for a NON-CONCRETE value on cue v0.17.1, so an optional constraint slot
+behind that guard silently never propagates. The landed shape is a top-default
+slot unified unconditionally.

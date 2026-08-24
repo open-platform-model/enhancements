@@ -101,6 +101,11 @@ history:
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
   - date: "2026-08-24"
     event: 'Delivery-log adoption: forecast plans retired; landed changes and no-work claims recorded in delivery.yaml in the entry; delivery state derived as not-started/in-progress/implemented.'
+  - date: "2026-08-24"
+    event: >-
+      D19-D21 appended (amend D15/D16): sweep extends to catalogs/k8s,
+      CSIDriver joins the exact-name carve-outs, three name types by
+      server rule, primitive-declared #nameConstraint. Exp 09 held.
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"
