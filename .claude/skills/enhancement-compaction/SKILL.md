@@ -6,7 +6,7 @@ user-invocable: true
 
 # Enhancement Compaction
 
-Enhancements are epics. They run for weeks across several repos. While an entry is `draft`, its decisions are living text revised in place under the `enhancements` skill, so the log stays conflict-free on its own. Once the entry is `accepted` its decision bodies are **protected**, and implementation-phase changes *append*: a slice reveals that an earlier choice was wrong, and the correction lands as a new `DN` with `**Amends:**` / `**Supersedes:**` relation fields. If those appended reversals are only ever *stacked* on top of what they reverse, the document stops being safe to read linearly — someone who stops halfway comes away believing something a later entry already killed.
+Enhancements are epics. They run for weeks across several repos. While an entry is `draft`, its decisions are living text revised in place under the `enhancements` skill, so the log stays conflict-free on its own. Once the entry is `accepted` its decision bodies are **protected**, and implementation-phase changes *append*: a landed change reveals that an earlier choice was wrong, and the correction lands as a new `DN` with `**Amends:**` / `**Supersedes:**` relation fields. If those appended reversals are only ever *stacked* on top of what they reverse, the document stops being safe to read linearly — someone who stops halfway comes away believing something a later entry already killed.
 
 This skill weaves reversals back into what they reverse, so the entry states what is true now. It is the **only** path for editing an existing decision body once an entry is `accepted`. Provenance is not lost: git holds every prior revision, and `config.yaml.history` — the one strictly append-only structure in the repo — records that the compaction happened and what it merged.
 
@@ -16,8 +16,8 @@ Rewriting a design record is a real risk, not a free lunch. An agent that can ed
 
 - `task compact:plan ID=NNNN` returned candidates.
 - You are about to promote `draft → accepted` — the promotion gate already forces you to touch every Open Question, so collapsing resolved ones costs nothing extra, and any legacy stacked reversals get woven before the flip protects decision bodies.
-- A slice landed that reverses an accepted decision — the reversal itself is *recorded* as an appended `DN` with relation fields (`enhancements` skill, Phase 4); weaving it into the decision it changes happens here.
-- The design is about to be **delivered** (its plan's last slice is closing). **This is the last chance** — a delivered entry is closed permanently, and `task compact:plan` refuses it from then on.
+- A change landed that reverses an accepted decision — the reversal itself is *recorded* as an appended `DN` with relation fields (`enhancements` skill, Phase 4); weaving it into the decision it changes happens here.
+- The entry is about to derive **implemented** (the last uncovered decisions are landing). **This is the last chance**: an implemented entry is closed permanently, and `task compact:plan` refuses it from then on.
 - You are superseding an entry and need to collapse it to pointers at its successor.
 - Any time you are about to merge, rewrite, or delete content under an existing `DN` or `OQN` on an entry that is **`accepted` or `superseded`** — or to repair reversals stacked in an older draft under the pre-2026-08 append-only model.
 
@@ -47,11 +47,11 @@ Read `config.yaml.status` first thing, before anything else.
 | Status | Behavior |
 | --- | --- |
 | `draft` | **WEAVE and TOMBSTONE, as repair only** — for reversals stacked before the in-place rule (or imported habits). A draft maintained under the current model needs neither: routine revision happens in place during Phase 2 without this skill. Leave Open Question prose alone — it is the active work surface, and its context paragraphs are what make the questions answerable. Collapsing them mid-design destroys work in progress. |
-| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass at latest before the design is delivered. |
-| delivered (derived) | **Refuse. No override, no `FORCE` flag.** The design shipped and the record is closed. What looks like a needed correction is either a new enhancement or a note in the successor. Say so and exit. |
+| `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass at latest before the entry derives implemented. |
+| implemented (derived) | **Refuse. No override, no `FORCE` flag.** The design shipped and the record is closed. What looks like a needed correction is either a new enhancement or a note in the successor. Say so and exit. |
 | `superseded` | **STUB**, plus COLLAPSE-OQ and TOMBSTONE. The narrative documents collapse to pointers at the successor. The entry lives in `archive/NNNN/` (terminal entries are always archived; `task supersede` does the move) — `task compact:plan` and this skill operate on it there. `experiments/` and `research/` are never touched under any status. |
 
-There is no override for a delivered entry. If the user insists, the honest answer is that the entry is frozen by design and the fix belongs in a new entry — offer to draft that instead.
+There is no override for an implemented entry. If the user insists, the honest answer is that the entry is frozen by design and the fix belongs in a new entry — offer to draft that instead.
 
 ## The keep/drop test
 
@@ -148,7 +148,7 @@ Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, 
 
 ### 1. Preflight
 
-1. Read `config.yaml` and run `task compact:plan ID=NNNN`, which reports both `STATUS` and the derived `DELIVERY`. Branch per the table above; refuse a delivered or rejected entry here, before doing any other work.
+1. Read `config.yaml` and run `task compact:plan ID=NNNN`, which reports both `STATUS` and the derived `DELIVERY` (computed from the entry's `delivery.yaml` log). Branch per the table above; refuse an implemented or rejected entry here, before doing any other work.
 2. Run `task questions:open ID=$ID`. If it returns rows and the status is `accepted`, stop — unresolved OQs at `accepted` are a gate failure. Route to `enhancement-open-questions` first.
 3. Run `task compact:plan ID=$ID`. This is the candidate list, not the plan: it finds relation phrases, resolved OQs still carrying prose, and heading trailers. It has no judgment about which ones should merge.
 4. Read `03-decisions.md`, `07-questions.md`, and the narrative documents in full. Cache them. Compaction needs whole-document context — a merge decided from grep output alone will get the alternatives wrong.
@@ -165,7 +165,7 @@ TOMBSTONE  D32         merged into D28
 TOMBSTONE  D4          dead via D13 (shared inventory package never shipped)
 COLLAPSE   OQ8         drop 340 chars of decision archaeology after Status:
 COLLAPSE   OQ14        drop 1,180 chars; keep resolved-by-D21
-NARRATIVE  06-operational.md §Cross-Repo  restate slice order without the "no longer slice 1" aside
+NARRATIVE  06-operational.md §Cross-Repo  restate the cross-repo order without the "no longer slice 1" aside
 ```
 
 Then stop and wait. Do not batch the approval with the writes, and do not proceed on silence.
@@ -214,7 +214,7 @@ Mixing compaction into a content change makes the two indistinguishable in revie
 
 - **Writing before the manifest is approved.** The manifest is the control. Skipping it turns this skill into an unsupervised rewrite of a design record.
 - **Dropping the overturned position instead of demoting it to an alternative.** The single most damaging failure mode. A decision that was tried and reversed is the strongest evidence in the document; deleting it guarantees someone re-proposes it. Fold it into *Alternatives considered*, marked as previously adopted.
-- **Compacting a delivered entry.** Closed means closed, and it is derived rather than declared — `task compact:plan` reports `DELIVERY delivered` and refuses. There is no flag. Same for a rejected entry in `archive/` — being archived is not what closes it (a superseded entry is archived too, and its STUB pass runs there); its `rejected` status is.
+- **Compacting an implemented entry.** Closed means closed, and it is derived rather than declared — `task compact:plan` reports `DELIVERY implemented` and refuses. There is no flag. Same for a rejected entry in `archive/` — being archived is not what closes it (a superseded entry is archived too, and its STUB pass runs there); its `rejected` status is.
 - **Collapsing Open Questions on a `draft`.** Their context paragraphs are the working surface. Wait for the promotion pass.
 - **Collapsing an `answered` OQ to a bare token.** Its status line *is* the answer; nothing points at a decision. This deletes content that exists nowhere else.
 - **Renumbering to close tombstone gaps.** The gaps are the point. Other repos cite these numbers.

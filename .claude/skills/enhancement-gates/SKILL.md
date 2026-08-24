@@ -12,7 +12,7 @@ This skill decides **whether something is an enhancement at all**, and whether a
 
 An enhancement is a new feature, or the rework of an existing one. It is **not** a logbook, not a scratchpad, and not a place to prescribe how a repo builds something. Those three drifts are what this rubric catches, and none of them is catchable by regex alone: "is this a feature or a chore?" and "is this contract or mechanism?" are judgment calls.
 
-So the enforcement is split. `task gate` runs the deterministic half — `vet`, blocking Open Questions, delivery, and the probes declared in `gates.cue`. This skill runs the judgment half. **Never spend a walk on what the probes already answer.**
+So the enforcement is split. `task gate` runs the deterministic half — `vet`, blocking Open Questions, the derived delivery state (from the entry's `delivery.yaml` log), and the probes declared in `gates.cue`. This skill runs the judgment half. **Never spend a walk on what the probes already answer.**
 
 ## The rule that makes this a gate and not a ritual
 
@@ -43,7 +43,7 @@ For each rule, in the order `task gate` printed them:
 1. State the rule's question back, in one line, as it applies to *this* entry.
 2. Gather the evidence the rule demands. Probe hits are candidates, not verdicts: a hit inside a `**Source:**` line is provenance and passes, a hit inside a design claim is prescription and fails.
 3. Give the verdict: `pass` or `fail`, with the quote and one sentence of reasoning.
-4. On `fail`, name the rule's `redirect` destination concretely — which repo's OpenSpec change, which plan, an idea issue (label `idea` on the enhancements repo), or the specific edit that would fix it.
+4. On `fail`, name the rule's `redirect` destination concretely — which repo's OpenSpec change, an idea issue (label `idea` on the enhancements repo), or the specific edit that would fix it.
 
 Do not batch the rules into one answer. The value is in each being asked separately; a combined verdict is where "mostly fine" hides.
 
@@ -63,7 +63,7 @@ verdicts:
   - gate: rewrite
     verdict: fail
     evidence: "02-design.md:44 'pkg/core/{labels,resource,convert}.go … are deleted, not aliased'"
-    reasoning: "Prescribes package deletions. The contract statement is 'the kernel is the only implementation'; the file list belongs to the slice."
+    reasoning: "Prescribes package deletions. The contract statement is 'the kernel is the only implementation'; the file list belongs to the implementing change."
 ```
 
 The file is **overwritten, never appended** — it states the current verdict, not a history of walks. It lives outside the entry on purpose: a gate report accumulating inside `NNNN/` would be the logbook this rubric exists to prevent.

@@ -23,7 +23,7 @@ Sibling skills:
 
 - **`enhancements`** (`.claude/skills/enhancements/SKILL.md`) — the binding workflow protocol. Decision block format, status gates, history conventions all live there. This skill defers to that one on conflicts.
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — experiments are a primary input for partial OQs (`informed-by-exp-NN` / `supported-by-exp-NN`). When walking such an OQ, read the experiment's `README.md` Outcome section before presenting.
-- **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when presenting an OQ whose subject is a relationship (`related`/`supersedes`/a slice `depends_on`) or a design/mechanism question (architecture, flow, state), sketch the diagram the content shape calls for — Mermaid for the former, ASCII for the latter. See the Present step below.
+- **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when presenting an OQ whose subject is a relationship (`related`/`supersedes`) or a design/mechanism question (architecture, flow, state), sketch the diagram the content shape calls for — Mermaid for the former, ASCII for the latter. See the Present step below.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — load this only when the resulting decision will also land as an edit in `core/*.cue` in the same session. The walk itself doesn't touch `core/`.
 
 ## Invocation
@@ -47,7 +47,7 @@ Read `config.yaml.status` first thing. Behavior by status:
 | --- | --- |
 | `draft` | Proceed normally. Primary use case. |
 | `accepted` | Per `enhancements` skill, an accepted enhancement should have zero unresolved OQs. If `task questions:open` returns rows, that is a vet/check gap. Warn loudly, list the unresolved OQs, ask the user to confirm before proceeding. Proceed on confirmation. |
-| `implemented` | Block by default. Resolving an OQ after code shipped means design intent changed; the canonical artefact for that is usually a new superseding enhancement, not a back-edit. Pass `FORCE=1` to override. When refusing, point the user at Phase 5 (Supersede) of the `enhancements` skill. |
+| implemented (derived) | Block by default. There is no stored `implemented` status; `task delivery ID=NNNN` derives it from the entry's `delivery.yaml` log. Resolving an OQ after code shipped means design intent changed; the canonical artefact for that is usually a new superseding enhancement, not a back-edit. Pass `FORCE=1` to override. When refusing, point the user at Phase 5 (Supersede) of the `enhancements` skill. |
 | `superseded` | Refuse. No override. Point the user at the successor (`config.yaml.superseded_by`) and exit. |
 
 ## The per-OQ loop
@@ -69,15 +69,15 @@ Read `config.yaml.status` first thing. Behavior by status:
    - Experiment evidence (only if `Status: informed-by-exp-NN` or `supported-by-exp-NN`): read `experiments/NN-*/README.md` and quote the Outcome section.
    - Alternatives the OQ bullet enumerates.
    - **Diagram** (see `enhancement-diagrams`) — if the OQ is about how this entry relates to
-     others (a `related`/`supersedes` call, or a slice `depends_on`), sketch a small Mermaid
-     relationship preview using the `graph`/`plans:graph` `classDef` palette. If the OQ is about
+     others (a `related`/`supersedes` call), sketch a small Mermaid
+     relationship preview using the `graph` task's `classDef` palette. If the OQ is about
      internal architecture, data/control flow, or state, sketch an ASCII diagram. Not every OQ
      needs one — reach for it when a picture would settle the question faster than prose.
    - **Recommendation** — include a `**Recommendation:** {…}` line *only* when evidence supports it (an experiment outcome, a prior decision that constrains the answer, a principle explicitly stated in `02-design.md`). If no such evidence exists, say so: "No strong recommendation — both A and B are live." Fabricating decisiveness is an anti-pattern; see below.
 2. **Discuss.** Stay in this state until the user picks an outcome. Answer questions, surface additional context from the cached files, do not write anything.
 3. **Decide.** User picks one of:
    - **Decide** — resolve the OQ with a decision. Branch on status: on a `draft` entry whose resolution *changes an existing decision*, revise that `### DN:` block **in place** (fold an evidence-backed old position into *Alternatives considered* marked as previously adopted, optionally add a `**Revised:**` line) and point the OQ's status at the existing number — do not mint a new one. Otherwise — a genuinely new decision, or any decision on an `accepted` entry — draft the full four-field `### DN:` block in chat (Decision / Alternatives considered / Rationale / Source); on `accepted`, when it changes an existing decision, add `**Amends:**` / `**Supersedes:**` relation fields rather than editing the old body. Echo the user's stated reasoning into Rationale verbatim where possible — paraphrase loses fidelity. Source defaults to `User decision YYYY-MM-DD` (today). Ask the user to confirm with `y`, reply with revised text to enter an edit round, or `skip` to abort.
-   - **Defer** — ask: "Defer to which enhancement?" Empty answer → `Status: deferred` (no target). Otherwise → `Status: deferred-to-NNNN`. The skill does not validate that NNNN exists at write time; the target enhancement may not be filed yet. Surface a one-line warning if it doesn't.
+   - **Defer** — ask: "Defer to which enhancement, or to implementation?" Empty answer → `Status: deferred` (no target). "implementation" → `Status: deferred-to-implementation` (keep the context a future implementer needs on the bullet; the implementing change later claims the question via `resolves` in the entry's `delivery.yaml` log, and `task delivery:deferred` reports unclaimed ones). Otherwise → `Status: deferred-to-NNNN`. The skill does not validate that NNNN exists at write time; the target enhancement may not be filed yet. Surface a one-line warning if it doesn't.
    - **Answer** — the OQ does not need a decision; it just needs clarification (canonical example: OQ17 in 0001, `Status: answered`). Ask the user for the short explanation. Write `Status: answered. {explanation}` on the bullet's status line.
    - **Skip** — no edits. Move on. The OQ stays `open`.
 4. **Write.** Before any write:
@@ -116,7 +116,7 @@ Three buckets (the parser in `task questions:open` classifies based on these):
 | --- | --- | --- |
 | `open` | exactly `open` | Walked. |
 | `partial` | `informed-by-exp-NN`, `supported-by-exp-NN` | Walked. Read the experiment's Outcome section before presenting; the walk's job is to formalize the experiment evidence into a `### DN:` block. OQ15 in 0001 is the canonical example: experiment 05 informed the answer but a formal D is still pending. |
-| `resolved` | `resolved-by-D##`, `resolved-by-D##/D##` (compound), `deferred`, `deferred-to-NNNN`, `answered` | Skipped by the walk. Listed in the end-of-walk summary for context. |
+| `resolved` | `resolved-by-D##`, `resolved-by-D##/D##` (compound), `deferred`, `deferred-to-NNNN`, `deferred-to-implementation`, `answered` | Skipped by the walk. Listed in the end-of-walk summary for context. |
 
 Any other status string renders as `unknown` and is omitted from the queue. If the user wants to walk an `unknown`-status OQ, fix the status spelling first.
 

@@ -1,6 +1,6 @@
 ---
 name: enhancement-diagrams
-description: When and how to reach for a diagram while designing an OPM enhancement — Mermaid for relationship/dependency graphs between enhancements or slices, ASCII for how a single enhancement's design/mechanism actually works. Load before sketching a diagram during an Open-Questions walk or general design discussion, before adding a diagram to 01-problem.md/02-design.md/05-risks.md, or when unsure which medium a diagram calls for.
+description: When and how to reach for a diagram while designing an OPM enhancement — Mermaid for relationship/dependency graphs between enhancements, ASCII for how a single enhancement's design/mechanism actually works. Load before sketching a diagram during an Open-Questions walk or general design discussion, before adding a diagram to 01-problem.md/02-design.md/05-risks.md, or when unsure which medium a diagram calls for.
 user-invocable: true
 ---
 
@@ -15,16 +15,15 @@ exists to make reaching for a diagram the default move at the right moments, not
 
 ## The core split
 
-> **Mermaid is for relationships between enhancements or slices. ASCII is for how a single
+> **Mermaid is for relationships between enhancements. ASCII is for how a single
 > enhancement's design/mechanism works. Medium follows content shape — never a blanket default,
 > and never swapped for the other.**
 
 The two categories are not a style preference; they map onto genuinely different content:
 
-- A **relationship** question has enhancements, slices, or entries as its nodes and
-  `related`/`supersedes`/`depends_on` as its edges. This is exactly what `GRAPH.md` (cross-entry)
-  and `plans/<slug>/PLAN.md` (per-plan slice DAG) already render as generated Mermaid — see
-  `delivery-plans` for the slice side. Mermaid is a natural fit because that is what it's
+- A **relationship** question has enhancements or entries as its nodes and
+  `related`/`supersedes` as its edges. This is exactly what `GRAPH.md` (cross-entry)
+  already renders as generated Mermaid. Mermaid is a natural fit because that is what it's
   for: named nodes, directed/undirected edges, `classDef`-based coloring.
 - A **design/mechanism** question has functions, data, states, or components as its nodes —
   how a deletion protocol resolves, how a rung ladder architecture is layered, how a request
@@ -41,14 +40,14 @@ Load this skill when any of the following is true:
   OQ concerns either category above.
 - You are in Phase 2 (Iterate) of the `enhancements` workflow, discussing `02-design.md`'s
   High-Level Approach, Schema/API Surface, Integration Points, or Before/After with the user.
-- You are weighing a `related`/`supersedes`/`depends_on` edge, or whether to split or merge
-  enhancements, before committing the edit to `config.yaml` / `plans/<slug>/plan.yaml`.
+- You are weighing a `related`/`supersedes` edge, or whether to split or merge
+  enhancements, before committing the edit to `config.yaml`.
 - You are unsure which medium a diagram calls for — re-read `## The core split` above before
   drawing anything.
 
 Skip this skill when the diagram question is already answered by a *generated* file — if
-`GRAPH.md` or `plans/<slug>/PLAN.md` already show what's being asked, point at those (regenerating via
-`task graph` / `task plans:graph` if they're stale) rather than hand-drawing a duplicate.
+`GRAPH.md` already shows what's being asked, point at it (regenerating via
+`task graph` if it's stale) rather than hand-drawing a duplicate.
 
 ## Reaching for a diagram
 
@@ -57,7 +56,6 @@ A concrete trigger list, so this is a default reflex rather than a vague encoura
 | Question shape | Reach for | Example |
 | --- | --- | --- |
 | Should this entry `related`/`supersedes` another? | Mermaid relationship sketch | "If 0013 supersedes 0007, does the graph still make sense with 0005 still pointing at 0007?" |
-| Should this slice `depends_on` another (local or cross-enhancement)? | Mermaid slice-DAG sketch | "Does `cli-kernel-adoption` really need `0001:library`, or does `cli-ownership-marker` already cover it?" |
 | Should we split this enhancement into two, or merge two into one? | Mermaid relationship sketch, before/after | Visualize the graph both ways before deciding. |
 | How does this layered architecture fit together? | ASCII layered diagram | `0012`'s rung ladder (kernel emits → decides → acts → owns the CR). |
 | How does data flow through this pipeline / protocol? | ASCII flow diagram | `0012`'s deletion protocol (inputs → `DeletionPlan()` → verdict). |
@@ -67,28 +65,25 @@ A concrete trigger list, so this is a default reflex rather than a vague encoura
 ## Relationships → Mermaid
 
 Sketch it **live, inline in the chat response** — no tool call needed at typical size. Reuse the
-exact `classDef` palette already defined in `Taskfile.yml`'s `graph` task (entry status) and
-`plans:graph` task (slice status), so the live preview looks like what the regenerated file will
-actually contain once the edit lands:
+exact `classDef` palette already defined in `Taskfile.yml`'s `graph` task (entry status), so the
+live preview looks like what the regenerated file will actually contain once the edit lands:
 
 ```
 classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
 classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
-classDef implemented fill:#dcfce7,stroke:#15803d,color:#000
+classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
 classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
+classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 ```
 
-(slice-plan sketches substitute the `planned`/`in_progress`/`done`/`cancelled` palette from
-`plans:graph` instead — see `delivery-plans`.)
-
-This is a genuinely new capability, not a restatement of what already exists: today `GRAPH.md` and
-`PLAN.md` only exist *after* `task graph` / `task plans:graph` runs against already-committed data.
+This is a genuinely new capability, not a restatement of what already exists: today `GRAPH.md`
+only exists *after* `task graph` runs against already-committed data.
 A live sketch lets the user see the shape of a *proposed* edge or split — "what would the graph
 look like if 0013 superseded 0007 instead of merely relating to it?" — before touching
-`config.yaml` or `plan.yaml` (plans side) at all. Once the relationship decision is actually made, it is
+`config.yaml` at all. Once the relationship decision is actually made, it is
 encoded there and the real file is regenerated; the live sketch was scaffolding for the
-conversation, not a new artifact to maintain. Never hand-edit `GRAPH.md` or `PLAN.md` to match a
-sketch — they carry a "do not edit by hand" header for a reason.
+conversation, not a new artifact to maintain. Never hand-edit `GRAPH.md` to match a
+sketch — it carries a "do not edit by hand" header for a reason.
 
 ## Design/mechanism → ASCII
 
@@ -140,7 +135,7 @@ considered / Rationale / Source) is deliberately compact and text-only — see t
 `02-design.md` that carries it; don't embed one in the decision body.
 
 Relationship Mermaid sketches are not persisted by hand anywhere — see `## Relationships →
-Mermaid` above. The generated `GRAPH.md` / `plans/<slug>/PLAN.md` are the only committed artifacts for
+Mermaid` above. The generated `GRAPH.md` is the only committed artifact for
 that category.
 
 ## Anti-patterns
@@ -155,8 +150,8 @@ that category.
 - **A bordered ASCII diagram whose alignment silently drifted after an edit.** If you touched the
   text inside a bordered box, re-check every row's width before presenting it.
 - **A diagram in `03-decisions.md`.** Keep the decision log text-only; point at `02-design.md`.
-- **Hand-editing `GRAPH.md` or `PLAN.md` to match a live sketch.** They're generated — encode the
-  decision in `config.yaml` / the plan and regenerate instead.
+- **Hand-editing `GRAPH.md` to match a live sketch.** It is generated; encode the
+  decision in `config.yaml` and regenerate instead.
 - **Treating a diagram as optional decoration rather than the fastest way to answer the question
   on the table.** If the user is asking "how does X relate to Y" or "how does this flow," a
   diagram is very often the actual answer — prose describing a picture is a worse picture.
@@ -165,9 +160,8 @@ that category.
 
 | Artefact | Path | Authority |
 | --- | --- | --- |
-| Relationship diagrams (generated) | `enhancements/GRAPH.md`, `enhancements/plans/<slug>/PLAN.md` | Generated by `task graph` / `task plans:graph`. Never hand-edited. Live sketches during discussion should visually match these. |
-| Mermaid `classDef` palette (entry status) | `enhancements/Taskfile.yml :: graph` | Source of the four-color palette to reuse in a live relationship sketch. |
-| Mermaid `classDef` palette (slice status) | `enhancements/plans/Taskfile.yml :: graph` | Source of the slice-status palette; see `delivery-plans`. |
+| Relationship diagrams (generated) | `enhancements/GRAPH.md` | Generated by `task graph`. Never hand-edited. Live sketches during discussion should visually match it. |
+| Mermaid `classDef` palette (entry status) | `enhancements/Taskfile.yml :: graph` | Source of the status palette to reuse in a live relationship sketch. |
 | Design/mechanism diagrams (hand-authored) | `enhancements/NNNN/01-problem.md`, `02-design.md`, `05-risks.md` | Plain ASCII fenced blocks, authored in place, mutable like any other prose. |
 | Reference example | `enhancements/0012/02-design.md` (lines 28-43, 80-94) | The existing ASCII convention this skill formalizes — study before drawing a new one. |
 | This skill | `enhancements/.claude/skills/enhancement-diagrams/SKILL.md` | The protocol — the file you are reading. |
@@ -179,8 +173,5 @@ that category.
   `## Phase 2 — Iterate` is where general design discussion happens and this skill applies.
 - `enhancements/.claude/skills/enhancement-open-questions/SKILL.md` — the OQ-walk's Present step
   is the primary trigger for a live diagram during a walk.
-- `enhancements/.claude/skills/delivery-plans/SKILL.md` — owns the slice-DAG side of the
-  relationship category (`plans/<slug>/plan.yaml` → `PLAN.md`); this skill's Mermaid guidance defers to it for
-  slice-specific conventions.
 - `enhancements/0000/README.md ## Diagrams` — canonical rules text reproduced in each new entry's
   template.
