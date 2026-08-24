@@ -49,7 +49,7 @@ data-plane state changes that survive a code rollback?}
 {State the ordering *constraints as design facts*: what must exist before
 what, and why — for each hand-off, name the artefact the upstream produces
 that the downstream consumes (a published OCI tag, a regenerated fixture,
-a new contract). Constraints only, no sequencing plan: the slice-by-slice
-landing order and its status live in a delivery plan under `plans/`, which
-cites this entry — never the reverse (the one-way rule). Do not name a
-plan, a slice, or a plan file here.}
+a new contract). Constraints only, no sequencing plan: the
+landing record lives in this entry's `delivery.yaml`, accreting one log
+entry per change as it lands. Do not narrate landings here, and do not
+name another entry's log.}

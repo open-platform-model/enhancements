@@ -10,9 +10,9 @@ This entry adds `opm instance init`: point the CLI at a module's OCI reference a
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
-status block written here is a snapshot that goes stale the moment the plan
-moves, which is exactly the drift the implementation axis was removed to stop.
+delivered is DERIVED from this entry's `delivery.yaml` log — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment another change
+lands, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents

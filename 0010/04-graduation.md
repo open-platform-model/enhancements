@@ -1,6 +1,6 @@
 # Graduation Criteria — Module and Catalog Identity
 
-This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`; the entry's documents store nothing about it.
 
 ## draft → accepted
 
@@ -18,7 +18,7 @@ The design is ready to be sliced when:
 
 ## Deferred — clusters and environments
 
-Out of scope for this entry and for 0011 (author's call, 2026-08-05; recorded in the delivery plan's header). These entries fix what a published artifact *is*; moving a running deployment onto it is separate work, handled afterwards. **The items below are not gates here** — they were listed above until 2026-08-05, which made this section unsatisfiable, because the plan deliberately carries no slice for any of them.
+Out of scope for this entry and for 0011 (author's call, 2026-08-05; recorded at the time in the then-current delivery plan's header, since retired; the landing record is `delivery.yaml`). These entries fix what a published artifact *is*; moving a running deployment onto it is separate work, handled afterwards. **The items below are not gates here** — they were listed above until 2026-08-05, which made this section unsatisfiable, because the then-current delivery plan deliberately carried no slice for any of them.
 
 They are recorded rather than dropped, because each carries a finding that would otherwise be rediscovered at apply time. All three belong to the v0 → v1 fleet migration, where D18 already puts its two holdings: **relabel in place, never recreate**, and the **positive check**.
 

@@ -32,7 +32,7 @@ The one ordering constraint that matters for rollback is the same one that matte
 
 ## Cross-Repo Coordination
 
-Ten slices across five repos. A delivery plan carries the structure; this section carries why the order is what it is.
+Landings across five repos. This section carries why the order is what it is; the landing record accretes in `delivery.yaml` as changes land.
 
 **Three slices are independent and can start immediately.** The doc-comment backfills in `catalog` and `core` need nothing from the site, and the boundaries page (D3) needs nothing from anyone: it enumerates absences, and every absence is already a fact. The library embedder guide is likewise self-contained.
 

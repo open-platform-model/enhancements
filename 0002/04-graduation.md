@@ -1,6 +1,6 @@
 # Graduation Criteria — Rename #ModuleRelease to #ModuleInstance
 
-Gates that must hold before this enhancement advances. Design acceptance criteria, not implementation milestones: delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
+Gates that must hold before this enhancement advances. Design acceptance criteria, not implementation milestones: delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`; the entry's documents store nothing about it.
 
 ## draft → accepted
 

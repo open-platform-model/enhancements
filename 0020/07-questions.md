@@ -2,11 +2,11 @@
 
 This is the entry's working question register. Track unresolved questions surfaced during design. The validator requires this file for every entry; the `## Open Questions` block below (with or without entries) is required starting at `status: accepted`. **This file is the single canonical location** — an `## Open Questions` block anywhere else in the entry fails `task vet`.
 
-`OQ` numbers are permanent — never reused, never renumbered, because decisions (`**Resolves:** OQ4`), `// OQN:` markers in `schemas/`/`contracts/` CUE, and delivery plans (`resolves: ["NNNN:OQ9"]`) cite them. A vacated number keeps a one-line tombstone.
+`OQ` numbers are permanent — never reused, never renumbered, because decisions (`**Resolves:** OQ4`), `// OQN:` markers in `schemas/`/`contracts/` CUE, and delivery-log entries in `delivery.yaml` (`resolves: [OQ9]`) cite them. A vacated number keeps a one-line tombstone.
 
 Each entry carries a `Status:` line; close it with `resolved-by-D##`, `deferred-to-NNNN`, `deferred-to-implementation`, or `answered` when the question resolves.
 
-`deferred-to-implementation` is the deferral register: an implementation-level question the design deliberately hands to whoever delivers it. Attach the context a future implementer needs (what is unclear, what evidence exists, what would settle it) — but never name the inheritor: the slice that picks it up claims it from the plans side (`resolves: ["NNNN:OQ9"]`), and `task plans:deferred` reports deferred questions no slice has claimed. Contract-level questions cannot be deferred this way — they must be resolved before `accepted`.
+`deferred-to-implementation` is the deferral register: an implementation-level question the design deliberately hands to whoever delivers it. Attach the context a future implementer needs (what is unclear, what evidence exists, what would settle it) — but never name the inheritor: the change that picks it up claims it in this entry's `delivery.yaml` log entry (`resolves: [OQ9]`), and `task delivery:deferred` reports deferred questions no logged change has claimed. Contract-level questions cannot be deferred this way — they must be resolved before `accepted`.
 
 While a question is open, its bullet is a working surface — edit the wording, sharpen the framing, add or drop alternatives freely. Numbers stay fixed (`schemas/target.cue` marks gated fields with `// OQN:` and decisions cite `resolves OQN`), but the prose is yours to change.
 

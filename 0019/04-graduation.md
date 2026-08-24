@@ -1,8 +1,8 @@
 # Graduation Criteria — Kernel render path parity with pure CUE
 
-This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`; the entry's documents store nothing about it.
 
-The entry graduates **as one unit** — there is no per-phase acceptance — but implementation is phased, and the structural guarantee that Phase A is never hostage to Phase B is a gate item here: the delivery plan must show no Phase A slice depending on any Phase B slice.
+The entry graduates **as one unit** — there is no per-phase acceptance — but implementation is phased, and the structural guarantee that Phase A is never hostage to Phase B is a gate item here: Phase A work must land free of any dependency on Phase B work, stated as a design constraint in `06-operational.md`.
 
 ## draft → accepted
 
@@ -19,6 +19,6 @@ The entry graduates **as one unit** — there is no per-phase acceptance — but
 - `schemas/` (the core-schema delta, `core_schema: true`) compiles via `cue vet ./...`, and `examples.cue` exercises every NEW or CHANGED definition with concrete instances whose derived values are pinned by hidden assertions: D5's entry derivations and key binding, D12's context projection, D16's qualified default and its DNS ripple. `spec.md` drafts the `core/SPEC.md` delta for all three core slices.
 - `contracts/contracts.cue` compiles via `cue vet ./...` and carries a surface for every remaining decision that has one: the parity contract, the fill obligations end-to-end, the execution unit, the authoring obligations, the render build (promotion, isolation, ordering), platform generation, skew policy, and matching-in-build. The gate across both files is that no decision's mechanism lives only in a comment while the field beside it stays a placeholder.
 - `semver` in `config.yaml` is set. Current expectation is `major`, twice over: `FinalizeValue` leaves the public kernel surface (Phase A), and `#Subscription`'s `version!` leaves `core`'s `#Platform` (Phase B, D5).
-- A delivery plan exists, validates, and its dependency graph shows every Phase A slice free of Phase B dependencies. This replaces the old "decide whether a plan is warranted" item: `affects` spans four repos, so the plan is required.
+- Phase A work is free of Phase B dependencies, stated as design constraints in `06-operational.md ## Cross-Repo Coordination`; the landing record accretes in `delivery.yaml` as changes land. `affects` spans four repos, so the constraints must be explicit.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, each verified to exist.
 - A compaction pass collapses the resolved-OQ prose at the flip: `enhancement-compaction` gates COLLAPSE-OQ to `accepted`, so the collapse lands as the first commit after the status flips, folding the ratified questions to their D-references.

@@ -130,9 +130,9 @@ NNNN/research/
 
 `findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task — `research/` is hand-authored prose.
 
-## Delivery Plan
+## Delivery Log
 
-Cross-repo sequencing is a delivery concern, tracked outside this entry under `plans/` (see `plans/README.md`). Plans reference this entry's decisions and Open Questions by number; this entry never references a plan — the one-way rule.
+Delivery is recorded in this entry's `delivery.yaml`: an append-only log with one entry per landed change, carrying the local decision numbers the change implemented and optionally the Open Questions it resolves. Log when a change lands (`task delivery:log`), never before; `task delivery` derives the state from the log.
 
 ## Diagrams
 

@@ -42,9 +42,10 @@ enhancement defines no schema or contract surface at all.}
 {Per repo: which *contracts* change and what a consumer observes
 differently — a schema shape, a command's semantics, a refusal rule, a
 naming guarantee. Intent-level only: **no file paths, no line numbers, no
-function names** — the construction roadmap belongs to the delivery plan's
-slices and their OpenSpec changes in the target repos, written when the
-code in front of the implementer is current. A name that is part of the
+function names** — the construction roadmap belongs to the OpenSpec
+changes in the target repos, written when the code in front of the
+implementer is current and logged in this entry's `delivery.yaml` as
+each one lands. A name that is part of the
 published contract (one that reaches a key, a demand string, or a command's
 surface) is a contract statement and belongs here; the file that holds it
 does not. An ASCII component/dependency

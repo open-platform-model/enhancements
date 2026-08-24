@@ -50,4 +50,4 @@ Pending OQ4, the default sequence minimizes observable output shifts:
 4. **cli** — deps/library bump; template cleanup; template render smoke test in CI. Produces: templates that render out of the box.
 5. **modules** (`main`) — deps bump; boilerplate deletion; render-diff verification.
 
-The catalog-first variant (unblocks templates without waiting for a core release, at the cost of a second output shift) is OQ4's open alternative. A delivery plan is scaffolded at the draft→accepted gate per the `delivery-plans` skill; this section then records *why* the order holds and the plan records the order itself.
+The catalog-first variant (unblocks templates without waiting for a core release, at the cost of a second output shift) is OQ4's open alternative. This section records *why* the order holds; landings are logged in `delivery.yaml` as they happen.

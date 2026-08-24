@@ -89,7 +89,7 @@ Two qualifications. If a transformer is authored to read `#names` or `#moduleIns
 
 **Which repos must coordinate, and in what order?**
 
-The delivery plan is the source of truth for sequencing; this section is its narrative. Two constraints drive the order. Within Phase A, one measured constraint: exposing definitions changes the flow fixture from shipping no value to shipping a broken one, so the fixture repair cannot follow the exposure. Between phases, one structural guarantee: no Phase A slice depends on any Phase B slice, so the parity work lands regardless of how long the collapse takes.
+This section is the sequencing intent. Two constraints drive the order. Within Phase A, one measured constraint: exposing definitions changes the flow fixture from shipping no value to shipping a broken one, so the fixture repair cannot follow the exposure. Between phases, one structural guarantee: no Phase A slice depends on any Phase B slice, so the parity work lands regardless of how long the collapse takes.
 
 **Phase A:**
 

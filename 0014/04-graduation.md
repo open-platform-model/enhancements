@@ -1,6 +1,6 @@
 # Graduation Criteria — Export a Deployed Instance as GitOps Manifests
 
-This document records the entry-specific gates that must hold before this design is frozen. These are design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
+This document records the entry-specific gates that must hold before this design is frozen. These are design acceptance criteria, not implementation milestones — delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`; the entry's documents store nothing about it.
 
 ## draft → accepted
 

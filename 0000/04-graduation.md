@@ -2,8 +2,8 @@
 
 This document records the entry-specific gates that must hold before this
 design is frozen. Treat them as design acceptance criteria, not as
-implementation milestones: delivery is tracked on the plans side and read
-back with `task delivery` — this entry stores nothing about it.
+implementation milestones: delivery is logged in this entry's `delivery.yaml` and read
+back with `task delivery` — the entry's documents store nothing about it.
 
 Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
 resolve) are not repeated here — they live in `gates.cue` and `task vet`.

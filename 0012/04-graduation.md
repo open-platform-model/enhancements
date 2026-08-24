@@ -1,6 +1,6 @@
 # Graduation Criteria — Kubernetes as a First-Class Kernel Platform
 
-These are design acceptance criteria, not implementation milestones. Delivery is tracked on the plans side and read back with `task delivery`; this entry stores nothing about it.
+These are design acceptance criteria, not implementation milestones. Delivery is logged in this entry's `delivery.yaml` and read back with `task delivery`; the entry's documents store nothing about it.
 
 ## draft → accepted
 

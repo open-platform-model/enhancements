@@ -20,24 +20,18 @@ enhancements/
 ├── schema.cue              CUE contract validating every config.yaml
 ├── gates.cue               admission rubric — the questions an entry must answer
 ├── .github/                ISSUE_TEMPLATE/idea.yml, the idea issue form (label: idea)
-├── scripts/                delivery derivation, entry hashing
+├── scripts/                delivery.sh (derives delivery state from each entry's delivery.yaml), entry hashing
 ├── Taskfile.yml            workflow tasks (vet, list, new, gate, promote, reject, …)
 ├── INDEX.md                generated browse aid — id → area → status → title
 ├── GRAPH.md                generated Mermaid relationship diagram
 ├── README.md               this file
 ├── CLAUDE.md               agent guide for working in this repo
 ├── 0000/                   canonical template — copy from here
-├── plans/                  delivery plans — the execution layer (one-way rule: plans cite entries, never the reverse)
-│   ├── schema.cue          #DeliveryPlan — validates every plan.yaml
-│   ├── Taskfile.yml        plans:* tasks
-│   ├── README.md           field reference + the one-way rule
-│   └── {slug}/             one directory per plan
-│       ├── plan.yaml       implements, slices, unsliced
-│       └── PLAN.md         generated (task plans:graph) — do not hand-edit
 ├── archive/                terminal entries (rejected, superseded) — id kept forever, reduced validation
 │   └── NNNN/               same package; status: rejected + rejected_reason, or superseded + superseded_by
 └── NNNN/                   one directory per enhancement (id-only)
     ├── config.yaml         sole source of metadata (summary, status, revives, …)
+    ├── delivery.yaml       append-only log of landed changes + no_work claims (task delivery derives the state)
     ├── README.md           index, summary, scope, cross-references
     ├── 01-problem.md       why this enhancement needs to exist
     ├── 02-design.md        what the solution is and how it works
@@ -102,16 +96,20 @@ Creates `0001/experiments/` (with an index README on first invocation), drops a 
 
 Also optional. When an enhancement's design rests on **external evidence** — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — capture the cited findings under `research/` so the evidence travels with the design. The primary dossier is `research/findings.md`; add topic-named files for distinct investigations. Research is *gathered* evidence (read-only synthesis), as distinct from `experiments/`, which are *authored* runnable proofs. Cite every claim, date the snapshot, and reference it back from the `Source:` lines in `03-decisions.md`. There is no scaffold task and `task vet` does not gate it. See `0000/README.md ## Research` for the full convention.
 
-## Delivery Plans
+## Delivery Log
 
-Execution sequencing lives outside the entries, in [`plans/`](plans/) — one delivery plan per coordinated landing, each a set of thin **slices** (repo, phase, one-line concern, dependencies, status). The relation is strictly one-way: a plan cites the enhancements it `implements` and their decisions and Open Questions by number (`"0015"`, `"0015:D9"`, `"0015:OQ9"`); an enhancement never names a plan, a slice, or a plan file. See [`plans/README.md`](plans/README.md) for the field reference, the phase split, and the command set (`task plans:new`, `plans:vet`, `plans:graph`, `plans:ready`, `plans:uncovered`, `plans:deferred`, `plans:seed`), and the `delivery-plans` skill for the workflow.
+Each entry carries its own delivery record: `NNNN/delivery.yaml`, an append-only **log** of landed changes. One log entry per landing (an OpenSpec change archived in a target repo, a PR merged, a commit pushed): the date, a one-line summary, a structured change ref, the entry's decision numbers the change carried (local form, `D4`), and optional `resolves: [OQ9]` claiming deferred-to-implementation questions. Change refs are never paths or URLs: `{kind: openspec, repo, change}` (slug without the archive date prefix, so the ref survives the archive move), `{kind: pr, repo, number}`, `{kind: commit, repo, sha}`, or `{kind: retrospective, repo, note}` for landings that predate the log. Nothing is written before work lands: no slices, no phases, no forecast. A forecast has to be right about the future; a log only has to be true about the past.
+
+`no_work` maps a decision number to a reason for decisions that genuinely need no change. It is a reviewed claim, not a suppression list, and a decision is carried or excused, never both. `task delivery` derives the state from the log: `implemented` (every live decision carried by a logged change or excused in `no_work`), `in-progress` (log non-empty, coverage incomplete), `not-started` (no `delivery.yaml` or empty log); `rejected`/`superseded` pass through, never owed delivery. The failure direction is safe: a forgotten log entry under-reports, never a false `implemented`.
+
+The chain that keeps the log honest: an OpenSpec change in a target repo declares its enhancement linkage at creation time in `<change-dir>/enhancement.yaml`; each repo's archive guidance tells the archiving agent to run `task delivery:log FROM=<change-dir> SUMMARY="…"` from this repo; `task delivery:reconcile` scans sibling repos and reports archived-but-unlogged changes. One change implementing decisions of two entries is logged in both entries' logs, each side with its own local decisions list. See the `delivery-log` skill for the workflow.
 
 ## Validation
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, no `plan.yaml`/`PLAN.md` inside any entry (the one-way rule), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
-- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, one-way smell (plan-file names in prose), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
+- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, `delivery.yaml` validates when present (schema, DN/OQN refs resolve, `no_work` keys live, not tombstoned, and not also carried by a logged change), no `plan.yaml`/`PLAN.md` inside any entry (forecast plans are retired), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
+- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, stale-plan smell (plan-file names in prose; forecast plans are retired), delivery-log sanity (a log entry's `change.repo` outside `affects`; cross-entry carriage is the legitimate exception), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
 
 Run `task vet` before any PR that touches an enhancement. `task gate ID=NNNN` is the pre-promotion view, and `task promote` runs the hard half itself.
 
@@ -132,16 +130,16 @@ Both terminal states are **always archived**: a rejected idea and a superseded d
 | `rejected` | The idea was not accepted. The entry moves to `archive/NNNN/` keeping its id forever, with `rejected_reason` saying why. |
 | `superseded` | Replaced by a newer enhancement. Paired with `superseded_by` here and `supersedes` on the replacement; the entry moves to `archive/NNNN/` keeping its id forever. |
 
-**There is no `implemented` status and no implementation field.** Whether a design has been delivered is a fact about the plan that delivers it, so it is *derived*:
+**There is no stored `implemented` status and no implementation field.** Whether a design has been implemented is a fact about the changes that landed, so it is *derived* from the entry's own log:
 
 ```bash
-task delivery              # unplanned | planned | in-flight | delivered, per entry
-task delivery ID=0015      # with slice counts, decision coverage, unclaimed questions
+task delivery              # not-started | in-progress | implemented, per entry
+task delivery ID=0015      # with log-entry count, decision coverage, unclaimed questions
 ```
 
-`delivered` requires every non-cancelled slice `done` **and** every decision carried by a done slice or excused in a plan's `unsliced`. That is deliberately stronger than the flag it replaced: a stored flag is a human assertion that goes stale, and a design is not delivered while a decision it made has no slice carrying it.
+`implemented` requires every live decision (tombstones excluded) to be carried by a logged change or excused in `no_work`. That is deliberately stronger than the flag it replaced: a stored flag is a human assertion that goes stale, and a design is not implemented while a decision it made has no landed change carrying it. The failure direction is safe: a forgotten log entry under-reports, never a false `implemented`.
 
-This follows the rule the repo now applies everywhere: **the entry stores rules and intent; every fact that changes over time is derived from where it actually lives.** Delivery derives from the plan. Maturity derives from the artifact (see [Staged rollout](#staged-rollout)). The admission gate's output is the entry's own prose. Apply this test to anything you are tempted to add to `config.yaml`.
+This follows the rule the repo now applies everywhere: **the entry stores rules and intent; every fact that changes over time is derived from where it actually lives.** Delivery derives from the log. Maturity derives from the artifact (see [Staged rollout](#staged-rollout)). The admission gate's output is the entry's own prose. Apply this test to anything you are tempted to add to `config.yaml`.
 
 ## Admission
 
@@ -203,7 +201,7 @@ OPM already has a maturity ladder, and it is not on the design document: catalog
 
 So an enhancement records the **rule**, once, as a decision — "ships at `core/alpha`; graduation to stable requires two independent consumers and one release cycle with no shape change" — and never the current rung, which would need updating forever and go stale the first time nobody did. The current rung is read off the artifact.
 
-Each graduation along that ladder is ordinary execution work, so it is its own delivery plan against the same entry (`implements` is a list). `task delivery` then shows the rungs as plans: one done, one planned, one not yet written.
+Each graduation along that ladder is ordinary execution work: later graduations log further changes against the same entry, and the entry's `delivery.yaml` accretes one log entry per rung as it lands.
 
 ## Compaction
 
@@ -211,14 +209,14 @@ Enhancements are epics, and their documents are living until the design freezes.
 
 Either way these documents state **what is true now**. Provenance lives in git and in `config.yaml.history`, which is the one strictly append-only structure here. What stays immutable everywhere is the *numbering* — `DN` and `OQN` are never reused or renumbered, because other repos cite them — so a number vacated by a merge or retraction keeps a one-line tombstone pointing at where its content went.
 
-An entry whose design has been **delivered** is closed — `task compact:plan` refuses it, keying on the derived fact rather than on a status flag anyone could set.
+An entry whose derived delivery state is **implemented** is closed — `task compact:plan` refuses it, keying on the derived fact rather than on a status flag anyone could set.
 
 Rewriting a protected design record is a real risk, not a free lunch, so post-acceptance compaction is deliberate: it runs under the `enhancement-compaction` skill, produces a manifest for approval before touching a file, and lands in its own commit so the diff is reviewable as a compaction rather than hidden inside a content change.
 
 | Status | Decision bodies |
 | --- | --- |
 | `draft` | Revised in place as part of ordinary editing; the compaction skill is needed only to repair legacy stacked reversals. Open Question prose is left alone — it is the active work surface. |
-| `accepted` | Protected. Changes append a new `DN` with relation fields; the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available for as long as the entry has not been delivered. |
+| `accepted` | Protected. Changes append a new `DN` with relation fields; the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available for as long as the entry's derived delivery state is not `implemented`. |
 | `rejected` | **Nothing changes.** The idea was killed; the archive keeps the entry as it stood. |
 | `superseded` | The narrative documents collapse to pointers at the successor; the decision log keeps its numbers and its *Alternatives considered*, so the successor does not re-litigate settled ground. The pass runs on the archived entry (`archive/NNNN/`). `experiments/` and `research/` are never touched. |
 
@@ -243,4 +241,4 @@ The validator flags dangling references (`task vet` fails). Once the library pre
 - **`opmodel.dev/`** — public docs site.
 - **`modules/`** — workspace-level OPM module definitions.
 
-Each repo has its own `CLAUDE.md` describing how it consumes the OPM schema. Enhancement implementations cross several of these in coordinated PRs; each entry's `06-operational.md ## Cross-Repo Coordination` states the ordering constraints, and the delivery plans under `plans/` carry the sequence itself.
+Each repo has its own `CLAUDE.md` describing how it consumes the OPM schema. Enhancement implementations cross several of these in coordinated PRs; each entry's `06-operational.md ## Cross-Repo Coordination` states the ordering constraints, and the sequence itself is visible in the entries' accreting `delivery.yaml` logs as changes land.

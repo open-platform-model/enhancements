@@ -46,7 +46,7 @@ Nothing is removed from `core` by this entry.
 
 ## Cross-Repo Coordination
 
-Six areas, with a genuine ordering constraint rather than a convention, which is why the acceptance criteria make a delivery plan a gate for acceptance rather than a suggestion.
+Six areas, with a genuine ordering constraint rather than a convention, which is why the acceptance criteria make stating these constraints a gate for acceptance rather than a suggestion.
 
 ```
   0019 core-registry-import ·      (embedded catalogs, match glue, generated platform
@@ -68,9 +68,9 @@ Six areas, with a genuine ordering constraint rather than a convention, which is
   cli       opm platform check · effective-registry retrieval (shape per OQ3)
 ```
 
-Each hand-off produces something concrete the next consumes: `core` publishes a build carrying the new shapes, the inventory fold and the routing assertion; `library` publishes a kernel that surfaces them through the render build's diagnostics and the generation step; `catalog_opm` publishes a build whose contract maps are populated, which is what makes the readiness answer non-trivial; `opm-operator` consumes both and adds the CRD. The `cli` slice depends on OQ3's resolution rather than on code, so it can be planned but not written until that question closes.
+Each hand-off produces something concrete the next consumes: `core` publishes a build carrying the new shapes, the inventory fold and the routing assertion; `library` publishes a kernel that surfaces them through the render build's diagnostics and the generation step; `catalog_opm` publishes a build whose contract maps are populated, which is what makes the readiness answer non-trivial; `opm-operator` consumes both and adds the CRD. The `cli` work depends on OQ3's resolution rather than on code, so it cannot be written until that question closes.
 
-The two catalog slices are `migration` phase, not `implementation` — they push bytes rather than define a system, and under the slicing rules that ordering is enforced as an edge rule. The provider-catalog slice is deliberately last: it is the end-to-end proof that the k8up path from `01-problem.md` works on a cluster, including a second registration being refused at acceptance, and it is worth nothing if it runs before the pieces it exercises exist.
+The two catalog landings push bytes rather than define a system, so they follow the schema and kernel work. The provider-catalog landing is deliberately last: it is the end-to-end proof that the k8up path from `01-problem.md` works on a cluster, including a second registration being refused at acceptance, and it is worth nothing if it runs before the pieces it exercises exist.
 
 **Provider release ordering (D10/D11) — the flow every provider repo automates.** A provider maintaining catalog and module in one repository publishes two artifacts in lockstep, and the ordering is hard, not conventional: the module's registration spec derives from the catalog dependency its `cue.mod` resolves, so the catalog build must exist in the registry before the module can tidy against it.
 

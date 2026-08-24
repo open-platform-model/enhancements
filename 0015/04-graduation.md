@@ -1,6 +1,6 @@
 # Graduation Criteria — Catalog Contracts and Transformer Registration
 
-This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from the plans side and read back with `task delivery`; this entry stores nothing about it.
+This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not implementation milestones — delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`; the entry's documents store nothing about it.
 
 ## draft → accepted
 
@@ -14,6 +14,6 @@ This document records the entry-specific gates that must hold before this design
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/` passes) and captures the target shape end-to-end, with every `// OQN:` marker either tightened or pointing at a still-open question.
 - `config.yaml.semver` is set. Expected **major**: D1 adds required stamped members to `#Catalog`, landing inside 0010's core major window.
 - `related` resolves to `0010`, `0011` and `0019`.
-- **A delivery plan exists.** `affects` spans six areas with a real ordering constraint — `core` before `library` before `opm-operator`, and the catalog listing before any provider catalog — so a structured delivery plan (see `plans/`) is required rather than optional.
+- **The ordering constraints are stated.** `affects` spans six areas with a real ordering constraint (`core` before `library` before `opm-operator`, and the catalog listing before any provider catalog), so `06-operational.md ## Cross-Repo Coordination` must state those constraints as design facts; landings are logged per change in `delivery.yaml`.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - Cross-References table in `README.md` lists every file path the implementation will touch, and each exists today.

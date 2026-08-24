@@ -16,9 +16,9 @@ itself. Keep it free of jargon that requires reading further documents.}
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from the plans side — run `task delivery ID=NNNN`. A
-status block written here is a snapshot that goes stale the moment the plan
-moves, which is exactly the drift the implementation axis was removed to stop.
+delivered is DERIVED from this entry's `delivery.yaml` log — run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment another change
+lands, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
@@ -139,15 +139,15 @@ NNNN/research/
 
 `findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task — `research/` is hand-authored prose.
 
-## Delivery Plan
+## Delivery Log
 
-Cross-repo sequencing is a delivery concern, tracked outside this entry in a delivery plan under `plans/` (see `plans/README.md`). Plans reference this entry's decisions and Open Questions by number (`NNNN:D34`, `NNNN:OQ9`); this entry never references a plan, a slice, or a plan file — the one-way rule. When delivery completes, this entry records **nothing** — `task delivery` derives the state from the plan, so there is no field for a pointer to hide in.
+Delivery is recorded in this entry's `delivery.yaml`: an append-only log with one entry per landed change (an OpenSpec change archived in a target repo, a PR merged, a commit pushed), carrying the local decision numbers the change implemented (`D4`) and optionally the Open Questions it resolves (`resolves: [OQ9]`). Log when a change lands (`task delivery:log`), never before: there are no forecast slices or phases. Decisions that genuinely need no change are excused in `no_work` with a reason; a decision is carried or excused, never both. `task delivery` derives the state (`not-started`, `in-progress`, `implemented`) from the log, and nothing about delivery is stored anywhere else in the entry.
 
 ## Diagrams
 
 Diagrams are welcome throughout this enhancement's documents — the medium depends on what's being shown, never a blanket default:
 
-- **Mermaid** — relationships between enhancements or slices: whether this entry should `related`/`supersedes` another, or whether a slice should `depends_on` another. This is exactly what the generated `GRAPH.md` (and, on the plans side, each plan's `PLAN.md`) already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what those files will look like once the edit lands and `task graph` / `task plans:graph` regenerates them. Never hand-authored into these documents.
+- **Mermaid** — relationships between enhancements: whether this entry should `related`/`supersedes` another. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what that file will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
 - **ASCII** — how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later — bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
 
 See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
@@ -155,9 +155,7 @@ See the `enhancement-diagrams` skill for the full protocol, including live-discu
 ## Deviations from Design
 
 None at this stage. Update this section when implementation lands and any
-deliberate divergences from the design need to be documented. The validator
-(future) requires this section to be present (it may say "None") for
-`status: implemented`.
+deliberate divergences from the design need to be documented.
 
 ## Cross-References
 
@@ -198,7 +196,7 @@ To create a new enhancement from this template:
 
 - **draft** — initial design, actively being written
 - **accepted** — design agreed upon, ready for implementation; the resting
-  state (delivery is derived from `plans/`, never stored here)
+  state (delivery is derived from `delivery.yaml`, never stored as a status)
 - **rejected** — the idea was not accepted; the entry moves to
   `archive/NNNN/` with `rejected_reason` (`task reject`)
 - **superseded** — replaced by a newer enhancement (paired with
@@ -214,7 +212,7 @@ These documents state what is true *now*. Provenance lives in git and in `config
 
 - **draft** — decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
 - **accepted** — decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path — weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available at latest until the design is delivered.
-- **delivered** (derived from `plans/`, not a status) — closed. Nothing changes, ever.
+- **implemented** (derived from `delivery.yaml`, not a status) — closed. Nothing changes, ever.
 - **superseded** — narrative documents collapse to pointers at the successor;
   the decision log keeps its numbers and its *Alternatives considered*.
   The pass runs on the archived entry (`archive/NNNN/`).
