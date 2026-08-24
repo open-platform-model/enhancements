@@ -1,7 +1,7 @@
 // Admission rubric for enhancement entries.
 //
-// Sits beside schema.cue (validates config.yaml) and plans/schema.cue
-// (validates plan.yaml): contracts as data, next to the data they govern.
+// Sits beside schema.cue (validates config.yaml and delivery.yaml):
+// contracts as data, next to the data they govern.
 //
 // WHY DATA AND NOT PROSE. These rules are judgment calls — "is this a
 // feature or a chore?", "is this contract or mechanism?" — that no regex
@@ -101,7 +101,7 @@ gates: [...#Gate] & [
 		applies_to: ["promotion"]
 		question:   "Is every sentence in 01..07 still true and useful a year after this ships, with no dates and no progress state?"
 		fails_when: "Prose narrates what happened when, reports what is currently in flight, or records that a position changed rather than what the position now is."
-		redirect:   "Delivery state belongs in plans/<slug>/plan.yaml, where it is expected to churn. Provenance belongs in git and in config.yaml.history."
+		redirect:   "Delivery state belongs in the entry's delivery.yaml log, where it is expected to grow. Provenance belongs in git and in config.yaml.history."
 		evidence:   "Three quoted sentences that read as a logbook, or an explicit statement that the probe returned no hits and a read of 01..07 found none."
 		probe: {
 			pattern:  #"\b20[0-9]{2}-[0-9]{2}-[0-9]{2}\b|\b(landed|shipped|in progress|currently|as of|next up)\b"#

@@ -1,10 +1,12 @@
-// Schema for enhancements/NNNN/config.yaml.
+// Schemas for enhancements/NNNN/config.yaml and NNNN/delivery.yaml.
 //
-// Repo-internal — NOT part of opmodel.dev/core@v0. Lives at the workspace
-// root so the contract sits next to the data it validates. Use
+// Repo-internal — NOT part of opmodel.dev/core@v0. Lives at the repo root so
+// the contracts sit next to the data they validate. Use
 //   cue vet -d '#EnhancementConfig' enhancements/schema.cue <config.yaml>
-// to validate a single file, or (once the workspace Taskfile lands)
-// `task enhancements:vet` for the full sweep.
+//   cue vet -d '#Delivery'          enhancements/schema.cue <delivery.yaml>
+// to validate a single file, or `task vet` for the full sweep.
+// #ChangeDeclaration validates the optional enhancement.yaml a target repo's
+// OpenSpec change carries (read by `task delivery:log` / `delivery:reconcile`).
 package enhancements
 
 import "strings"
@@ -26,14 +28,15 @@ import "strings"
 // Slug captures the long form; README/01/02/… docs carry full prose.
 #TitleStr: string & strings.MinRunes(1) & strings.MaxRunes(80)
 
-// Design lifecycle. There is no `implemented` state and no implementation
-// axis: whether a design has been delivered is DERIVED from the plans side
-// (`task delivery`), never asserted here. An entry that stores delivery
-// progress becomes a logbook, which is what this vocabulary exists to
-// prevent. `accepted` is the resting state; `rejected` and `superseded`
-// are the two terminal ones, and a terminal entry ALWAYS lives in
-// archive/NNNN/ (`task reject` / `task supersede` do the move; `task vet`
-// enforces the placement in both directions).
+// Design lifecycle. There is no `implemented` state here and no stored
+// implementation flag: delivery state is DERIVED (`task delivery`) from the
+// entry's own append-only delivery log (NNNN/delivery.yaml, see #Delivery
+// below): `implemented` means every live decision is covered by a logged
+// change or excused in `no_work`, computed, never asserted. `accepted` is
+// the resting state; `rejected` and `superseded` are the two terminal ones,
+// and a terminal entry ALWAYS lives in archive/NNNN/ (`task reject` /
+// `task supersede` do the move; `task vet` enforces the placement in both
+// directions).
 #Status:       "draft" | "accepted" | "rejected" | "superseded"
 #SemverImpact: "major" | "minor" | "none"
 
@@ -57,9 +60,8 @@ import "strings"
 // free-form prose ("Drafted", "Accepted", "Implementation complete", etc.);
 // `semver` is an optional structured field for events that carry
 // machine-readable detail. `slice` is LEGACY — kept so historical events
-// validate, never written in new events: naming a slice or OpenSpec change
-// from an enhancement violates the one-way rule (plans cite enhancements;
-// enhancements never cite plans — see plans/README.md).
+// validate, never written in new events: what landed where belongs in the
+// entry's delivery log (NNNN/delivery.yaml), not in history prose.
 //
 // This list is the repo's *only* strictly append-only structure. Never delete
 // or reorder past events; a reversal is a new event, not an edit. Everything
@@ -80,13 +82,14 @@ import "strings"
 	// DESIGN milestones only — what happened to the design (drafted,
 	// decisions locked, an OQ resolved, scope changed, accepted,
 	// rejected, superseded). Never delivery progress: what shipped is
-	// derived from the plans side. `task check` greps new events for
+	// recorded structurally in the entry's delivery log (delivery.yaml)
+	// and derived from there. `task check` greps new events for
 	// delivery verbs.
 	//
 	// The cap is the "an event is one line" rule made mechanical, the
-	// same device as plans/schema.cue's 240-rune #SliceConcernStr. Prose
-	// growing past it is the signal that the content belongs in a
-	// document, a decision, or git — not in structured metadata.
+	// same device as #LogEntry's 240-rune summary. Prose growing past it
+	// is the signal that the content belongs in a document, a decision,
+	// or git — not in structured metadata.
 	if date > #HistoryCapCutover {
 		event: strings.MaxRunes(200)
 	}
@@ -139,9 +142,8 @@ import "strings"
 	// Optional metadata. Status-conditional constraints below tighten them.
 	semver?: #SemverImpact
 
-	// Why this idea was not accepted. Required at `rejected`, mirroring
-	// plans/schema.cue's `cancelled_reason` on a cancelled slice: the id
-	// is kept forever, so the record has to say why it stopped.
+	// Why this idea was not accepted. Required at `rejected`: the id is
+	// kept forever, so the record has to say why it stopped.
 	rejected_reason?: string & strings.MinRunes(1)
 
 	// Cross-field rules.
@@ -167,3 +169,137 @@ import "strings"
 	}
 }
 
+
+// ─── Delivery log ───────────────────────────────────────────────────────────
+//
+// NNNN/delivery.yaml is the entry's implementation LOG: an append-only record
+// of changes that have LANDED (an OpenSpec change archived, a PR merged, a
+// commit pushed), each carrying the decision numbers it implemented. It is a
+// log of facts, never a forecast: no slices, no phases, no dependency graph,
+// and nothing is written before the work lands. The plans/ forecast tree was
+// retired in favor of this file (2026-08-24); a forecast has to be right
+// about the future, a log only has to be true about the past.
+//
+// Delivery state is DERIVED from this file by `task delivery`:
+//
+//   implemented  every live DN in 03-decisions.md (tombstones excluded) is
+//                carried by a log entry's `decisions` or excused in `no_work`
+//   in-progress  the log is non-empty but coverage is incomplete
+//   not-started  no delivery.yaml, or an empty log
+//
+// The failure direction is safe by construction: a forgotten log entry
+// under-reports (the entry stays in-progress) and can never produce a false
+// `implemented`. `task delivery:reconcile` detects archived OpenSpec changes
+// that declared this entry (enhancement.yaml) but were never logged.
+//
+// The file is deliberately NOT part of the gate-verdict content hash
+// (scripts/entry_hash.sh covers *.md/*.cue only): appending to the log must
+// not void a walked gate, because the log records execution, not design.
+//
+// Cross-entry carriage: when one change implements decisions of two entries,
+// log the same change ref in BOTH entries' delivery.yaml, each with its own
+// local `decisions` list.
+
+// A decision / Open Question reference, LOCAL to the entry that owns the
+// delivery.yaml. No "NNNN:" qualifier (unlike the retired plans/ tree), since
+// the file lives inside the entry it describes. Numbers are immutable, so a
+// reference resolves for the life of the repo. Resolution against
+// 03-decisions.md / 07-questions.md is checked by `task vet` (bash), not
+// expressible here.
+#DNumStr:  =~"^D[0-9]+$"
+#OQNumStr: =~"^OQ[0-9]+$"
+
+// A stable, structured reference to the change that landed. Never a path and
+// never a URL: paths break when an OpenSpec change is archived (the directory
+// moves), URLs rot. The (repo, key) pair is permanent:
+//
+//   openspec  repo + change slug (WITHOUT the archive date prefix; the slug
+//             survives the changes/ to changes/archive/YYYY-MM-DD-<slug>
+//             move and is unique per repo)
+//   pr        repo + PR number, for repos without an OpenSpec workspace
+//   commit    repo + sha, for work that landed without a PR (log only after
+//             merge; rebases invalidate pre-merge shas)
+#ChangeRef: {
+	kind!:   "openspec"
+	repo!:   #Area
+	change!: #SlugStr
+} | {
+	kind!:   "pr"
+	repo!:   #Area
+	number!: int & >0
+} | {
+	kind!: "commit"
+	repo!: #Area
+	sha!:  =~"^[0-9a-f]{7,40}$"
+} | {
+	// Pre-tracking landing: work that shipped before delivery tracking
+	// existed (before plans/, before this log), where per-change
+	// archaeology would invent precision the record never had. `repo` is
+	// the primary area; `note` says what landed and why no resolvable ref
+	// exists. NOT for new work: every change landing today has an OpenSpec
+	// change, a PR, or a commit to cite.
+	kind!: "retrospective"
+	repo!: #Area
+	note!: string & strings.MinRunes(1)
+}
+
+// One landed change. Appended when the work lands, not when it starts: a
+// logged-but-unfinished change would count its decisions as covered
+// prematurely and corrupt the derivation.
+#LogEntry: {
+	date!: #DateStr
+
+	// What landed, one line. The 240-rune cap is the "a log line is one
+	// line" rule made mechanical (same device as the history-event cap).
+	// Decision citations go in `decisions`, not here.
+	summary!: string & strings.MinRunes(1) & strings.MaxRunes(240)
+
+	change!: #ChangeRef
+
+	// Which of this entry's decisions the change carried. Optional: a
+	// change may legitimately implement no numbered decision (a mechanical
+	// retarget, a release cut). What `task delivery:uncovered` reports is
+	// decisions with no change, not changes with no decision.
+	decisions?: [...#DNumStr]
+
+	// Open Questions this change resolves; claims an OQ the entry closed
+	// as `Status: deferred-to-implementation`. `task delivery:deferred`
+	// reports deferred OQs no log entry claims.
+	resolves?: [...#OQNumStr]
+}
+
+#Delivery: {
+	log!: [...#LogEntry]
+
+	// Decisions that genuinely need no change, each with the reason: one
+	// that only DELETES something, one whose whole content is a
+	// documentation holding, one superseded before any work carried it.
+	// Exists so `task delivery:uncovered` can be quiet about them without
+	// going silent in general (a coverage check that cries wolf stops
+	// being read). Not a suppression list: an entry here is a claim on the
+	// record, reviewed like any other line. Tombstoned numbers need no
+	// entry; they are excluded from coverage automatically.
+	no_work?: [#DNumStr]: string & strings.MinRunes(1)
+}
+
+// ─── Change declaration (lives in the TARGET repo, not here) ────────────────
+//
+// <repo>/openspec/changes/<slug>/enhancement.yaml, written when the change is
+// CREATED, while the enhancement is in context, so that logging at archive
+// time is mechanical. The archive guidance in each repo's openspec
+// config.yaml points the archiving agent at `task delivery:log FROM=<dir>`,
+// which reads this file; `task delivery:reconcile` scans all repos for these
+// files and reports archived-but-unlogged changes.
+//
+// The file rides along on archive (the whole change directory is moved) and
+// is invisible to the openspec CLI. It is a claim, not proof; review of the
+// resulting log line is what checks it.
+#ChangeImplements: {
+	enhancement!: #IDStr
+	decisions?: [...#DNumStr]
+	resolves?: [...#OQNumStr]
+}
+
+#ChangeDeclaration: {
+	implements!: [#ChangeImplements, ...#ChangeImplements]
+}

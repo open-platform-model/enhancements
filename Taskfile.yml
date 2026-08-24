@@ -9,14 +9,6 @@ version: "3"
 
 silent: true
 
-includes:
-  # Delivery plans — the structured execution layer, kept outside the
-  # NNNN/ entries under the one-way reference rule (plans cite
-  # enhancements; enhancements never cite plans). `task plans:<name>`.
-  plans:
-    taskfile: plans/Taskfile.yml
-    dir: plans
-
 vars:
   # Path to the workspace root, relative to this Taskfile. Used to resolve
   # legacy:NNN cross-references against ../library/enhancements/. Override
@@ -51,7 +43,11 @@ tasks:
           task questions:open ID=0001            — TSV of unresolved Open Questions (for the OQ-walk skill)
           task graph                             — regenerate GRAPH.md
           task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
-          task plans:                            — delivery-plan tasks (new, vet, graph, ready, seed, uncovered, deferred) — see plans/README.md
+          task delivery [ID=0001]                — derived delivery state (from each entry's delivery.yaml log)
+          task delivery:log ...                  — append a landed change to an entry's delivery log
+          task delivery:reconcile                — archived OpenSpec changes that declared an entry but were never logged
+          task delivery:uncovered ID=0001        — decisions no logged change carries and no_work does not excuse
+          task delivery:deferred                 — deferred-to-implementation OQs no log entry claims
         EOF
 
   list:
@@ -68,9 +64,9 @@ tasks:
         # per-column widths in a single in-memory render. Avoids `column -t`
         # because that tool counts ANSI escapes as visible chars and breaks
         # header bolding.
-        # DELIVERY is derived from plans/, never read from the entry — see
-        # scripts/delivery.sh. Computing it here rather than storing it is
-        # what keeps an entry from accumulating delivery state.
+        # DELIVERY is derived from each entry's delivery.yaml log, never
+        # stored — see scripts/delivery.sh. Computing it is what keeps a
+        # stale flag impossible.
         DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
 
         {
@@ -112,25 +108,24 @@ tasks:
         '
 
   delivery:
-    desc: Derived delivery state per enhancement (reverse index over plans/)
+    desc: Derived delivery state per enhancement (from each entry's delivery.yaml log)
     summary: |
-      An entry carries no implementation field and no `implemented` status.
-      Whether a design has been delivered is a fact about the plan that
-      delivers it, so it is COMPUTED from plans/ rather than asserted in the
-      entry — a stored flag is a human assertion that goes stale.
+      An entry carries no stored implementation flag. Whether a design has
+      been implemented is a fact about the changes that landed, so it is
+      COMPUTED from the entry's own append-only delivery log
+      (NNNN/delivery.yaml) rather than asserted; a stored flag is a human
+      assertion that goes stale.
 
       States:
-        unplanned  no plan's `implements` names this id
-        planned    a plan exists, no slice has started
-        in-flight  a slice is in-progress or done, not all done
-        delivered  every non-cancelled slice done AND every DN covered
-        rejected   the idea was killed; delivery was never owed
+        not-started  no delivery.yaml, or an empty log
+        in-progress  the log is non-empty but decision coverage is incomplete
+        implemented  every live DN carried by a logged change or excused in no_work
+        rejected / superseded  terminal; delivery was never owed
 
-      `delivered` is deliberately stronger than the flag it replaced: a
-      design is not delivered while a decision it made has no slice
-      carrying it. Coverage counts decisions carried by a DONE slice in ANY
-      plan (a decision of one entry is legitimately carried by a slice in
-      another entry's plan), plus decisions a plan excuses in `unsliced`.
+      `implemented` is deliberately strong: a design is not implemented
+      while a decision it made has no landed change carrying it. The
+      failure direction is safe: a forgotten log entry under-reports and
+      can never produce a false `implemented`.
 
       Usage:
         task delivery              # every enhancement
@@ -151,25 +146,25 @@ tasks:
         [ -n "$rows" ] || { echo "No enhancement matched${TARGET:+: $TARGET}" >&2; exit 1; }
 
         if [ -n "$TARGET" ]; then
-          IFS=$'\t' read -r id state plans slices uncovered unclaimed <<<"$rows"
+          IFS=$'\t' read -r id state log decisions uncovered unclaimed <<<"$rows"
           title=$(yq -r '.title' "$TARGET/config.yaml" 2>/dev/null \
                   || yq -r '.title' "archive/$TARGET/config.yaml" 2>/dev/null)
           printf "${BOLD}%s${RESET}  %s\n\n" "$id" "$title"
           printf "  %-14s %s\n" "delivery:" "$state"
-          printf "  %-14s %s\n" "plans:"    "$plans"
-          printf "  %-14s %s\n" "slices:"   "$slices"
+          printf "  %-14s %s\n" "log entries:" "$log"
+          printf "  %-14s %s\n" "decisions:" "$decisions"
           printf "  %-14s %s\n" "uncovered:" "$uncovered"
           printf "  %-14s %s\n" "unclaimed OQs:" "$unclaimed"
           if [ "$uncovered" != "0" ] && [ "$uncovered" != "-" ]; then
             echo
-            printf "  ${YELLOW}%s decision(s) carried by no done slice and not excused in a plan's \`unsliced\`.${RESET}\n" "$uncovered"
-            echo "  Run 'task plans:uncovered' for the list."
+            printf "  ${YELLOW}%s decision(s) carried by no logged change and not excused in \`no_work\`.${RESET}\n" "$uncovered"
+            echo "  Run 'task delivery:uncovered ID=$id' for the list."
           fi
           exit 0
         fi
 
         {
-          printf 'ID\tDELIVERY\tSLICES\tUNCOVERED\tPLAN\n'
+          printf 'ID\tDELIVERY\tDECISIONS\tUNCOVERED\tLOG\n'
           printf '%s\n' "$rows" | awk -F'\t' '{printf "%s\t%s\t%s\t%s\t%s\n", $1, $2, $4, $5, $3}'
         } | awk -F'\t' '
           { rows[NR]=$0; for (i=1;i<=NF;i++) if (length($i)>w[i]) w[i]=length($i); nc = NF>nc?NF:nc }
@@ -184,13 +179,335 @@ tasks:
         '
 
   delivery:data:
-    desc: TSV of derived delivery state — machine-readable, for agents and gates
+    desc: "TSV of derived delivery state: machine-readable, for agents and gates"
     summary: |
-      Columns: id, state, plans, slices_done/total, uncovered_decisions,
-      unclaimed_deferred_oqs. Consumed by `task gate` and by agents asking
-      "what is done?" without reading every plan.
+      Columns: id, state, log_entries, covered/declared_decisions,
+      uncovered_decisions, unclaimed_deferred_oqs. Consumed by `task gate`
+      and by agents asking "what is done?" without reading every log.
     cmds:
       - ./scripts/delivery.sh {{.ID}}
+
+  delivery:log:
+    desc: Append a landed change to an entry's delivery log (delivery.yaml)
+    summary: |
+      Two modes:
+
+        FROM mode (the archive-guidance path). Reads the change directory's
+        enhancement.yaml declaration and appends one log entry to every
+        declared enhancement:
+          task delivery:log FROM=../cli/openspec/changes/archive/2026-08-24-foo SUMMARY="what landed"
+
+        Explicit mode (repos without OpenSpec, or manual logging):
+          task delivery:log ID=0019 REPO=library KIND=openspec CHANGE=foo SUMMARY="..." [DECISIONS="D1 D2"] [RESOLVES="OQ9"]
+          task delivery:log ID=0019 REPO=catalog KIND=pr NUMBER=42 SUMMARY="..."
+          task delivery:log ID=0019 REPO=modules KIND=commit SHA=abc1234 SUMMARY="..."
+
+      Appends when the work has LANDED, not when it starts. The entry is
+      CUE-validated before the write sticks; a failed validation restores
+      the previous file. DATE overrides today's date (YYYY-MM-DD).
+    vars:
+      FROM: '{{.FROM | default ""}}'
+      ID: '{{.ID | default ""}}'
+      REPO: '{{.REPO | default ""}}'
+      KIND: '{{.KIND | default "openspec"}}'
+      CHANGE: '{{.CHANGE | default ""}}'
+      NUMBER: '{{.NUMBER | default ""}}'
+      SHA: '{{.SHA | default ""}}'
+      SUMMARY: '{{.SUMMARY | default ""}}'
+      DECISIONS: '{{.DECISIONS | default ""}}'
+      RESOLVES: '{{.RESOLVES | default ""}}'
+      DATE: '{{.DATE | default ""}}'
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+      - sh: command -v cue >/dev/null 2>&1
+        msg: "cue is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        GREEN='\033[0;32m'; RED='\033[0;31m'; RESET='\033[0m'
+        FROM="{{.FROM}}"; SUMMARY="{{.SUMMARY}}"; DATE="{{.DATE}}"
+        [ -n "$DATE" ] || DATE=$(date +%F)
+        [ -n "$SUMMARY" ] || { printf "${RED}SUMMARY is required${RESET} (one line: what landed)\n" >&2; exit 1; }
+
+        # Map a workspace repo directory name to its #Area value.
+        area_of_dir() {
+          case "$1" in
+            catalog_opm) echo catalog ;;
+            cli|core|library|opm-operator|modules|opmodel.dev) echo "$1" ;;
+            *) return 1 ;;
+          esac
+        }
+
+        # Emit a formatted log-entry block on stdout.
+        #   $1 date  $2 summary  $3 change (flow yaml)  $4 decisions (space/comma sep)  $5 resolves
+        emit_block() {
+          printf '  - date: "%s"\n' "$1"
+          printf '    summary: >-\n      %s\n' "$2"
+          printf '    change: %s\n' "$3"
+          local dec rls
+          dec=$(printf '%s' "$4" | tr ',' ' ' | xargs -r echo | tr ' ' ',' | sed 's/,/, /g')
+          rls=$(printf '%s' "$5" | tr ',' ' ' | xargs -r echo | tr ' ' ',' | sed 's/,/, /g')
+          [ -n "$dec" ] && printf '    decisions: [%s]\n' "$dec"
+          [ -n "$rls" ] && printf '    resolves: [%s]\n' "$rls"
+          return 0
+        }
+
+        # Insert a block into an entry's delivery.yaml, creating the file if
+        # needed, validating with CUE, restoring on failure.
+        #   $1 entry id   $2 block text
+        append_to() {
+          local id="$1" block="$2" dir dfile
+          if [ -d "$id" ]; then dir="$id"
+          elif [ -d "archive/$id" ]; then
+            printf "${RED}refusing${RESET}: %s is archived (terminal status is never owed delivery)\n" "$id" >&2
+            return 1
+          else
+            printf "${RED}no such enhancement${RESET}: %s\n" "$id" >&2
+            return 1
+          fi
+          dfile="$dir/delivery.yaml"
+          local bak=""
+          if [ -f "$dfile" ]; then
+            bak=$(mktemp); cp "$dfile" "$bak"
+            if grep -qE '^log: \[\]' "$dfile"; then
+              # First real entry replaces the empty list.
+              awk -v blk="$block" '/^log: \[\]$/ { print "log:"; print blk; next } { print }' "$bak" > "$dfile"
+            elif grep -qE '^no_work:' "$dfile"; then
+              awk -v blk="$block" '!done && /^no_work:/ { print blk; done=1 } { print }' "$bak" > "$dfile"
+            else
+              { cat "$bak"; printf '%s\n' "$block"; } > "$dfile"
+            fi
+          else
+            {
+              printf '# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.\n'
+              printf '# Validate: cue vet -d '"'"'#Delivery'"'"' ../schema.cue delivery.yaml\n'
+              printf 'log:\n%s\n' "$block"
+            } > "$dfile"
+          fi
+          if ! out=$(cue vet -d '#Delivery' schema.cue "$dfile" 2>&1); then
+            if [ -n "$bak" ]; then cp "$bak" "$dfile"; else rm -f "$dfile"; fi
+            printf "${RED}FAIL${RESET} %s did not validate; write rolled back\n%s\n" "$dfile" "$out" >&2
+            return 1
+          fi
+          [ -n "$bak" ] && rm -f "$bak"
+          printf "${GREEN}logged${RESET} %s <- %s\n" "$dfile" "$(printf '%s' "$block" | head -1 | sed 's/^  - //')"
+        }
+
+        if [ -n "$FROM" ]; then
+          [ -d "$FROM" ] || { printf "${RED}no such change directory${RESET}: %s\n" "$FROM" >&2; exit 1; }
+          decl="$FROM/enhancement.yaml"
+          [ -f "$decl" ] || { printf "${RED}no enhancement.yaml${RESET} in %s (nothing declared, nothing to log)\n" "$FROM" >&2; exit 1; }
+          if ! out=$(cue vet -d '#ChangeDeclaration' schema.cue "$decl" 2>&1); then
+            printf "${RED}FAIL${RESET} %s does not validate against #ChangeDeclaration\n%s\n" "$decl" "$out" >&2; exit 1
+          fi
+          # Derive repo area and slug from the path:
+          #   <workspace>/<repodir>/openspec/changes[/archive]/<[date-]slug>
+          abs=$(cd "$FROM" && pwd)
+          slug=$(basename "$abs" | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//')
+          repodir=$(printf '%s\n' "$abs" | sed -E 's|.*/([^/]+)/openspec/changes(/archive)?/[^/]+$|\1|')
+          repo=$(area_of_dir "$repodir") || { printf "${RED}cannot map${RESET} '%s' to an OPM area\n" "$repodir" >&2; exit 1; }
+          n=$(yq -r '.implements | length' "$decl")
+          fail=0
+          for ((i=0; i<n; i++)); do
+            eid=$(yq -r ".implements[$i].enhancement" "$decl")
+            dec=$(yq -r ".implements[$i].decisions // [] | join(\" \")" "$decl")
+            rls=$(yq -r ".implements[$i].resolves // [] | join(\" \")" "$decl")
+            block=$(emit_block "$DATE" "$SUMMARY" "{ kind: openspec, repo: $repo, change: $slug }" "$dec" "$rls")
+            append_to "$eid" "$block" || fail=1
+          done
+          exit $fail
+        fi
+
+        # Explicit mode.
+        ID="{{.ID}}"; REPO="{{.REPO}}"; KIND="{{.KIND}}"
+        [ -n "$ID" ] || { printf "${RED}ID (or FROM) is required${RESET}\n" >&2; exit 1; }
+        [ -n "$REPO" ] || { printf "${RED}REPO is required${RESET} (an #Area value)\n" >&2; exit 1; }
+        case "$KIND" in
+          openspec)
+            [ -n "{{.CHANGE}}" ] || { printf "${RED}CHANGE is required${RESET} for KIND=openspec (the change slug, no date prefix)\n" >&2; exit 1; }
+            change="{ kind: openspec, repo: $REPO, change: {{.CHANGE}} }" ;;
+          pr)
+            [ -n "{{.NUMBER}}" ] || { printf "${RED}NUMBER is required${RESET} for KIND=pr\n" >&2; exit 1; }
+            change="{ kind: pr, repo: $REPO, number: {{.NUMBER}} }" ;;
+          commit)
+            [ -n "{{.SHA}}" ] || { printf "${RED}SHA is required${RESET} for KIND=commit\n" >&2; exit 1; }
+            change="{ kind: commit, repo: $REPO, sha: {{.SHA}} }" ;;
+          *)
+            printf "${RED}KIND must be openspec, pr, or commit${RESET} (retrospective is reserved for pre-tracking migration records)\n" >&2; exit 1 ;;
+        esac
+        block=$(emit_block "$DATE" "$SUMMARY" "$change" "{{.DECISIONS}}" "{{.RESOLVES}}")
+        append_to "$ID" "$block"
+
+  delivery:uncovered:
+    desc: Decisions no logged change carries and no_work does not excuse
+    summary: |
+      The coverage inverse per entry: every live DN in 03-decisions.md
+      classified as covered (some log entry carries it), no_work (excused
+      with a reason), or UNCOVERED. Deliberately NOT a gate: whether every
+      decision is carried is a readiness judgement, and design legitimately
+      runs ahead of delivery. Read it when logging and before expecting
+      `implemented`.
+
+      Usage:
+        task delivery:uncovered ID=0019   # one entry
+        task delivery:uncovered           # every non-terminal entry with uncovered decisions
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; DIM='\033[2m'; YELLOW='\033[0;33m'; RESET='\033[0m'
+        TARGET="{{.ID}}"
+        for dir in [0-9][0-9][0-9][0-9]; do
+          [ -d "$dir" ] || continue
+          [ "$dir" = "0000" ] && continue
+          [ -n "$TARGET" ] && [ "$dir" != "$TARGET" ] && continue
+          dec="$dir/03-decisions.md"
+          [ -f "$dec" ] || continue
+          dfile="$dir/delivery.yaml"
+          covered=""; nw_keys=""
+          if [ -f "$dfile" ]; then
+            covered=$(yq -r '.log[] | (.decisions // [])[]' "$dfile" 2>/dev/null | sort -u || true)
+            nw_keys=$(yq -r '(.no_work // {}) | keys | .[]' "$dfile" 2>/dev/null | sort -u || true)
+          fi
+          rows=""; n_unc=0; n_nw=0; n_tomb=0; n_cov=0
+          while IFS= read -r line; do
+            dn=$(printf '%s' "$line"   | sed -E 's/^#{2,4} (D[0-9]+):.*/\1/')
+            rest=$(printf '%s' "$line" | sed -E 's/^#{2,4} D[0-9]+: ?//')
+            case "$rest" in
+              "(merged into"*|"(superseded"*|"(retired"*) n_tomb=$((n_tomb+1)); continue ;;
+            esac
+            if printf '%s\n' "$covered" | grep -qx "$dn"; then n_cov=$((n_cov+1)); continue; fi
+            if printf '%s\n' "$nw_keys" | grep -qx "$dn"; then
+              n_nw=$((n_nw+1))
+              rows="${rows}${dn}\tno_work\t${rest}\n"
+              continue
+            fi
+            n_unc=$((n_unc+1))
+            rows="${rows}${dn}\tUNCOVERED\t${rest}\n"
+          done < <(grep -E '^#{2,4} D[0-9]+:' "$dec" || true)
+          # Without an ID filter, only entries with something uncovered print.
+          if [ -z "$TARGET" ] && [ "$n_unc" -eq 0 ]; then continue; fi
+          printf "${BOLD}%s${RESET}: %s covered, ${YELLOW}%s uncovered${RESET}, %s no_work, ${DIM}%s tombstoned${RESET}\n" \
+            "$dir" "$n_cov" "$n_unc" "$n_nw" "$n_tomb"
+          [ -n "$rows" ] && printf "$rows" | awk -F'\t' '{printf "  %-6s %-10s %s\n", $1, $2, substr($3,1,80)}'
+        done
+
+  delivery:deferred:
+    desc: Deferred-to-implementation Open Questions no log entry claims
+    summary: |
+      The deferral register. An entry closes an implementation-level OQ as
+      `Status: deferred-to-implementation` with context attached; the log
+      entry for the change that picks it up claims it with `resolves`.
+      This reports every deferred OQ and who (if anyone) claimed it.
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BOLD='\033[1m'; YELLOW='\033[0;33m'; RESET='\033[0m'
+        found=0
+        for dir in [0-9][0-9][0-9][0-9] archive/[0-9][0-9][0-9][0-9]; do
+          [ -d "$dir" ] || continue
+          [ "$(basename "$dir")" = "0000" ] && continue
+          q="$dir/07-questions.md"
+          [ -f "$q" ] || continue
+          id=$(basename "$dir")
+          claimed=""
+          [ -f "$dir/delivery.yaml" ] && claimed=$(yq -r '.log[] | (.resolves // [])[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+          while IFS=$'\t' read -r oq question; do
+            [ -n "$oq" ] || continue
+            found=1
+            if printf '%s\n' "$claimed" | grep -qx "$oq"; then who="claimed"; else who="${YELLOW}unclaimed${RESET}"; fi
+            printf "${BOLD}%s:%s${RESET}\t%b\t%s\n" "$id" "$oq" "$who" "$(printf '%s' "$question" | cut -c1-80)"
+          done < <(awk '
+            /^-[[:space:]]+\*\*OQ[0-9]+/ {
+              match($0, /OQ[0-9]+/); cur = substr($0, RSTART, RLENGTH)
+              qtext = $0
+              sub(/^-[[:space:]]+\*\*OQ[0-9]+:[[:space:]]*/, "", qtext)
+              sub(/\*\*.*$/, "", qtext)
+              curq = qtext
+            }
+            /deferred-to-implementation/ && cur != "" { printf "%s\t%s\n", cur, curq; cur = "" }
+          ' "$q")
+        done
+        [ "$found" -eq 1 ] || echo "(no deferred-to-implementation Open Questions found)"
+
+  delivery:reconcile:
+    desc: Archived OpenSpec changes that declared an enhancement but were never logged
+    summary: |
+      Drift detection for the delivery log. Scans every sibling repo's
+      openspec/changes/ (active and archive/) for enhancement.yaml
+      declarations, validates each against #ChangeDeclaration, and checks
+      that every ARCHIVED declaring change has a matching log entry in the
+      declared enhancement's delivery.yaml. Active declaring changes are
+      listed as in flight (a log entry is not owed until the work lands).
+
+      Report-only; the printed `task delivery:log` command is the fix.
+    preconditions:
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; DIM='\033[2m'; RESET='\033[0m'
+        WS="{{.WORKSPACE_ROOT}}"
+        missing=0; inflight=0; ok=0; bad=0
+        for repodir in cli core library opm-operator modules opmodel.dev; do
+          base="$WS/$repodir/openspec/changes"
+          [ -d "$base" ] || continue
+          case "$repodir" in catalog_opm) repo=catalog ;; *) repo="$repodir" ;; esac
+          for decl in "$base"/*/enhancement.yaml "$base"/archive/*/enhancement.yaml; do
+            [ -f "$decl" ] || continue
+            cdir=$(dirname "$decl")
+            slug=$(basename "$cdir" | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//')
+            case "$cdir" in */archive/*) archived=1 ;; *) archived=0 ;; esac
+            if ! out=$(cue vet -d '#ChangeDeclaration' schema.cue "$decl" 2>&1); then
+              bad=$((bad+1))
+              printf "${RED}INVALID${RESET} %s\n%s\n" "$decl" "$(printf '%s' "$out" | sed 's/^/    /')"
+              continue
+            fi
+            # Materialise before iterating (pipefail/SIGPIPE discipline).
+            eids=$(yq -r '.implements[].enhancement' "$decl")
+            for eid in $eids; do
+              edir=""
+              [ -d "$eid" ] && edir="$eid"
+              [ -z "$edir" ] && [ -d "archive/$eid" ] && edir="archive/$eid"
+              if [ -z "$edir" ]; then
+                bad=$((bad+1))
+                printf "${RED}DANGLING${RESET} %s declares enhancement %s (no such entry)\n" "$decl" "$eid"
+                continue
+              fi
+              logged=0
+              if [ -f "$edir/delivery.yaml" ]; then
+                hit=$(yq -r ".log[] | select(.change.kind == \"openspec\" and .change.repo == \"$repo\" and .change.change == \"$slug\") | .date" "$edir/delivery.yaml" 2>/dev/null | head -1 || true)
+                [ -n "$hit" ] && logged=1
+              fi
+              if [ "$archived" -eq 1 ] && [ "$logged" -eq 0 ]; then
+                missing=$((missing+1))
+                printf "${YELLOW}UNLOGGED${RESET} %s/%s (archived) declares %s but %s/delivery.yaml has no matching entry\n" "$repo" "$slug" "$eid" "$edir"
+                printf "${DIM}  fix: task delivery:log FROM=%s SUMMARY=\"<what landed>\"${RESET}\n" "$cdir"
+              elif [ "$archived" -eq 0 ] && [ "$logged" -eq 0 ]; then
+                inflight=$((inflight+1))
+                printf "${DIM}in-flight${RESET} %s/%s declares %s (not archived; log entry not yet owed)\n" "$repo" "$slug" "$eid"
+              else
+                ok=$((ok+1))
+              fi
+            done
+          done
+        done
+        echo
+        printf "reconcile: ${GREEN}%s logged${RESET}, %s in flight, ${YELLOW}%s unlogged${RESET}, ${RED}%s invalid/dangling${RESET}\n" "$ok" "$inflight" "$missing" "$bad"
+        [ "$missing" -eq 0 ] && [ "$bad" -eq 0 ]
 
   vet:
     desc: Validate every enhancement's config.yaml against schema.cue + consistency checks
@@ -418,12 +735,13 @@ tasks:
                 errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
               fi
               # The delta files exist so the spec is drafted BEFORE the core
-              # slice writes it. Once the design is delivered that purpose is
-              # spent — the spec landed in core/SPEC.md — so a delivered
+              # change writes it. Once the design is implemented that purpose
+              # is spent (the spec landed in core/SPEC.md), so an implemented
               # entry is exempt. This used to be keyed on `status:
-              # implemented`; delivery is now derived, so the exemption
-              # follows the derivation rather than a hand-set flag.
-              if [ "$status" = "accepted" ] && [ "$(delivery_of "$id")" != "delivered" ]; then
+              # implemented`; delivery is now derived from the entry's
+              # delivery.yaml log, so the exemption follows the derivation
+              # rather than a hand-set flag.
+              if [ "$status" = "accepted" ] && [ "$(delivery_of "$id")" != "implemented" ]; then
                 [ -f "$dir/schemas/spec.md" ] \
                   || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
                 local companions
@@ -473,14 +791,47 @@ tasks:
             errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
           fi
 
-          # 9. One-way rule: delivery plans live in plans/, never inside an entry.
-          [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
-          [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+          # 9. No plan files inside an entry. The forecast-plan layer is
+          # retired; the delivery record is the entry's delivery.yaml log.
+          [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry (forecast plans are retired; the delivery record is delivery.yaml)"
+          [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry (forecast plans are retired; the delivery record is delivery.yaml)"
           # Any other file whose NAME says it is a plan. 0006/planned-changes.md
           # was an in-entry slice plan naming OpenSpec changes, and it slipped
           # past a check that knew only the two canonical filenames.
           planlike=$(find "$dir" -maxdepth 1 -type f \( -iname '*plan*.md' -o -iname '*plan*.yaml' \) -printf '%f ' 2>/dev/null || true)
-          [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike — delivery plans live in plans/<slug>/ (one-way rule)"
+          [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike (forecast plans are retired; the delivery record is delivery.yaml)"
+
+          # 9b. Delivery log: delivery.yaml validates against #Delivery, every
+          # cited DN/OQN resolves (tombstones resolve; retired is not absent),
+          # and a no_work key is live and not also carried by a log entry
+          # (carried or excused, never both).
+          if [ -f "$dir/delivery.yaml" ]; then
+            dvout=""
+            dvout=$(cue vet -d '#Delivery' schema.cue "$dir/delivery.yaml" 2>&1) \
+              || errors="${errors}\n    delivery.yaml failed #Delivery schema:\n$(echo "$dvout" | sed 's/^/      /')"
+            if [ -z "$dvout" ]; then
+              dlog_dec=$(yq -r '.log[] | (.decisions // [])[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+              for dn in $dlog_dec; do
+                grep -qE "^#{2,4} $dn:" "$dir/03-decisions.md" 2>/dev/null \
+                  || errors="${errors}\n    delivery.yaml cites $dn but 03-decisions.md has no such heading"
+              done
+              dlog_oq=$(yq -r '.log[] | (.resolves // [])[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+              for oq in $dlog_oq; do
+                grep -qE "^-[[:space:]]+\*\*${oq}:" "$dir/07-questions.md" 2>/dev/null \
+                  || errors="${errors}\n    delivery.yaml resolves $oq but 07-questions.md has no such question"
+              done
+              dnw=$(yq -r '(.no_work // {}) | keys | .[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+              for dn in $dnw; do
+                if ! grep -qE "^#{2,4} $dn:" "$dir/03-decisions.md" 2>/dev/null; then
+                  errors="${errors}\n    delivery.yaml no_work cites $dn but 03-decisions.md has no such heading"
+                elif grep -qE "^#{2,4} $dn: \(" "$dir/03-decisions.md" 2>/dev/null; then
+                  errors="${errors}\n    delivery.yaml no_work cites $dn, a tombstone; retired numbers need no entry"
+                elif printf '%s\n' "$dlog_dec" | grep -qx "$dn"; then
+                  errors="${errors}\n    delivery.yaml: $dn is both carried by a log entry and excused in no_work (carried or excused, never both)"
+                fi
+              done
+            fi
+          fi
 
           # Open Questions live only in 07-questions.md — single canonical
           # location. A block in the decision log or README is a migration
@@ -828,12 +1179,13 @@ tasks:
                 errors="${errors}\n    schemas/ failed cue vet:\n$(echo "$schemas_out" | sed 's/^/      /')"
               fi
               # The delta files exist so the spec is drafted BEFORE the core
-              # slice writes it. Once the design is delivered that purpose is
-              # spent — the spec landed in core/SPEC.md — so a delivered
+              # change writes it. Once the design is implemented that purpose
+              # is spent (the spec landed in core/SPEC.md), so an implemented
               # entry is exempt. This used to be keyed on `status:
-              # implemented`; delivery is now derived, so the exemption
-              # follows the derivation rather than a hand-set flag.
-              if [ "$status" = "accepted" ] && [ "$(delivery_of "$id")" != "delivered" ]; then
+              # implemented`; delivery is now derived from the entry's
+              # delivery.yaml log, so the exemption follows the derivation
+              # rather than a hand-set flag.
+              if [ "$status" = "accepted" ] && [ "$(delivery_of "$ID")" != "implemented" ]; then
                 [ -f "$dir/schemas/spec.md" ] \
                   || errors="${errors}\n    status is accepted but schemas/spec.md (spec delta) is missing"
                 companions=$(find "$dir/schemas" -maxdepth 1 -name '*.cue' ! -name 'target.cue' 2>/dev/null | head -1)
@@ -877,14 +1229,47 @@ tasks:
         if [ -n "$dangling" ]; then
           errors="${errors}\n    dangling DN/OQN references (cited but no such heading — merge left no tombstone?):\n$(echo "$dangling" | sed 's/^/      /')"
         fi
-        # 9. One-way rule: delivery plans live in plans/, never inside an entry.
-        [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
-        [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry — delivery plans live in plans/<slug>/ (one-way rule)"
+        # 9. No plan files inside an entry. The forecast-plan layer is
+          # retired; the delivery record is the entry's delivery.yaml log.
+        [ ! -e "$dir/plan.yaml" ] || errors="${errors}\n    plan.yaml found inside the entry (forecast plans are retired; the delivery record is delivery.yaml)"
+        [ ! -e "$dir/PLAN.md" ]   || errors="${errors}\n    PLAN.md found inside the entry (forecast plans are retired; the delivery record is delivery.yaml)"
         # Any other file whose NAME says it is a plan. 0006/planned-changes.md
         # was an in-entry slice plan naming OpenSpec changes, and it slipped
         # past a check that knew only the two canonical filenames.
         planlike=$(find "$dir" -maxdepth 1 -type f \( -iname '*plan*.md' -o -iname '*plan*.yaml' \) -printf '%f ' 2>/dev/null || true)
-        [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike — delivery plans live in plans/<slug>/ (one-way rule)"
+        [ -z "$planlike" ] || errors="${errors}\n    plan-like file(s) inside the entry: $planlike (forecast plans are retired; the delivery record is delivery.yaml)"
+
+        # 9b. Delivery log: delivery.yaml validates against #Delivery, every
+        # cited DN/OQN resolves (tombstones resolve; retired is not absent),
+        # and a no_work key is live and not also carried by a log entry
+        # (carried or excused, never both).
+        if [ -f "$dir/delivery.yaml" ]; then
+          dvout=""
+          dvout=$(cue vet -d '#Delivery' schema.cue "$dir/delivery.yaml" 2>&1) \
+            || errors="${errors}\n    delivery.yaml failed #Delivery schema:\n$(echo "$dvout" | sed 's/^/      /')"
+          if [ -z "$dvout" ]; then
+            dlog_dec=$(yq -r '.log[] | (.decisions // [])[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+            for dn in $dlog_dec; do
+              grep -qE "^#{2,4} $dn:" "$dir/03-decisions.md" 2>/dev/null \
+                || errors="${errors}\n    delivery.yaml cites $dn but 03-decisions.md has no such heading"
+            done
+            dlog_oq=$(yq -r '.log[] | (.resolves // [])[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+            for oq in $dlog_oq; do
+              grep -qE "^-[[:space:]]+\*\*${oq}:" "$dir/07-questions.md" 2>/dev/null \
+                || errors="${errors}\n    delivery.yaml resolves $oq but 07-questions.md has no such question"
+            done
+            dnw=$(yq -r '(.no_work // {}) | keys | .[]' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+            for dn in $dnw; do
+              if ! grep -qE "^#{2,4} $dn:" "$dir/03-decisions.md" 2>/dev/null; then
+                errors="${errors}\n    delivery.yaml no_work cites $dn but 03-decisions.md has no such heading"
+              elif grep -qE "^#{2,4} $dn: \(" "$dir/03-decisions.md" 2>/dev/null; then
+                errors="${errors}\n    delivery.yaml no_work cites $dn, a tombstone; retired numbers need no entry"
+              elif printf '%s\n' "$dlog_dec" | grep -qx "$dn"; then
+                errors="${errors}\n    delivery.yaml: $dn is both carried by a log entry and excused in no_work (carried or excused, never both)"
+              fi
+            done
+          fi
+        fi
 
         # Open Questions live only in 07-questions.md — single canonical
         # location. A block in the decision log or README is a migration
@@ -915,8 +1300,8 @@ tasks:
                         and NO 'accepted → implemented' section
         - draft       → 07-questions.md: no question left marked
                         'Blocking: acceptance' (promotion refuses)
-        - draft/acc   → one-way smell: no *.md names a plan file
-                        (plan.yaml / PLAN.md) — plans live in plans/
+        - draft/acc   → stale-plan smell: no *.md names a plan file
+                        (plan.yaml / PLAN.md; forecast plans are retired)
         - draft       → every decision carries '**Kind:** contract |
                         policy | scope'
         - draft/acc   → mechanism smell: file:line refs or function()
@@ -997,8 +1382,8 @@ tasks:
 
           # Soft mirror of vet's accepted-gate: while still draft, nudge
           # toward the files the draft → accepted promotion will require.
-          # Silent on delivered/superseded entries — their spec landed in
-          # landed in core/SPEC.md).
+          # Silent on implemented/superseded entries (their spec landed
+          # in core/SPEC.md).
           if [ "$core_schema" = "true" ] && [ "$status" = "draft" ] && [ -d "$dir/schemas" ]; then
             [ -f "$dir/schemas/spec.md" ] \
               || warnings="${warnings}\n    schemas/spec.md missing — required before draft → accepted (spec delta in core SPEC.md's four-part format)"
@@ -1017,15 +1402,30 @@ tasks:
             done
           fi
 
-          # One-way smell: a draft/accepted entry's prose naming a plan file
-          # is a reference in the forbidden direction (generic statements
-          # like "a delivery plan under plans/" are fine — this greps only
-          # for the file names). The coverage nudge for accepted multi-repo
-          # entries with no plan lives on the plans side (task plans:vet).
+          # Stale-plan smell: the forecast-plan layer is retired, so prose
+          # naming a plan file is a leftover pointer at nothing (this greps
+          # only for the file names; "delivery log" prose is fine).
           if [ "$status" = "draft" ] || [ "$status" = "accepted" ]; then
             local oneway
             oneway=$(grep -lE 'plan\.yaml|PLAN\.md' "$dir"/*.md 2>/dev/null | paste -sd',' - || true)
-            [ -z "$oneway" ] || warnings="${warnings}\n    names a plan file ($oneway) — enhancements never reference plans (one-way rule); reword to the generic form"
+            [ -z "$oneway" ] || warnings="${warnings}\n    names a plan file ($oneway); forecast plans are retired, delete or reword the reference"
+          fi
+
+          # Delivery-log sanity: a log entry's change.repo outside the
+          # entry's affects[] is usually a typo. Cross-entry carriage (a
+          # change driven by another entry that also carried decisions of
+          # this one) is the legitimate exception, so this warns rather
+          # than fails.
+          if [ -f "$dir/delivery.yaml" ]; then
+            local drepos daffects r
+            drepos=$(yq -r '.log[].change.repo' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
+            daffects=$(yq -r '.affects | join(" ")' "$dir/config.yaml" 2>/dev/null || true)
+            for r in $drepos; do
+              case " $daffects " in
+                *" $r "*) : ;;
+                *) warnings="${warnings}\n    delivery.yaml logs a change in '$r', which affects[] does not list (fine for cross-entry carriage, a typo otherwise)" ;;
+              esac
+            done
           fi
 
           # Decision Kind gate (draft entries): every decision carries
@@ -1062,16 +1462,6 @@ tasks:
                 warnings="${warnings}\n    $doc: $mech mechanism smell(s) — an entry records contracts, not how a repo names or lays out its files"
               fi
             done
-            # A bare slice / OpenSpec-change name in entry prose is the
-            # one-way rule's edge: the existing check greps only for
-            # plan.yaml/PLAN.md, so a slice id written as prose slips past.
-            if [ -f "$dir/03-decisions.md" ]; then
-              local slices
-              slices=$(grep -coE '\b(slice|OpenSpec change) [`a-z][a-z0-9-]+' "$dir/03-decisions.md" 2>/dev/null || true)
-              if [ "${slices:-0}" -gt 0 ]; then
-                warnings="${warnings}\n    03-decisions.md: $slices slice/OpenSpec-change name(s) in prose — plans cite entries, never the reverse"
-              fi
-            fi
           fi
 
           # Evidence nudge (draft + accepted): a design whose decisions rest
@@ -1111,7 +1501,7 @@ tasks:
               grep -qE '^## draft → accepted' "$dir/04-graduation.md" 2>/dev/null \
                 || warnings="${warnings}\n    04-graduation.md: missing '## draft → accepted' section"
               ! grep -qE '^## accepted → implemented' "$dir/04-graduation.md" 2>/dev/null \
-                || warnings="${warnings}\n    04-graduation.md: has an '## accepted → implemented' section — delivery is derived from plans/, not gated here"
+                || warnings="${warnings}\n    04-graduation.md: has an '## accepted → implemented' section; delivery is derived from the delivery.yaml log, not gated here"
             fi
 
             # Per-question blocking rules live on the question itself, where
@@ -1193,10 +1583,11 @@ tasks:
         printf "  %-16s %s\n" "created:"      "$(yq -r '.created' "$cfg")"
         printf "  %-16s %s\n" "updated:"      "$(yq -r '.updated' "$cfg")"
         printf "  %-16s %s\n" "authors:"      "$(yq -r '.authors | join(", ")' "$cfg")"
-        # Delivery is DERIVED from plans/, never stored here. See
-        # scripts/delivery.sh and `task delivery ID=NNNN` for the detail.
+        # Delivery is DERIVED from the entry's delivery.yaml log, never
+        # stored in config.yaml. See scripts/delivery.sh and
+        # `task delivery ID=NNNN` for the detail.
         deliv=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
-        printf "  %-16s %s %s\n" "delivery:" "${deliv:--}" "(derived from plans/)"
+        printf "  %-16s %s %s\n" "delivery:" "${deliv:--}" "(derived from delivery.yaml)"
         rejected=$(yq -r '.rejected_reason // ""' "$cfg")
         [ -n "$rejected" ] && printf "  %-16s %s\n" "rejected:" "$rejected"
         related=$(yq -r '.related | join(", ")' "$cfg")
@@ -1447,7 +1838,7 @@ tasks:
           # `summary` replaces the old "last event" column: the point of this
           # file is to make opaque NNNN folders browseable, and one line
           # saying what an entry is beats the most recent thing that happened
-          # to it. Delivery is derived from plans/, never read from the entry.
+          # to it. Delivery is derived from each entry's delivery.yaml log.
           DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
           # Area is the primary-owner label; Affects is the real footprint.
           # Showing only Area made multi-repo entries look single-repo.
@@ -2199,13 +2590,13 @@ tasks:
           superseded) ALLOWED="STUB,COLLAPSE-OQ,TOMBSTONE" ;;
           *)          ALLOWED="unknown status" ;;
         esac
-        if [ "$DELIVERY" = "delivered" ]; then
-          ALLOWED="NONE — delivered, the record is closed"
+        if [ "$DELIVERY" = "implemented" ]; then
+          ALLOWED="NONE: implemented, the record is closed"
         fi
         printf "STATUS\t%s\t%s\n" "$STATUS" "$ALLOWED"
-        printf "DELIVERY\t%s\t%s\n" "${DELIVERY:--}" "derived from plans/"
+        printf "DELIVERY\t%s\t%s\n" "${DELIVERY:--}" "derived from delivery.yaml"
 
-        if [ "$DELIVERY" = "delivered" ] || [ "$STATUS" = "rejected" ]; then
+        if [ "$DELIVERY" = "implemented" ] || [ "$STATUS" = "rejected" ]; then
           exit 0
         fi
 
@@ -2575,7 +2966,7 @@ tasks:
         printf "${GREEN}promoted${RESET} %s draft → accepted (semver=%s)\n" "$ID" "$SEMVER"
         echo
         echo "Next steps:"
-        echo "  1. Scaffold the delivery plan:  task plans:new SLUG=<slug> IMPLEMENTS=$ID"
+        echo "  1. Log changes as they land:    task delivery:log FROM=<change-dir> SUMMARY=\"...\""
         echo "  2. Refresh the browse aids:     task index && task graph"
 
   supersede:
