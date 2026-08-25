@@ -7,7 +7,7 @@ This document answers the question: "What is the proposed solution and how does 
 - A single document a module author, a catalog author, a platform operator or a kernel contributor reads to learn what OPM promises across a version of any artifact class, and which change moves which number.
 - Every artifact class states the same five things in the same order: the version carrier, the compatibility surface, the bump rules, the pre-stable semantics, and the enforcement layer the rules reach.
 - The module class gets a defined compatibility surface, so that a module's version carries a promise an instance can rely on and a gate can verify.
-- Rules already settled by accepted enhancements are inherited by reference, so the policy cannot contradict them and does not have to be edited when they are compacted.
+- Rules already settled by accepted enhancements and repo documents are carried verbatim under their source, so the policy is complete on its own page and the argument stays where it was made.
 - The enforcement pattern that exists for catalogs is stated generally enough that extending it to another class is an implementation decision, not a design one.
 
 ## Non-Goals
@@ -15,7 +15,7 @@ This document answers the question: "What is the proposed solution and how does 
 - Changing any version format, release tool, tag scheme or filing convention already in use.
 - A consumer-facing support or deprecation window (0010 D34 rejected it; 0020 D10 constrains the producer instead).
 - Building the module compatibility gate or any other gate; this entry states what a gate for a class must check and leaves the building to the implementing change.
-- Versioning documentation, enhancements or platforms; the first two are not artifacts consumers pin, and platforms are consumers today (OQ11 records whether that changes).
+- Versioning enhancements or platforms; the first are not artifacts consumers pin, and platforms are consumers today (OQ11 records whether that changes). Documentation is a class (OQ15).
 - Retroactively re-versioning anything already published.
 
 ## High-Level Approach
@@ -23,16 +23,18 @@ This document answers the question: "What is the proposed solution and how does 
 The policy is a matrix. Rows are artifact classes; columns are the five questions every class answers. A small set of universal rules sits above the matrix and applies to every row; a per-class section fills the cells. The universal rules are what makes the classes comparable; the per-class cells are where they differ.
 
 ```
-                    carrier            surface                     bump rules        pre-stable          enforcement
-                    ---------------    ------------------------    --------------    ----------------    -------------
-core                CUE module semver  published definitions       stable table      alpha line (U3)     convention
-catalog build       CUE module semver  member set + transformers   OQ7               alpha line (U3)     gate (0011 D9)
-catalog contract    apiVersion ladder  the contract's shape        0010 D27 / D34    alpha rung          gate + match
-module              CUE module semver  #config (D2) [+ OQ1]        stable table      0.x / alpha (OQ4)   open (OQ5)
-kernel (library)    Go module semver   exported API (OQ10)         stable table      alpha line          convention
-cli                 Go module semver   command surface (OQ8)       stable table      alpha line          convention
-operator            Go module semver   controller behaviour        stable table      alpha line          convention
-crd                 group/version      the served schema (OQ9)     K8s ladder        v1alpha1            open
+                    carrier            surface                       bump rules        pre-stable          enforcement
+                    ---------------    --------------------------    --------------    ----------------    -------------
+core schema         CUE module semver  published definitions         stable table      alpha line (U3)     claim
+catalog build       CUE module semver  member set + transformers     OQ7               alpha line (U3)     gate (0011 D9)
+catalog contract    apiVersion ladder  the contract's shape          0010 D27 / D34    alpha rung (D5)     gate + match + aid
+transformer         the build's        required/optional + render    the build's       the build's         convention (D6)
+module              CUE module semver  #config (D2) [+ OQ1]          stable table      0.x / alpha (OQ4)   open (OQ5)
+cli template        CUE module semver  the module surface, scaffold  the CLI's         the CLI's           gate at release
+tooling train       Go module semver   kernel API / CLI surface /    stable table      alpha line          claim
+  (kernel,cli,op)   one or three (OQ14)  controller behaviour
+crd                 group/version      served schema + wire shapes   K8s ladder        v1alpha1            open (OQ9)
+documentation      the train's (OQ15)  versions a page describes     n/a               n/a                 open
 ```
 
 The "stable table" is the ordinary SemVer mapping, stated once and reused: a **breaking** change to the surface is a major, an **additive** change is a minor, a **fix** that leaves the accepted surface identical is a patch, and an **invisible** change (the published artifact is byte-identical) is no release at all. What differs per class is only what "the surface" is and what "breaking" means against it.
@@ -80,9 +82,29 @@ A module's compatibility surface is its `#config` schema, and compatibility is s
 
 Two things the table does not settle are the entry's blocking questions: whether the rendered output's stateful identity (volume claims, workload kind, service names) forms a second surface (OQ1), and whether a default change is additive, since it never fails unification but moves the output of every instance that left the field unset, which is exactly why 0010 D27 made contract defaults immutable within a level (OQ3).
 
+### The tooling train (OQ14)
+
+The kernel library has two consumers, the CLI and the operator, and both are first-party. The CLI embeds an operator install manifest at a pinned version and refuses to apply when the operator is newer than itself. Three release trains for three binaries whose only compatibility relationships are with each other is where the sweep found the most unverified claims: a migration ledger asserting a gate that does not exist, a skew ceiling that is one-directional, a pinned manifest nothing checks. One train removes the relationships instead of gating them:
+
+```
+today                                       one train
+-----                                       ---------
+library  1.0.0-alpha.14 ──┐                 opm  X.Y.Z  =  library + cli + operator + CRDs served
+cli      1.0.0-alpha.13 ──┼─ three pins,         one version, one changelog, one release PR
+operator 1.0.0-alpha.12 ──┘  hand-synced         kernel API: internal to the train (OQ16)
+                                                 skew ceiling: same number on both sides
+docs     v0.1 (flat)                             docs: versioned against X.Y (OQ15)
+```
+
+What it costs is coupling: a fix in one binary cuts a release of all three, and the three repos either merge or release from one manifest. What it settles beyond versioning is the documentation's version axis (class 9): a page states the train version it describes and the schema and catalog versions that train pins, which is one number for a reader instead of three.
+
+### Where the policy is authored (candidate, pending decision)
+
+The policy source lives beside the rule: one CUE file per class in the owning repo (`core` one, `catalog_opm` three, `modules` one, `cli` two, `library` one, `opm-operator` two, `opmodel.dev` one), each an instance of a shared `#Policy` schema whose universal rules and bump table are imported, never restated. Every rule is a struct carrying its strength (must/should/may), its enforcement layer, its source and, for a gate, its enforcer; the schema refuses a MUST nothing enforces unless the reason is stated. The Markdown page is generated from the CUE by `cue eval` with no generator binary, and kept fresh by regenerate-and-diff in `task check`, as `INDEX.md` already is. Repo `CLAUDE.md` files point at the CUE source and the generated page. Validated by `experiments/01-policy-as-cue/`, outcome 2026-08-25: renders, stays fresh, and all three label-overstates-enforcement invariants are refused at vet. Where the shared schema lives is open (a `core` subpackage is the candidate).
+
 ## Schema / API Surface
 
-No core definition changes. The taxonomy of artifact classes, change classes, bump levels and the policy matrix live in [`contracts/policy.cue`](contracts/policy.cue) as data, with the unresolved cells marked `// OQN:`. Compiling it is the completeness check: a class with no carrier, no surface or no enforcement layer does not vet.
+No core definition changes. The policy text lives in [`policy/`](policy/), one file per class. The taxonomy of artifact classes, change classes, bump levels and the policy matrix live in [`contracts/policy.cue`](contracts/policy.cue) as data, with the unresolved cells marked `// OQN:`. Compiling it is the completeness check: a class with no carrier, no surface or no enforcement layer does not vet.
 
 ## Affected Surfaces
 

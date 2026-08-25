@@ -1,0 +1,5 @@
+# Class 7: kernel library, CLI and operator (the tooling train)
+
+**Carrier:** Go module SemVer, one per repo today, all on `-alpha.N` prerelease lines. **Surface:** kernel: the exported Go API under `opm/`; CLI: commands, flags, exit codes and declared machine-readable output (OQ8); operator: controller behaviour over the served CRDs. **Bump:** the stable table. **Pre-stable:** the alpha line. **Enforcement:** claim only; the kernel's migration ledger asserts a release gate that does not exist.
+
+**Candidate rule (OQ14): the three release in lockstep on one version.** The kernel has exactly two consumers and both are first-party; the CLI embeds an operator install manifest at a pinned version and refuses on operator version skew. A single train removes the kernel's external API contract (its consumers release with it), removes the CLI-operator skew ceiling as a compatibility problem (one version names both), and gives documentation one number to be versioned against (class 9). What it costs is that a fix in one binary cuts a release of all three. OQ16 asks what replaces the migration ledger under either outcome.
