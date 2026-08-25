@@ -1,0 +1,73 @@
+# Template config.yaml — id 0000 is reserved for this template.
+#
+# When creating a new enhancement, copy this directory to enhancements/NNNN/
+# (next available four-digit id) and overwrite every value below.
+#
+# This file is itself a valid #EnhancementConfig — running
+# `cue vet -d '#EnhancementConfig' enhancements/schema.cue enhancements/0000/config.yaml`
+# passes. The "placeholder-ness" lives in the slug, title, and markdown bodies.
+
+id: "0023"
+slug: artifact-provenance-and-trust
+title: Artifact Provenance, Signatures and Platform Trust Policy
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  Catalogs and modules carry signed build provenance and signatures as OCI referrers, and a platform states which signers and builders it trusts before anything it materializes is used.
+status: draft
+# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
+area: cross-cutting
+# Every repo that ships code/schema/content changes driven by this enhancement.
+# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+affects:
+  - cross-cutting
+  - cli
+  - library
+  - opm-operator
+  - core
+  - catalog
+  - modules
+  - core
+# Does this enhancement add or change opmodel.dev/core definitions?
+# true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
+#         affects MUST include "core".
+# false → schemas/ MUST NOT exist; non-core compilable CUE goes in the
+#         optional contracts/ (task new:contracts ID=NNNN).
+# The template itself keeps schemas/ and contracts/ as copy sources and is
+# exempt from the iff-rule (0000 is skipped by `task vet`).
+core_schema: true
+created: "2026-08-25"
+updated: "2026-08-25"
+authors:
+  - emil@jacero.se
+# Append-only timeline of milestones. The validator (future) enforces
+# append-only via git diff against HEAD~1. Free-form `event` strings;
+# `semver` is an optional structured field for events that carry
+# machine-readable detail. (`slice` is LEGACY — never write it in new
+# events: naming a slice or OpenSpec change here violates the one-way
+# rule; plans cite enhancements, enhancements never cite plans.)
+history:
+  - date: "2026-08-25"
+    event: Drafted
+# Peer enhancements this one builds on or interacts with.
+# Accepts new four-digit ids ("0042") and legacy three-digit refs
+# ("legacy:003") that point at frozen library/enhancements/ predecessors.
+# 0011: publishing, where attestations are produced and where verification
+# of an artifact out of band already lives (registry check). 0019: the
+# platform reshape (a subscription imports its catalog) the trust policy
+# attaches to. 0022: the unsigned metadata channel this entry's signed claims
+# complement. 0020: contract retirement, adjacent to the optional advisory
+# scope.
+related:
+  - "0011"
+  - "0019"
+  - "0022"
+  - "0020"
+
+# Lifecycle relationships.
+supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
+superseded_by: null

@@ -1,0 +1,20 @@
+entry: "0023"
+entry_hash: "8161e1fd7a52ad189365ea3305639213997b20c836a731e65eb6fd8778f7f8ab"
+walked: "2026-08-25"
+verdicts:
+  - gate: feature
+    verdict: pass
+    evidence: "config.yaml summary: 'Catalogs and modules carry signed build provenance and signatures as OCI referrers, and a platform states which signers and builders it trusts before anything it materializes is used.' 01-problem.md Current State: 'no referrers: the OCI 1.1 referrers endpoint answers 404, and the fallback sha256-<digest> tag does not exist. So nothing signed travels with the artifact.' Gap 3: 'a platform has no way to say I accept artifacts signed by these identities, built by these workflows'."
+    reasoning: "Names capabilities OPM lacks and a measured absence to prove it (manifest with no annotations, no referrers, no policy surface, no verification point). Not a chore."
+  - gate: contract
+    verdict: pass
+    evidence: "02-design.md Schema / API Surface: 'Core (OQ3): a trust-policy surface on #Platform'; 'Kernel: Verify(digest, referrers, policy) -> Verdict, called from materialize and acquire'; 'Operator: policy enforcement in Platform reconciliation'. D1: 'Every signed claim … is a separate OCI artifact whose subject is the manifest digest'. affects lists cross-cutting, cli, library, opm-operator, core, catalog, modules."
+    reasoning: "Changes what consumers can rely on: a verification step before any materialization, a platform policy, referrers on every first-party release. Multi-repo, so the single-repo clause does not apply."
+  - gate: single-question
+    verdict: fail
+    evidence: "README Scope lists 'Optional, held by OQ1: a capability manifest' and 'Optional, held by OQ2: advisories and retirement signals' beside the committed provenance and signature scope. 07-questions.md OQ1: 'its policy vocabulary is Kubernetes-shaped, not identity-shaped'; OQ2: 'differs in who issues it (the author, after release) and when it is checked (every resolve, not only materialize)'."
+    reasoning: "The committed scope asks one question (which signed claims travel with an artifact and who decides to trust them; D1 and D2 share that premise). The two optional scopes ask different ones by the entry's own admission (different policy vocabulary, different issuer and check time). Held open deliberately by the owner pending research. Redirect: resolve OQ1 and OQ2 before promotion, splitting each optional scope into its own entry citing D1/D2 unless the research shows it shares the premise; 04-graduation.md requires this gate to be re-walked afterwards."
+  - gate: prior-art
+    verdict: pass
+    evidence: "task archive:data lists one entry, 0003 'OPM Module Publishing Workflow: Bind a module's four separately-set identity coordinates to one canonical registry path' (superseded by 0010). 0011 README names 'Signing, provenance, and attestation. Out of scope regardless of how the credential question resolves.'"
+    reasoning: "No archived entry proposes provenance, signatures or a trust policy; 0011 explicitly deferred them rather than rejecting them. revives stays empty."
