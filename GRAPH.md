@@ -32,6 +32,7 @@ graph LR
   N0021["0021: OPM Versioning Policy"]:::draft
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
+  N0024["0024: CUE Testing and Conformance"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::superseded
 
   N0001 ---|related| N0002
@@ -81,8 +82,10 @@ graph LR
   N0016 ---|related| N0019
   N0016 ---|related| N0022
   N0019 ---|related| N0023
+  N0019 ---|related| N0024
   N0020 ---|related| N0021
   N0020 ---|related| N0023
+  N0021 ---|related| N0024
   N0022 ---|related| N0023
   N0010 -->|supersedes| N0003
   N0011 -->|supersedes| N0003
