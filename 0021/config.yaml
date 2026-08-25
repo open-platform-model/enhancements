@@ -45,6 +45,8 @@ history:
     event: "D6: transformers serve a level per registration with a shared body; normalizer as backup; OQ17"
   - date: "2026-08-25"
     event: "Experiment 01-policy-as-cue concluded: policy as CUE renders Markdown with no Go, invariants refused at vet"
+  - date: "2026-08-25"
+    event: "Experiment 02-config-compat-gate concluded: catalog walk on #config classifies D2 table; default change is breaking"
 
 # Peer enhancements this one builds on or interacts with.
 related:

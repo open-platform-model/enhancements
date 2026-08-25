@@ -64,7 +64,7 @@ gate         publish compares the declared surface against the predecessor build
 aid          a check command anyone may run against a published build; never required
 ```
 
-Catalog contracts reach all four (0010 D27, 0011 D9/D23, 0010 D35). Modules reach the first two today and a zero-valued third; OQ5 asks what the gate compares and OQ6 what it refuses. Core reaches the first two; OQ6 asks whether definition subsumption can carry a gate. The Go artifacts reach the first two, and their surfaces are behaviour, so U6 leaves them there unless OQ8..OQ10 find a comparable slice (the CRD schema is one; a command's flag set may be another).
+Catalog contracts reach all four (0010 D27, 0011 D9/D23, 0010 D35). Modules reach the first two today and a zero-valued third; OQ5 asks what the gate compares and OQ6 what it refuses. Validated by `experiments/02-config-compat-gate/`, outcome 2026-08-25: the catalog walk applied to `#config`, plus one reverse subsumption, classifies every row of D2's table, and the refusal is a comparison of the required level with the claimed one; a default change is already breaking under that walk (input to OQ3). Core reaches the first two; OQ6 asks whether definition subsumption can carry a gate. The Go artifacts reach the first two, and their surfaces are behaviour, so U6 leaves them there unless OQ8..OQ10 find a comparable slice (the CRD schema is one; a command's flag set may be another).
 
 ### The module surface (D2)
 

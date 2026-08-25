@@ -9,3 +9,4 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | # | Concept | Status |
 | - | ------- | ------ |
 | 01 | policy-as-cue | Concluded |
+| 02 | config-compat-gate | Concluded |
