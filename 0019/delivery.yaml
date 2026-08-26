@@ -28,7 +28,7 @@ log:
     decisions: [D16]
   - date: "2026-08-26"
     summary: >-
-      Three name types, per-primitive #nameConstraint slot, hidden resolved-name assertion on #Component; resourceName ceiling to #ObjectNameType, D16 length guard retired; #ComponentNames widened (core, branch feat/name-types-and-constraint)
+      Three name types, per-primitive #nameConstraint slot, hidden resolved-name assertion on #Component; resourceName ceiling to #ObjectNameType, D16 length guard retired; #ComponentNames widened (core PR 52)
     change: { kind: openspec, repo: core, change: core-name-types-and-constraint }
     decisions: [D20, D21, D23]
 no_work:
