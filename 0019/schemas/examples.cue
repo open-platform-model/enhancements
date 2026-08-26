@@ -164,24 +164,139 @@ exampleCustomDomainComponent: #Component & {
 }
 _assertCustomDomain: exampleCustomDomainComponent.#names.dns.fqdn & "shop-web.apps.svc.k8s.internal"
 
-// MUST FAIL — the concatenation overflows #NameType's 63-rune budget
-// (33-rune instance + 1 + 33-rune component = 67):
+// MUST FAIL — a 254-rune override overflows #ObjectNameType (D20's ceiling;
+// D16's error() arm, unchanged, names the string):
 //
-//   overlongComponent: #Component & {
-//   	metadata: name: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-//   	#instance: {name: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", namespace: "apps"}
+//   overlongOverride: #Component & {
+//   	metadata: {name: "x", resourceName: "aaaa…(254)"}
+//   	#instance: _prodInstance
 //   }
 //
-//   overlongComponent.metadata.resourceName: incomplete value
-//   =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" & strings.MinRunes(1) &
-//   strings.MaxRunes(63)
+//   overlongOverride.metadata.resourceName: resourceName "aaaa…" is not a
+//   DNS subdomain (lowercase alphanumerics, hyphens and dots, 1-253 runes)
 //
-// That is the caveat D16 records and the core-resourcename-default slice
-// closes: the refusal is real (nothing invalid renders), but it names
-// #NameType's constraints instead of the offending string. Contrast the
-// UNVALIDATED spelling `*"\(#instance.name)-\(name)" | #NameType`, which does
-// not refuse at all: measured here, it exports
-// "bbbb…-aaaa…" at 67 runes with cue export exiting 0.
+// There is no overlong-DEFAULT refusal any more: two #NameType operands
+// concatenate to at most 127 runes, under the ceiling, so D16's guard is
+// retired. A default of 64 to 127 runes is admitted unless a primitive
+// narrows it (below).
+
+// ---------------------------------------------------------------------------
+// D20 / D21 / D23 — three name types, primitive-declared constraints, and
+// the hidden assertion (experiments 09 and 11)
+// ---------------------------------------------------------------------------
+
+// Stand-in primitives, naming surface only. The container resource computes
+// its constraint from its own workload-type key (D23, list-index form).
+_containerResource: #Resource & {
+	metadata: name:                                 "container"
+	matchLabels: "core.opmodel.dev/workload-type"!: "stateless" | "stateful"
+	#nameConstraint: [
+		if matchLabels["core.opmodel.dev/workload-type"] == "stateful" {#NameType},
+		_,
+	][0]
+}
+_stateless: matchLabels: "core.opmodel.dev/workload-type": "stateless"
+_stateful: matchLabels: "core.opmodel.dev/workload-type":  "stateful"
+
+_exposeTrait: #Trait & {
+	metadata: name: "expose"
+	#nameConstraint: #ServiceNameType
+}
+
+// A dotted override with no dot-hostile primitive attached: admitted, and
+// the dots reach the DNS projection unchanged (no rewrite, D20).
+exampleDottedOverride: #Component & {
+	metadata: {
+		name:         "exporter"
+		resourceName: "metrics.internal.example"
+	}
+	#resources: container: _containerResource & _stateless
+	#instance: _prodInstance
+}
+_assertDotsAdmitted: exampleDottedOverride.#names.resourceName & "metrics.internal.example"
+
+// A 65-rune default on a stateless component: admitted under the 253 ceiling.
+exampleLongDefault: #Component & {
+	metadata: name:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	#resources: container: _containerResource & _stateless
+	#instance: _prodInstance
+}
+_assertLongDefaultAdmitted: true & (len(exampleLongDefault.#names.resourceName) == 65)
+
+// Expose attached, default name: the qualified default is already a valid
+// DNS-1035 label, so the constraint costs a well-named component nothing.
+exampleExposed: #Component & {
+	metadata: name:        "web"
+	#resources: container: _containerResource & _stateless
+	#traits: expose:       _exposeTrait
+	#instance: _prodInstance
+}
+_assertExposedDefault: exampleExposed.#names.resourceName & "shop-web"
+
+// Expose attached, exact override that satisfies DNS-1035: admitted. This is
+// the D22 spelling for a workload, Service and projection that share a name.
+exampleExposedExact: #Component & {
+	metadata: {
+		name:         "istiod"
+		resourceName: "istiod"
+	}
+	#resources: container: _containerResource & _stateless
+	#traits: expose:       _exposeTrait
+	#instance: _prodInstance
+}
+_assertExposedExact: exampleExposedExact.#names.dns.fqdn & "istiod.apps.svc.cluster.local"
+
+// A raw stateful container, default name: the resource's own conditional
+// constraint reads #NameType, which the default satisfies.
+exampleStateful: #Component & {
+	metadata: name:        "cache"
+	#resources: container: _containerResource & _stateful
+	#instance: _prodInstance
+}
+_assertStatefulDefault: exampleStateful.#names.resourceName & "shop-cache"
+
+// MUST FAIL — each case observed on cue v0.17.1 in experiment 11 (v5). The
+// diagnostic names the string, the violated bound and the constraint type's
+// definition site; it cannot name the primitive or a remedy (see target.cue).
+//
+// Dotted override + Expose:
+//   badExposedDots: #Component & {
+//   	metadata: {name: "web", resourceName: "web.internal"}
+//   	#resources: container: _containerResource & _stateless
+//   	#traits: expose: _exposeTrait
+//   	#instance: _prodInstance
+//   }
+//   badExposedDots._nameFits: invalid value "web.internal"
+//     (out of bound =~"^[a-z]([a-z0-9-]*[a-z0-9])?$")
+//
+// Leading-digit instance + Expose (the latent hole in today's core: #NameType
+// admits "1prod", Service refuses "1prod-web" at apply):
+//   badLeadingDigit: #Component & {
+//   	metadata: name: "web"
+//   	#resources: container: _containerResource & _stateless
+//   	#traits: expose: _exposeTrait
+//   	#instance: {name: "1prod", namespace: "apps"}
+//   }
+//   badLeadingDigit._nameFits: invalid value "1prod-web"
+//     (out of bound =~"^[a-z]([a-z0-9-]*[a-z0-9])?$")
+//
+// Raw stateful container, dotted override (D23):
+//   badStatefulDots: #Component & {
+//   	metadata: {name: "cache", resourceName: "cache.internal"}
+//   	#resources: container: _containerResource & _stateful
+//   	#instance: _prodInstance
+//   }
+//   badStatefulDots._nameFits: invalid value "cache.internal"
+//     (out of bound =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
+//
+// 65-rune default on a raw stateful container (the label rule on both axes):
+//   badStatefulLong: #Component & {
+//   	metadata: name: "aaaa…(60)"
+//   	#resources: container: _containerResource & _stateful
+//   	#instance: _prodInstance
+//   }
+//   badStatefulLong._nameFits: invalid value "shop-aaaa…"
+//     (does not satisfy strings.MaxRunes(63))
 
 // ---------------------------------------------------------------------------
 // D12 — the context as a projection of the other two inputs

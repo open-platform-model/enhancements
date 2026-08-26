@@ -19,6 +19,8 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 08 | concurrent-render-at-scale | Concluded |
 | 09 | name-constraint-propagation | Concluded |
 | 10 | service-name-source | Concluded |
+| 11 | name-constraint-on-landed-d16 | Concluded |
+| 12 | name-constraint-cost | Concluded |
 
 ## Reading 02 and 03 together
 

@@ -2,8 +2,9 @@
 // pure CUE.
 //
 // Most of this entry changes kernel BEHAVIOUR rather than core shapes, and
-// that material lives in ../contracts/contracts.cue. Three decisions do land
-// in opmodel.dev/core, and only those are here.
+// that material lives in ../contracts/contracts.cue. The decisions that land
+// in opmodel.dev/core (D5, D12, D16, D17, D20, D21, D23) are here, and only
+// those.
 //
 // Delta manifest (classified against core/src on the v2 line):
 //
@@ -30,10 +31,24 @@
 //                        — CHANGED (D12). `#context` stops being a bare slot
 //                          the runtime fills and becomes the projection site;
 //                          the runtime's remaining obligation is #runtimeName.
-//   #Component           — CHANGED (D16). metadata.resourceName's default
-//                          becomes the instance-qualified name, validated so
-//                          an overlong concatenation refuses the render.
-//                          #names.dns.* inherits the change by construction.
+//   #ObjectNameType      — NEW (D20). RFC 1123 DNS subdomain, ≤253 runes:
+//                          the ceiling of metadata.resourceName.
+//   #ServiceNameType     — NEW (D20). RFC 1035 label (alphabetic lead), ≤63:
+//                          the type Expose declares as its #nameConstraint.
+//   #Resource / #Trait / #Blueprint
+//                        — CHANGED (D21). Each gains a hidden slot
+//                          `#nameConstraint: _` (top by default), a type the
+//                          owning component's resourceName must additionally
+//                          satisfy; a primitive MAY compute it from its own
+//                          fields (D23). Only the naming surface is restated.
+//   #Component           — CHANGED (D16, LANDED in core PR 51 with an
+//                          unvalidated default arm, a guarded length
+//                          assertion and an error() arm; D20 widens the
+//                          ceiling to #ObjectNameType; D21 collects every
+//                          attached primitive's #nameConstraint into a hidden
+//                          conjunction and asserts the resolved name against
+//                          it on a hidden field). #names.dns.* inherits the
+//                          D16 change by construction.
 //
 // Restatement, not import: CUE cannot "edit" an imported closed definition,
 // so a changed definition is restated here in full and the restatement IS the
@@ -57,6 +72,18 @@ import "strings"
 // than as a plain string, because D16's default is unified with it and the
 // 63-rune bound is the whole reason that unification is load-bearing.
 #NameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" & strings.MinRunes(1) & strings.MaxRunes(63)
+
+// NEW (D20). RFC 1123 DNS subdomain: dot-separated label segments, 253 runes.
+// What the API server admits for most metadata.name (Deployment, DaemonSet,
+// ConfigMap, Secret, StorageClass, CSIDriver, CRD, APIService — measured by
+// server-side dry-run, experiment 09). The ceiling of an explicit
+// resourceName; never the type of anything that composes into DNS.
+#ObjectNameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$" & strings.MinRunes(1) & strings.MaxRunes(253)
+
+// NEW (D20). RFC 1035 label: like #NameType but the first rune is alphabetic.
+// Service metadata.name refuses a leading digit at apply, which #NameType
+// admits; this type closes that gap at vet.
+#ServiceNameType: string & =~"^[a-z]([a-z0-9-]*[a-z0-9])?$" & strings.MinRunes(1) & strings.MaxRunes(63)
 
 #ModulePathType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*@v[0-9]+$" & strings.MinRunes(1) & strings.MaxRunes(254)
 
@@ -315,33 +342,106 @@ import "strings"
 // which is what every hand-rolled catalog formula already renders (the
 // divergence open-platform-model/core#49 reports). Flipping it first is what
 // makes D15's sweep a byte-identical refactor instead of a double rename.
+// CHANGED (D21). Naming surface only; every other field of the three
+// primitives is elided. The slot is a hidden DEFINITION field defaulting to
+// top, deliberately not optional and never guarded: measured on cue v0.17.1
+// (experiment 09), `x.#nameConstraint != _|_` is false for a non-concrete
+// value, so an optional-slot-plus-guard spelling silently never propagates.
+// Unifying top is the identity, so an indifferent primitive costs nothing.
+// A primitive MAY compute the slot from its own fields (D23): the container
+// resource declares #NameType when its own workload-type key reads
+// "stateful", top otherwise, in list-index form so a default arm cannot win
+// over the concrete one.
+#Resource: {
+	kind: "Resource"
+	metadata: name!: #NameType
+	matchLabels?:    #LabelsAnnotationsType
+	#nameConstraint: _
+	...
+}
+#Trait: {
+	kind: "Trait"
+	metadata: name!: #NameType
+	#nameConstraint: _
+	...
+}
+#Blueprint: {
+	kind: "Blueprint"
+	metadata: name!: #NameType
+	#nameConstraint: _
+	...
+}
+
 #Component: {
 	kind: "Component"
 
 	metadata: {
 		name!: #NameType
 
-		// CHANGED (D16). Previously `*name | #NameType`.
+		// CHANGED (D16, as LANDED; D20). Previously `*name | #NameType`.
 		//
-		// The default branch is UNIFIED with #NameType rather than being a
-		// bare interpolation. Measured on cue v0.17.1: a chosen disjunction
-		// default is not unified with the other branch, so the unvalidated
-		// spelling `*"\(#instance.name)-\(name)" | #NameType` exports a
-		// 69-rune name clean. The unification is the whole difference between
-		// refusing an invalid DNS label and shipping one.
+		// The default arm is deliberately NOT unified with a type: on cue
+		// v0.17.1 a validated default that fails degrades to a bare
+		// `incomplete value` naming the constraints and never the string,
+		// and it leaves the field non-concrete so no guard can compare
+		// against it (core PR 51; SPEC.md §3.1). _resourceNameDefaultFits
+		// below carries the length check instead. The error() arm is
+		// reported only when every other arm fails, replacing the nested
+		// empty-disjunction output an invalid explicit name would produce.
 		//
-		// An explicit resourceName still wins, unchanged: the cascade is a
-		// default, so this is inert for any component that sets it.
-		resourceName: *("\(#instance.name)-\(name)" & #NameType) | #NameType
+		// D20 widens the override ceiling from #NameType to #ObjectNameType:
+		// an explicit name may carry dots and run to 253 runes, because the
+		// kinds most components render admit that. The default is
+		// structurally dotless (both halves are #NameType labels), so only an
+		// explicit override can ever meet a dot-hostile constraint.
+		resourceName: *"\(#instance.name)-\(name)" | #ObjectNameType | error("resourceName \"\(resourceName)\" is not a DNS subdomain (lowercase alphanumerics, hyphens and dots, 1-253 runes)")
 
 		labels?:      #LabelsAnnotationsType
 		annotations?: #LabelsAnnotationsType
 	}
 
-	// Elided: #resources, #traits, #blueprints, matchLabels and its derivation
-	// check, _allFields, the exposed-field machinery.
+	// Attachment maps, restated only as far as D21 reads them. Elided:
+	// matchLabels and its derivation check, _allFields, the exposed-field
+	// machinery.
+	#resources: [string]:   #Resource
+	#traits?: [string]:     #Trait
+	#blueprints?: [string]: #Blueprint
+
+	// NEW (D21). The conjunction of every attached primitive's constraint,
+	// top when none. Collected UNCONDITIONALLY: comprehensions over the three
+	// maps, no existence guard (see the slot's comment).
+	_nameConstraints: _
+	for _, r in #resources {_nameConstraints: r.#nameConstraint}
+	if #traits != _|_ {
+		for _, t in #traits {_nameConstraints: t.#nameConstraint}
+	}
+	if #blueprints != _|_ {
+		for _, b in #blueprints {_nameConstraints: b.#nameConstraint}
+	}
 
 	#instance: #InstanceIdentity
+
+	// D16's _resourceNameDefault / _resourceNameDefaultFits guard is RETIRED
+	// by D20: both operands are #NameType (≤63), so the default is at most
+	// 127 runes and can never reach the 253-rune ceiling. A 64-to-127-rune
+	// default is a valid object name for every subdomain kind, and the
+	// dot-restricted kinds refuse it through their primitive's constraint
+	// (below), which names the string and the 63-rune bound.
+
+	// NEW (D21). The assertion. The conjunction is applied to the RESOLVED
+	// name, never unified into metadata.resourceName: unified into the field
+	// it distributes into the default arm, a failing default drops out of the
+	// disjunction, and the refusal degrades to `non-concrete value … in
+	// operand to ==` at the guard above with the string nowhere (experiment
+	// 11). The interpolation is load-bearing: it forces the default arm to a
+	// string, and `string & C` is either that string or an error naming it,
+	// the violated bound and the constraint type's definition site. A plain
+	// `metadata.resourceName & _nameConstraints` SILENTLY ADMITS every
+	// default-arm failure, and an error()-guarded form fires on this bare
+	// definition (`(incomplete & C) == _|_` is true), so neither the
+	// primitive nor a remedy can be named here; the type site in the
+	// diagnostic is the pointer.
+	_nameFits: "\(metadata.resourceName)" & _nameConstraints
 
 	// UNCHANGED in shape; changed in value by construction. The DNS variants
 	// read resourceName, so service DNS becomes
@@ -357,23 +457,4 @@ import "strings"
 			fqdn:  "\(resourceName).\(#instance.namespace).svc.\(#instance.clusterDomain)"
 		}
 	}
-
-	// SKETCH, for the core-resourcename-default slice to finish.
-	//
-	// The measured caveat D16 records: when the qualified default violates
-	// #NameType, the failed default branch falls back to the bare
-	// non-concrete arm, so cue v0.17.1 reports `incomplete value` naming
-	// #NameType's constraints and never shows the offending string. The slice
-	// owes a hidden assertion in the style of _matchLabelsAreDerived that
-	// names it.
-	//
-	// The trap this sketch does NOT yet solve, recorded so the slice does not
-	// walk into it: an UNCONDITIONAL assertion over-refuses. A component that
-	// authors an explicit short resourceName is legal even when the qualified
-	// concatenation would be overlong, and CUE cannot detect "the default was
-	// selected" from inside the value. Either the assertion is scoped to the
-	// authored-nothing case, or the cascade is restructured (which is beyond
-	// D16 and would be a new decision).
-	//
-	// _qualifiedResourceName: #NameType & "\(#instance.name)-\(metadata.name)"
 }

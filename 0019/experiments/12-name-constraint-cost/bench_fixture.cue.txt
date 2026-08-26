@@ -1,0 +1,27 @@
+package core
+
+import "list"
+
+// Benchmark fixture: N components, each attaching two resources, one trait
+// and one blueprint, all with the pins-file fixtures. Removed after the run.
+_benchN: int @tag(n,type=int)
+
+_bench: #Module & {
+	metadata: {name: "bench", modulePath: "example.com/modules/bench@v0", version: "0.1.0", description: "bench"}
+	#ctx: instance: {name: "prod", namespace: "media"}
+	#components: {
+		for i in list.Range(0, _benchN, 1) {
+			"c\(i)": {
+				metadata: name: "c\(i)"
+				#resources: {
+					container: _pinNameContainer & _pinNameStateful
+					volumes:   _pinNameIndifferent
+				}
+				#traits: "opmodel.dev/catalogs/opm/traits/expose@v1beta1": _pinNameExpose
+				#blueprints: "opmodel.dev/catalogs/opm/blueprints/stateful-workload@v1beta1": _pinNameStatefulBlueprint
+			}
+		}
+	}
+}
+_benchCount: len(_bench.#ctx.components)
+_benchLast: "\(_bench.#ctx.components["c\(_benchN-1)"].dns.fqdn)"

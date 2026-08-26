@@ -26,6 +26,11 @@ log:
       resourceName defaults to <instance>-<component>; D16 mechanism refined (unvalidated default branch, guarded hidden length assertion, error() diagnostics with the remedy); new component-names spec; closes core#49 (core PR 51)
     change: { kind: openspec, repo: core, change: core-resourcename-default }
     decisions: [D16]
+  - date: "2026-08-26"
+    summary: >-
+      Three name types, per-primitive #nameConstraint slot, hidden resolved-name assertion on #Component; resourceName ceiling to #ObjectNameType, D16 length guard retired; #ComponentNames widened (core, branch feat/name-types-and-constraint)
+    change: { kind: openspec, repo: core, change: core-name-types-and-constraint }
+    decisions: [D20, D21, D23]
 no_work:
   D4: >-
     The sequencing decision itself (the Phase A/B split): implemented by the
