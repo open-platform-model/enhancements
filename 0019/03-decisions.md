@@ -395,4 +395,22 @@ It lands as `core-resourcename-default` with no dependency on any other slice, *
 
 **Source:** User decision 2026-08-24 (the resource-owned conditional spelling accepted: "I like this approach"). Validated by `experiments/09-name-constraint-propagation/` — extension outcome 2026-08-24 (held).
 
+### D24: A computed `#nameConstraint` must resolve on every attachment path, because an unresolved slot silently disables the length validators for the whole component
+
+**Kind:** contract
+
+**Amends:** D23, D22
+
+**Decision:** A primitive-computed `#nameConstraint` (D23) is a contract only where its input is concrete on **every** path the primitive can be attached through. D23's stated spelling, the conditional on the container resource reading the entry's own `workload-type` key, does not meet that bar and is withdrawn as the required spelling: when a workload blueprint answers the key, the container entry's key stays unanswered, the conditional stays unresolved, and core's conjunction then holds an unresolved term. Measured on cue v0.17.1 against core `v2.0.0-alpha.6`: with such a term present the regex bounds still fire against the resolved string but every `strings.MaxRunes` / `MinRunes` validator in the conjunction is deferred, so a 64-rune override on a stateful workload, and on the Expose Service attached beside it, is admitted at vet while a dotted one is refused. A presence guard does not rescue it (`key != _|_` is `false` on the unanswered key, but `false && <unresolved>` does not short-circuit). The catalog therefore computes the container's constraint from a value that is concrete wherever a key is answered, the component's derived matching identity, at its own component-level surface; the slot still lands on the container entry, and D23's principle stands: the fact is owned by the container, keyed on the same label the StatefulSet transformer keys on. Where a catalog exposes the container resource without that surface, the blueprint's constant constraint (D21) is the source. D22's "refuses at vet" for a raw Expose attachment is qualified: an unset required field is reported by concrete evaluation (`cue vet -c`, export, the kernel's render), not by a bare non-concrete `cue vet`.
+
+**Alternatives considered:**
+
+- **Keep D23's entry-level spelling and rely on the blueprint constant for the blueprint path.** Rejected by measurement: the unresolved slot is not merely inert on that path, it disables the blueprint's and Expose's own length validators. The dotted refusal in experiment 09 masked this; it was found only when the length bound was tested.
+- **Guard the conditional on the key's presence.** Refuted by measurement (see Decision).
+- **Have core skip unresolved slots in its collection.** Rejected: core cannot tell an unresolved conditional from a legitimate non-concrete constraint type, and D21 already records that presence guards on this slot are silently false.
+
+**Rationale:** The length bound is the safety claim D20 and D21 make; a spelling that keeps the dot check and loses the length check passes every obvious test and fails at apply. The rule generalises beyond the container: any catalog author computing a slot must prove it resolves on every attachment path, testing a length violation and not only a dot.
+
+**Source:** `catalog_opm` OpenSpec change `catalog-name-constraints`, design.md § Research & Decisions and `docs/name-constraints.md`, measured 2026-08-26; user decision 2026-08-26 ("Apply recommendation for the suggestions").
+
 Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.

@@ -131,6 +131,9 @@ history:
       Exp 12 concluded: D21's collection costs 0.15-0.22 ms per component,
       linear, the walk not the D23 conditional; 0.5-2% of exp 07's marginal
       per-component render cost.
+  - date: "2026-08-26"
+    event: >-
+      D24 amends D23/D22: a computed nameConstraint must resolve on every attachment path; an unresolved slot defers the length validators (measured in catalog_opm).
 # Peer enhancements this one builds on or interacts with.
 related:
   - "0001"
