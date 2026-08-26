@@ -87,6 +87,11 @@ log:
       publishing; old packages and -e2e tags deleted.
     change: { kind: openspec, repo: opm-operator, change: fixtures-testing-domain }
     decisions: [D17]
+  - date: "2026-08-26"
+    summary: >-
+      cli compat gate: dev builds neither judged nor a baseline (D26 clause 1)
+    change: { kind: openspec, repo: cli, change: compat-dev-tag-exemption }
+    decisions: [D26]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules
