@@ -647,4 +647,31 @@ What makes the reservation necessary rather than cosmetic is the CLI's shortcut 
 
 **Source:** User decision 2026-08-17. Prescribed by the cli change `cli/openspec/changes/cli-template-modules/` (proposal + design), whose gate tables land citing this decision; drafted here as its prerequisite.
 
+### D26: The compatibility gate ignores dev builds and stands down while the module line is itself a prerelease
+
+**Amends:** D9, D23.
+
+**Decision:** Two scope clauses are added to the gate D9 defines, and one predecessor-selection correction to D23.
+
+1. **Dev builds are outside the gate, in both directions.** A build whose effective tag is a dev prerelease (the `branch-publish` shape `v<M>.<m>.<p>-0.dev.<count>.g<sha>`, recognised by a `dev` identifier in the prerelease segment) is neither judged nor used as a baseline: `opm catalog publish` skips the compare and reports it as `dev-exempt` in the gate summary, and `predecessorVersions` filters dev tags out of the scan window for every build. Alpha, beta and rc release tags stay in the window exactly as D23 states.
+
+2. **While the module's own version is a prerelease, beta and GA members are not compared.** For an effective tag carrying any non-dev prerelease identifier (`2.0.0-alpha.5`, `-beta.1`, `-rc.1`) the gate partitions beta/GA members into a visible `prerelease-exempt` bucket instead of comparing them, next to the existing `alpha-exempt` bucket. The gate arms, unchanged from D9, at the first stable tag of the major and from then on binds every later build of that major. `opm catalog registry check --compat` applies the same rule to the fetched build's version, so the two commands keep agreeing.
+
+3. **The member-level model is unchanged.** 0010 D34 still keys the promise to the member's own `apiVersion`; clause 2 only defers *when* the publish-side enforcement of that promise starts, to the point where the module line has published something a consumer can rely on. Match-side checks are untouched and still fail loudly on a removed field or narrowed type at any level.
+
+**Rationale:** Measured on `catalog_opm` PR 51 (cli issue 165, runs 32975611857 and 32975605241, 2026-08-26). Under semver, `-0.dev.*` orders *below* `-alpha.N` (numeric identifier `0` sorts before `alpha`), so a release tag's window is `[alpha.4, alpha.3, dev..., dev...]` and a dev tag's window contains *only older dev tags*: the release compare was never dev-baselined, but every dev build was compared purely against whichever branch pushed a dev tag last, and refused on push order rather than on content. A dev tag is a throwaway iteration artifact; judging it blinds the branch and baselining on it makes the verdict non-deterministic across branches. Clause 1 removes both effects with one rule. Clause 2 resolves a collision between D9 and the catalog's own constitution, which permits `feat!:` to tighten a published constraint while the line is `2.0.0-alpha.N`: 0019's `catalog-name-constraints` slice tightens `#ExposeTrait.spec.expose.name` at `v1beta1`, and two further 0019 slices (D15 removal, D19 carve-outs) would be refused the same way. Forcing `v1beta2` per tightening during a pre-stable rollout is exactly the churn D9 rejected "refuse any change" for; the prerelease line is where that churn is not yet owed to anyone.
+
+**Alternatives considered:**
+
+- **Bump `apiVersion` per tightening (`v1beta2`), as D9 prescribes.** Rejected for the prerelease line only: every 0019 slice would spawn a version directory and an import-path change for a fleet that pins `-alpha.N` builds and expects them to move. The escape remains the rule once the line is stable.
+- **Demote the affected members to `v1alpha1` until stable.** Rejected: it changes every consumer's import path and fqn twice (down and back up) to express something that is a property of the module line, not of the member.
+- **Filter dev tags from the baseline but keep judging dev builds (issue item 2 alone).** Rejected as incoherent: with alpha.N outside a dev tag's window and dev tags filtered, a dev build's window is empty and every member is "new"; the compare would run and always pass. Skipping it is the honest form.
+- **A silent exemption.** Rejected: an exemption the summary does not print is indistinguishable from a passing gate. Both new buckets are counted and rendered.
+
+**Not decided here, recorded for delivery:** once the identity fast path misses (any real change to a member), the comparator reports provenance nested inside member references (`appliesTo`, `composedResources`, `composedTraits` carry the referenced member's `metadata.catalogVersion`) and the known `matchN` / pending-comprehension leaf false positives (`spec.statefulWorkload.container.image`, `updateStrategy`). Those are comparator defects, not policy, and clause 2 must not be read as their fix: they would refuse a legitimately additive change on a stable line. The library change that owns them is logged in this entry's `delivery.yaml` when it lands.
+
+**Source:** User decision 2026-08-26 from cli issue 165. Ordering measured with `golang.org/x/mod/semver` through `cli/internal/publish.predecessorVersions` 2026-08-26; catalog constitution clause at `catalog_opm/CLAUDE.md` "feat!:" row; 0019 slices per the issue.
+
+---
+
 Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.

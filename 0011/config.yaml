@@ -162,6 +162,8 @@ history:
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
   - date: "2026-08-24"
     event: 'Delivery-log adoption: forecast plans retired; landed changes and no-work claims recorded in delivery.yaml in the entry; delivery state derived as not-started/in-progress/implemented.'
+  - date: "2026-08-26"
+    event: 'D26 amends D9/D23: dev builds outside the compat gate, prerelease module line prerelease-exempt until first stable (cli issue 165).'
 related:
   - "0010"
 # Lifecycle relationships.
