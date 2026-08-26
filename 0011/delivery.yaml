@@ -92,6 +92,11 @@ log:
       cli compat gate: dev builds neither judged nor a baseline (D26 clause 1)
     change: { kind: openspec, repo: cli, change: compat-dev-tag-exemption }
     decisions: [D26]
+  - date: "2026-08-26"
+    summary: >-
+      library compat walk: provenance skipped at depth, equal-length lists walked, identical leaves silent (D26 delivery note)
+    change: { kind: openspec, repo: library, change: compat-nested-provenance-noise }
+    decisions: [D26]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules
