@@ -97,6 +97,11 @@ log:
       library compat walk: provenance skipped at depth, equal-length lists walked, identical leaves silent (D26 delivery note)
     change: { kind: openspec, repo: library, change: compat-nested-provenance-noise }
     decisions: [D26]
+  - date: "2026-08-27"
+    summary: >-
+      cli: catalog publish and registry check --compat exempt beta/GA members on release-prerelease module lines (prerelease-exempt), gate arms at first stable tag
+    change: { kind: openspec, repo: cli, change: compat-prerelease-line-exemption }
+    decisions: [D26]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules
