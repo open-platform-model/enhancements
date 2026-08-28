@@ -107,6 +107,11 @@ log:
       library compat.Check reports an optional field made required, closing the alpha.5 to alpha.6 ExposeSchema.name gap
     change: { kind: openspec, repo: library, change: compat-field-made-required }
     decisions: [D9]
+  - date: "2026-08-29"
+    summary: >-
+      opm module publish and vet run the kernel module loader as a gate (msg 12), refusing with the loader's own error; library bumped to alpha.20
+    change: { kind: openspec, repo: cli, change: publish-runs-kernel-loader }
+    decisions: [D16, D18, D21]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules
