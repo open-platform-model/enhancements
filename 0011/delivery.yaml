@@ -102,6 +102,11 @@ log:
       cli: catalog publish and registry check --compat exempt beta/GA members on release-prerelease module lines (prerelease-exempt), gate arms at first stable tag
     change: { kind: openspec, repo: cli, change: compat-prerelease-line-exemption }
     decisions: [D26]
+  - date: "2026-08-28"
+    summary: >-
+      library compat.Check reports an optional field made required, closing the alpha.5 to alpha.6 ExposeSchema.name gap
+    change: { kind: openspec, repo: library, change: compat-field-made-required }
+    decisions: [D9]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules
