@@ -128,6 +128,11 @@ log:
       Fleet republished through opm module publish against the released
       catalogs. The only fleet republish in the 0010/0011 pair.
     change: { kind: pr, repo: modules, number: 31 }
+  - date: "2026-08-28"
+    summary: >-
+      library compat.Check reports an optional field made required, closing the alpha.5 to alpha.6 ExposeSchema.name gap
+    change: { kind: openspec, repo: library, change: compat-field-made-required }
+    decisions: [D27]
 no_work:
   D7: >-
     Its holding (a module's identity file writes metadata directly, declaring
