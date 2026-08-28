@@ -133,6 +133,11 @@ log:
       library compat.Check reports an optional field made required, closing the alpha.5 to alpha.6 ExposeSchema.name gap
     change: { kind: openspec, repo: library, change: compat-field-made-required }
     decisions: [D27]
+  - date: "2026-08-28"
+    summary: >-
+      catalog_opm: #ServiceName fallback so components built against opm alpha.5 and earlier (optional, unset expose.name) render their Service, StatefulSet serviceName and route backendRefs on alpha.8+
+    change: { kind: openspec, repo: catalog, change: service-transformer-legacy-expose-fallback }
+    decisions: [D27]
 no_work:
   D7: >-
     Its holding (a module's identity file writes metadata directly, declaring
