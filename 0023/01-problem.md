@@ -1,4 +1,4 @@
-# Problem Statement — Artifact Provenance, Signatures and Platform Trust Policy
+# Problem Statement: Artifact Provenance, Signatures and Platform Trust Policy
 
 ## Current State
 
@@ -12,7 +12,7 @@ So nothing signed travels with the artifact. Who published it, from which commit
 
 CUE's package manager adds no protection of its own here: `cue.mod/module.cue` records versions, not digests (no sum field exists in the module-file schema, and the module cache verifies nothing beyond OCI content addressing). A pin names whatever manifest the tag points at when fetched. Immutability is a registry promise (0011 D10), not something a consumer can check.
 
-What CUE does do is useful: its registry client mirrors **referrers** along with a module (`modregistry` `mirrorReferrers`), so claims attached beside a manifest survive a `cue mod mirror`, and it ignores referrers otherwise. The attachment channel exists and is empty.
+What CUE does do is useful: its registry client mirrors **referrers** along with a module (`modregistry` `mirrorReferrers`). Claims attached beside a manifest survive a `cue mod mirror`; CUE otherwise ignores referrers entirely. The attachment channel exists and is empty.
 
 ## Gap / Pain
 

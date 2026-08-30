@@ -1,7 +1,7 @@
-# Operational Concerns — {Enhancement Title}
+# Operational Concerns: {Enhancement Title}
 
 This document is the OPM Production Readiness Review (PRR-lite). Five
-fixed prompts — answer every one, even briefly. The answers tell future
+fixed prompts: answer every one, even briefly. The answers tell future
 operators, contributors, and on-call responders what to expect when the
 enhancement lands. Leave a prompt blank only if it is genuinely N/A; say
 so explicitly when it is.
@@ -30,7 +30,7 @@ others.}
 **What gets removed and when? What replaces it?**
 
 {List deprecated CUE definitions, Go functions, fields, regexes, fixtures,
-and tooling. Name the replacement for each. State the removal timeline —
+and tooling. Name the replacement for each. State the removal timeline:
 typically the same release as the enhancement, unless a transition window
 is required.}
 
@@ -47,9 +47,9 @@ data-plane state changes that survive a code rollback?}
 **Which repos must coordinate, and what constrains the order?**
 
 {State the ordering *constraints as design facts*: what must exist before
-what, and why — for each hand-off, name the artefact the upstream produces
+what, and why. For each hand-off, name the artefact the upstream produces
 that the downstream consumes (a published OCI tag, a regenerated fixture,
-a new contract). Constraints only, no sequencing plan: the
-landing record lives in this entry's `delivery.yaml`, accreting one log
-entry per change as it lands. Do not narrate landings here, and do not
-name another entry's log.}
+a new contract). List constraints only, not a sequencing plan: the landing
+record lives in this entry's `delivery.yaml`, accreting one log entry per
+change as it lands. Do not narrate landings here, and do not name another
+entry's log.}

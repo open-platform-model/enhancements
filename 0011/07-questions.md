@@ -1,4 +1,4 @@
-# Open Questions — Module and Catalog Publishing
+# Open Questions: Module and Catalog Publishing
 
 ## Open Questions
 
@@ -20,4 +20,4 @@
 
 - **OQ9: What reserved segments do Platform and instance artifacts get?** Status: resolved-by-D14.
 
-- **OQ10: What refuses the removal of a beta or GA member?** Nothing does. The compatibility gate (D9/D23) makes a beta+ `name@apiVersion` key a permanent claim on its own history, but the claim binds only when the key is *re-published*: the walk visits the published build's members, so a build that simply drops a member ships clean, and every module matching on that key discovers the removal downstream. The remove-then-readd half is closed — D23's scan refuses an incompatible re-introduction against the older build — but the removal itself is refused by nothing, which is laundering-adjacent evidence that the gap is real: the hermetic remove-then-readd test's *removing* build passes the full gate set on its way to seeding the case. Status: open (logged by the cli-catalog-gates landing, 2026-08-16).
+- **OQ10: What refuses the removal of a beta or GA member?** Nothing does. The compatibility gate (D9/D23) makes a beta+ `name@apiVersion` key a permanent claim on its own history, but the claim binds only when the key is *re-published*: the walk visits the published build's members, so a build that simply drops a member ships clean, and every module matching on that key discovers the removal downstream. The remove-then-readd half is closed: D23's scan refuses an incompatible re-introduction against the older build. But the removal itself is refused by nothing, which is laundering-adjacent evidence that the gap is real: the hermetic remove-then-readd test's *removing* build passes the full gate set on its way to seeding the case. Status: open (logged by the cli-catalog-gates landing, 2026-08-16).

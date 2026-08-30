@@ -22,7 +22,7 @@ affects:
 core_schema: true
 semver: minor
 created: "2026-08-13"
-updated: "2026-08-24"
+updated: "2026-08-30"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -55,6 +55,8 @@ history:
 # files vs published module → files). 0019: the kernel render path this
 # entry's generated package is handed to; 0016 lands after 0019's render
 # changes (see 06-operational.md, Cross-Repo Coordination).
+  - date: "2026-08-30"
+    event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
 related:
   - "0002"
   - "0011"

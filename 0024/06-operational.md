@@ -1,10 +1,15 @@
-# Operational Concerns — CUE Testing and Conformance
+# Operational Concerns: CUE Testing and Conformance
 
 ## Observability
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-Two new signals. In-package: a failing hidden assertion in a CUE repo's own check (`cue vet` output at the assertion's path, the same surface every other vet failure uses). Conformance: a per-cell drift report, the diff between a recorded outcome and the observed one, keyed by case and version cell, plus a coverage report for the raw catalog family (members with no upstream definition; upstream kinds with no member). Where the drift report is surfaced (the suite's own CI, a product repo's release check, or both) is OQ9. No new error kinds in any product repo.
+Two new signals:
+
+- **In-package**: a failing hidden assertion surfaces in a CUE repo's own check (`cue vet` output at the assertion's path, the same surface every other vet failure uses).
+- **Conformance**: a per-cell drift report (the diff between a recorded outcome and the observed one, keyed by case and version cell), plus a coverage report for the raw catalog family (members with no upstream definition; upstream kinds with no member).
+
+Where the drift report is surfaced (the suite's own CI, a product repo's release check, or both) is OQ9. No new error kinds in any product repo.
 
 ## Semver Impact
 

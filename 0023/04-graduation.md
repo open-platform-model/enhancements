@@ -1,8 +1,10 @@
-# Graduation Criteria — Artifact Provenance, Signatures and Platform Trust Policy
+# Graduation Criteria: Artifact Provenance, Signatures and Platform Trust Policy
 
 This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from this entry's `delivery.yaml` log.
 
 ## draft → accepted
+
+Nine criteria carry this entry to `accepted`; OQ1 through OQ5 gate most of the rest.
 
 - OQ1 and OQ2 resolved: the optional scopes (capability manifest, advisories) are either designed here with their own decisions or split into entries this one cites in `related`. The `single-question` gate is re-walked afterwards.
 - OQ3 resolved: the trust-policy shape and its home (core `#Platform` vs platform package) are decided and `schemas/target.cue` carries no `// OQ` markers.

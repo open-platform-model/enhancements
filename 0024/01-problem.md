@@ -1,6 +1,4 @@
-# Problem Statement — CUE Testing and Conformance
-
-This document answers the question: "Why does this enhancement need to exist?"
+# Problem Statement: CUE Testing and Conformance
 
 ## Current State
 
@@ -26,13 +24,13 @@ Almost everything OPM promises is the result of CUE evaluation: the core schema 
 
 ## Gap / Pain
 
-**Rejection is unverified.** A schema's job is to make invalid artifacts unrepresentable (core constitution III). No committed test in `core` or either catalog asserts that anything is rejected, so a constraint can be loosened, or a hidden assertion silently disabled, without a failing test. The pure-CUE spellings evaluated for 0019 D16 included one whose assertion was inert (it unified an unresolved disjunction and passed for every input); that was caught by a control case run by hand, which is the only reason it was caught.
+**Rejection is unverified.** A schema's job is to make invalid artifacts unrepresentable (core constitution III). No committed test in `core` or either catalog asserts that anything is rejected, so a constraint can be loosened, or a hidden assertion silently disabled, without a failing test. The pure-CUE spellings evaluated for 0019 D16 included one whose assertion was inert: it unified an unresolved disjunction and passed for every input. That was caught by a control case run by hand, which is the only reason it was caught.
 
-**Diagnostics are not part of any contract.** The same overlong name fails with `incomplete value =~"^[a-z0-9]…" & strings.MaxRunes(63)` under one spelling and with `invalid value "aaa…-bbb…" (does not satisfy strings.MaxRunes(63))` under another; 0019 D16 chose the second because the first names nothing an author can act on. Nothing records that choice as a behaviour, so the next CUE release, or the next schema edit, can revert it unnoticed.
+**Diagnostics are not part of any contract.** The same overlong name fails with `incomplete value =~"^[a-z0-9]…" & strings.MaxRunes(63)` under one spelling, and with `invalid value "aaa…-bbb…" (does not satisfy strings.MaxRunes(63))` under another. 0019 D16 chose the second, because the first names nothing an author can act on. Nothing records that choice as a behaviour, so the next CUE release, or the next schema edit, can revert it unnoticed.
 
 **Drift across versions is invisible until a cluster sees it.** A `cue` toolchain bump, a core release, a catalog release and an upstream `k8s.io` snapshot can each change what an unchanged module renders to. The only mechanism that detects such a change today is the Go canary for one evaluator regression, built after the fact. 0019's own gate for the D15 sweep is "no default-named golden changes by a byte", and there is no golden.
 
-**The raw family's conformance claim is untested.** `catalog_opm/k8s` mirrors upstream group versions at adoption (0010 D48: `apps/v1 → @v1`, `autoscaling/v2 → @v2`), but no check confirms that a member's `(apiVersion, kind)` exists upstream at any Kubernetes version, that its rendered object satisfies the upstream definition, or which upstream kinds have no member. "Each version of Kubernetes is represented, and represented correctly" is a belief.
+**The raw family's conformance claim is untested.** `catalog_opm/k8s` mirrors upstream group versions at adoption (0010 D48: `apps/v1 → @v1`, `autoscaling/v2 → @v2`). But no check confirms that a member's `(apiVersion, kind)` exists upstream at any Kubernetes version, that its rendered object satisfies the upstream definition, or which upstream kinds have no member. "Each version of Kubernetes is represented, and represented correctly" is a belief.
 
 ## Concrete Example
 

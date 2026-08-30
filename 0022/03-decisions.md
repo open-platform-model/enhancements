@@ -1,7 +1,4 @@
-# Design Decisions — Machine-Readable Artifact Metadata in cue.mod/module.cue
-
-This document records every significant design choice with its reasoning
-and the alternatives that were ruled out.
+# Design Decisions: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
 ## Summary
 
@@ -38,7 +35,14 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
-**Decision:** The block has four required fields. `kind` is one of `module`, `catalog`, `template`. `identity` repeats the identity package's `ModulePath` and `Version`. `core` names the core line as `major` and the exact `version` pinned in `deps`. `catalogs` maps every catalog dependency (module path with major) to its pinned version, and may be empty. Nothing about the toolchain that authored the file lives in the block.
+**Decision:** The block has four required fields:
+
+- `kind`: one of `module`, `catalog`, `template`.
+- `identity`: repeats the identity package's `ModulePath` and `Version`.
+- `core`: names the core line as `major` and the exact `version` pinned in `deps`.
+- `catalogs`: maps every catalog dependency (module path with major) to its pinned version, and may be empty.
+
+Nothing about the toolchain that authored the file lives in the block.
 
 **Alternatives considered:**
 

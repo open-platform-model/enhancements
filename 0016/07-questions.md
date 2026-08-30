@@ -1,12 +1,8 @@
-# Open Questions — Initialize a Module Instance Package from a Published Module
+# Open Questions: Initialize a Module Instance Package from a Published Module
 
 ## Open Questions
 
-Track unresolved questions surfaced during design. Each entry carries a
-`Status:` line; close it with `resolved-by-D##`, `deferred-to-NNNN`, or
-`answered` when the question resolves.
-
-All six questions were walked and resolved on 2026-08-24; the answers live in the decisions they point at.
+All six questions were walked and resolved; the answers live in the decisions they point at. Each entry carries a `Status:` line, closed with `resolved-by-D##`, `deferred-to-NNNN`, or `answered`.
 
 - **OQ1: Name and shape of the new `#Module` field.** Status: resolved-by-D4. Settled as `initValues?: _`, open and optional, no schema-side `#config` assertion, non-concrete content allowed.
 - **OQ2: Command surface and reference syntax.** Status: resolved-by-D5. Settled as a mirror of `opm module init`: major-free module path, `--version` for major float or exact pin, omitted version floats to the highest core-compatible major.

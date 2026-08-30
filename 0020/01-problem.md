@@ -1,4 +1,4 @@
-# Problem Statement — Contract Promotion and Retirement
+# Problem Statement: Contract Promotion and Retirement
 
 Enhancement 0010 gave every contract-bearing primitive its own API version and keyed the contract on it (D4, D25), then borrowed the Kubernetes ladder so the additive-only promise could bind at beta and GA while staying off at alpha (D27, D34). The ladder works. What is missing is every rule about **movement along it**: a contract can be born at a level and it can be broken into a new one, but nothing describes a contract that has earned promotion, and nothing describes a contract leaving the catalog at all.
 
@@ -14,7 +14,9 @@ Contracts are not enumerable **as values**. `#Catalog` carries exactly one membe
 
 ## Gap / Pain
 
-**There is no promotion path.** A contract whose shape has been right for a year has no way to say so. Measured 2026-08-22, `catalog_opm/src` holds 3 members at `v1alpha1`, **41 at `v1beta1`**, 26 at `v1` and 1 at `v2`. Beta is the largest tier and nothing in the system moves it. D34 assigned `v1beta1` to the two mainline catalogs on evidence that their history was "overwhelmingly additive" (715 field additions against 30 removals), which is to say: on evidence that they had already behaved better than the level they were being given.
+**There is no promotion path.** A contract whose shape has been right for a year has no way to say so. Measured 2026-08-22, `catalog_opm/src` holds 3 members at `v1alpha1`, **41 at `v1beta1`**, 26 at `v1` and 1 at `v2`.
+
+Beta is the largest tier and nothing in the system moves it. D34 assigned `v1beta1` to the two mainline catalogs on evidence that their history was "overwhelmingly additive" (715 field additions against 30 removals), which is to say: on evidence that they had already behaved better than the level they were being given.
 
 **The promotion that does happen is unchecked.** Because the gate keys on `name` plus `apiVersion`, publishing `container@v1` finds no predecessor and passes trivially. A build may ship `container@v1` whose shape has nothing to do with `container@v1beta1`, and the tooling reports success. Promotion is not merely undescribed; it is a hole in an otherwise closed gate.
 
@@ -30,18 +32,23 @@ The author decides it has earned GA.
 
 Today, three things happen, none of them good.
 
-1. **The bump is a flag day.** Publishing `container@v1` produces a key nothing demands. Every one of the twelve modules must change its import and republish, and the eight transformers must change their `requiredResources`, and none of it can be staged: on the release where the catalog stops shipping `@v1beta1`, every module still on it fails to match with a `MissingFQN` naming a key that no longer exists anywhere.
+1. **The bump is a flag day.** Publishing `container@v1` produces a key nothing demands. Every one of the twelve modules must change its import and republish, and the eight transformers must change their `requiredResources`. None of it can be staged: on the release where the catalog stops shipping `@v1beta1`, every module still on it fails to match with a `MissingFQN` naming a key that no longer exists anywhere.
 
 2. **Or the author never does it,** which is what actually happens, and `container` sits at beta permanently alongside forty others. The tier stops carrying information: a consumer reading `v1beta1` cannot distinguish "still moving" from "nobody got around to it".
 
 3. **And if the author does bump, nothing checks the result.** `container@v1` could drop a required field relative to `container@v1beta1` and publish green, because the gate has no predecessor at `v1` to compare against. The consumer discovers it at match time or, for a changed default, at render time on an incomplete value, which `0010/experiments/02` measured as the one class no consumer-side check catches.
 
-Now the mirror case. The author instead deletes `container@v1beta1` outright, having decided it was a mistake. The build publishes green. Twelve modules break on their next render, each reporting a missing FQN, and nothing anywhere records that the contract ever existed or why it went away.
+Now the mirror case. The author instead deletes `container@v1beta1` outright, having decided it was a mistake. The build publishes green; twelve modules break on their next render, each reporting a missing FQN, and nothing anywhere records that the contract ever existed or why it went away.
 
 ## User Stories
 
-- **As a catalog author,** I want to promote a contract that has proved itself, without coordinating a flag day across every consumer at once.
-- **As a catalog author,** I want the tooling to refuse a promotion that quietly breaks the level it promotes from, the same way it already refuses a break inside a level.
+**Catalog authors.**
+
+- I want to promote a contract that has proved itself, without coordinating a flag day across every consumer at once.
+- I want the tooling to refuse a promotion that quietly breaks the level it promotes from, the same way it already refuses a break inside a level.
+
+**Consumers and readers.**
+
 - **As a module author,** I want a contract I depend on to keep working while I migrate at my own pace, and I want a machine-readable pointer at its successor when one exists.
 - **As a module author,** I want a removed contract to produce a diagnostic that names when it went and what replaced it, rather than a missing key.
 - **As a platform operator,** I want to know that a catalog upgrade cannot silently withdraw a contract my instances depend on.

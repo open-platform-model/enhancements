@@ -1,23 +1,20 @@
-# Design Decisions — Initialize a Module Instance Package from a Published Module
-
-This document records every significant design choice with its reasoning
-and the alternatives that were ruled out.
+# Design Decisions: Initialize a Module Instance Package from a Published Module
 
 ## Summary
 
 Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they
-are made. **Numbers are permanent** — never reused, never renumbered, because
+are made. **Numbers are permanent**: never reused, never renumbered, because
 other repos cite them from commit messages and OpenSpec changes.
 
 **Decision text states what is true now.** How that stays true depends on the entry's `status`:
 
-- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* — marked as previously adopted — before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
-- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields; existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone) — at latest in the mandatory pass immediately before the `implemented` flip.
+- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* (marked as previously adopted) before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
+- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields. Existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone), at latest in the mandatory pass immediately before the `implemented` flip.
 - **`implemented`** entries are frozen; **`superseded`** entries are stubbed via compaction.
 
 Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
 
-Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
+Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific: `"User decision YYYY-MM-DD"`, a URL, or a file path, so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
 
 ---
 
@@ -27,14 +24,14 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
-**Decision:** The CLI gains an init command for module instances: the user names a published module (its module path) and an instance name and namespace, and the command acquires that module from the registry and writes a complete, standalone on-disk instance package — `cue.mod/module.cue`, `instance.cue`, `values.cue` — the same shape `LoadInstancePackage` consumes and `opm instance build`/`apply` accept. The acquired artifact is the module being deployed, never a template: init generates the package from what the module declares (D5 fixes the surface, D9 the generated module file).
+**Decision:** The CLI gains an init command for module instances: the user names a published module (its module path) and an instance name and namespace, and the command acquires that module from the registry and writes a complete, standalone on-disk instance package: `cue.mod/module.cue`, `instance.cue`, `values.cue`. That is the same shape `LoadInstancePackage` consumes and `opm instance build`/`apply` accept. The acquired artifact is the module being deployed, never a template: init generates the package from what the module declares (D5 fixes the surface, D9 the generated module file).
 
 **Alternatives considered:**
 
-- *Extend `opm module build --name/--namespace` (the synth path) with a `--write` flag.* Rejected: synth answers "does this module render?" and is deliberately fileless and ephemeral; grafting file emission onto it conflates a validation tool with a scaffolding tool, and its output (an overlay inside the module's staged tree) is not the standalone committable package the user needs.
-- *Documentation only — publish a canonical instance-package example per module.* Rejected: pushes the boilerplate burden onto every module author, and the copied example still carries stale pins and majors the moment either the module or core moves.
+- *Extend `opm module build --name/--namespace` (the synth path) with a `--write` flag.* Rejected: synth answers "does this module render?" and is deliberately fileless and ephemeral. Grafting file emission onto it conflates a validation tool with a scaffolding tool. Its output (an overlay inside the module's staged tree) is not the standalone committable package the user needs.
+- *Documentation only: publish a canonical instance-package example per module.* Rejected: pushes the boilerplate burden onto every module author, and the copied example still carries stale pins and majors the moment either the module or core moves.
 
-**Rationale:** The instance package is the unit everything downstream consumes (CLI build/apply, operator ModulePackage path, GitOps commits), yet nothing generates it — see `01-problem.md`. Generating it from the acquired artifact makes the boilerplate correct by construction.
+**Rationale:** The instance package is the unit everything downstream consumes (CLI build/apply, operator ModulePackage path, GitOps commits), yet nothing generates it (see `01-problem.md`). Generating it from the acquired artifact makes the boilerplate correct by construction.
 
 **Source:** User decision 2026-08-13. Revised: 2026-08-24.
 
@@ -49,7 +46,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 - *Always start from an empty `values: {}` scaffold.* Rejected as the default: it discards author knowledge that already exists in every published module today and makes the first `opm instance build` fail out of the box for any module with required config.
 - *Render `#config`'s defaults into `values.cue`.* Not chosen as the default: `#config` is a constraint schema (possibly non-concrete), so this produces a partial file at best; it remains a candidate fallback for modules with neither field (OQ3).
 
-**Rationale:** `debugValues` is the only values-shaped, author-written, concrete content guaranteed to exist in already-published modules; using it makes init useful against the entire existing fleet on day one, with no republish required. Its known weakness — debug-only content the author never meant as a starting point — is exactly what D3 exists to fix.
+**Rationale:** `debugValues` is the only values-shaped, author-written, concrete content guaranteed to exist in already-published modules; using it makes init useful against the entire existing fleet on day one, with no republish required. Its known weakness, debug-only content the author never meant as a starting point, is exactly what D3 exists to fix.
 
 **Source:** User decision 2026-08-13.
 
@@ -74,7 +71,15 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Resolves:** OQ1
 
-**Decision:** The new `#Module` field is named `initValues`, declared optional and open (`initValues?: _`), a direct sibling of `debugValues`. Core does not assert that it satisfies `#config`; conformance is the author's stated intent (SHOULD) and is observed where the value is consumed: by `opm instance vet` on the generated package, and by a publish-time gate if 0011 adopts one. The field MAY be non-concrete. Measured (experiment 04), the render path shapes the scaffold as follows: a defaulted field renders as its default value; an undefaulted disjunction renders as the disjunction, leaving the user a choice their first vet will demand; an optional field is omitted from the file. An author who wants a field to appear as a prompt therefore writes it as an undefaulted disjunction or a bare type, not as optional.
+**Decision:** The new `#Module` field is named `initValues`, declared optional and open (`initValues?: _`), a direct sibling of `debugValues`. Core does not assert that it satisfies `#config`. Conformance is the author's stated intent (SHOULD), observed where the value is consumed: by `opm instance vet` on the generated package, and by a publish-time gate if 0011 adopts one. The field MAY be non-concrete.
+
+Measured (experiment 04), the render path shapes the scaffold by field kind:
+
+- a defaulted field renders as its default value;
+- an undefaulted disjunction renders as the disjunction, leaving the user a choice their first vet will demand;
+- an optional field is omitted from the file.
+
+An author who wants a field to appear as a prompt therefore writes it as an undefaulted disjunction or a bare type, not as optional.
 
 **Alternatives considered:**
 
@@ -100,13 +105,24 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
                   --namespace <ns> [--dir <dir>] [--module-path <path>]
 ```
 
+**Naming and versioning.**
+
 - `instance-name` is the identity of the thing being created (`metadata.name`, validated against the core name type); `--dir` defaults to it, as `module init` defaults the directory to the module path's leaf.
 - `module-path` is the published module to deploy, given **without a major** (`opmodel.dev/modules/cert_manager`). It may also be given as `--from`; naming it twice is refused rather than ranked, as `module init` does for its template. A path carrying a major suffix is refused with a hint to use `--version`, so there is exactly one spelling. There is no bare-word shortcut: modules have no reserved official segment, so the argument must be path-shaped.
-- `--version` selects within the path: `vN` floats to the newest release within that major; an exact SemVer pins that tag. "Newest release" is the publish-side rule, not `module init`'s: the newest stable tag, else the newest named prerelease, and never a development build (`X.Y.Z-0.dev.N.gSHA`). When omitted, init enumerates the published versions across majors, walks majors from highest to lowest, takes the newest release in each, and selects the first whose declared `opmodel.dev/core` dependency major equals the core major this CLI build is bound to. A major that declares no `opmodel.dev/core` dependency at all (the pre-v2 lines of cert_manager and metallb, for instance) or that holds no selectable release is skipped like any other mismatch. The report names the selection and every higher major it skipped, with the reason.
+- `--version` selects within the path: `vN` floats to the newest release within that major; an exact SemVer pins that tag. "Newest release" is the publish-side rule, not `module init`'s: the newest stable tag, else the newest named prerelease, and never a development build (`X.Y.Z-0.dev.N.gSHA`). When `--version` is omitted, init walks majors from highest to lowest: it enumerates the published versions across all majors, takes the newest release in each, and selects the first major whose declared `opmodel.dev/core` dependency equals the core major this CLI build is bound to. A major that declares no `opmodel.dev/core` dependency at all (the pre-v2 lines of cert_manager and metallb, for instance), or that holds no selectable release, is skipped like any other mismatch. The report names the selection and every higher major it skipped, with the reason.
+
+**Safety.**
+
 - A failed init leaves no partial directory behind: the package is written completely or not at all, so a retry into the same `--dir` is never refused by init's own leftovers.
+
+**Prompting and directories.**
+
 - `--namespace` is required (a `#ModuleInstance` has one). When name or namespace is omitted and a terminal is attached, init prompts for it, as `module init` prompts for a missing module path; without a terminal the omission is a refusal.
 - `--dir` refuses an existing directory, and refuses a directory that already holds a module or instance package. There is no repair mode: an instance package is three generated files, and re-running init is the repair.
-- Exit codes are those of `module init`: 0 written, 2 refused, 3 registry unreachable.
+
+**Exit codes.**
+
+- Those of `module init`: 0 written, 2 refused, 3 registry unreachable.
 
 **Alternatives considered:**
 
@@ -176,7 +192,7 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Resolves:** OQ6
 
-**Decision:** The generated `cue.mod/module.cue` declares the deployed module as a dependency pinned to the exact resolved version, and `opmodel.dev/core` at the major the acquired module itself depends on, with the rest of the dependency closure complete: the file is equivalent to a tidied module file, so the package builds offline from the module cache with no further step. The package's own `module:` path is `instance.local/<instance-name>@v0` unless `--module-path` overrides it; the package is never published, so the path only has to be valid and unique within the user's tree. Pins never float: the report states the pinned version, and bumping it is the existing dependency-update tooling's job.
+**Decision:** The generated `cue.mod/module.cue` declares the deployed module as a dependency, pinned to the exact resolved version, and `opmodel.dev/core` at the major the acquired module itself depends on, with the rest of the dependency closure complete. The file is equivalent to a tidied module file, so the package builds offline from the module cache with no further step. The package's own `module:` path is `instance.local/<instance-name>@v0` unless `--module-path` overrides it; the package is never published, so the path only has to be valid and unique within the user's tree. Pins never float: the report states the pinned version, and bumping it is the existing dependency-update tooling's job.
 
 **Alternatives considered:**
 

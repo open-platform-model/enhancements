@@ -1,4 +1,4 @@
-# Operational Concerns — Artifact Provenance, Signatures and Platform Trust Policy
+# Operational Concerns: Artifact Provenance, Signatures and Platform Trust Policy
 
 This document is the OPM Production Readiness Review (PRR-lite). Answers are provisional while the entry is open.
 
@@ -30,4 +30,11 @@ Attachments are inert; stop writing them. The kernel's verification step is disa
 
 **Which repos must coordinate, and in what order?**
 
-Provisional: release workflows first (`catalog_opm`, `modules`, `core`, cli templates: attest and sign on publish; no consumer depends on it yet), then `core` (policy surface, if OQ3 lands it there; after 0019's platform reshape), then `library` (verification in materialize and acquire), then `cli` (verify command, reporting, publish-side helpers) and `opm-operator` (enforcement) together. This entry lands after 0019 (the subscription shape the policy attaches to) and alongside or after 0022 (whose `catalogs` map is the recursive verification list, OQ6). Landings are logged in `delivery.yaml` as they happen.
+Provisional ordering:
+
+1. Release workflows (`catalog_opm`, `modules`, `core`, cli templates) attest and sign on publish. No consumer depends on this yet.
+2. `core` gains the policy surface, if OQ3 lands it there, after 0019's platform reshape.
+3. `library` adds verification in materialize and acquire.
+4. `cli` (verify command, reporting, publish-side helpers) and `opm-operator` (enforcement) land together.
+
+This entry lands after 0019 (the subscription shape the policy attaches to) and alongside or after 0022 (whose `catalogs` map is the recursive verification list, OQ6). Landings are logged in `delivery.yaml` as they happen.

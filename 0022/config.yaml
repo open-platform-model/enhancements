@@ -35,7 +35,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-08-24"
-updated: "2026-08-24"
+updated: "2026-08-30"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -55,6 +55,8 @@ history:
 # 0011: the publish pipeline this entry extends (reuses D21's gate mechanism,
 # respects D2/D16, needs one amendment to D3/D8). 0016: the first reader of
 # the block (its D5 major walk).
+  - date: "2026-08-30"
+    event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
 related:
   - "0011"
   - "0016"

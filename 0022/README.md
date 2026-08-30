@@ -1,4 +1,4 @@
-# Enhancement 0022 — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Enhancement 0022: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
@@ -6,24 +6,29 @@ See [`config.yaml`](config.yaml) for metadata. This README is the index of the s
 
 A CUE module in an OCI registry is one manifest and two blobs: the module zip and, on its own, `cue.mod/module.cue`. The module file is tiny (226 bytes for `opmodel.dev/modules/cert_manager` v2.0.1 against a 230 268-byte zip) and CUE's client reads it without touching the zip. CUE's module-file schema reserves a `custom` field for third-party tooling data, and its toolchain carries that field through `tidy`, `publish` and fetch untouched. Today OPM writes nothing there, writes no OCI manifest annotations either, and infers what kind of artifact a path names only inside domains OPM owns.
 
-This entry defines OPM's block under `custom."opmodel.dev@v0"` (D1, D2): the artifact `kind`, its identity, the core line and the catalogs it was built against. Every value that repeats something the module file or the identity package already states is asserted equal by a publish gate that `core` ships beside `#IdentityPackage` (D4), so duplication cannot drift and a stale block refuses rather than lies. Tooling authors the block in the committed tree, the way `version set` authors the identity version; publish never writes it (D5), which keeps 0011's "published bytes are committed bytes" intact. Facts that only exist at push time (which `opm` and `cue` published, which commit) go to OCI manifest annotations, outside the tree (D6). The first reader is 0016's major walk, which can now learn core compatibility and artifact kind from the small blob alone (D7).
+This entry defines OPM's block under `custom."opmodel.dev@v0"` (D1, D2): the artifact `kind`, its identity, the core line and the catalogs it was built against.
+
+- **No silent drift** (D4): every value that repeats something the module file or the identity package already states is asserted equal by a publish gate `core` ships beside `#IdentityPackage`. A stale block refuses rather than lies.
+- **Tooling-authored** (D5): the block is written in the committed tree, the way `version set` authors the identity version. Publish never writes it, keeping 0011's "published bytes are committed bytes" intact.
+- **Push-time facts stay out of the tree** (D6): which `opm` and `cue` published, and which commit, go to OCI manifest annotations instead.
+- **0016 is the first reader** (D7): its major walk can now learn core compatibility and artifact kind from the small blob alone.
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log — run `task delivery ID=NNNN`. A
+delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
 status block written here is a snapshot that goes stale the moment another change
 lands, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
 
-1. [01-problem.md](01-problem.md) — An artifact says nothing machine-readable about its kind or compatibility short of fetching and evaluating its zip
-2. [02-design.md](02-design.md) — A gate-checked block in the module file for facts consumers want before the zip; OCI annotations for facts that exist only at push
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D8)
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
-6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md) — Open Questions register
+1. [01-problem.md](01-problem.md): An artifact says nothing machine-readable about its kind or compatibility short of fetching and evaluating its zip
+2. [02-design.md](02-design.md): A gate-checked block in the module file for facts consumers want before the zip; OCI annotations for facts that exist only at push
+3. [03-decisions.md](03-decisions.md): Decision log (D1–D8)
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, Alternatives not taken
+6. [06-operational.md](06-operational.md): Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md): Open Questions register
 
 Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) (the block shape `#ModuleFileCustom` and the publish gate `#ModuleFileCustomGate`, the core delta) and [`contracts/contracts.cue`](contracts/contracts.cue) (the OCI annotation key set and the reader's fallback ladder).
 

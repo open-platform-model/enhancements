@@ -1,6 +1,6 @@
-# Design Decisions — Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
+# Design Decisions: Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-This document records every significant design choice with its reasoning and the alternatives ruled out. **Numbers are permanent** — never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now: a reversal is recorded as its own `DN` while the design is in motion, then woven into the decision it changes at the next compaction pass — the merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
+This document records every significant design choice with its reasoning and the alternatives ruled out. **Numbers are permanent**, never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now: a reversal is recorded as its own `DN` while the design is in motion, then woven into the decision it changes at the next compaction pass: the merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
 
 Each decision uses the four-field shape: Decision, Alternatives considered, Rationale, Source.
 
@@ -16,8 +16,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Alternatives considered:**
 
-- Keep hand-written schemas in `catalog_kubernetes` and independently-vendored `cue.dev/x/k8s.io` in `catalog_opm` (status quo) — rejected: two sources drift silently, and hand-authoring does not scale to all kinds/versions or to CRDs.
-- Keep a platform-neutral abstraction spanning Kubernetes and other runtimes — rejected: the project has refocused on Kubernetes; a neutral abstraction pays generality cost for runtimes no longer in scope.
+- Keep hand-written schemas in `catalog_kubernetes` and independently-vendored `cue.dev/x/k8s.io` in `catalog_opm` (status quo), rejected: two sources drift silently, and hand-authoring does not scale to all kinds/versions or to CRDs.
+- Keep a platform-neutral abstraction spanning Kubernetes and other runtimes, rejected: the project has refocused on Kubernetes; a neutral abstraction pays generality cost for runtimes no longer in scope.
 
 **Rationale:** With Kubernetes as the permanent lowest common denominator, both catalogs target it anyway. A single generated source removes the only duplication that actually hurts (divergent schema foundations) without forcing structural coupling between the catalogs.
 
@@ -31,7 +31,7 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Alternatives considered:**
 
-- Force `catalog_opm` to project onto `catalog_kubernetes` resources so the pass-through mirror does all rendering (the earlier "Model B as mandate") — rejected: pass-through and construction are different jobs, so routing one through the other adds indirection without removing real duplication, which D1's shared type source already handles.
+- Force `catalog_opm` to project onto `catalog_kubernetes` resources so the pass-through mirror does all rendering (the earlier "Model B as mandate"), rejected: pass-through and construction are different jobs, so routing one through the other adds indirection without removing real duplication, which D1's shared type source already handles.
 
 **Rationale:** Composition's value is open-ended extensibility (golden paths), which happens *above* the base catalogs. Mandating internal composition buys nothing once types are shared and costs indirection and a harder trapdoor.
 
@@ -45,11 +45,11 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Alternatives considered:**
 
-- Widen this umbrella to deliver multi-phase lowering now — rejected: largest risk to the kernel, and D1/D2 removed most of the pressure for it (composition and golden paths ship on projection).
-- Design a sibling `core` enhancement in parallel from the start — deferred, not rejected: revisit if a sequential-lowering / cross-resource-wiring case emerges (tracked as OQ6).
+- Widen this umbrella to deliver multi-phase lowering now, rejected: largest risk to the kernel, and D1's shared type source plus D2's optional composition already remove most of the pressure for it, since golden paths ship on projection alone.
+- Design a sibling `core` enhancement in parallel from the start, deferred, not rejected: revisit if a sequential-lowering / cross-resource-wiring case emerges (tracked as OQ6).
 
 **Rationale:** The fixpoint model earns its risk only for genuinely sequential lowering, of which no concrete instance exists yet. Gating on evidence keeps the riskiest change off the critical path and makes its eventual design sharper.
 
 **Source:** User decision 2026-06-20.
 
-Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.
+Open Questions live in [`07-questions.md`](07-questions.md), the entry's question register.

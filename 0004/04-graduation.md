@@ -1,15 +1,15 @@
-# Graduation Criteria — Automated CUE Dependency Updates via Dagger
+# Graduation Criteria: Automated CUE Dependency Updates via Dagger
 
-This document records the entry-specific gates that must hold before this design is frozen.
+These are design acceptance criteria checked before promoting this design from draft to accepted; delivery is tracked separately in `delivery.yaml`.
 
 ## draft → accepted
 
-The enhancement is ready to be implemented when:
+Seven gates must all hold before promoting this design from draft to accepted:
 
-- Goals and Non-Goals in `02-design.md` are final and reviewed.
-- Every decision (D1..DN) is locked, and every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`). OQ1, OQ2, OQ3, OQ4, OQ5, OQ6 are all closed.
-- `contracts/contracts.cue` compiles (`cue vet ./...` from the directory passes) and the `#UpdateFn` signature is the one the implementation will expose.
-- `related` (`0002`) resolves to an existing enhancement; `supersedes` / `superseded_by` are final.
-- `semver` in `config.yaml` is set (`none`).
-- No `{Capitalised}` placeholder strings remain in any markdown file.
-- Cross-References table in `README.md` lists every file path the implementation will touch.
+1. Goals and Non-Goals in `02-design.md` are final and reviewed.
+2. Every decision (D1..DN) is locked, and every Open Question is resolved (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`). OQ1, OQ2, OQ3, OQ4, OQ5, OQ6 are all closed.
+3. `contracts/contracts.cue` compiles (`cue vet ./...` from the directory passes) and the `#UpdateFn` signature is the one the implementation will expose.
+4. `related` (`0002`) resolves to an existing enhancement; `supersedes` / `superseded_by` are final.
+5. `semver` in `config.yaml` is set (`none`).
+6. No `{Capitalised}` placeholder strings remain in any markdown file.
+7. Cross-References table in `README.md` lists every file path the implementation will touch.

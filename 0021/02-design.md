@@ -1,6 +1,6 @@
 # Design: OPM Versioning Policy
 
-This document answers the question: "What is the proposed solution and how does it work?" Trade-off reasoning lives in `03-decisions.md`; unresolved choices live in `07-questions.md` and are cited by number where they shape this text.
+The policy is a matrix: one row per artifact class, one column per question every class must answer. Trade-off reasoning lives in `03-decisions.md`; unresolved choices live in `07-questions.md` and are cited by number where they shape this text.
 
 ## Design Goals
 
@@ -80,7 +80,7 @@ A module's compatibility surface is its `#config` schema, and compatibility is s
 | Change a default | OQ3 |
 | Documentation only; the accepted value set is unchanged | fix |
 
-Two things the table does not settle are the entry's blocking questions: whether the rendered output's stateful identity (volume claims, workload kind, service names) forms a second surface (OQ1), and whether a default change is additive, since it never fails unification but moves the output of every instance that left the field unset, which is exactly why 0010 D27 made contract defaults immutable within a level (OQ3).
+Two things the table does not settle, and both are the entry's blocking questions. First, whether the rendered output's stateful identity (volume claims, workload kind, service names) forms a second surface (OQ1). Second, whether a default change is additive (OQ3): it never fails unification, but it moves the output of every instance that left the field unset, which is exactly why 0010 D27 made contract defaults immutable within a level.
 
 ### The tooling train (OQ14)
 

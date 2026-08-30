@@ -1,6 +1,6 @@
-# Risks, Drawbacks, Alternatives — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Risks, Drawbacks, Alternatives: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
-This document records the honest costs of the proposed design. Risks describe what could go wrong; Drawbacks describe what definitely costs something; Alternatives describe the high-level paths not taken (per-decision detail lives in `03-decisions.md`).
+Risks describe what could go wrong. Drawbacks describe what definitely costs something. Alternatives describe the high-level paths not taken; per-decision detail lives in `03-decisions.md`.
 
 ## Risks and Mitigations
 

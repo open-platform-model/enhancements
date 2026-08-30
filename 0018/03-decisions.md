@@ -1,6 +1,4 @@
-# Design Decisions — Documentation Architecture
-
-This document records every significant design choice with its reasoning and the alternatives that were ruled out.
+# Design Decisions: Documentation Architecture
 
 ## Summary
 
@@ -64,11 +62,15 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Kind:** scope
 
-**Decision:** A page documents the current, shipped deletion semantics: `spec.prune` defaults to false, so the finalizer's default behaviour is to orphan; a CLI-owned instance carries no hold, so deleting the CR destroys the only inventory record and orphans everything it tracked; and CLI and operator deletion paths have diverged in ways that decide whether a resource is actually removed.
+**Decision:** A page documents the deletion semantics as they exist:
+
+- `spec.prune` defaults to false, so the finalizer's default behaviour is to orphan.
+- A CLI-owned instance carries no hold, so deleting the CR destroys the only inventory record and orphans everything it tracked.
+- CLI and operator deletion paths have diverged in ways that decide whether a resource is actually removed.
 
 **Alternatives considered:**
 
-- **Wait for enhancement 0012.** Rejected: 0012 is draft and not started, while the behaviour it describes is shipped today. Documentation that waits for a design to land leaves the hazard undocumented for as long as the design takes.
+- **Wait for enhancement 0012.** Rejected: 0012 is draft and not started, while the behaviour it describes already exists. Documentation that waits for a design to merge leaves the hazard undocumented for as long as the design takes.
 - **Document it as a bug rather than as behaviour.** Rejected: whether the asymmetry is a defect is 0012's question. A user needs to know what happens when they delete an instance regardless of how that question resolves.
 
 **Rationale:** This is the only place in the shipped system where following the documentation's happy path can destroy state the user expected to keep. Hazards get documented at their current behaviour, not at their intended behaviour.
@@ -105,4 +107,4 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Source:** User decision 2026-08-18.
 
-Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.
+Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

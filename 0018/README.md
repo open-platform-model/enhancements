@@ -1,4 +1,4 @@
-# Enhancement 0018 — Documentation Architecture
+# Enhancement 0018: Documentation Architecture
 
 OPM has no usable public documentation, and not for want of writing. The largest body of prose in the workspace describes the v0 catalog line, was last touched in April, and contains 121 references to an artifact renamed four months ago. Meanwhile the material that is current sits where no reader looks: a CLI README, a contributor specification, and worked examples embedded inside catalog transformers. This enhancement defines what the documentation is, how it is sourced, and what keeps it from drifting again.
 
@@ -21,7 +21,7 @@ The seven split documents below are mandatory and always present.
 1. [01-problem.md](01-problem.md): documentation exists and describes a version of OPM that has not existed since April; coverage is inverted against usage
 2. [02-design.md](02-design.md): eight reader-state sections, generated facts versus authored guidance, enforcement badges
 3. [03-decisions.md](03-decisions.md): decision log
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite)
 7. [07-questions.md](07-questions.md): Open Questions register
@@ -34,25 +34,38 @@ The landing order across five repos is constrained by [`06-operational.md`](06-o
 
 ### In scope
 
+**Architecture.**
+
 - The section taxonomy: eight top-level sections keyed to reader state, and what each one owns.
 - The generated-versus-authored split, per field, and the generator changes it requires (evaluate CUE rather than scrape text; fix the `generate:cli` step that fails on a clean tree).
-- Doc-comment backfill in `catalog_opm` and `core`, plus a CI gate that keeps coverage from regressing.
 - The enforcement badge vocabulary and its application to normative statements.
+
+**New pages.**
+
 - Concepts pages for the concepts ranked highest for reader harm, mined from `core/SPEC.md`'s Rationale and rewritten.
 - A Diagnostics section mapping kernel errors to causes and fixes.
 - A boundaries page stating what OPM does not do.
 - A page documenting the current deletion and prune behaviour, including the orphaning defaults.
+
+**Source repairs.**
+
+- Doc-comment backfill in `catalog_opm` and `core`, plus a CI gate that keeps coverage from regressing.
 - Splitting catalog reference by family, with the abstraction family as the documented default path.
 - Rewriting `library/docs/getting-started.md` so that following it produces working code.
 
 ### Out of scope
 
-- **Secrets documentation.** Enhancement 0013 owns the model and, as of 2026-08-18, its documentation. This entry leaves the gap visible and linked.
+**Deferred to another entry or open question.**
+
+- **Secrets documentation.** Enhancement 0013 owns the model and its documentation. This entry leaves the gap visible and linked.
+- **Versioned documentation.** Whether the site carries a v1 line alongside v2 is OQ6, deferred while the v1 line has only internal consumers.
+- **Retiring `opm/docs`.** The meta repo is not a member of the area vocabulary and cannot own a slice; the retirement path is OQ4.
+
+**Explicit non-goals.**
+
 - **Publishing `core/SPEC.md`.** It stays contributor-facing; the public reference is a projection of its normative spine.
 - **Documenting draft systems.** Lifecycle, workflows, provider classes, export, rollback and reverse handoff do not exist, and D3 makes their absence explicit rather than describing them as forthcoming.
 - **Site presentation.** The Hugo theme, search, and styling. The theme is currently disabled and no section renders to HTML, which blocks verification but is not this entry's to fix.
-- **Versioned documentation.** Whether the site carries a v1 line alongside v2 is OQ6, deferred while the v1 line has only internal consumers.
-- **Retiring `opm/docs`.** The meta repo is not a member of the area vocabulary and cannot own a slice; the retirement path is OQ4.
 - **A v0 migration guide.** The v0 fleet is frozen on its own branch with internal consumers only.
 
 ## Deviations from Design

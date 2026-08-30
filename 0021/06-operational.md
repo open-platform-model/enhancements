@@ -12,7 +12,7 @@ The policy itself introduces none. If OQ5/OQ6 land the module compatibility gate
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-No schema, command or artifact format changes. `opmodel.dev/core` is untouched (`core_schema: false`). The policy reclassifies what an already-published module version *promises*, which has no effect on any published bytes; it does mean that a module whose history contains a `#config` break inside a major is, under the policy, carrying a promise it has already broken, and the policy says what such a module does at its next release (OQ12). A publish gate, when it lands, is additive to the CLI's surface: new refusals, no changed semantics for a publish that would have succeeded under the policy anyway. `config.yaml.semver` is expected to be `none`; the graduation gate records the condition under which it is not.
+No schema, command or artifact format changes. `opmodel.dev/core` is untouched (`core_schema: false`). The policy reclassifies what an already-published module version *promises*, which has no effect on any published bytes. It does mean that a module whose history contains a `#config` break inside a major is, under the policy, carrying a promise it has already broken. The policy says what such a module does at its next release (OQ12). A publish gate, when it lands, is additive to the CLI's surface: new refusals, no changed semantics for a publish that would have succeeded under the policy anyway. `config.yaml.semver` is expected to be `none`; the graduation gate records the condition under which it is not.
 
 ## Deprecation
 

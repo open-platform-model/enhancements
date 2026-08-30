@@ -1,31 +1,28 @@
-# Design Decisions — Contract Promotion and Retirement
-
-This document records every significant design choice with its reasoning
-and the alternatives that were ruled out.
+# Design Decisions: Contract Promotion and Retirement
 
 ## Summary
 
 Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they
-are made. **Numbers are permanent** — never reused, never renumbered, because
+are made. **Numbers are permanent**: never reused, never renumbered, because
 other repos cite them from commit messages and OpenSpec changes.
 
 **Decision text states what is true now.** How that stays true depends on the entry's `status`:
 
-- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* — marked as previously adopted — before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
-- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields; existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone) — at latest in the mandatory pass immediately before the `implemented` flip.
+- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* (marked as previously adopted) before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
+- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields. Existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone), at latest in the mandatory pass immediately before the `implemented` flip.
 - **`implemented`** entries are frozen; **`superseded`** entries are stubbed via compaction.
 
 Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
 
-Each decision carries a `**Kind:**` line plus the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific — `"User decision YYYY-MM-DD"`, a URL, or a file path — so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
+Each decision carries a `**Kind:**` line plus the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific: `"User decision YYYY-MM-DD"`, a URL, or a file path, so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line; *Alternatives considered* always survives revision and compaction, because it is what stops a rejected option being re-litigated later.
 
 **The Kind gate.** A decision belongs in this log only if it passes the admission test: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Three kinds pass it:
 
-- `contract` — changes what a consumer can observe or rely on: a schema shape, a command's semantics, a compatibility or refusal rule, a naming guarantee.
-- `policy` — a posture OPM commits to ("publish never invents a version").
-- `scope` — a boundary decision: what this entry defers, what a successor owns, what a supersession keeps.
+- `contract`: changes what a consumer can observe or rely on: a schema shape, a command's semantics, a compatibility or refusal rule, a naming guarantee.
+- `policy`: a posture OPM commits to ("publish never invents a version").
+- `scope`: a boundary decision: what this entry defers, what a successor owns, what a supersession keeps.
 
-A *mechanism* decision — how a repo achieves the contract (algorithm choice, code placement, internal wiring) — fails the test and belongs in the implementing slice's OpenSpec change in the target repo, decided when the code in front of the implementer is current. Measured evidence that *constrains* a contract (an experiment proving a primitive cannot express a rule) stays here, attached to the contract decision it constrains; the winning implementation design does not.
+A *mechanism* decision (how a repo achieves the contract: algorithm choice, code placement, internal wiring) fails the test and belongs in the implementing slice's OpenSpec change in the target repo, decided when the code in front of the implementer is current. Measured evidence that *constrains* a contract (an experiment proving a primitive cannot express a rule) stays here, attached to the contract decision it constrains; the winning implementation design does not.
 
 ---
 
@@ -41,7 +38,7 @@ Promotion is a movement along enhancement 0010 D34's ladder in the direction the
 
 **Alternatives considered:**
 
-- **Infer the promotion from the name.** A member at `container@v1` with no `promotedFrom` could be compared against any lower-level `container` the history carries. Rejected on two counts: it makes every new GA contract look like a promotion of something, so an author who deliberately starts a fresh contract at a level gets an unexpected comparison against an unrelated predecessor; and it leaves the published artifact with no statement of lineage, so a consumer reading the contract cannot tell where it came from.
+- **Infer the promotion from the name.** A member at `container@v1` with no `promotedFrom` could be compared against any lower-level `container` the history carries. Rejected on two counts. It makes every new GA contract look like a promotion of something, so an author who deliberately starts a fresh contract at a level gets an unexpected comparison against an unrelated predecessor. It also leaves the published artifact with no statement of lineage, so a consumer reading the contract cannot tell where it came from.
 - **Record the promotion only in the tombstone.** The retirement record already carries `replacedBy`, so the edge exists in one direction. Rejected because the two events are separated by an arbitrary number of builds: between the promotion and the retirement the artifact would carry two related contracts with nothing connecting them, which is the state a consumer is most likely to be reading.
 
 **Rationale:** The ladder is a claim about maturity, and a claim that can only ever be made once, at birth, is not a claim a contract can earn. Declaring the origin is what turns promotion from an unverifiable rename into something the gate in D2 can check and a reader can follow.
@@ -93,7 +90,7 @@ Coexistence itself is not new. Enhancement 0010 D27 already permits a new `apiVe
 
 **Alternatives considered:**
 
-- **A supersession edge the matcher follows on a lookup miss.** The promoted contract declares what it supersedes and the matcher falls back. Rejected for now, not on principle: enhancement 0010 D34 records that "the match path is exact-key, so no comparator ever decides what matches", and while an authored edge is not the implicit ordering D34 rejected, following it makes a lookup miss ambiguous between "absent" and "present under another name". It stays available as a later accelerant if flag days prove too slow, and it costs nothing to defer because the tombstone's `replacedBy` already records the edge as data.
+- **A supersession edge the matcher follows on a lookup miss.** The promoted contract declares what it supersedes and the matcher falls back. Rejected for now, not on principle: enhancement 0010 D34 records that "the match path is exact-key, so no comparator ever decides what matches". While an authored edge is not the implicit ordering D34 rejected, following it makes a lookup miss ambiguous between "absent" and "present under another name". It stays available as a later accelerant if flag days prove too slow, and it costs nothing to defer because the tombstone's `replacedBy` already records the edge as data.
 - **A flag day per contract**, the status quo. Rejected as the mechanism: 0015 OQ5 already calls this "a recurring cost rather than a one-off", and against 41 beta members it scales with adoption in the wrong direction.
 - **Let a module demand a bare name and resolve the level at match time.** Rejected outright, and recorded because it is the intuitive answer. This is the version join enhancement 0010 D4 removed, reintroduced on the consumer side: what a module receives would depend on what the platform happens to carry, which is the ambiguity the identity reshape exists to eliminate.
 - **Restate the outgoing level as its own definition** rather than aliasing it. Rejected: two independently authored definitions of one shape can drift, and D3's identity check would then be enforcing by comparison what aliasing gives structurally.
@@ -191,8 +188,8 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Alternatives considered:**
 
-- **A Kubernetes-style deprecation window.** Rejected, and enhancement 0010 D34 already rejected it with the reason that governs here: Kubernetes needs one because cluster upgrades force version moves on a support lifecycle, while under 0010 D14 a platform moves only when someone edits `version:` in its own source, so a window that expired a consumer's pin would be arbitrary. That reasoning is about forcing consumers to move and this rule does not force anyone to move, which is why D34's rejection does not reach it and is not reopened by it.
-- **A promotion deadline instead** — a contract must leave beta within some period. Rejected as the primary mechanism for the same reason D34 gave: it is a deadline pointing at an author with no consumer-side event to anchor it, and its failure mode is either a missed deadline nobody enforces or a forced promotion of a contract that is not ready. The seasoning floor reaches the same outcome from the other end, because a permanent beta is only harmful once someone wants to withdraw it.
+- **A Kubernetes-style deprecation window.** Rejected, and enhancement 0010 D34 already rejected it with the reason that governs here: Kubernetes needs one because cluster upgrades force version moves on a support lifecycle. Under 0010 D14, a platform moves only when someone edits `version:` in its own source, so a window that expired a consumer's pin would be arbitrary. That reasoning is about forcing consumers to move, and this rule does not force anyone to move, which is why D34's rejection does not reach it and is not reopened by it.
+- **A promotion deadline instead**: a contract must leave beta within some period. Rejected as the primary mechanism for the same reason D34 gave: it is a deadline pointing at an author with no consumer-side event to anchor it. Its failure mode is either a missed deadline nobody enforces or a forced promotion of a contract that is not ready. The seasoning floor reaches the same outcome from the other end, because a permanent beta is only harmful once someone wants to withdraw it.
 - **No floor at all**, relying on D6's tombstone to make the withdrawal visible. Rejected: visibility is not the same as time. A build could promote and tombstone the origin in the same release, which is a flag day wearing a tombstone.
 
 **Rationale:** This is the enforceable form of "a level must mean something". It does not require anyone to predict when a contract will be ready, and it binds exactly at the moment a withdrawal would hurt. It is also computable from data the gate already reads: 0011 D23's backward scan enumerates published versions, and "when did this key first appear" is that same walk run to its end.
@@ -209,7 +206,7 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 - **Tombstone alpha members too**, for the diagnostic value. Rejected on enhancement 0010 D34's own argument for the alpha carve-out: requiring ceremony at a level whose definition is that it promises nothing empties the label. An alpha contract that vanishes is alpha behaving as documented.
 
-**Rationale:** Both exclusions are inherited rather than chosen. The alpha carve-out is D34's, and applying it here keeps one rule about what alpha means rather than two. The transformer exclusion is structural: enhancement 0010 D44 removed `apiVersion` from `#ComponentTransformer`, so there is no contract level to move along and no key to tombstone, and 0011 D9's own transformer carve-out records why applying contract rules to adapter bodies refuses ordinary catalog releases.
+**Rationale:** Both exclusions are inherited rather than chosen. The alpha carve-out is D34's, and applying it here keeps one rule about what alpha means rather than two. The transformer exclusion is structural: enhancement 0010 D44 removed `apiVersion` from `#ComponentTransformer`, so there is no contract level to move along and no key to tombstone. 0011 D9's own transformer carve-out records why applying contract rules to adapter bodies refuses ordinary catalog releases.
 
 **Source:** Inherited from enhancement 0010 D34 (alpha) and D44 (transformers); recorded here because an implementer reading D6 would otherwise apply it to every member.
 
@@ -227,4 +224,4 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Source:** User decision 2026-08-22, directing the dependent-side investigation to the operator repo.
 
-Open Questions live in [`07-questions.md`](07-questions.md) — the entry's question register.
+Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

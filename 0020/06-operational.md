@@ -1,6 +1,6 @@
-# Operational Concerns — Contract Promotion and Retirement
+# Operational Concerns: Contract Promotion and Retirement
 
-This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts, answered for this enhancement.
+OPM's Production Readiness Review (PRR-lite): five fixed prompts, each answered below.
 
 ## Observability
 
