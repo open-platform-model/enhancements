@@ -1,6 +1,11 @@
 # Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
 # Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
-log: []
+log:
+  - date: "2026-08-30"
+    summary: >-
+      catalog_opm: legacy secret mechanism deleted from the opm catalog (contract type, discovery walk, env from path, opm-secrets arm); SecretSchema.data narrowed to string; cut opmodel.dev/catalogs/opm@v3 ahead of core's slice
+    change: { kind: openspec, repo: catalog, change: catalog-remove-legacy-secrets }
+    decisions: [D9, D12]
 no_work:
   D1: >-
     Superseded by D10 the day it was written; retained position only, no work

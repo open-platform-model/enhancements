@@ -84,7 +84,11 @@ The last mechanical unknown — **OQ2**, whether the arm rewrite survives the re
 
 ## Deviations from Design
 
-None at this stage. Update this section when implementation lands.
+Divergences between the accepted design and what has shipped, recorded as each slice lands. The catalog slice (`catalog_opm` OpenSpec change `catalog-remove-legacy-secrets`, archived 2026-08-30) deviates in three ways:
+
+- **Order: the catalog removal landed before `core`'s slice, not after.** The design sequenced `core` first (the new `#Secret` published, then catalogs import it). `catalog_opm` removed its legacy block (D9, D12) while `core` on `main` still ships the identical legacy mechanism and no release carries the new `#Secret`. The interim `opmodel.dev/catalogs/opm@v3` therefore has no env-secret path at all; the replacement (`from: c.#Secret`, a transformer reading `.ref` / `.key`) is a follow-up change gated on a `core` release.
+- **Release mechanics: a major crossing, not a `v1beta2` cascade.** Removing `#EnvVarSchema.from` and narrowing `#SecretSchema.data` break two beta members. Instead of moving them (and the five blueprints and two traits embedding `#ContainerSchema`) to a new `apiVersion` segment, the catalog crossed from `opmodel.dev/catalogs/opm@v2` to `@v3` with the members corrected in place; `@v2` is frozen on GHCR. Member fqns are unchanged.
+- **Fleet: removed now, reintroduced under 0013; not migrated.** The seven `modules` on `main` that used the legacy vocabulary are stripped of it (`modules-drop-legacy-secrets`) rather than rewritten onto a not-yet-published replacement, and the `cli` `secrets-module` fixture is deleted (`delete-secrets-test-fixtures`). Both are restored when the kernel-resolved `#Secret` ships.
 
 ## Cross-References
 
