@@ -437,4 +437,22 @@ Attaching the Expose trait without the wrapper leaves the required field unset a
 
 **Source:** `catalog_opm` OpenSpec change `catalog-name-constraints`, design.md § Research & Decisions and `docs/name-constraints.md`, measured 2026-08-26; user decision 2026-08-26 ("Apply recommendation for the suggestions").
 
+### D25: `#ResourceNameTrait` retires in three sweeps, and the deletion crosses a catalog major
+
+**Kind:** scope
+
+**Amends:** D15
+
+**Decision:** D15's "removed outright, no deprecation cycle" is replaced by a staged retirement. Sweep 1 introduced the `#names` read in the seven workload transformers behind one ordering seam (`#WorkloadName`: the trait's exact name when set, else `#component.#names.resourceName`) and marked the trait, its component wrapper and its schema deprecated, shipping in `catalogs/opm` 2.0.0-alpha.7. Sweep 2 migrated the fleet's one user, `istio_ambient`, to `metadata.resourceName`. Sweep 3 deletes the trait, the wrapper, the schema and the seam, so the seven transformers read `#component.#names.resourceName` directly, and the exact-name fixtures attach `metadata.resourceName`. The alpha stance D15 relied on expired before sweep 3: `catalogs/opm` closed its alpha line at 2.0.0 (2026-08-29) and cut 3.0.0 (2026-08-30) for enhancement 0013's secret removal, and the publish compat gate (0011) refuses a member removal within a major, so sweep 3 lands as a `feat!:` cutting `opmodel.dev/catalogs/opm@v4`. The deletion is output-neutral: nothing in the workspace attaches the trait (measured 2026-08-30 across `modules`, `cli`, `opm-operator` and `library` fixtures), and no consumer has re-pinned to `@v3` yet, so the fleet moves from `@v2` to `@v4` in one re-pin.
+
+**Alternatives considered:**
+
+- **Remove outright in sweep 1, as D15 stated.** Rejected 2026-08-27: `istio_ambient` attached the trait and the fleet pins catalog releases, so a coexistence window let the fleet migration land as its own reviewed change instead of coupling a catalog release to a fleet edit.
+- **Keep the deprecated trait indefinitely.** Rejected: two authoring surfaces for one override is the shape D15 removed, the seam that orders them is a permanent second authority in seven transformers, and the trait renames the workload only while `#names.dns.*` and the Expose default follow `metadata.resourceName`, a divergence D22 exists to end.
+- **Hold the deletion until an unrelated `feat!:` needs a major crossing.** Rejected: none is scheduled, and the crossing's cost is one re-pin that no consumer has made yet.
+
+**Rationale:** Staging changed no rendered byte and bought a reviewable fleet migration. The major crossing is the price of the catalog reaching GA between Phase A's sweep 1 and its last slice, the sequencing exposure `06-operational.md` names under Semver Impact; paying it now, while every consumer still pins `@v2`, is cheaper than paying it after the fleet has moved to `@v3`.
+
+**Source:** User decision 2026-08-27 (staged retirement, recorded in `catalog_opm` change `catalog-names-readonly-workloads`); user decision 2026-08-30 (sweep 3 proceeds as its own change on a separate branch). Measured 2026-08-30: `opm-v3.0.0` published, zero `@v3` consumers, zero trait attachments outside the catalog's own fixtures.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
