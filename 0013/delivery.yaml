@@ -6,6 +6,11 @@ log:
       catalog_opm: legacy secret mechanism deleted from the opm catalog (contract type, discovery walk, env from path, opm-secrets arm); SecretSchema.data narrowed to string; cut opmodel.dev/catalogs/opm@v3 ahead of core's slice
     change: { kind: openspec, repo: catalog, change: catalog-remove-legacy-secrets }
     decisions: [D9, D12]
+  - date: "2026-08-30"
+    summary: >-
+      Removed legacy res.#Secret/#AutoSecrets/opm-secrets from all seven v2 modules; sensitive fields are plain strings injected via value:, marked // 0013: pending core's real #Secret
+    change: { kind: openspec, repo: modules, change: modules-drop-legacy-secrets }
+    decisions: [D9]
 no_work:
   D1: >-
     Superseded by D10 the day it was written; retained position only, no work
