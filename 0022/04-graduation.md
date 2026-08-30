@@ -1,8 +1,10 @@
-# Graduation Criteria — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Graduation Criteria: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
-This document records the entry-specific gates that must hold before this design is frozen. Treat these as design acceptance criteria, not as implementation milestones; delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`.
+These are design acceptance criteria, not implementation milestones: delivery is derived from this entry's `delivery.yaml` log and read back with `task delivery`.
 
 ## draft → accepted
+
+Ten gates must all hold before promoting this design from draft to accepted:
 
 - Goals and Non-Goals in `02-design.md` are final and reviewed.
 - OQ1 resolved: the `catalogs` rule for catalog dependencies outside `opmodel.dev/catalogs/*` is decided and encoded in `schemas/target.cue`.

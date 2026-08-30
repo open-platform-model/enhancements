@@ -1,18 +1,18 @@
-# Operational Concerns — Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
+# Operational Concerns: Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts — answered even briefly.
+This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts, answered even briefly.
 
 ## Observability
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-The generated lifecycle metadata becomes the operator's source for new reconcile signals: apply-order phase (sequencing), per-resource readiness (status reporting), and prune actions (resources removed between releases). The operator surfaces readiness and prune decisions per resource; exact metric/diagnostic shapes are operator-slice detail. Generation itself is build-time — its diagnostics (unmapped kinds, schema-emit failures) surface in the generator's output and CI, not at runtime. The catalogs remain observability-neutral as CUE artifacts.
+The generated lifecycle metadata becomes the operator's source for new reconcile signals: apply-order phase (sequencing), per-resource readiness (status reporting), and prune actions (resources removed between releases). The operator surfaces readiness and prune decisions per resource; exact metric/diagnostic shapes are operator-slice detail. Generation itself is build-time. Its diagnostics (unmapped kinds, schema-emit failures) surface in the generator's output and CI, not at runtime. The catalogs remain observability-neutral as CUE artifacts.
 
 ## Semver Impact
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-`opmodel.dev/core@v0` is unchanged (D3) — no core impact. `catalog_kubernetes` and `catalog_opm` are pre-1.0 (`@v0`, `bump-minor-pre-major: true`); regenerating their surface and re-pointing `catalog_opm` at shared types may tighten or rename schemas, which is a breaking minor for modules pinning them — expected and absorbed by the pre-1.0 cadence. Modules using the `#Objects` hatch are unaffected. `config.yaml.semver` is set at promotion.
+`opmodel.dev/core@v0` is unchanged (D3): no core impact. `catalog_kubernetes` and `catalog_opm` are pre-1.0 (`@v0`, `bump-minor-pre-major: true`). Regenerating their surface and re-pointing `catalog_opm` at shared types may tighten or rename schemas, which is a breaking minor for modules pinning them. That is expected and absorbed by the pre-1.0 cadence. Modules using the `#Objects` hatch are unaffected. `config.yaml.semver` is set at promotion.
 
 ## Deprecation
 
@@ -30,4 +30,13 @@ Catalogs are versioned OCI artifacts; consumers pin versions, so rollback is re-
 
 **Which repos must coordinate, and in what order?**
 
-Sequence: (1) generation tooling lands and emits both projections; (2) `catalog_kubernetes` regenerates and publishes (open projection, OCI tag); (3) `catalog_opm` re-points at the shared strict types and publishes; (4) `library` consumes `applyPhase`/readiness metadata; (5) `opm-operator` reconciles against the metadata; (6) `opmodel.dev` documents the workflow. Each hand-off is a published OCI catalog tag the downstream pins. The generator's home (OQ2) determines where step 1 lives.
+Sequence:
+
+1. Generation tooling lands and emits both projections.
+2. `catalog_kubernetes` regenerates and publishes (open projection, OCI tag).
+3. `catalog_opm` re-points at the shared strict types and publishes.
+4. `library` consumes `applyPhase`/readiness metadata.
+5. `opm-operator` reconciles against the metadata.
+6. `opmodel.dev` documents the workflow.
+
+Each hand-off is a published OCI catalog tag the downstream pins. The generator's home (OQ2) determines where step 1 lives.

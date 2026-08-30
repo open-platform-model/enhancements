@@ -1,26 +1,47 @@
-# Problem Statement — Documentation Architecture
+# Problem Statement: Documentation Architecture
 
 OPM has no usable public documentation, and the reason is not that nobody wrote any. Documentation exists, in volume. It describes a version of OPM that has not existed since April.
 
 ## Current State
 
-The public site (`opmodel.dev`) carries five pages. Three are section stubs, two were written on 2026-08-18 as a slice of enhancement 0010 (the catalog contract and the registry namespaces). The generated reference sections it advertises are empty: `task generate:cli` fails on a clean tree, and the site's disabled-theme condition currently renders no section to HTML at all.
+The public site (`opmodel.dev`) carries five pages. Three are section stubs, two were written on 2026-08-18 as a slice of enhancement 0010 (the catalog contract and the registry namespaces). The generated reference sections it advertises are empty: `task generate:cli` fails on a clean tree, and the site's disabled-theme condition renders no section to HTML.
 
-The largest body of prose lives in `opm/docs`. Every file there was last touched 2026-04-21 and describes the deprecated v0 catalog line. It contains 121 references to `#ModuleRelease`, an artifact renamed by enhancement 0002. Every import path it teaches (`opmodel.dev/core/v1alpha1/module@v1`, `opmodel.dev/opm/v1alpha1/resources/workload@v1`) resolves to the frozen v0 catalog. Its `cli.md` documents an `opm release` command group that was removed with no alias. Its `operator.md` describes a `BundleRelease` type that does not exist. The `specs/` and `benchmarks/` trees its own `CONSTITUTION.md` and `CLAUDE.md` point at were deleted in January.
+The largest body of prose lives in `opm/docs`. Every file there was last touched 2026-04-21 and describes the deprecated v0 catalog line:
 
-Meanwhile the material that *is* current sits in places a reader would never look. `cli/README.md` and `cli/QUICKSTART.md` are the best user-facing prose in the workspace and are the de-facto getting-started. `core/SPEC.md` carries roughly 700 lines of Rationale that explain, with dates and measurements, why the model is shaped as it is. Seventeen catalog transformers embed compile-verified worked examples. None of it is reachable from a documentation site.
+- It contains 121 references to `#ModuleRelease`, an artifact renamed by enhancement 0002.
+- Every import path it teaches (`opmodel.dev/core/v1alpha1/module@v1`, `opmodel.dev/opm/v1alpha1/resources/workload@v1`) resolves to the frozen v0 catalog.
+- Its `cli.md` documents an `opm release` command group that was removed with no alias.
+- Its `operator.md` describes a `BundleRelease` type that does not exist.
+- The `specs/` and `benchmarks/` trees its own `CONSTITUTION.md` and `CLAUDE.md` point at were deleted in January.
+
+Meanwhile the material that *is* current sits in places a reader would never look. `cli/README.md` and `cli/QUICKSTART.md` are the best user-facing prose in the workspace and are the de-facto getting-started. `core/SPEC.md` carries roughly 700 lines of Rationale that explain, with dates and measurements, why the model is shaped as it is. Seventeen catalog transformers embed compile-verified worked examples, and none of it is reachable from a documentation site.
 
 ## Gap / Pain
 
 Four gaps, in descending order of how badly they hurt a newcomer.
 
-**No conceptual documentation exists at all.** OPM asks a reader to hold four artifact types, four primitive kinds, two key namespaces, a contract-level ladder and a matching model before they can write anything that renders. A reference-only site leaves every reader reverse-engineering the model from field tables. The `core` survey identified seventeen concepts subtle enough that a reader gets them actively wrong without prose, led by the four version-shaped axes (module major, release SemVer, contract `apiVersion`, and core's own major), `fqn == modulePath` for artifacts but something entirely different on a primitive, and `matchLabels` versus `metadata.labels`.
+**No conceptual documentation exists at all.** OPM asks a reader to hold four artifact types, four primitive kinds, two key namespaces, a contract-level ladder and a matching model before they can write anything that renders. A reference-only site leaves every reader reverse-engineering the model from field tables.
 
-**Documentation coverage is inverted against usage.** Measured in `catalog_opm`: blueprints, which are the first thing a module author picks and without which a component cannot render, have doc comments on 0 of 5 members. Abstraction resources have 1 of 11. Traits have 6 of 27. The raw `k8s-*` family, which no first-party module imports and which CI forbids the abstraction family from depending on, has 27 of 27. The generated `src/INDEX.md` faithfully reproduces this: its Description column is empty for exactly the members a reader needs, while 375 of roughly 460 rows are vendored Kubernetes types nobody should browse.
+The `core` survey identified seventeen concepts subtle enough that a reader gets them actively wrong without prose. Examples include:
 
-**Nothing tells a reader what stops them.** OPM enforces its rules across four distinct layers: CUE unification, the kernel at render, the publish gates, and pure convention. The gaps between those layers are where users get hurt, and no document distinguishes them. `SPEC.md` scatters the information through Rationale prose and is currently wrong in both directions: §6's layering rules are stated as MUSTs that nothing checks, while SPEC.md:31 still describes the publish gates as "shipped surface with no enforcement behind them", which stopped being true when the CLI's catalog-gates slice merged.
+- the four version-shaped axes (module major, release SemVer, contract `apiVersion`, and core's own major);
+- `fqn == modulePath` for artifacts, but something entirely different on a primitive;
+- `matchLabels` versus `metadata.labels`.
 
-**Shipped hazards are undocumented.** `spec.prune` defaults to false, so the finalizer's default behaviour is to orphan every workload. A CLI-owned instance carries no hold at all, so `kubectl delete` on the CR destroys the only inventory record and orphans everything it tracked. This is current, shipped behaviour. It appears in no document a user would find.
+**Documentation coverage is inverted against usage.** Measured in `catalog_opm`:
+
+- Blueprints, the first thing a module author picks and without which a component cannot render, have doc comments on 0 of 5 members.
+- Abstraction resources have 1 of 11.
+- Traits have 6 of 27.
+- The raw `k8s-*` family, which no first-party module imports and which CI forbids the abstraction family from depending on, has 27 of 27.
+
+The generated `src/INDEX.md` faithfully reproduces this: its Description column is empty for exactly the members a reader needs, while 375 of roughly 460 rows are vendored Kubernetes types nobody should browse.
+
+**Nothing tells a reader what stops them.** OPM enforces its rules across four distinct layers: CUE unification, the kernel at render, the publish gates, and pure convention. The gaps between those layers are where users get hurt, and no document distinguishes them.
+
+`SPEC.md` scatters the information through Rationale prose and is wrong in both directions. §6's layering rules are stated as MUSTs that nothing checks. SPEC.md:31 still describes the publish gates as "shipped surface with no enforcement behind them", which stopped being true when the CLI's catalog-gates slice merged.
+
+**Shipped hazards are undocumented.** `spec.prune` defaults to false, so the finalizer's default behaviour is to orphan every workload. A CLI-owned instance carries no hold at all, so `kubectl delete` on the CR destroys the only inventory record and orphans everything it tracked. This is real behaviour, not a hypothetical. It appears in no document a user would find.
 
 ## Concrete Example
 
@@ -28,7 +49,7 @@ A developer wants to package an application. They find `opm/docs/getting-started
 
 It tells them to build the CLI from source (there are release binaries), then run `opm module init hello`. The command rejects the argument: since enhancement 0010, `init` takes a full module path, `opm mod init example.com/modules/my_app@v0`. They work that out. The scaffolded module now imports `opmodel.dev/core@v2`, but every example in the document they are following imports `opmodel.dev/core/v1alpha1/module@v1`, so nothing they copy compiles.
 
-They persevere and write a component. It fails to render. The error names an FQN and says no transformer requires it. Nothing tells them the difference between "no transformer on this platform implements that contract" and "no matched transformer consumes this trait", which are different problems with different fixes. Nothing tells them that a bare container cannot render because `matchLabels` carries a required key that only a blueprint answers.
+They persevere and write a component, but it fails to render. The error names an FQN and says no transformer requires it. Nothing tells them the difference between "no transformer on this platform implements that contract" and "no matched transformer consumes this trait", which are different problems with different fixes. Nothing tells them that a bare container cannot render because `matchLabels` carries a required key that only a blueprint answers.
 
 They give up on the guide and read the catalog. `src/INDEX.md` lists five blueprints with an empty description column for all five.
 

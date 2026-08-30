@@ -1,4 +1,4 @@
-# Open Questions — Documentation Architecture
+# Open Questions: Documentation Architecture
 
 ## Open Questions
 
@@ -20,9 +20,9 @@
 
   Candidate mechanisms: a test in `library` asserting that every exported error type appears in the site's diagnostics index, a checklist item in the library's own change protocol, or explicit acceptance that the section drifts and is audited periodically. The first is the only one that fails loudly, and it couples two repos that are otherwise independent.
 
-- **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: open. Blocking: acceptance — decides whether the area vocabulary changes.
+- **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: open. Blocking: acceptance (decides whether the area vocabulary changes).
 
-  `enhancements/schema.cue`'s `#Area` enumeration has no `opm` entry, so the meta repo cannot appear in `affects` and cannot own a slice in this entry's plan. That tree holds the stale prose this enhancement replaces, and it is currently reachable and looks current, which is the failure mode.
+  `enhancements/schema.cue`'s `#Area` enumeration has no `opm` entry, so the meta repo cannot appear in `affects` and cannot own a slice in this entry's plan. That tree holds the stale prose this enhancement replaces, and it remains reachable and looks current, which is the failure mode.
 
   Options: add `opm` to the area vocabulary, which is a schema change to the enhancements repo itself; retire the tree as uncoordinated cleanup outside the plan; or move the salvageable formats into `opmodel.dev` and leave the deletion to whoever owns the meta repo. Worth salvaging as format rather than content: the glossary's shape, the persona routing at the top of `docs/index.md`, and the raw-versus-blueprint side-by-side in `concepts/resources-traits-blueprints.md`.
 

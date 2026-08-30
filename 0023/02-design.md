@@ -1,4 +1,4 @@
-# Design — Artifact Provenance, Signatures and Platform Trust Policy
+# Design: Artifact Provenance, Signatures and Platform Trust Policy
 
 This design is intentionally thin. D1 and D2 fix the attachment channel and the policy owner, which are settled; everything below the diagram is a sketch to be confirmed or replaced by the research and experiments listed in `07-questions.md`.
 

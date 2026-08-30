@@ -1,14 +1,16 @@
 # Automated CUE Dependency Updates via Dagger (0004)
 
-See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives in this README.
+See [`config.yaml`](config.yaml) for the metadata contract. It is the sole source of metadata; no parallel metadata table lives in this README.
 
 ## Summary
 
-CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout — there is no scheduled detection of upstream releases and no per-bump provenance. This enhancement adds a path-driven **Dagger** function — point it at a directory, it walks for CUE modules and bumps each via CUE's native `cue mod get` + `cue mod tidy` — invoked identically in local use (`dagger call`) and on a daily schedule in each repo's CI, where it opens a grouped, tidied, reviewable PR. Because resolution is CUE-native, no registry route table or `module.cue`-parsing regex is needed. The same function backs `task update-deps`, collapsing the manual and automated paths to one implementation.
+CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout. There is no scheduled detection of upstream releases and no per-bump provenance.
+
+This enhancement adds a path-driven **Dagger** function: point it at a directory, and it walks for CUE modules and bumps each via CUE's native `cue mod get` + `cue mod tidy`. It runs identically in local use (`dagger call`) and on a daily schedule in each repo's CI, where it opens a grouped, tidied, reviewable PR. Because resolution is CUE-native, no registry route table or `module.cue`-parsing regex is needed. The same function backs `task update-deps`, collapsing the manual and automated paths to one implementation.
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log — run `task delivery ID=NNNN`. A
+delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
 status block written here is a snapshot that goes stale the moment another change
 lands, which is exactly the drift the implementation axis was removed to stop.
 -->
@@ -18,13 +20,13 @@ lands, which is exactly the drift the implementation axis was removed to stop.
 The seven split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
-1. [01-problem.md](01-problem.md) — Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
-2. [02-design.md](02-design.md) — Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
-3. [03-decisions.md](03-decisions.md) — Decision log
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md) — Open Questions register
+1. [01-problem.md](01-problem.md): Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
+2. [02-design.md](02-design.md): Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
+3. [03-decisions.md](03-decisions.md): Decision log
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
+6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md): Open Questions register
 
 Pure-CUE schema definitions live in [`schemas/`](contracts/) as compilable
 files, never as fenced blocks inside markdown.
@@ -43,13 +45,13 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### Out of scope
 
-- Multi-ecosystem updates — `go.mod`, GitHub Actions pins, Dockerfiles. CUE modules only (D6); a unified bot is a separate, later enhancement.
-- Bumping the CUE language/tool version (`language.version`) — possible follow-on.
+- Multi-ecosystem updates (`go.mod`, GitHub Actions pins, Dockerfiles). CUE modules only (D6); a unified bot is a separate, later enhancement.
+- Bumping the CUE language/tool version (`language.version`); possible follow-on.
 - Auto-merging PRs and cross-major (`@v0`→`@v1`) migrations.
 
 ## Experiments
 
-Experiments are **optional** and usually appear **part-way through an enhancement's life** — once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
+Experiments are **optional** and usually appear **part-way through an enhancement's life**, once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
 
 When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
 
@@ -57,7 +59,7 @@ When an idea does need to be tested or showcased before adoption, place proofs-o
 
 - **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
 - **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
-- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies — copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
+- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
 - **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
 - **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
 
@@ -84,10 +86,10 @@ NNNN/experiments/
 
 Each experiment's README answers four questions and carries a status line:
 
-1. **Hypothesis** — Which claim from the design is this validating?
-2. **Setup** — What was copied in, from where, and what was modified.
-3. **Run** — Exact commands to reproduce the result.
-4. **Outcome** — What was observed; whether the hypothesis held.
+1. **Hypothesis**: Which claim from the design is this validating?
+2. **Setup**: What was copied in, from where, and what was modified.
+3. **Run**: Exact commands to reproduce the result.
+4. **Outcome**: What was observed; whether the hypothesis held.
 
 The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
 
@@ -124,7 +126,7 @@ deliberate divergences from the design need to be documented. The validator
 | `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Shared compute layer; subpath in the org daggerverse monorepo, subpath-prefixed version tags; target of `contracts/contracts.cue` |
 | `open-platform-model/.github/.github/workflows/cue-deps.yml` reusable workflow (to be created, D12) | Shared CI contract: invokes the daggerverse module, opens the grouped PR |
 | `<each-repo>/.github/workflows/cue-deps.yml` (to be created) | Per-repo ~10-line caller: daily schedule → `uses:` the reusable workflow → grouped PR on a fixed branch |
-| `enhancements/0002` | Related — module identity vs registry import-path resolution, the same coupling CUE resolves natively here |
+| `enhancements/0002` | Related: module identity vs registry import-path resolution, the same coupling CUE resolves natively here |
 
 <!--
 ## Agent Instructions
@@ -133,7 +135,7 @@ To create a new enhancement from this template:
 
 1. Pick the next available four-digit id by scanning `enhancements/` for the
    highest existing NNNN directory and incrementing by one. Ids are
-   never reused — supersession is recorded via `supersedes` / `superseded_by`
+   never reused: supersession is recorded via `supersedes` / `superseded_by`
    in `config.yaml`, not by renumbering.
 2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
 3. Overwrite every `{Capitalised}` placeholder string across the README and
@@ -141,21 +143,21 @@ To create a new enhancement from this template:
 4. Fill `config.yaml` with real values: id matches the directory name, slug
    is short kebab-case, title is human-readable, area + affects describe
    ownership, created + updated set to today's date.
-5. Write `01-problem.md` and `02-design.md` first — full prose. Decisions
+5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
 6. `05-risks.md` and `06-operational.md` start as scaffolds
    and mature alongside the decision log.
 7. Sketch the target schema in `contracts/contracts.cue`. Update the `module:`
    line in `schemas/cue.mod/module.cue` to match the new four-digit id.
-8. Do not strip these HTML-comment Agent Instructions when copying — they
+8. Do not strip these HTML-comment Agent Instructions when copying. They
    are the in-template guidance for the next author/agent.
 
 ### Status lifecycle
 
-- **draft** — initial design, actively being written
-- **accepted** — design agreed upon, ready for implementation
-- **implemented** — design has been realized in code
-- **superseded** — replaced by a newer enhancement (paired with
+- **draft**: initial design, actively being written
+- **accepted**: design agreed upon, ready for implementation
+- **implemented**: design has been realized in code
+- **superseded**: replaced by a newer enhancement (paired with
   `superseded_by` on this entry and `supersedes` on the replacement)
 
 ### Cross-refs to legacy library enhancements
@@ -164,5 +166,5 @@ The seven three-digit entries under `library/enhancements/` (001..007) are
 frozen historical predecessors. To reference one from a new enhancement, use
 the `legacy:NNN` form in `related` / `supersedes` / `superseded_by`. Once
 those entries are deleted, the references become dangling and the validator
-(future) will flag them — fix or remove at that point.
+(future) will flag them; fix or remove at that point.
 -->

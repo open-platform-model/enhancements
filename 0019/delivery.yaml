@@ -66,6 +66,14 @@ log:
       catalog_opm: #ServiceName fallback so components built against opm alpha.5 and earlier (optional, unset expose.name) render their Service, StatefulSet serviceName and route backendRefs on alpha.8+
     change: { kind: openspec, repo: catalog, change: service-transformer-legacy-expose-fallback }
     decisions: [D22]
+  - date: "2026-08-30"
+    summary: >-
+      Shared-platform concurrency promise retracted: ADR-002 marked superseded in place, kernel docs and specs state the two supported shapes, -race added to task test, MIGRATIONS.md entry (library PR 93)
+    change: { kind: pr, repo: library, number: 93 }
+  - date: "2026-08-30"
+    summary: >-
+      Interim stopgap: every shared Kernel use serialised behind Store.AcquireKernel across the three controllers; renders serialised process-wide until the shares-nothing render lands (opm-operator PR 110)
+    change: { kind: pr, repo: opm-operator, number: 110 }
 no_work:
   D4: >-
     The sequencing decision itself (the Phase A/B split): implemented by the

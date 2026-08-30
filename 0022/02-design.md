@@ -1,4 +1,4 @@
-# Design — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Design: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
 ## Design Goals
 
@@ -41,9 +41,15 @@ Two channels, split by when a fact is known:
 
 **The block** is plain data under `custom."opmodel.dev@v0"`. CUE parses `module.cue` in data mode, so the block holds concrete values only: no references, no definitions, no defaults. That is fine, because the block states facts, not rules.
 
-**The gate** lives in `core` beside `#IdentityPackage` and is applied by publish exactly as 0011 D21 applies the identity gate: publish already loads `module:`, `deps` and the identity package; it fills those into the gate's implied side, unifies the block into the declared side, and surfaces CUE's own error on conflict. The gate is a definition, not a comparator, so there is one statement of the contract.
+**The gate** lives in `core` beside `#IdentityPackage` and is applied by publish exactly as 0011 D21 applies the identity gate. Publish already loads `module:`, `deps` and the identity package. It fills those into the gate's implied side, unifies the block into the declared side, and surfaces CUE's own error on conflict. The gate is a definition, not a comparator, so there is one statement of the contract.
 
-**The writer** is the tooling 0011 already trusts to touch the tree: `opm module init` seeds the block when it seeds identity; `version set` and `publish --version` keep `identity.Version` in step when they write the identity version; template re-identification rewrites `identity.ModulePath` when it rewrites `module:`. Publish reads and refuses; it never writes.
+**The writer** is the tooling 0011 already trusts to touch the tree:
+
+- `opm module init` seeds the block when it seeds identity.
+- `version set` and `publish --version` keep `identity.Version` in step when they write the identity version.
+- Template re-identification rewrites `identity.ModulePath` when it rewrites `module:`.
+
+Publish reads and refuses; it never writes.
 
 **The annotations** are written at push, beside CUE's VCS keys, through the client call CUE provides for that purpose. They are not in the zip, not in the module file, and not in any committed byte, so 0011 D2 holds to the letter.
 
@@ -94,6 +100,11 @@ custom: "opmodel.dev@v0": {
 
 ## Before / After
 
-**Before** (0016 D5 walk, per candidate major): fetch manifest, fetch layer 1, parse `deps`, find the key that starts with `opmodel.dev/core@`, split its major, handle its absence by a rule the reader invented; kind is the path prefix.
+**Before** (0016 D5 walk, per candidate major):
 
-**After**: fetch manifest, fetch layer 1, read `custom."opmodel.dev@v0".core.major` and `.kind`; if the block is absent, do the above. The gate makes the two answers identical whenever both exist, and the report can say "template, skipped" instead of guessing from a path.
+1. Fetch manifest, fetch layer 1.
+2. Parse `deps`, find the key that starts with `opmodel.dev/core@`, split its major.
+3. Handle its absence by a rule the reader invented.
+4. Infer kind from the path prefix.
+
+**After**: fetch manifest, fetch layer 1, then read `custom."opmodel.dev@v0".core.major` and `.kind`; if the block is absent, do the above. The gate makes the two answers identical whenever both exist, and the report can say "template, skipped" instead of guessing from a path.

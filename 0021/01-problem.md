@@ -1,6 +1,6 @@
 # Problem Statement: OPM Versioning Policy
 
-This document answers the question: "Why does this enhancement need to exist?" It leads with what each artifact class promises today, measured against the repos, and then names the gaps between them. It proposes nothing; that belongs in `02-design.md`.
+Every OPM artifact class carries a version, but only one of nine states what that version promises. This document measures what each class promises today against the repos, then names the gaps between them. It proposes nothing; that belongs in `02-design.md`.
 
 ## Current State
 

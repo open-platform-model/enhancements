@@ -1,4 +1,4 @@
-# Open Questions — CUE Testing and Conformance
+# Open Questions: CUE Testing and Conformance
 
 This is the entry's working question register and the single canonical location for it. `OQ` numbers are permanent. Each unresolved entry carries `Status:` and `Blocking:` (`acceptance` with the reason inline, `deferrable`, or `implementation`).
 

@@ -1,20 +1,27 @@
-# 0024 — CUE Testing and Conformance
+# 0024: CUE Testing and Conformance
 
 See [`config.yaml`](config.yaml) for metadata; it is the sole source.
 
 ## Summary
 
-OPM's behaviour is mostly CUE evaluation, and today that behaviour is verified unevenly: the abstraction catalog carries 163 hidden assertions and types every rendered object against upstream Kubernetes definitions, the raw passthrough catalog carries none and types against nothing, the core schema has no committed test at all, and no repo can say whether a CUE toolchain or core release changed what an unchanged input produces. This enhancement gives OPM two layers of verification: in-package assertions that live beside each definition (positive and negative, in pure CUE), and an external conformance suite that replays fixtures across CUE, core, catalog and upstream Kubernetes versions, recording rendered bytes and refusal text per version cell and failing on drift no release explained.
+OPM's behaviour is mostly CUE evaluation, and today that behaviour is verified unevenly:
+
+- The abstraction catalog carries 163 hidden assertions and types every rendered object against upstream Kubernetes definitions.
+- The raw passthrough catalog carries none, and types against nothing.
+- The core schema has no committed test at all.
+- No repo can say whether a CUE toolchain or core release changed what an unchanged input produces.
+
+This enhancement gives OPM two layers of verification: in-package assertions that live beside each definition (positive and negative, in pure CUE), and an external conformance suite. The suite replays fixtures across CUE, core, catalog and upstream Kubernetes versions, records rendered bytes and refusal text per version cell, and fails on drift no release explained.
 
 ## Documents
 
-1. [01-problem.md](01-problem.md) — CUE behaviour is verified by hand, unevenly, and never across versions
-2. [02-design.md](02-design.md) — Two layers: in-package assertions and an external, matrix-replayed conformance suite
-3. [03-decisions.md](03-decisions.md) — DN decision log
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md) — Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md) — OQN Open Questions register
+1. [01-problem.md](01-problem.md): CUE behaviour is verified by hand, unevenly, and never across versions
+2. [02-design.md](02-design.md): Two layers: in-package assertions and an external, matrix-replayed conformance suite
+3. [03-decisions.md](03-decisions.md): DN decision log
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
+6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md): OQN Open Questions register
 
 No `schemas/`: this entry changes no `opmodel.dev/core` definition (`core_schema: false`).
 

@@ -1,14 +1,22 @@
-# Design — Documentation Architecture
+# Design: Documentation Architecture
 
 Eight sections organised by what a reader is holding when they arrive, a hard split between generated facts and authored guidance, and an enforcement badge on every normative statement.
 
 ## Design Goals
 
+**Navigation.**
+
 - A reader with a specific artifact in hand (a blank file, a cluster, an error message, a field name) reaches the right page without knowing OPM's internal vocabulary first.
+- Explanation is a first-class section rather than an appendix, in proportion to a concept surface that is unusually large relative to the user surface.
+
+**Trustworthiness.**
+
 - Every normative statement answers "what actually stops me" visibly, because OPM enforces across four layers and the gaps between them are where users get hurt.
 - Reference content that can be derived from source is derived from source, so that a rename cannot silently invalidate it.
 - The documentation states what OPM does today and is explicit about what it does not do, so that nine draft systems do not read as features.
-- Explanation is a first-class section rather than an appendix, in proportion to a concept surface that is unusually large relative to the user surface.
+
+**Family guidance.**
+
 - The abstraction family is the documented default path; the raw passthrough family is reachable and clearly marked as the escape hatch.
 
 ## Non-Goals
@@ -73,7 +81,7 @@ publish     A publish gate refuses it. Fails at `opm module|catalog publish`.
 convention  Nothing checks it. Stated because a reader must know it anyway.
 ```
 
-The badge vocabulary is defined in `contracts/contracts.cue` so that it is a closed set rather than prose. Its value is highest exactly where `SPEC.md` is currently wrong in both directions: the layering contract's rules are MUSTs with a `convention` badge, and the publish gates moved from unenforced to `publish` when the CLI slices landed.
+The badge vocabulary is defined in `contracts/contracts.cue` so that it is a closed set rather than prose. Its value is highest exactly where `SPEC.md` is wrong in both directions: the layering contract's rules are MUSTs with a `convention` badge, and the publish gates moved from unenforced to `publish` when the CLI slices merged.
 
 ### The abstraction family leads
 
@@ -95,7 +103,7 @@ The framing is a fact about the system rather than an editorial preference: no f
 | `cli` | Command help text aligned with the generated reference; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
 | `library` | `docs/getting-started.md`, which omits the mandatory Materialize step and therefore cannot be followed to working code |
 
-The `opm` meta repo holds the stale prose this entry replaces, but `opm` is not a member of the area vocabulary in `enhancements/schema.cue`, so it cannot own a slice. Its retirement is tracked in `06-operational.md` and raised as OQ4.
+The `opm` meta repo holds the stale prose this entry replaces, but `opm` is not a member of the area vocabulary in `enhancements/schema.cue`, so it cannot own a slice. Its retirement is tracked in `06-operational.md` and raised as OQ4 (whether and how `opm/docs` retires when no repo in the area vocabulary can own the task).
 
 ## Before / After
 

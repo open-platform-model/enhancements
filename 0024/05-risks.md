@@ -1,4 +1,4 @@
-# Risks, Drawbacks, Alternatives — CUE Testing and Conformance
+# Risks, Drawbacks, Alternatives: CUE Testing and Conformance
 
 ## Risks and Mitigations
 

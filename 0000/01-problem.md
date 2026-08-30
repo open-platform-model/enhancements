@@ -1,21 +1,20 @@
-# Problem Statement — {Enhancement Title}
+# Problem Statement: {Enhancement Title}
 
-This document answers the question: "Why does this enhancement need to exist?"
-Lead with observable facts. Reference existing code paths and definitions so
-readers can verify the claims. Do not propose solutions here — that belongs
-in `02-design.md`.
+Lead with observable facts about why this enhancement needs to exist.
+Reference existing code paths and definitions so readers can verify the
+claims. Do not propose solutions here: solutions belong in `02-design.md`.
 
 ## Current State
 
 {Describe how things work today. What is the existing behavior, architecture,
 or workflow that this enhancement touches? Reference specific files,
-definitions, or patterns where relevant — quote shapes where the exact form
+definitions, or patterns where relevant: quote shapes where the exact form
 matters.}
 
 ## Gap / Pain
 
 {What is missing, broken, or insufficient? Be specific about the
-consequences — who is affected, what breaks, what is harder than it should
+consequences: who is affected, what breaks, what is harder than it should
 be. Avoid speculation about future use cases that aren't grounded in today's
 pain.}
 
@@ -25,7 +24,7 @@ pain.}
 Use actual module names, file paths, or CUE snippets where possible. The
 reader should be able to see the problem, not just read about it. An ASCII
 diagram of the current-state architecture or flow is often the fastest way
-to make the problem visible — see the `enhancement-diagrams` skill.}
+to make the problem visible. See the `enhancement-diagrams` skill.}
 
 ## User Stories
 

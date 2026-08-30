@@ -1,6 +1,6 @@
-# Design Decisions — CUE Testing and Conformance
+# Design Decisions: CUE Testing and Conformance
 
-Decisions are numbered sequentially and recorded as they are made. Numbers are permanent. While this entry is `draft`, decisions are revised in place; from `accepted`, changes land as new decisions with `**Amends:**` / `**Supersedes:**` fields. Every decision carries `**Kind:**` and passes the admission test: would it still bind a from-scratch rewrite of the affected repos? Mechanism (file layout, runner choice, verb names) belongs to the implementing changes and is recorded here only as evidence under Research.
+Decisions are numbered sequentially and recorded as they are made; numbers are permanent. While this entry is `draft`, decisions are revised in place; from `accepted`, changes land as new decisions with `**Amends:**` / `**Supersedes:**` fields. Every decision carries `**Kind:**` and passes the admission test: would it still bind a from-scratch rewrite of the affected repos? Mechanism (file layout, runner choice, verb names) belongs to the implementing changes and is recorded here only as evidence under Research.
 
 ## Research
 
@@ -62,7 +62,7 @@ Decisions are numbered sequentially and recorded as they are made. Numbers are p
 
 **Kind:** policy
 
-**Decision:** The conformance record is keyed by version cell: the CUE toolchain version, the `opmodel.dev/core` version, the catalog version(s), and the `cue.dev/x/k8s.io` version. A cell's recorded outcome is expected to be reproducible for as long as those artifacts exist. When a new cell's outcome differs from its predecessor along one axis, the suite fails unless the difference is recorded as intentional; recording a new cell is a reviewed act, and its diff is the human-readable account of what that version changed. Versions on every axis are published artifacts (GHCR for OPM, the Central Registry for `k8s.io`, released `cue` binaries), never checkouts.
+**Decision:** The conformance record is keyed by version cell: the CUE toolchain version, the `opmodel.dev/core` version, the catalog version(s), and the `cue.dev/x/k8s.io` version. A cell's recorded outcome is expected to be reproducible for as long as those artifacts exist. When a new cell's outcome differs from its predecessor along one axis, the suite fails unless the difference is recorded as intentional. Recording a new cell is a reviewed act, and its diff is the human-readable account of what that version changed. Versions on every axis are published artifacts (GHCR for OPM, the Central Registry for `k8s.io`, released `cue` binaries), never checkouts.
 
 **Alternatives considered:**
 

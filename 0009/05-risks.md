@@ -1,10 +1,10 @@
-# Risks, Drawbacks, Alternatives — Operational Primitives: Op, Action, Lifecycle, Workflow
+# Risks, Drawbacks, Alternatives: Operational Primitives: Op, Action, Lifecycle, Workflow
 
 Risks describe what could go wrong; Drawbacks describe what definitely costs something; Alternatives describe the high-level paths not taken (per-decision detail lives in `03-decisions.md`).
 
 ## Risks and Mitigations
 
-- **The closed primitive set is too small and authors route around it.** If the Op vocabulary cannot express common needs, authors fall back to a raw `exec` container for everything — re-creating the Helm "arbitrary script" problem inside OPM. **Mitigation:** ship a useful initial vocabulary plus ready-made `#Action` compositions; treat the container/exec backend as a heavyweight, reviewable escape hatch; let the catalog grow the vocabulary without a library release (D6).
+- **The closed primitive set is too small and authors route around it.** If the Op vocabulary cannot express common needs, authors fall back to a raw `exec` container for everything, re-creating the Helm "arbitrary script" problem inside OPM. **Mitigation:** ship a useful initial vocabulary plus ready-made `#Action` compositions; treat the container/exec backend as a heavyweight, reviewable escape hatch; let the catalog grow the vocabulary without a library release (D6).
 
 - **Pluggable, remotely-loaded executable artifacts are a supply-chain and trust surface.** An `@op(ref=…)` pointing at a wasm/OCI artifact pulls and runs third-party code. **Mitigation:** artifact form (OQ1) should favor sandboxed execution (wasm) for the default; backends are frontend-registered so an environment can refuse classes of execution; pinning/version + provenance ride the same registry trust model as catalog transformers. Needs explicit treatment in `06-operational.md` once OQ1 lands.
 
@@ -14,12 +14,12 @@ Risks describe what could go wrong; Drawbacks describe what definitely costs som
 
 - **Attribute drift between schema and SDK.** The `@op(...)` grammar is a contract between `core` definitions and the library planner; a mismatch fails silently (attribute ignored) rather than loudly. **Mitigation:** validate the attribute grammar in the planner and add fixtures asserting every shipped Op's attribute parses to a registered protocol.
 
-- **Dependence on CUE attributes as a language feature.** The entire dispatch mechanism (D5/D6) assumes CUE keeps `@attr(...)` and the `cue.Value.Attribute` SDK reader. **Mitigation / assessment (`research/cue-attribute-longevity.md`, 2026-06-29):** researched directly — no removal or deprecation is planned; the SDK API carries no deprecation notice; attributes are being *extended* (list-element attributes, attribute-query builtins); and CUE's own custom-function feature is itself attribute-based (`@extern`), so the "custom functions" direction consumes attributes rather than replacing them. Residual risk is low. One adjacent surface *is* experimental — CUE's evaluation-time WASM `@extern` interface — which only matters if OQ1 (artifact form) leans on CUE's eval-time functions rather than OPM's runtime backends; 0009's runtime-dispatch use of attributes as inert metadata is the most stable dependency available.
+- **Dependence on CUE attributes as a language feature.** The entire dispatch mechanism (D5/D6) assumes CUE keeps `@attr(...)` and the `cue.Value.Attribute` SDK reader. **Mitigation / assessment** (`research/cue-attribute-longevity.md`, 2026-06-29): no removal or deprecation is planned, and the SDK API carries no deprecation notice. Attributes are being extended (list-element attributes, attribute-query builtins), and CUE's own custom-function feature is itself attribute-based (`@extern`): the "custom functions" direction consumes attributes rather than replacing them. Residual risk is low. One adjacent surface is experimental: CUE's evaluation-time WASM `@extern` interface. That interface only matters if OQ1 (artifact form) leans on CUE's eval-time functions rather than OPM's runtime backends. 0009's runtime-dispatch use of attributes, as inert metadata, is the most stable dependency available.
 
 ## Drawbacks
 
 - A second execution model in the kernel is real surface area to learn, test, and maintain alongside rendering.
-- The two-level plugin system (backends + artifacts) is more moving parts than a compiled-in implementation; the payoff is pluggability without library releases.
+- The two-level plugin system (backends and artifacts) has more components to coordinate than a compiled-in implementation; the payoff is pluggability without library releases.
 - Authors and platform teams take on a new authoring surface (flows, phases, backend registration) that did not exist before.
 
 ## Alternatives

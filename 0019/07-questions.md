@@ -1,4 +1,4 @@
-# Open Questions — Kernel render path parity with pure CUE
+# Open Questions: Kernel render path parity with pure CUE
 
 ## Open Questions
 

@@ -1,4 +1,4 @@
-# Design Decisions — Artifact Provenance, Signatures and Platform Trust Policy
+# Design Decisions: Artifact Provenance, Signatures and Platform Trust Policy
 
 This document records every significant design choice with its reasoning and the alternatives that were ruled out. Numbers are permanent; while the entry is `draft`, bodies are revised in place.
 
@@ -21,7 +21,7 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 - *A parallel tag (`v2.0.1.sig`, `v2.0.1.att`).* Rejected as the primary form: the referrers convention already defines the fallback tag (`sha256-<digest>`) keyed by digest, which is what makes a claim follow the artifact rather than the tag name. The fallback may still be what the registry actually serves (experiment 01).
 - *A transparency log only, nothing in the registry.* Rejected: a consumer that resolves a tag has the registry in hand and may not have the log; the log is the discovery and audit channel, the referrer is the artifact-local copy.
 
-**Rationale:** Referrers are the OCI-standard way to attach claims to a digest, CUE ignores them and its mirror carries them, and the SLSA and Sigstore tooling already produce and consume them. Attaching by digest is what makes the claim survive a re-pointed tag and what lets a verifier reject one.
+**Rationale:** Referrers are the OCI-standard way to attach claims to a digest. CUE ignores them, and its mirror carries them forward. The SLSA and Sigstore tooling already produce and consume them. Attaching by digest is what makes the claim survive a re-pointed tag and what lets a verifier reject one.
 
 **Source:** User decision 2026-08-25. Measured: `research/findings.md` (manifest shape, CUE `modregistry` `mirrorReferrers`, no referrers present today).
 

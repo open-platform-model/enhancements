@@ -1,18 +1,32 @@
-# Operational Concerns — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Operational Concerns: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
-This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answered briefly.
+Five fixed prompts make up the OPM Production Readiness Review (PRR-lite), each answered briefly below.
 
 ## Observability
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-One new publish refusal (the block disagrees with the module file or identity; CUE's diagnostic names the field, the action names the writer verb), one new publish warning (block missing, until the D8 date), and the same two conditions in `opm module vet`. The OCI manifest gains annotations a consumer can list. 0016's report line can say "template, skipped" from `kind`. No metrics, no long-running signals.
+This enhancement introduces:
+
+- **One new publish refusal**: the block disagrees with the module file or identity. CUE's diagnostic names the field; the action names the writer verb that fixes it.
+- **One new publish warning**: the block is missing (until the D8 date). The same two conditions surface in `opm module vet`.
+- **New OCI manifest annotations** a consumer can list.
+- **A new report line** in 0016: `kind` lets it say "template, skipped" instead of guessing.
+
+No metrics, no long-running signals.
 
 ## Semver Impact
 
 **Is this a breaking change for any consumer? If so, what is the backwards-compatibility plan?**
 
-No. `core` gains two definitions nothing in `core` unifies against (additive, `feat:`). The CLI gains a gate that fires only when a block is present, a warning that becomes a refusal only from a dated release (D8), a writer that touches trees only when invoked, and annotations nobody is required to read. Published artifacts are content-addressed and untouched. Enhancement-level `semver`: `minor`.
+No. `core` gains two definitions nothing in `core` unifies against (additive, `feat:`). The CLI gains:
+
+- A gate that fires only when a block is present.
+- A warning that becomes a refusal only from a dated release (D8).
+- A writer that touches trees only when invoked.
+- Annotations nobody is required to read.
+
+Published artifacts are content-addressed and untouched. Enhancement-level `semver`: `minor`.
 
 Backwards direction: an old CLI reading a new artifact sees a `custom` block it never looks at; CUE's own tooling has carried the field since v0.9.0. Forward direction: a new reader against an old artifact falls back to `deps` (D7). Only the core v2 line is in scope.
 
@@ -26,13 +40,26 @@ Nothing is removed. Path-prefix kind inference stays as the fallback and as the 
 
 **If this lands and proves bad, what is the rollback story?**
 
-The block is inert data: stop reading it and nothing changes. The gate can be disabled without touching any artifact. Annotations can stop being written. Trees that carry the block keep publishing (CUE never rejects the namespace). The only irreversible part is the key name in already-published artifacts, which is why D1 chose it defensively.
+Rollback is straightforward:
+
+- The block is inert data: stop reading it and nothing changes.
+- The gate can be disabled without touching any artifact.
+- Annotations can stop being written.
+- Trees that carry the block keep publishing; CUE never rejects the namespace.
+
+The only irreversible part is the key name in already-published artifacts, which is why D1 chose it defensively.
 
 ## Cross-Repo Coordination
 
 **Which repos must coordinate, and in what order?**
 
-Sequence: `core` (definitions and SPEC §5.4) → `cli` (gate, writer, annotations, 0016 reader) → `catalog_opm` and `modules` (run the writer once per tree, commit, next release carries the block) → `opmodel.dev` (registry-namespaces and module-file reference pages) → the 0011 amendment (append the D3/D8-amending decision; OQ4 wording).
+Sequence:
+
+1. `core` (definitions and SPEC §5.4).
+2. `cli` (gate, writer, annotations, 0016 reader).
+3. `catalog_opm` and `modules` (run the writer once per tree, commit; next release carries the block).
+4. `opmodel.dev` (registry-namespaces and module-file reference pages).
+5. The 0011 amendment (append the D3/D8-amending decision; OQ4 wording).
 
 - `core` ships first; publish resolves the gate from the schema cache by name, so a CLI against an older core simply finds no gate and skips (the same posture the identity gate takes toward a core v1 schema).
 - `cli` lands the gate and writer together; the D8 refusal date is set in that release's changelog.

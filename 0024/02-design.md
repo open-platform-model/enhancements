@@ -1,6 +1,6 @@
-# Design — CUE Testing and Conformance
+# Design: CUE Testing and Conformance
 
-This document answers the question: "What is the proposed solution and how does it work?" Trade-off reasoning lives in `03-decisions.md`.
+Trade-off reasoning lives in `03-decisions.md`.
 
 ## Design Goals
 
@@ -35,9 +35,11 @@ Two layers, one question each.
  owner: each CUE repo                         owner: the suite; consumers: 0019, catalog releases
 ```
 
-**Layer 1** is the retired v0 catalog's shape brought back with the missing half: test files beside the package, positive assertions pinning derived values, and negative assertions in pure CUE. The negative idiom was measured on cue v0.17.1: a comprehension guarded by `!= _|_` over the unification yields nothing when the value is rejected, and a control case (a valid value through the same idiom) fails, which proves the idiom is live. It distinguishes nothing about *why* a value was rejected; that is layer 2's job.
+**Layer 1** is the retired v0 catalog's shape brought back with the missing half: test files beside the package, positive assertions pinning derived values, and negative assertions in pure CUE. The negative idiom was measured on cue v0.17.1: a comprehension guarded by `!= _|_` over the unification yields nothing when the value is rejected. A control case (a valid value through the same idiom) fails, which proves the idiom is live. It distinguishes nothing about *why* a value was rejected; that is layer 2's job.
 
-**Layer 2** is a corpus of cases. A case is one input (a module instance, a bare component, a platform plus instance for a render) with its expected outcome captured verbatim: the rendered output, or the diagnostic of the refusal. The corpus is replayed per version cell, and each cell's outcome is recorded. Two modes: *verify* (diff against the record, fail on difference) and *record* (write the outcome for a new cell, which a reviewer then reads in the diff). The pure-CUE oracle from `library/testdata/parity/oracle` renders the render cases, so the suite needs no kernel: under 0019 D1 that oracle is the contract.
+**Layer 2** is a corpus of cases. A case is one input (a module instance, a bare component, a platform plus instance for a render) with its expected outcome captured verbatim: the rendered output, or the diagnostic of the refusal. The corpus is replayed per version cell, and each cell's outcome is recorded.
+
+Two modes: *verify* (diff against the record, fail on difference) and *record* (write the outcome for a new cell, which a reviewer then reads in the diff). The pure-CUE oracle from `library/testdata/parity/oracle` renders the render cases, so the suite needs no kernel: 0019 D1 (pure-CUE unification of instance, catalog and transformer is the render contract) already makes that oracle authoritative.
 
 ```
  case ──▶ scratch module ──▶ cue (version c) ──▶ outcome ──▶ compare to record[c, core, catalog, k8s.io]
@@ -67,6 +69,14 @@ No `opmodel.dev/core` change. The suite's own conventions (case shape, record ke
 
 ## Before / After
 
-Before: 0019 D16's seven behaviours are a table in a design document, verified once by hand; the raw family's conformance is a sentence in `CLAUDE.md`; a `cue` bump is tested by rendering the fleet and looking.
+**Before:**
 
-After: the seven behaviours are assertions in `core` and seven cases in the suite with their diagnostics recorded per cell; every raw member's output is unified with its upstream definition at each `k8s.io` snapshot in the matrix; a `cue` bump is a matrix column whose diff is empty or explained.
+- 0019 D16's seven behaviours are a table in a design document, verified once by hand.
+- The raw family's conformance is a sentence in `CLAUDE.md`.
+- A `cue` bump is tested by rendering the fleet and looking.
+
+**After:**
+
+- The seven behaviours are assertions in `core`, and seven cases in the suite with their diagnostics recorded per cell.
+- Every raw member's output is unified with its upstream definition at each `k8s.io` snapshot in the matrix.
+- A `cue` bump is a matrix column whose diff is empty or explained.

@@ -1,4 +1,4 @@
-# Enhancement 0023 — Artifact Provenance, Signatures and Platform Trust Policy
+# Enhancement 0023: Artifact Provenance, Signatures and Platform Trust Policy
 
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 
@@ -8,24 +8,26 @@ See [`config.yaml`](config.yaml) for metadata. This README is the index of the s
 
 A published OPM artifact is an OCI manifest with two blobs and, today, nothing else: no annotations, no signature, no provenance, no referrers (measured on `opmodel.dev/modules/cert_manager` v2.0.1, 2026-08-25; see `research/findings.md`). A consumer resolving a tag trusts the registry and nothing more. CUE keeps no digest lock either, so a version pin names whatever manifest the tag points at when fetched.
 
-This entry gives catalogs and modules two signed claims, both attached as OCI referrers to the artifact's manifest digest so CUE's client never sees them (D1): **build provenance** in SLSA's format, produced by the release platform rather than the author, and **signatures** that say who vouches for the artifact. It gives the platform a **trust policy** (D2): which signer identities and which builders a platform accepts for the artifacts it subscribes to, evaluated by the kernel before anything it materializes is used, and enforced by the operator. Everything else, including which SLSA level is reachable in OPM's CI, how referrers behave on GHCR, and whether verification must reach a transparency log, is open and is what the research and experiments settle.
+This entry gives catalogs and modules two signed claims (D1). Both attach as OCI referrers to the artifact's manifest digest, so CUE's client never sees them: **build provenance** in SLSA's format, produced by the release platform rather than the author, and **signatures** that say who vouches for the artifact. It also gives the platform a **trust policy** (D2): which signer identities and which builders a platform accepts for the artifacts it subscribes to. The kernel evaluates the policy before anything it materializes is used; the operator enforces it. Everything else is open and is what the research and experiments settle, including which SLSA level is reachable in OPM's CI, how referrers behave on GHCR, and whether verification must reach a transparency log.
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log — run `task delivery ID=NNNN`. A
+delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
 status block written here is a snapshot that goes stale the moment another change
 lands, which is exactly the drift the implementation axis was removed to stop.
 -->
 
 ## Documents
 
-1. [01-problem.md](01-problem.md) — Nothing signed travels with an artifact, and nothing on the consumer side asks for it
-2. [02-design.md](02-design.md) — Referrers carry provenance and signatures; the platform states whom it trusts; the kernel verifies before use
-3. [03-decisions.md](03-decisions.md) — Decision log (D1–D2; the rest wait on research)
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md) — Risks and Mitigations, Drawbacks, Alternatives not taken
-6. [06-operational.md](06-operational.md) — Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md) — Open Questions register (the working surface of this entry)
+Seven documents, read in order:
+
+1. [01-problem.md](01-problem.md): Nothing signed travels with an artifact, and nothing on the consumer side asks for it
+2. [02-design.md](02-design.md): Referrers carry provenance and signatures; the platform states whom it trusts; the kernel verifies before use
+3. [03-decisions.md](03-decisions.md): Decision log (D1–D2; the rest wait on research)
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, Alternatives not taken
+6. [06-operational.md](06-operational.md): Observability, semver impact, deprecation, rollback, cross-repo coordination
+7. [07-questions.md](07-questions.md): Open Questions register (the working surface of this entry)
 
 Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) (a sketch of the trust-policy surface on `#Platform`, every field OQ-marked) and [`contracts/contracts.cue`](contracts/contracts.cue) (the attestation kinds, the referrer attachment contract, and the verification verdict). [`research/findings.md`](research/findings.md) holds the measured state of a published artifact and of CUE's registry client.
 
@@ -33,12 +35,17 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) (a sketc
 
 ### In scope
 
+**Core (D1, D2):**
+
 - **Provenance.** Every first-party catalog and module release carries SLSA build provenance, generated by the release platform, signed, and attached as an OCI referrer to the artifact's manifest digest (D1). The reachable SLSA level is OQ4.
 - **Signatures.** Every first-party release is signed (keyless, identity-based) and the signature is attached the same way (D1).
 - **Platform trust policy.** A platform states which signer identities and which builders it accepts, per subscription or platform-wide (D2; shape is OQ3). The kernel verifies an artifact against the policy of the platform it is materialized for; the operator enforces it; the CLI reports it.
 - **A verification command** that checks one artifact against a policy on demand.
-- **Optional, held by OQ1: a capability manifest.** Render-derived facts about what a module needs (cluster-scoped kinds, RBAC, CRDs, webhooks), attestable and policy-checkable.
-- **Optional, held by OQ2: advisories and retirement signals.** Signed, artifact-attached statements that a version is withdrawn or vulnerable, surfaced at resolve time.
+
+**Optional, held by OQ1/OQ2:**
+
+- **A capability manifest (OQ1).** Render-derived facts about what a module needs (cluster-scoped kinds, RBAC, CRDs, webhooks), attestable and policy-checkable.
+- **Advisories and retirement signals (OQ2).** Signed, artifact-attached statements that a version is withdrawn or vulnerable, surfaced at resolve time.
 
 ### Out of scope
 

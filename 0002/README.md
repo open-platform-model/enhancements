@@ -1,26 +1,34 @@
-# Enhancement 0002 — Rename the Release artifact family to Instance vocabulary (cross-cutting)
+# Enhancement 0002: Rename the Release artifact family to Instance vocabulary (cross-cutting)
 
-See [`config.yaml`](config.yaml) for the metadata contract — it is the sole source of metadata; no parallel metadata table lives here.
+See [`config.yaml`](config.yaml) for the metadata contract: it is the sole source of metadata; no parallel metadata table lives here.
 
-> **Implementation status (2026-06-30).** Implemented. All twelve code slices shipped and published — C1 (`core@v1` v1.0.0-alpha.1), L1 (`library` v1.0.0-alpha.3), O1–O3 (`opm-operator` v1.0.0-alpha, PR #37), X1–X4 (`opm` v1.0.0-alpha, PR #97), K1–K3 (`catalog_opm` v1.0.0-alpha, `catalog_kubernetes` v1.1.0-alpha, `catalog_opm_experimental` v1.2.0-alpha) — and the closing Part B vocabulary cleanup of downstream enhancements (0008/0006/0007/0003) has landed. See [`## Deviations from Design`](#deviations-from-design). The out-of-scope `modules/`+`releases/` re-pin onto `core@v1`/`catalog_opm@v1` (with the `release.cue → instance.cue` sweep) and the opm-operator main-spec hygiene pass remain separately tracked.
+> **Implementation status (2026-06-30).** Implemented. All twelve code slices shipped and published: C1 (`core@v1` v1.0.0-alpha.1), L1 (`library` v1.0.0-alpha.3), O1–O3 (`opm-operator` v1.0.0-alpha, PR #37), X1–X4 (`opm` v1.0.0-alpha, PR #97), K1–K3 (`catalog_opm` v1.0.0-alpha, `catalog_kubernetes` v1.1.0-alpha, `catalog_opm_experimental` v1.2.0-alpha), and the closing Part B vocabulary cleanup of downstream enhancements (0008/0006/0007/0003) has landed. See [`## Deviations from Design`](#deviations-from-design). The out-of-scope `modules/`+`releases/` re-pin onto `core@v1`/`catalog_opm@v1` (with the `release.cue → instance.cue` sweep) and the opm-operator main-spec hygiene pass remain separately tracked.
 
 ## Summary
 
-OPM's deployable artifact is `#ModuleRelease` today. "Release" is Helm's word for the same construct and foregrounds a shipping event, when the construct's defining property is *multiplicity* — one `#Module` materialized as many concrete deployments. The word recurs, inconsistently, all the way down the stack: a CUE definition family in `core`, Go identifiers in `library`, two Kubernetes CRDs in `opm-operator`, and a command group in `cli`.
+OPM's deployable artifact is `#ModuleRelease` today. "Release" is Helm's word for the same construct and foregrounds a shipping event, when the construct's defining property is *multiplicity*: one `#Module` materialized as many concrete deployments. The word recurs, inconsistently, all the way down the stack: a CUE definition family in `core`, Go identifiers in `library`, two Kubernetes CRDs in `opm-operator`, and a command group in `cli`.
 
-This enhancement renames the whole family to `Instance` vocabulary **cross-cutting** (`affects: [core, library, opm-operator, cli]`). The `core` family (`#ModuleRelease`, `#ReleaseIdentity`, `#ctx.release`, `#Component.#release`, transformer `#moduleRelease*`) → `Instance` names; the library Go surface follows; the operator's `ModuleRelease` CRD → `ModuleInstance` and its GitOps `Release` CRD → `ModulePackage`; the wire `kind` strings, the `module-release.opmodel.dev/*` label domain, and the `releases.opmodel.dev` API group all move; the CLI `opm release …` → `opm instance …` and `BundleRelease` → `BundleInstance`. Behavior is unchanged; the gain is one coherent vocabulary and distance from Helm's lexicon.
+This enhancement renames the whole family to `Instance` vocabulary **cross-cutting** (`affects: [core, library, opm-operator, cli]`). The rename spans every layer:
 
-> **Note:** an earlier scope (D1) kept this core-only and explicitly preserved the operator's `Release` CRD. **D2 supersedes that** — the scope is now cross-cutting and the GitOps CRD is renamed to `ModulePackage`. D1 remains in the decision log as the original, reversed conclusion.
+- **core**: `#ModuleRelease`, `#ReleaseIdentity`, `#ctx.release`, `#Component.#release`, transformer `#moduleRelease*` → `Instance` names.
+- **library**: the Go surface follows `core`.
+- **opm-operator**: the `ModuleRelease` CRD → `ModuleInstance`; the GitOps `Release` CRD → `ModulePackage`.
+- **Wire contract**: the `kind` strings, the `module-release.opmodel.dev/*` label domain, and the `releases.opmodel.dev` API group all move together.
+- **cli**: `opm release …` → `opm instance …`; `BundleRelease` → `BundleInstance`.
+
+Behavior is unchanged; the gain is one coherent vocabulary and distance from Helm's lexicon.
+
+> **Note:** an earlier scope (D1) kept this core-only and explicitly preserved the operator's `Release` CRD. **D2 supersedes that**: the scope is now cross-cutting and the GitOps CRD is renamed to `ModulePackage`. D1 remains in the decision log as the original, reversed conclusion.
 
 ## Documents
 
-1. [01-problem.md](01-problem.md) — Why "Release" mis-teaches the model (Helm overlap + under-described multiplicity), and the four inconsistent spellings across the stack
-2. [02-design.md](02-design.md) — The cross-cutting rename mapping and the three-layer (identifier / wire / cluster) analysis
-3. [03-decisions.md](03-decisions.md) — D1..D12 (D2 reverses D1 → cross-cutting + `ModulePackage`; D3–D8 resolve the wire/group/CLI/bundle/semver questions; D9–D11 add the `release.cue`→`instance.cue` convention, the rename-every-file policy, and the Go `// Was:` docstring breadcrumb; D12 generalizes that breadcrumb to every rename site across code, docs, and specs)
-4. [04-graduation.md](04-graduation.md) — Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md) — API-group orphan risk, lockstep sequencing, breaking-rename drawbacks, alternatives
-6. [06-operational.md](06-operational.md) — PRR-lite (semver, reinstall-based rollback, cross-repo sequencing)
-7. [07-questions.md](07-questions.md) — Open Questions register
+1. [01-problem.md](01-problem.md): Why "Release" mis-teaches the model (Helm overlap + under-described multiplicity), and the four inconsistent spellings across the stack
+2. [02-design.md](02-design.md): The cross-cutting rename mapping and the three-layer (identifier / wire / cluster) analysis
+3. [03-decisions.md](03-decisions.md): D1..D12 (D2 reverses D1 → cross-cutting + `ModulePackage`; D3–D8 resolve the wire/group/CLI/bundle/semver questions; D9–D11 add the `release.cue`→`instance.cue` convention, the rename-every-file policy, and the Go `// Was:` docstring breadcrumb; D12 generalizes that breadcrumb to every rename site across code, docs, and specs)
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): API-group orphan risk, lockstep sequencing, breaking-rename drawbacks, alternatives
+6. [06-operational.md](06-operational.md): PRR-lite (semver, reinstall-based rollback, cross-repo sequencing)
+7. [07-questions.md](07-questions.md): Open Questions register
 
 Pure-CUE schema in [`schemas/target.cue`](schemas/target.cue).
 
@@ -28,32 +36,32 @@ Pure-CUE schema in [`schemas/target.cue`](schemas/target.cue).
 
 ### In scope
 
-- **core** — the deployable-artifact construct and supporting identity types: `#ModuleRelease` → `#ModuleInstance`, `#ModuleReleaseMap` → `#ModuleInstanceMap`, `#ReleaseIdentity` → `#InstanceIdentity`, `#ctx.release` → `#ctx.instance`, `#Component.#release` → `#Component.#instance`, transformer `#moduleRelease*` → `#moduleInstance*`; `SPEC.md` co-update + `INDEX.md` regen.
-- **library** — the Go `Release` surface (`Release` type + methods, `ReleaseMetadata`/`ReleaseView`, `synth.Release`/`ReleaseInput`, kernel `ProcessModuleRelease`/`SynthesizeRelease`/kind-detection, `Compiled.Release`/`Resource.Release()`) → `Instance` names; kind literal + label literals.
-- **opm-operator** — `ModuleRelease` CRD → `ModuleInstance`; GitOps `Release` CRD → `ModulePackage` (D2); API group `releases.opmodel.dev` → `opmodel.dev` (D5) + finalizer key; reconcilers, render constant, label constants, regenerated CRDs/RBAC/`PROJECT`/samples/fixtures.
-- **cli** — `opm release …` → `opm instance …` (alias `inst`, D6); `BundleRelease` → `BundleInstance` (D7); kind-detection, label constants, examples/docs.
-- **catalog** (D14) — the three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) pin `opmodel.dev/core@v1` and consume the renamed transformer context (`#moduleReleaseMetadata` → `#moduleInstanceMetadata`); each module bumps `@v0` → `@v1` on a forward-alpha tag, with the full-consistency sweep of catalog-local `release` vocabulary.
-- **wire** — `kind` strings (D3) and the `module-instance.opmodel.dev/*` label domain (D4) move in lockstep.
-- **conventions (all slices)** — every `release`-named file/directory is `git mv`'d to its instance/package equivalent (D10); the CLI instance-file name `release.cue` → `instance.cue` (D9); and every rename site across code, docs, and specs carries a short old-name breadcrumb — a `// Was:` doc/line comment on each renamed Go (D11) and CUE definition, and a "Renamed from …" note on each renamed doc / `SPEC.md` / `spec.md` section (D12 generalizes D11 from Go-exported-only to every surface and every definition).
+- **core**: the deployable-artifact construct and supporting identity types: `#ModuleRelease` → `#ModuleInstance`, `#ModuleReleaseMap` → `#ModuleInstanceMap`, `#ReleaseIdentity` → `#InstanceIdentity`, `#ctx.release` → `#ctx.instance`, `#Component.#release` → `#Component.#instance`, transformer `#moduleRelease*` → `#moduleInstance*`; `SPEC.md` co-update + `INDEX.md` regen.
+- **library**: the Go `Release` surface (`Release` type + methods, `ReleaseMetadata`/`ReleaseView`, `synth.Release`/`ReleaseInput`, kernel `ProcessModuleRelease`/`SynthesizeRelease`/kind-detection, `Compiled.Release`/`Resource.Release()`) → `Instance` names; kind literal + label literals.
+- **opm-operator**: `ModuleRelease` CRD → `ModuleInstance`; GitOps `Release` CRD → `ModulePackage` (D2); API group `releases.opmodel.dev` → `opmodel.dev` (D5) + finalizer key; reconcilers, render constant, label constants, regenerated CRDs/RBAC/`PROJECT`/samples/fixtures.
+- **cli**: `opm release …` → `opm instance …` (alias `inst`, D6); `BundleRelease` → `BundleInstance` (D7); kind-detection, label constants, examples/docs.
+- **catalog** (D14): the three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) pin `opmodel.dev/core@v1` and consume the renamed transformer context (`#moduleReleaseMetadata` → `#moduleInstanceMetadata`); each module bumps `@v0` → `@v1` on a forward-alpha tag, with the full-consistency sweep of catalog-local `release` vocabulary.
+- **wire**: `kind` strings (D3) and the `module-instance.opmodel.dev/*` label domain (D4) move in lockstep.
+- **conventions (all slices)**: every `release`-named file/directory is `git mv`'d to its instance/package equivalent (D10); the CLI instance-file name `release.cue` → `instance.cue` (D9); and every rename site across code, docs, and specs carries a short old-name breadcrumb: a `// Was:` doc/line comment on each renamed Go (D11) and CUE definition, and a "Renamed from …" note on each renamed doc / `SPEC.md` / `spec.md` section (D12 generalizes D11 from Go-exported-only to every surface and every definition).
 
 ### Out of scope
 
 - Any behavioral, evaluation-semantic, or field-shape change.
 - Renaming `#Module`, `#Platform`, `#Component`, `#Trait`, `#Resource`, `#Blueprint`. The `Platform` CRD keeps its kind (it only moves to the new API group with its siblings).
-- A compatibility-alias / deprecation window in any repo (D8 — hard rename).
+- A compatibility-alias / deprecation window in any repo (D8: hard rename).
 - A follow-up sweep of `modules/` and `releases/` fixtures naming the old identifiers (required, but tracked outside the four `affects` repos).
 
 ## Deviations from Design
 
 Divergences between the frozen-accepted design (2026-06-22) and what shipped. Most are captured as post-acceptance decisions (D9–D15) in [`03-decisions.md`](03-decisions.md); listed here for traceability.
 
-- **Scope grew to the catalog family (D14, 2026-06-27).** Accepted `affects` was `[core, library, opm-operator, cli]` (nine slices). The three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) were folded in as K1–K3 because they consume core's `#TransformerContext` and break on the `@v1` pin — `affects` became five repos / twelve slices.
-- **Release mechanics: v0.x-minor (D8) → v1-prerelease (D13).** The accepted design shipped each artifact as a `v0.x` `feat!` minor. D13 moved everything to a v1 prerelease line and advanced `opmodel.dev/core@v0 → @v1` — an additional import-path break D8 had deliberately avoided. D8's hard-rename / no-alias conclusion stands.
+- **Scope grew to the catalog family (D14, 2026-06-27).** Accepted `affects` was `[core, library, opm-operator, cli]` (nine slices). The three catalog CUE modules (`catalog_opm`, `catalog_kubernetes`, `catalog_opm_experimental`) were folded in as K1–K3 because they consume core's `#TransformerContext` and break on the `@v1` pin: `affects` became five repos / twelve slices.
+- **Release mechanics: v0.x-minor (D8) → v1-prerelease (D13).** The accepted design shipped each artifact as a `v0.x` `feat!` minor. D13 moved everything to a v1 prerelease line and advanced `opmodel.dev/core@v0 → @v1`: an additional import-path break D8 had deliberately avoided. D8's hard-rename / no-alias conclusion stands.
 - **`BundleRelease` removed, not renamed (D15 supersedes D7).** The accepted cli design renamed `BundleRelease → BundleInstance`. X2 planning established the bundle path is unreachable dead code with no live bundle kind in `core`/`catalog_opm`/`catalog_kubernetes`, so D15 deleted it outright (the `bundle-release-processing` capability is removed). `BundleInstance` is reintroduced only if bundle support is actually built.
 - **Published tag form vs D13's `v1.0.0-alpha.N`.** Tags settled as `v1.0.0-alpha` (no numeric suffix) for `opm-operator`, `cli`, and `catalog_opm`; forward-alpha `v1.1.0-alpha` / `v1.2.0-alpha` for `catalog_kubernetes` / `catalog_opm_experimental`; `library` iterated `v1.0.0-alpha.1..3` (operator pinned `alpha.3`); `core` published `v1.0.0-alpha.1`.
-- **L1 (library) shipped six capability deltas, not the planned four** — adding `schema-dispatch` and `config-validation` (both materially named renamed symbols). The CUE language floor was bumped to `v0.17.0-alpha.1`, and one obsolete `core@v0.4.0` synth negative-control test was retired (incompatible with `core@v1`-only targeting).
-- **opm-operator main-spec sync deferred.** The O-wave OpenSpec changes were bulk-archived with `--skip-specs` because ~17 of 36 `opm-operator/openspec/specs/*/spec.md` carry malformed delta-style headers that block the validator. Repairing them (and reflecting the rename in the synced main specs) is a separate spec-hygiene pass — a pre-existing condition, not a rename defect.
-- **Known cli carryover.** `cli/pkg/loader/synth.go` (`loadSynthWrapper`) still applies `#ModuleRelease` — the sole remaining production `#ModuleRelease` reference in `cli`, intentionally deferred to enhancement [0006](../0006/)'s kernel adoption (a bidirectional 0002↔0006 link).
+- **L1 (library) shipped six capability deltas, not the planned four**: adding `schema-dispatch` and `config-validation` (both materially named renamed symbols). The CUE language floor was bumped to `v0.17.0-alpha.1`, and one obsolete `core@v0.4.0` synth negative-control test was retired (incompatible with `core@v1`-only targeting).
+- **opm-operator main-spec sync deferred.** The O-wave OpenSpec changes were bulk-archived with `--skip-specs` because ~17 of 36 `opm-operator/openspec/specs/*/spec.md` carry malformed delta-style headers that block the validator. Repairing them (and reflecting the rename in the synced main specs) is a separate spec-hygiene pass: a pre-existing condition, not a rename defect.
+- **Known cli carryover.** `cli/pkg/loader/synth.go` (`loadSynthWrapper`) still applies `#ModuleRelease`: the sole remaining production `#ModuleRelease` reference in `cli`, intentionally deferred to enhancement [0006](../0006/)'s kernel adoption (a bidirectional 0002↔0006 link).
 - **Part B expanded beyond its planned identifier-only scope.** The closing wording cleanup also renamed `opm release <subcmd>` → `opm instance <subcmd>` command references in the affected drafts (the command group shipped as `opm instance`, X3/D6); bare-noun "release" prose and legacy-Secret descriptions were left intact. Two plan corrections surfaced: 0006 already carried the `related: "0002"` link (one fewer graph fix than planned), and 0003 was confirmed *not* clean (its `synth.Release` / `release.cue` prose was stale and was updated).
 
 ## Cross-References
@@ -62,18 +70,18 @@ Per-repo implementation touch-points, grouped by subsystem. This list was rebuil
 
 Three cross-cutting conventions apply to **every** file listed:
 
-- **D10 — rename the file too.** Any path whose name carries `release` is `git mv`'d to its instance/package equivalent (e.g. `modulerelease_types.go` → `moduleinstance_types.go`, `internal/releasefile/` → `internal/instancefile/`, `test/fixtures/releases/` → `modulepackages/`). The tables note the destination where non-obvious.
-- **D9 — `release.cue` → `instance.cue`.** The CLI instance-file convention and every fixture/example that uses it move; this ripples into the out-of-scope `modules/` and `releases/` repos (tracked as the closing sweep).
-- **D11 — `// Was:` docstring breadcrumb.** In the three Go repos, every renamed exported func/method/type gets its doc comment rewritten to instance vocabulary plus a trailing `// Was: <OldName>` tag.
+- **D10: rename the file too.** Any path whose name carries `release` is `git mv`'d to its instance/package equivalent (e.g. `modulerelease_types.go` → `moduleinstance_types.go`, `internal/releasefile/` → `internal/instancefile/`, `test/fixtures/releases/` → `modulepackages/`). The tables note the destination where non-obvious.
+- **D9: `release.cue` → `instance.cue`.** The CLI instance-file convention and every fixture/example that uses it move; this ripples into the out-of-scope `modules/` and `releases/` repos (tracked as the closing sweep).
+- **D11: `// Was:` docstring breadcrumb.** In the three Go repos, every renamed exported func/method/type gets its doc comment rewritten to instance vocabulary plus a trailing `// Was: <OldName>` tag.
 
 ### Protocol & design
 
 | Document | Purpose |
 | -------- | ------- |
 | `core/.claude/skills/core-schema-edit/SKILL.md` | Binding protocol for the `SPEC.md` co-update gated by pre-commit hook + CI; load before the core slice. |
-| [`../0001/`](../0001/) | Source of the `#ctx.release` wiring (0001 D1/D3/D4); this rename makes its prose use the old names — left intact as historical record (decision: do not edit 0001). |
+| [`../0001/`](../0001/) | Source of the `#ctx.release` wiring (0001 D1/D3/D4); this rename makes its prose use the old names: left intact as historical record (decision: do not edit 0001). |
 
-### core (`affects: core`) — publish first; `feat!:` v0.x tag
+### core (`affects: core`): publish first; `feat!:` v0.x tag
 
 | Path | Change |
 | ---- | ------ |
@@ -84,9 +92,9 @@ Three cross-cutting conventions apply to **every** file listed:
 | `core/src/transformer.cue` | `#moduleRelease`/`#moduleReleaseMetadata` → instance names; label key. |
 | `core/SPEC.md`, `core/src/INDEX.md` | Normative spec co-update (pre-commit/CI gated) + regenerated definition index (`task generate:index`). |
 | `core/README.md`, `core/docs/constructs.md`, `core/docs/adapters.md`, `core/docs/definition-types.md` | Prose/diagram/table references (`#ModuleRelease`, `#moduleReleaseMetadata`, mermaid). |
-| `core/CHANGELOG.md` | Two artifact references only; the rest (release-please version entries) is incidental — not a target. |
+| `core/CHANGELOG.md` | Two artifact references only; the rest (release-please version entries) is incidental: not a target. |
 
-### library (`affects: library`) — pin new `core`
+### library (`affects: library`): pin new `core`
 
 | Path | Change |
 | ---- | ------ |
@@ -98,9 +106,9 @@ Three cross-cutting conventions apply to **every** file listed:
 | `library/opm/core/{resource,compiled}.go` | `Resource.Release()` interface method + `Compiled.Release` field. |
 | `library/opm/{compile,errors,materialize}/*.go` | Release context references through the compile/match/error paths. |
 | `library/**/*_test.go`, test fixtures (~24 kind fixtures), `release_integration_test.go` | Kind literals `"ModuleRelease"` → `"ModuleInstance"`, label assertions; test files `git mv`'d alongside their sources. |
-| `library/README.md`, `library/CLAUDE.md`, `library/MIGRATIONS.md`, `library/docs/**`, `library/openspec/specs/**` (esp. `release-synthesis/spec.md`) | Doc/spec references; `MIGRATIONS.md` audited (mostly historical software-release notes — only artifact refs change). |
+| `library/README.md`, `library/CLAUDE.md`, `library/MIGRATIONS.md`, `library/docs/**`, `library/openspec/specs/**` (esp. `release-synthesis/spec.md`) | Doc/spec references; `MIGRATIONS.md` audited (mostly historical software-release notes: only artifact refs change). |
 
-### opm-operator (`affects: opm-operator`) — pin new `core`+`library`; heaviest slice
+### opm-operator (`affects: opm-operator`): pin new `core`+`library`; heaviest slice
 
 | Path | Change |
 | ---- | ------ |
@@ -116,7 +124,7 @@ Three cross-cutting conventions apply to **every** file listed:
 | `opm-operator/config/{crd/bases,rbac,samples}/**`, `PROJECT`, `dist/**` | Aggregated RBAC role files + samples `git mv`'d (group/kind in names); `PROJECT` hand-edited; CRD bases, `role.yaml`, `zz_generated.deepcopy.go`, `dist/install.yaml` **regenerated** via `make manifests generate` + installer task. |
 | `opm-operator/test/**` (incl. `fixtures/releases/` → `modulepackages/`), `.tasks/*.yaml`, `docs/design/release-vs-modulerelease-render-divergence.md` | ~19 test files, fixture dir move, task references, design doc retitle. ADRs 003/007 + archived OpenSpec left as historical record. |
 
-### cli (`affects: cli`) — pin new `core`+`library`; parallel with operator
+### cli (`affects: cli`): pin new `core`+`library`; parallel with operator
 
 | Path | Change |
 | ---- | ------ |
@@ -128,9 +136,9 @@ Three cross-cutting conventions apply to **every** file listed:
 | `cli/internal/cmdutil/{release_arg,release_target}.go` | **git mv** → `instance_arg.go`/`instance_target.go`. |
 | `cli/internal/workflow/**` (render, apply, query) | Import-path + type renames (`releasefile` → `instancefile`, `module.Release` → `module.Instance`); ~100+ refs. |
 | `cli/internal/{inventory,kubernetes}/*.go`, `cli/pkg/ownership/ownership.go`, `cli/pkg/core/labels.go` | `LabelModuleRelease*` → instance domain (mirrors operator) + dependent selectors. |
-| `cli/examples/releases/**/release.cue`, `cli/tests/**` (`integration/rel-*` → `inst-*`, `e2e/testdata/vet-errors/release/`), `cli/openspec/specs/**` (25+ dirs), ADRs/RFCs/docs | **git mv** to instance names (D9/D10); example, integration, e2e fixtures and spec dirs. `.goreleaser.yml` is binary-release tooling — not a target. |
+| `cli/examples/releases/**/release.cue`, `cli/tests/**` (`integration/rel-*` → `inst-*`, `e2e/testdata/vet-errors/release/`), `cli/openspec/specs/**` (25+ dirs), ADRs/RFCs/docs | **git mv** to instance names (D9/D10); example, integration, e2e fixtures and spec dirs. `.goreleaser.yml` is binary-release tooling: not a target. |
 
-### catalog (`affects: catalog`) — pin new `core` only; runs parallel with library (D14)
+### catalog (`affects: catalog`): pin new `core` only; runs parallel with library (D14)
 
 Three independent CUE-module repos, no OpenSpec workspace, no cross-catalog imports. Each bumps its own module `@v0 → @v1` and pins `opmodel.dev/core@v1` (`v1.0.0-alpha.1`). The only compile-required core-driven change is `#moduleReleaseMetadata` → `#moduleInstanceMetadata`; the rest is the full-consistency sweep (D14 §2) and the `@v0` → `@v1` import bump on every file.
 
@@ -146,7 +154,7 @@ Three independent CUE-module repos, no OpenSpec workspace, no cross-catalog impo
 | `catalog_kubernetes/src/**/*.cue` (~56 files), `src/CLAUDE.md` | `core@v0` import → `@v1`; consistency prose. |
 | `catalog_kubernetes/release-please-config.json`, `.release-please-manifest.json` | Prerelease block; **forward-alpha** target tag `v1.1.0-alpha.1` (`feat`, forward of existing `v1.0.0`). |
 | `catalog_opm_experimental/src/cue.mod/module.cue`, `src/catalog.cue` | `module:` `@v0` → `@v1`; dep `core@v0` (`v0.4.0`) → `@v1` (`v1.0.0-alpha.1`); import bump. |
-| `catalog_opm_experimental/src/identity/identity.cue` | Verify for `ReleaseIdentity`/`#release`; rename if present (skeleton — likely none). |
+| `catalog_opm_experimental/src/identity/identity.cue` | Verify for `ReleaseIdentity`/`#release`; rename if present (skeleton: likely none). |
 | `catalog_opm_experimental/{README.md,CLAUDE.md,Taskfile.yml}`, `src/INDEX.md` | Doc `@v0` → `@v1` refs; regenerate INDEX. |
 | `catalog_opm_experimental/release-please-config.json`, `.release-please-manifest.json` | Prerelease block; **forward-alpha** target tag `v1.2.0-alpha.1` (`feat`, forward of existing `v1.1.0`). |
-| `modules/**`, `releases/**` (`catalog_opm@v0` consumers) | **Out of scope** — old `@v0` catalog tags stay published; re-pin tracked separately (same exclusion as the D9 sweep). |
+| `modules/**`, `releases/**` (`catalog_opm@v0` consumers) | **Out of scope**: old `@v0` catalog tags stay published; re-pin tracked separately (same exclusion as the D9 sweep). |

@@ -1,4 +1,4 @@
-# Problem Statement — Machine-Readable Artifact Metadata in cue.mod/module.cue
+# Problem Statement: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
 ## Current State
 

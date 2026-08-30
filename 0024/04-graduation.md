@@ -1,4 +1,4 @@
-# Graduation Criteria — CUE Testing and Conformance
+# Graduation Criteria: CUE Testing and Conformance
 
 Entry-specific gates for `draft → accepted`. Repo-wide checks live in `gates.cue` and `task vet`; per-question blocking rules live on the questions in `07-questions.md`.
 

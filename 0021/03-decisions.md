@@ -1,6 +1,6 @@
 # Design Decisions: OPM Versioning Policy
 
-This document records every significant design choice with its reasoning and the alternatives that were ruled out.
+This document records every design choice, with its reasoning and the alternatives that were ruled out.
 
 ## Summary
 
@@ -69,12 +69,14 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 **Kind:** scope
 
-**Decision:** The policy covers nine classes: the core schema; the catalog build; the catalog contract; the transformer; the module; the CLI template; the tooling train of kernel library, CLI and operator; the CRDs; and the documentation site. Each has its own file under `policy/` and a row in `contracts/policy.cue`. Out of scope, by the author's selection from the workspace sweep of 2026-08-24: the test fixture fleets under `testing.opmodel.dev` (three publish mechanisms, no consumer outside CI), the CLI's importable Go packages (no stated consumer), the operator install manifest as a class of its own (it is an artifact of the operator release), and platforms (consumers, not artifacts, until something publishes one; OQ11). The cross-actor wire contracts the sweep surfaced (the operator version-skew ceiling, the CRD constants the CLI mirrors, the inventory digest, the label vocabulary, the catalog-version coupling between platform and modules) are compatibility contracts without a version of their own; they are named under the CRD class as its shared surface and gated by parity, not by a bump rule.
+**Decision:** The policy covers nine classes: the core schema; the catalog build; the catalog contract; the transformer; the module; the CLI template; the tooling train of kernel library, CLI and operator; the CRDs; and the documentation site. Each has its own file under `policy/` and a row in `contracts/policy.cue`. Out of scope, by the author's selection from the workspace sweep of 2026-08-24: the test fixture fleets under `testing.opmodel.dev` (three publish mechanisms, no consumer outside CI); the CLI's importable Go packages (no stated consumer); the operator install manifest as a class of its own (it is an artifact of the operator release); and platforms (consumers, not artifacts, until something publishes one; OQ11).
+
+The sweep also surfaced cross-actor wire contracts: the operator version-skew ceiling, the CRD constants the CLI mirrors, the inventory digest, the label vocabulary, and the catalog-version coupling between platform and modules. These are compatibility contracts without a version of their own. They are named under the CRD class as its shared surface and gated by parity, not by a bump rule.
 
 **Alternatives considered:**
 
 - **Every class the sweep found.** Fourteen artifact classes plus eight wire contracts. Rejected by the author as scope: the fixtures and the CLI's Go packages have no consumer a promise could reach, and the install manifest is the operator release seen from the CLI's side.
-- **Drop the catalog build as a class, since the contract class carries the promise.** Considered and kept: a `#Platform` subscription pins a build as a scalar and never a contract, and every transformer key embeds the build version, so the build is the unit a platform actually depends on; the contract class says what a member promises, the build class says which members and transformers ship together. What the build class lacks is the rule for how a contract-level event moves its number, which is OQ7.
+- **Drop the catalog build as a class, since the contract class carries the promise.** Considered and kept. A `#Platform` subscription pins a build as a scalar and never a contract, and every transformer key embeds the build version, so the build is the unit a platform actually depends on. The contract class says what a member promises; the build class says which members and transformers ship together. What the build class lacks is the rule for how a contract-level event moves its number, which is OQ7.
 
 **Rationale:** The sweep is the evidence; the selection is the author's. Naming what is out and why keeps the omissions deliberate rather than silent, which is D1's own requirement.
 
@@ -100,7 +102,7 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 **Kind:** contract
 
-**Decision:** A transformer binds to exact contract keys, and a contract key embeds its `apiVersion`, so a transformer that serves more than one level of a resource or trait declares **one transformer per level**, each naming that level's key in its required or optional maps, and all of them sharing one transform body. Nothing in the match path changes: each registration matches exactly the components that demand its key, and the exact-key rule of 0010 D34 stands. Under promotion by aliasing (0020 D4) the levels are one definition, so the shared body serves both without change.
+**Decision:** A transformer binds to exact contract keys, and a contract key embeds its `apiVersion`. So a transformer that serves more than one level of a resource or trait declares **one transformer per level**, each naming that level's key in its required or optional maps, with all of them sharing one transform body. Nothing in the match path changes: each registration matches exactly the components that demand its key, and the exact-key rule of 0010 D34 stands. Under promotion by aliasing (0020 D4) the levels are one definition, so the shared body serves both without change.
 
 **Backup rule, for a breaking level:** when two served levels differ in shape, the shared body reads a canonical shape and each per-level registration supplies the projection from its level into it. The projection is a struct, authored beside the registration, and a level with no projection is a level the transformer does not serve. The catalog states which levels each transformer serves; how it states it (index, label, vet check) is the catalog's own decision.
 

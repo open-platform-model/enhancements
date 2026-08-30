@@ -1,4 +1,4 @@
-# Operational Concerns — Documentation Architecture
+# Operational Concerns: Documentation Architecture
 
 ## Observability
 
@@ -18,7 +18,7 @@ The one thing worth stating: "documentation-only" does not mean "no artifact cha
 
 ## Deprecation
 
-`opm/docs` is the deprecated surface. Every file there describes the v0 catalog line, and the tree is currently reachable and looks current, which is the failure mode. Its retirement path is OQ4, unresolved because `opm` is not a member of the area vocabulary and therefore cannot own a slice in this entry's plan.
+`opm/docs` is the deprecated surface. Every file there describes the v0 catalog line, and the tree remains reachable and looks current, which is the failure mode. Its retirement path is OQ4, unresolved because `opm` is not a member of the area vocabulary and therefore cannot own a slice in this entry's plan.
 
 Whatever the resolution, three pieces are worth salvaging as *format* rather than content: the glossary's shape (a short definition plus an optional CUE snippet, plus the CUE-terms and workflow-terms tables), the persona routing at the top of `docs/index.md`, and the raw-versus-blueprint side-by-side in `concepts/resources-traits-blueprints.md`, which is the clearest teaching device in the workspace and survives a path rewrite almost verbatim.
 
