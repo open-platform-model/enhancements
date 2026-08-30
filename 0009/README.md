@@ -43,6 +43,7 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 - The execution half of the library kernel: a pure planner + orchestrator (`opm/flow/`) and the opt-in executor backend layer with its registry and fail-fast-on-unsupported behavior.
 - The initial Op vocabulary (`exec`, `http` full-CRUD, `wait`, `cue.eval`, k8s get/apply) as catalog-published definitions.
 - Frontend wiring: CLI and operator each composing their backend set; operator driving `#Lifecycle` phases from the reconcile loop.
+- The kernel's cancellation path and its logger, tracer and clock slots: designed and wired by this entry, untouched by any other change until it lands (D9).
 
 ### Out of scope
 
