@@ -127,4 +127,19 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Source:** User decision 2026-06-29.
 
+### D9: The execution half owns the kernel's cancellation path and its observability slots
+
+**Kind:** scope
+
+**Decision:** Two kernel surfaces that predate this entry are its to design and deliver: the cancellation path (a caller's context reaching phase boundaries and registry I/O) and the three dependency-injection slots the kernel accepts (logger, tracer, clock). Until this entry lands they stay as they are, accepted and unread. No other change threads, wires or removes them.
+
+**Alternatives considered:**
+
+- Remove the three slots as dead surface in a library cleanup and re-add them here. Rejected: churn on a public option surface, with a consumer migration on each side, for no gain a consumer can observe.
+- Thread cancellation through the kernel as a standalone library change ahead of this entry. Rejected: a cancellation path needs a consumer with a cancellation story, and the runner is the first one; designing it beside the executor port keeps one model across both halves.
+
+**Rationale:** Measured in the library kernel review: the kernel discards the caller's context on most entry points, and the context never reaches a registry fetch because CUE's loader substitutes its own before loading; the logger, tracer and clock slots have had no reader since they were added. The planner and runner are the first kernel surface that needs all four. A lifecycle phase blocks on wait steps and registry pulls, and step-level spans are where an operator reads progress, so the execution half is where these slots first earn their existence. See OQ6 for the measured limit on how far cancellation can reach.
+
+**Source:** User decision 2026-08-30, from the library kernel review.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

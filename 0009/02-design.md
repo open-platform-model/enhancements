@@ -72,7 +72,7 @@ The `@op(...)` attribute is the load-bearing new convention. It is hof.io-inspir
 
 **`core/` (`opmodel.dev/core@v1`)**: new `src/op.cue`, `src/action.cue`, `src/lifecycle.cue`, `src/workflow.cue` defining the four constructs; additive `#ops` / `#actions` maps on `#Catalog` in `src/catalog.cue`; attachment of `#Lifecycle` / `#Workflow` onto `#Module` (OQ4). SPEC.md co-update required (`core-schema-edit` skill).
 
-**`library/`**: new `opm/flow/` package (planner, runner, `Executor` interface, `Registry`, plan types); `Kernel.PlanLifecycle` / `Kernel.PlanWorkflow` / run entry points; opt-in `opm/helper/executor/*` backend hosts; attribute reading in the planner via `cue.Value.Attribute`.
+**`library/`**: new `opm/flow/` package (planner, runner, `Executor` interface, `Registry`, plan types); `Kernel.PlanLifecycle` / `Kernel.PlanWorkflow` / run entry points; opt-in `opm/helper/executor/*` backend hosts; attribute reading in the planner via `cue.Value.Attribute`. This half also owns the kernel's cancellation path and its logger, tracer and clock slots (D9): they are designed and wired here and left untouched by every other change until then.
 
 **`catalog_opm/`**: publish the initial Op definitions and their artifacts; register them in the catalog manifest's new `#ops` / `#actions` maps. (No `#Area` token exists for `catalog_opm`; tracked in prose.)
 

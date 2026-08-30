@@ -57,6 +57,8 @@ history:
 # ("legacy:003") that point at frozen library/enhancements/ predecessors.
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
+  - date: "2026-08-30"
+    event: 'D9 recorded: this entry owns the kernel cancellation path and the logger, tracer and clock slots, deferred from the library kernel review; OQ6 opened on how far cancellation can reach.'
 related: []
 # Lifecycle relationships.
 supersedes: []
