@@ -11,6 +11,11 @@ log:
       Removed legacy res.#Secret/#AutoSecrets/opm-secrets from all seven v2 modules; sensitive fields are plain strings injected via value:, marked // 0013: pending core's real #Secret
     change: { kind: openspec, repo: modules, change: modules-drop-legacy-secrets }
     decisions: [D9]
+  - date: "2026-09-01"
+    summary: >-
+      Fleet re-pinned to catalogs/opm@v4.0.0; k8up updated for removed EnvVarSchema.from
+    change: { kind: openspec, repo: modules, change: fleet-repin-catalog-v4 }
+    decisions: [D9]
 no_work:
   D1: >-
     Superseded by D10 the day it was written; retained position only, no work
