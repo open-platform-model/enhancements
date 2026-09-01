@@ -1,0 +1,8 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-09-01"
+    summary: >-
+      library: removed unread kernel DI slots (logger/tracer/clock options, Clock, otel dep); operator migrated in same wave
+    change: { kind: openspec, repo: library, change: library-slot-prune }
+    decisions: [D9]

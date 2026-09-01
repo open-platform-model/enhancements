@@ -28,7 +28,7 @@ affects:
   - opm-operator
 core_schema: true
 created: "2026-06-29"
-updated: "2026-08-30"
+updated: "2026-09-01"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -59,6 +59,8 @@ history:
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-08-30"
     event: 'D9 recorded: this entry owns the kernel cancellation path and the logger, tracer and clock slots, deferred from the library kernel review; OQ6 opened on how far cancellation can reach.'
+  - date: "2026-09-01"
+    event: 'D9 revised: slots half reversed; logger, tracer and clock removed as write-only surface, re-introduced here with their first reader. Cancellation half unchanged.'
 related: []
 # Lifecycle relationships.
 supersedes: []
