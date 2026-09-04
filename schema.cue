@@ -9,7 +9,10 @@
 // OpenSpec change carries (read by `task delivery:log` / `delivery:reconcile`).
 package enhancements
 
-import "strings"
+import (
+	"list"
+	"strings"
+)
 
 #DateStr: =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 
@@ -129,7 +132,16 @@ import "strings"
 	updated!:       #DateStr & >=created
 	authors!:       [_, ...string]
 	history!:       [...#HistoryEvent]
-	related!:       [...#CrossRefStr]
+	// Entries whose DECISIONS this entry's decisions depend on. Directed,
+	// and never a vibe: an edge exists iff a decision depends on a decision.
+	// MMMM belongs here iff a live `### DN:` block in 03-decisions.md
+	// carries `**Depends:** MMMM:DN` (see #QualifiedDNStr); `task vet`
+	// enforces both directions (scripts/depends.sh) and refuses a cycle.
+	// Four-digit ids only: a dependency resolves to a decision heading in
+	// MMMM/03-decisions.md, and the frozen library predecessors have no
+	// decision log in this shape, so `legacy:NNN` cannot be a target. Cite
+	// a legacy entry in prose, or in supersedes/revives.
+	depends_on!:    [...#IDStr] & list.UniqueItems()
 	supersedes!:    [...#CrossRefStr]
 	superseded_by!: null | #CrossRefStr
 
@@ -208,6 +220,13 @@ import "strings"
 // expressible here.
 #DNumStr:  =~"^D[0-9]+$"
 #OQNumStr: =~"^OQ[0-9]+$"
+
+// A decision reference QUALIFIED with its entry: the token form of the
+// `**Depends:** MMMM:DN` field in 03-decisions.md. No config.yaml field
+// holds one; it is documented here so the grammar has a single home.
+// Resolution (MMMM exists, DN is a live heading there, MMMM is listed in
+// this entry's depends_on) is checked by scripts/depends.sh under `task vet`.
+#QualifiedDNStr: =~"^[0-9]{4}:D[0-9]+$"
 
 // A stable, structured reference to the change that landed. Never a path and
 // never a URL: paths break when an OpenSpec change is archived (the directory

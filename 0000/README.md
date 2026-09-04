@@ -152,7 +152,7 @@ Delivery is recorded in this entry's `delivery.yaml`: an append-only log with on
 
 Diagrams are welcome throughout this enhancement's documents. The medium depends on what's being shown, never a blanket default:
 
-- **Mermaid**: relationships between enhancements: whether this entry should `related`/`supersedes` another. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what that file will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
+- **Mermaid**: relationships between enhancements: whether one of this entry's decisions depends on another entry's (a `depends_on` edge), or whether this entry supersedes one. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what that file will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
 - **ASCII**: how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later. Bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
 
 See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
@@ -231,7 +231,9 @@ commit, never folded into a content change.
 
 The seven three-digit entries under `library/enhancements/` (001..007) are
 frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `related` / `supersedes` / `superseded_by`. Once
-those entries are deleted, the references become dangling and the validator
-(future) will flag them: fix or remove at that point.
+the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`; `depends_on`
+cannot target one, because a dependency resolves to a decision heading and the
+legacy entries have none, so cite them in prose instead. Once those entries are
+deleted, the references become dangling and the validator (future) will flag
+them: fix or remove at that point.
 -->

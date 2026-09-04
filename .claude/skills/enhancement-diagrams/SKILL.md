@@ -22,9 +22,11 @@ exists to make reaching for a diagram the default move at the right moments, not
 The two categories are not a style preference; they map onto genuinely different content:
 
 - A **relationship** question has enhancements or entries as its nodes and
-  `related`/`supersedes` as its edges. This is exactly what `GRAPH.md` (cross-entry)
+  `depends_on`/`supersedes`/`revives` as its edges. This is exactly what `GRAPH.md` (cross-entry)
   already renders as generated Mermaid. Mermaid is a natural fit because that is what it's
-  for: named nodes, directed/undirected edges, `classDef`-based coloring.
+  for: named nodes, directed edges, `classDef`-based coloring. A `depends_on` edge is earned,
+  not sketched into being: it exists iff a decision in one entry carries a `**Depends:**` line
+  naming a decision in the other.
 - A **design/mechanism** question has functions, data, states, or components as its nodes —
   how a deletion protocol resolves, how a rung ladder architecture is layered, how a request
   flows through a pipeline. This is what `enhancements/0012/02-design.md` already draws by hand,
@@ -40,7 +42,7 @@ Load this skill when any of the following is true:
   OQ concerns either category above.
 - You are in Phase 2 (Iterate) of the `enhancements` workflow, discussing `02-design.md`'s
   High-Level Approach, Schema/API Surface, Integration Points, or Before/After with the user.
-- You are weighing a `related`/`supersedes` edge, or whether to split or merge
+- You are weighing a `depends_on`/`supersedes` edge, or whether to split or merge
   enhancements, before committing the edit to `config.yaml`.
 - You are unsure which medium a diagram calls for — re-read `## The core split` above before
   drawing anything.
@@ -55,7 +57,7 @@ A concrete trigger list, so this is a default reflex rather than a vague encoura
 
 | Question shape | Reach for | Example |
 | --- | --- | --- |
-| Should this entry `related`/`supersedes` another? | Mermaid relationship sketch | "If 0013 supersedes 0007, does the graph still make sense with 0005 still pointing at 0007?" |
+| Should this entry `depends_on`/`supersedes` another? | Mermaid relationship sketch | "If 0013 supersedes 0007, does the graph still make sense with 0005 still pointing at 0007?" |
 | Should we split this enhancement into two, or merge two into one? | Mermaid relationship sketch, before/after | Visualize the graph both ways before deciding. |
 | How does this layered architecture fit together? | ASCII layered diagram | `0012`'s rung ladder (kernel emits → decides → acts → owns the CR). |
 | How does data flow through this pipeline / protocol? | ASCII flow diagram | `0012`'s deletion protocol (inputs → `DeletionPlan()` → verdict). |
@@ -79,7 +81,7 @@ classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:
 This is a genuinely new capability, not a restatement of what already exists: today `GRAPH.md`
 only exists *after* `task graph` runs against already-committed data.
 A live sketch lets the user see the shape of a *proposed* edge or split — "what would the graph
-look like if 0013 superseded 0007 instead of merely relating to it?" — before touching
+look like if 0013 superseded 0007 instead of merely depending on it?" — before touching
 `config.yaml` at all. Once the relationship decision is actually made, it is
 encoded there and the real file is regenerated; the live sketch was scaffolding for the
 conversation, not a new artifact to maintain. Never hand-edit `GRAPH.md` to match a

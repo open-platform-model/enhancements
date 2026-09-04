@@ -32,7 +32,8 @@ accepted:
   new or changed definition, and `spec.md` drafts the core SPEC.md delta
   (four-part format), `task vet` enforces file presence at `accepted`.
   If `core_schema: false`: no `schemas/` exists; any `contracts/` compiles.}
-- {`related`, `supersedes`, `superseded_by` in `config.yaml` are final
-  and resolve to existing enhancements.}
+- {`depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final
+  and resolve; every `depends_on` id is carried by a `**Depends:**` line in
+  a live decision.}
 - {`semver` in `config.yaml` is set (major / minor / none).}
 - {No `{Capitalised}` placeholder strings remain in any markdown file.}
