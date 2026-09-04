@@ -20,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-29"
-updated: "2026-08-30"
+updated: "2026-09-04"
 authors:
   - emil@jacero.se
 # Design impact on the published contract. none = no core schema change and no
@@ -46,14 +46,18 @@ history:
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
-# Peer enhancements this one builds on or interacts with.
-# Accepts new four-digit ids ("0042") and legacy three-digit refs
-# ("legacy:003") that point at frozen library/enhancements/ predecessors.
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
-related:
+  - date: "2026-09-04"
+    event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+# Entries whose decisions this entry's decisions depend on. An edge exists
+# iff a decision depends on a decision: list MMMM here only when a live
+# `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
+# list every MMMM those lines name. Four-digit ids only (a dependency
+# resolves to a decision heading; legacy:NNN has none). `task vet` enforces
+# both directions and refuses a cycle.
+depends_on:
   - "0006"
-  - "0013"
 # Lifecycle relationships.
 supersedes: []
 # Archived ids this entry re-opens. One-way: the archived entry is frozen

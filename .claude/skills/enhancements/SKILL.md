@@ -1,6 +1,6 @@
 ---
 name: enhancements
-description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft to accepted via task promote, or killing it via task reject), appending history events, adding cross-references, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..07.
+description: Canonical workflow protocol for the OPM enhancements repo. Load before creating a new enhancement, editing any file under enhancements/NNNN/ (config.yaml, README, the six split documents, schemas/, contracts/), promoting an enhancement's status (draft to accepted via task promote, or killing it via task reject), appending history events, adding depends_on / **Depends:** edges, or running any task in enhancements/Taskfile.yml. Skip only when reading an existing enhancement to learn it — then walk its README and 01..07.
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ Load this skill when any of the following is true:
 - Editing anything under `enhancements/NNNN/schemas/` (the core-schema delta) or `enhancements/NNNN/contracts/` (non-core compilable CUE).
 - Promoting an enhancement's `status` (`draft → accepted` via `task promote`, or killing it via `task reject`).
 - Appending an event to `config.yaml.history` (history records design milestones; landings go to the entry's `delivery.yaml`).
-- Adding or removing entries in `related`, `supersedes`, `superseded_by`.
+- Adding or removing entries in `depends_on`, `supersedes`, `superseded_by`, `revives`, or a `**Depends:**` line in a decision.
 - Running any of the workflow tasks (`task vet`, `task check`, `task new`, `task index`, `task graph`, etc.).
 - Reviewing whether a design is ready to promote — the per-status checklist below is the binding gate.
 
@@ -48,7 +48,7 @@ These hold across every enhancement in the repo. Violations fail PR review even 
 6. **An implemented design is closed.** No compaction, no merging, no rewriting: `task delivery` reports the derived state and `task compact:plan` refuses the entry. Corrections go in a new enhancement.
 7. **The entry stores rules and intent; every changing fact is derived.** Delivery state derives from the entry's own append-only `delivery.yaml` log (the one execution record an entry carries, and it is append-only facts, not status churn), maturity from the published artifact's `apiVersion`, the gate verdict from a walk bound to a content hash. Before adding a field to `config.yaml`, ask whether its value would need updating after the design is done. If yes, it does not belong.
 7. **Don't hard-wrap prose in `.md` files.** Workspace convention.
-8. **Don't reference `library/enhancements/` content directly** when writing new entries. Those are frozen predecessors. Use the `legacy:NNN` cross-ref form in `related` / `supersedes` if the historical link matters.
+8. **Don't reference `library/enhancements/` content directly** when writing new entries. Those are frozen predecessors. Use the `legacy:NNN` cross-ref form in `supersedes` / `revives` if the historical link matters; `depends_on` cannot target a legacy entry, because a dependency resolves to a decision heading and the legacy entries have none.
 9. **Don't fork content from the legacy library enhancements.** Fresh prose. The frozen predecessors are reference material for *why* the new design exists, not source code to copy.
 
 ## The workflow
@@ -109,6 +109,8 @@ Decisions are written **after** they are made, not speculatively, and only if th
 
 **Kind:** {contract | policy | scope}
 
+**Depends:** {MMMM:DN, MMMM:DN; only when this decision rests on another entry's decision}
+
 **Decision:** {What was decided. State it as a fact.}
 
 **Alternatives considered:**
@@ -122,6 +124,8 @@ Decisions are written **after** they are made, not speculatively, and only if th
 ```
 
 Source is specific. "User decision 2026-05-23" beats "discussion"; an experiment outcome reference (`enhancements/NNNN/experiments/01-name/`) beats a vague "validated".
+
+`**Depends:**` is optional and tokens-only (`MMMM:DN`, comma-separated, no prose). It is owed when the decision rests on another entry's decision: *if that decision were reversed, would this one need an `Amends:`?* A citation for precedent, contrast, or a delegated enforcement site is prose, not a dependency. Every entry the lines name goes in `config.yaml.depends_on`, and nothing else does; `task vet` enforces both directions, requires each target to be a live heading in that entry's log, and refuses a cycle.
 
 **While the entry is `draft`, a changed decision is an in-place edit.** Rewrite the affected `### DN:` block to state the new choice — never append a second decision that conflicts with an existing one. When the position being replaced was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* marked as previously adopted, and optionally add a `**Revised:** YYYY-MM-DD — {what changed}` line; a position that was only ever a sketch may be replaced outright. The keep/drop test applies at write time: keep what would change a future decision, drop what only records that we changed our mind. A decision that is genuinely retracted — nothing replaces it — keeps its number as a tombstone (`### DN: (retracted, YYYY-MM-DD)` plus one line on why), never a deleted heading.
 
@@ -171,7 +175,7 @@ As code ships:
 - **When the change is archived, log the landing:** the repo's archive guidance points at `task delivery:log FROM=<change-dir> SUMMARY="..."`, run from the enhancements repo. PR/commit landings in repos without OpenSpec use explicit mode. Nothing else about delivery is recorded in the entry.
 - Append a `history` event here **only when the design itself reaches a milestone** — a decision amended, a question resolved, scope changed. Never what landed where: that is the log's job, and an event saying it is the logbook coming back. New events are capped at 200 runes by the schema.
 - For changes that land in `core/*.cue`: **load `core-schema-edit` first.** The pre-commit hook and CI gate reject the commit otherwise.
-- Decision bodies are **protected** while the entry is `accepted`. A change lands as a new `DN` with `**Amends:**` / `**Supersedes:**`, never as a direct edit. Weave the stacked reversals via `enhancement-compaction` as they land, or at latest before the entry derives `implemented`; `task compact:plan` refuses an implemented entry, so anything left stacked stays stacked.
+- Decision bodies are **protected** while the entry is `accepted`. A change lands as a new `DN` with `**Amends:**` / `**Supersedes:**` (and `**Depends:**` when it rests on another entry's decision), never as a direct edit. Weave the stacked reversals via `enhancement-compaction` as they land, or at latest before the entry derives `implemented`; `task compact:plan` refuses an implemented entry, so anything left stacked stays stacked.
 
 There is no flip at the end. An entry whose live decisions are all carried or excused simply reads `implemented` in `task delivery` and `task list`.
 
@@ -204,7 +208,9 @@ Terminal state — the design intent is now `MMMM`'s. Don't keep developing the 
 
 ## Cross-references between entries
 
-The `related`, `supersedes`, and `superseded_by` fields accept two token forms:
+**`depends_on`** is directed and earned: an edge exists iff a decision depends on a decision. An entry lists `MMMM` only when a live `### DN:` block in its `03-decisions.md` carries `**Depends:** MMMM:DN`, and it lists every entry those lines name. Four-digit ids only. `task vet` enforces both directions, requires each target to be a live heading, and refuses a cycle, so `GRAPH.md` is a DAG. Shared topic, reading order, or a prose mention is not an edge.
+
+**`supersedes`, `superseded_by` and `revives`** are lifecycle links and accept two token forms:
 
 - **`"NNNN"`** — workspace-root four-digit id. Resolves to `enhancements/NNNN/`.
 - **`"legacy:NNN"`** — frozen library predecessor. Resolves to `library/enhancements/NNN-*/`. Use when the historical link is informative — e.g. the new entry inherits the problem statement from a frozen library design but the conclusions diverge.
@@ -224,7 +230,8 @@ The cheap-entry state. Be lenient — this is where ideas form.
 - **[H]** no `{Capitalised}` placeholder strings outside code fences, HTML comments, or single-line backtick spans
 - **[H]** `area ∈ affects`
 - **[H]** `created` set, `updated >= created`
-- **[H]** cross-refs (`related`, `supersedes`, `superseded_by`) resolve to existing entries (workspace `NNNN/` or `library/enhancements/NNN-*/`)
+- **[H]** cross-refs (`supersedes`, `superseded_by`) resolve to existing entries (workspace `NNNN/` or `library/enhancements/NNN-*/`)
+- **[H]** `depends_on` ids exist and are not the entry itself; each is carried by a `**Depends:**` line in a live decision whose target heading exists in that entry's log and is not a tombstone; the `depends_on` graph is acyclic
 - **[H]** `summary` set (one line, ≤200 runes); `revives` resolves into `archive/`
 - **[H]** `core_schema` set; `schemas/` exists **iff** it is `true`, contains `target.cue`, and compiles via `cue vet ./...`; when `true`, `core ∈ affects`
 - **[H]** `contracts/`, when present, is non-empty and compiles via `cue vet ./...`
@@ -300,7 +307,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task reject ID=NNNN REASON="…"` | Killing an idea. Archives it with its reason; the id is never reused. |
 | `task archive:list` / `archive:data` | Checking a new idea against prior art (the `prior-art` gate). Lists both terminal states — rejected with reasons, superseded with successors. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
-| `task graph` | After any cross-reference edit. `GRAPH.md` is generated, not hand-edited. |
+| `task graph` | After any `depends_on` / `supersedes` / `revives` edit. `GRAPH.md` is generated, not hand-edited. |
 | `task delivery:log FROM=<change-dir> SUMMARY="…"` | Logging an archived OpenSpec change into every enhancement its `enhancement.yaml` declares. Explicit mode (`ID= REPO= KIND=openspec\|pr\|commit CHANGE=/NUMBER=/SHA= SUMMARY= [DECISIONS=] [RESOLVES=]`) covers repos without OpenSpec. **Load the `delivery-log` skill first.** |
 | `task delivery:uncovered [ID=NNNN]` | Live decisions no logged change carries and `no_work` does not excuse. Not a gate; read it when logging and before expecting `implemented`. |
 | `task delivery:deferred` | Every `deferred-to-implementation` OQ and whether a log entry claims it via `resolves`. |
@@ -323,7 +330,7 @@ Workflow:
 ## Common pitfalls
 
 - **Forgetting to re-run `task index` after editing `config.yaml`.** `INDEX.md` is generated. Stale `INDEX.md` is the most common drift; run `task index` whenever any `config.yaml` changes.
-- **Forgetting to re-run `task graph` after editing cross-references.** Same story for `GRAPH.md`.
+- **Forgetting to re-run `task graph` after editing `depends_on` / `supersedes` / `revives`.** Same story for `GRAPH.md`.
 - **Writing CUE inside a markdown fence instead of a compilable file.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in a `.cue` file with a one-line markdown reference — in `schemas/` when it is (part of) the core-schema delta, in `contracts/` otherwise.
 - **Putting non-core CUE in `schemas/`, or a core delta in `contracts/`.** `schemas/` has exactly one meaning — the `opmodel.dev/core` delta gated by `core_schema` — and vet enforces its presence in both directions. A decision procedure or Go-behaviour contract wearing `#Def` syntax is `contracts/` material; a proposed core definition hiding in `contracts/` dodges the examples/spec.md gate.
 - **Scaffolding an entry for something that is not an enhancement.** A chore, a cleanup, a dependency bump, a note-to-self. Walk the `creation` gates first; if it fails `feature`, it is a GitHub issue labelled `idea`. This is the pitfall the whole rubric exists for, and the cheapest place to catch it is before eight files exist.
@@ -340,6 +347,7 @@ Workflow:
 - **Promoting status without running both gates.** `task vet` is mechanical and must pass. `task check` is prose-shape; failing it is acceptable only if the warning is documented in the PR body with a reason for deferring.
 - **Editing `core/*.cue` as part of an implementation change without loading the `core-schema-edit` skill first.** That skill is binding. The pre-commit hook + CI gate will reject the commit. Reading the skill first means the SPEC section format is ready when you write it.
 - **Treating `INDEX.md` or `GRAPH.md` as hand-maintained.** They are generated. Hand-edits get clobbered on the next `task index` / `task graph`.
+- **Listing an entry in `depends_on` because it is on the same topic.** The field is an index of `**Depends:**` lines, nothing more; `task vet` fails an id no live decision carries. Reading order and shared area are `INDEX.md`'s job.
 - **Naming a plan file in the entry.** Forecast plans are retired: no `plan.yaml` or `PLAN.md` lives inside an entry (`task vet` fails the file), and prose naming one is a stale pointer at nothing (`task check` warns; delete or reword it). The delivery record is `delivery.yaml`.
 - **Pre-planning slices at all.** There is no forecast layer any more; both large plans it produced sat at 100% `planned` with zero execution feedback. Decompose the work when cutting each OpenSpec change in its target repo; sequencing constraints stay design prose in `06-operational.md ## Cross-Repo Coordination`.
 - **Recording a mechanism decision.** If it would not bind a from-scratch rewrite of the affected repos, it is not a `DN` — it belongs in the implementing OpenSpec change. `task check` flags path and identifier references in an entry's prose as smells.

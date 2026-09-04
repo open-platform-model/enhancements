@@ -6,7 +6,7 @@ This document records the entry-specific gates that must hold before this design
 
 Nine criteria carry this entry to `accepted`; OQ1 through OQ5 gate most of the rest.
 
-- OQ1 and OQ2 resolved: the optional scopes (capability manifest, advisories) are either designed here with their own decisions or split into entries this one cites in `related`. The `single-question` gate is re-walked afterwards.
+- OQ1 and OQ2 resolved: the optional scopes (capability manifest, advisories) are either designed here with their own decisions or split into entries a decision here rests on, carried as `**Depends:**` lines. The `single-question` gate is re-walked afterwards.
 - OQ3 resolved: the trust-policy shape and its home (core `#Platform` vs platform package) are decided and `schemas/target.cue` carries no `// OQ` markers.
 - OQ4 resolved: the SLSA level OPM's release workflows reach is stated per artifact family, with experiment 02 as evidence.
 - OQ5 resolved: online versus offline verification, with the availability consequence written into `06-operational.md`.

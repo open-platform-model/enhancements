@@ -251,6 +251,8 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D14: SOPS support lands at the file seams, decrypt on input, encrypt on export; never an arm, a backend, or kernel code
 
+**Depends:** 0014:D1
+
 **Decision:** Encrypted-at-rest instance values are supported via SOPS at exactly two seams, both outside the kernel.
 
 **Input:** the CLI accepts a SOPS-encrypted values file (YAML/JSON, SOPS's native formats) and decrypts it with the `github.com/getsops/sops/v3` library before the values become a `cue.Value`; the kernel receives plain values and is unchanged.

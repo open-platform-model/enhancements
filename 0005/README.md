@@ -167,7 +167,9 @@ To create a new enhancement from this template:
 
 The seven three-digit entries under `library/enhancements/` (001..007) are
 frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `related` / `supersedes` / `superseded_by`. Once
+the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`, never in
+`depends_on` (a dependency resolves to a decision heading, which the legacy
+entries lack; cite them in prose instead). Once
 those entries are deleted, the references become dangling and the validator
 (future) will flag them: fix or remove at that point.
 -->

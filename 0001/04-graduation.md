@@ -19,7 +19,7 @@ The umbrella is ready to be sliced for implementation when all seven hold:
   - `semver: minor` (already set: `core` is pre-1.0, so even this umbrella's breaking changes ride a minor bump within `@v0`; D12).
   - `area: core` (already set).
   - `affects: [core, library, modules]` (already set: the OPM core catalog lives inside `library/modules/opm/` per D23, so `library` covers the catalog repackage; no separate `catalog` repo).
-  - `related` reflects whatever follow-up enhancements have been numbered (currently empty; expected to remain empty until 0002+ exist).
+  - `depends_on` lists only the entries a decision of this entry rests on, each carried by a `**Depends:**` line.
 - No `{Capitalised}` placeholder strings remain anywhere in `enhancements/0001/` outside HTML comments.
 - Cross-References table in `README.md` lists every file path the implementation will touch, verified by checking each path exists today.
 - Risks (`05-risks.md`) and Operational Concerns (`06-operational.md`) have concrete content, not placeholders. Alternatives section in `05-risks.md` names the high-level paths not taken (e.g. MAJOR-only with predicate-version; kernel-injected `Catalog.Version`; Module-valued registry kept with per-platform version).

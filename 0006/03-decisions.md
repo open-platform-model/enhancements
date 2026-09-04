@@ -649,6 +649,8 @@ Operational notes: consuming `cue.mod/module.cue` files declare `language.versio
 
 ### D39: `~/.opm` becomes two import-free data files: `config.cue` drops `providers`/`cacheDir`, D21's local default platform is the sibling `~/.opm/platform.cue`; folded into C2
 
+**Depends:** 0001:D13
+
 **Decision:** Five coupled parts, from tracing what the post-rewrite CLI actually consumes from `~/.opm`:
 
 - **`config.cue` reduces to scalar data**: `registry`, `kubernetes.{kubeconfig,context,namespace}`, `log.*`. The `providers` field is deleted: core no longer defines `#Provider`. Its role is subsumed by `#Platform.#registry` catalog subscriptions (enhancement 0001), and D21 already retired the `--provider` flag it fed.

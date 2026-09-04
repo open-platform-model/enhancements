@@ -23,7 +23,7 @@ Sibling skills:
 
 - **`enhancements`** (`.claude/skills/enhancements/SKILL.md`) — the binding workflow protocol. Decision block format, status gates, history conventions all live there. This skill defers to that one on conflicts.
 - **`enhancement-experiments`** (`.claude/skills/enhancement-experiments/SKILL.md`) — experiments are a primary input for partial OQs (`informed-by-exp-NN` / `supported-by-exp-NN`). When walking such an OQ, read the experiment's `README.md` Outcome section before presenting.
-- **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when presenting an OQ whose subject is a relationship (`related`/`supersedes`) or a design/mechanism question (architecture, flow, state), sketch the diagram the content shape calls for — Mermaid for the former, ASCII for the latter. See the Present step below.
+- **`enhancement-diagrams`** (`.claude/skills/enhancement-diagrams/SKILL.md`) — when presenting an OQ whose subject is a relationship (`depends_on`/`supersedes`) or a design/mechanism question (architecture, flow, state), sketch the diagram the content shape calls for — Mermaid for the former, ASCII for the latter. See the Present step below.
 - **`core-schema-edit`** (`core/.claude/skills/core-schema-edit/SKILL.md`) — load this only when the resulting decision will also land as an edit in `core/*.cue` in the same session. The walk itself doesn't touch `core/`.
 
 ## Invocation
@@ -69,14 +69,14 @@ Read `config.yaml.status` first thing. Behavior by status:
    - Experiment evidence (only if `Status: informed-by-exp-NN` or `supported-by-exp-NN`): read `experiments/NN-*/README.md` and quote the Outcome section.
    - Alternatives the OQ bullet enumerates.
    - **Diagram** (see `enhancement-diagrams`) — if the OQ is about how this entry relates to
-     others (a `related`/`supersedes` call), sketch a small Mermaid
+     others (a `depends_on`/`supersedes` call), sketch a small Mermaid
      relationship preview using the `graph` task's `classDef` palette. If the OQ is about
      internal architecture, data/control flow, or state, sketch an ASCII diagram. Not every OQ
      needs one — reach for it when a picture would settle the question faster than prose.
    - **Recommendation** — include a `**Recommendation:** {…}` line *only* when evidence supports it (an experiment outcome, a prior decision that constrains the answer, a principle explicitly stated in `02-design.md`). If no such evidence exists, say so: "No strong recommendation — both A and B are live." Fabricating decisiveness is an anti-pattern; see below.
 2. **Discuss.** Stay in this state until the user picks an outcome. Answer questions, surface additional context from the cached files, do not write anything.
 3. **Decide.** User picks one of:
-   - **Decide** — resolve the OQ with a decision. Branch on status: on a `draft` entry whose resolution *changes an existing decision*, revise that `### DN:` block **in place** (fold an evidence-backed old position into *Alternatives considered* marked as previously adopted, optionally add a `**Revised:**` line) and point the OQ's status at the existing number — do not mint a new one. Otherwise — a genuinely new decision, or any decision on an `accepted` entry — draft the full four-field `### DN:` block in chat (Decision / Alternatives considered / Rationale / Source); on `accepted`, when it changes an existing decision, add `**Amends:**` / `**Supersedes:**` relation fields rather than editing the old body. Echo the user's stated reasoning into Rationale verbatim where possible — paraphrase loses fidelity. Source defaults to `User decision YYYY-MM-DD` (today). Ask the user to confirm with `y`, reply with revised text to enter an edit round, or `skip` to abort.
+   - **Decide** — resolve the OQ with a decision. Branch on status: on a `draft` entry whose resolution *changes an existing decision*, revise that `### DN:` block **in place** (fold an evidence-backed old position into *Alternatives considered* marked as previously adopted, optionally add a `**Revised:**` line) and point the OQ's status at the existing number — do not mint a new one. Otherwise — a genuinely new decision, or any decision on an `accepted` entry — draft the full `### DN:` block in chat (Kind, then optional relation fields, then Decision / Alternatives considered / Rationale / Source); when the decision rests on another entry's decision add `**Depends:** MMMM:DN` and list `MMMM` in `config.yaml.depends_on`; on `accepted`, when it changes an existing decision, add `**Amends:**` / `**Supersedes:**` relation fields rather than editing the old body. Echo the user's stated reasoning into Rationale verbatim where possible — paraphrase loses fidelity. Source defaults to `User decision YYYY-MM-DD` (today). Ask the user to confirm with `y`, reply with revised text to enter an edit round, or `skip` to abort.
    - **Defer** — ask: "Defer to which enhancement, or to implementation?" Empty answer → `Status: deferred` (no target). "implementation" → `Status: deferred-to-implementation` (keep the context a future implementer needs on the bullet; the implementing change later claims the question via `resolves` in the entry's `delivery.yaml` log, and `task delivery:deferred` reports unclaimed ones). Otherwise → `Status: deferred-to-NNNN`. The skill does not validate that NNNN exists at write time; the target enhancement may not be filed yet. Surface a one-line warning if it doesn't.
    - **Answer** — the OQ does not need a decision; it just needs clarification (canonical example: OQ17 in 0001, `Status: answered`). Ask the user for the short explanation. Write `Status: answered. {explanation}` on the bullet's status line.
    - **Skip** — no edits. Move on. The OQ stays `open`.
@@ -104,7 +104,7 @@ Real patterns from `0001/03-decisions.md`:
 
 ## Decision block format
 
-Defer to `enhancements` skill `## Phase 2 — Iterate`. The skill mandates exactly four fields: **Decision**, **Alternatives considered**, **Rationale**, **Source**. Reproduce that format in the auto-draft. Do not deviate. Do not introduce additional fields.
+Defer to `enhancements` skill `## Phase 2 — Iterate`. The block shape is fixed: `**Kind:**`, then the optional relation fields (`**Depends:**`, `**Amends:**`, `**Supersedes:**`, `**Resolves:**`, `**Revised:**`), then the four body fields **Decision**, **Alternatives considered**, **Rationale**, **Source**. Reproduce that shape in the auto-draft. Do not deviate. Do not invent fields outside it.
 
 If the user's revised text drops a field, surface it: "Source field is empty — the skill convention is `Source: User decision YYYY-MM-DD` or an experiment / URL reference. Keep blank?" Default to filling with today's date if the user shrugs.
 

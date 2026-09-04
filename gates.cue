@@ -133,7 +133,7 @@ gates: [...#Gate] & [
 		applies_to: ["creation", "promotion"]
 		question:   "Is there one design question at the heart of this, or several unrelated ones bundled under a convenient title?"
 		fails_when: "The decision log splits into groups that share no premise, and resolving one group would not change the answer to another."
-		redirect:   "Split it. Two entries that cite each other in `related` read better than one that answers two questions badly."
+		redirect:   "Split it. Two entries joined by a `depends_on` edge, one decision resting on the other's, read better than one that answers two questions badly."
 		evidence:   "The decision headings grouped by premise, or 02-design.md's Goals quoted to show they share one."
 	},
 	{

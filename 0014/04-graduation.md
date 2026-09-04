@@ -20,7 +20,7 @@ These are the entry-specific gates that must hold before this design is frozen. 
 **Mechanical checks.**
 
 - `contracts/contracts.cue` compiles (`cue vet ./...` from that directory) and captures the full target shape: request, gate chain, field classes, exported set, report, and the adoption property.
-- `related`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve to existing entries.
+- `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.
 - `semver` in `config.yaml` is set.
 - No placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each path exists today.

@@ -23,7 +23,7 @@ enhancements/
 ├── scripts/                delivery.sh (derives delivery state from each entry's delivery.yaml), entry hashing
 ├── Taskfile.yml            workflow tasks (vet, list, new, gate, promote, reject, …)
 ├── INDEX.md                generated browse aid — id → area → status → title
-├── GRAPH.md                generated Mermaid relationship diagram
+├── GRAPH.md                generated Mermaid relationship diagram (depends_on / supersedes / revives)
 ├── README.md               this file
 ├── CLAUDE.md               agent guide for working in this repo
 ├── 0000/                   canonical template — copy from here
@@ -108,8 +108,8 @@ The chain that keeps the log honest: an OpenSpec change in a target repo declare
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, `delivery.yaml` validates when present (schema, DN/OQN refs resolve, `no_work` keys live, not tombstoned, and not also carried by a logged change), no `plan.yaml`/`PLAN.md` inside any entry (forecast plans are retired), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
-- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, stale-plan smell (plan-file names in prose; forecast plans are retired), delivery-log sanity (a log entry's `change.repo` outside `affects`; cross-entry carriage is the legitimate exception), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
+- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), the `depends_on` rule (every id carried by a `**Depends:** MMMM:DN` line in a live decision and vice versa, every target a live heading, the graph acyclic), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, `delivery.yaml` validates when present (schema, DN/OQN refs resolve, `no_work` keys live, not tombstoned, and not also carried by a logged change), no `plan.yaml`/`PLAN.md` inside any entry (forecast plans are retired), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
+- **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, undeclared-dependency smell (prose cites another entry's decision that no `**Depends:**` line names), stale-plan smell (plan-file names in prose; forecast plans are retired), delivery-log sanity (a log entry's `change.repo` outside `affects`; cross-entry carriage is the legitimate exception), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
 
 Run `task vet` before any PR that touches an enhancement. `task gate ID=NNNN` is the pre-promotion view, and `task promote` runs the hard half itself.
 
@@ -216,7 +216,7 @@ Rewriting a protected design record is a real risk, not a free lunch, so post-ac
 | Status | Decision bodies |
 | --- | --- |
 | `draft` | Revised in place as part of ordinary editing; the compaction skill is needed only to repair legacy stacked reversals. Open Question prose is left alone — it is the active work surface. |
-| `accepted` | Protected. Changes append a new `DN` with relation fields; the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available for as long as the entry's derived delivery state is not `implemented`. |
+| `accepted` | Protected. Changes append a new `DN` with relation fields (`**Amends:**`, `**Supersedes:**`, and `**Depends:**` when it rests on another entry's decision); the compaction skill is the only body-edit path — weaving reversals, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN` — available for as long as the entry's derived delivery state is not `implemented`. |
 | `rejected` | **Nothing changes.** The idea was killed; the archive keeps the entry as it stood. |
 | `superseded` | The narrative documents collapse to pointers at the successor; the decision log keeps its numbers and its *Alternatives considered*, so the successor does not re-litigate settled ground. The pass runs on the archived entry (`archive/NNNN/`). `experiments/` and `research/` are never touched. |
 
@@ -224,10 +224,14 @@ The test for what survives any revision or weave: **keep what would change a fut
 
 ## Cross-references
 
-Cross-references between entries use the `related`, `supersedes`, and `superseded_by` fields in `config.yaml`. Tokens accept two forms:
+Two kinds of link live in `config.yaml`, and they follow different rules.
+
+**`depends_on`** is directed and earned: an edge exists iff a decision depends on a decision. An entry lists `MMMM` only when a live `### DN:` block in its `03-decisions.md` carries a tokens-only `**Depends:** MMMM:DN` line, and it lists every entry those lines name. The test for whether the line is owed: if that other decision were reversed, would this one need an `Amends:`? A citation for precedent, contrast, or a delegated enforcement site is prose, not an edge. `task vet` enforces both directions, requires every target to be a live decision heading, and refuses a cycle, so `GRAPH.md` is a DAG a reader can walk in order. Four-digit ids only.
+
+**`supersedes`, `superseded_by` and `revives`** are lifecycle links. Tokens accept two forms:
 
 - **`"0042"`** — workspace-root four-digit id. Resolves to `enhancements/0042/`.
-- **`"legacy:003"`** — legacy three-digit library predecessor. Resolves to `library/enhancements/003-*/`. Use when an old library enhancement is genuine prior art that informs a new design but is not being migrated.
+- **`"legacy:003"`** — legacy three-digit library predecessor. Resolves to `library/enhancements/003-*/`. Use when an old library enhancement is genuine prior art that informs a new design but is not being migrated. `depends_on` cannot target one, because a dependency resolves to a decision heading and the legacy entries have none.
 
 The validator flags dangling references (`task vet` fails). Once the library predecessors are deleted, any `legacy:NNN` reference will start failing — fix or remove it at that point.
 

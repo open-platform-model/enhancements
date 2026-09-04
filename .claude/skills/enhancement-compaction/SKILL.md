@@ -142,7 +142,14 @@ Relations belong in structured fields, not in a 120-character `### DN:` heading 
 **Resolves:** OQ13
 ```
 
-Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), and `**Resolves:**` (an OQ). This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
+Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), `**Resolves:**` (an OQ), and `**Depends:**` (a cross-entry premise, tokens-only `MMMM:DN`, sitting under `**Kind:**`). This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
+
+`**Depends:**` has its own rules under a weave, because `config.yaml.depends_on` is derived from it and `task vet` holds the two equal:
+
+- The vacated number's `Depends:` tokens move to the survivor (union, deduped, one line); a tombstone carries none, and vet rejects one that does.
+- A retraction with no survivor that was the only citer of `MMMM` drops `MMMM` from `depends_on` in the same commit.
+- A heading trailer such as `depends on 0011 D3` hoists into the field like any other relation.
+- A supersession stub keeps the lines: what the archived design rested on is part of the record.
 
 ## The protocol
 

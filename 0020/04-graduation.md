@@ -22,6 +22,6 @@ These are the entry-specific gates that must hold before this design is frozen. 
 **Mechanical checks.**
 
 - `schemas/` compiles (`cue vet ./...` passes), `examples.cue` carries concrete instances exercising every NEW and CHANGED definition (at least one legal promotion, one refused promotion, and one tombstone with and without `replacedBy`), and `spec.md` drafts the core SPEC.md delta in the four-part format.
-- `related`, `supersedes`, `superseded_by` are final and resolve.
+- `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.
 - `semver` is set.
 - No `{Capitalised}` placeholder strings remain in any markdown file.

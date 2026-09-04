@@ -18,6 +18,8 @@ This entry is `draft`. Only decisions actually taken are recorded below; everyth
 
 **Kind:** contract
 
+**Depends:** 0006:D9, 0006:D31
+
 **Decision:** The decisions OPM makes about Kubernetes resources live in `library/opm/` and are consumed by both `opm-operator` and `cli`: inventory entry construction, stale-set computation, digests, prune safety exclusions, ownership guards at apply and delete time, deletion ordering, and the deletion hold protocol. Neither frontend keeps a private implementation of any of them.
 
 This supersedes the placement conclusion of enhancement 0006 D31 ("`library/opm/inventory` is reverted… each actor keeps an independently maintained local implementation"). It does **not** supersede D31's data-flow analysis, which stands. Only the `InventoryEntry` wire shape crosses the actor boundary unmediated; that shape is anchored by the CRD's OpenAPI schema, and the handoff instant is independently gated by D7.4's render-digest check. 0006 remains `implemented` as an entry; exactly one of its decisions is replaced.

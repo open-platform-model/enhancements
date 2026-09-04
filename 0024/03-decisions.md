@@ -94,6 +94,8 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 **Kind:** scope
 
+**Depends:** 0019:D1
+
 **Decision:** Render cases in the conformance suite are rendered by pure-CUE unification, using the oracle 0019 D1 names as the render contract. The kernel is not required to run the suite. Whether the kernel's render also joins the version matrix is an open question (OQ1) and, if adopted, is an additional axis rather than a replacement.
 
 **Alternatives considered:**

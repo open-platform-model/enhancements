@@ -529,8 +529,8 @@ tasks:
 
         # Build set of existing four-digit ids (current workspace). Archived
         # (rejected or superseded) entries count: an id is never reused, so a
-        # `related` pointing at an entry that later went terminal must keep
-        # resolving.
+        # `depends_on` or `supersedes` pointing at an entry that later went
+        # terminal must keep resolving.
         EXISTING_IDS=""
         for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
           [ -d "$d" ] || continue
@@ -617,6 +617,10 @@ tasks:
         #   - `**Supersedes:** / **Amends:** / **Resolves:**` relation fields
         #   - `// OQ##` markers in schemas/*.cue and contracts/*.cue
         #
+        # `**Depends:**` is deliberately absent from that alternation: its
+        # tokens are foreign (`MMMM:DN`) and scripts/depends.sh resolves them
+        # against MMMM's decision log (step 3b below).
+        #
         # NOT scanned: free-form decision prose and `history` events. Both
         # carry cross-entry citations in the house style ("enhancement 0006
         # D31", "0010 OQ9") which no regex separates from local ones. Schema
@@ -687,7 +691,7 @@ tasks:
           [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
 
           # 3. Cross-ref tokens exist.
-          for field in related supersedes; do
+          for field in supersedes; do
             while IFS= read -r ref; do
               [ -z "$ref" ] && continue
               ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref' (no NNNN/ dir nor legacy:NNN-*/)"
@@ -697,6 +701,15 @@ tasks:
           if [ -n "$sup_by" ] && [ "$sup_by" != "null" ]; then
             ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
           fi
+
+          # 3b. Dependency edges: depends_on ⇔ **Depends:** in both
+          #     directions, every target a live decision heading. Lives in
+          #     scripts/depends.sh so vet and vet:one share one implementation.
+          local dep_err; dep_err=$(./scripts/depends.sh check "$id" 2>/dev/null || true)
+          if [ -n "$dep_err" ]; then
+            errors="${errors}\n    depends_on / **Depends:** mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
+          fi
+
 
           # 4. Placeholder strings in the seven mandatory docs (+ README).
           for doc in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md; do
@@ -947,6 +960,16 @@ tasks:
           check "$cfg" || FAIL=1
         done
 
+        # depends_on must be a DAG: a cycle means two entries each hold the
+        # other's decision as a premise and neither can be read first.
+        loop=$(./scripts/depends.sh cycles 2>/dev/null || true)
+        if [ -n "$loop" ]; then
+          printf "${RED}FAIL${RESET} depends_on graph\n    dependency cycle between: %s\n" "$(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
+          FAIL=1
+        else
+          printf "${GREEN}ok${RESET}   depends_on graph (acyclic)\n"
+        fi
+
         exit $FAIL
 
   vet:one:
@@ -1138,12 +1161,21 @@ tasks:
         affects_has_area=$(yq -r ".affects[] | select(. == \"$area\")" "$cfg" | head -1)
         [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
 
-        for field in related supersedes; do
+        for field in supersedes; do
           while IFS= read -r ref; do
             [ -z "$ref" ] && continue
             ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref'"
           done < <(yq -r ".$field[]?" "$cfg")
         done
+        # Dependency edges (same implementation as `task vet`, step 3b).
+        dep_err=$(./scripts/depends.sh check "$ID" 2>/dev/null || true)
+        [ -z "$dep_err" ] || errors="${errors}\n    depends_on / **Depends:** mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
+        # Global acyclicity, failing only when this entry sits on the loop;
+        # a cycle elsewhere is `task vet`'s to report.
+        loop=$(./scripts/depends.sh cycles 2>/dev/null || true)
+        if printf '%s\n' "$loop" | grep -qx "$ID"; then
+          errors="${errors}\n    depends_on cycle through this entry: $(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
+        fi
         sup_by=$(yq -r '.superseded_by // ""' "$cfg")
         if [ -n "$sup_by" ] && [ "$sup_by" != "null" ]; then
           ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
@@ -1307,6 +1339,8 @@ tasks:
                         (plan.yaml / PLAN.md; forecast plans are retired)
         - draft       → every decision carries '**Kind:** contract |
                         policy | scope'
+        - draft/acc   → undeclared-dependency smell: prose cites another
+                        entry's decision that no '**Depends:**' line names
         - draft/acc   → mechanism smell: file:line refs or function()
                         tokens in 03-decisions.md
         - draft/acc   → evidence nudge: no research/, no experiments/,
@@ -1442,6 +1476,24 @@ tasks:
             kind_total=$(grep -cE '^\*\*Kind:\*\* (contract|policy|scope)$' "$dir/03-decisions.md" 2>/dev/null || true)
             if [ "${dn_total:-0}" -gt "${kind_total:-0}" ]; then
               warnings="${warnings}\n    03-decisions.md: $((dn_total - kind_total)) decision(s) without a '**Kind:** contract | policy | scope' line"
+            fi
+          fi
+
+          # Undeclared-dependency smell (draft + accepted): durable prose
+          # cites another entry's decision ("0010 D34", "0011:D3",
+          # "enhancement 0015 D1", "0019's D16") but no **Depends:** line
+          # names that entry. Evidential citation is legitimate (a
+          # measurement quoted for contrast is not a premise), so this only
+          # warns; a decision declares the edge, and vet holds it.
+          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
+            local id_alt cited_ids dep_ids undeclared
+            id_alt=$( { ls -d [0-9][0-9][0-9][0-9] 2>/dev/null; ls -d archive/[0-9][0-9][0-9][0-9] 2>/dev/null | sed 's|^archive/||'; } \
+                      | grep -vx "$id" | grep -vx 0000 | sort -u | paste -sd'|' - || true)
+            if [ -n "$id_alt" ]; then
+              cited_ids=$(grep -hoE "\b(${id_alt})(:|'s)? ?D[0-9]+\b" "$dir"/0[1-7]-*.md 2>/dev/null | grep -oE '^[0-9]{4}' | sort -u || true)
+              dep_ids=$(grep -hE '^\*\*Depends:\*\*' "$dir/03-decisions.md" 2>/dev/null | grep -oE '\b[0-9]{4}:D[0-9]+' | cut -d: -f1 | sort -u || true)
+              undeclared=$(comm -23 <(printf '%s\n' "$cited_ids" | grep -E '.' || true) <(printf '%s\n' "$dep_ids" | grep -E '.' || true) | paste -sd',' - | sed 's/,/, /g' || true)
+              [ -z "$undeclared" ] || warnings="${warnings}\n    prose cites decisions of $undeclared but no **Depends:** line names them (a premise is an edge; a quoted measurement is not)"
             fi
           fi
 
@@ -1593,8 +1645,8 @@ tasks:
         printf "  %-16s %s %s\n" "delivery:" "${deliv:--}" "(derived from delivery.yaml)"
         rejected=$(yq -r '.rejected_reason // ""' "$cfg")
         [ -n "$rejected" ] && printf "  %-16s %s\n" "rejected:" "$rejected"
-        related=$(yq -r '.related | join(", ")' "$cfg")
-        printf "  %-16s %s\n" "related:"      "${related:--}"
+        depends_on=$(yq -r '.depends_on | join(", ")' "$cfg")
+        printf "  %-16s %s\n" "depends_on:"   "${depends_on:--}"
         supersedes=$(yq -r '.supersedes | join(", ")' "$cfg")
         printf "  %-16s %s\n" "supersedes:"   "${supersedes:--}"
         sup_by=$(yq -r '.superseded_by // "-"' "$cfg")
@@ -1809,7 +1861,7 @@ tasks:
           echo "  2. Non-core compilable CUE? Scaffold it with: task new:contracts ID=$NEW_ID"
         fi
         echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively"
-        echo "  4. Update $NEW_DIR/README.md scope + cross-references"
+        echo "  4. Update $NEW_DIR/README.md scope; a decision resting on another entry's decision carries **Depends:** MMMM:DN and lists MMMM in depends_on"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
         echo "  6. Regenerate index:   task index"
         if [ -n "$ISSUE" ]; then
@@ -1904,9 +1956,14 @@ tasks:
     summary: |
       Walks every NNNN/config.yaml and writes GRAPH.md with a Mermaid
       diagram:
-        - related[]    → undirected solid edges (deduped: once per pair)
-        - supersedes[] → directed solid edges (newer --supersedes--> older)
-      Nodes are coloured by status. Legacy:NNN cross-references are
+        - depends_on[] → directed solid edges (dependent --depends on-->
+                         dependency; an edge exists iff a decision depends
+                         on a decision, so this is the DAG a reader can
+                         walk in order)
+        - supersedes[] → directed thick edges (newer ==supersedes==> older)
+        - revives[]    → directed dotted edges (live -.revives.-> archived)
+      Nodes are coloured by status. Legacy:NNN cross-references (allowed in
+      supersedes/revives only; depends_on resolves to a decision heading) are
       rendered as boxed peripheral nodes labelled "legacy NNN" so the
       relationship is visible without claiming the legacy entry is part
       of the workspace-root id space.
@@ -1922,7 +1979,7 @@ tasks:
         TMPDIR=$(mktemp -d)
         trap 'rm -rf "$TMPDIR"' EXIT
 
-        related_edges="$TMPDIR/related"
+        dep_edges="$TMPDIR/depends"
         super_edges="$TMPDIR/super"
         revive_edges="$TMPDIR/revives"
         legacy_refs="$TMPDIR/legacy"
@@ -1936,24 +1993,19 @@ tasks:
           esac
         }
 
-        # related: undirected, dedupe per pair using sorted-token form.
-        # Archived (terminal) entries keep their edges — a superseded
-        # entry's own supersedes/related links are part of the record.
-        {
-          for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-            [ -f "$cfg" ] || continue
-            id=$(yq -r '.id' "$cfg")
-            [ "$id" = "0000" ] && continue
-            while IFS= read -r ref; do
-              [ -z "$ref" ] && continue
-              # Track legacy refs so we can render their nodes.
-              case "$ref" in legacy:*) echo "$ref" >> "$legacy_refs" ;; esac
-              a="N$id"
-              b=$(node_for "$ref")
-              if [[ "$a" < "$b" ]]; then echo "$a $b"; else echo "$b $a"; fi
-            done < <(yq -r '.related[]?' "$cfg")
-          done
-        } | sort -u > "$related_edges"
+        # depends_on: directed, dependent → dependency. Four-digit targets
+        # only (a dependency resolves to a decision heading, which no legacy
+        # entry has). Archived entries keep their edges: what a superseded
+        # design rested on is part of the record.
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          id=$(yq -r '.id' "$cfg")
+          [ "$id" = "0000" ] && continue
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            echo "N$id N$ref"
+          done < <(yq -r '.depends_on[]?' "$cfg")
+        done | sort -u > "$dep_edges"
 
         # supersedes: directed (newer → older). Validator forbids cycles.
         for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
@@ -2027,12 +2079,12 @@ tasks:
 
         while read -r a b; do
           [ -z "$a" ] && continue
-          printf '  %s ---|related| %s\n' "$a" "$b"
-        done < "$related_edges"
+          printf '  %s -->|depends on| %s\n' "$a" "$b"
+        done < "$dep_edges"
 
         while read -r a b; do
           [ -z "$a" ] && continue
-          printf '  %s -->|supersedes| %s\n' "$a" "$b"
+          printf '  %s ==>|supersedes| %s\n' "$a" "$b"
         done < "$super_edges"
 
         while read -r a b; do
@@ -2062,8 +2114,8 @@ tasks:
         echo '  end'
         echo
         echo '  subgraph edges ["Edge types"]'
-        echo '    Erel_a["A"] ---|related| Erel_b["B"]'
-        echo '    Esup_new["newer"] -->|supersedes| Esup_old["older"]'
+        echo '    Edep_a["dependent"] -->|depends on| Edep_b["dependency"]'
+        echo '    Esup_new["newer"] ==>|supersedes| Esup_old["older"]'
         echo '    Erev_new["newer"] -.->|revives| Erev_old["archived"]'
         echo '  end'
         echo '```'
@@ -2551,7 +2603,8 @@ tasks:
         WEAVE     a decision body says it supersedes/amends/refines another;
                   candidate for merging into the lower number
         TRAILER   relation metadata stranded in a `### DN:` heading; belongs
-                  in a **Supersedes:** / **Amends:** / **Resolves:** field
+                  in a **Supersedes:** / **Amends:** / **Resolves:** /
+                  **Depends:** field
         COLLAPSE  a resolved/deferred Open Question still carrying prose after
                   its `Status:` token — the answer is restated in its decision
         KEEP      an `answered` OQ, whose status line IS the answer; never

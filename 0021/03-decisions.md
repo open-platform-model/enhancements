@@ -54,6 +54,8 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 **Kind:** policy
 
+**Depends:** 0010:D4, 0010:D27, 0010:D34, 0010:D35, 0010:D41, 0010:D44, 0010:D45, 0010:D48, 0011:D9, 0011:D15, 0011:D18, 0011:D23
+
 **Decision:** Where an accepted enhancement or a repo document has already decided a versioning rule, the policy text ([`policy/`](policy/), one file per class plus an index carrying the universal rules) carries that rule **verbatim**, unedited, under a line naming its source. The copy is what a reader follows and what the published policy page ships; the source is where the reasoning, alternatives and measurements stay, and a reader who wants them follows the citation. Copied today: 0010 D4, D27, D34, D35, D41, D44, D45, D48; 0011 D9, D15, D18, D23; the commit-type tables and repository rules of `core` and `catalog_opm`; the `modules` major separation rule; the core `schema-release` spec; and the tag-format, leading-zero and consumer-resolution sections of `core/docs/publishing.md`. Enhancement 0020 is cited, not copied, until it is accepted, because a draft body may still move. A copied block is refreshed only when its source changes through that source's own process (a new amending decision, a compaction, a repo-document edit); it is never edited in place here.
 
 **Alternatives considered:**
@@ -86,6 +88,8 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 
 **Kind:** policy
 
+**Depends:** 0010:D34
+
 **Decision:** A contract at an alpha `apiVersion` (`vNalphaM`) still promises nothing and its publish gate stays off (0010 D34, unchanged). On top of that, the policy **encourages** an author who breaks an alpha contract, by adding a required field, removing or renaming a field, narrowing a type or changing a default, to bump the alpha number (`v1alpha1` → `v1alpha2`) rather than reshape the same key in place. The bump is a courtesy signal to whoever is already consuming the alpha: the key they matched on no longer means what it did. It reaches the convention layer only: no gate refuses an in-place alpha break, no check command reports one, and a catalog that reshapes an alpha in place has violated nothing. The published policy states it as "should", and the catalog repositories carry it as an authoring convention.
 
 **Alternatives considered:**
@@ -101,6 +105,8 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 ### D6: A transformer serves a contract level by naming it: one registration per level, one shared body
 
 **Kind:** contract
+
+**Depends:** 0010:D34, 0010:D44, 0020:D4
 
 **Decision:** A transformer binds to exact contract keys, and a contract key embeds its `apiVersion`. So a transformer that serves more than one level of a resource or trait declares **one transformer per level**, each naming that level's key in its required or optional maps, with all of them sharing one transform body. Nothing in the match path changes: each registration matches exactly the components that demand its key, and the exact-key rule of 0010 D34 stands. Under promotion by aliasing (0020 D4) the levels are one definition, so the shared body serves both without change.
 

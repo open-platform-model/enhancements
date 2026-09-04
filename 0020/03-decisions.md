@@ -32,6 +32,8 @@ A *mechanism* decision (how a repo achieves the contract: algorithm choice, code
 
 **Kind:** contract
 
+**Depends:** 0010:D34
+
 **Decision:** A contract-bearing primitive may be published at a higher level than the one it was born at. The promoted member carries `metadata.promotedFrom`, an `#APIVersionType` naming the level it came from. The field is absent on a contract born at its level and present on one that arrived by promotion, and it stays on the member permanently rather than being consumed by the gate and dropped.
 
 Promotion is a movement along enhancement 0010 D34's ladder in the direction the ladder implies: alpha to beta, beta to GA. It is not a break, and D27 is not what triggers it.
@@ -48,6 +50,8 @@ Promotion is a movement along enhancement 0010 D34's ladder in the direction the
 ### D2: A promotion is refused unless it is compatible with the level it promotes from
 
 **Kind:** contract
+
+**Depends:** 0010:D27, 0011:D9
 
 **Decision:** When a build publishes a member carrying `promotedFrom`, the compatibility gate resolves the newest published build carrying that member's `name` at the `promotedFrom` level and applies enhancement 0010 D27's additive-only comparison between them. An incompatible promotion is refused, naming both keys and the offending path.
 
@@ -83,6 +87,8 @@ The comparison is the existing one. `0011/experiments/03` measured that `cue.Val
 ### D4: Levels coexist by aliasing, and dual-shipping is the sanctioned promotion mechanism
 
 **Kind:** policy
+
+**Depends:** 0010:D27, 0010:D34
 
 **Decision:** A promoting catalog publishes both levels in the same build, with the outgoing level **defined as** the incoming one rather than restated. One value backs two keys; both land in the match index; every consumer of the old key keeps matching untouched and migrates when it chooses. The old key is withdrawn later under D6's retirement rules, never as part of the promotion.
 
@@ -151,6 +157,8 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Kind:** contract
 
+**Depends:** 0015:D1
+
 **Decision:** `#Catalog` gains `#removed`, a map keyed by `#ContractFQNType` whose values are `#Tombstone`, stamping the key onto each value the way `#transformers` already stamps provenance onto its members. It sits beside enhancement 0015 D1's `#resources`, `#traits` and `#blueprints` as a fourth member map.
 
 **Alternatives considered:**
@@ -199,6 +207,8 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 ### D11: Alpha members are never tombstoned, and transformers cannot be
 
 **Kind:** scope
+
+**Depends:** 0010:D34, 0010:D44
 
 **Decision:** D6, D7 and D10 apply at beta and GA only. An alpha member may be removed from a build with no record and no refusal. `#ComponentTransformer` is outside the whole of this entry.
 
