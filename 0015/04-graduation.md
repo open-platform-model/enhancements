@@ -15,7 +15,7 @@ Thirteen criteria must hold:
 - Every decision D1..DN is locked and carries the four-field format.
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/` passes) and captures the target shape end-to-end, with every `// OQN:` marker either tightened or pointing at a still-open question.
 - `config.yaml.semver` is set. Expected **major**: D1 adds required stamped members to `#Catalog`, landing inside 0010's core major window.
-- `related` resolves to `0010`, `0011` and `0019`.
+- `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.
 - **The ordering constraints are stated.** `affects` spans six areas with a real ordering constraint (`core` before `library` before `opm-operator`, and the catalog listing before any provider catalog), so `06-operational.md ## Cross-Repo Coordination` must state those constraints as design facts; landings are logged per change in `delivery.yaml`.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - Cross-References table in `README.md` lists every file path the implementation will touch, and each exists today.

@@ -26,7 +26,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-06-23"
-updated: "2026-08-30"
+updated: "2026-09-04"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -50,6 +50,8 @@ history:
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
+  - date: "2026-09-04"
+    event: 'Dependency edges: related renamed to depends_on and left empty; no decision rests on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

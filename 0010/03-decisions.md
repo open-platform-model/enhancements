@@ -348,6 +348,8 @@ If a discovery or listing surface later needs a display token, adding the field 
 
 ### D17: The primitive-under-catalog-path constraint is a publish gate, not a schema constraint
 
+**Depends:** 0001:D16
+
 **Decision:** A primitive's `metadata.modulePath` MUST sit under the `modulePath` of the catalog whose source tree **defines** it, and that rule is enforced at publish: 0011's `opm catalog publish` refuses a catalog that violates it. `core` gains no new stamping site and no `#resources` / `#traits` / `#blueprints` sibling maps on `#Catalog`. The rule binds a catalog's own definitions only; primitives a catalog *references* from another catalog (enhancement 0001 D16) are untouched.
 
 Recorded explicitly as **not** delivered: answering "which catalog ships FQN X?" with no platform in hand. That derivation needs a second convention (a fixed kind segment) beyond what this rule establishes, and at the time of this decision the shipped catalogs showed why the segment count was not fixed: resources sat at `…/catalogs/opm/resources` while blueprints sat at `…/catalogs/opm/blueprints/workload`, one segment deeper. So `opmodel.dev/catalogs/opm/blueprints/workload/stateless-workload@1.0.0` could not say by inspection whether its catalog was `…/catalogs/opm`, `…/catalogs/opm/blueprints`, or `…/catalogs/opm/blueprints/workload`. D12's longest-prefix match used the platform's subscribed paths as its oracle; with no platform there is none. This decision improves conformance, not derivability.

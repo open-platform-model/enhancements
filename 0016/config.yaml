@@ -22,7 +22,7 @@ affects:
 core_schema: true
 semver: minor
 created: "2026-08-13"
-updated: "2026-08-30"
+updated: "2026-09-04"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -50,6 +50,8 @@ history:
     event: 'Dependency on 0019 recorded: the cli slice lands after 0019 render-path changes (skew signal D7/D18, single build D9, derived render cue.mod D13); related and ordering constraint updated.'
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
+  - date: "2026-09-04"
+    event: 'Dependency edges: related renamed to depends_on and left empty; no decision rests on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

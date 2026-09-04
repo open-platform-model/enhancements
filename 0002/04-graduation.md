@@ -12,6 +12,6 @@ Ready to implement when:
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/`) and captures the renamed surface end-to-end, with no `// OQ#` markers left unresolved.
 - `config.yaml.semver` is set (`major`).
 - `config.yaml.affects` is `[core, library, opm-operator, cli]`; `area` (`core`) appears in `affects`.
-- `related` (`0001`) is final and resolves.
+- `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.
 - No placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file the implementation will touch, and each path exists today.

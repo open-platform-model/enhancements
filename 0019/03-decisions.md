@@ -58,6 +58,8 @@
 
 ### D5: A platform imports its catalog and embeds it whole into the registry entry, which derives everything else
 
+**Depends:** 0010:D14
+
 **Resolves:** OQ6 (with D13)
 
 **Decision:** `#Platform.#registry` stops naming a catalog by a version string and starts carrying the catalog itself by import. A registry entry becomes `{enable, #catalog}`: the imported catalog is embedded WHOLE, and every other field is derived from it: `version: #catalog.metadata.version` (a readout of the release-stamped identity, never a choice) and `#transformers: #TransformerMap & #catalog.#transformers`. The registry's pattern constraint binds the map key to the embedded catalog, `#registry: [Path=#ModulePathType]: #CatalogEntry & {#catalog: metadata: modulePath: Path}`, so a key and its import cannot drift. The `version!` scalar is removed as an *authored* field; the operator MAY stamp an expected `version` at platform-generation time, which unifies with the derived readout and turns wrong-bytes into a build conflict naming the entry (the tripwire D13 records as defense in depth). The catalog build is named the way every other CUE dependency is named: by the platform module's own `cue.mod`. Per-transformer selection is deliberately not expressible here.
@@ -141,6 +143,8 @@ The supersession lands as a `library` slice: ADR-002 gains a superseded-by heade
 
 ### D9: The render step is one CUE build per render
 
+**Depends:** 0010:D14
+
 **Resolves:** OQ1, OQ2, OQ3, OQ8
 
 **Decision:** The kernel stages the synthesized `#ModuleInstance` and the generated platform package into a single generated render module (its `cue.mod` written by the kernel, its unpublished inputs entering through `cue.mod/local-module.cue` directory replacements) and evaluates it once, reading `rendered` and `diagnostics` off the built value. Nothing crosses a build boundary, so nothing is stripped and no value is filled into an independently-built closed value; combined with D8, no built value is shared between renders. Parity (D1) stops being a property the kernel maintains and becomes one it cannot violate. This ratifies OQ1, OQ2, OQ3 and OQ8: ADR-003's federation premise is stale (0010 D14 made multi-version-per-major composition inexpressible, and the only Go code assuming breadth is a self-described defensive path), the instance already participates in a build on disk via `synth`'s in-tree staging plus the directory-replacement mechanism experiment 02 exercised, minimum version selection does not run at load time so a committed `cue.mod` is a resolution rather than a floor, and reuse is an optimisation for sub-dozen-component modules worth at most ~85 ms rather than a precondition. What the generated render module owes its own `cue.mod` (the omission trap, the complete tidied dependency set, the refuse-to-render condition) remains OQ6, the one open design question inside this decision.
@@ -156,6 +160,8 @@ The supersession lands as a `library` slice: ADR-002 gains a superseded-by heade
 **Source:** User decision 2026-08-19 (rescoping: both phases kept in this entry, the collapse stated as its own decision rather than implied by D5-D8). Evidence: `experiments/01-purecue-render-flow/` through `experiments/08-concurrent-render-at-scale/`, all concluded 2026-08-19.
 
 ### D10: Matching moves into the render build; verdicts are data; the D30 carve-out is deleted
+
+**Depends:** 0010:D28
 
 **Decision:** Inside the render build, matching is expressed in CUE per experiment 05's measured glue shape: the reverse-index buckets (required ∪ optional), the always-unify rung and the predicate rung are comprehensions whose verdicts (pairs, missing FQNs, unify disqualifications with their conflicting FQNs, unresolved demands, warnings) are **data fields** a caller reads, with bottoms confined behind `== _|_` guards. The fail-closed gate (0010 D28) is one unification (`resolved & true`) inside the build, and the kernel reads the `diagnostics` value via `LookupPath`, which stays fully readable and concrete beside the failing gate. The always-unify rung runs as plain `&`: in one build both embedded copies resolve to the same catalog bytes, so the D30 provenance carve-out (`excludeProvenance` and its denylist) is **deleted rather than ported**, and the parity harness's one stated exemption is deleted with it. Matching *semantics* are unchanged. The gate for this slice is reproducing the kernel's exact pair set against a vendored kernel record.
 
@@ -458,6 +464,8 @@ Attaching the Expose trait without the wrapper leaves the required field unset a
 ### D26: The single-provider guard runs inside the render build as a diagnostics row and a gate term
 
 **Kind:** contract
+
+**Depends:** 0010:D28, 0010:D32, 0010:D37
 
 **Decision:** The single-provider guard (0010 D32 as corrected by D37: a platform carries exactly one transformer requiring a contract declared `fulfilment: "provider"`) survives the deletion of `opm/materialize` (D5, D9) by moving into the render build's generated glue, in D10's verdicts-as-data shape. For every enabled `#registry` entry, every transformer it contributes and every REQUIRED contract (`requiredResources` and `requiredTraits`) declaring provider fulfilment, the glue collects the entry's registry key per contract key. A key with more than one registry key is an `overSubscribed` diagnostics row (`{key, catalogs}`), the fail-closed gate (0010 D28) gains the term `len(overSubscribed) == 0`, and the kernel decodes each row into `oerrors.OverSubscribedContractError{Key, Catalogs}`, carried on `RenderError` beside the other verdicts and reachable via `errors.As`. Provenance is the registry key, which core binds to the embedded catalog's `metadata.modulePath` (D5), so it is the `path@major` string; a transformer's own `metadata.modulePath` is major-free and cannot tell two majors of one catalog apart. The old guard's second arm, embedded copies disagreeing on a key's fulfilment, is not ported: one build resolves every copy to the same catalog bytes (experiment 05). Default (catalog) fulfilment admits any number of suppliers across any number of catalogs. The port lands in `library-render-cutover` PR 1, on the alpha.6 pin, before the old path is deleted. Enhancement 0015 may later relocate the check to platform-package generation beside its D1 inventory; until then the build is where it runs.
 

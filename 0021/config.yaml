@@ -28,7 +28,7 @@ affects:
 core_schema: false
 
 created: "2026-08-24"
-updated: "2026-08-30"
+updated: "2026-09-04"
 
 authors:
   - emil@jacero.se
@@ -50,13 +50,18 @@ history:
 
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
+  - date: "2026-09-04"
+    event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
 # list every MMMM those lines name. Four-digit ids only (a dependency
 # resolves to a decision heading; legacy:NNN has none). `task vet` enforces
 # both directions and refuses a cycle.
-depends_on: []
+depends_on:
+  - "0010"
+  - "0011"
+  - "0020"
 
 # Lifecycle relationships.
 supersedes: []

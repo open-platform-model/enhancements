@@ -58,6 +58,8 @@ Nothing about the toolchain that authored the file lives in the block.
 
 **Kind:** scope
 
+**Depends:** 0011:D25
+
 **Decision:** The block is required (after D8's window) on every artifact OPM publishes as a module, a catalog or a template. `opmodel.dev/core` carries no block, and `library` publishes no CUE artifact.
 
 **Alternatives considered:**
@@ -71,6 +73,8 @@ Nothing about the toolchain that authored the file lives in the block.
 ### D4: A core-shipped publish gate asserts every duplicated value, and a mismatch refuses
 
 **Kind:** contract
+
+**Depends:** 0010:D1, 0011:D16, 0011:D21
 
 **Decision:** `core` ships a publish gate beside `#IdentityPackage` that states each duplicated field twice: as the block declares it and as the module file and identity package imply it. `identity.ModulePath` is `module:`; `identity.Version` is the identity package's `Version`; `core.version` is the `deps` pin of `opmodel.dev/core@<core.major>`; `catalogs` holds every `opmodel.dev/catalogs/*` dependency at its pin and nothing that is not a dependency. Publish unifies the block against the gate and refuses on conflict with CUE's own diagnostic, naming the writer verb that repairs the tree. Publish never edits the block (0011 D16).
 
@@ -87,6 +91,8 @@ Nothing about the toolchain that authored the file lives in the block.
 ### D5: Tooling authors the block in the tree; publish never writes it
 
 **Kind:** policy
+
+**Depends:** 0011:D3, 0011:D8, 0011:D16
 
 **Decision:** The block is written by the same tooling 0011 already trusts with the tree. `opm module init` seeds it when it seeds the identity package; `version set` and `publish --version` keep `identity.Version` in step when they write the identity version; template re-identification rewrites `identity.ModulePath` when it rewrites `module:`. Each write is surgical (comments preserved, no-op when the value already matches), as the identity writer is. Publish reads and refuses, never writes.
 
@@ -119,6 +125,8 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 ### D7: 0016's major walk is the first reader, and a missing block falls back to parsing `deps`
 
 **Kind:** scope
+
+**Depends:** 0016:D5
 
 **Decision:** The first consumer of the block is `opm instance init`'s selection walk (0016 D5). For each candidate major it reads `kind` (refusing anything but `module`) and `core.major` (comparing against the CLI's core major). When the block is absent, the walk does what it does today: parse `deps` for the `opmodel.dev/core@vN` key, treating absence as incompatible. The two rules agree by construction on any artifact published with the block.
 

@@ -30,6 +30,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
+**Depends:** 0006:D7, 0006:D38
+
 **Decision:** Export runs handoff's precondition chain before writing any file: cluster gates, CR existence, non-local render provenance, concrete `spec.module`, a recorded `status.lastAppliedRenderDigest`, and a strict-registry verification render whose digest equals it. A failure aborts with nothing written. `--force` bypasses the digest comparison only, exactly as it does for handoff; it does not relax the provenance or resolvability gates.
 
 **Alternatives considered:**

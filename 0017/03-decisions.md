@@ -83,6 +83,8 @@ Under D8's compatibility contract, this is divergence *elimination*: the kernel 
 
 **Kind:** contract
 
+**Depends:** 0010:D28
+
 **Decision:** `#Component._allFields` projects an `optional: true` trait's spec through an optionalizing comprehension (`for k, v in trait.spec {(k)?: v}`), and embeds an `optional: false` trait's spec as-is. Attaching an optional trait constrains its field without forcing it present; a module demanding a trait makes the field required. A trait that never states a posture fails loudly at every consumer (today it is silently required).
 
 A single-regular-field guarantee on trait specs accompanies the change: nested `!`/`?` markers ride inside the projected value intact, but a top-level `req!` sibling would abort the comprehension and a top-level `?` sibling would be silently dropped. Core's existing `spec!: (name): _` gate plus definition closedness prevents both, and the target schema pins the guarantee.

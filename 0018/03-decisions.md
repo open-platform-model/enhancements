@@ -81,6 +81,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Kind:** scope
 
+**Depends:** 0013:D9
+
 **Decision:** The public documentation carries no secrets material until enhancement 0013 lands. 0013's `docs-secrets-authoring` slice authors it, and its concern was amended on 2026-08-18 to say so: it writes the first secrets documentation rather than rewriting anything.
 
 **Alternatives considered:**

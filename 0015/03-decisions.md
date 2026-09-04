@@ -16,6 +16,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: `#Catalog` publishes its contracts as members, beside its transformers
 
+**Depends:** 0010:D37, 0019:D5
+
 **Decision:** `#Catalog` gains `#resources`, `#traits` and `#blueprints` beside `#transformers`, each carrying the same kind of pattern constraint that stamps `metadata.modulePath` onto every member. A contract is a published member of the catalog artifact whether or not the same artifact ships an adapter for it.
 
 This cashes in the extension `core/src/catalog.cue`'s own doc comment reserves: *"Adding sibling maps (#resources, #traits, #blueprints) is an additive extension if introspection demand surfaces later."* The demand has surfaced, and it is 0010 D37.
@@ -44,6 +46,8 @@ Four things stop being derivations and become lookups:
 
 ### D2: One provider per contract stands; provider classes are rejected in this entry
 
+**Depends:** 0010:D37
+
 **Decision:** 0010 D37's exactly-one-provider rule stands **unamended**: a provider-fulfilled contract has at most one active provider on a platform, and a second is refused, loudly, naming the contract and both catalog paths. This entry ships no routing mechanism for provider multiplicity: provider classes, adopted 2026-08-05 and rejected 2026-08-20, are preserved under *Alternatives considered* as the leading candidate for the successor entry that picks routing up when a real two-engine requirement arrives, which is how 0010 D32 said arbitration should be designed: against a real instance. With D3 the rule gains a second enforcement arm: a registration claiming a contract that an active subscription or registration already provides is refused at acceptance, where the failure names the provider.
 
 **Alternatives considered:**
@@ -62,6 +66,8 @@ Four things stop being derivations and become lookups:
 ---
 
 ### D3: A transformer registration is a cluster-scoped CR, gated by the RBAC the operator already enforces
+
+**Depends:** 0010:D37, 0019:D6, 0019:D8
 
 **Decision:** Transformers reach a platform by two paths. The first is unchanged: a subscription written into the Platform CR's `spec.registry`. The second is a new cluster-scoped `TransformerRegistration` CR that a provider module ships among its rendered resources. Only a module applied under a platform-team identity can create one, because `opm-operator` already impersonates a per-tenant ServiceAccount during apply and a tenant role does not carry create on a cluster-scoped resource.
 
@@ -135,6 +141,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 
 ### D6: A cluster's render is reproduced by pulling the operator-generated platform package
 
+**Depends:** 0019:D6, 0019:D13
+
 **Decision:** The reproducibility answer to D3's cluster-state registry is **fetch, not write-back**. The CLI gains `opm platform pull`: it retrieves the operator-generated platform package (0019 D6), the exact build-local module every cluster render consumes, and a local `opm module build` against the pulled package reproduces the cluster's render. The pull delivers a build-local module directory, never a published artifact; 0019 D6's no-publish rule shapes the mechanics without blocking them, since fetching from the cluster is not registry publishing. `Platform.status.registry` remains the enumerable summary; the package is the authoritative bytes, carrying the committed dependency resolution (0019 D13) and stamped with the identity OQ8 defines, so 0014's export path records which registry state it rendered against. The reproducibility property is restated honestly: "the platform file, plus one attributable fetch per claim-set change". Divergence between git and cluster remains possible, but it is visible (`status.registry`, the package identity) and closable on demand, never silent.
 
 **Alternatives considered:**
@@ -151,6 +159,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 
 ### D7: No transformer-predicate stability rule in this entry; the widening gate is deferred to the publish-gate family
 
+**Depends:** 0010:D27, 0010:D28, 0010:D44
+
 **Decision:** This entry ships no stability rule for transformer predicates across catalog builds, and records the resulting coverage explicitly so 0010 D27's additive-only promise is not read as covering a guarantee it does not make. D27 relates two builds of one *primitive*; a transformer is an adapter (0010 D44), and its predicate may change between builds. The three arrival cases land as follows: a **new transformer in an existing bucket** is caught by D5's comparable-predicate guard at platform assembly, naming both FQNs (an incomparable arrival coexists, same as authored intent); **predicate tightening** surfaces as 0010 D28's fail-closed refusal at render: loud and attributable, never silent; **predicate widening** (a build dropping a requirement, so the transformer matches components it never matched before and new objects appear on a routine catalog bump) is the one silent case, and it is explicitly **not guaranteed against** by this entry. The mechanism that could catch it, a publish-side predicate diff between consecutive builds, belongs to the publish-gate family (0011 D9's shape) and is deferred there, or to a successor entry if 0011 declines it.
 
 **Alternatives considered:**
@@ -166,6 +176,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 ---
 
 ### D8: A build-incompatible registration is refused at acceptance, by comparing committed resolutions under the stability discipline
+
+**Depends:** 0019:D18
 
 **Decision:** The refusal site for a provider requiring a build the platform does not run is D3's claim-and-accept gate, so the failure names the provider at admission, never the render, where 0019 D5's tripwires would name an unrelated module instance.
 
@@ -260,6 +272,8 @@ One verification is deliberately deferred to the operator slice, per the OQ9/D15
 ---
 
 ### D13: The platform package regenerates edge-triggered and level-computed, keyed by generation plus the active-claim set; blast radius accepted
+
+**Depends:** 0019:D6
 
 **Decision:** The operator-generated platform package (0019 D6) is a pure function of one tuple: the Platform CR's spec and the set of accepted-and-active `TransformerRegistration` claims. Regeneration is **edge-triggered and level-computed**: watches on the Platform CR, on `TransformerRegistration`s, and on referenced `ModulePackage`s wake the reconciler the moment any of them changes. A platform team applying a provider module wakes it via the rendered registration's create event (D9's authoring path); a provider becoming Ready wakes it via the `ModulePackage` transition (readiness excludes the registration CR by kind, D14).
 

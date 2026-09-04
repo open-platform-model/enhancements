@@ -35,6 +35,27 @@ graph TD
   N0024["0024: CUE Testing and Conformance"]:::draft
   N0003["0003: OPM Module Publishing Workflow"]:::superseded
 
+  N0006 -->|depends on| N0001
+  N0010 -->|depends on| N0001
+  N0011 -->|depends on| N0010
+  N0012 -->|depends on| N0006
+  N0013 -->|depends on| N0014
+  N0014 -->|depends on| N0006
+  N0015 -->|depends on| N0010
+  N0015 -->|depends on| N0019
+  N0017 -->|depends on| N0010
+  N0018 -->|depends on| N0013
+  N0019 -->|depends on| N0010
+  N0020 -->|depends on| N0010
+  N0020 -->|depends on| N0011
+  N0020 -->|depends on| N0015
+  N0021 -->|depends on| N0010
+  N0021 -->|depends on| N0011
+  N0021 -->|depends on| N0020
+  N0022 -->|depends on| N0010
+  N0022 -->|depends on| N0011
+  N0022 -->|depends on| N0016
+  N0024 -->|depends on| N0019
   N0010 ==>|supersedes| N0003
   N0011 ==>|supersedes| N0003
 ```

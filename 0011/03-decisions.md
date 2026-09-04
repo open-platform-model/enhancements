@@ -123,6 +123,8 @@ The dev loop makes the catalog asymmetry sharper. Measured (cue v0.17.1, live re
 
 ### D7: A published catalog can be verified out of band
 
+**Depends:** 0010:D35
+
 **Decision:** `opm catalog registry check` pulls a published catalog, decodes it, and confirms that its identity is concrete and agrees with the coordinates it was fetched by: the same check a consumer performs, run deliberately against the registry rather than incidentally during a render.
 
 The same verification also runs when a catalog is added to a `#Platform`'s registry, so a broken catalog is reported to the platform author who subscribed to it rather than to whoever next renders a module against that platform.
@@ -140,6 +142,8 @@ The same verification also runs when a catalog is added to a `#Platform`'s regis
 
 ### D8: The version writer locates its field by the schema-fixed path, not by a marker
 
+**Depends:** 0010:D5
+
 **Decision:** `opm catalog version set` and `publish --version` write the field at `identity/identity.cue`'s `Version`: the location and name enhancement 0010's `#IdentityPackage` fixes. There is no marker attribute to match on (0010 D22 drops it) and no `role=` argument. An identity file that does not match `#IdentityPackage` is refused as a schema failure, not searched heuristically.
 
 Everything `experiments/01-version-set-write-back` established about the *edit itself* stands unchanged: a surgical AST rewrite that preserves comments and alignment, rebuilds the `&` chain so a `#VersionType` assertion survives the write, and does not touch the file at all when the value already matches. Only the locator changes, and the experiment's recorded `name == "Version"` fallback becomes the specified behaviour rather than a fallback.
@@ -154,6 +158,8 @@ Everything `experiments/01-version-set-write-back` established about the *edit i
 **Source:** User decision 2026-07-29. Consequence of 0010 D22; supersedes the `role`-argument recommendation recorded in `experiments/01-version-set-write-back`. Validated by `experiments/02-publish-plan-gates/` — outcome re-run 2026-07-29, all thirteen prior verdicts unchanged under the schema-path lookup, plus a new `renamed-catalog` case.
 
 ### D9: `opm catalog publish` refuses a build that breaks a contract it already published
+
+**Depends:** 0010:D4, 0010:D25, 0010:D27, 0010:D34, 0010:D44
 
 **Decision:** Publish gains a **compatibility gate**. For every gated primitive in the tree being published (`#Resource`, `#Trait` and `#Blueprint` only, and only at beta and GA, per the two scope clauses below) it pulls the last published build that shipped a primitive of that `name` at that `apiVersion`, and refuses if the new definition is not backwards-compatible with it under enhancement 0010 D27's rule: fields and options may be added, never removed; a newly added field must be optional or defaulted; and an existing field's default may not change.
 
@@ -192,6 +198,8 @@ Subsumption is **transitive**, so comparing against the immediate predecessor se
 ---
 
 ### D10: Published artifacts are immutable, enforced by the registry across every path it hosts
+
+**Depends:** 0010:D14, 0010:D35
 
 **Decision:** OPM requires that any registry it publishes to refuse to overwrite an existing tag, in **every repository that registry hosts**: not only under `opmodel.dev`. A registry that permits tag overwrite is not a conforming OPM registry.
 
@@ -254,6 +262,8 @@ Resolving the target through `ResolveRegistry` rather than a constant is what ma
 ---
 
 ### D12: Modules carry an identity subpackage and a version; `version set` and `--version` behave identically on both artifact types
+
+**Depends:** 0010:D2, 0010:D41
 
 **Decision:** A module gets a catalog-style identity subpackage: `identity/identity.cue`, `package identity`, exporting **both** `ModulePath` and `Version`. The module's root package consumes it:
 
@@ -437,6 +447,8 @@ Adding the check to `opm module vet` is worth more than its cost: the condition 
 
 ### D17: There is no fleet migration; what remains is a bounded cleanup, and its sequencing runs the other way
 
+**Depends:** 0010:D18, 0010:D41
+
 **Decision:** The published fleet does **not** move. D13 keeps first-party modules at `opmodel.dev/modules/<name>`, so every published module keeps its coordinate, its `registryPath`, and (under 0010 D41) the instance identity derived from it. OQ6 is resolved by **dissolution**: the question asked how the fleet reaches an owner-scoped namespace, and there is no longer one for it to reach.
 
 0010 D1's `@vN` suffix does not change this. `opmodel.dev/modules/postgres@v2` addresses OCI repository `opmodel.dev/modules/postgres` with `v2.*` tags, so adding the major to `metadata.modulePath` moves no repository.
@@ -545,6 +557,8 @@ The invention boundary is what keeps this from undermining the gates it serves. 
 
 ### D21: Identity is validated by unifying against a shipped `#IdentityPackage`, and CUE produces the diagnostic
 
+**Depends:** 0010:D5
+
 **Decision:** `identity/identity.cue` is validated by **unifying it against the official `#IdentityPackage` schema and surfacing CUE's own error**. OPM does not hand-roll an expected-versus-found comparison, does not check field names procedurally, and does not maintain a second statement of what a conformant identity package looks like.
 
 **`#IdentityPackage` must therefore ship in `core`.** Today it exists only in enhancement 0010's `contracts/contracts.cue`: 0010 D40's own alternative records that it is "defined in this entry's `contracts/contracts.cue` and nowhere in shipped code". A schema that lives only in a design document cannot validate anything.
@@ -567,6 +581,8 @@ The invention boundary is what keeps this from undermining the gates it serves. 
 ---
 
 ### D22: A catalog member's declared path and FQN are validated by unifying against a shipped `#CatalogMemberFQNGate`
+
+**Depends:** 0010:D17, 0010:D21, 0010:D25, 0010:D28, 0010:D42
 
 **Decision:** `#CatalogMemberFQNGate` ships in `core` beside `#IdentityPackage` (D21), and `opm catalog publish` unifies **every** member of the tree (resource, trait, blueprint and transformer) against it, surfacing CUE's own error. This is refusal 11.
 
@@ -595,6 +611,8 @@ The gate is the enforcement point four separate enhancement 0010 decisions deleg
 ---
 
 ### D23: Predecessor selection is D9's literal rule: a backward scan of the published history, prereleases included
+
+**Depends:** 0010:D14
 
 **Amends:** D9.
 
@@ -648,6 +666,8 @@ What makes the reservation necessary rather than cosmetic is the CLI's shortcut 
 **Source:** User decision 2026-08-17. Prescribed by the cli change `cli/openspec/changes/cli-template-modules/` (proposal + design), whose gate tables land citing this decision; drafted here as its prerequisite.
 
 ### D26: The compatibility gate ignores dev builds and stands down while the module line is itself a prerelease
+
+**Depends:** 0010:D34
 
 **Amends:** D9, D23.
 
