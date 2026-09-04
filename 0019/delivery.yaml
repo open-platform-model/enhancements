@@ -109,6 +109,16 @@ log:
       Library render cutover: Kernel.Render is the sole render path; phase methods, platform synthesis/materialization/matching packages retired
     change: { kind: openspec, repo: library, change: library-render-cutover }
     decisions: [D8, D9, D10, D13, D26]
+  - date: "2026-09-04"
+    summary: >-
+      opm-operator: Platform reconciler generates and builds a build-local platform CUE module from the CR (full-closure pins, per-generation swap); Generated/BuildFailed/GenerateFailed reasons
+    change: { kind: openspec, repo: opm-operator, change: operator-platform-module-generation }
+    decisions: [D6]
+  - date: "2026-09-04"
+    summary: >-
+      opm-operator: render switch to the single-build Kernel.Render (leased platform record, gate held only across acquisition); spec.skewPolicy Warn|Refuse, SkewRefused reason, RenderWarning events; --max-concurrent-renders
+    change: { kind: openspec, repo: opm-operator, change: operator-render-switch }
+    decisions: [D7, D8, D18]
 no_work:
   D4: >-
     The sequencing decision itself (the Phase A/B split): implemented by the
