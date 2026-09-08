@@ -5,4 +5,3 @@ log:
     summary: >-
       library: removed unread kernel DI slots (logger/tracer/clock options, Clock, otel dep); operator migrated in same wave
     change: { kind: openspec, repo: library, change: library-slot-prune }
-    decisions: [D9]
