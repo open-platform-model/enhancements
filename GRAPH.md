@@ -24,21 +24,22 @@ graph LR
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
   Cschema["schema (6 entries)"]:::category
-  Cruntime["runtime (5 entries)"]:::category
+  Cruntime["runtime (6 entries)"]:::category
   Cdistribution["distribution (8 entries)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (1 entry)"]:::category
 
   Cschema -->|2| Cruntime
   Cschema -->|2| Cdistribution
-  Cruntime -->|1| Cschema
-  Cruntime -->|1| Cdistribution
+  Cruntime -->|2| Cschema
+  Cruntime -->|3| Cdistribution
+  Cruntime -->|1| Ctooling
   Cdistribution -->|2| Cschema
   Ctooling -->|1| Cruntime
   Cmisc -->|1| Cschema
 ```
 
-Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ runtime, schema ↔ distribution, runtime ↔ distribution.
+Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ runtime, schema ↔ distribution, schema ↔ tooling, runtime ↔ distribution, runtime ↔ tooling, distribution ↔ tooling.
 
 ## schema
 
@@ -64,6 +65,7 @@ graph TD
   N0018["0018 · misc"]:::stub
   N0019["0019 · runtime"]:::stub
   N0020["0020 · distribution"]:::stub
+  N0025["0025 · runtime"]:::stub
 
   N0006 -->|depends on| N0001
   N0010 -->|depends on| N0001
@@ -73,6 +75,7 @@ graph TD
   N0017 -->|depends on| N0010
   N0018 -->|depends on| N0013
   N0020 -->|depends on| N0015
+  N0025 -->|depends on| N0015
 ```
 
 ## runtime
@@ -92,10 +95,13 @@ graph TD
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::accepted
+  N0025["0025: Self-Service Kinds from Published Modules"]:::draft
   N0001["0001 · schema"]:::stub
+  N0008["0008 · tooling"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
+  N0021["0021 · distribution"]:::stub
   N0024["0024 · tooling"]:::stub
 
   N0006 -->|depends on| N0001
@@ -105,6 +111,10 @@ graph TD
   N0015 -->|depends on| N0019
   N0019 -->|depends on| N0010
   N0024 -->|depends on| N0019
+  N0025 -->|depends on| N0008
+  N0025 -->|depends on| N0010
+  N0025 -->|depends on| N0015
+  N0025 -->|depends on| N0021
 ```
 
 ## distribution
@@ -131,6 +141,7 @@ graph TD
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
   N0019["0019 · runtime"]:::stub
+  N0025["0025 · runtime"]:::stub
 
   N0010 -->|depends on| N0001
   N0011 -->|depends on| N0010
@@ -146,6 +157,8 @@ graph TD
   N0022 -->|depends on| N0010
   N0022 -->|depends on| N0011
   N0022 -->|depends on| N0016
+  N0025 -->|depends on| N0010
+  N0025 -->|depends on| N0021
   N0010 ==>|supersedes| N0003
   N0011 ==>|supersedes| N0003
 ```
@@ -167,8 +180,10 @@ graph TD
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0024["0024: CUE Testing and Conformance"]:::draft
   N0019["0019 · runtime"]:::stub
+  N0025["0025 · runtime"]:::stub
 
   N0024 -->|depends on| N0019
+  N0025 -->|depends on| N0008
 ```
 
 ## misc

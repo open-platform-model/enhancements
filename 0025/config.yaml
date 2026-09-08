@@ -1,0 +1,73 @@
+# Template config.yaml — id 0000 is reserved for this template.
+#
+# When creating a new enhancement, copy this directory to enhancements/NNNN/
+# (next available four-digit id) and overwrite every value below.
+#
+# This file is itself a valid #EnhancementConfig — running
+# `cue vet -d '#EnhancementConfig' enhancements/schema.cue enhancements/0000/config.yaml`
+# passes. The "placeholder-ness" lives in the slug, title, and markdown bodies.
+
+id: "0025"
+slug: self-service-kinds
+title: Self-Service Kinds from Published Modules
+# One line: the capability OPM will have and does not have today, or the
+# rework of one it has. The `feature` admission gate (gates.cue) made durable;
+# `task archive:list` renders rejected ideas by this field.
+summary: >-
+  A platform binds a published module to a kind consumers instantiate: schema from the module's config, module and version chosen by the platform, every instance a projected ModuleInstance.
+status: draft
+# Type of work, single-valued: schema | runtime | distribution | tooling | misc.
+# See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
+category: runtime
+# Every repo that ships code/schema/content changes driven by this enhancement:
+# its blast radius. Several entries means it spans repos; no label is needed.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
+# `task new` requires AFFECTS=; `core` below is only the template's stand-in.
+affects:
+  - core
+  - library
+  - catalog
+  - cli
+  - opm-operator
+# Does this enhancement add or change opmodel.dev/core definitions?
+# true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
+#         affects MUST include "core".
+# false → schemas/ MUST NOT exist; non-core compilable CUE goes in the
+#         optional contracts/ (task new:contracts ID=NNNN).
+# The template itself keeps schemas/ and contracts/ as copy sources and is
+# exempt from the iff-rule (0000 is skipped by `task vet`).
+core_schema: true
+created: "2026-09-08"
+updated: "2026-09-08"
+authors:
+  - emil@jacero.se
+# Append-only timeline of milestones. The validator (future) enforces
+# append-only via git diff against HEAD~1. Free-form `event` strings;
+# `semver` is an optional structured field for events that carry
+# machine-readable detail. (`slice` is LEGACY — never write it in new
+# events: naming a slice or OpenSpec change here violates the one-way
+# rule; plans cite enhancements, enhancements never cite plans.)
+history:
+  - date: "2026-09-08"
+    event: Drafted
+  - date: "2026-09-08"
+    event: 'Design captured: two layers (binding, kinds), a pure core projection to #ModuleInstance, D1-D10 recorded, OQ1-OQ12 opened; the definition kind name left open by user decision (OQ1).'
+# Entries whose decisions this entry's decisions depend on. An edge exists
+# iff a decision depends on a decision: list MMMM here only when a live
+# `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
+# list every MMMM those lines name. Four-digit ids only (a dependency
+# resolves to a decision heading; legacy:NNN has none). `task vet` enforces
+# both directions and refuses a cycle.
+depends_on:
+  - "0008"
+  - "0010"
+  - "0015"
+  - "0021"
+# Lifecycle relationships. These accept four-digit ids ("0042") and legacy
+# three-digit refs ("legacy:003") that point at frozen library/enhancements/
+# predecessors.
+supersedes: []
+# Archived ids this entry re-opens. One-way: the archived entry is frozen
+# and gets no back-link. See `task archive:list` for prior art.
+revives: []
+superseded_by: null

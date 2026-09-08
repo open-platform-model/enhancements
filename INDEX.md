@@ -27,6 +27,7 @@
 | [0022](./0022/) | distribution | core, cli, catalog, modules, opmodel.dev | draft | not-started | Machine-Readable Artifact Metadata in cue.mod/module.cue | OPM tooling learns an artifact's kind, identity and core/catalog compatibility from the module.cue blob alone, without the zip, through a gate-checked custom block CUE already carries. |
 | [0023](./0023/) | distribution | cli, library, opm-operator, catalog, modules, core | draft | not-started | Artifact Provenance, Signatures and Platform Trust Policy | Catalogs and modules carry signed build provenance and signatures as OCI referrers, and a platform states which signers and builders it trusts before anything it materializes is used. |
 | [0024](./0024/) | tooling | core, catalog, library | draft | not-started | CUE Testing and Conformance | Verified CUE behaviour: in-package accept/reject assertions beside each definition, and an external conformance suite replaying fixtures across CUE, core, catalog and upstream Kubernetes versions. |
+| [0025](./0025/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | A platform binds a published module to a kind consumers instantiate: schema from the module's config, module and version chosen by the platform, every instance a projected ModuleInstance. |
 
 ## Archived (rejected / superseded)
 
