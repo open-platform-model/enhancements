@@ -37,6 +37,7 @@ Schemas live in `enhancements/schema.cue`: `#Delivery` (the file), `#LogEntry`, 
    The failure direction is safe by construction: a forgotten log entry under-reports (the entry stays `in-progress`) and can never produce a false `implemented`.
 7. **Appending never voids a gate verdict.** `delivery.yaml` is deliberately outside the gate-verdict content hash (`scripts/entry_hash.sh` covers `*.md`/`*.cue` only), because the log records execution, not design. Conversely, nothing in the log ever substitutes for a gate verdict.
 8. **History stays design-milestones-only.** What landed where goes in the log, structurally; a `config.yaml.history` event narrating delivery is the logbook this repo removed. `history[].slice` is legacy: kept so old events validate, never written in new ones.
+9. **A claim is corrected in place, never compensated.** A line claims a decision only when the change delivered it whole; a decision spanning repos is carried by the change that completes it, not the first that touches it. When review finds a claim wrong, remove the number from that line's `decisions`: the line, its date, summary and change ref stay, git holds the provenance, no history event, and the commit (`fix(NNNN): unclaim DN`) says what was retracted and why. An over-claim is the one error the derivation cannot absorb, because it can produce a false `implemented`.
 
 ## Appending a log entry
 
@@ -97,6 +98,7 @@ What `task vet` enforces on every `delivery.yaml`: the `#Delivery` schema; every
 
 ## Red flags
 
+- **Claiming a decision a change only started.** Carriage means delivered whole. Log the landing with no `decisions`, or only the ones it completed, and let the finishing change claim the rest.
 - **Logging before the work lands.** The log is a record of the past. A "will land" entry corrupts the derivation.
 - **A path or URL in a change ref.** It will break on archive or rot; use the structured kinds.
 - **The archive date prefix in an openspec slug.** `change: cli-publish-pipeline`, never `2026-08-16-cli-publish-pipeline`.

@@ -317,6 +317,12 @@ import (
 	// change may legitimately implement no numbered decision (a mechanical
 	// retarget, a release cut). What `task delivery:uncovered` reports is
 	// decisions with no change, not changes with no decision.
+	//
+	// A number belongs here only when the change delivered that decision
+	// whole; a decision spanning repos is claimed by the change that
+	// completes it. A wrong claim is corrected in place by removing the
+	// number (git holds the provenance): an over-claim is the one error the
+	// derivation cannot absorb, because it can produce a false `implemented`.
 	decisions?: [...#DNumStr]
 
 	// Open Questions this change resolves; claims an OQ the entry closed
