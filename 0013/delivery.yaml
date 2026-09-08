@@ -1,21 +1,25 @@
 # Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
 # Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+# 2026-09-08: D9 and D12 unclaimed from the three lines below. The catalog
+# and modules halves landed; core still ships the legacy block D9 deletes and
+# D12 relocates, so no line carries them until the change that completes them.
 log:
   - date: "2026-08-30"
     summary: >-
       catalog_opm: legacy secret mechanism deleted from the opm catalog (contract type, discovery walk, env from path, opm-secrets arm); SecretSchema.data narrowed to string; cut opmodel.dev/catalogs/opm@v3 ahead of core's slice
     change: { kind: openspec, repo: catalog, change: catalog-remove-legacy-secrets }
-    decisions: [D9, D12]
   - date: "2026-08-30"
     summary: >-
       Removed legacy res.#Secret/#AutoSecrets/opm-secrets from all seven v2 modules; sensitive fields are plain strings injected via value:, marked // 0013: pending core's real #Secret
     change: { kind: openspec, repo: modules, change: modules-drop-legacy-secrets }
-    decisions: [D9]
   - date: "2026-09-01"
     summary: >-
       Fleet re-pinned to catalogs/opm@v4.0.0; k8up updated for removed EnvVarSchema.from
     change: { kind: openspec, repo: modules, change: fleet-repin-catalog-v4 }
-    decisions: [D9]
+  - date: "2026-07-27"
+    summary: >-
+      core: stopped injecting the opm-secrets component into #ModuleInstance (landed before delivery tracking); instance-scoped group naming still pending, so no decision is claimed
+    change: { kind: commit, repo: core, sha: a77a12d66466ff20651c259d8be183e2e9105200 }
 no_work:
   D1: >-
     Superseded by D10 the day it was written; retained position only, no work
