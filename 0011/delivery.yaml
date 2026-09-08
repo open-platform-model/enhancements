@@ -112,6 +112,11 @@ log:
       opm module publish and vet run the kernel module loader as a gate (msg 12), refusing with the loader's own error; library bumped to alpha.20
     change: { kind: openspec, repo: cli, change: publish-runs-kernel-loader }
     decisions: [D16, D18, D21]
+  - date: "2026-09-08"
+    summary: >-
+      0011 D9's catalog compatibility comparator moves out of library/opm/compat to cli/internal/compat, beside its only callers
+    change: { kind: openspec, repo: library, change: move-compat-to-cli }
+    decisions: [D9]
 no_work:
   D5: >-
     Its namespace half is REVERSED by D13, which is carried by the modules

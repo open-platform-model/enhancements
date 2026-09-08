@@ -57,16 +57,16 @@ The one thing that does not roll back is a **withdrawal**: if a catalog tombston
 
 **Which repos must coordinate, and what constrains the order?**
 
-Four ordering constraints, each a design fact rather than a schedule.
+Three ordering constraints, each a design fact rather than a schedule.
 
 1. **Enhancement 0015 D1 before a value-level inventory, and not before anything else.** Measured 2026-08-22, member enumeration for the publish gates is a filesystem walk over enhancement 0010 D49's `<kind>/<apiVersion>` filing, reading a fetched published build through the same interface as a working tree; the value walk was rejected precisely because `#Catalog` exposes only `#transformers`, which reach about half the members and no blueprints. So D2, D3, D6, D7 and D10 are all deliverable before 0015 D1 lands. What waits on it is a consumer-readable contract inventory: the lifecycle report of OQ8, and any answer the operator or `opm platform check` must give without a filesystem in hand.
 
-2. **`core` before `library`.** The gates and the `#Tombstone` shape are the contract `library` compares against; the comparator cannot be written against a schema that does not exist.
+2. **`core` before `cli`.** The gates and the `#Tombstone` shape are the contract the comparator compares against; it cannot be written against a schema that does not exist.
 
-3. **`library` before `cli`.** The cross-build rules live in `opm/compat` so that `opm catalog publish`, `opm catalog registry check` and any CI action share one implementation. This is the same argument enhancement 0010 D32 used for placing its guard in the kernel and 0011 D9 used for placing the comparator there.
+3. **`cli` before `catalog_opm`'s first promotion.** The proof case is only a proof if the gate is running when it publishes.
 
-4. **`cli` before `catalog_opm`'s first promotion.** The proof case is only a proof if the gate is running when it publishes.
+There is no `library` hand-off. The cross-build rules live in `cli/internal/compat`, beside the only callers there have ever been: `opm catalog publish` and `opm catalog registry check`. 0011 D9 first placed the comparator in the library so that any CI action could share one implementation, but every consumer it named turned out to be the cli binary, and the library kept no caller of its own once the render build took over apiVersion ordering. So the library-before-cli constraint this section used to record no longer applies to these rules, and a comparator change is one cli PR rather than a library release plus a re-pin.
 
 `opmodel.dev` follows the shipped behaviour and constrains nothing.
 
-The upstream artefact at each hand-off is concrete: `core` produces the published `opmodel.dev/core` alpha carrying the new definitions; `library` produces the exported comparator entry points in `opm/compat`; `cli` produces the wired gates in `opm catalog publish`.
+The upstream artefact at each hand-off is concrete: `core` produces the published `opmodel.dev/core` alpha carrying the new definitions; `cli` produces the comparator entry points in `internal/compat` and the wired gates in `opm catalog publish`.

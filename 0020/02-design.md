@@ -93,15 +93,14 @@ Three changes in `opmodel.dev/core`, all additive. The compilable delta is [`sch
 
 **`#PromotionGate` and `#TombstoneGate` (NEW).** The within-artifact rules, carried in `core` and unified against at publish, following the pattern `#TraitOptionalGate` and `#CatalogMemberFQNGate` established under 0011 D21/D22: the schema is the contract, CUE is the engine that checks it, and what the author reads is CUE's own error. Both gates carry `#TraitOptionalGate`'s warning: they must be unified into a non-hidden value, since `cue vet -c` does not check hidden fields and a gate parked under `_` passes while checking nothing.
 
-Rules that need a second build cannot live in CUE and do not. The absent-and-not-tombstoned check, the promotion comparison, and the seasoning floor all need published history, which is `library/opm/compat`'s territory. 0011 D23's backward scan and the field-wise comparator from `0011/experiments/03` already live there.
+Rules that need a second build cannot live in CUE and do not. The absent-and-not-tombstoned check, the promotion comparison, and the seasoning floor all need published history, which is `cli/internal/compat`'s territory. 0011 D23's backward scan and the field-wise comparator from `0011/experiments/03` already live there.
 
 ## Affected Surfaces
 
 | Repo | What changes |
 | --- | --- |
 | `core` | `#Tombstone`, `#Catalog.#removed`, `promotedFrom` on the three contract kinds, `#PromotionGate`, `#TombstoneGate`, and the SPEC.md sections for each |
-| `library` | The cross-build rules in `opm/compat`: tombstone enforcement, promotion comparison, seasoning floor. All three extend 0011 D23's existing walk rather than adding a traversal |
-| `cli` | `opm catalog publish` runs the new gates beside 0011 D9's; `opm catalog registry check` reports lifecycle state as a D35-style aid |
+| `cli` | The cross-build rules in `internal/compat`: tombstone enforcement, promotion comparison, seasoning floor, all three extending 0011 D23's existing walk rather than adding a traversal. `opm catalog publish` runs the new gates beside 0011 D9's; `opm catalog registry check` reports lifecycle state as a D35-style aid |
 | `catalog_opm` | Authoring the tombstone map, and the first real promotion as the proof case |
 | `opmodel.dev` | Reference documentation for the ladder, promotion, and retirement |
 

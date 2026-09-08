@@ -10,7 +10,7 @@ D2 requires that a member carrying `promotedFrom` be compared against the newest
 
 What has never been run is that walk over operands whose `apiVersion` differs. Three specific things could break, and the experiment exists to find out which:
 
-1. **The level-aware entry point short-circuits.** `library/opm/compat`'s `CheckAtLevel` reads the level off the apiVersion and returns `(nil, nil)` at alpha, because alpha promises nothing (0010 D34). A promotion **from** alpha (D5 permits it) has an alpha operand, so a naive reading of the existing entry point skips the comparison entirely and every alpha-to-GA promotion passes unchecked. If that is what happens, D2 needs to say which operand's level decides.
+1. **The level-aware entry point short-circuits.** `cli/internal/compat`'s `CheckAtLevel` reads the level off the apiVersion and returns `(nil, nil)` at alpha, because alpha promises nothing (0010 D34). A promotion **from** alpha (D5 permits it) has an alpha operand, so a naive reading of the existing entry point skips the comparison entirely and every alpha-to-GA promotion passes unchecked. If that is what happens, D2 needs to say which operand's level decides.
 
 2. **The metadata delta swamps the comparison.** The two operands differ by construction in `apiVersion` and `fqn`, and the promoted one additionally carries `promotedFrom`. If those fields reach the walk, every promotion reports violations that are artifacts of being a promotion. Enhancement 0010 D30 already excludes provenance from the *match* comparison via a fixed denylist; whether the publish-side comparator has an equivalent exclusion, and whether `promotedFrom` is on it, is OQ6's concrete half.
 
@@ -24,7 +24,7 @@ What has never been run is that walk over operands whose `apiVersion` differs. T
 
 Not yet performed. Planned shape, following the copy-never-reference rule:
 
-- Copy the comparator from `library/opm/compat` into this directory as a Go module. Do not import it: the claim is about the comparator **as of the moment this ran**, and an upstream change would silently invalidate a referenced experiment.
+- Copy the comparator from `cli/internal/compat` into this directory as a Go module. Do not import it: the claim is about the comparator **as of the moment this ran**, and an upstream change would silently invalidate a referenced experiment.
 - Copy the relevant fixture shapes from `0011/experiments/03-d27-compat-gate`, re-keyed so each case exists at two levels.
 - Build a case matrix over (origin level, target level) × (change class). Origin levels: `v1alpha1`, `v1beta1`, `v1beta2`. Target levels: `v1beta2`, `v1`, `v2`. Change classes are D27's own: field added optional, field added required, field removed, type narrowed, disjunction option added, default changed, and identical.
 - Record for each case what D27 says the verdict should be, independently of what the code returns, so the comparison is against the rule rather than against the implementation.
