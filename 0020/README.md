@@ -80,8 +80,8 @@ None at this stage. Update when implementation lands.
 
 | Document | Purpose |
 | -------- | ------- |
-| [0010](../0010/) | The identity reshape this entry extends: D4 (contract keyed by its own API version), D27 (additive-only inside a level), D34 (the ladder, the alpha carve-out, and the deprecation-window rejection), D35 (publish-side-only enforcement), D44 (transformers carry no `apiVersion`), D47/D49 (catalog consolidation and version-segment filing) |
-| [0011](../0011/) | The publishing pipeline this entry's gates join: D9 (the compatibility gate), D23 (predecessor selection by backward scan), D10 (published artifacts are immutable), D21/D22 (schema-as-gate, checked by CUE), and OQ10, the open removal question this entry closes |
+| [0010](../archive/0010/) | The identity reshape this entry extends: D4 (contract keyed by its own API version), D27 (additive-only inside a level), D34 (the ladder, the alpha carve-out, and the deprecation-window rejection), D35 (publish-side-only enforcement), D44 (transformers carry no `apiVersion`), D47/D49 (catalog consolidation and version-segment filing) |
+| [0011](../archive/0011/) | The publishing pipeline this entry's gates join: D9 (the compatibility gate), D23 (predecessor selection by backward scan), D10 (published artifacts are immutable), D21/D22 (schema-as-gate, checked by CUE), and OQ10, the open removal question this entry closes |
 | [0015](../0015/) | `#Catalog` contract members (D1), the prerequisite for anything that iterates contracts; D16's removal-with-dependents refusal, whose cluster-side half this entry defers to; OQ5's deferred aliasing question, which this entry answers for the within-catalog level case |
 | `core/SPEC.md` §2.1, §2.2, §3.3, §5.2, §5.3 | The sections the delta in [`schemas/spec.md`](schemas/spec.md) changes |
 | `core/openspec/config.yaml` | The constitution governing `core` schema changes |

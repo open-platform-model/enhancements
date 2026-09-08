@@ -56,9 +56,9 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) (a sketc
 
 ## Relationship to adjacent enhancements
 
-- **[0011](../0011/)** produces the artifacts and already verifies a published catalog out of band (`opm catalog registry check`, D7); attestation happens in the same release workflow, and verification is the natural extension of that command. 0011 names signing and provenance as out of scope; this entry is where they land.
+- **[0011](../archive/0011/)** produces the artifacts and already verifies a published catalog out of band (`opm catalog registry check`, D7); attestation happens in the same release workflow, and verification is the natural extension of that command. 0011 names signing and provenance as out of scope; this entry is where they land.
 - **[0022](../0022/)** carries unsigned metadata (kind, identity, pins, publisher annotation). Nothing there is evidence; this entry's referrers are. A verifier may use 0022's `catalogs` map as the list of dependencies to verify recursively (OQ6).
-- **[0019](../0019/)** reshapes the platform so a subscription imports its catalog; the trust policy attaches to that subscription (D2), and the kernel's single build is where verification runs before the render.
+- **[0019](../archive/0019/)** reshapes the platform so a subscription imports its catalog; the trust policy attaches to that subscription (D2), and the kernel's single build is where verification runs before the render.
 - **[0020](../0020/)** retires contracts inside a catalog; the optional advisory scope (OQ2) is the artifact-level counterpart.
 
 ## Deviations from Design

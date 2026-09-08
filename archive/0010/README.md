@@ -1,6 +1,6 @@
-# Enhancement 0010: Module and Catalog Identity
+> **Delivered (2026-08-28).** Every live decision is carried by this entry's delivery log or excused in it (21 landings; `task delivery ID=0010`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0010` lists any.
 
-> **Implementation status (2026-08-19).** Complete. Every slice has landed: core crossed to the v2 major, the library/cli/operator retargeted onto it, the first-party catalogs consolidated and republished through `opm catalog publish`, and the module fleet republished at unchanged coordinates. Deviations are recorded below.
+# Enhancement 0010: Module and Catalog Identity
 
 An OPM artifact states its identity in more places than one: `metadata.modulePath`, `metadata.name`, `metadata.version`, the `module:` line in `cue.mod/module.cue`, the CUE package name, and the tag it was published under. Nothing binds these statements together. This enhancement reduces that to one statement per artifact, held in the artifact's own committed bytes, and takes the full version out of identity entirely.
 

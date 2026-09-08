@@ -48,7 +48,7 @@ The core-schema delta lives under [`schemas/`](schemas/) as compilable files: [`
 
 ## Relationship to 0006
 
-[0006](../0006/) made the operator's `ModuleInstance` CR types a shared contract that the CLI imports directly (D13: CLI imports `library`; the operator owns the CRD types). That sharing is exactly what raises the stakes here: a single hand-maintained Go definition is now a multi-consumer contract, and its drift from the canonical `core/` CUE is felt in two repos at once. 0008 does not change 0006's runtime contract or handoff design: it changes where the `ModuleInstance`/`Platform` *type definitions* originate (CUE in `core/`, generated into Go) so the contract 0006 relies on cannot silently diverge from `core`.
+[0006](../archive/0006/) made the operator's `ModuleInstance` CR types a shared contract that the CLI imports directly (D13: CLI imports `library`; the operator owns the CRD types). That sharing is exactly what raises the stakes here: a single hand-maintained Go definition is now a multi-consumer contract, and its drift from the canonical `core/` CUE is felt in two repos at once. 0008 does not change 0006's runtime contract or handoff design: it changes where the `ModuleInstance`/`Platform` *type definitions* originate (CUE in `core/`, generated into Go) so the contract 0006 relies on cannot silently diverge from `core`.
 
 ## Cross-References
 

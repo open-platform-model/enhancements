@@ -1,8 +1,8 @@
+> **Delivered (2026-06-30).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0002`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0002` lists any.
+
 # Enhancement 0002: Rename the Release artifact family to Instance vocabulary (cross-cutting)
 
 See [`config.yaml`](config.yaml) for the metadata contract: it is the sole source of metadata; no parallel metadata table lives here.
-
-> **Implementation status (2026-06-30).** Implemented. All twelve code slices shipped and published: C1 (`core@v1` v1.0.0-alpha.1), L1 (`library` v1.0.0-alpha.3), O1–O3 (`opm-operator` v1.0.0-alpha, PR #37), X1–X4 (`opm` v1.0.0-alpha, PR #97), K1–K3 (`catalog_opm` v1.0.0-alpha, `catalog_kubernetes` v1.1.0-alpha, `catalog_opm_experimental` v1.2.0-alpha), and the closing Part B vocabulary cleanup of downstream enhancements (0008/0006/0007/0003) has landed. See [`## Deviations from Design`](#deviations-from-design). The out-of-scope `modules/`+`releases/` re-pin onto `core@v1`/`catalog_opm@v1` (with the `release.cue → instance.cue` sweep) and the opm-operator main-spec hygiene pass remain separately tracked.
 
 ## Summary
 

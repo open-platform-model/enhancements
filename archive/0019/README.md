@@ -1,3 +1,5 @@
+> **Delivered (2026-09-04).** Every live decision is carried by this entry's delivery log or excused in it (27 landings; `task delivery ID=0019`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0019` lists any.
+
 # Enhancement 0019: Kernel render path parity with pure CUE
 
 The kernel does not hand a transformer what CUE would hand it. Before rendering, it converts each component into a "data" value using `cue.Final()`, and that call deletes every definition field. So `#component.#names`, the identity `core/SPEC.md` calls "the single source of truth for this component's identity", does not exist inside any `#transform`, along with `#resources`, `#traits` and `#instance`. A third declared input, `#moduleInstance`, is never filled at all.

@@ -1,6 +1,6 @@
-# Enhancement 0006: CLI CR Inventory, Library Kernel Adoption, and Operator Handoff
+> **Delivered (2026-07-20).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0006`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0006` lists any.
 
-> **Implementation status (2026-07-20).** Complete. All nine planned slices resolved: A1/A2/A4/A6/B2/C1/C2/C3/A5 implemented (A3 reverted by D31, B1 cancelled with it; see [`planned-changes.md`](planned-changes.md) for per-slice landing notes). The headline path works end-to-end and is live-verified: `opm operator install` → CR-backed inventory apply → kernel render parity → `opm instance handoff` with zero workload disruption, plus the operator-managed thin-editor/delete modes. Shipped across cli 1.0.0-alpha.4, opm-operator v1.0.0-alpha.4, and opm-kind-demo#1. Open questions OQ15/OQ16/OQ18 are deferred follow-ons, not gaps in this scope. See Deviations below.
+# Enhancement 0006: CLI CR Inventory, Library Kernel Adoption, and Operator Handoff
 
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
 

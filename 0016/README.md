@@ -67,7 +67,7 @@ Pure-CUE definitions live in two places: [`schemas/target.cue`](schemas/target.c
 **Deferred to a different entry or command.**
 
 - **Exporting a *deployed* instance to files.** That is enhancement [0014](../0014/) (cluster → git); this entry is registry → disk, pre-deployment.
-- **A publish-time gate on `initValues` conformance.** If wanted, it is [0011](../0011/)'s decision.
+- **A publish-time gate on `initValues` conformance.** If wanted, it is [0011](../archive/0011/)'s decision.
 - **Validating the generated package at init time.** The report names `opm instance vet`; running it is the user's next step (D8).
 
 **Unaffected.**
@@ -81,13 +81,13 @@ Pure-CUE definitions live in two places: [`schemas/target.cue`](schemas/target.c
 
 ## Relationship to adjacent enhancements
 
-- **[0002](../0002/)** renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary (`#ModuleInstance`, instance packages).
+- **[0002](../archive/0002/)** renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary (`#ModuleInstance`, instance packages).
 - **[0014](../0014/)** covers the opposite direction of the same lifecycle: 0014 turns a *deployed* instance into committable files; 0016 turns a *published module* into committable files before any deployment exists. Both produce GitOps-ready artifacts and deliberately share the "generated, not hand-assembled" stance.
-- **[0019](../0019/)** is the kernel render path the generated package is handed to, and this entry lands after it. Init's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`. Three of 0019's decisions bear directly on init's output:
+- **[0019](../archive/0019/)** is the kernel render path the generated package is handed to, and this entry lands after it. Init's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`. Three of 0019's decisions bear directly on init's output:
   - Catalog version skew between a module and its platform becomes a kernel-detected, warn-and-render signal (D7, D18 in 0019): the failure experiment 03 met as "unresolved demands" against a platform on a different catalog pin.
   - The render step becomes one CUE build with a render `cue.mod` derived by promotion from the inputs (D9, D13 in 0019), the same derivation D9 here performs for the generated module file.
   - The platform reshape (D5, D6 in 0019) defines what `opm instance vet`/`build` evaluate against.
-- **[0011](../0011/)** owns publish-time gates and the `opm module init` scaffolding this command mirrors (D5); a publish-time check that `initValues` satisfies `#config` would land there, not here (D8).
+- **[0011](../archive/0011/)** owns publish-time gates and the `opm module init` scaffolding this command mirrors (D5); a publish-time check that `initValues` satisfies `#config` would land there, not here (D8).
 
 ## Deviations from Design
 

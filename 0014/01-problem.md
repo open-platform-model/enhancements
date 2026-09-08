@@ -4,7 +4,7 @@ Handoff moves the manager, not the definition, and nothing in OPM today writes a
 
 ## Current State
 
-Enhancement [0006](../0006/) built the path a learner takes into OPM. The CLI applies an instance from a local `.cue` file, storing its inventory in the operator's `ModuleInstance` custom resource (D1) rather than in a Secret. `opm instance handoff` then transfers management of that instance to the operator: a gate chain, a single-field ownership flip, and a bounded wait judged by D40's inventory-stable criterion. It shipped and is live-verified: the transfer costs zero workload disruption.
+Enhancement [0006](../archive/0006/) built the path a learner takes into OPM. The CLI applies an instance from a local `.cue` file, storing its inventory in the operator's `ModuleInstance` custom resource (D1) rather than in a Secret. `opm instance handoff` then transfers management of that instance to the operator: a gate chain, a single-field ownership flip, and a bounded wait judged by D40's inventory-stable criterion. It shipped and is live-verified: the transfer costs zero workload disruption.
 
 The CLI's write to that CR is deliberately narrow. `ApplySpec` in `cli/internal/inventory/store.go:119` is the single writer for the CLI-owned spec. The document it applies contains exactly four things: `spec.module` (path plus version), `spec.owner`, `spec.values`, and three metadata labels from `crLabels` (`store.go:311`), plus the render-provenance annotation when the render came from local bytes. Under server-side apply a manager's document is its complete declared intent, so that list is not a summary: it is the whole of what the CLI puts in the CR's spec.
 

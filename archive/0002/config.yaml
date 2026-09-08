@@ -15,7 +15,7 @@ title: 'Rename the Release artifact family to Instance vocabulary (cross-cutting
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
   Rename the deployable-artifact family from Release to Instance vocabulary across core, library, operator and CLI, so the name states multiplicity rather than a shipping event.
-status: accepted
+status: delivered
 category: schema
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
@@ -102,6 +102,8 @@ history:
     event: 'Dependency edges: related renamed to depends_on and left empty; no decision rests on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
   - date: "2026-09-08"
     event: Category set to schema, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
+  - date: "2026-09-08"
+    event: 'Closed as delivered: every live decision carried by the delivery log or excused; archived.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -1,17 +1,10 @@
+> **Delivered (2026-07-24).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0001`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0001` lists any.
+
 # Enhancement 0001: `#Platform` Redesign Umbrella
 
 See [`config.yaml`](config.yaml) for metadata. This README is the index of the
 seven split documents and the Cross-References table; everything else lives in
 the split files.
-
-> **Implementation status (2026-07-20).** Shipped. Every producer-side slice landed:
->
-> - `core/` schema (`opmodel.dev/core@v0`)
-> - `library/` kernel (v0.3.0+: OCI schema loader, `Materialize`, concurrent render, `SynthesizePlatform`)
-> - the repackaged catalog (`opmodel.dev/catalogs/opm@v0`)
-> - the full `opm-operator/` rewrite onto the kernel (2026-06-12)
->
-> The final consumer gate, the `cli/` rewrite onto the library kernel, landed via enhancement [0006](../0006/)'s kernel-adoption slice (C2) on 2026-07-20 (cli `1.0.0-alpha.4`). Verified in `cli/`: `go.mod` requires `github.com/open-platform-model/library`, the `pkg/render/` fork is deleted, and render / materialize / compile / handoff-verify all flow through `kernel.New` → `Compile` / `Materialize`. The workspace `modules/*` mass-rewire (D23 non-blocking wave) is consumer maintenance on each module's own cadence and never gated graduation. See `## Deviations from Design` below.
 
 ## Summary
 

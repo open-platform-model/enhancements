@@ -1,6 +1,6 @@
-# Enhancement 0011: Module and Catalog Publishing
+> **Delivered (2026-09-08).** Every live decision is carried by this entry's delivery log or excused in it (18 landings; `task delivery ID=0011`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0011` lists any.
 
-> **Implementation status (2026-08-19).** Complete. Publishing an OPM artifact now goes through `opm module publish` / `opm catalog publish` in every pipeline, versions are authored rather than inferred, and the registry cleanup D17 scoped is finished. Deviations are recorded below.
+# Enhancement 0011: Module and Catalog Publishing
 
 There is no OPM publish command. Every artifact in the registry today was pushed by `cue mod publish`, wrapped in a repo-local task that decides the version by its own rules: a content checksum for modules, a copy-and-stamp for catalogs. Neither wrapper reads what the artifact says about itself. This enhancement defines how an OPM artifact reaches a registry.
 

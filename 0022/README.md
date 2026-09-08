@@ -53,9 +53,9 @@ Pure-CUE definitions live in [`schemas/target.cue`](schemas/target.cue) (the blo
 
 ## Relationship to adjacent enhancements
 
-- **[0011](../0011/)** owns publishing, and this entry extends it. Reused unchanged: D21's mechanism (core ships a definition, publish unifies against it in Go and surfaces CUE's error), D16's posture (publish enforces the author's `cue.mod`, never edits it) and D2 (published bytes are committed bytes). Amended: D3 and D8 name `identity/identity.cue` `Version` as the writer's only target; with D5 here the writer also keeps the block's `identity.Version` in step, so 0011 gains a new decision carrying `**Amends:** D3, D8` once this entry is accepted (OQ4).
+- **[0011](../archive/0011/)** owns publishing, and this entry extends it. Reused unchanged: D21's mechanism (core ships a definition, publish unifies against it in Go and surfaces CUE's error), D16's posture (publish enforces the author's `cue.mod`, never edits it) and D2 (published bytes are committed bytes). Amended: D3 and D8 name `identity/identity.cue` `Version` as the writer's only target; with D5 here the writer also keeps the block's `identity.Version` in step, so 0011 gains a new decision carrying `**Amends:** D3, D8` once this entry is accepted (OQ4).
 - **[0016](../0016/)** is the first reader. Its D5 walk already fetches the module-file blob per candidate major (experiment 02); with the block it reads `core.major` and `kind` directly instead of parsing `deps`, and refuses templates and catalogs by name rather than by path prefix.
-- **[0010](../0010/)** fixed identity: `module:` is byte-identical to `identity.ModulePath`. The gate here leans on that equality rather than restating it.
+- **[0010](../archive/0010/)** fixed identity: `module:` is byte-identical to `identity.ModulePath`. The gate here leans on that equality rather than restating it.
 
 ## Deviations from Design
 

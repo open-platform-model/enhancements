@@ -27,7 +27,7 @@ After that rewrite the two arms are indistinguishable, so a transformer reads `.
 
 Two properties fall out that the first draft of this design did not have: **instance files for supplied secrets do not change at all**, since `{value: "…"}` is already what people write; and a secret interpolated into a rendered config file fails at plain `cue vet` against `debugValues`, at authoring time, before the kernel is involved.
 
-*How* a supplied secret is materialised (plain Secret, SealedSecret, ESO) is a platform choice resolved through catalog subscription, not an author decision. That mechanism also answers enhancement [0010](../0010/)'s still-open OQ9, by supplying the secrets resource FQN from the platform rather than from a literal in `core`.
+*How* a supplied secret is materialised (plain Secret, SealedSecret, ESO) is a platform choice resolved through catalog subscription, not an author decision. That mechanism also answers enhancement [0010](../archive/0010/)'s still-open OQ9, by supplying the secrets resource FQN from the platform rather than from a literal in `core`.
 
 ## Documents
 
@@ -115,5 +115,5 @@ Divergences between the accepted design and what has shipped, recorded as each s
 | `core/SPEC.md` | Misdescribes `#Secret` as a Primitive, and records the synthesis removal |
 | `cli/docs/rfc/0002-sensitive-data-model.md` | The original sensitive-data RFC whose redaction goal this design finally delivers |
 | Enhancement [0009](../0009/) | Evidence that depending on CUE attributes is safe (`research/cue-attribute-longevity.md`) |
-| Enhancement [0010](../0010/) | OQ9, whose candidate (b) D8 resolves |
-| Enhancement [0011](../0011/) | The `@opm(identity, owner=publish)` attribute precedent D2 follows |
+| Enhancement [0010](../archive/0010/) | OQ9, whose candidate (b) D8 resolves |
+| Enhancement [0011](../archive/0011/) | The `@opm(identity, owner=publish)` attribute precedent D2 follows |

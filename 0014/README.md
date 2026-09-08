@@ -4,7 +4,7 @@ See [`config.yaml`](config.yaml) for metadata. This README is the index of the s
 
 ## Summary
 
-Enhancement [0006](../0006/) shipped `opm instance handoff`, which transfers a CLI-deployed instance to the operator without touching a workload. It moves the manager; it does not move the definition. After a handoff the only complete record of an instance is a live object in etcd, and a user who now wants git as the source of truth has to hand-assemble four YAML documents per instance from a `kubectl get -o yaml` dump.
+Enhancement [0006](../archive/0006/) shipped `opm instance handoff`, which transfers a CLI-deployed instance to the operator without touching a workload. It moves the manager; it does not move the definition. After a handoff the only complete record of an instance is a live object in etcd, and a user who now wants git as the source of truth has to hand-assemble four YAML documents per instance from a `kubectl get -o yaml` dump.
 
 This entry adds `opm instance export`: read the live `ModuleInstance`, verify the published module still reproduces the deployed render, and write a committable directory, the CR plus the `Namespace`, applier `ServiceAccount`, RBAC, and `kustomization.yaml` that make it applicable on its own.
 

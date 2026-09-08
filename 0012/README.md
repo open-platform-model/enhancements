@@ -67,7 +67,7 @@ Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue
 **Belongs to another entry**
 
 - **The CRD Go types.** Whether `library` becomes their home is entangled with enhancement 0008 and is an open question here, not a deliverable.
-- **Identity.** FQNs, module paths, `instanceUUID` derivation, and the identity migration belong to [0010](../0010/). This entry consumes whatever identity 0010 lands and compares label values without parsing them.
+- **Identity.** FQNs, module paths, `instanceUUID` derivation, and the identity migration belong to [0010](../archive/0010/). This entry consumes whatever identity 0010 lands and compares label values without parsing them.
 - **The execution half of the kernel**: `#Op` / `#Action` / `#Lifecycle` / `#Workflow` and `opm/flow/` belong to [0009](../0009/). The two entries overlap on the planner-plus-execution-seam convention, tracked as an open question rather than absorbed.
 
 **Not touched by this entry**
