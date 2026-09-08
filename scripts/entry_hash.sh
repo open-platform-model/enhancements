@@ -31,6 +31,6 @@ DIR="$ID"
       done
 
   # Design-bearing metadata only.
-  yq -r '[.summary, .area, (.affects | join(",")), (.semver // ""), (.core_schema | tostring)] | @tsv' \
+  yq -r '[.summary, (.affects | join(",")), (.semver // ""), (.core_schema | tostring)] | @tsv' \
      "$DIR/config.yaml"
 } | sha256sum | cut -d' ' -f1

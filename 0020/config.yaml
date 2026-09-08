@@ -7,12 +7,10 @@ title: Contract Promotion and Retirement
 summary: >-
   Promote a contract by dual-shipping both levels in one build with the promotion declared, and require a tombstone with a reason when a published key stops shipping.
 status: draft
-# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
-area: cross-cutting
+category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
-# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
 affects:
-  - cross-cutting
   - core
   - cli
   - catalog
@@ -53,6 +51,8 @@ history:
   - date: "2026-09-08"
     event: >-
       Cross-build rules retargeted to cli/internal/compat, following the comparator's relocation there. The library-before-cli constraint lapses and library leaves affects. No decision changed.
+  - date: "2026-09-08"
+    event: Category set to distribution, area dropped, cross-cutting removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

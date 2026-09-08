@@ -182,8 +182,9 @@ To create a new enhancement from this template:
 3. Overwrite every `{Capitalised}` placeholder string across the README and
    the seven split documents.
 4. Fill `config.yaml` with real values: id matches the directory name, slug
-   is short kebab-case, title is human-readable, area + affects describe
-   ownership, created + updated set to today's date.
+   is short kebab-case, title is human-readable, category names the one
+   dominant type of work, affects lists every repo that ships changes,
+   created + updated set to today's date.
 5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
    accrete iteratively in `03-decisions.md` as design choices emerge.
 6. `05-risks.md` and `06-operational.md` start as scaffolds

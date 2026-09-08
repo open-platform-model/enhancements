@@ -7,8 +7,8 @@ title: "#Platform Redesign Umbrella"
 summary: >-
   Reshape #Platform from an Id-keyed registry of imported modules into a path-keyed map of registry subscriptions the kernel resolves against OCI at materialize time.
 status: accepted
+category: schema
 # `core` owns the keystone schema change; every other repo follows.
-area: core
 affects:
   - core
   - library
@@ -17,7 +17,7 @@ affects:
   - cli
 core_schema: true
 created: "2026-05-23"
-updated: "2026-09-04"
+updated: "2026-09-08"
 authors:
   - emil@jacero.se
 # `core` is pre-1.0; per its versioning rules every break — including this
@@ -81,6 +81,8 @@ history:
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-09-04"
     event: 'Dependency edges: related renamed to depends_on and left empty; no decision rests on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+  - date: "2026-09-08"
+    event: Category set to schema, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

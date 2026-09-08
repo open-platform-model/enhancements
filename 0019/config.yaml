@@ -10,10 +10,9 @@ status: accepted
 # Aggregate design impact (both breaks are named at acceptance): FinalizeValue
 # leaves the kernel surface in Phase A; version! leaves #Subscription in Phase B.
 semver: major
-# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
-area: library
+category: runtime
 # Every repo that ships code/schema/content changes driven by this enhancement.
-# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
 affects:
   - library
   - core
@@ -23,7 +22,7 @@ affects:
   - modules
 core_schema: true
 created: "2026-08-19"
-updated: "2026-09-04"
+updated: "2026-09-08"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones.
@@ -103,48 +102,36 @@ history:
     event: 'Delivery-log adoption: forecast plans retired; landed changes and no-work claims recorded in delivery.yaml in the entry; delivery state derived as not-started/in-progress/implemented.'
   - date: "2026-08-24"
     event: >-
-      D19-D21 appended (amend D15/D16): sweep extends to catalogs/k8s,
-      CSIDriver joins the exact-name carve-outs, three name types by
-      server rule, primitive-declared #nameConstraint. Exp 09 held.
+      D19-D21 appended (amend D15/D16): sweep extends to catalogs/k8s, CSIDriver joins the exact-name carve-outs, three name types by server rule, primitive-declared #nameConstraint. Exp 09 held.
   - date: "2026-08-24"
     event: >-
-      Exp 09 extended (resource-owned conditional #nameConstraint from its
-      own workload-type key: held). Exp 10 concluded: always-read
-      expose.name with wrapper default held; Path C refuted.
+      Exp 09 extended (resource-owned conditional #nameConstraint from its own workload-type key: held). Exp 10 concluded: always-read expose.name with wrapper default held; Path C refuted.
   - date: "2026-08-24"
     event: >-
-      D22-D23 appended (amend D15/D20/D21): always-read Expose name with
-      component-level default from #names.dns.short; resource-owned
-      conditional #nameConstraint for stateful.
+      D22-D23 appended (amend D15/D20/D21): always-read Expose name with component-level default from #names.dns.short; resource-owned conditional #nameConstraint for stateful.
   - date: "2026-08-26"
     event: >-
-      Exp 11 concluded: D21's unify-into-field spelling refuted on the
-      landed D16 field (default refusals lose the string); hidden assertion
-      on the interpolated resourceName held. D21 revised in place.
+      Exp 11 concluded: D21's unify-into-field spelling refuted on the landed D16 field (default refusals lose the string); hidden assertion on the interpolated resourceName held. D21 revised in place.
   - date: "2026-08-26"
     event: >-
-      schemas/ refreshed for D20, D21, D23: name types, #nameConstraint slot
-      and hidden assertion in target.cue, pinned examples with recorded
-      refusals, spec.md section; D16 section aligned to core PR 51.
+      schemas/ refreshed for D20, D21, D23: name types, #nameConstraint slot and hidden assertion in target.cue, pinned examples with recorded refusals, spec.md section; D16 section aligned to core PR 51.
   - date: "2026-08-26"
     event: >-
-      Exp 12 concluded: D21's collection costs 0.15-0.22 ms per component,
-      linear, the walk not the D23 conditional; 0.5-2% of exp 07's marginal
-      per-component render cost.
+      Exp 12 concluded: D21's collection costs 0.15-0.22 ms per component, linear, the walk not the D23 conditional; 0.5-2% of exp 07's marginal per-component render cost.
   - date: "2026-08-26"
     event: >-
       D24 amends D23/D22: a computed nameConstraint must resolve on every attachment path; an unresolved slot defers the length validators (measured in catalog_opm).
   - date: "2026-08-30"
     event: >-
-      D25 amends D15: #ResourceNameTrait retires in three sweeps; the deletion
-      is a feat! cutting catalogs/opm@v4, the catalog having reached GA before
-      the delete slice.
+      D25 amends D15: #ResourceNameTrait retires in three sweeps; the deletion is a feat! cutting catalogs/opm@v4, the catalog having reached GA before the delete slice.
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-09-03"
     event: "D26 recorded: the single-provider guard (0010 D32/D37) moves into the render build as an overSubscribed diagnostics row and gate term (library-render-cutover PR 1)."
   - date: "2026-09-04"
     event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+  - date: "2026-09-08"
+    event: Category set to runtime, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

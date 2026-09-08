@@ -35,7 +35,7 @@ tasks:
           task vet                               — hard gate (CUE schema + cross-refs + placeholders)
           task vet:one ID=0001                   — same, single enhancement
           task check [ID=0001]                   — soft gate (scope section, decisions, impl block, …)
-          task new SLUG=foo TITLE="Foo Bar"      — scaffold a new enhancement from 0000/ (CORE_SCHEMA=true when it changes core schemas)
+          task new SLUG=foo TITLE="Foo Bar" CATEGORY=schema — scaffold a new enhancement from 0000/ (CATEGORY: schema|runtime|distribution|tooling|misc; CORE_SCHEMA=true when it changes core schemas)
           task new:contracts ID=0001             — scaffold contracts/ (non-core compilable CUE) inside an enhancement
           task new:experiment ID=0001 NAME=foo   — scaffold an experiment inside an enhancement
           task experiments:list ID=0001          — list experiments for one enhancement (parsed Status)
@@ -70,7 +70,7 @@ tasks:
         DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
 
         {
-          printf 'ID\tSTATUS\tSEMVER\tAREA\tDELIVERY\tTITLE\n'
+          printf 'ID\tSTATUS\tSEMVER\tCATEGORY\tAFFECTS\tDELIVERY\tTITLE\n'
           for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
@@ -78,11 +78,12 @@ tasks:
             [ "$id" = "0000" ] && continue
             status=$(yq -r '.status' "$cfg")
             semver=$(yq -r '.semver // "-"' "$cfg")
-            area=$(yq -r '.area' "$cfg")
+            category=$(yq -r '.category' "$cfg")
+            affects=$(yq -r '.affects | join(",")' "$cfg")
             deliv=$(printf '%s\n' "$DELIV" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
             title=$(yq -r '.title' "$cfg")
-            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
-              "$id" "$status" "$semver" "$area" "${deliv:--}" "$title"
+            printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+              "$id" "$status" "$semver" "$category" "$affects" "${deliv:--}" "$title"
           done
         } | awk -F'\t' '
           {
@@ -231,7 +232,7 @@ tasks:
         [ -n "$DATE" ] || DATE=$(date +%F)
         [ -n "$SUMMARY" ] || { printf "${RED}SUMMARY is required${RESET} (one line: what landed)\n" >&2; exit 1; }
 
-        # Map a workspace repo directory name to its #Area value.
+        # Map a workspace repo directory name to its #Repo value.
         area_of_dir() {
           case "$1" in
             catalog_opm) echo catalog ;;
@@ -307,7 +308,7 @@ tasks:
           abs=$(cd "$FROM" && pwd)
           slug=$(basename "$abs" | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//')
           repodir=$(printf '%s\n' "$abs" | sed -E 's|.*/([^/]+)/openspec/changes(/archive)?/[^/]+$|\1|')
-          repo=$(area_of_dir "$repodir") || { printf "${RED}cannot map${RESET} '%s' to an OPM area\n" "$repodir" >&2; exit 1; }
+          repo=$(area_of_dir "$repodir") || { printf "${RED}cannot map${RESET} '%s' to an OPM repo\n" "$repodir" >&2; exit 1; }
           n=$(yq -r '.implements | length' "$decl")
           fail=0
           for ((i=0; i<n; i++)); do
@@ -323,7 +324,7 @@ tasks:
         # Explicit mode.
         ID="{{.ID}}"; REPO="{{.REPO}}"; KIND="{{.KIND}}"
         [ -n "$ID" ] || { printf "${RED}ID (or FROM) is required${RESET}\n" >&2; exit 1; }
-        [ -n "$REPO" ] || { printf "${RED}REPO is required${RESET} (an #Area value)\n" >&2; exit 1; }
+        [ -n "$REPO" ] || { printf "${RED}REPO is required${RESET} (a #Repo value)\n" >&2; exit 1; }
         case "$KIND" in
           openspec)
             [ -n "{{.CHANGE}}" ] || { printf "${RED}CHANGE is required${RESET} for KIND=openspec (the change slug, no date prefix)\n" >&2; exit 1; }
@@ -676,22 +677,19 @@ tasks:
           local dir_id; dir_id=$(basename "$dir")
           local errors=""
 
-          local id status area core_schema
+          local id status core_schema
           id=$(yq -r '.id' "$cfg")
           status=$(yq -r '.status' "$cfg")
-          area=$(yq -r '.area' "$cfg")
           core_schema=$(yq -r '.core_schema // "false"' "$cfg")
 
           # 1. id matches directory name (no slug suffix now).
           [ "$id" = "$dir_id" ] || errors="${errors}\n    id '$id' != directory name '$dir_id'"
 
-          # 2. `area` must appear in `affects` (controlled vocab + membership).
-          local affects_has_area
-          affects_has_area=$(yq -r ".affects[] | select(. == \"$area\")" "$cfg" | head -1)
-          [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
+          # 2. (retired 2026-09-08: `area` no longer exists; `affects` is
+          #    non-empty, unique and in-vocabulary by schema alone.)
 
           # 3. Cross-ref tokens exist.
-          for field in supersedes; do
+          for field in supersedes revives; do
             while IFS= read -r ref; do
               [ -z "$ref" ] && continue
               ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref' (no NNNN/ dir nor legacy:NNN-*/)"
@@ -721,7 +719,7 @@ tasks:
             fi
           done
 
-          # 5. CUE schema vet (required fields, area/affects/history shapes,
+          # 5. CUE schema vet (required fields, affects/history shapes,
           #    status-conditional rules, design↔implementation coupling).
           local cue_out
           if ! cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
@@ -1153,15 +1151,12 @@ tasks:
 
         cfg_id=$(yq -r '.id' "$cfg")
         status=$(yq -r '.status' "$cfg")
-        area=$(yq -r '.area' "$cfg")
         core_schema=$(yq -r '.core_schema // "false"' "$cfg")
 
         [ "$cfg_id" = "$dir_id" ] || errors="${errors}\n    id '$cfg_id' != directory name '$dir_id'"
 
-        affects_has_area=$(yq -r ".affects[] | select(. == \"$area\")" "$cfg" | head -1)
-        [ -n "$affects_has_area" ] || errors="${errors}\n    affects[] does not contain area '$area'"
 
-        for field in supersedes; do
+        for field in supersedes revives; do
           while IFS= read -r ref; do
             [ -z "$ref" ] && continue
             ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref'"
@@ -1325,7 +1320,7 @@ tasks:
     desc: Soft per-status checklist (scope section, decisions, OQ block, impl block, deviations)
     summary: |
       Complements `task vet`. vet enforces the machine-readable contract
-      (schema, cross-refs, placeholders, area↔affects); check audits the
+      (schema, cross-refs, placeholders, affects); check audits the
       prose conventions that don't fit a schema:
 
         - accepted+   → README has '## Scope' with In/Out subsections
@@ -1631,7 +1626,7 @@ tasks:
         printf "  %-16s %s\n" "title:"        "$(yq -r '.title' "$cfg")"
         printf "  %-16s %s\n" "summary:"      "$(yq -r '.summary' "$cfg")"
         printf "  %-16s %s\n" "status:"       "$(yq -r '.status' "$cfg")"
-        printf "  %-16s %s\n" "area:"         "$(yq -r '.area' "$cfg")"
+        printf "  %-16s %s\n" "category:"     "$(yq -r '.category' "$cfg")"
         printf "  %-16s %s\n" "affects:"      "$(yq -r '.affects | join(", ")' "$cfg")"
         printf "  %-16s %s\n" "core_schema:"  "$(yq -r '.core_schema // "-"' "$cfg")"
         printf "  %-16s %s\n" "semver:"       "$(yq -r '.semver // "-"' "$cfg")"
@@ -1688,14 +1683,16 @@ tasks:
     desc: Scaffold a new enhancement from 0000/ (auto-numbers id; fills config.yaml + doc titles)
     summary: |
       Usage:
-        task new SLUG=platform-context TITLE="Platform Context"
-        task new SLUG=foo TITLE="Foo Bar" AUTHOR="jane@example.com" AREA=cli
+        task new SLUG=platform-context TITLE="Platform Context" SUMMARY="…" NOT="…" CATEGORY=schema AFFECTS=core,library
+        task new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…" CATEGORY=runtime AFFECTS=cli AUTHOR="jane@example.com"
 
       SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case).
       Computes the next four-digit id from the highest existing enhancement.
       Today's date is used for `created` and `updated`.
       AUTHOR defaults to "emil@jacero.se"; pass an email address, not a name.
-      AREA defaults to "cross-cutting"; affects defaults to [AREA].
+      AFFECTS is required: comma-separated repos that ship changes (the blast
+      radius; several means the entry spans repos, no label needed).
+      CORE_SCHEMA=true adds core to it.
       CORE_SCHEMA defaults to "false"; pass CORE_SCHEMA=true when the
       enhancement adds or changes opmodel.dev/core definitions — this copies
       schemas/ from 0000, sets core_schema: true, and ensures "core" is in
@@ -1710,7 +1707,8 @@ tasks:
       SUMMARY:     '{{.SUMMARY     | default ""}}'
       NOT:         '{{.NOT         | default ""}}'
       AUTHOR:      '{{.AUTHOR      | default "emil@jacero.se"}}'
-      AREA:        '{{.AREA        | default "cross-cutting"}}'
+      CATEGORY:    '{{.CATEGORY}}'
+      AFFECTS:     '{{.AFFECTS}}'
       CORE_SCHEMA: '{{.CORE_SCHEMA | default "false"}}'
       ISSUE:       '{{.ISSUE       | default ""}}'
     preconditions:
@@ -1728,6 +1726,13 @@ tasks:
         msg: 'NOT is required — one line saying what this is explicitly NOT. It seeds README ### Out of scope, and an unbounded entry is the one that later reads as three entries.'
       - sh: 'printf %s "{{.SLUG}}" | grep -Eq "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"'
         msg: 'SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case)'
+      # Deliberately no defaults: the former `area` defaulting to cross-cutting
+      # is how half the entries ended up there; `misc` must not become the sink,
+      # and an unstated blast radius is the same drift for `affects`.
+      - sh: 'printf %s "{{.CATEGORY}}" | grep -Eqx "schema|runtime|distribution|tooling|misc"'
+        msg: 'CATEGORY is required and must be one of schema|runtime|distribution|tooling|misc — the ONE dominant type of work (see schema.cue #Category). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category>'
+      - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules)(,(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules))*"'
+        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opmodel.dev|orca|modules, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
         msg: 'CORE_SCHEMA must be true or false'
       - sh: '[ -z "{{.ISSUE}}" ] || printf %s "{{.ISSUE}}" | grep -Eq "^[0-9]+$"'
@@ -1743,7 +1748,8 @@ tasks:
         SUMMARY="{{.SUMMARY}}"
         NOT="{{.NOT}}"
         AUTHOR="{{.AUTHOR}}"
-        AREA="{{.AREA}}"
+        CATEGORY="{{.CATEGORY}}"
+        AFFECTS="{{.AFFECTS}}"
         CORE_SCHEMA="{{.CORE_SCHEMA}}"
         ISSUE="{{.ISSUE}}"
         TEMPLATE_DIR="0000"
@@ -1788,7 +1794,7 @@ tasks:
 
         # Fill config.yaml. yq strenv() reads from environment to keep
         # quoting clean across titles with shell-meta chars.
-        ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AREA_V="$AREA" \
+        ID="$NEW_ID" SLUG_V="$SLUG" TITLE_V="$TITLE" AFFECTS_V="$AFFECTS" CATEGORY_V="$CATEGORY" \
         CREATED="$TODAY" UPDATED="$TODAY" AUTHOR_V="$AUTHOR" \
         CORE_V="$CORE_SCHEMA" SUMMARY_V="$SUMMARY" EVENT_V="$DRAFT_EVENT" \
         yq -i '
@@ -1796,8 +1802,8 @@ tasks:
           .slug        = strenv(SLUG_V)   |
           .title       = strenv(TITLE_V)  |
           .summary     = strenv(SUMMARY_V) |
-          .area        = strenv(AREA_V)   |
-          .affects     = [strenv(AREA_V)] |
+          .category    = strenv(CATEGORY_V) |
+          .affects     = (strenv(AFFECTS_V) | split(",") | unique) |
           .core_schema = (strenv(CORE_V) == "true") |
           .created     = strenv(CREATED)  |
           .updated     = strenv(UPDATED)  |
@@ -1806,8 +1812,8 @@ tasks:
         ' "$NEW_DIR/config.yaml"
 
         # core_schema implies "core" ∈ affects (vet enforces it).
-        if [ "$CORE_SCHEMA" = "true" ] && [ "$AREA" != "core" ]; then
-          yq -i '.affects += ["core"]' "$NEW_DIR/config.yaml"
+        if [ "$CORE_SCHEMA" = "true" ]; then
+          yq -i '.affects = ((.affects + ["core"]) | unique)' "$NEW_DIR/config.yaml"
         fi
 
         # Replace {Enhancement Title} placeholder in README + the seven split
@@ -1850,7 +1856,7 @@ tasks:
           echo
         fi
 
-        echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, area=$AREA, core_schema=$CORE_SCHEMA)"
+        echo "Created $NEW_DIR  (id=$NEW_ID, slug=$SLUG, category=$CATEGORY, affects=$(yq -r '.affects | join(",")' "$NEW_DIR/config.yaml"), core_schema=$CORE_SCHEMA)"
         echo
         echo "Next steps:"
         echo "  1. Fill in $NEW_DIR/01-problem.md and $NEW_DIR/02-design.md"
@@ -1873,7 +1879,7 @@ tasks:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
     summary: |
       Walks every NNNN/config.yaml and writes INDEX.md with a single table
-      mapping id → area → affects → status → delivery → title → summary.
+      mapping id → category → affects → status → delivery → title → summary.
       With folder names being four-digit only, INDEX.md is the canonical
       browse surface; regenerate it after any config.yaml edit.
     preconditions:
@@ -1895,15 +1901,15 @@ tasks:
           # saying what an entry is beats the most recent thing that happened
           # to it. Delivery is derived from each entry's delivery.yaml log.
           DELIV=$(./scripts/delivery.sh 2>/dev/null || true)
-          # Area is the primary-owner label; Affects is the real footprint.
-          # Showing only Area made multi-repo entries look single-repo.
-          echo '| ID | Area | Affects | Status | Delivery | Title | Summary |'
-          echo '| -- | ---- | ------- | ------ | -------- | ----- | ------- |'
+          # Affects is the real footprint; several repos listed means the entry
+          # spans repos, which is why there is no separate cross-cutting label.
+          echo '| ID | Category | Affects | Status | Delivery | Title | Summary |'
+          echo '| -- | -------- | ------- | ------ | -------- | ----- | ------- |'
           for cfg in [0-9][0-9][0-9][0-9]/config.yaml; do
             [ -f "$cfg" ] || continue
             id=$(yq -r '.id' "$cfg")
             [ "$id" = "0000" ] && continue
-            area=$(yq -r '.area' "$cfg")
+            category=$(yq -r '.category' "$cfg")
             affects=$(yq -r '.affects | join(", ")' "$cfg")
             status=$(yq -r '.status' "$cfg")
             deliv=$(printf '%s\n' "$DELIV" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
@@ -1911,7 +1917,7 @@ tasks:
             title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
             summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
             printf '| [%s](./%s/) | %s | %s | %s | %s | %s | %s |\n' \
-              "$id" "$id" "$area" "$affects" "$status" "${deliv:--}" "$title" "$summary"
+              "$id" "$id" "$category" "$affects" "$status" "${deliv:--}" "$title" "$summary"
           done
 
           # Archived (terminal) entries — rejected ideas and superseded
@@ -1922,11 +1928,12 @@ tasks:
             echo
             echo '## Archived (rejected / superseded)'
             echo
-            echo '| ID | Status | Title | Summary | Why closed |'
-            echo '| -- | ------ | ----- | ------- | ---------- |'
+            echo '| ID | Category | Status | Title | Summary | Why closed |'
+            echo '| -- | -------- | ------ | ----- | ------- | ---------- |'
             for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
               [ -f "$cfg" ] || continue
               id=$(yq -r '.id' "$cfg")
+              category=$(yq -r '.category' "$cfg")
               status=$(yq -r '.status' "$cfg")
               title=$(yq -r '.title' "$cfg" | sed 's/|/\\|/g')
               summary=$(yq -r '.summary' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
@@ -1937,7 +1944,7 @@ tasks:
               else
                 reason=$(yq -r '.rejected_reason // "-"' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
               fi
-              printf '| [%s](./archive/%s/) | %s | %s | %s | %s |\n' "$id" "$id" "$status" "$title" "$summary" "$reason"
+              printf '| [%s](./archive/%s/) | %s | %s | %s | %s | %s |\n' "$id" "$id" "$category" "$status" "$title" "$summary" "$reason"
             done
           fi
           echo
@@ -1952,21 +1959,26 @@ tasks:
         printf 'Wrote %s\n' "$OUT"
 
   graph:
-    desc: (Re)generate GRAPH.md with a Mermaid relationship diagram
+    desc: (Re)generate GRAPH.md — category rollup plus one Mermaid diagram per category
     summary: |
-      Walks every NNNN/config.yaml and writes GRAPH.md with a Mermaid
-      diagram:
-        - depends_on[] → directed solid edges (dependent --depends on-->
-                         dependency; an edge exists iff a decision depends
-                         on a decision, so this is the DAG a reader can
-                         walk in order)
-        - supersedes[] → directed thick edges (newer ==supersedes==> older)
-        - revives[]    → directed dotted edges (live -.revives.-> archived)
-      Nodes are coloured by status. Legacy:NNN cross-references (allowed in
-      supersedes/revives only; depends_on resolves to a decision heading) are
-      rendered as boxed peripheral nodes labelled "legacy NNN" so the
-      relationship is visible without claiming the legacy entry is part
-      of the workspace-root id space.
+      Walks every NNNN/config.yaml (archive/ included) and writes GRAPH.md
+      partitioned by config.yaml.category (schema | runtime | distribution |
+      tooling | misc, fixed order; must agree with schema.cue #Category):
+        - ## Overview: one node per category, edges labelled with the number
+          of depends_on edges crossing from one category into another, and a
+          sentence naming mutually dependent categories (informational: the
+          entry-level depends_on graph stays acyclic, task vet enforces it).
+        - ## <category>: member entries coloured by status, every edge with
+          a member endpoint in either direction, and foreign endpoints drawn
+          as grey stubs labelled "NNNN · <category>" so the reader knows
+          which section to jump to. legacy:NNN refs (supersedes/revives
+          only) stay peripheral "legacy NNN" boxes.
+      Edge kinds: depends_on[] → solid (dependent --depends on--> dependency;
+      an edge exists iff a decision depends on a decision), supersedes[] →
+      thick (newer ==supersedes==> older), revives[] → dotted (live
+      -.revives.-> archived).
+      Refuses an entry whose category is missing or outside the vocabulary,
+      and any cross-ref to an unknown id, before writing anything.
     preconditions:
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
@@ -1974,152 +1986,235 @@ tasks:
       - |
         #!/usr/bin/env bash
         set -euo pipefail
+        # Character-based title truncation below needs a UTF-8 locale; sort keys
+        # are ASCII ids and category names, so ordering is unaffected.
+        export LC_ALL=C.UTF-8
 
         OUT="GRAPH.md"
-        TMPDIR=$(mktemp -d)
-        trap 'rm -rf "$TMPDIR"' EXIT
+        WORK=$(mktemp -d)
+        trap 'rm -rf "$WORK"' EXIT
 
-        dep_edges="$TMPDIR/depends"
-        super_edges="$TMPDIR/super"
-        revive_edges="$TMPDIR/revives"
-        legacy_refs="$TMPDIR/legacy"
+        NODES="$WORK/nodes.tsv"   # id \t category \t status \t label
+        EDGES="$WORK/edges.tsv"   # kind \t from \t to   (kind: depends|supersedes|revives; to: NNNN or legacy:NNN)
+        CROSS="$WORK/cross.tsv"   # fromcat \t tocat \t count   (depends_on only, cross-category only)
+        : > "$NODES"
+        : > "$EDGES"
 
-        # Helper: encode a ref token (NNNN or legacy:NNN) → node id usable
-        # in Mermaid. NNNN → N<id>; legacy:NNN → L<id>.
-        node_for() {
-          case "$1" in
-            legacy:*) echo "L${1#legacy:}" ;;
-            *)        echo "N${1}" ;;
+        # Fixed display order. Must agree with schema.cue #Category.
+        CATS="schema runtime distribution tooling misc"
+
+        # ---- Collect: one pass, two yq calls per file --------------------------
+        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+          [ -f "$cfg" ] || continue
+          # "<missing>" sentinel: IFS=$'\t' collapses adjacent tabs, so an empty
+          # category would otherwise shift status into its place unnoticed.
+          IFS=$'\t' read -r id category status title \
+            < <(yq -r '[.id, (.category // "<missing>"), .status, .title] | @tsv' "$cfg")
+          [ "$id" = "0000" ] && continue
+          case " $CATS " in
+            *" $category "*) ;;
+            *)
+              printf 'graph: %s: category %s is not one of %s (task vet reports the same)\n' \
+                "$cfg" "'$category'" "${CATS// /|}" >&2
+              exit 1 ;;
           esac
-        }
-
-        # depends_on: directed, dependent → dependency. Four-digit targets
-        # only (a dependency resolves to a decision heading, which no legacy
-        # entry has). Archived entries keep their edges: what a superseded
-        # design rested on is part of the record.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-          [ -f "$cfg" ] || continue
-          id=$(yq -r '.id' "$cfg")
-          [ "$id" = "0000" ] && continue
-          while IFS= read -r ref; do
-            [ -z "$ref" ] && continue
-            echo "N$id N$ref"
-          done < <(yq -r '.depends_on[]?' "$cfg")
-        done | sort -u > "$dep_edges"
-
-        # supersedes: directed (newer → older). Validator forbids cycles.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-          [ -f "$cfg" ] || continue
-          id=$(yq -r '.id' "$cfg")
-          [ "$id" = "0000" ] && continue
-          while IFS= read -r ref; do
-            [ -z "$ref" ] && continue
-            case "$ref" in legacy:*) echo "$ref" >> "$legacy_refs" ;; esac
-            a="N$id"
-            b=$(node_for "$ref")
-            echo "$a $b"
-          done < <(yq -r '.supersedes[]?' "$cfg")
-        done > "$super_edges"
-
-        # revives: directed, dotted (a live entry re-opening an archived
-        # idea). One-way by design — the archived entry is frozen and
-        # carries no back-link, so this is the only edge that records it.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-          [ -f "$cfg" ] || continue
-          id=$(yq -r '.id' "$cfg")
-          [ "$id" = "0000" ] && continue
-          while IFS= read -r ref; do
-            [ -z "$ref" ] && continue
-            echo "N$id $(node_for "$ref")"
-          done < <(yq -r '.revives[]?' "$cfg")
-        done > "$revive_edges"
-
-        # Dedupe legacy refs.
-        [ -f "$legacy_refs" ] && sort -u "$legacy_refs" -o "$legacy_refs"
-
-        {
-        echo '# Enhancement Relationship Graph'
-        echo
-        echo '<!-- Generated by `task graph` — do not edit by hand. -->'
-        echo
-        echo '```mermaid'
-        echo 'graph TD'
-        echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
-        echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
-        echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
-        echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
-        echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
-        echo
-
-        # Pass 1: workspace-root nodes (one per NNNN dir). Archived
-        # (rejected) entries are nodes too — a `revives` edge points at one.
-        for cfg in [0-9][0-9][0-9][0-9]/config.yaml archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-          [ -f "$cfg" ] || continue
-          id=$(yq -r '.id' "$cfg")
-          [ "$id" = "0000" ] && continue
-          status=$(yq -r '.status' "$cfg")
-          # Sanitise titles for Mermaid quoted-label syntax.
-          title=$(yq -r '.title' "$cfg" | tr -d '`' | tr '"' "'")
+          # Sanitise titles for Mermaid quoted-label syntax; a tab would break the TSV.
+          title=$(printf '%s' "$title" | tr -d '`' | tr '"\t' "' ")
           if [ "${#title}" -gt 50 ]; then
             title="${title:0:49}…"
           fi
-          printf '  N%s["%s: %s"]:::%s\n' "$id" "$id" "$title" "$status"
+          printf '%s\t%s\t%s\t%s: %s\n' "$id" "$category" "$status" "$id" "$title" >> "$NODES"
+          # yq v4: `,` binds looser than `|`, so the union is parenthesised or @tsv
+          # would apply to the last branch only. Empty branches print nothing.
+          yq -r '((.depends_on[]? | ["depends", .]), (.supersedes[]? | ["supersedes", .]), (.revives[]? | ["revives", .])) | @tsv' "$cfg" \
+            | { grep -E '.' || true; } \
+            | awk -F'\t' -v i="$id" -v OFS='\t' '{ print $1, i, $2 }' >> "$EDGES"
         done
+        sort -u -o "$EDGES" "$EDGES"
 
-        # Pass 2: legacy refs encountered in cross-refs (peripheral nodes).
-        if [ -f "$legacy_refs" ]; then
-          while IFS= read -r ref; do
-            [ -z "$ref" ] && continue
-            lid="${ref#legacy:}"
-            printf '  L%s["legacy %s"]:::legacy\n' "$lid" "$lid"
-          done < "$legacy_refs"
+        # ---- Validate before writing anything ----------------------------------
+        # Every NNNN endpoint must be a known entry. `task vet` existence-checks
+        # supersedes but not revives, so this is the only catch for a dangling revive.
+        unknown=$(awk -F'\t' '
+          NR==FNR { known[$1]=1; next }
+          $3 !~ /^legacy:/ && !($3 in known) { print "  " $2 " " $1 " " $3 }' "$NODES" "$EDGES")
+        if [ -n "$unknown" ]; then
+          printf 'graph: cross-ref to an unknown entry (from kind to):\n%s\n' "$unknown" >&2
+          exit 1
         fi
 
-        echo
+        # ---- Derived tables ----------------------------------------------------
+        awk -F'\t' -v OFS='\t' '
+          NR==FNR { cat[$1]=$2; next }
+          $1=="depends" && cat[$2]!=cat[$3] { n[cat[$2] "\t" cat[$3]]++ }
+          END { for (k in n) print k, n[k] }' "$NODES" "$EDGES" | sort > "$CROSS"
 
-        while read -r a b; do
-          [ -z "$a" ] && continue
-          printf '  %s -->|depends on| %s\n' "$a" "$b"
-        done < "$dep_edges"
+        count_of() { awk -F'\t' -v c="$1" '$2==c { n++ } END { print n+0 }' "$NODES"; }
 
-        while read -r a b; do
-          [ -z "$a" ] && continue
-          printf '  %s ==>|supersedes| %s\n' "$a" "$b"
-        done < "$super_edges"
+        # Single source of the palette; .claude/skills/enhancement-diagrams mirrors it.
+        classdefs() {
+          echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
+          echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
+          echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
+          echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
+          echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
+          echo '  classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151'
+          echo '  classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000'
+        }
 
-        while read -r a b; do
-          [ -z "$a" ] && continue
-          printf '  %s -.->|revives| %s\n' "$a" "$b"
-        done < "$revive_edges"
+        # Mutually reachable category pairs over the cross-edge graph (Warshall
+        # closure; five nodes, exact). Informational only: the entry-level
+        # depends_on graph stays acyclic, `task vet` enforces that.
+        cycle_pairs() {
+          awk -F'\t' -v cats="$CATS" '
+            BEGIN { n = split(cats, C, " ") }
+            { r[$1,$2] = 1 }
+            END {
+              for (k=1; k<=n; k++) for (i=1; i<=n; i++) for (j=1; j<=n; j++)
+                if (r[C[i],C[k]] && r[C[k],C[j]]) r[C[i],C[j]] = 1
+              out = ""
+              for (i=1; i<=n; i++) for (j=i+1; j<=n; j++)
+                if (r[C[i],C[j]] && r[C[j],C[i]]) out = out (out == "" ? "" : ", ") C[i] " ↔ " C[j]
+              print out
+            }' "$CROSS"
+        }
 
-        echo '```'
+        # ---- Renderers ---------------------------------------------------------
+        render_overview() {
+          local a b n word pairs
+          echo '## Overview'
+          echo
+          echo 'One node per category, entry count in the label. An edge label counts the'
+          echo '`depends_on` edges that cross from one category into another; edges inside a'
+          echo 'category are not shown here, and `supersedes` / `revives` are lifecycle'
+          echo 'relations rather than layering, so they are left to the sections.'
+          echo
+          echo '```mermaid'
+          echo 'graph LR'
+          classdefs
+          echo
+          for a in $CATS; do
+            n=$(count_of "$a")
+            if [ "$n" = 1 ]; then word=entry; else word=entries; fi
+            printf '  C%s["%s (%s %s)"]:::category\n' "$a" "$a" "$n" "$word"
+          done
+          echo
+          # CATS x CATS keeps the edge order deterministic (awk hash order is not).
+          for a in $CATS; do
+            for b in $CATS; do
+              n=$(awk -F'\t' -v a="$a" -v b="$b" '$1==a && $2==b { print $3 }' "$CROSS")
+              if [ -n "$n" ]; then
+                printf '  C%s -->|%s| C%s\n' "$a" "$n" "$b"
+              fi
+            done
+          done
+          echo '```'
+          echo
+          pairs=$(cycle_pairs)
+          if [ -n "$pairs" ]; then
+            printf 'Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): %s.\n' "$pairs"
+          else
+            echo 'No category-level cycles.'
+          fi
+          echo
+        }
 
-        echo
-        echo '## Legend'
-        echo
-        echo '```mermaid'
-        echo 'graph LR'
-        echo '  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000'
-        echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
-        echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
-        echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
-        echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
-        echo
-        echo '  subgraph statuses ["Node statuses"]'
-        echo '    Ldraft["draft"]:::draft'
-        echo '    Laccepted["accepted"]:::accepted'
-        echo '    Lrejected["rejected"]:::rejected'
-        echo '    Lsuperseded["superseded"]:::superseded'
-        echo '    Llegacy["legacy NNN"]:::legacy'
-        echo '  end'
-        echo
-        echo '  subgraph edges ["Edge types"]'
-        echo '    Edep_a["dependent"] -->|depends on| Edep_b["dependency"]'
-        echo '    Esup_new["newer"] ==>|supersedes| Esup_old["older"]'
-        echo '    Erev_new["newer"] -.->|revives| Erev_old["archived"]'
-        echo '  end'
-        echo '```'
-        } > "$OUT"
+        render_category() {
+          local c="$1" sec="$WORK/sec.$c" n
+          n=$(count_of "$c")
+          printf '## %s\n\n' "$c"
+          if [ "$n" = 0 ]; then
+            echo 'No entries.'
+            echo
+            return
+          fi
+          # Edges with at least one member endpoint, in either direction.
+          awk -F'\t' -v c="$c" 'NR==FNR { cat[$1]=$2; next } cat[$2]==c || cat[$3]==c' "$NODES" "$EDGES" > "$sec"
+          echo '```mermaid'
+          echo 'graph TD'
+          classdefs
+          echo
+          # Members, coloured by status (the class name IS the status value).
+          awk -F'\t' -v c="$c" '$2==c { printf "  N%s[\"%s\"]:::%s\n", $1, $4, $3 }' "$NODES"
+          # Stubs: foreign NNNN endpoints labelled with their home section, and
+          # legacy:NNN refs, each declared once whatever edge kinds reach them.
+          awk -F'\t' -v c="$c" '
+            NR==FNR { cat[$1]=$2; next }
+            {
+              for (k=2; k<=3; k++) {
+                t=$k
+                if (t ~ /^legacy:/) leg[substr(t,8)]=1
+                else if (cat[t]!=c) stub[t]=cat[t]
+              }
+            }
+            END {
+              for (t in stub) printf "  N%s[\"%s · %s\"]:::stub\n", t, t, stub[t]
+              for (l in leg)  printf "  L%s[\"legacy %s\"]:::legacy\n", l, l
+            }' "$NODES" "$sec" | sort
+          echo
+          awk -F'\t' '
+            function nid(t) { return (t ~ /^legacy:/) ? "L" substr(t,8) : "N" t }
+            $1=="depends"    { d[++nd] = sprintf("  %s -->|depends on| %s", nid($2), nid($3)) }
+            $1=="supersedes" { s[++ns] = sprintf("  %s ==>|supersedes| %s", nid($2), nid($3)) }
+            $1=="revives"    { r[++nr] = sprintf("  %s -.->|revives| %s",  nid($2), nid($3)) }
+            END {
+              for (i=1; i<=nd; i++) print d[i]
+              for (i=1; i<=ns; i++) print s[i]
+              for (i=1; i<=nr; i++) print r[i]
+            }' "$sec"
+          echo '```'
+          echo
+        }
+
+        render_legend() {
+          echo '## Legend'
+          echo
+          echo '```mermaid'
+          echo 'graph LR'
+          classdefs
+          echo
+          echo '  subgraph statuses ["Node statuses"]'
+          echo '    Ldraft["draft"]:::draft'
+          echo '    Laccepted["accepted"]:::accepted'
+          echo '    Lrejected["rejected"]:::rejected'
+          echo '    Lsuperseded["superseded"]:::superseded'
+          echo '    Llegacy["legacy NNN"]:::legacy'
+          echo '  end'
+          echo
+          echo '  subgraph other ["Other node kinds"]'
+          echo '    Lstub["NNNN · section (stub: lives in that section)"]:::stub'
+          echo '    Lcategory["section (n entries)"]:::category'
+          echo '  end'
+          echo
+          echo '  subgraph edges ["Edge types"]'
+          echo '    Edep_a["dependent"] -->|depends on| Edep_b["dependency"]'
+          echo '    Esup_new["newer"] ==>|supersedes| Esup_old["older"]'
+          echo '    Erev_new["newer"] -.->|revives| Erev_old["archived"]'
+          echo '    Ecat_a["category A"] -->|n| Ecat_b["category B"]'
+          echo '  end'
+          echo '```'
+          echo
+          echo 'A stub is an entry that lives in another section; its label names the section to jump to. In the Overview, an edge label `n` counts the `depends_on` edges crossing from A into B.'
+        }
+
+        # ---- Assemble into a temp file, then move: a mid-render failure must not
+        # leave a half-written GRAPH.md behind. -----------------------------------
+        {
+          echo '# Enhancement Relationship Graph'
+          echo
+          echo '<!-- Generated by `task graph` — do not edit by hand. -->'
+          echo
+          echo 'Entries are partitioned by `config.yaml.category`, the type of work. The Overview'
+          echo 'shows how the categories lean on each other; each section shows one category'
+          echo 'with its foreign dependencies and dependents drawn as grey stubs.'
+          echo
+          render_overview
+          for c in $CATS; do
+            render_category "$c"
+          done
+          render_legend
+        } > "$WORK/GRAPH.md"
+        mv -f "$WORK/GRAPH.md" "$OUT"
 
         printf 'Wrote %s\n' "$OUT"
 

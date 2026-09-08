@@ -51,13 +51,30 @@ import (
 // actually bind.
 #HistoryCapCutover: "2026-08-23"
 
-// Controlled vocabulary of OPM areas. `area` names the single primary owner;
-// `affects` lists every repo that ships code, schema, or content changes
-// driven by this enhancement. Both validated against the workspace directory
-// map in `/CLAUDE.md`. Add a value here when a new primary repo joins the
-// workspace; do not allow free-text.
-#Area: "core" | "library" | "catalog" | "cli" | "opm-operator" | "opmodel.dev" |
-	"orca" | "modules" | "cross-cutting"
+// Controlled vocabulary of OPM repos. `affects` lists every repo that ships
+// code, schema, or content changes driven by this enhancement (its blast
+// radius), and a delivery-log change names the repo it landed in. Validated
+// against the workspace directory map in `/CLAUDE.md`. Add a value here when
+// a new repo joins the workspace; do not allow free-text. There is no
+// "cross-cutting" value: an entry that spans repos simply lists several, and
+// there is no primary-owner field either (the former `area` said
+// `cross-cutting` for half the entries, which is a field admitting it has
+// nothing to say).
+#Repo: "core" | "library" | "catalog" | "cli" | "opm-operator" | "opmodel.dev" |
+	"orca" | "modules"
+
+// Controlled vocabulary of work types. `category` names the ONE dominant
+// type of work an enhancement is: the contract itself (schema), how a
+// module is executed (runtime), how artifacts move from author to platform
+// (distribution), generators/CI/test infrastructure (tooling), or none of
+// those (misc). Single-valued and closed: `task graph` partitions GRAPH.md
+// by it, one diagram per value in this order, so an entry must live in
+// exactly one. It is browse metadata, not design: set at admission, never
+// tracking delivery, and deliberately outside scripts/entry_hash.sh so
+// recategorising an entry does not stale a walked gate. `misc` must not
+// become what `area: cross-cutting` was (half the entries); `task new`
+// requires CATEGORY= so no value is the path of least resistance.
+#Category: "schema" | "runtime" | "distribution" | "tooling" | "misc"
 
 // History event — append-only timeline of milestones. The `event` string is
 // free-form prose ("Drafted", "Accepted", "Implementation complete", etc.);
@@ -112,9 +129,11 @@ import (
 	// against prior art without opening eight documents each.
 	summary!: string & strings.MinRunes(1) & strings.MaxRunes(200)
 
-	status!:  #Status
-	area!:    #Area
-	affects!: [...#Area]
+	status!:   #Status
+	category!: #Category
+	// At least one repo, no repeats. Membership in the vocabulary is the
+	// whole check; `core_schema` adds the `core ∈ affects` rule below.
+	affects!:  [_, ...#Repo] & list.UniqueItems()
 
 	// Declares whether this enhancement adds or changes definitions in the
 	// opmodel.dev/core schema. `affects` is deliberately not the trigger —
@@ -125,7 +144,7 @@ import (
 	// gate), and `affects` must then include "core". Directory presence,
 	// the core-membership rule, and the status-gated file requirements are
 	// enforced by `task vet` in bash — the same schema/graph split used
-	// for `area ∈ affects` and the cross-ref checks.
+	// for the cross-ref checks.
 	core_schema!: bool
 	created!: #DateStr
 	// ISO 8601 strings sort lexicographically — `>=created` enforces monotonic time.
@@ -240,25 +259,25 @@ import (
 //             merge; rebases invalidate pre-merge shas)
 #ChangeRef: {
 	kind!:   "openspec"
-	repo!:   #Area
+	repo!:   #Repo
 	change!: #SlugStr
 } | {
 	kind!:   "pr"
-	repo!:   #Area
+	repo!:   #Repo
 	number!: int & >0
 } | {
 	kind!: "commit"
-	repo!: #Area
+	repo!: #Repo
 	sha!:  =~"^[0-9a-f]{7,40}$"
 } | {
 	// Pre-tracking landing: work that shipped before delivery tracking
 	// existed (before plans/, before this log), where per-change
 	// archaeology would invent precision the record never had. `repo` is
-	// the primary area; `note` says what landed and why no resolvable ref
+	// the repo; `note` says what landed and why no resolvable ref
 	// exists. NOT for new work: every change landing today has an OpenSpec
 	// change, a PR, or a commit to cite.
 	kind!: "retrospective"
-	repo!: #Area
+	repo!: #Repo
 	note!: string & strings.MinRunes(1)
 }
 

@@ -12,7 +12,7 @@ summary: >-
 status: draft
 # Primary owner: the kernel. The deletion protocol, the ownership vocabulary,
 # and the K8s object model all land in library/opm/; the frontends adopt.
-area: library
+category: runtime
 # Every repo that ships code changes driven by this enhancement.
 affects:
   - library
@@ -20,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-27"
-updated: "2026-09-04"
+updated: "2026-09-08"
 authors:
   - emil@jacero.se
 history:
@@ -36,17 +36,19 @@ history:
     event: "Open Questions register extracted: the ## Open Questions section moved from 03-decisions.md to the new 07-questions.md under the seven-doc convention (single canonical location); in-entry location references reworded. Structure/metadata only."
   - date: "2026-08-23"
     event: 'Lifecycle reshape: implementation axis removed (delivery derives from the plans side), 04-graduation.md deleted, summary added.'
-# 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
-#        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).
-# 0008 — CUE-native CRD types; overlaps on where the shared K8s type vocabulary lives.
-# 0009 — the execution half of the kernel; the other non-render kernel surface.
-# 0010 — OQ10 (ownership through deletion) surfaced this entry's scope.
+    # 0006 — this entry re-opens D31 (the revert of library/opm/inventory) and absorbs its
+    #        deferred OQ15 (stale-set comparator) and OQ16 (apply-time collision guard).
+    # 0008 — CUE-native CRD types; overlaps on where the shared K8s type vocabulary lives.
+    # 0009 — the execution half of the kernel; the other non-render kernel surface.
+    # 0010 — OQ10 (ownership through deletion) surfaced this entry's scope.
   - date: "2026-08-30"
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-09-01"
     event: 'OQ3 answered: neutral core.Resource/Identity contract deleted by library change library-plan-diagnostics-prune (zero implementations); delete-vs-retain no longer blocks promotion.'
   - date: "2026-09-04"
     event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+  - date: "2026-09-08"
+    event: Category set to runtime, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

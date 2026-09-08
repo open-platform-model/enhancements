@@ -70,17 +70,18 @@ If it fails `feature`, it becomes a GitHub issue labelled `idea` (the form at `.
 ```bash
 task new SLUG=my-slug TITLE="My Title" \
   SUMMARY="the capability OPM will have and does not today" \
-  NOT="what this is explicitly not"
-# Optional: AREA=cli  AUTHOR="Jane Doe"  CORE_SCHEMA=true  ISSUE=<idea issue number>
+  NOT="what this is explicitly not" \
+  CATEGORY=schema AFFECTS=core,cli
+# Optional: AUTHOR="Jane Doe"  CORE_SCHEMA=true  ISSUE=<idea issue number>
 ```
 
-`SUMMARY` and `NOT` are **required**. They are the `feature` gate's answer and the scope boundary, made durable: `SUMMARY` becomes `config.yaml.summary` (which `task list`, `INDEX.md` and the archive listing all render), and `NOT` seeds `README.md ### Out of scope`. Scaffolding eight files without them is where the drift starts.
+`SUMMARY`, `NOT`, `CATEGORY` and `AFFECTS` are **required**, none has a default. They are the `feature` gate's answer and the scope boundary, made durable: `SUMMARY` becomes `config.yaml.summary` (which `task list`, `INDEX.md` and the archive listing all render), and `NOT` seeds `README.md ### Out of scope`. Scaffolding eight files without them is where the drift starts.
 
 What the task does:
 
 - Computes the next id from the highest existing `NNNN/` directory, **`archive/` included** — an id is never reused, because reissuing a killed one would silently retarget every citation of it.
 - Copies `0000/` to `NNNN/` — keeping `schemas/` only when `CORE_SCHEMA=true` (the enhancement adds or changes `opmodel.dev/core` definitions); `contracts/` is never auto-copied.
-- Fills `config.yaml`: id, slug, title, area (defaults to `cross-cutting`), affects (defaults to `[area]`, plus `core` when `CORE_SCHEMA=true`), `core_schema`, created/updated to today, authors, and seeds `history` with `{date: today, event: "Drafted"}`.
+- Fills `config.yaml`: id, slug, title, category (required `CATEGORY=`, no default: `schema` | `runtime` | `distribution` | `tooling` | `misc`, the one dominant type of work), affects (required `AFFECTS=`, comma-separated repos that ship changes, plus `core` when `CORE_SCHEMA=true`), `core_schema`, created/updated to today, authors, and seeds `history` with `{date: today, event: "Drafted"}`.
 - Replaces `{Enhancement Title}` placeholders across the seven split documents + README (+ `schemas/spec.md` when kept).
 - Updates `schemas/cue.mod/module.cue` to set `module: "enhancements.opmodel.dev/NNNN/schemas@v0"`.
 - Prints the recommended next steps.
@@ -157,7 +158,7 @@ What the gate walk does not check, and you still should:
 - `04-graduation.md ## draft → accepted` is filled with the criteria specific to THIS design and every one of them holds. Repo-wide checks do not belong there (`gates.cue` owns those) and neither do per-question blocking rules (`07-questions.md` owns those) — what belongs is what is true of this entry and no other.
 - `README.md ## Scope` has `### In scope` + `### Out of scope`.
 - `05-risks.md` and `06-operational.md` carry concrete content.
-- `config.yaml.affects` lists every repo that ships changes; `area ∈ affects`.
+- `config.yaml.affects` lists every repo that ships changes (several means the entry spans repos; there is no separate label).
 - **Scaffold nothing delivery-side.** There is no forecast layer: the work is decomposed when each OpenSpec change is cut in its target repo, with source in context. Sequencing constraints, where real, are design prose in `06-operational.md ## Cross-Repo Coordination` (constraints only, never a plan).
 - **Run a compaction pass** (`task compact:plan ID=NNNN`, then `enhancement-compaction`) as a separate commit before the flip. A draft maintained under the in-place rule should have no stacked reversals; if there are any, weave them now, because acceptance protects decision bodies.
 
@@ -228,7 +229,8 @@ The cheap-entry state. Be lenient — this is where ideas form.
 - **[H]** `id` matches directory name (four digits, no slug suffix)
 - **[H]** the seven mandatory documents (`README.md`, `01-problem.md`, `02-design.md`, `03-decisions.md`, `04-graduation.md`, `05-risks.md`, `06-operational.md`, `07-questions.md`) exist
 - **[H]** no `{Capitalised}` placeholder strings outside code fences, HTML comments, or single-line backtick spans
-- **[H]** `area ∈ affects`
+- **[H]** `affects` non-empty, unique, every item in `schema.cue` `#Repo`
+- **[H]** `category` is one of `schema` | `runtime` | `distribution` | `tooling` | `misc` (schema-enforced; `task graph` partitions `GRAPH.md` by it)
 - **[H]** `created` set, `updated >= created`
 - **[H]** cross-refs (`supersedes`, `superseded_by`) resolve to existing entries (workspace `NNNN/` or `library/enhancements/NNN-*/`)
 - **[H]** `depends_on` ids exist and are not the entry itself; each is carried by a `**Depends:**` line in a live decision whose target heading exists in that entry's log and is not a tombstone; the `depends_on` graph is acyclic
@@ -294,7 +296,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task vet` | About to open a PR that touches `enhancements/`. Hard gate; PR-blocking. |
 | `task vet:one ID=NNNN` | After editing one entry, before committing. Same hard gate, single entry. |
 | `task check [ID=NNNN]` | Before opening a PR. Soft gate; pre-PR aid. `task gate` is the promotion view. |
-| `task new SLUG=foo TITLE="Foo Bar" [AREA=cli] [AUTHOR=…]` | Scaffolding a new entry from `0000/`. |
+| `task new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…" CATEGORY=schema AFFECTS=core,cli [AUTHOR=…]` | Scaffolding a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffolding an experiment inside an entry. **Load `enhancement-experiments` skill first.** |
 | `task experiments:list ID=NNNN` | Browsing experiments for one entry; parses `Status:` from each per-experiment README. |
 | `task questions:list ID=NNNN` | Listing the `07-questions.md` register for one entry — grouped by `### ` subheading, classified into open / partial / resolved buckets. Human-readable. |
@@ -307,7 +309,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task reject ID=NNNN REASON="…"` | Killing an idea. Archives it with its reason; the id is never reused. |
 | `task archive:list` / `archive:data` | Checking a new idea against prior art (the `prior-art` gate). Lists both terminal states — rejected with reasons, superseded with successors. |
 | `task index` | After any `config.yaml` edit — `INDEX.md` is generated, not hand-edited. |
-| `task graph` | After any `depends_on` / `supersedes` / `revives` edit. `GRAPH.md` is generated, not hand-edited. |
+| `task graph` | After any `category` / `depends_on` / `supersedes` / `revives` edit. `GRAPH.md` is generated, not hand-edited. |
 | `task delivery:log FROM=<change-dir> SUMMARY="…"` | Logging an archived OpenSpec change into every enhancement its `enhancement.yaml` declares. Explicit mode (`ID= REPO= KIND=openspec\|pr\|commit CHANGE=/NUMBER=/SHA= SUMMARY= [DECISIONS=] [RESOLVES=]`) covers repos without OpenSpec. **Load the `delivery-log` skill first.** |
 | `task delivery:uncovered [ID=NNNN]` | Live decisions no logged change carries and `no_work` does not excuse. Not a gate; read it when logging and before expecting `implemented`. |
 | `task delivery:deferred` | Every `deferred-to-implementation` OQ and whether a log entry claims it via `resolves`. |
@@ -330,7 +332,7 @@ Workflow:
 ## Common pitfalls
 
 - **Forgetting to re-run `task index` after editing `config.yaml`.** `INDEX.md` is generated. Stale `INDEX.md` is the most common drift; run `task index` whenever any `config.yaml` changes.
-- **Forgetting to re-run `task graph` after editing `depends_on` / `supersedes` / `revives`.** Same story for `GRAPH.md`.
+- **Forgetting to re-run `task graph` after editing `category` / `depends_on` / `supersedes` / `revives`.** Same story for `GRAPH.md`.
 - **Writing CUE inside a markdown fence instead of a compilable file.** Defeats the validator. If you find yourself pasting a CUE block longer than a few illustrative lines into `02-design.md`, that block belongs in a `.cue` file with a one-line markdown reference — in `schemas/` when it is (part of) the core-schema delta, in `contracts/` otherwise.
 - **Putting non-core CUE in `schemas/`, or a core delta in `contracts/`.** `schemas/` has exactly one meaning — the `opmodel.dev/core` delta gated by `core_schema` — and vet enforces its presence in both directions. A decision procedure or Go-behaviour contract wearing `#Def` syntax is `contracts/` material; a proposed core definition hiding in `contracts/` dodges the examples/spec.md gate.
 - **Scaffolding an entry for something that is not an enhancement.** A chore, a cleanup, a dependency bump, a note-to-self. Walk the `creation` gates first; if it fails `feature`, it is a GitHub issue labelled `idea`. This is the pitfall the whole rubric exists for, and the cheapest place to catch it is before eight files exist.
@@ -347,7 +349,7 @@ Workflow:
 - **Promoting status without running both gates.** `task vet` is mechanical and must pass. `task check` is prose-shape; failing it is acceptable only if the warning is documented in the PR body with a reason for deferring.
 - **Editing `core/*.cue` as part of an implementation change without loading the `core-schema-edit` skill first.** That skill is binding. The pre-commit hook + CI gate will reject the commit. Reading the skill first means the SPEC section format is ready when you write it.
 - **Treating `INDEX.md` or `GRAPH.md` as hand-maintained.** They are generated. Hand-edits get clobbered on the next `task index` / `task graph`.
-- **Listing an entry in `depends_on` because it is on the same topic.** The field is an index of `**Depends:**` lines, nothing more; `task vet` fails an id no live decision carries. Reading order and shared area are `INDEX.md`'s job.
+- **Listing an entry in `depends_on` because it is on the same topic.** The field is an index of `**Depends:**` lines, nothing more; `task vet` fails an id no live decision carries. Reading order and shared category or repo are `INDEX.md`'s job.
 - **Naming a plan file in the entry.** Forecast plans are retired: no `plan.yaml` or `PLAN.md` lives inside an entry (`task vet` fails the file), and prose naming one is a stale pointer at nothing (`task check` warns; delete or reword it). The delivery record is `delivery.yaml`.
 - **Pre-planning slices at all.** There is no forecast layer any more; both large plans it produced sat at 100% `planned` with zero execution feedback. Decompose the work when cutting each OpenSpec change in its target repo; sequencing constraints stay design prose in `06-operational.md ## Cross-Repo Coordination`.
 - **Recording a mechanism decision.** If it would not bind a from-scratch rewrite of the affected repos, it is not a `DN` — it belongs in the implementing OpenSpec change. `task check` flags path and identifier references in an entry's prose as smells.
@@ -357,7 +359,7 @@ Workflow:
 
 ## Source of truth precedence
 
-- Workspace root `/CLAUDE.md` governs cross-repo routing and the area vocabulary.
+- Workspace root `/CLAUDE.md` governs cross-repo routing and the repo vocabulary (`schema.cue` `#Repo`).
 - `enhancements/CLAUDE.md` orients agents to the repo; this skill is the authoritative protocol.
 - Each target repo's own `CLAUDE.md` governs its source code; implementation changes follow those rules.
 - When a change touches `core/`, `core-schema-edit` (at `core/.claude/skills/core-schema-edit/`) is the binding protocol for SPEC.md co-updates.

@@ -16,19 +16,17 @@ title: 'Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions'
 summary: >-
   Generate both the native Kubernetes mirror and the opinionated abstractions from one Kubernetes OpenAPI source, ending schema drift between the two catalogs.
 status: draft
-# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
-area: cross-cutting
+category: tooling
 # Every repo that ships code/schema/content changes driven by this enhancement.
-# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
 affects:
-  - cross-cutting
   - catalog
   - library
   - opm-operator
   - opmodel.dev
 core_schema: false
 created: "2026-06-20"
-updated: "2026-09-04"
+updated: "2026-09-08"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -52,6 +50,8 @@ history:
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-09-04"
     event: 'Dependency edges: related renamed to depends_on and left empty; no decision rests on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+  - date: "2026-09-08"
+    event: Category set to tooling, area dropped, cross-cutting removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

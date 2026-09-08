@@ -7,10 +7,9 @@ title: Documentation Architecture
 summary: >-
   Organise the documentation by what a reader is holding when they arrive, with diagnostics as a top-level entry point for readers who came from an error string.
 status: draft
-# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
-area: opmodel.dev
+category: misc
 # Every repo that ships code/schema/content changes driven by this enhancement.
-# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
 affects:
   - opmodel.dev
   - core
@@ -19,7 +18,7 @@ affects:
   - library
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-04"
+updated: "2026-09-08"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -46,6 +45,8 @@ history:
     event: 'ADHD readability pass: claims front-loaded, sentences split, em-dashes removed, lists capped. No answer, number, Source, Kind or Status changed. Under the 2026-08-30 readability carve-out.'
   - date: "2026-09-04"
     event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
+  - date: "2026-09-08"
+    event: Category set to misc, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

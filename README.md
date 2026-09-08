@@ -6,7 +6,7 @@ This repo is the **canonical home** for OPM design work going forward. Repo-loca
 
 ## Quick start
 
-Browse [`INDEX.md`](INDEX.md) for the status table — id, area, status, last history event, title. Drill into any `NNNN/` directory to read the full design package. Folder names are id-only (four digits, zero-padded); the title and slug live inside `config.yaml`.
+Browse [`INDEX.md`](INDEX.md) for the status table — id, category, affects, status, derived delivery state, title, summary — and [`GRAPH.md`](GRAPH.md) for the relationship diagrams, one per category. Drill into any `NNNN/` directory to read the full design package. Folder names are id-only (four digits, zero-padded); the title and slug live inside `config.yaml`.
 
 ```bash
 task list                  # status table in the terminal
@@ -22,15 +22,15 @@ enhancements/
 ├── .github/                ISSUE_TEMPLATE/idea.yml, the idea issue form (label: idea)
 ├── scripts/                delivery.sh (derives delivery state from each entry's delivery.yaml), entry hashing
 ├── Taskfile.yml            workflow tasks (vet, list, new, gate, promote, reject, …)
-├── INDEX.md                generated browse aid — id → area → status → title
-├── GRAPH.md                generated Mermaid relationship diagram (depends_on / supersedes / revives)
+├── INDEX.md                generated browse aid — id → category → affects → status → title
+├── GRAPH.md                generated Mermaid relationship diagrams: category rollup + one per category (depends_on / supersedes / revives)
 ├── README.md               this file
 ├── CLAUDE.md               agent guide for working in this repo
 ├── 0000/                   canonical template — copy from here
 ├── archive/                terminal entries (rejected, superseded) — id kept forever, reduced validation
 │   └── NNNN/               same package; status: rejected + rejected_reason, or superseded + superseded_by
 └── NNNN/                   one directory per enhancement (id-only)
-    ├── config.yaml         sole source of metadata (summary, status, revives, …)
+    ├── config.yaml         sole source of metadata (summary, status, category, revives, …)
     ├── delivery.yaml       append-only log of landed changes + no_work claims (task delivery derives the state)
     ├── README.md           index, summary, scope, cross-references
     ├── 01-problem.md       why this enhancement needs to exist
@@ -108,7 +108,7 @@ The chain that keeps the log honest: an OpenSpec change in a target repo declare
 
 Two gates run against every entry:
 
-- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), the `depends_on` rule (every id carried by a `**Depends:** MMMM:DN` line in a live decision and vice versa, every target a live heading, the graph acyclic), placeholder absence in the seven mandatory docs, `area ∈ affects`, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, `delivery.yaml` validates when present (schema, DN/OQN refs resolve, `no_work` keys live, not tombstoned, and not also carried by a logged change), no `plan.yaml`/`PLAN.md` inside any entry (forecast plans are retired), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
+- **`task vet`** — hard gate (PR-blocking). `gates.cue` itself validates; then per entry: CUE schema validation of `config.yaml`, cross-reference existence (resolving into `archive/` too), the `depends_on` rule (every id carried by a `**Depends:** MMMM:DN` line in a live decision and vice versa, every target a live heading, the graph acyclic), placeholder absence in the seven mandatory docs, the `core_schema` rules (`schemas/` exists iff `core_schema: true`, compiles, `core ∈ affects`, and at `accepted` carries `examples.cue` + `spec.md` unless the entry already derives `delivered`), `contracts/` compiles when present, `delivery.yaml` validates when present (schema, DN/OQN refs resolve, `no_work` keys live, not tombstoned, and not also carried by a logged change), no `plan.yaml`/`PLAN.md` inside any entry (forecast plans are retired), no `## Open Questions` block outside `07-questions.md`, and the archive placement rules (terminal entries — `rejected` and `superseded` — only inside `archive/`, nothing live inside it, the successor back-link present on superseded ones).
 - **`task check`** — soft gate (pre-PR aid). Per-status prose conventions: scope section, decision headings and the Kind gate (drafts), Open Questions block, unresolved `Blocking: acceptance` questions, undeclared-dependency smell (prose cites another entry's decision that no `**Depends:**` line names), stale-plan smell (plan-file names in prose; forecast plans are retired), delivery-log sanity (a log entry's `change.repo` outside `affects`; cross-entry carriage is the legitimate exception), mechanism smell (file:line refs outside evidential citation), evidence nudge (no research/, experiments/, or Measured claim), rejection and supersession quote blocks.
 
 Run `task vet` before any PR that touches an enhancement. `task gate ID=NNNN` is the pre-promotion view, and `task promote` runs the hard half itself.

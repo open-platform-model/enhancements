@@ -17,13 +17,17 @@ summary: >-
   {One line: the capability OPM will have and does not have today, or the rework of one it has.}
 status: draft
 
-# Which OPM area is the primary owner. See enhancements/schema.cue #Area.
-area: cross-cutting
 
-# Every repo that ships code/schema/content changes driven by this enhancement.
-# MUST include `area`. Validated against the workspace directory map in /CLAUDE.md.
+# Type of work, single-valued: schema | runtime | distribution | tooling | misc.
+# See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
+category: misc
+
+# Every repo that ships code/schema/content changes driven by this enhancement:
+# its blast radius. Several entries means it spans repos; no label is needed.
+# Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
+# `task new` requires AFFECTS=; `core` below is only the template's stand-in.
 affects:
-  - cross-cutting
+  - core
 
 # Does this enhancement add or change opmodel.dev/core definitions?
 # true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
