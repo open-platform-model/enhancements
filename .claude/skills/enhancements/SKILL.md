@@ -334,7 +334,7 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task show ID=NNNN` | Need full metadata + history list + document list for one entry. |
 | `task vet` | About to open a PR that touches `enhancements/`. Hard gate; PR-blocking. |
 | `task vet:one ID=NNNN` | After editing one entry, before committing. Same hard gate, single entry. |
-| `task check [ID=NNNN]` | Before opening a PR. Soft gate; pre-PR aid. `task gate` is the promotion view. |
+| `task check [ID=NNNN]` | Before opening a PR. Soft gate; pre-PR aid. `task gate` is the promotion view. Also nudges a live accepted entry that derives `implemented` toward `task close`. |
 | `task new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…" CATEGORY=schema AFFECTS=core,cli [AUTHOR=…]` | Scaffolding a new entry from `0000/`. |
 | `task new:experiment ID=NNNN NAME=concept-name` | Scaffolding an experiment inside an entry. **Load `enhancement-experiments` skill first.** |
 | `task experiments:list ID=NNNN` | Browsing experiments for one entry; parses `Status:` from each per-experiment README. |

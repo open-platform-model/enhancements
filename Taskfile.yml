@@ -1371,6 +1371,8 @@ tasks:
                         policy | scope'
         - draft/acc   → undeclared-dependency smell: prose cites another
                         entry's decision that no '**Depends:**' line names
+        - accepted    → finished but live: derives implemented; nudge to
+                        'task close ID=NNNN'
         - draft/acc   → mechanism smell: file:line refs or function()
                         tokens in 03-decisions.md
         - draft/acc   → evidence nudge: no research/, no experiments/,
@@ -1403,6 +1405,10 @@ tasks:
         FAIL=0
 
         CFGS=()
+        # Derived delivery state for every entry, computed once: delivery.sh
+        # walks the whole repo, so calling it per entry would be quadratic.
+        DSTATES=$(./scripts/delivery.sh 2>/dev/null || true)
+
         if [ -n "$TARGET" ]; then
           DIR="$TARGET"
           [ -d "$DIR" ] || DIR="archive/$TARGET"
@@ -1500,6 +1506,18 @@ tasks:
                 *) warnings="${warnings}\n    delivery.yaml logs a change in '$r', which affects[] does not list (fine for cross-entry carriage, a typo otherwise)" ;;
               esac
             done
+          fi
+
+          # Finished but live: the derivation says implemented while the
+          # entry still sits in place. vet fails the converse (delivered
+          # outside archive/); this is the soft half. `task close` is the
+          # one-way flip.
+          if [ "$status" = "accepted" ]; then
+            local dstate
+            dstate=$(printf '%s\n' "$DSTATES" | awk -F'\t' -v i="$id" '$1==i {print $2; exit}')
+            if [ "$dstate" = "implemented" ]; then
+              warnings="${warnings}\n    derives implemented while still live: every live decision is carried or excused, so the design is finished; close it with 'task close ID=$id' (left live it renders as a peer of work in flight)"
+            fi
           fi
 
           # Decision Kind gate (draft entries): every decision carries
