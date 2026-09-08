@@ -42,6 +42,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Depends:** 0019:D13, 0010:D14
 
+**Amends:** 0019:D13
+
 **Decision:** On every OPM catalog path a module imports, the render build holds the version the module's committed dependency list names, provided the platform admits it (D2). The render module's dependency list is still written by promotion from committed resolutions, never by a resolver or a render-time tidy; what changes against 0019 D13 is the source promoted on a catalog path: the module's list, not the platform's. Every other path the module carries, `core` included, is promoted from the module's tidied closure, so the list stays the complete main-module view 0019 D13 relies on. The build records the catalog versions it held, and that record is part of the render's identity.
 
 **Alternatives considered:**
@@ -84,6 +86,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Depends:** 0019:D5, 0019:D6
 
+**Amends:** 0019:D5, 0019:D6
+
 **Decision:** The render-time `#Platform`, with `#CatalogEntry`, `#registry` and `#composedTransformers` exactly as 0019 D5 shipped them, is no longer authored. The kernel generates a platform module whose dependency list carries the catalog versions the build will hold and whose value imports and embeds each catalog in the build, one `#registry` entry per path, and consumes it in the single render build as today. Generation is keyed by the resolved catalog set plus the spec's generation and the accepted registrations that reached the build, so renders with the same resolution share one generated platform. The two authored forms of today, a hand-written platform module for offline renders and a Platform CR for the operator, become one: a `#PlatformSpec`, as a CR spec or as a file. 0019 D6's platform-package generation remains the operator's, and moves from once per CR change to once per distinct resolution.
 
 **Alternatives considered:**
@@ -119,6 +123,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Kind:** contract
 
 **Depends:** 0015:D11, 0015:D3
+
+**Amends:** 0015:D11
 
 **Decision:** A provider catalog is a catalog. When a consumer module imports it, D1 and D2 apply unchanged. When no consumer pins the path, the version the build holds is the registration's `version`, which 0015 D11 derives from the provider module's own dependency on its catalog and verifies at acceptance; that derivation is unchanged. The registration's claim gains `floor` and `ceiling`, each defaulting to `version`, authored by the provider module beside the operator release it deploys: the releases of the catalog whose emitted resources that operator accepts. The `transformer-registration` contract in catalog_opm carries the two fields with their defaults; the rendering transformer copies them to the CR. This is the first authored field on the claim, and 0015 D11 is amended to that extent: `catalog`, `version` and `provides` stay derived and verified; the window is authored, trusted because the CR already requires the platform-admin identity to apply.
 
@@ -159,6 +165,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Kind:** contract
 
 **Depends:** 0015:D8
+
+**Amends:** 0015:D8
 
 **Decision:** For every catalog the build holds, its committed requirement on each shared OPM-namespace path must be at most the version the build holds there, within the same major; a different major refuses unconditionally. With the consumer's pin deciding the held version (D1), the comparison 0015 D8 defines runs per render, against the consumer's pins, and a failure names the provider catalog, the consumer module, the path and both versions. It also runs at registration acceptance against the spec's static floors, so a provider that no admitted render could ever hold is refused where it can be named early. Acceptance-time success is necessary, not sufficient; the render-time check is the binding one.
 
