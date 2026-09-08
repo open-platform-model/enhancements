@@ -22,11 +22,13 @@ exists to make reaching for a diagram the default move at the right moments, not
 The two categories are not a style preference; they map onto genuinely different content:
 
 - A **relationship** question has enhancements or entries as its nodes and
-  `depends_on`/`supersedes`/`revives` as its edges. This is exactly what `GRAPH.md` (cross-entry)
+  `depends_on`/`amends`/`supersedes`/`revives` as its edges. This is exactly what `GRAPH.md` (cross-entry)
   already renders as generated Mermaid. Mermaid is a natural fit because that is what it's
   for: named nodes, directed edges, `classDef`-based coloring. A `depends_on` edge is earned,
   not sketched into being: it exists iff a decision in one entry carries a `**Depends:**` line
-  naming a decision in the other.
+  naming a decision in the other. An `amends` edge is the same discipline for change: it exists
+  iff a live decision carries a qualified `MMMM:DN` token on its `**Amends:**` / `**Supersedes:**`
+  line, and `GRAPH.md` labels it `amends n/m` (n of the target's m live decisions changed).
 - A **design/mechanism** question has functions, data, states, or components as its nodes —
   how a deletion protocol resolves, how a rung ladder architecture is layered, how a request
   flows through a pipeline. This is what `enhancements/0012/02-design.md` already draws by hand,
@@ -76,6 +78,7 @@ classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
 classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
 classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
 classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
+classDef delivered   fill:#dcfce7,stroke:#15803d,color:#14532d
 classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
 classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
 classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
@@ -83,8 +86,10 @@ classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
 `GRAPH.md` is partitioned by `config.yaml.category`: an Overview whose nodes are categories and whose
 edge labels count cross-category `depends_on` edges, then one `graph TD` per category where an entry from
-another category appears as a grey `stub` labelled `NNNN · <category>`. A live sketch of one entry's
-neighbourhood should use the same stub convention for anything outside the entry's own category.
+another category appears as a grey `stub` labelled `NNNN · <category>`. Closed entries (delivered,
+superseded, rejected) appear only where a live entry's edge reaches them, and an edge between two
+closed entries is not drawn. A live sketch of one entry's neighbourhood should use the same stub
+convention for anything outside the entry's own category, and the same closed-entry rule.
 
 This is a genuinely new capability, not a restatement of what already exists: today `GRAPH.md`
 only exists *after* `task graph` runs against already-committed data.

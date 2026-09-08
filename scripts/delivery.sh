@@ -17,6 +17,8 @@
 #   in-progress  the log is non-empty but decision coverage is incomplete
 #   implemented  every live DN covered by a log entry or excused in no_work
 #   rejected / superseded  terminal, passed through; delivery never owed
+#   (a `delivered` entry is archived too, but its state is still COMPUTED:
+#   `task close` gated on `implemented` and `task vet` re-checks it there)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

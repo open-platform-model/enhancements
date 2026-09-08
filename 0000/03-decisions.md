@@ -18,6 +18,8 @@ Each decision carries a `**Kind:**` line plus the same four-field shape: Decisio
 
 A decision that rests on another entry's decision also carries a `**Depends:** MMMM:DN` line (tokens only, comma-separated) directly after `Kind`, and `config.yaml.depends_on` lists exactly the entries those lines name; `task vet` enforces both directions and refuses a cycle. The test for whether the line is owed: *if that other decision were reversed, would this one need an `Amends:`?* If yes, it depends. A citation for precedent, contrast, or a delegated enforcement site is prose, not a dependency.
 
+A decision that **changes** another entry's decision says so on the same relation fields it uses locally, with the token qualified: `**Amends:** 0019:D13` when that decision survives narrowed, `**Supersedes:** 0019:D13` when it is dead. `config.yaml.amends` lists exactly the entries those tokens name; `task vet` enforces both directions, requires a live heading, refuses a superseded or rejected target (amend the successor), refuses a cycle, and refuses one decision both depending on and superseding the same token. The amended entry is never edited, closed or not: `task show ID=0019` derives "amended by" from lines like these, so the reverse can never go stale and can say whether the change has landed. Depends is *I rest on it*; Amends is *I change it*; a decision may carry both for the same token when it narrows what it rests on.
+
 **The Kind gate.** A decision belongs in this log only if it passes the admission test: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Three kinds pass it:
 
 - `contract`: changes what a consumer can observe or rely on: a schema shape, a command's semantics, a compatibility or refusal rule, a naming guarantee.
@@ -41,6 +43,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Kind:** {contract | policy | scope}
 
 **Depends:** {MMMM:DN, only when this decision rests on another entry's decision; delete the line otherwise}
+
+**Amends:** {DN or MMMM:DN, only when this decision narrows an existing decision; use **Supersedes:** when it replaces one; delete the line otherwise}
 
 **Decision:** {What was decided. State it as a fact, not a question.}
 

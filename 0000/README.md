@@ -208,9 +208,14 @@ To create a new enhancement from this template:
 - **superseded**: replaced by a newer enhancement (paired with
   `superseded_by` on this entry and `supersedes` on the replacement); the
   entry moves to `archive/NNNN/` (`task supersede`)
+- **delivered**: every live decision is carried by `delivery.yaml` or
+  excused in it and the owner closed the design; the entry moves to
+  `archive/NNNN/` (`task close`, which refuses unless `task delivery`
+  derives `implemented`). Nothing in it changes again; later entries amend
+  it by naming its decisions.
 
-Both terminal states are always archived. A terminal entry never stays in
-place, and `task vet` fails one that does.
+All three terminal states are always archived. A terminal entry never stays
+in place, and `task vet` fails one that does.
 
 ### Compaction
 

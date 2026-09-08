@@ -49,6 +49,7 @@ Read `config.yaml.status` first thing, before anything else.
 | `draft` | **WEAVE and TOMBSTONE, as repair only** — for reversals stacked before the in-place rule (or imported habits). A draft maintained under the current model needs neither: routine revision happens in place during Phase 2 without this skill. Leave Open Question prose alone — it is the active work surface, and its context paragraphs are what make the questions answerable. Collapsing them mid-design destroys work in progress. |
 | `accepted` | **WEAVE, TOMBSTONE, COLLAPSE-OQ.** The primary use case — and the *only* path for editing an existing decision body at this status. Stays available for the entire `accepted` period, including a deliberate final pass at latest before the entry derives implemented. |
 | implemented (derived) | **Refuse. No override, no `FORCE` flag.** The design shipped and the record is closed. What looks like a needed correction is either a new enhancement or a note in the successor. Say so and exit. |
+| `delivered` | **Refuse**, as for implemented: `task close` archived it only after the derivation said implemented, and `task vet` keeps checking that. A correction is a new entry that amends it. |
 | `superseded` | **STUB**, plus COLLAPSE-OQ and TOMBSTONE. The narrative documents collapse to pointers at the successor. The entry lives in `archive/NNNN/` (terminal entries are always archived; `task supersede` does the move) — `task compact:plan` and this skill operate on it there. `experiments/` and `research/` are never touched under any status. |
 
 There is no override for an implemented entry. If the user insists, the honest answer is that the entry is frozen by design and the fix belongs in a new entry — offer to draft that instead.
@@ -142,7 +143,7 @@ Relations belong in structured fields, not in a 120-character `### DN:` heading 
 **Resolves:** OQ13
 ```
 
-Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), `**Resolves:**` (an OQ), and `**Depends:**` (a cross-entry premise, tokens-only `MMMM:DN`, sitting under `**Kind:**`). This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
+Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), `**Resolves:**` (an OQ), and `**Depends:**` (a cross-entry premise, tokens-only `MMMM:DN`, sitting under `**Kind:**`). `**Amends:**` and `**Supersedes:**` also take the qualified `MMMM:DN` token when the decision they change belongs to another entry; `config.yaml.amends` then lists `MMMM`, the amended entry is never edited (`task show ID=MMMM` derives "amended by"), and a decision never both depends on and supersedes the same foreign token. This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
 
 `**Depends:**` has its own rules under a weave, because `config.yaml.depends_on` is derived from it and `task vet` holds the two equal:
 
@@ -150,6 +151,8 @@ Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, 
 - A retraction with no survivor that was the only citer of `MMMM` drops `MMMM` from `depends_on` in the same commit.
 - A heading trailer such as `depends on 0011 D3` hoists into the field like any other relation.
 - A supersession stub keeps the lines: what the archived design rested on is part of the record.
+
+Qualified `MMMM:DN` tokens on `**Amends:**` / `**Supersedes:**` follow the same four rules against `config.yaml.amends`: they move to the survivor, a lone citer's retraction drops `MMMM` from `amends`, a heading trailer hoists into the field, and a stub keeps them.
 
 ## The protocol
 

@@ -262,7 +262,7 @@ tasks:
           local id="$1" block="$2" dir dfile
           if [ -d "$id" ]; then dir="$id"
           elif [ -d "archive/$id" ]; then
-            printf "${RED}refusing${RESET}: %s is archived (terminal status is never owed delivery)\n" "$id" >&2
+            printf "${RED}refusing${RESET}: %s is archived (a terminal entry takes no more log lines; a delivered one is closed)\n" "$id" >&2
             return 1
           else
             printf "${RED}no such enhancement${RESET}: %s\n" "$id" >&2
@@ -620,7 +620,9 @@ tasks:
         #
         # `**Depends:**` is deliberately absent from that alternation: its
         # tokens are foreign (`MMMM:DN`) and scripts/depends.sh resolves them
-        # against MMMM's decision log (step 3b below).
+        # against MMMM's decision log (step 3b below). A qualified `MMMM:DN`
+        # token on an Amends/Supersedes line is foreign for the same reason:
+        # it is stripped before the local extraction and depends.sh owns it.
         #
         # NOT scanned: free-form decision prose and `history` events. Both
         # carry cross-entry citations in the house style ("enhancement 0006
@@ -661,7 +663,7 @@ tasks:
           fi
 
           cited=$( { grep -hoE 'resolved-by-D[0-9]+' "$dec" ${oqfile:+"$oqfile"} 2>/dev/null | grep -oE 'D[0-9]+' || true
-                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | grep -oE '\b(OQ|D)[0-9]+\b' || true
+                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | sed -E 's/\b[0-9]{4}:D[0-9]+\b//g' | grep -oE '\b(OQ|D)[0-9]+\b' || true
                      printf '%s\n' "$markers"
                    } | { grep -E '.' || true; } | sort -u )
 
@@ -700,12 +702,13 @@ tasks:
             ref_exists "$sup_by" || errors="${errors}\n    superseded_by '$sup_by' is unknown ref"
           fi
 
-          # 3b. Dependency edges: depends_on ⇔ **Depends:** in both
+          # 3b. Relation edges: depends_on ⇔ **Depends:** and amends ⇔
+          #     qualified **Amends:** / **Supersedes:** tokens, both
           #     directions, every target a live decision heading. Lives in
           #     scripts/depends.sh so vet and vet:one share one implementation.
           local dep_err; dep_err=$(./scripts/depends.sh check "$id" 2>/dev/null || true)
           if [ -n "$dep_err" ]; then
-            errors="${errors}\n    depends_on / **Depends:** mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
+            errors="${errors}\n    relation edges (depends_on / **Depends:**, amends / **Amends:** **Supersedes:**) mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
           fi
 
 
@@ -876,13 +879,16 @@ tasks:
         fi
 
         # Archived entries get REDUCED validation: schema plus the placement
-        # rules below, and none of the prose gates. Both terminal states are
-        # archived — rejected and superseded. A killed draft is incomplete by
-        # definition — demanding seven finished documents before allowing a
-        # kill would make the kill path more expensive than the finish path,
-        # which is how repos accumulate zombie drafts. A superseded entry is
-        # a stubbed record whose live design is its successor's, so the prose
-        # gates have nothing left to gate.
+        # rules below, and none of the prose gates. All three terminal states
+        # are archived — delivered, rejected and superseded. A killed draft is
+        # incomplete by definition — demanding seven finished documents before
+        # allowing a kill would make the kill path more expensive than the
+        # finish path, which is how repos accumulate zombie drafts. A
+        # superseded entry is a stubbed record whose live design is its
+        # successor's, so the prose gates have nothing left to gate. A
+        # delivered entry passed every gate while live; what vet re-checks is
+        # the one fact its status rests on: the derivation still says
+        # implemented.
         for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
           errors=""
@@ -895,6 +901,11 @@ tasks:
           st=$(yq -r '.status' "$cfg")
           case "$st" in
             rejected) : ;;
+            delivered)
+              dstate=$(./scripts/delivery.sh "$id" 2>/dev/null | cut -f2)
+              [ "$dstate" = "implemented" ] \
+                || errors="${errors}\n    status is delivered but the derived delivery state is '${dstate:-?}' (every live decision must be carried by the log or excused in no_work)"
+              ;;
             superseded)
               # The successor must carry the back-link. It may itself be
               # archived by a later supersession, so look in both places;
@@ -912,7 +923,7 @@ tasks:
               esac
               ;;
             *)
-              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (rejected, superseded) entries are archived"
+              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (delivered, rejected, superseded) entries are archived"
               ;;
           esac
           if [ -n "$errors" ]; then
@@ -936,6 +947,11 @@ tasks:
           fi
           if [ "$live_status" = "superseded" ]; then
             printf "${RED}FAIL${RESET} %s\n    status is superseded but the entry is not in archive/ — use 'task supersede ID=%s BY=<successor>'\n" "$cfg" "$id"
+            FAIL=1
+            continue
+          fi
+          if [ "$live_status" = "delivered" ]; then
+            printf "${RED}FAIL${RESET} %s\n    status is delivered but the entry is not in archive/ — use 'task close ID=%s'\n" "$cfg" "$id"
             FAIL=1
             continue
           fi
@@ -966,6 +982,16 @@ tasks:
           FAIL=1
         else
           printf "${GREEN}ok${RESET}   depends_on graph (acyclic)\n"
+        fi
+
+        # amends must be a DAG too: the amender is the newer authority on
+        # the decisions it names, and two entries cannot each be the newer.
+        loop=$(./scripts/depends.sh amends-cycles 2>/dev/null || true)
+        if [ -n "$loop" ]; then
+          printf "${RED}FAIL${RESET} amends graph\n    amendment cycle between: %s\n" "$(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
+          FAIL=1
+        else
+          printf "${GREEN}ok${RESET}   amends graph (acyclic)\n"
         fi
 
         exit $FAIL
@@ -1014,6 +1040,11 @@ tasks:
           st=$(yq -r '.status' "$cfg")
           case "$st" in
             rejected) : ;;
+            delivered)
+              dstate=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
+              [ "$dstate" = "implemented" ] \
+                || errors="${errors}\n    status is delivered but the derived delivery state is '${dstate:-?}' (every live decision must be carried by the log or excused in no_work)"
+              ;;
             superseded)
               sup_by=$(yq -r '.superseded_by // ""' "$cfg")
               case "$sup_by" in
@@ -1028,7 +1059,7 @@ tasks:
               esac
               ;;
             *)
-              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (rejected, superseded) entries are archived"
+              errors="${errors}\n    status is '$st' but the entry lives in archive/ — only terminal (delivered, rejected, superseded) entries are archived"
               ;;
           esac
           if [ -n "$errors" ]; then
@@ -1135,7 +1166,7 @@ tasks:
           fi
 
           cited=$( { grep -hoE 'resolved-by-D[0-9]+' "$dec" ${oqfile:+"$oqfile"} 2>/dev/null | grep -oE 'D[0-9]+' || true
-                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | grep -oE '\b(OQ|D)[0-9]+\b' || true
+                     grep -hoE '^\*\*(Supersedes|Amends|Resolves):\*\*.*' "$dec" 2>/dev/null | sed -E 's/\b[0-9]{4}:D[0-9]+\b//g' | grep -oE '\b(OQ|D)[0-9]+\b' || true
                      printf '%s\n' "$markers"
                    } | { grep -E '.' || true; } | sort -u )
 
@@ -1162,14 +1193,18 @@ tasks:
             ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref'"
           done < <(yq -r ".$field[]?" "$cfg")
         done
-        # Dependency edges (same implementation as `task vet`, step 3b).
+        # Relation edges (same implementation as `task vet`, step 3b).
         dep_err=$(./scripts/depends.sh check "$ID" 2>/dev/null || true)
-        [ -z "$dep_err" ] || errors="${errors}\n    depends_on / **Depends:** mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
+        [ -z "$dep_err" ] || errors="${errors}\n    relation edges (depends_on / **Depends:**, amends / **Amends:** **Supersedes:**) mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
         # Global acyclicity, failing only when this entry sits on the loop;
         # a cycle elsewhere is `task vet`'s to report.
         loop=$(./scripts/depends.sh cycles 2>/dev/null || true)
         if printf '%s\n' "$loop" | grep -qx "$ID"; then
           errors="${errors}\n    depends_on cycle through this entry: $(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
+        fi
+        loop=$(./scripts/depends.sh amends-cycles 2>/dev/null || true)
+        if printf '%s\n' "$loop" | grep -qx "$ID"; then
+          errors="${errors}\n    amends cycle through this entry: $(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
         fi
         sup_by=$(yq -r '.superseded_by // ""' "$cfg")
         if [ -n "$sup_by" ] && [ "$sup_by" != "null" ]; then
@@ -1393,12 +1428,19 @@ tasks:
 
           # Archived entries: reduced validation, mirroring `task vet`. Only
           # the reader-facing banner is checked — a rejected draft is
-          # incomplete by definition, and a superseded entry is a stub.
+          # incomplete by definition, a superseded entry is a stub, and a
+          # delivered entry passed every gate while live.
           case "$dir" in
             archive/*)
               if [ "$status" = "rejected" ]; then
                 grep -qE '^> \*\*Rejected \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
                   || warnings="${warnings}\n    README.md: missing '> **Rejected (YYYY-MM-DD).**' quote block"
+              elif [ "$status" = "delivered" ]; then
+                grep -qE '^> \*\*Delivered \([0-9]{4}-[0-9]{2}-[0-9]{2}\)\.\*\*' "$dir/README.md" 2>/dev/null \
+                  || warnings="${warnings}\n    README.md: missing '> **Delivered (YYYY-MM-DD).**' quote block"
+                if grep -qE '^> \*\*Implementation status' "$dir/README.md" 2>/dev/null; then
+                  warnings="${warnings}\n    README.md: still carries a pre-rule '> **Implementation status' progress banner; the delivered banner replaces it"
+                fi
               elif [ "$status" = "superseded" ]; then
                 grep -qE '^> \*\*Superseded by [0-9]{4}' "$dir/README.md" 2>/dev/null \
                   || warnings="${warnings}\n    README.md: missing '> **Superseded by NNNN …**' quote block"
@@ -1476,8 +1518,9 @@ tasks:
 
           # Undeclared-dependency smell (draft + accepted): durable prose
           # cites another entry's decision ("0010 D34", "0011:D3",
-          # "enhancement 0015 D1", "0019's D16") but no **Depends:** line
-          # names that entry. Evidential citation is legitimate (a
+          # "enhancement 0015 D1", "0019's D16") but no relation line (a
+          # **Depends:** token, or a qualified **Amends:** / **Supersedes:**
+          # token) names that entry. Evidential citation is legitimate (a
           # measurement quoted for contrast is not a premise), so this only
           # warns; a decision declares the edge, and vet holds it.
           if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
@@ -1486,9 +1529,9 @@ tasks:
                       | grep -vx "$id" | grep -vx 0000 | sort -u | paste -sd'|' - || true)
             if [ -n "$id_alt" ]; then
               cited_ids=$(grep -hoE "\b(${id_alt})(:|'s)? ?D[0-9]+\b" "$dir"/0[1-7]-*.md 2>/dev/null | grep -oE '^[0-9]{4}' | sort -u || true)
-              dep_ids=$(grep -hE '^\*\*Depends:\*\*' "$dir/03-decisions.md" 2>/dev/null | grep -oE '\b[0-9]{4}:D[0-9]+' | cut -d: -f1 | sort -u || true)
+              dep_ids=$(grep -hE '^\*\*(Depends|Amends|Supersedes):\*\*' "$dir/03-decisions.md" 2>/dev/null | grep -oE '\b[0-9]{4}:D[0-9]+' | cut -d: -f1 | sort -u || true)
               undeclared=$(comm -23 <(printf '%s\n' "$cited_ids" | grep -E '.' || true) <(printf '%s\n' "$dep_ids" | grep -E '.' || true) | paste -sd',' - | sed 's/,/, /g' || true)
-              [ -z "$undeclared" ] || warnings="${warnings}\n    prose cites decisions of $undeclared but no **Depends:** line names them (a premise is an edge; a quoted measurement is not)"
+              [ -z "$undeclared" ] || warnings="${warnings}\n    prose cites decisions of $undeclared but no **Depends:** / **Amends:** / **Supersedes:** line names them (a premise or a changed decision is an edge; a quoted measurement is not)"
             fi
           fi
 
@@ -1642,12 +1685,40 @@ tasks:
         [ -n "$rejected" ] && printf "  %-16s %s\n" "rejected:" "$rejected"
         depends_on=$(yq -r '.depends_on | join(", ")' "$cfg")
         printf "  %-16s %s\n" "depends_on:"   "${depends_on:--}"
+        amends=$(yq -r '(.amends // []) | join(", ")' "$cfg")
+        printf "  %-16s %s\n" "amends:"       "${amends:--}"
         supersedes=$(yq -r '.supersedes | join(", ")' "$cfg")
         printf "  %-16s %s\n" "supersedes:"   "${supersedes:--}"
         sup_by=$(yq -r '.superseded_by // "-"' "$cfg")
         printf "  %-16s %s\n" "superseded_by:" "$sup_by"
         revives=$(yq -r '(.revives // []) | join(", ")' "$cfg")
         printf "  %-16s %s\n" "revives:"      "${revives:--}"
+
+        # Amendment edges are stored on the amender only (config.yaml.amends
+        # plus the qualified MMMM:DN tokens on its Amends/Supersedes lines).
+        # The reverse is DERIVED here by scanning every other entry's decision
+        # log, so it can never go stale and can say whether the change has
+        # landed. See scripts/depends.sh outbound / inbound.
+        out=$(./scripts/depends.sh outbound "$ID" 2>/dev/null || true)
+        if [ -n "$out" ]; then
+          echo
+          printf "${BOLD}Amends (this entry's decisions changing another entry's):${RESET}\n"
+          printf '%s\n' "$out" | while IFS=$'\t' read -r dn rel tok; do
+            printf "  %-5s %-10s %s\n" "$dn" "$rel" "$tok"
+          done
+        fi
+        inb=$(./scripts/depends.sh inbound "$ID" 2>/dev/null || true)
+        if [ -n "$inb" ]; then
+          echo
+          printf "${BOLD}Amended by (derived from the amenders' decision logs):${RESET}\n"
+          printf '%s\n' "$inb" | while IFS=$'\t' read -r who dn rel tgt; do
+            wcfg="$who/config.yaml"; [ -f "$wcfg" ] || wcfg="archive/$who/config.yaml"
+            wst=$(yq -r '.status' "$wcfg" 2>/dev/null || echo '?')
+            wdl=$(./scripts/delivery.sh "$who" 2>/dev/null | cut -f2)
+            case "$rel" in supersedes) rel="superseded by" ;; *) rel="amended by" ;; esac
+            printf "  %-5s %-14s %s %-4s (%s, %s)\n" "$tgt" "$rel" "$who" "$dn" "$wst" "${wdl:--}"
+          done
+        fi
 
         echo
         printf "${BOLD}History (%s event(s)):${RESET}\n" "$(yq -r '.history | length' "$cfg")"
@@ -1867,7 +1938,7 @@ tasks:
           echo "  2. Non-core compilable CUE? Scaffold it with: task new:contracts ID=$NEW_ID"
         fi
         echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively"
-        echo "  4. Update $NEW_DIR/README.md scope; a decision resting on another entry's decision carries **Depends:** MMMM:DN and lists MMMM in depends_on"
+        echo "  4. Update $NEW_DIR/README.md scope; a decision resting on another entry's decision carries **Depends:** MMMM:DN and lists MMMM in depends_on; one changing another entry's decision carries the qualified MMMM:DN token on **Amends:** / **Supersedes:** and lists MMMM in amends"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
         echo "  6. Regenerate index:   task index"
         if [ -n "$ISSUE" ]; then
@@ -1920,13 +1991,13 @@ tasks:
               "$id" "$id" "$category" "$affects" "$status" "${deliv:--}" "$title" "$summary"
           done
 
-          # Archived (terminal) entries — rejected ideas and superseded
-          # designs. Listed here so a new proposal can be checked against
-          # prior art without leaving the index; `task archive:list` is the
-          # same data with the reasons attached.
+          # Archived (terminal) entries — delivered designs, rejected ideas
+          # and superseded designs. Listed here so a new proposal can be
+          # checked against prior art without leaving the index;
+          # `task archive:list` is the same data with the reasons attached.
           if [ -f "$(echo archive/[0-9][0-9][0-9][0-9]/config.yaml | cut -d" " -f1)" ]; then
             echo
-            echo '## Archived (rejected / superseded)'
+            echo '## Archived (delivered / rejected / superseded)'
             echo
             echo '| ID | Category | Status | Title | Summary | Why closed |'
             echo '| -- | -------- | ------ | ----- | ------- | ---------- |'
@@ -1941,6 +2012,11 @@ tasks:
                 sup_by=$(yq -r '.superseded_by // "?"' "$cfg")
                 reason="superseded by [$sup_by](./$sup_by/)"
                 [ -d "$sup_by" ] || reason="superseded by [$sup_by](./archive/$sup_by/)"
+              elif [ "$status" = "delivered" ]; then
+                # Delivered ON the last landing, not on the day of the close.
+                d_on=$(yq -r '[.log[].date] | sort | .[-1] // "-"' "$(dirname "$cfg")/delivery.yaml" 2>/dev/null || echo "-")
+                n_land=$(yq -r '.log | length' "$(dirname "$cfg")/delivery.yaml" 2>/dev/null || echo 0)
+                reason="delivered $d_on ($n_land landings)"
               else
                 reason=$(yq -r '.rejected_reason // "-"' "$cfg" | tr '\n' ' ' | sed 's/|/\\|/g; s/  *$//')
               fi
@@ -1954,6 +2030,7 @@ tasks:
           echo '- **accepted** — design agreed upon, ready for implementation'
           echo '- **rejected** — the idea was not accepted; the entry lives in archive/ with its reason'
           echo '- **superseded** — replaced by a newer enhancement; the entry lives in archive/ with `superseded_by` naming the successor'
+          echo '- **delivered** — every live decision landed and the design was closed (`task close`); the entry lives in archive/, later entries amend it by naming its decisions'
         } > "$OUT"
 
         printf 'Wrote %s\n' "$OUT"
@@ -1974,9 +2051,16 @@ tasks:
           which section to jump to. legacy:NNN refs (supersedes/revives
           only) stay peripheral "legacy NNN" boxes.
       Edge kinds: depends_on[] → solid (dependent --depends on--> dependency;
-      an edge exists iff a decision depends on a decision), supersedes[] →
-      thick (newer ==supersedes==> older), revives[] → dotted (live
-      -.revives.-> archived).
+      an edge exists iff a decision depends on a decision), amends → dotted
+      with an n/m label (amender -.amends n/m.-> amended: n distinct decisions
+      of the target changed by the amender's live decisions, m the target's
+      live decisions; read from the decision logs via scripts/depends.sh
+      outbound, never from a stored number), supersedes[] → thick (newer
+      ==supersedes==> older), revives[] → dotted (live -.revives.-> archived).
+      Closed entries (delivered, superseded, rejected) are drawn only where a
+      live entry's edge reaches them; an edge between two closed entries is
+      dropped, so a finished design leaves the picture once nothing live
+      leans on it.
       Refuses an entry whose category is missing or outside the vocabulary,
       and any cross-ref to an unknown id, before writing anything.
     preconditions:
@@ -1995,7 +2079,7 @@ tasks:
         trap 'rm -rf "$WORK"' EXIT
 
         NODES="$WORK/nodes.tsv"   # id \t category \t status \t label
-        EDGES="$WORK/edges.tsv"   # kind \t from \t to   (kind: depends|supersedes|revives; to: NNNN or legacy:NNN)
+        EDGES="$WORK/edges.tsv"   # kind \t from \t to [\t label]   (kind: depends|amends|supersedes|revives; to: NNNN or legacy:NNN; label: amends n/m)
         CROSS="$WORK/cross.tsv"   # fromcat \t tocat \t count   (depends_on only, cross-category only)
         : > "$NODES"
         : > "$EDGES"
@@ -2029,8 +2113,34 @@ tasks:
           yq -r '((.depends_on[]? | ["depends", .]), (.supersedes[]? | ["supersedes", .]), (.revives[]? | ["revives", .])) | @tsv' "$cfg" \
             | { grep -E '.' || true; } \
             | awk -F'\t' -v i="$id" -v OFS='\t' '{ print $1, i, $2 }' >> "$EDGES"
+          # amends edges come from the decision log, not config.yaml (the
+          # field is only the index): one edge per target, labelled n/m where
+          # n is how many distinct decisions of the target this entry's live
+          # decisions change and m is the target's live decision count. That
+          # ratio is the "how much of it" a reader wants, derived, never stored.
+          ./scripts/depends.sh outbound "$id" 2>/dev/null \
+            | awk -F'\t' '{ split($3, t, ":"); if (!seen[t[1], t[2]]++) n[t[1]]++ } END { for (k in n) print k "\t" n[k] }' \
+            | while IFS=$'\t' read -r tgt n; do
+                [ -n "$tgt" ] || continue
+                tdec="$tgt/03-decisions.md"; [ -f "$tdec" ] || tdec="archive/$tgt/03-decisions.md"
+                m=$( { grep -cE '^#{2,4} D[0-9]+: [^(]' "$tdec" 2>/dev/null || true; } )
+                printf 'amends\t%s\t%s\t%s/%s\n' "$id" "$tgt" "$n" "${m:-?}" >> "$EDGES"
+              done
         done
         sort -u -o "$EDGES" "$EDGES"
+
+        # An edge between two closed entries (delivered, superseded, rejected)
+        # is history, not layering: dropped. A closed entry is then drawn only
+        # where a live entry's edge reaches it, which is what keeps a finished
+        # design out of the picture once nothing live leans on it.
+        awk -F'\t' -v OFS='\t' '
+          NR==FNR { st[$1]=$3; next }
+          {
+            a = ($2 in st) ? st[$2] : "live"; b = ($3 in st) ? st[$3] : "live"
+            ca = (a=="delivered" || a=="superseded" || a=="rejected")
+            cb = (b=="delivered" || b=="superseded" || b=="rejected")
+            if (!(ca && cb)) print
+          }' "$NODES" "$EDGES" > "$EDGES.live" && mv -f "$EDGES.live" "$EDGES"
 
         # ---- Validate before writing anything ----------------------------------
         # Every NNNN endpoint must be a known entry. `task vet` existence-checks
@@ -2049,7 +2159,8 @@ tasks:
           $1=="depends" && cat[$2]!=cat[$3] { n[cat[$2] "\t" cat[$3]]++ }
           END { for (k in n) print k, n[k] }' "$NODES" "$EDGES" | sort > "$CROSS"
 
-        count_of() { awk -F'\t' -v c="$1" '$2==c { n++ } END { print n+0 }' "$NODES"; }
+        count_live()   { awk -F'\t' -v c="$1" '$2==c && $3!="delivered" && $3!="superseded" && $3!="rejected" { n++ } END { print n+0 }' "$NODES"; }
+        count_closed() { awk -F'\t' -v c="$1" '$2==c && ($3=="delivered" || $3=="superseded" || $3=="rejected") { n++ } END { print n+0 }' "$NODES"; }
 
         # Single source of the palette; .claude/skills/enhancement-diagrams mirrors it.
         classdefs() {
@@ -2057,6 +2168,7 @@ tasks:
           echo '  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000'
           echo '  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2'
           echo '  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280'
+          echo '  classDef delivered   fill:#dcfce7,stroke:#15803d,color:#14532d'
           echo '  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3'
           echo '  classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151'
           echo '  classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000'
@@ -2084,19 +2196,24 @@ tasks:
           local a b n word pairs
           echo '## Overview'
           echo
-          echo 'One node per category, entry count in the label. An edge label counts the'
-          echo '`depends_on` edges that cross from one category into another; edges inside a'
-          echo 'category are not shown here, and `supersedes` / `revives` are lifecycle'
-          echo 'relations rather than layering, so they are left to the sections.'
+          echo 'One node per category, live and closed entry counts in the label. An edge label'
+          echo 'counts the `depends_on` edges that cross from one category into another; edges'
+          echo 'inside a category are not shown here, and `amends` / `supersedes` / `revives`'
+          echo 'are change and lifecycle relations rather than layering, so they are left to'
+          echo 'the sections.'
           echo
           echo '```mermaid'
           echo 'graph LR'
           classdefs
           echo
           for a in $CATS; do
-            n=$(count_of "$a")
+            n=$(count_live "$a"); k=$(count_closed "$a")
             if [ "$n" = 1 ]; then word=entry; else word=entries; fi
-            printf '  C%s["%s (%s %s)"]:::category\n' "$a" "$a" "$n" "$word"
+            if [ "$k" = 0 ]; then
+              printf '  C%s["%s (%s %s)"]:::category\n' "$a" "$a" "$n" "$word"
+            else
+              printf '  C%s["%s (%s live %s, %s closed)"]:::category\n' "$a" "$a" "$n" "$word" "$k"
+            fi
           done
           echo
           # CATS x CATS keeps the edge order deterministic (awk hash order is not).
@@ -2121,10 +2238,10 @@ tasks:
 
         render_category() {
           local c="$1" sec="$WORK/sec.$c" n
-          n=$(count_of "$c")
+          n=$(count_live "$c")
           printf '## %s\n\n' "$c"
           if [ "$n" = 0 ]; then
-            echo 'No entries.'
+            echo 'No live entries.'
             echo
             return
           fi
@@ -2135,7 +2252,16 @@ tasks:
           classdefs
           echo
           # Members, coloured by status (the class name IS the status value).
-          awk -F'\t' -v c="$c" '$2==c { printf "  N%s[\"%s\"]:::%s\n", $1, $4, $3 }' "$NODES"
+          # Live members always; closed members only when a surviving edge
+          # reaches them (the filter above already dropped closed-to-closed).
+          awk -F'\t' -v c="$c" '
+            NR==FNR { if ($2==c) { lab[$1]=$4; st[$1]=$3 }; next }
+            { hit[$2]=1; hit[$3]=1 }
+            END {
+              for (i in lab)
+                if (!(st[i]=="delivered" || st[i]=="superseded" || st[i]=="rejected") || hit[i])
+                  printf "  N%s[\"%s\"]:::%s\n", i, lab[i], st[i]
+            }' "$NODES" "$sec" | sort
           # Stubs: foreign NNNN endpoints labelled with their home section, and
           # legacy:NNN refs, each declared once whatever edge kinds reach them.
           awk -F'\t' -v c="$c" '
@@ -2157,8 +2283,10 @@ tasks:
             $1=="depends"    { d[++nd] = sprintf("  %s -->|depends on| %s", nid($2), nid($3)) }
             $1=="supersedes" { s[++ns] = sprintf("  %s ==>|supersedes| %s", nid($2), nid($3)) }
             $1=="revives"    { r[++nr] = sprintf("  %s -.->|revives| %s",  nid($2), nid($3)) }
+            $1=="amends"     { a[++na] = sprintf("  %s -.->|amends %s| %s", nid($2), $4, nid($3)) }
             END {
               for (i=1; i<=nd; i++) print d[i]
+              for (i=1; i<=na; i++) print a[i]
               for (i=1; i<=ns; i++) print s[i]
               for (i=1; i<=nr; i++) print r[i]
             }' "$sec"
@@ -2178,6 +2306,7 @@ tasks:
           echo '    Laccepted["accepted"]:::accepted'
           echo '    Lrejected["rejected"]:::rejected'
           echo '    Lsuperseded["superseded"]:::superseded'
+          echo '    Ldelivered["delivered"]:::delivered'
           echo '    Llegacy["legacy NNN"]:::legacy'
           echo '  end'
           echo
@@ -2188,13 +2317,14 @@ tasks:
           echo
           echo '  subgraph edges ["Edge types"]'
           echo '    Edep_a["dependent"] -->|depends on| Edep_b["dependency"]'
+          echo '    Eam_a["amender"] -.->|amends n/m| Eam_b["amended"]'
           echo '    Esup_new["newer"] ==>|supersedes| Esup_old["older"]'
           echo '    Erev_new["newer"] -.->|revives| Erev_old["archived"]'
           echo '    Ecat_a["category A"] -->|n| Ecat_b["category B"]'
           echo '  end'
           echo '```'
           echo
-          echo 'A stub is an entry that lives in another section; its label names the section to jump to. In the Overview, an edge label `n` counts the `depends_on` edges crossing from A into B.'
+          echo 'A stub is an entry that lives in another section; its label names the section to jump to. In the Overview, an edge label `n` counts the `depends_on` edges crossing from A into B. An `amends n/m` label says the amender changes n of the amended entry'"'"'s m live decisions, read from the decision logs. Closed entries (delivered, superseded, rejected) appear only where a live entry'"'"'s edge reaches them.'
         }
 
         # ---- Assemble into a temp file, then move: a mid-render failure must not
@@ -2206,7 +2336,8 @@ tasks:
           echo
           echo 'Entries are partitioned by `config.yaml.category`, the type of work. The Overview'
           echo 'shows how the categories lean on each other; each section shows one category'
-          echo 'with its foreign dependencies and dependents drawn as grey stubs.'
+          echo 'with its foreign dependencies and dependents drawn as grey stubs. Closed entries'
+          echo '(delivered, superseded, rejected) appear only where a live entry reaches them.'
           echo
           render_overview
           for c in $CATS; do
@@ -2738,6 +2869,7 @@ tasks:
           draft)      ALLOWED="WEAVE,TOMBSTONE (Open Question prose is the active work surface — do not collapse)" ;;
           accepted)   ALLOWED="WEAVE,TOMBSTONE,COLLAPSE-OQ" ;;
           rejected)   ALLOWED="NONE — archived, compaction refused" ;;
+          delivered)  ALLOWED="NONE — delivered, the record is closed" ;;
           superseded) ALLOWED="STUB,COLLAPSE-OQ,TOMBSTONE" ;;
           *)          ALLOWED="unknown status" ;;
         esac
@@ -2747,7 +2879,7 @@ tasks:
         printf "STATUS\t%s\t%s\n" "$STATUS" "$ALLOWED"
         printf "DELIVERY\t%s\t%s\n" "${DELIVERY:--}" "derived from delivery.yaml"
 
-        if [ "$DELIVERY" = "implemented" ] || [ "$STATUS" = "rejected" ]; then
+        if [ "$DELIVERY" = "implemented" ] || [ "$STATUS" = "rejected" ] || [ "$STATUS" = "delivered" ]; then
           exit 0
         fi
 
@@ -3284,8 +3416,152 @@ tasks:
         echo "  1. task vet          # archived entries get reduced validation"
         echo "  2. task index        # the archive table is generated"
 
+  close:
+    desc: Close a delivered design — archive it as `delivered` (ID=NNNN; refuses unless task delivery derives implemented)
+    summary: |
+      The third terminal state, under the same rule as the other two: a
+      terminal entry is ALWAYS archived. A design whose every live decision
+      is carried by its delivery log (or excused in no_work) is finished.
+      Left live it renders as a peer of work in flight, and its decisions sit
+      in the graph as if they still bound anything.
+
+      This is not the stored progress field the repo removed: `task close`
+      refuses unless the derivation says `implemented`, writes the status
+      once, and nothing in the entry changes again. `task vet` re-checks the
+      derivation on every archived delivered entry, so the status can never
+      outlive its evidence.
+
+      Refuses unless the entry is accepted, `task delivery` derives
+      `implemented`, and semver is set. Warns (does not refuse) on Open
+      Questions still open: resolve, answer or defer them when you can, but
+      a close path more expensive than the finish path is one nobody uses.
+
+      What it does: git mv to archive/NNNN/, status: delivered, a history
+      event, a `> **Delivered (date).**` banner (replacing any pre-rule
+      "Implementation status" progress banner), and a repo-wide retarget of
+      relative cross-entry links (`../NNNN/` ↔ `../archive/NNNN/`) so nothing
+      dangles. A retargeted link inside a live entry moves that entry's gate
+      hash; the task names those files so a walked verdict can be re-run.
+
+      Delivered is closed, not gone: depends_on / amends edges into it keep
+      resolving, and a later entry amends it by naming its decisions (its log
+      is read, never edited; `task show ID=NNNN` lists the amenders).
+
+      Usage:
+        task close ID=0001
+    vars:
+      ID: '{{.ID | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.ID}}" ]'
+        msg: 'ID is required. Usage: task close ID=<4-digit-id>'
+      - sh: command -v yq >/dev/null 2>&1
+        msg: "yq is required"
+    cmds:
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RESET='\033[0m'
+        ID="{{.ID}}"
+        [ -d "$ID" ] || { echo "No live enhancement directory: $ID" >&2; exit 1; }
+        [ -e "archive/$ID" ] && { echo "archive/$ID already exists" >&2; exit 1; }
+
+        status=$(yq -r '.status' "$ID/config.yaml")
+        [ "$status" = "accepted" ] || {
+          echo "Entry $ID is '$status' — only an accepted entry can be closed as delivered." >&2
+          exit 1
+        }
+        dstate=$(./scripts/delivery.sh "$ID" 2>/dev/null | cut -f2)
+        [ "$dstate" = "implemented" ] || {
+          printf "${RED}REFUSED${RESET} %s derives '%s', not implemented — the log does not carry every live decision.\n" "$ID" "${dstate:-?}" >&2
+          echo "  task delivery:uncovered ID=$ID lists the gap." >&2
+          exit 1
+        }
+        [ "$(yq -r '.semver // ""' "$ID/config.yaml")" != "" ] || {
+          echo "config.yaml.semver is not set — a delivered entry must carry it (major | minor | none)." >&2
+          exit 1
+        }
+        open_oqs=$(task questions:open ID="$ID" 2>/dev/null | { grep -cE '.' || true; })
+        if [ "${open_oqs:-0}" -gt 0 ]; then
+          printf "${YELLOW}WARN${RESET} %s still has %s unresolved Open Question(s); closing anyway — resolve, answer or defer them in archive/%s/07-questions.md\n" "$ID" "$open_oqs" "$ID"
+        fi
+
+        TODAY=$(date +%Y-%m-%d)
+        dfile="$ID/delivery.yaml"
+        landings=$(yq -r '.log | length' "$dfile" 2>/dev/null || echo 0)
+        delivered_on=$(yq -r '[.log[].date] | sort | .[-1] // ""' "$dfile" 2>/dev/null || true)
+        { [ -n "$delivered_on" ] && [ "$delivered_on" != "null" ]; } || delivered_on="$TODAY"
+
+        mkdir -p archive
+        git mv "$ID" "archive/$ID" 2>/dev/null || mv "$ID" "archive/$ID"
+
+        cfg="archive/$ID/config.yaml"
+        EV="Closed as delivered: every live decision carried by the delivery log or excused; archived." yq -i '
+          .status = "delivered" |
+          .updated = "'"$TODAY"'" |
+          .history += [{"date": "'"$TODAY"'", "event": strenv(EV)}]
+        ' "$cfg"
+
+        # Reader-facing banner. The pre-rule "Implementation status" progress
+        # banner (a dated snapshot, exactly what the derived axis replaced)
+        # goes; the delivered banner is the terminal marker in its place.
+        readme="archive/$ID/README.md"
+        if [ -f "$readme" ]; then
+          awk 'BEGIN{skip=0} /^> \*\*Implementation status/ {skip=1} skip && !/^>/ { skip=0; if ($0=="") next } !skip' "$readme" > "$readme.tmp"
+          if ! grep -q '^> \*\*Delivered (' "$readme.tmp"; then
+            banner="> **Delivered ($delivered_on).** Every live decision is carried by this entry's delivery log or excused in it ($landings landings; \`task delivery ID=$ID\`). The design is closed: a correction is a new enhancement that amends it, and \`task show ID=$ID\` lists any."
+            { printf '%s\n\n' "$banner"; cat "$readme.tmp"; } > "$readme.tmp2"
+            mv -f "$readme.tmp2" "$readme.tmp"
+          fi
+          mv -f "$readme.tmp" "$readme"
+        fi
+
+        # Retarget relative cross-entry links repo-wide. From a live entry a
+        # link is `](../NNNN/` when NNNN is live and `](../archive/NNNN/` when
+        # it is archived; from an archived entry `](../../NNNN/` and
+        # `](../NNNN/` respectively. Every top-level *.md in every entry is
+        # normalised to the correct form, whatever form it has now.
+        WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
+        : > "$WORK/live.sed"; : > "$WORK/arch.sed"
+        for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
+          [ -d "$d" ] || continue
+          x=$(basename "$d")
+          case "$d" in
+            archive/*)
+              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../archive/%s/#g\n' "$x" "$x" >> "$WORK/live.sed"
+              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../%s/#g\n'         "$x" "$x" >> "$WORK/arch.sed" ;;
+            *)
+              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../%s/#g\n'         "$x" "$x" >> "$WORK/live.sed"
+              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../../%s/#g\n'      "$x" "$x" >> "$WORK/arch.sed" ;;
+          esac
+        done
+        changed=()
+        for f in [0-9][0-9][0-9][0-9]/*.md archive/[0-9][0-9][0-9][0-9]/*.md; do
+          [ -f "$f" ] || continue
+          case "$f" in archive/*) script="$WORK/arch.sed" ;; *) script="$WORK/live.sed" ;; esac
+          sed -E -f "$script" "$f" > "$WORK/out.md"
+          if ! cmp -s "$f" "$WORK/out.md"; then cp "$WORK/out.md" "$f"; changed+=("$f"); fi
+        done
+
+        printf "${GREEN}delivered${RESET} %s → archive/%s (delivered %s, %s landings)\n" "$ID" "$ID" "$delivered_on" "$landings"
+        if [ "${#changed[@]}" -gt 0 ]; then
+          echo "  relative links retargeted in ${#changed[@]} file(s):"
+          printf '    %s\n' "${changed[@]}"
+          for f in "${changed[@]}"; do
+            case "$f" in
+              archive/*) ;;
+              *) e=${f%%/*}
+                 if [ -f ".gates/$e.yaml" ]; then
+                   printf "  ${YELLOW}note${RESET} %s has a walked gate verdict; the link edit moved its hash, re-walk before promote\n" "$e"
+                 fi ;;
+            esac
+          done | sort -u
+        fi
+        echo
+        echo "Next steps:"
+        echo "  1. task vet && task index && task graph"
+
   archive:list:
-    desc: Archived (rejected / superseded) entries with summaries and why they closed
+    desc: Archived (delivered / rejected / superseded) entries with summaries and why they closed
     summary: |
       What the `prior-art` admission gate reads. Both terminal states live
       here: a rejected idea with its reason, a superseded design with its
@@ -3308,10 +3584,15 @@ tasks:
           [ -f "$cfg" ] || continue
           printf "${BOLD}%s${RESET}  %s\n" "$(yq -r '.id' "$cfg")" "$(yq -r '.title' "$cfg")"
           printf "  %s\n" "$(yq -r '.summary' "$cfg")"
-          if [ "$(yq -r '.status' "$cfg")" = "superseded" ]; then
+          st=$(yq -r '.status' "$cfg")
+          if [ "$st" = "superseded" ]; then
             printf "  ${DIM}superseded %s: by %s${RESET}\n\n" \
               "$(yq -r '([.history[] | select(.event | test("^Superseded"))] | reverse | .[0].date) // "-"' "$cfg")" \
               "$(yq -r '.superseded_by' "$cfg")"
+          elif [ "$st" = "delivered" ]; then
+            printf "  ${DIM}delivered %s: %s landings${RESET}\n\n" \
+              "$(yq -r '[.log[].date] | sort | .[-1] // "-"' "$(dirname "$cfg")/delivery.yaml" 2>/dev/null || echo "-")" \
+              "$(yq -r '.log | length' "$(dirname "$cfg")/delivery.yaml" 2>/dev/null || echo 0)"
           else
             printf "  ${DIM}rejected %s: %s${RESET}\n\n" \
               "$(yq -r '([.history[] | select(.event | test("^Rejected"))] | reverse | .[0].date) // "-"' "$cfg")" \
@@ -3324,7 +3605,7 @@ tasks:
     summary: |
       Columns: id, title, summary, why-closed. For rejected entries the last
       column is rejected_reason; for superseded ones it is
-      "superseded by NNNN".
+      "superseded by NNNN"; for delivered ones it is "delivered".
     cmds:
       - |
         #!/usr/bin/env bash
@@ -3333,5 +3614,5 @@ tasks:
         [ -f "$1" ] || exit 0
         for cfg in archive/[0-9][0-9][0-9][0-9]/config.yaml; do
           [ -f "$cfg" ] || continue
-          yq -r '[.id, .title, .summary, (.rejected_reason // ("superseded by " + (.superseded_by // "?")))] | @tsv' "$cfg"
+          yq -r '[.id, .title, .summary, (.rejected_reason // (if .status == "delivered" then "delivered" else ("superseded by " + (.superseded_by // "?")) end))] | @tsv' "$cfg"
         done

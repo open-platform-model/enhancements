@@ -64,6 +64,15 @@ history:
 # both directions and refuses a cycle.
 depends_on: []
 
+# Entries whose DECISIONS this entry's decisions change. Directed and
+# decision-backed like depends_on: list MMMM iff a live `### DN:` block in
+# 03-decisions.md carries the qualified token `MMMM:DN` on its `**Amends:**`
+# (target survives, narrowed) or `**Supersedes:**` (target is dead) line.
+# The amended entry is never edited; `task show ID=MMMM` derives "amended
+# by" from lines like these. Four-digit ids only. `task vet` enforces both
+# directions and refuses a cycle.
+amends: []
+
 # Lifecycle relationships. These accept four-digit ids ("0042") and legacy
 # three-digit refs ("legacy:003") that point at frozen library/enhancements/
 # predecessors.

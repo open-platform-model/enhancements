@@ -36,11 +36,15 @@ import (
 // entry's own append-only delivery log (NNNN/delivery.yaml, see #Delivery
 // below): `implemented` means every live decision is covered by a logged
 // change or excused in `no_work`, computed, never asserted. `accepted` is
-// the resting state; `rejected` and `superseded` are the two terminal ones,
-// and a terminal entry ALWAYS lives in archive/NNNN/ (`task reject` /
-// `task supersede` do the move; `task vet` enforces the placement in both
-// directions).
-#Status:       "draft" | "accepted" | "rejected" | "superseded"
+// the resting state; `delivered`, `rejected` and `superseded` are the three
+// terminal ones, and a terminal entry ALWAYS lives in archive/NNNN/
+// (`task close` / `task reject` / `task supersede` do the move; `task vet`
+// enforces the placement in both directions). `delivered` is not the
+// stored progress field that was removed: `task close` refuses unless the
+// derivation says `implemented`, writes the status once, and nothing in
+// the entry changes again. `task vet` re-checks the derivation on every
+// archived delivered entry, so the status can never outlive its evidence.
+#Status:       "draft" | "accepted" | "delivered" | "rejected" | "superseded"
 #SemverImpact: "major" | "minor" | "none"
 
 // Cutover for the history-event length cap. Events dated on or before this
@@ -161,6 +165,21 @@ import (
 	// decision log in this shape, so `legacy:NNN` cannot be a target. Cite
 	// a legacy entry in prose, or in supersedes/revives.
 	depends_on!:    [...#IDStr] & list.UniqueItems()
+	// Entries whose DECISIONS this entry's decisions change. Directed and
+	// decision-backed like depends_on: MMMM belongs here iff a live `### DN:`
+	// block in 03-decisions.md carries the qualified token `MMMM:DN` (see
+	// #QualifiedDNStr) on its `**Amends:**` (the target survives, narrowed)
+	// or `**Supersedes:**` (the target is dead) line; unqualified tokens on
+	// those lines stay local. `task vet` enforces both directions
+	// (scripts/depends.sh), refuses a cycle, refuses a superseded or rejected
+	// target (amend the successor; a killed idea has nothing live to amend),
+	// and refuses one decision both depending on and superseding the same
+	// foreign token. The amended entry is never written to: "amended by" is
+	// derived by scanning the amenders' logs (`task show ID=MMMM`), because
+	// a stored back-link goes stale the day the amender is rejected and
+	// cannot say whether the change has landed. Optional: absent means the
+	// entry changes nothing another entry decided, which is most entries.
+	amends?:        [...#IDStr] & list.UniqueItems()
 	supersedes!:    [...#CrossRefStr]
 	superseded_by!: null | #CrossRefStr
 
@@ -183,7 +202,7 @@ import (
 	// design was agreed. A rejected entry owes nothing: it was never
 	// accepted, and forcing an impact assessment out of an idea being
 	// killed is the kind of friction that stops people killing ideas.
-	if status == "accepted" || status == "superseded" {
+	if status == "accepted" || status == "delivered" || status == "superseded" {
 		semver!: #SemverImpact
 	}
 
