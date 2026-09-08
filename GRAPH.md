@@ -23,14 +23,14 @@ graph LR
   classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
-  Cschema["schema (6 entries)"]:::category
+  Cschema["schema (7 entries)"]:::category
   Cruntime["runtime (6 entries)"]:::category
   Cdistribution["distribution (8 entries)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (1 entry)"]:::category
 
-  Cschema -->|2| Cruntime
-  Cschema -->|2| Cdistribution
+  Cschema -->|3| Cruntime
+  Cschema -->|3| Cdistribution
   Cruntime -->|2| Cschema
   Cruntime -->|3| Cdistribution
   Cruntime -->|1| Ctooling
@@ -59,6 +59,7 @@ graph TD
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0015["0015: Catalog Contracts and Transformer Registration"]:::accepted
   N0017["0017: Layered Defaults"]:::draft
+  N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
   N0006["0006 · runtime"]:::stub
   N0010["0010 · distribution"]:::stub
   N0014["0014 · runtime"]:::stub
@@ -76,6 +77,9 @@ graph TD
   N0018 -->|depends on| N0013
   N0020 -->|depends on| N0015
   N0025 -->|depends on| N0015
+  N0026 -->|depends on| N0010
+  N0026 -->|depends on| N0015
+  N0026 -->|depends on| N0019
 ```
 
 ## runtime
@@ -103,6 +107,7 @@ graph TD
   N0015["0015 · schema"]:::stub
   N0021["0021 · distribution"]:::stub
   N0024["0024 · tooling"]:::stub
+  N0026["0026 · schema"]:::stub
 
   N0006 -->|depends on| N0001
   N0012 -->|depends on| N0006
@@ -115,6 +120,7 @@ graph TD
   N0025 -->|depends on| N0010
   N0025 -->|depends on| N0015
   N0025 -->|depends on| N0021
+  N0026 -->|depends on| N0019
 ```
 
 ## distribution
@@ -142,6 +148,7 @@ graph TD
   N0017["0017 · schema"]:::stub
   N0019["0019 · runtime"]:::stub
   N0025["0025 · runtime"]:::stub
+  N0026["0026 · schema"]:::stub
 
   N0010 -->|depends on| N0001
   N0011 -->|depends on| N0010
@@ -159,6 +166,7 @@ graph TD
   N0022 -->|depends on| N0016
   N0025 -->|depends on| N0010
   N0025 -->|depends on| N0021
+  N0026 -->|depends on| N0010
   N0010 ==>|supersedes| N0003
   N0011 ==>|supersedes| N0003
 ```

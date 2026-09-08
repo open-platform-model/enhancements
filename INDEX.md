@@ -28,6 +28,7 @@
 | [0023](./0023/) | distribution | cli, library, opm-operator, catalog, modules, core | draft | not-started | Artifact Provenance, Signatures and Platform Trust Policy | Catalogs and modules carry signed build provenance and signatures as OCI referrers, and a platform states which signers and builders it trusts before anything it materializes is used. |
 | [0024](./0024/) | tooling | core, catalog, library | draft | not-started | CUE Testing and Conformance | Verified CUE behaviour: in-package accept/reject assertions beside each definition, and an external conformance suite replaying fixtures across CUE, core, catalog and upstream Kubernetes versions. |
 | [0025](./0025/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | A platform binds a published module to a kind consumers instantiate: schema from the module's config, module and version chosen by the platform, every instance a projected ModuleInstance. |
+| [0026](./0026/) | schema | core, library, cli, opm-operator, catalog | draft | not-started | Module-Dictated Catalog Versions and the Generated Platform | A module's committed catalog pin is the version its render uses, bounded by a platform spec of lineages with a required floor and optional ceiling; the render-time platform is generated from both. |
 
 ## Archived (rejected / superseded)
 

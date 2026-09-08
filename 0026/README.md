@@ -1,0 +1,252 @@
+# Enhancement 0026: Module-Dictated Catalog Versions and the Generated Platform
+
+The platform stops holding catalog versions and starts bounding them. A module's committed catalog pin is the version its render holds, admitted by a pure-data platform spec that names lineages with a required floor and an optional ceiling. Today's `#Platform` keeps its shape and becomes a value the kernel generates from the spec and the pins. Provider catalogs follow the same rule with the provider module as the pinning module, and the platform's spec entry overrides the provider author's compatibility window when present.
+
+See [`config.yaml`](config.yaml) for the metadata contract: it is the sole
+source of metadata; no parallel metadata table lives in this README.
+
+## Summary
+
+Under enhancement 0019 the platform's catalog pin wins on every shared path, so a module renders against whatever the platform pinned, a module needing a newer definition waits for a platform edit, and a platform bump re-renders the whole fleet silently. This entry separates the two jobs that one number was doing. Admission and bounds are the platform's, through `#PlatformSpec`; the version is the module's, through the dependency it already commits. A pin outside the range is refused by name, never promoted, so raising the floor is a loud fleet-wide lever rather than a silent re-render. The registration of 0015 gains an author window with exact defaults, and a spec entry for a provider catalog's path is optional and overrides it.
+
+<!--
+Do NOT add an implementation-status block here. Whether this design has been
+delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
+status block written here is a snapshot that goes stale the moment another change
+lands, which is exactly the drift the implementation axis was removed to stop.
+-->
+
+## Documents
+
+The seven split documents below are mandatory and always present. Add optional
+documents (e.g. `experiments/`, `research/`) only when a
+specific need surfaces.
+
+1. [01-problem.md](01-problem.md): the platform's single pin admits a lineage and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
+2. [02-design.md](02-design.md): a pure-data platform spec with ranges, module pins as the held version, a generated render-time platform, and the same rule for provider catalogs
+3. [03-decisions.md](03-decisions.md): DN decision log
+4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
+5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
+6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
+7. [07-questions.md](07-questions.md): OQN Open Questions register
+
+Pure-CUE definitions live as compilable files, never as fenced blocks inside
+markdown. [`schemas/`](schemas/) is strictly the **core-schema delta**: it
+exists iff `config.yaml.core_schema: true` (target.cue + examples.cue +
+spec.md); non-core compilable CUE (decision procedures, behaviour contracts,
+taxonomies) lives in the optional `contracts/` (`task new:contracts ID=NNNN`).
+
+## Scope
+
+Concrete boundary of this enhancement. The validator (future) requires this
+section starting at `status: accepted`. For design-time aspirations (what the
+solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
+
+### In scope
+
+- `#PlatformSpec` and `#Subscription` in core: lineage by path with major, `enable`, optional `registry`, required `floor`, optional `ceiling` (D2). No existing core definition changes shape.
+- The render list's source on catalog paths: the module's committed pin, admitted by the spec, refused by name outside the range (D1, D2). The build records the catalog versions it held.
+- Per-resolution generation of the unchanged `#Platform` from spec plus pins, and the convergence of the offline and cluster authored forms on the spec (D3).
+- The registration window: `floor` and `ceiling` on the `transformer-registration` contract with `version` as their default; the optional spec entry that overrides it; the effective window and its source in the registration's status (D5, D6).
+- The shared-path requirement check per render against the consumer's pins and at acceptance against the floors (D7).
+
+### Out of scope
+
+- a change to matching, to the transformer set, or to which catalogs a platform admits: admission stays with the platform spec and the RBAC-gated registration
+
+- Provider routing, classes, capability-based selection: 0015 D2's successor material.
+- Floating an instance forward within a range without an owner's act: gated on enhancement 0021's compatibility answers; a later entry.
+- Module-hosted transformers: 0015 D10 stands.
+- The Platform CRD's generation from `#PlatformSpec`: enhancement 0008's route; this entry states the spec's shape, not how the CRD is produced.
+- Self-service kinds over published modules: enhancement 0025, which reuses this entry's range vocabulary.
+
+## Experiments
+
+Experiments are **optional** and usually appear **part-way through an enhancement's life**, once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
+
+When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
+
+### Rules
+
+- **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
+- **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
+- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
+- **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
+- **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
+
+### Scaffold and layout
+
+```bash
+task new:experiment ID=NNNN NAME=concept-name
+```
+
+Creates `NNNN/experiments/` (with an index README, if absent), computes the next two-digit experiment number from existing `NN-*/` subdirs, creates `NNNN/experiments/NN-concept-name/README.md` with a Hypothesis / Setup / Run / Outcome skeleton, and seeds `Status: Draft`. Run from this directory or via the workspace include (`task enhancements:new:experiment …`).
+
+```
+NNNN/experiments/
+├── README.md                       # Index — table of experiments + status (hand-maintained)
+├── 01-{concept-name}/
+│   ├── README.md                   # Per-experiment: Hypothesis / Setup / Run / Outcome / Status
+│   ├── ...                         # Copied schemas, Go modules, fixtures, etc.
+│   └── ...
+└── 02-{concept-name}/
+    └── ...
+```
+
+### Per-experiment README
+
+Each experiment's README answers four questions and carries a status line:
+
+1. **Hypothesis**: Which claim from the design is this validating?
+2. **Setup**: What was copied in, from where, and what was modified.
+3. **Run**: Exact commands to reproduce the result.
+4. **Outcome**: What was observed; whether the hypothesis held.
+
+The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
+
+Update the per-experiment README in place as the experiment evolves. Once concluded, record the outcome and link the result back into `02-design.md` or `03-decisions.md` so the enhancement carries the evidence.
+
+### Index README
+
+`experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
+
+```markdown
+# Experiments — Module-Dictated Catalog Versions and the Generated Platform
+
+| # | Concept | Status |
+| - | ------- | ------ |
+| 01 | matcher-mechanics | Concluded |
+| 02 | read-portability  | Running   |
+```
+
+The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
+
+## Research
+
+Research is **optional** and holds the external evidence a design rests on: most importantly **deep-research reports**, but also benchmark write-ups, vendor-doc summaries, comparison matrices, and curated link collections. When the design of an enhancement is grounded in research (a `/deep-research` run, a literature sweep, a prior-art survey), drop the cited findings under `research/`. This way the evidence travels with the design instead of evaporating into a chat log.
+
+Research differs from `experiments/`: research is **gathered and synthesised** (read-only evidence: what is true in the world), whereas experiments are **authored and executed** (runnable proofs we wrote: what holds in our model). A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`.
+
+### Rules
+
+- **Cited.** Every non-obvious claim carries its source (URL, doc, file path). A deep-research dossier reproduces its source list and, where it has them, confidence levels and verification verdicts: distinguish verified facts from design recommendations.
+- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `Source:` line of the relevant decisions in `03-decisions.md`, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
+- **Snapshot, not canon.** Research reflects what was true when gathered; date it. It is not a maintained spec. Supersede with a new file rather than silently editing conclusions.
+- **Not gated.** `task vet` does not require or validate `research/`; add it only when an enhancement actually has external evidence worth preserving.
+
+### Layout
+
+```
+NNNN/research/
+├── findings.md                     # primary dossier (e.g. a deep-research report): summary, cited findings, caveats, sources
+└── {topic}.md                      # optional further write-ups (benchmark-x-vs-y.md, prior-art-survey.md, …)
+```
+
+`findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task: `research/` is hand-authored prose.
+
+## Delivery Log
+
+Delivery is recorded in this entry's `delivery.yaml`: an append-only log with one entry per landed change (an OpenSpec change archived in a target repo, a PR merged, a commit pushed).
+
+- Each entry carries the local decision numbers the change implemented (`D4`) and optionally the Open Questions it resolves (`resolves: [OQ9]`).
+- Log a change only when it lands (`task delivery:log`): there are no forecast slices or phases.
+- A decision that genuinely needs no change is excused in `no_work` with a reason; a decision is carried or excused, never both.
+- `task delivery` derives the state (`not-started`, `in-progress`, `implemented`) from the log. Nothing about delivery is stored anywhere else in the entry.
+
+## Diagrams
+
+Diagrams are welcome throughout this enhancement's documents. The medium depends on what's being shown, never a blanket default:
+
+- **Mermaid**: relationships between enhancements: whether one of this entry's decisions depends on another entry's (a `depends_on` edge), or whether this entry supersedes one. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what that file will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
+- **ASCII**: how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later. Bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
+
+See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
+
+## Deviations from Design
+
+None at this stage. Update this section when implementation lands and any
+deliberate divergences from the design need to be documented.
+
+## Cross-References
+
+| Document | Purpose |
+| -------- | ------- |
+| `enhancements/0019/` | The single-build render pipeline this entry is baselined on: D5 embedded catalogs, D6 operator-generated platform package, D13 the promotion rule whose catalog-path source this entry changes |
+| `enhancements/0015/` | Registration CR (D3), derived claim (D11), shared-path comparison (D8), inventory (D1): the provider half this entry extends with a window and an optional spec override |
+| `enhancements/0010/` | Identity is the module path with its major (D1); the committed platform module is the resolution (D14); additive evolution within a major (D27) |
+| `enhancements/0021/` | The module compatibility surface and the concrete example of a patch release orphaning a claim; gates any future in-range floating |
+| `enhancements/0008/` | CUE-native CRD schemas: the route from `#PlatformSpec` to the Platform CRD |
+| `enhancements/0025/` | Self-service kinds: the consumer of this entry's range vocabulary for offering update policy |
+| `core/src/platform.cue` | The shipped `#Platform` and `#CatalogEntry` this entry keeps unchanged and generates |
+| `core/src/module_instance.cue` | Why core injects nothing tied to a catalog contract, the reason the registration window is not injected into `#config` |
+| `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |
+
+<!--
+## Agent Instructions
+
+To create a new enhancement from this template:
+
+1. Pick the next available four-digit id by scanning `enhancements/` for the
+   highest existing NNNN directory and incrementing by one. Ids are
+   never reused: supersession is recorded via `supersedes` / `superseded_by`
+   in `config.yaml`, not by renumbering.
+2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
+3. Overwrite every `{Capitalised}` placeholder string across the README and
+   the seven split documents.
+4. Fill `config.yaml` with real values: id matches the directory name, slug
+   is short kebab-case, title is human-readable, category names the one
+   dominant type of work, affects lists every repo that ships changes,
+   created + updated set to today's date.
+5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
+   accrete iteratively in `03-decisions.md` as design choices emerge.
+6. `05-risks.md` and `06-operational.md` start as scaffolds
+   and mature alongside the decision log.
+7. If the enhancement adds or changes opmodel.dev/core definitions
+   (`config.yaml.core_schema: true`), sketch the delta in
+   `schemas/target.cue` (scaffolded by `task new CORE_SCHEMA=true`;
+   `examples.cue` + `spec.md` are required before draft → accepted).
+   Otherwise there is no `schemas/`; put non-core compilable CUE in
+   `contracts/` via `task new:contracts ID=NNNN` if needed.
+8. Do not strip these HTML-comment Agent Instructions when copying. They
+   are the in-template guidance for the next author/agent.
+
+### Status lifecycle
+
+- **draft**: initial design, actively being written
+- **accepted**: design agreed upon, ready for implementation; the resting
+  state (delivery is derived from `delivery.yaml`, never stored as a status)
+- **rejected**: the idea was not accepted; the entry moves to
+  `archive/NNNN/` with `rejected_reason` (`task reject`)
+- **superseded**: replaced by a newer enhancement (paired with
+  `superseded_by` on this entry and `supersedes` on the replacement); the
+  entry moves to `archive/NNNN/` (`task supersede`)
+
+Both terminal states are always archived. A terminal entry never stays in
+place, and `task vet` fails one that does.
+
+### Compaction
+
+These documents state what is true *now*. Provenance lives in git and in `config.yaml.history`, the one strictly append-only structure. `DN` and `OQN` numbers are never reused or renumbered (other repos cite them); a number vacated by a merge or retraction keeps a one-line tombstone.
+
+- **draft**: decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
+- **accepted**: decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path, weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available at latest until the design is delivered.
+- **implemented** (derived from `delivery.yaml`, not a status): closed. Nothing changes, ever.
+- **superseded**: narrative documents collapse to pointers at the successor;
+  the decision log keeps its numbers and its *Alternatives considered*.
+  The pass runs on the archived entry (`archive/NNNN/`).
+  `experiments/` and `research/` are never touched.
+
+Run `task compact:plan ID=NNNN` for the candidate list and load the
+`enhancement-compaction` skill to act on it. Compaction lands in its own
+commit, never folded into a content change.
+
+### Cross-refs to legacy library enhancements
+
+The seven three-digit entries under `library/enhancements/` (001..007) are
+frozen historical predecessors. To reference one from a new enhancement, use
+the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`; `depends_on`
+cannot target one, because a dependency resolves to a decision heading and the
+legacy entries have none, so cite them in prose instead. Once those entries are
+deleted, the references become dangling and the validator (future) will flag
+them: fix or remove at that point.
+-->
