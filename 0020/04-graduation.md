@@ -17,7 +17,7 @@ These are the entry-specific gates that must hold before this design is frozen. 
 
 **Decision integrity.**
 
-- Every decision carries a valid `**Kind:**` and passes the admission test. In particular: no decision in this log states *how* `library/opm/compat` performs a comparison or a scan. That is mechanism and belongs to the implementing slice.
+- Every decision carries a valid `**Kind:**` and passes the admission test. In particular: no decision in this log states *how* `cli/internal/compat` performs a comparison or a scan. That is mechanism and belongs to the implementing slice.
 
 **Mechanical checks.**
 

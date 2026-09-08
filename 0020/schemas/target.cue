@@ -31,7 +31,7 @@
 // WHAT IS DELIBERATELY NOT HERE. Three rules in this entry need a SECOND
 // BUILD and therefore cannot be CUE at all: D6's absent-and-not-tombstoned
 // check, D2's comparison against the published predecessor, and D10's
-// seasoning floor. Those live in library/opm/compat beside 0011 D23's
+// seasoning floor. Those live in cli/internal/compat beside 0011 D23's
 // backward scan and the field-wise comparator from 0011/experiments/03.
 // The gates below check only what one build can see about itself.
 //
@@ -158,7 +158,7 @@ import (
 //
 // D7 makes the map CUMULATIVE across builds: every build carries the whole
 // history, not the delta. That property spans two builds and so is enforced
-// in library/opm/compat, not here.
+// in cli/internal/compat, not here.
 // ---------------------------------------------------------------------------
 
 #CatalogRemoved: {
@@ -171,7 +171,7 @@ import (
 // What `opm catalog publish` unifies against once per member carrying
 // `promotedFrom`. It checks the two things ONE build can see about a
 // promotion. The comparison against the published predecessor is D2's other
-// half and lives in library/opm/compat, because it needs a second build.
+// half and lives in cli/internal/compat, because it needs a second build.
 // ---------------------------------------------------------------------------
 
 #PromotionGate: {
@@ -229,7 +229,7 @@ import (
 
 	// RULE 3 (D10) — the seasoning floor. NOT here: it asks when
 	// `replacedBy` first appeared in the PUBLISHED HISTORY, which no single
-	// build can answer. library/opm/compat owns it, over 0011 D23's scan.
+	// build can answer. cli/internal/compat owns it, over 0011 D23's scan.
 	//
 	// OQ1/OQ2: the floor's unit (published builds vs wall-clock) and value
 	// are unresolved, and both are contract-level gates on `accepted`.
