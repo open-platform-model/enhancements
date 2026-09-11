@@ -321,7 +321,9 @@ package schema
 	_noConflict: true & (len(_conflicts) == 0)
 
 	// The identity of the platform package the operator regenerates from this
-	// set (0019 D6; the store this originally keyed is deleted by 0019 D8).
+	// set (0019 D6), and the key of the operator's generated-module record
+	// (D17: the record survived 0019 reshaped; 0019 D8 deleted only the
+	// shared materialized platform).
 	// Every accepted or revoked claim moves it, regenerates the package, and
 	// re-renders every ModuleInstance — edge-triggered, level-computed, with
 	// the blast radius explicitly accepted (D13).

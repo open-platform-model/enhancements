@@ -29,7 +29,7 @@ The claim names a published **catalog** artifact only, refused structurally othe
 
 1. [01-problem.md](01-problem.md): the three gaps, measured 2026-08-05 against `core/src/catalog.cue`, `materialize/index.go` and `compile/match.go` (pre-0019 anchors, kept dated) and restated against 0019's single-build pipeline
 2. [02-design.md](02-design.md): contract member maps, the one-provider rule and its refusal sites, the registration CR, and the packaging decision
-3. [03-decisions.md](03-decisions.md): D1..D15
+3. [03-decisions.md](03-decisions.md): D1..D17
 4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md): risks, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite)
@@ -63,7 +63,7 @@ Eleven items, grouped by surface.
 
 **Operational surfacing**
 
-- `Platform.status.registry` as the effective set, and the identity of the platform package the operator regenerates from it (OQ8: the store key this bullet used to name was deleted with the store by 0019 D8).
+- `Platform.status.registry` as the effective set, and the identity of the platform package the operator regenerates from it (OQ8; the generated-module record that identity keys survived 0019, D17).
 - `opm platform check`: the pre-flight the inventory makes possible.
 
 ### Out of scope
@@ -89,7 +89,7 @@ None at this stage. Update when implementation lands.
 | -------- | ------- |
 | `enhancements/0010/` | Defines the contract/implementation key split (D4), `fulfilment` and the one-provider rule this entry keeps (D37), scalar subscriptions (D14), and the underivable-owning-catalog limitation (D17) |
 | `enhancements/0011/` | The publish-side gates; D9's compatibility gate is the shape OQ4 would extend to transformer predicates |
-| `enhancements/0019/` | The single-build render pipeline this entry is baselined on (accepted 2026-08-20): D5 embedded catalogs, D6 the operator-generated platform package (OQ8's surface), D8 no held platform, D10 the in-build match glue, D17 `#matchers` removed; its OQ9 and OQ10's refusal half are filed here as OQ8 and OQ7 |
+| `enhancements/0019/` | The single-build render pipeline this entry is baselined on (accepted 2026-08-20): D5 embedded catalogs, D6 the operator-generated platform package (OQ8's surface), D8 no shared materialized platform, D10 the in-build match glue, D17 `#matchers` removed; its OQ9 and OQ10's refusal half are filed here as OQ8 and OQ7 |
 | `enhancements/0019/experiments/05-match-in-one-build/matchdef/match.cue` | The match glue's measured shape: the rungs D5's guard must not change |
 | `core/src/catalog.cue` | `#Catalog`'s single `#transformers` map and the pattern constraint D1 replicates for contracts |
 | `core/src/platform.cue` | Where the inventory fold and `#ContractRouting` assertion land, beside `#registry` |
@@ -98,8 +98,8 @@ None at this stage. Update when implementation lands.
 | `library/opm/compile/match.go` | The measured pre-0019 matcher (`:138-157` candidate loop, `:344-379` predicate); 0019 D10 moves it into the render build's glue with the same pair set: D2 rides its rungs unchanged either way |
 | `library/opm/materialize/types.go` | Where the inventory would have landed pre-0019; deleted with materialize: the inventory becomes a core-derived fold instead |
 | `opm-operator/api/v1alpha1/platform_types.go` | `PlatformStatus` gains the effective registry and the readiness condition |
-| `opm-operator/internal/platform/store.go` | The held slot 0019 D8 deletes; its re-key question became OQ8's platform-package regeneration identity |
+| `opm-operator/internal/platform/store.go` | The single-slot record of the generated platform module that survived 0019, keyed on the CR generation; re-keyed on the package identity (D13, D17) |
 | `opm-operator/internal/controller/platform_controller.go` | Claim validation and acceptance |
 | `opm-operator/openspec/changes/archive/2026-04-20-default-sa-and-tenancy-guide/design.md` | The per-tenant ServiceAccount model D3's RBAC gate rests on (the shipped tenancy design; `docs/TENANCY.md` no longer exists) |
-| `catalog_opm/src/catalog.cue` | First catalog to list its contracts in the new maps; also gains D9's registration pair (`src/resources/` contract + `src/transformers/` renderer) |
+| `catalog_opm/opm/catalog.cue` | First catalog to list its contracts in the new maps; also gains D9's registration pair (`opm/resources/` contract + `opm/transformers/` renderer) |
 | `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |

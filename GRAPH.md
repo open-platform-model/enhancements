@@ -79,7 +79,7 @@ graph TD
   N0026 -->|depends on| N0010
   N0026 -->|depends on| N0015
   N0026 -->|depends on| N0019
-  N0026 -.->|amends 2/16| N0015
+  N0026 -.->|amends 2/17| N0015
   N0026 -.->|amends 3/26| N0019
 ```
 

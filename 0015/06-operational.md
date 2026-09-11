@@ -18,7 +18,7 @@ New diagnostics: the `unfulfilled` and `overSubscribed` reports at platform-pack
 
 ## Semver Impact
 
-**Breaking, `major`, and it must land inside 0010's `core@v1` window.**
+**Breaking, `major`, and it must land inside the `core@v2` pre-release window.**
 
 - **core:** `#Catalog` gains three member maps whose pattern constraints stamp `modulePath` and `catalogVersion`; `#Platform` gains the inventory fold and the `#ContractRouting` assertion. The maps are additive in the sense that no existing value changes meaning, but a catalog that does not populate them produces an empty inventory and therefore an unhelpful readiness answer, so in practice every catalog must be republished, which is a break in effect if not in schema.
 - **library:** re-baselined: the surfaces this entry originally extended (`MaterializedPlatform`, `indexCatalogs`) are deleted by 0019, so the library delta shrinks to reading the inventory and routing verdicts off built values, the OQ2 default fill, and OQ8's regeneration hooks. Go-major only if a public kernel surface moves; which surfaces exist to move depends on where 0019's slices leave the kernel.
@@ -32,7 +32,7 @@ The ordering constraint that matters: **the whole entry extends 0019's pipeline:
 
 - **Nothing is deprecated in 0010.** D37's exactly-one-provider rule stands unamended (D2, as revised 2026-08-20); what changes is where its refusal is computed and how much it can name.
 - **The stub-transformer workaround** (publishing a no-op adapter so a contract reaches the index) is retired by D1. No shipped catalog uses it today; it is named so the pattern does not reappear.
-- **`platform.Store` itself** is deleted by 0019 D8 (`opm-operator-store-removal`), not by this entry, so nothing here re-keys it. The effective-registry digest this entry once aimed at the store survives as the regenerated platform package's identity (OQ8).
+- **`platform.Store` is not deleted.** 0019 D8 removed the shared materialized platform; the operator's process-local record of the generated platform module survived, keyed on the Platform CR's generation. This entry re-keys that record on the package identity (D13, D17); nothing is removed from it.
 
 Nothing is removed from `core` by this entry.
 

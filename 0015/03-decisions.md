@@ -343,4 +343,25 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 
 **Source:** User decision 2026-08-21 ("refuse shrinking-with-dependents... write it as intent, to be fleshed out during implementation"), from the scrutiny walk.
 
+### D17: The generated-platform record survives 0019 and is held per package identity, not per Platform CR generation
+
+**Kind:** contract
+
+**Depends:** 0019:D6
+
+**Amends:** D13
+
+**Decision:** 0019 D8 removed the shared materialized platform, not the operator's process-local record of the generated platform module: that record shipped with 0019 D6 keyed on the Platform CR's generation, one generated module per generation, leased by a render for its duration. From this entry, the unit the operator holds and a render leases is one generated package per D13 identity (generation plus the sorted active-claim list), never per generation alone: a claim change that leaves the generation unchanged yields a new package under a new identity, a package stays readable while any render leases it, and every render reports the identity it consumed. D13's tuple, triggers and blast radius are unchanged.
+
+**Alternatives considered:**
+
+- **Keep the record keyed on generation alone and regenerate in place on a claim change.** A render leasing the old record would read a directory being rewritten, and two renders under one generation could consume different registry states while reporting the same key. Rejected.
+- **Delete the record, as OQ6's answer assumed.** Not this entry's call: 0019 kept the slot for the lease, and this entry needs a place to hold the identity-stamped package D6's pull fetches.
+
+**Rationale:** OQ6 asked what the store key becomes and was closed on the premise that the store was gone. Read against the delivered operator, the premise does not hold: the slot survived reshaped, so the question has the answer D13 already supplies, and recording it here keeps the identity from being decided incidentally in the reconciler.
+
+**Source:** User decision 2026-09-11, from the re-baseline against 0019's delivery log; the reshaped slot read the same day at `opm-operator/internal/platform/store.go` and `layout.go`.
+
+---
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
