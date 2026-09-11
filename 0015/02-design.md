@@ -134,6 +134,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 
 After: the contract is a member of `#catalog.#traits`, the platform's embedded copy of the catalog carries it, the inventory fold reports it, and the platform reports `Ready=False, reason=UnfulfilledContracts` naming `traits/backup@v1beta1` and the catalog that defines it, before any module exists.
 
+The Before half is measured, and the trait shape this entry motivates is validated end to end, in `experiments/01-provider-trait-across-catalogs`: a provider-fulfilled backup trait declared in one catalog renders through the shipped kernel via k8up and Velero adapters, both D37 refusals name the parties, and the no-provider refusal cannot say the contract is defined.
+
 **A second backup engine.** Before: the exactly-one-provider rule is enforced by a guard that can only count adapters it reaches, so its refusal arrives with whatever context the adapter walk happened to have. After: the rule is unchanged (exactly one provider, deliberately, per D2 as revised), but the refusal is well-placed: the inventory reports `traits/backup@v1beta1` as over-subscribed at platform assembly naming both catalog paths, and a second `TransformerRegistration` is refused at acceptance naming the claimant. Running two engines stays out of scope; a successor entry designs routing when the need is real.
 
 **Installing a provider.** Before: `kubectl apply` the k8up ModulePackage, then edit the cluster Platform CR to add the subscription, and hope the CRDs are established before the first consumer renders.

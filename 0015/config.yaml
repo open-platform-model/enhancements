@@ -62,6 +62,8 @@ history:
     event: Category set to schema, area dropped, cross-cutting removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-11"
     event: "Re-baselined on 0019 as delivered: D17 amends D13 (the generated-module record survived reshaped, keyed on the package identity); semver window restated against core@v2; stale paths repointed."
+  - date: "2026-09-11"
+    event: "Experiment 01-provider-trait-across-catalogs concluded: the backup trait renders through the shipped kernel via k8up and Velero adapters; D37 refusals and the D1 premise measured."
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
