@@ -1,6 +1,11 @@
 # Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
 # Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
-log: []
+log:
+  - date: "2026-09-12"
+    summary: >-
+      core: #Catalog gains #resources/#traits/#blueprints contract-member maps with modulePath and catalogVersion stamps (core PR 64, first of two D1 slices; the #Platform inventory fold waits on the readiness decision)
+    change: { kind: openspec, repo: core, change: catalog-contract-maps }
+    decisions: [D1]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
