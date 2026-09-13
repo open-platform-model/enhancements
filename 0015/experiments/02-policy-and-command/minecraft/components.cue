@@ -21,11 +21,8 @@ _produce: "rcon-cli --host mc-demo-server save-off && rcon-cli --host mc-demo-se
 		bp.#StatefulWorkload
 		#traits: {
 			(tr.#BackupTrait.metadata.fqn): tr.#BackupTrait
-			if #config.mode == "owned" {
-				(tr.#BackupOwnedTrait.metadata.fqn): tr.#BackupOwnedTrait
-			}
-			if #config.mode == "producer" {
-				(tr.#BackupProducerTrait.metadata.fqn): tr.#BackupProducerTrait
+			if #config.mode == "command" {
+				(tr.#BackupCommandTrait.metadata.fqn): tr.#BackupCommandTrait
 			}
 		}
 
@@ -40,7 +37,7 @@ _produce: "rcon-cli --host mc-demo-server save-off && rcon-cli --host mc-demo-se
 				}
 				volumes: {
 					data: _data
-					if #config.mode == "producer" {
+					if #config.mode == "command" {
 						// Landing volume for file-capturing engines.
 						backups: {
 							name:      "backups"
@@ -50,9 +47,9 @@ _produce: "rcon-cli --host mc-demo-server save-off && rcon-cli --host mc-demo-se
 						}
 					}
 				}
-				if #config.mode == "owned" {
-					// Shape B: the module's own capture loop. It reads the projected
-					// policy by the conventional ConfigMap name and the platform's
+				if #config.mode == "module" {
+					// The module's own capture loop. It reads the projected policy
+					// by the conventional ConfigMap name and the platform's
 					// repository Secret by the conventional Secret name.
 					sidecarContainers: [{
 						name: "backup"
@@ -76,18 +73,16 @@ _produce: "rcon-cli --host mc-demo-server save-off && rcon-cli --host mc-demo-se
 				schedule:   "0 * * * *"
 				retention:  {keepWithin: "20d"}
 				repository: "mc-backup"
-				capture:    "filesystem"
+				method:     "filesystem"
 				excludes: ["*.jar", "cache", "logs", "*.tmp", "bluemap/web/maps/**"]
-			}
-			if #config.mode == "owned" {
-				backupOwned: {
-					format: "restic"
+				if #config.mode == "module" {
+					executor: "module"
 					// The itzg loop's own key names.
-					envKeys: {schedule: "CRON_SCHEDULE", retention: "PRUNE_RESTIC_RETENTION", excludes: "EXCLUDES"}
+					projection: envKeys: {schedule: "CRON_SCHEDULE", retention: "PRUNE_RESTIC_RETENTION", excludes: "EXCLUDES"}
 				}
 			}
-			if #config.mode == "producer" {
-				backupProducer: {
+			if #config.mode == "command" {
+				backupCommand: {
 					container:     "minecraft"
 					command:       _produce
 					volumes: ["data"]

@@ -1,5 +1,5 @@
-// k8up provider for backup-producer: a PreBackupPod built from the named
-// container, mounting the producer's volumes read-only and pinned beside
+// k8up provider for backup-command: a PreBackupPod built from the named
+// container, mounting the command's volumes read-only and pinned beside
 // the workload (RWO PVCs mount on one node; k8up's own folder backup pins
 // the same way). Stdout is the snapshot; `landing` is ignored.
 package transformers
@@ -18,17 +18,17 @@ import (
 		name:           "pre-backup-pod-transformer"
 		catalogVersion: id.Version
 		fqn:            "\(id.kindPrefix.transformers)/pre-backup-pod-transformer@\(id.Version)"
-		description:    "Renders backup-producer as a K8up PreBackupPod beside the workload, its volumes mounted read-only"
+		description:    "Renders backup-command as a K8up PreBackupPod beside the workload, its volumes mounted read-only"
 		labels: "core.opmodel.dev/resource-type": "prebackuppod"
 	}
 
 	requiredResources: (res.#ContainerResource.metadata.fqn): res.#ContainerResource
-	requiredTraits: (tr.#BackupProducerTrait.metadata.fqn):   tr.#BackupProducerTrait
+	requiredTraits: (tr.#BackupCommandTrait.metadata.fqn):    tr.#BackupCommandTrait
 
 	#transform: {
 		#component: _
 		#context:   c.#TransformerContext
-		_p:         #component.spec.backupProducer
+		_p:         #component.spec.backupCommand
 		_name:      #component.#names.resourceName
 		_instance:  #context.#moduleInstanceMetadata.name
 		_ctr:       #component.spec.container
@@ -37,7 +37,7 @@ import (
 
 		output: k8upv1.#PreBackupPod & {
 			metadata: {
-				name:      "\(_name)-producer"
+				name:      "\(_name)-command"
 				namespace: #context.#moduleInstanceMetadata.namespace
 				labels:    #context.labels & {(#TargetLabel): _name}
 			}

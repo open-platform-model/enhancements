@@ -1,6 +1,6 @@
 // Copied shape: experiment 01 webapp/module.cue. ONE module for both
-// engines: a producer command that streams the dump, plus a landing
-// volume for engines that capture files.
+// engines: a command that streams the dump, plus a landing volume for
+// engines that capture files.
 package mariadb
 
 import (
@@ -17,7 +17,7 @@ metadata: {
 	name:        _segments[len(_segments)-1]
 	modulePath:  id.ModulePath
 	version:     id.Version
-	description: "Experiment 0015/02 consumer: a database that demands backup AND backup-producer"
+	description: "Experiment 0015/02 consumer: a database that demands backup AND backup-command"
 }
 
 #config: {

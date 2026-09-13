@@ -1,8 +1,9 @@
 // A game server whose world needs a quiesce around every capture, in the
-// two shapes the design doc recommends: `owned` (default; the module runs
-// the itzg mc-backup restic sidecar and the platform projects the policy
-// into it) and `producer` (the quiesce-tar-release sequence as one
-// command the engine consumes; measured for the mechanics, not the cost).
+// two shapes the design doc recommends: `module` (default; executor:
+// module, the module runs the itzg mc-backup restic sidecar and the
+// platform projects the policy into it) and `command` (the
+// quiesce-tar-release sequence as one command the engine consumes;
+// measured for the mechanics, not the cost).
 package minecraft
 
 import (
@@ -19,15 +20,15 @@ metadata: {
 	name:        _segments[len(_segments)-1]
 	modulePath:  id.ModulePath
 	version:     id.Version
-	description: "Experiment 0015/02 consumer: a workload that demands backup AND backup-owned or backup-producer"
+	description: "Experiment 0015/02 consumer: a workload that backs itself up, or demands backup-command"
 }
 
 #config: {
 	image: res.#Image & {repository: string | *"docker.io/itzg/minecraft-server", tag: string | *"java25", digest: string | *""}
-	mode:  *"owned" | "producer"
+	mode:  *"module" | "command"
 }
 
 debugValues: {
 	image: {repository: "docker.io/itzg/minecraft-server", tag: "java25", digest: ""}
-	mode: "owned"
+	mode: "module"
 }

@@ -68,12 +68,12 @@ def check_b(docs):
     assert sel == [{"matchLabels": {TARGET: "mariadb-demo-db"}}], sel
     assert subset(sel[0]["matchLabels"], p["metadata"]["labels"])
     for pvc in pvcs(docs):
-        assert not subset(sel[0]["matchLabels"], pvc["metadata"]["labels"]), "a PVC matches the producer selector"
+        assert not subset(sel[0]["matchLabels"], pvc["metadata"]["labels"]), "a PVC matches the command selector"
     assert not subset(sel[0]["matchLabels"], sts["spec"]["template"]["metadata"]["labels"])
     assert p["spec"]["fileExtension"] == "-mariadb-demo-db.sql"
     assert p["spec"]["backupCommand"].startswith("sh -c 'mariadb-dump") and "-h mariadb-demo-db" in p["spec"]["backupCommand"]
     ps = p["spec"]["pod"]["spec"]
-    assert "volumes" not in ps and "affinity" not in ps and "volumeMounts" not in ps["containers"][0], "no producer volumes declared"
+    assert "volumes" not in ps and "affinity" not in ps and "volumeMounts" not in ps["containers"][0], "no command volumes declared"
 
 
 def check_c(docs):

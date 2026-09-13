@@ -89,7 +89,7 @@ The fleet outcome: the three MariaDB releases move to `backup` + `backup-command
 
 The first cut of the experiment now numbered 02 implemented sections 3 to 9 as written and measured two things that overturn section 3's split. k8up refuses `backup-hooks` outright (it has no exec hook of any kind), so a quiesced world was simply unavailable on the fleet's own engine. And a `backup-command` output arm the engine does not implement failed as an opaque transformer error naming neither contract nor field (OQ1). Both point the same way: consistency has to be produced by the application side, and the engine has to be handed something it can consume.
 
-**Revised shape, measured in the rewritten experiment 02:**
+**Revised shape, measured in the third cut of experiment 02:**
 
 1. `backup` (policy): unchanged.
 2. `backup-producer` (provider-fulfilled) replaces both `backup-hooks` and `backup-command`. The command produces a consistent artefact on stdout with any quiesce inside it. k8up runs it in a PreBackupPod that mounts the named volumes read-only beside the workload and streams stdout. Velero runs it as a pre-hook in the live container with a redirect into a `landing` volume and captures only that volume. One module, both engines, no arm.
@@ -98,3 +98,15 @@ The first cut of the experiment now numbered 02 implemented sections 3 to 9 as w
 **Why two capture contracts and not one.** The producer stream costs the whole artefact through `pods/exec` every run on k8up (a 20 GB world hourly is 10 to 60 minutes of apiserver streaming) and a landing volume as large as the artefact on Velero. That is fine for the three databases and wrong for the game servers. The owned shape keeps the sidecar's incremental upload and local quiesce, and turns the trait into the thing that configures it instead of the thing that replaces it.
 
 Sections 7 (P1, P2) and 8 (OQ2) stand. OQ1 is closed by construction: the producer contract has no arm. `backup-traits-proposal.cue` in this directory is the pre-addendum shape and is kept as the record; the measured shape is the experiment's `contracts/`.
+
+## Second addendum (2026-09-13): the offer is the contract, the ownership is a field
+
+`backup-producer` and `backup-owned` both named who owns the capture, a runtime fact. An author thinks in offers: a command, or a tool they already run. Measured in the final cut of experiment 02 (`experiments/02-policy-and-command`), the shape is:
+
+1. `backup` (policy) gains `executor: *"platform" | "module"`. Under `module`, every provider adapter projects the policy into a ConfigMap the module's own tool reads (a plain CUE function in the declaring catalog, not a transformer) and adds maintenance where it can (k8up: prune and check). Velero projects and stops. `capture` is renamed `method` so it no longer reads like a sibling of `executor`.
+2. `backup-command` is the producer contract renamed: `container`, `command`, `volumes`, `landing`, `fileExtension`, `compensate`.
+3. `backup-owned` is deleted.
+
+`executor` is a value, not a contract, so an engine cannot refuse it by name. That is safe: an adapter that ignored `module` would take an extra crash-consistent copy on top of the module's own, which is the keep-more direction. The same test that makes `method`, `excludes` and `maintenance` advisory. Moving the projection into a function also removes the previous cut's awkwardness, where a declaring-catalog transformer had to read `backup` without requiring it to avoid becoming a second provider.
+
+Sections 7 (P1, P2) and 8 (OQ2) still stand. `backup-traits-proposal.cue` is the pre-addenda shape and is kept as the record; the measured shape is the experiment's `contracts/`.

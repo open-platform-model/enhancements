@@ -1,4 +1,4 @@
-// Shape A for a database: the producer streams a logical dump over the
+// A database, dumped not copied: the command streams a logical dump over the
 // service name (works from the engine's own pod and from the live
 // container alike); `landing` names the volume file-capturing engines
 // write it to. `data` is never captured by either engine.
@@ -14,7 +14,7 @@ import (
 		bp.#StatefulWorkload
 		#traits: {
 			(tr.#BackupTrait.metadata.fqn):         tr.#BackupTrait
-			(tr.#BackupProducerTrait.metadata.fqn): tr.#BackupProducerTrait
+			(tr.#BackupCommandTrait.metadata.fqn): tr.#BackupCommandTrait
 		}
 
 		metadata: name: "db"
@@ -51,7 +51,7 @@ import (
 				repository: "mc-backup"
 				maintenance: {pruneSchedule: "0 3 * * 0", checkSchedule: "0 4 * * 0"}
 			}
-			backupProducer: {
+			backupCommand: {
 				container: "mariadb"
 				command:   "mariadb-dump --single-transaction --routines --events --triggers --databases app -h mariadb-demo-db -uroot -p\"$MARIADB_ROOT_PASSWORD\""
 				landing: {volume: "dumps", path: "app.sql"}

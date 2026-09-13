@@ -1,5 +1,5 @@
 // Hand-written minimal k8up.io/v1 PreBackupPod (experiment 01's Schedule shape plus
-// volumes, volumeMounts and affinity, so the producer pod can read the
+// volumes, volumeMounts and affinity, so the command pod can read the
 // workload's PVCs read-only from the same node).
 package v1
 

@@ -1,8 +1,8 @@
-// k8up provider for the `backup` policy contract, in three modes decided
-// by which sibling contract the component carries:
-//   owned     -> prune + check ONLY, against the module's own restic repo
-//   producer  -> backup of the adapter's PreBackupPod stream only
-//   neither   -> file-level backup of the selected (or all) PVCs
+// k8up provider for the `backup` policy contract, in three modes:
+//   executor: module -> the policy projection (contracts/projection) plus
+//                       prune + check ONLY, against the module's own repo
+//   + backup-command -> backup of the adapter's PreBackupPod stream only
+//   otherwise        -> file-level backup of the selected (or all) PVCs
 // Repository by name from the platform table; excludes as a ConfigMap
 // through backend.envFrom; keepWithin -> keepHourly.
 package transformers
@@ -14,6 +14,7 @@ import (
 
 	id "testing.opmodel.dev/experiments/0015/exp02/k8up/identity"
 	cfg "testing.opmodel.dev/experiments/0015/exp02/contracts/config"
+	proj "testing.opmodel.dev/experiments/0015/exp02/contracts/projection"
 	k8upv1 "testing.opmodel.dev/experiments/0015/exp02/k8up/schemas/k8up/v1"
 	c "opmodel.dev/core@v2"
 	res "opmodel.dev/catalogs/opm/resources/v1beta1"
@@ -39,16 +40,13 @@ import (
 		name:           "backup-schedule-transformer"
 		catalogVersion: id.Version
 		fqn:            "\(id.kindPrefix.transformers)/backup-schedule-transformer@\(id.Version)"
-		description:    "Renders the backup policy as a K8up Schedule: volumes, a producer stream, or maintenance only for a module-owned repository"
+		description:    "Renders the backup policy as a K8up Schedule: volumes, a command's stream, or projection plus maintenance when the module executes"
 		labels: "core.opmodel.dev/resource-type": "schedule"
 	}
 
 	requiredResources: (res.#VolumesResource.metadata.fqn): res.#VolumesResource
 	requiredTraits: (tr.#BackupTrait.metadata.fqn):         tr.#BackupTrait
-	optionalTraits: {
-		(tr.#BackupProducerTrait.metadata.fqn): tr.#BackupProducerTrait
-		(tr.#BackupOwnedTrait.metadata.fqn):    tr.#BackupOwnedTrait
-	}
+	optionalTraits: (tr.#BackupCommandTrait.metadata.fqn): tr.#BackupCommandTrait
 
 	#transform: {
 		#component: _
@@ -58,20 +56,19 @@ import (
 		_name:      #component.#names.resourceName
 		_instance:  #context.#moduleInstanceMetadata.name
 
-		_producer: [if #component.spec.backupProducer != _|_ {#component.spec.backupProducer}, {}][0]
-		_owned: [if #component.spec.backupOwned != _|_ {#component.spec.backupOwned}, {}][0]
+		_command: [if #component.spec.backupCommand != _|_ {#component.spec.backupCommand}, {}][0]
 		_maint: [if _backup.maintenance != _|_ {_backup.maintenance}, {}][0]
 		_volumes: [if _backup.volumes != _|_ {_backup.volumes}, []][0]
 		_excludes: [if _backup.excludes != _|_ {_backup.excludes}, []][0]
 		_repo: [if _backup.repository != _|_ {cfg.repositories[_backup.repository]}, {}][0]
 
-		_isOwned:    _owned.format != _|_
-		_isProducer: _producer.command != _|_
+		_isOwned:   _backup.executor == "module"
+		_isCommand: _command.command != _|_
 
 		_selectors: list.Concat([
-			[if _isProducer {{matchLabels: (#TargetLabel): _name}}],
-			[if !_isProducer for v in _volumes {{matchLabels: {for k, l in #context.componentLabels {(k): l}, (#VolumeLabel): v}}}],
-			[if !_isProducer if len(_volumes) == 0 {{matchLabels: #context.componentLabels}}],
+			[if _isCommand {{matchLabels: (#TargetLabel): _name}}],
+			[if !_isCommand for v in _volumes {{matchLabels: {for k, l in #context.componentLabels {(k): l}, (#VolumeLabel): v}}}],
+			[if !_isCommand if len(_volumes) == 0 {{matchLabels: #context.componentLabels}}],
 		])
 
 		_retention: {
@@ -102,9 +99,9 @@ import (
 						}
 					}
 				}
-				// Owned: the module's sidecar takes the backups; k8up only
-				// maintains the repository it writes (same restic format, host
-				// pinned to the namespace by the projection).
+				// executor: module: the module's sidecar takes the backups; k8up
+				// only maintains the repository it writes (same restic format,
+				// host pinned to the namespace by the projection).
 				if !_isOwned {
 					backup: {
 						schedule:       _backup.schedule
@@ -131,6 +128,19 @@ import (
 			data: RESTIC_EXCLUDE: strings.Join(_excludes, ",")
 		}
 
-		output: list.Concat([[_schedule], [if !_isOwned if len(_excludes) > 0 {_excludesConfigMap}]])
+		_projection: (proj.#ConfigMap & {
+			#backup:    _backup
+			#repo:      _repo
+			#name:      _name
+			#instance:  _instance
+			#namespace: #context.#moduleInstanceMetadata.namespace
+			#labels:    #context.labels
+		}).out
+
+		output: list.Concat([
+			[_schedule],
+			[if !_isOwned if len(_excludes) > 0 {_excludesConfigMap}],
+			[if _isOwned {_projection}],
+		])
 	}
 }
