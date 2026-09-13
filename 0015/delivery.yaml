@@ -6,6 +6,11 @@ log:
       core: #Catalog gains #resources/#traits/#blueprints contract-member maps with modulePath and catalogVersion stamps (core PR 64, first of two D1 slices; the #Platform inventory fold waits on the readiness decision)
     change: { kind: openspec, repo: core, change: catalog-contract-maps }
     decisions: [D1]
+  - date: "2026-09-13"
+    summary: >-
+      core: #ContractInventory and the derived #Platform.#contracts fold (D1 inventory, D2 arity reports counted per catalog, D18 reports-never-refuses); no #ContractRouting construct
+    change: { kind: openspec, repo: core, change: platform-contract-inventory }
+    decisions: [D1, D2, D18]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
