@@ -11,6 +11,11 @@ log:
       core: #ContractInventory and the derived #Platform.#contracts fold (D1 inventory, D2 arity reports counted per catalog, D18 reports-never-refuses); no #ContractRouting construct
     change: { kind: openspec, repo: core, change: platform-contract-inventory }
     decisions: [D1, D2, D18]
+  - date: "2026-09-13"
+    summary: >-
+      library reads the contract inventory off a built platform (Contracts accessor), names the defining catalog on unresolved-demand rows, pins core alpha.9
+    change: { kind: openspec, repo: library, change: read-contract-inventory }
+    decisions: [D1, D2, D18]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
