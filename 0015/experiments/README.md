@@ -9,3 +9,4 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | # | Concept | Status |
 | - | ------- | ------ |
 | 01 | provider-trait-across-catalogs | Concluded |
+| 02 | three-backup-traits | Concluded |

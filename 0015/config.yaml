@@ -21,7 +21,7 @@ affects:
   - catalog
 core_schema: true
 created: "2026-08-05"
-updated: "2026-09-11"
+updated: "2026-09-12"
 authors:
   - emil@jacero.se
 history:
@@ -64,6 +64,8 @@ history:
     event: "Re-baselined on 0019 as delivered: D17 amends D13 (the generated-module record survived reshaped, keyed on the package identity); semver window restated against core@v2; stale paths repointed."
   - date: "2026-09-11"
     event: "Experiment 01-provider-trait-across-catalogs concluded: the backup trait renders through the shipped kernel via k8up and Velero adapters; D37 refusals and the D1 premise measured."
+  - date: "2026-09-12"
+    event: "Engine research filed under research/; experiment 02-three-backup-traits concluded: policy, producer and owned contracts render one module per app on k8up and Velero."
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
