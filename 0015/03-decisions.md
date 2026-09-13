@@ -362,6 +362,29 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 
 **Source:** User decision 2026-09-11, from the re-baseline against 0019's delivery log; the reshaped slot read the same day at `opm-operator/internal/platform/store.go` and `layout.go`.
 
+### D18: An unfulfilled contract is reported, never refused; only over-subscription refuses platform-package generation
+
+**Kind:** contract
+
+**Depends:** 0010:D28, 0019:D5, 0019:D6
+
+**Amends:** D1
+
+**Decision:** The inventory's `unfulfilled` report is information, not a refusal. A provider-fulfilled contract that a subscribed catalog defines and no adapter on the platform implements is surfaced on the Platform as a non-gating condition (`ContractsFulfilled=False`, reason `UnfulfilledContracts`, naming each contract and the catalog that defines it) and by `opm platform check` as a warning. It never withholds the generated platform package and never moves `Ready`. The refusal stays where 0010 D28 puts it: at render, when a module demands the contract, failing for a load-bearing demand and warning for an advisory one, and now naming the defining catalog beside the demanding component.
+
+What survives of D1 is everything it computes: `defined`, `requiredBy`, `unfulfilled` and `overSubscribed` are unchanged, and `overSubscribed` keeps refusing generation naming both catalog paths (D2). What changes against D1 is the readiness condition it said the inventory makes computable: that condition is a report on the platform, not a gate on it. `#ContractInventory.ready` splits into `fulfilled` (the report) and `routable` (the gate), and `#ContractRouting.ok` asserts arity alone.
+
+**Alternatives considered:**
+
+- **The shipped rule (D1 as designed): `Ready=False, reason=UnfulfilledContracts` before any module exists.** Rejected on a measurement of the delivered operator: `Ready=False` on the Platform means no generated module, and every ModulePackage and ModuleInstance blocks on `PlatformNotReady` until one exists. Subscription is per catalog (0019 D5), so the first provider-fulfilled contract shipped in the first-party catalog would block every workload on every platform that never meant to offer it. The rule reads "subscribed to the catalog" as "wants every provider-fulfilled contract in it", which nothing in the platform file says.
+- **Contract-only catalogs for provider-fulfilled contracts, so that subscription is intent.** Would make the gate sound: a platform that subscribes to a `backup` catalog wants backup. Rejected for this entry: it costs one catalog per contract, and D4's premise that one catalog defines contracts it does not implement is the case the maps exist for. Preserved for a successor if intent has to become expressible.
+- **A platform intent field naming the provider-fulfilled contracts it offers.** The successor's shape if it is ever needed, and 0026's spec is its natural home. An operator-facing vocabulary the readiness answer does not need today. With it, `unfulfilled` for an intended contract could gate; without it, it cannot.
+- **Report nothing at the platform and leave it all to render.** Discards what D1 buys operationally: the platform can say, with no module in hand, which contracts nothing implements. A report keeps that.
+
+**Rationale:** A report and a refusal need different evidence. The refusal has an attribution (the component that demanded the contract) and a knob (`optional`, 0010 D28) that a platform-level count has neither of: at assembly the platform knows a contract is unimplemented, not whether anyone minds. The experiment measured the render-time arm doing the right thing on the shipped kernel (case C fails naming the component, case D warns under `optional: true`); what it could not do was name the defining catalog, and the inventory supplies that without blocking anything. Over-subscription is different in kind: two providers is a platform that cannot be built correctly for any demand, so it stays a refusal at generation.
+
+**Source:** User decision 2026-09-13. The blocking path read 2026-09-12 in `opm-operator/internal/render/kernel_module_renderer.go` (`ErrPlatformNotReady`, "no generated platform module") and its two callers under `internal/reconcile/`; render-time behaviour per `experiments/01-provider-trait-across-catalogs` cases C and D.
+
 ---
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

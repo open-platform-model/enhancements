@@ -89,7 +89,8 @@ The value derivable once contracts are members — under 0019 D5 a pure CUE fold
 	requiredBy: [#ContractFQNType]: [...#ImplFQNType]
 	unfulfilled: [...#ContractFQNType]
 	overSubscribed: [...#ContractFQNType]
-	ready: bool & (len(unfulfilled) == 0 && len(overSubscribed) == 0)
+	fulfilled: bool & (len(unfulfilled) == 0)     // a report (D18)
+	routable:  bool & (len(overSubscribed) == 0)  // the one gate
 }
 ```
 
@@ -97,20 +98,21 @@ The value derivable once contracts are members — under 0019 D5 a pure CUE fold
 
 - `defined` MUST enumerate every contract every subscribed catalog defines, whether or not any adapter demands it.
 - `requiredBy` MUST count required demands only; optional consumption is tolerance, not fulfilment (0010 D32).
-- `unfulfilled` MUST list every provider-fulfilled contract that is defined and required by nothing — the zero case that drives `Platform Ready=False, reason=UnfulfilledContracts`, reported at platform assembly with no module in hand.
+- `unfulfilled` MUST list every provider-fulfilled contract that is defined and required by nothing — the zero case, surfaced as a non-gating `ContractsFulfilled=False, reason=UnfulfilledContracts` condition naming each contract and its defining catalog, reported at platform assembly with no module in hand. It MUST NOT withhold the generated platform package or move `Ready` (D18).
 - `overSubscribed` MUST list every provider-fulfilled contract with more than one implementation — refused per 0010 D37, which D2 (as revised) keeps unamended; the inventory is what lets the refusal name both catalog paths.
-- `ready` MUST be true exactly when both reports are empty.
+- `fulfilled` MUST be true exactly when `unfulfilled` is empty, and `routable` exactly when `overSubscribed` is empty. Only `routable` MAY gate platform-package generation (D18).
 
 ### Rationale
 
 - **Why an assembly-time value.** The pre-D1 failure surfaces later, per-instance, at render, once somebody deploys a module that uses the contract — "no matching transformer", which is true and useless. The inventory moves the answer to where the platform is assembled (D1).
+- **Why `unfulfilled` reports and does not refuse.** `Ready=False` on the Platform means no generated module, and every package and instance blocks on it; subscription is per catalog (0019 D5), so refusing on an unimplemented contract would block every platform that subscribes the first-party catalog without meaning to offer that contract. The refusal has its attribution and its `optional` knob at render (0010 D28); the inventory adds the defining catalog to that refusal and reports the rest (D18).
 - **Why `overSubscribed` as a named report rather than a bare error.** D37's guard previously counted only adapters it could reach; with the inventory the refusal is computed where the platform is assembled and names both catalog paths, and D3's acceptance gate can refuse the second registration naming the claimant (D2, as revised).
 
 ## #ContractRouting (NEW)
 
 ### Definition
 
-The relation asserted on the platform value — at 0019 D6's generation step — for one contract: 0010 D37's exactly-one-provider rule, kept unamended by D2 (as revised 2026-08-20). Zero implementations of a provider-fulfilled contract is `unfulfilled`; more than one is `overSubscribed` and refused.
+The relation asserted on the platform value — at 0019 D6's generation step — for one contract: 0010 D37's exactly-one-provider rule, kept unamended by D2 (as revised 2026-08-20). Zero implementations of a provider-fulfilled contract is `unfulfilled`, reported and not refused (D18); more than one is `overSubscribed` and refused.
 
 ### Shape
 
@@ -119,13 +121,14 @@ The relation asserted on the platform value — at 0019 D6's generation step —
 	contract!:  #ContractFQNType
 	fulfilment: *"catalog" | "provider"
 	implementations!: [...#ImplFQNType]
-	ok: bool // fulfilled ∧ routed
+	fulfilled: bool // a report beside ok, never a conjunct (D18)
+	ok: bool // routed
 }
 ```
 
 ### Constraints
 
-- Zero implementations of a provider-fulfilled contract MUST be reported at platform assembly (as `unfulfilled`), not deferred to the first render that trips over it.
+- Zero implementations of a provider-fulfilled contract MUST be reported at platform assembly (as `unfulfilled`), not deferred to the first render that trips over it, and MUST NOT refuse generation: the refusal for a demanded, unimplemented contract stays at render (0010 D28) (D18).
 - A provider-fulfilled contract MUST have at most one implementation (0010 D37); a second MUST be refused, naming the contract and both catalog paths.
 - A `"catalog"`-fulfilled contract MUST NOT be arity-constrained by this relation: such a bucket legitimately feeds many outputs (catalog_opm's `#ContainerResource` bucket holds 8 transformers). The duplicate-adapter case within that fulfilment is refused by D5's comparable-predicate guard at platform-package generation (site per D5, resolving OQ10); the detection definition is OQ9, deferred to the implementation slice and deliberately not constrained here.
 

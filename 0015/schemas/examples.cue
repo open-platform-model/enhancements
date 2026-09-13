@@ -57,8 +57,8 @@ _assertResourceFulfilment: exCatalog.#resources["opmodel.dev/catalogs/opm/resour
 // ─── D1: the inventory derived from the maps (a platform-value fold) ────────
 
 // The healthy cross: backup is defined by a subscribed catalog and required
-// by exactly one implementation — so neither report has entries and the
-// platform is contract-ready.
+// by exactly one implementation — so neither report has entries: fulfilled
+// and routable both hold.
 exInventoryReady: #ContractInventory & {
 	defined: (_backupFQN): {
 		name:           "backup"
@@ -72,7 +72,8 @@ exInventoryReady: #ContractInventory & {
 	unfulfilled: []
 	overSubscribed: []
 }
-_assertInventoryReady: exInventoryReady.ready & true
+_assertInventoryFulfilled: exInventoryReady.fulfilled & true
+_assertInventoryRoutable:  exInventoryReady.routable & true
 
 // A second implementation is over-subscription: refused per 0010 D37 (kept
 // by D2), and the inventory is what lets the refusal name both paths —
@@ -83,18 +84,21 @@ exInventoryOverSubscribed: #ContractInventory & {
 	unfulfilled: []
 	overSubscribed: [_backupFQN]
 }
-_assertOverSubscribedNotReady: exInventoryOverSubscribed.ready & false
+_assertOverSubscribedNotRoutable: exInventoryOverSubscribed.routable & false
+_assertOverSubscribedFulfilled:   exInventoryOverSubscribed.fulfilled & true
 
 // The zero case D1 makes nameable: the contract is defined, nothing requires
-// it, and the platform is Ready=False before any module trips over it —
-// instead of the pre-D1 state where the key simply exists nowhere.
+// it, and the platform reports ContractsFulfilled=False before any module
+// trips over it — instead of the pre-D1 state where the key simply exists
+// nowhere. Still routable: generation proceeds (D18).
 exInventoryUnfulfilled: #ContractInventory & {
 	defined: (_backupFQN): exInventoryReady.defined[_backupFQN]
 	requiredBy: {}
 	unfulfilled: [_backupFQN]
 	overSubscribed: []
 }
-_assertInventoryNotReady: exInventoryUnfulfilled.ready & false
+_assertInventoryUnfulfilled: exInventoryUnfulfilled.fulfilled & false
+_assertUnfulfilledRoutable:  exInventoryUnfulfilled.routable & true
 
 // ─── D2/D5: the arity relation ──────────────────────────────────────────────
 
@@ -116,13 +120,15 @@ exRoutingTwoProviders: #ContractRouting & {
 }
 _assertTwoProvidersRefused: exRoutingTwoProviders.ok & false
 
-// Zero implementations of a provider-fulfilled contract: unfulfilled, not ok.
+// Zero implementations of a provider-fulfilled contract: reported as
+// unfulfilled, and still ok — generation is not refused (D18).
 exRoutingUnfulfilled: #ContractRouting & {
 	contract:   _backupFQN
 	fulfilment: "provider"
 	implementations: []
 }
-_assertUnfulfilledNotOk: exRoutingUnfulfilled.ok & false
+_assertUnfulfilledReported: exRoutingUnfulfilled.fulfilled & false
+_assertUnfulfilledStillOk:  exRoutingUnfulfilled.ok & true
 
 // A "catalog"-fulfilled bucket carries no arity rule here — catalog_opm's
 // #ContainerResource bucket legitimately feeds 8 transformers. The duplicate-

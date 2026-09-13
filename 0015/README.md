@@ -9,7 +9,7 @@ See [`config.yaml`](config.yaml) for the metadata contract: it is the sole sourc
 **A catalog publishes its contracts as members** (D1). `#Catalog` gains `#resources`, `#traits` and `#blueprints` beside `#transformers`, each stamping provenance onto its values the way the transformer map already does. A contract reaches a build only by being demanded by an adapter (measured 2026-08-05 at `materialize/index.go:39-41`, and just as true after 0019 deletes that walk: the platform now embeds each subscribed catalog whole (0019 D5), but every derived value, the composed transformer map and the match glue's buckets, folds over `#transformers` alone), so a contract deliberately left unimplemented, which is exactly what 0010 D37's `fulfilment: "provider"` creates, is invisible. Making it a member turns four derivations into lookups:
 
 - D37's own zero-provider case.
-- A platform readiness answer available with no module in hand.
+- A platform readiness answer available with no module in hand, reported on a non-gating condition rather than enforced (D18).
 - 0010 OQ3's "unimplemented versus unknown" diagnostic.
 - 0010 D17's underivable owning catalog.
 
@@ -29,7 +29,7 @@ The claim names a published **catalog** artifact only, refused structurally othe
 
 1. [01-problem.md](01-problem.md): the three gaps, measured 2026-08-05 against `core/src/catalog.cue`, `materialize/index.go` and `compile/match.go` (pre-0019 anchors, kept dated) and restated against 0019's single-build pipeline
 2. [02-design.md](02-design.md): contract member maps, the one-provider rule and its refusal sites, the registration CR, and the packaging decision
-3. [03-decisions.md](03-decisions.md): D1..D17
+3. [03-decisions.md](03-decisions.md): D1..D18
 4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md): risks, drawbacks, high-level alternatives
 6. [06-operational.md](06-operational.md): operational concerns (PRR-lite)

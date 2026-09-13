@@ -152,7 +152,8 @@ package schema
 
 	// A provider-fulfilled contract that is defined and required by nothing.
 	// Under D1 this is nameable; before it, indistinguishable from a key that
-	// exists nowhere. Drives Platform Ready=False/UnfulfilledContracts.
+	// exists nowhere. Drives the non-gating Platform condition
+	// ContractsFulfilled=False/UnfulfilledContracts (D18), never Ready.
 	unfulfilled: [...#ContractFQN]
 
 	// A provider-fulfilled contract with more than one implementation —
@@ -160,8 +161,14 @@ package schema
 	// inventory is what lets the refusal name both catalog paths.
 	overSubscribed: [...#ContractFQN]
 
-	// The platform is contract-ready when neither report has entries.
-	ready: bool & (len(unfulfilled) == 0 && len(overSubscribed) == 0)
+	// Every provider-fulfilled contract is implemented. A report, never a
+	// gate (D18): false names the contracts and their defining catalogs on
+	// the ContractsFulfilled condition and in `opm platform check`.
+	fulfilled: bool & (len(unfulfilled) == 0)
+
+	// No provider-fulfilled contract has two implementations. The one
+	// inventory fact that refuses platform-package generation (D2, D18).
+	routable: bool & (len(overSubscribed) == 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -178,9 +185,10 @@ package schema
 	// Implementation keys requiring this contract, across subscribed catalogs.
 	implementations!: [...#ImplFQN]
 
-	// Zero implementations is D1's `unfulfilled` — reportable at platform assembly
-	// rather than deferred to a render (0010 D28).
-	_fulfilled: bool & (len(implementations) > 0)
+	// Zero implementations is D1's `unfulfilled`: reported at platform assembly
+	// (D18) and refused only at render, when a module demands the contract
+	// (0010 D28). A report beside `ok`, never a conjunct of it.
+	fulfilled: bool & (len(implementations) > 0)
 
 	// Exactly one provider (0010 D37). A second is `overSubscribed` in the
 	// inventory and refused, naming both catalog paths; routing between
@@ -200,7 +208,8 @@ package schema
 		_routed: true
 	}
 
-	ok: bool & (_fulfilled && _routed)
+	// What generation asserts: arity alone (D18).
+	ok: bool & _routed
 }
 
 // ---------------------------------------------------------------------------
