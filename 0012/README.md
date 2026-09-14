@@ -6,7 +6,7 @@ See [`config.yaml`](config.yaml) for the metadata contract: it is the sole sourc
 
 ## Summary
 
-Today `Kernel.Compile` returns `[]*core.Compiled` and the frontends take it from there. Below that line, `cli/pkg/resourceorder/weights.go` and its operator twin are byte-identical, `pkg/core/{labels,resource,convert}.go` differ by three comment lines, and the render-digest function exists twice with a comment instructing future maintainers to keep the copies in sync by hand. Where the copies make *decisions* rather than copy fields, they have drifted:
+Today `Kernel.Render` returns `[]*kernel.Compiled` and the frontends take it from there. Below that line the duplication has narrowed but not closed: as of 2026-09-14 `pkg/core/convert.go` is byte-identical between the two repos, `labels.go` and `resource.go` differ only in comments, and the render-digest function still exists twice with a comment instructing future maintainers to keep the copies in sync by hand. The operator deleted its `pkg/resourceorder` copy on 2026-09-13, so the weights table now lives only in the CLI and the operator orders through Flux instead. Where the copies make *decisions* rather than copy fields, they have drifted:
 
 - The CLI deletes `CustomResourceDefinition`s; the operator refuses to.
 - The operator checks live ownership before deleting; the CLI does not.
@@ -72,7 +72,7 @@ Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue
 
 **Not touched by this entry**
 
-- **The render half.** `opm/compile/` is untouched; this is additive below the render line.
+- **The render half.** `Kernel.Render` is untouched; this is additive below the render line.
 - **Re-deciding 0006 D31's data-flow analysis.** Only its placement conclusion is superseded.
 
 ## Deviations from Design
@@ -88,7 +88,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `library/CLAUDE.md` | Kernel-neutrality working rules; the helper-vs-kernel tier boundary the new packages sit across |
 | `library/opm/core/resource.go` | The platform-neutral `Resource` / `Identity` contract naming compose, Nomad, Terraform, Crossplane: deleted or retained per OQ3 |
 | `library/opm/core/compiled.go` | `Compiled`, the kernel's current terminal output |
-| `library/opm/kernel/compile.go`, `library/opm/kernel/results.go` | `CompileResult`: where the Kubernetes-shaped output surfaces |
+| `library/opm/kernel` | `RenderResult`: where the Kubernetes-shaped output surfaces |
 | `library/go.mod` | Gains `k8s.io/apimachinery`; the MVS floor this sets for every embedder |
 | `library/MIGRATIONS.md` | Required entry per breaking change under the repo's `migration-guard` contract |
 | `opm-operator/internal/reconcile/moduleinstance.go` | `FinalizerName` (`:38`), registration (`:97`), `handleCLIOwned` (`:519`), `handleDeletion` (`:590`), the `spec.prune` branch (`:600`) |

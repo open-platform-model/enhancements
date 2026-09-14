@@ -39,7 +39,7 @@ Removed outright, in the same release that lands the replacement (no deprecation
 | `cli/pkg/resourceorder/`, `opm-operator/pkg/resourceorder/` | `library/opm/k8s/object` |
 | `cli/pkg/inventory/`, `cli/internal/inventory/{digest,stale}.go` | `library/opm/k8s/inventory` + `library/opm/k8s/ownership` |
 | `opm-operator/internal/inventory/` | `library/opm/k8s/inventory` |
-| `opm-operator/internal/apply/prune.go` | `library/opm/k8s/lifecycle` + `library/opm/helper/k8s/executor` |
+| `opm-operator/internal/apply/prune.go` | `library/opm/k8s/lifecycle` + a local loop performing the actions it names |
 | `cli/internal/inventory.ComputeRenderDigest` and its parity comment | `library/opm/k8s/inventory.RenderDigest` |
 | `cli/internal/inventory.ApplyComponentRenameSafetyCheck` | nothing: unnecessary by construction if OQ7 lands component-blind |
 

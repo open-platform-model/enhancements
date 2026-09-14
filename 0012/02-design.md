@@ -24,7 +24,7 @@ Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document
 - **Making the library a Kubernetes client library.** It does not grow kubeconfig handling, credential resolution, impersonation, informers, work queues, or a scheme registry.
 - **Adopting Flux SSA into the kernel.** `fluxcd/pkg/ssa` is the operator's staged-apply engine and must not become a CLI dependency. See the apply/delete asymmetry below.
 - **Owning the reconcile loop.** Watches, requeues, backoff, conditions, and events remain the operator's.
-- **Changing the render half.** `opm/compile/` is untouched; this is additive below the render line.
+- **Changing the render half.** `Kernel.Render` is untouched; this is additive below the render line.
 
 **Other entries' decisions**
 
@@ -33,45 +33,50 @@ Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document
 
 ## High-Level Approach
 
-Today the kernel stops at `[]*core.Compiled` and everything Kubernetes-shaped happens above it, twice. The question this entry answers is **how far past that line the kernel goes**. It is useful to name the rungs, because the answer is not "all the way" and the reason is specific.
+Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped happens above it, twice. The question this entry answers is **how far past that line the kernel goes**. It is useful to name the rungs, because the answer is not "all the way" and the reason is specific.
 
 ```
  ┌─────────────────────────────────────────────────────────────────────┐
- │ Rung 4   kernel owns the CR         types, status, conditions        │  ← 0008's territory
+ │ Rung 4   kernel owns the CR         types, status, conditions        │  <- 0008's territory
  ├─────────────────────────────────────────────────────────────────────┤
- │ Rung 3   kernel ACTS                executes a plan against a        │  ← behaviour actually
- │                                     caller-supplied object client    │     unified
+ │ Rung 3   kernel STEPS               advances a plan one action per   │  <- behaviour actually
+ │                                     call; the caller performs it     │     unified (ADR-008)
  ├─────────────────────────────────────────────────────────────────────┤
- │ Rung 2   kernel DECIDES             stale set, prune plan, ownership │  ← what D31 deleted
+ │ Rung 2   kernel DECIDES             stale set, prune plan, ownership │  <- what D31 deleted
  │                                     verdicts, deletion state machine │
  ├─────────────────────────────────────────────────────────────────────┤
- │ Rung 1   kernel EMITS               Compile → K8s objects + entries  │  ← kills the pkg/core
+ │ Rung 1   kernel EMITS               Render -> K8s objects + entries  │  <- kills the pkg/core
  │                                                                      │     duplication
  ├─────────────────────────────────────────────────────────────────────┤
- │ Rung 0   today                      Compile → []*core.Compiled       │
+ │ Rung 0   today                      Render -> []*kernel.Compiled     │
  └─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Rung 2 alone is what 0006 already reverted.** A package of pure helpers that nothing forces a frontend to call is precisely what D31 called "actively misleading… that nothing actually imports". The design goal "divergence becomes a compile error" is not met at Rung 2: a frontend can import the plan and then not follow it, which is exactly how the CLI came to lack a CRD exclusion the operator has.
 
-**Rung 3 is where behaviour is actually unified**, but it cannot be applied uniformly, because apply and delete are not symmetric:
+**Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the whole library: the kernel ships no loop that drives a plan to completion, and it names an action rather than performing one. What it supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
+
+That shape is what OQ1 was looking for. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
+
+Apply and delete remain asymmetric in how much of the sequence the kernel owns:
 
 ```
    DELETE                                    APPLY
-   ──────                                    ─────
-   order → get → guard → delete              operator: fluxcd/pkg/ssa
+   ------                                    -----
+   order -> get -> guard -> delete           operator: fluxcd/pkg/ssa
                                                        (staged, readiness waits,
    No framework opinion.                                CRD/Namespace first)
-   Expressible over apimachinery
-   plus a two-method interface.              cli:      its own SSA engine
-
-   ✅ kernel owns the execution              A framework opinion, and a heavy
+   The kernel owns the whole
+   sequence and names each action;           cli:      its own SSA engine
+   the caller performs it.
+                                             A framework opinion, and a heavy
                                              dependency the CLI must never inherit.
 
-                                             ❌ kernel owns the verdict only
+                                             The kernel owns the per-object
+                                             verdict only; the engine stays.
 ```
 
-So the proposed boundary is: **share every decision; share execution only where execution carries no framework opinion.** Deletion qualifies. Apply does not. The kernel computes apply verdicts (including the collision guard the operator lacks) and each frontend applies with its own engine.
+So the proposed boundary is: **share every decision; share the sequence only where it carries no framework opinion; never share the doing.** Deletion qualifies for the sequence. Apply does not. The kernel computes apply verdicts (including the collision guard the operator lacks) and each frontend applies with its own engine.
 
 That boundary is not a compromise around this entry's scope; it lands exactly on it. Deletion, ownership, and the finalizer protocol (0010's OQ10, corrected in `01-problem.md`) are the part of the pipeline with no framework opinion, and therefore the part the kernel can own outright.
 
@@ -96,10 +101,10 @@ Deletion becomes a kernel-owned state machine over inputs the kernel already und
    live object state          │                  │      each: Delete | Skip(reason)
                               └──────────────────┘
                                        │
-                                       ▼                        executes via
-                              ┌──────────────────┐              ObjectClient,
-                              │ MayReleaseHold() │──▶ verdict   or lets the kernel
-                              └──────────────────┘              executor walk it
+                                       ▼                        performs each
+                              ┌──────────────────┐              action itself,
+                              │ MayReleaseHold() │──▶ verdict   asking the kernel
+                              └──────────────────┘              for the next one
                                 Release | Hold(reason)
 ```
 
@@ -123,19 +128,18 @@ The Go package layout it implies, subject to OQ1 and OQ2:
 | `opm/k8s/object` | the terminal Kubernetes object; replaces both `pkg/core` copies; resource-order weights | `apimachinery` |
 | `opm/k8s/inventory` | `Entry`, one `ComputeStaleSet`, one `ComputeDigest`, one `RenderDigest` | `apimachinery` |
 | `opm/k8s/ownership` | `SafetyExcluded`, `CanDelete`, `CanApply`, `EligibleForOwnerRef` | `apimachinery` |
-| `opm/k8s/lifecycle` | hold name, `DeletionPlan`, `MayReleaseHold` | `apimachinery` |
-| `opm/helper/k8s/executor` | walks a plan against a caller-supplied `ObjectClient` (opt-in, helper tier) | `apimachinery` |
+| `opm/k8s/lifecycle` | hold name, `DeletionPlan`, `MayReleaseHold`, the plan transition and its serialisable state | `apimachinery` |
 
-`opm/helper/` is the established opt-in tier: a frontend may skip it and call the kernel directly. It is the right home for the one piece that touches a cluster.
+There is no executor package. Library ADR-008 forbids a loop that drives a plan to completion anywhere in the library, the opt-in tier included, so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
 
 ## Integration Points
 
 ### library
 
 - `opm/core/resource.go`, `opm/core/compiled.go`: the neutral `Resource`/`Identity` contract; deleted or retained-and-implemented per OQ3.
-- `opm/kernel/compile.go`, `opm/kernel/results.go`: `CompileResult` gains the Kubernetes-shaped output.
+- `opm/kernel`: `RenderResult` gains the Kubernetes-shaped output.
 - `opm/k8s/**`: new tier, per the table above.
-- `opm/helper/k8s/executor`: new, opt-in.
+- `opm/helper/`: nothing new. ADR-008 leaves no plan-walking helper to write.
 - `go.mod`: `k8s.io/apimachinery` added.
 - `CONSTITUTION.md` + `adr/`: Principle III/IV amendment and the ADR recording it.
 - `MIGRATIONS.md`: required if OQ3 lands as a deletion.
@@ -144,7 +148,7 @@ The Go package layout it implies, subject to OQ1 and OQ2:
 
 - `pkg/core/{labels,resource,convert,compiled_adapter}.go`, `pkg/resourceorder/`: deleted; kernel types used directly.
 - `internal/inventory/**`: deleted; kernel inventory used directly.
-- `internal/apply/prune.go`: collapses into the kernel plan plus the helper executor.
+- `internal/apply/prune.go`: collapses into the kernel plan plus a local loop that performs the actions it names.
 - `internal/apply/apply.go`: keeps Flux SSA; gains the kernel's apply verdicts (this is 0006 OQ16's fix).
 - `internal/reconcile/moduleinstance.go`: `handleDeletion` keeps the patches and impersonation, delegates the branching to `MayReleaseHold`.
 - `internal/render/module.go`: `buildInventoryEntries` becomes a kernel call.
@@ -152,7 +156,7 @@ The Go package layout it implies, subject to OQ1 and OQ2:
 ### cli
 
 - `pkg/core/**`, `pkg/inventory/**`, `pkg/resourceorder/**`: deleted; kernel types used directly.
-- `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the kernel plan plus the helper executor, gaining the CRD exclusion and the delete-time ownership guard.
+- `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the kernel plan plus a local loop that performs the actions it names, gaining the CRD exclusion and the delete-time ownership guard.
 - `internal/inventory/stale.go`: `ApplyComponentRenameSafetyCheck` deleted if OQ7 standardises on the component-blind comparator, which makes the post-filter unnecessary by construction.
 - `internal/kubernetes/delete.go`: the instance-delete walk becomes the kernel plan.
 - `internal/cmd/instance/delete.go`: unchanged in shape; the outcomes it reports become kernel-computed.

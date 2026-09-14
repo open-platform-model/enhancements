@@ -20,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-27"
-updated: "2026-09-08"
+updated: "2026-09-14"
 authors:
   - emil@jacero.se
 history:
@@ -49,6 +49,8 @@ history:
     event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
   - date: "2026-09-08"
     event: Category set to runtime, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
+  - date: "2026-09-14"
+    event: "Refreshed against library ADR-008: Rung 3 is a caller-driven transition, the plan-walking helper is dropped, OQ2 answered, OQ1 and OQ10 narrowed. Stale Compile-era citations fixed."
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
