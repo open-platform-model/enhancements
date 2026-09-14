@@ -16,6 +16,11 @@ log:
       library reads the contract inventory off a built platform (Contracts accessor), names the defining catalog on unresolved-demand rows, pins core alpha.9
     change: { kind: openspec, repo: library, change: read-contract-inventory }
     decisions: [D1, D2, D18]
+  - date: "2026-09-14"
+    summary: >-
+      catalog_opm: both first-party catalogs list every member in #resources/#traits/#blueprints (opm 11/26/5, k8s 29) on core alpha.9, with task vet:listing keeping the listing complete
+    change: { kind: openspec, repo: catalog, change: catalog-contract-listing }
+    decisions: [D1]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
