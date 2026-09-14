@@ -21,6 +21,10 @@ log:
       catalog_opm: both first-party catalogs list every member in #resources/#traits/#blueprints (opm 11/26/5, k8s 29) on core alpha.9, with task vet:listing keeping the listing complete
     change: { kind: openspec, repo: catalog, change: catalog-contract-listing }
     decisions: [D1]
+  - date: "2026-09-14"
+    summary: >-
+      catalog_opm: the backup@v1alpha1 policy trait and its PVC volume-name label, the first provider-fulfilled contract in any catalog and the one 0015's k8up proof consumes (opm 4.2.0); claims no decision
+    change: { kind: openspec, repo: catalog, change: backup-traits-alpha }
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
