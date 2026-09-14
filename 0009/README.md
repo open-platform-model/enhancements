@@ -1,12 +1,12 @@
 # Enhancement 0009: Operational Primitives: Op, Action, Lifecycle, Workflow
 
-This entry gives OPM a second kernel half, a pure planner and orchestrator over four new primitives, so a module can carry operational intent (install/upgrade hooks, migrations, on-demand operations) alongside what it renders.
+This entry gives OPM a second kernel half, a pure planner over four new primitives, so a module can carry operational intent (install/upgrade hooks, migrations, on-demand operations) alongside what it renders.
 
 See [`config.yaml`](config.yaml) for the metadata contract; it is the sole source of metadata, and no parallel metadata table lives in this README.
 
 ## Summary
 
-OPM can render declarative modules to Kubernetes but cannot describe what should happen: install/upgrade hooks, migrations, on-demand operations. This enhancement adds a second half to the kernel that interprets the same `#Module` for execution. Four operational primitives land in `core`: `#Op` (a controlled smallest-denominator primitive), `#Action` (compositions over Ops), `#Lifecycle` (steps bound to fixed state-transition phases), and `#Workflow` (on-demand flows). The library acts as a pure planner and orchestrator; the executable code is pluggable and catalog-sourced, dispatched via CUE attributes, so operations are as extensible as transformers already are. Composition never re-imports Helm's "arbitrary script as a hook" failure mode.
+OPM can render declarative modules to Kubernetes but cannot describe what should happen: install/upgrade hooks, migrations, on-demand operations. This enhancement adds a second half to the kernel that interprets the same `#Module` for execution. Four operational primitives land in `core`: `#Op` (a controlled smallest-denominator primitive), `#Action` (compositions over Ops), `#Lifecycle` (steps bound to fixed state-transition phases), and `#Workflow` (on-demand flows). The library plans and advances one step per call while the caller runs the loop and performs every action; the executable code is pluggable and catalog-sourced, dispatched via CUE attributes, so operations are as extensible as transformers already are. Composition never re-imports Helm's "arbitrary script as a hook" failure mode.
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
@@ -21,7 +21,7 @@ The seven split documents below are mandatory and always present. Add optional
 documents (e.g. `experiments/`) only when a specific need surfaces.
 
 1. [01-problem.md](01-problem.md): OPM renders but cannot execute operations; side scripts and Helm-style hooks are the anti-pattern
-2. [02-design.md](02-design.md): A second kernel half (planner + orchestrator) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
+2. [02-design.md](02-design.md): A second kernel half (a planner the caller drives) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
 3. [03-decisions.md](03-decisions.md): Decision log
 4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
 5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
@@ -40,14 +40,14 @@ solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 ### In scope
 
 - The four operational constructs in `core`: `#Op`, `#Action`, `#Lifecycle`, `#Workflow`, plus the `@op(...)` dispatch-attribute convention and additive `#ops` / `#actions` maps on `#Catalog`.
-- The execution half of the library kernel: a pure planner + orchestrator (`opm/flow/`) and the opt-in executor backend layer with its registry and fail-fast-on-unsupported behavior.
+- The execution half of the library kernel: a pure planner plus a one-step-per-call advance verb (D3), and the opt-in executor backend layer with its registry and fail-fast-on-unsupported behavior.
 - The initial Op vocabulary (`exec`, `http` full-CRUD, `wait`, `cue.eval`, k8s get/apply) as catalog-published definitions.
 - Frontend wiring: CLI and operator each composing their backend set; operator driving `#Lifecycle` phases from the reconcile loop.
-- The kernel's cancellation path: designed and wired by this entry, untouched by any other change until it lands (D9). The injection surface the planner and runner need (the kernel's write-only logger, tracer and clock slots were removed; revised D9), introduced with its first reader.
+- The kernel's cancellation path: designed and wired by this entry, untouched by any other change until it lands (D9). The injection surface the planner needs (the kernel's write-only logger, tracer and clock slots were removed; revised D9), introduced with its first reader.
 
 ### Out of scope
 
-- Any change to the render half (`opm/compile/`): execution is purely additive.
+- Any change to the render half: execution is purely additive.
 - A general-purpose scripting language for operations; composition of a closed primitive set is intentional.
 - The meta-controller toolkit (OQ5): a north-star the architecture must allow, not a v1 deliverable; likely a follow-up enhancement.
 - Final production implementations of every executor backend; artifact form is still under decision (OQ1).
@@ -151,9 +151,10 @@ deliberate divergences from the design need to be documented. The validator
 | `core/src/catalog.cue` | `#Catalog` shape the additive `#ops` / `#actions` maps extend |
 | `core/src/transformer.cue` | Render-half transformer/matcher pattern the execution half parallels |
 | `library/CLAUDE.md`, `library/CONSTITUTION.md` | Kernel neutrality (Principle I) and the `kernel` vs `helper` boundary the planner/executor split honors |
-| `library/opm/compile/` | The render half (`finalize → match → execute → emit`) the new `opm/flow/` half parallels |
-| `library/opm/helper/loader/` | Existing opt-in I/O layer that `helper/executor/` mirrors |
-| `library/opm/materialize/` | Catalog pull/compose machinery the op artifacts ride on |
+| `library/opm/kernel/` | The render half (acquire, then one CUE build that matches and executes) the execution half parallels |
+| `library/opm/helper/` | The opt-in tier, and the fence a frontend may skip, that the executor backends would join |
+| `library/opm/platform/` | The platform artifact whose `#registry` resolves catalogs, the rails the op artifacts ride on |
+| `library/adr/008-kernel-plans-caller-runs.md` | The library's boundary rule this entry's D3 records: the kernel decides, the caller loops and acts |
 | `catalog_opm/CLAUDE.md`, `catalog_opm/src/catalog.cue` | Where the initial Op/Action definitions and artifacts are published (no `#Area` token; tracked in prose) |
 | https://hofstadter.io/getting-started/task-engine/ | Prior art for the attribute-dispatch (`@task`) model adapted here |
 

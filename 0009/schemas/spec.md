@@ -192,7 +192,7 @@ Sketch only (`#ModuleOperationalSketch` in `target.cue`; field names and placeme
 
 ### Definition
 
-`#Catalog` gains additive sibling maps for operational members, alongside the existing `#transformers`: `#ops` for Op definitions and `#actions` for published Actions. Distribution rides the existing `#Catalog` / `#Platform.#registry` / `materialize` rails — no parallel pipeline (D6). `target.cue` carries this as the `#CatalogOperationalSketch`; the real constraint mirrors `#transformers`' modulePath/version stamping in `core/src/catalog.cue`.
+`#Catalog` gains additive sibling maps for operational members, alongside the existing `#transformers`: `#ops` for Op definitions and `#actions` for published Actions. Distribution rides the existing `#Catalog` and `#Platform.#registry` rails — no parallel pipeline (D6). `target.cue` carries this as the `#CatalogOperationalSketch`; the real constraint mirrors `#transformers`' modulePath/version stamping in `core/src/catalog.cue`.
 
 ### Shape
 

@@ -14,11 +14,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Kind:** contract
 
-**Decision:** The kernel grows a parallel *execution half* that consumes the same `#Module` as the render half (`opm/compile/`) and produces ordered flow execution rather than resources. One input, two interpreters.
+**Decision:** The kernel grows a parallel *execution half* that consumes the same `#Module` as the render half and produces an ordered plan rather than resources. One input, two interpreters.
 
 **Alternatives considered:**
 
-- Render operations as resources through the existing transformer pipeline (operations as Jobs emitted by `opm/compile/`): rejected: it overloads the render half with sequencing/ordering semantics it has no model for, and conflates "what must exist" with "what must happen."
+- Render operations as resources through the existing transformer pipeline (operations as Jobs emitted by the render half): rejected: it overloads the render half with sequencing/ordering semantics it has no model for, and conflates "what must exist" with "what must happen."
 - A separate tool outside the kernel: rejected: the CLI and operator both need it, and the kernel is the shared runtime they embed.
 
 **Rationale:** Mirrors the clean separation already in the codebase. Rendering stays untouched; execution is additive and reuses the same parsed `#Module`.
@@ -40,25 +40,29 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Source:** User decision 2026-06-29.
 
-### D3: The library is a pure planner + orchestrator; side effects live behind injected executors
+### D3: The library plans and advances one step per call; the caller runs the loop and performs every action
 
 **Kind:** contract
 
-**Decision:** The execution half (`opm/flow/`) plans flows into an ordered DAG and sequences them, but performs no side effects itself. Actual execution happens behind an `Executor` interface whose implementations the frontend injects.
+**Decision:** The execution half plans a flow into an ordered graph and advances it one step per call: given a plan and a state value it returns the next state and the action the caller is to perform. It runs no loop, holds no run state between calls, and performs no side effects. The caller drives the loop, performs each action through an executor backend it registered, and owns the state, which MUST survive serialisation so a controller can carry it across reconciles. Every decision about what happens next stays in the library: which steps are eligible, in what order, what counts as a step being satisfied, what a failure does, and when a phase and a plan are complete.
 
 **Alternatives considered:**
 
+- The library sequences the flow itself, walking the graph to completion behind an injected executor port (previously adopted, 2026-06-29). Reversed on revision: a loop that blocks on a wait step is a process model, which Principle I forbids the library to assume, and a controller reconcile is level-triggered and must return promptly, so it could never call that loop. The operator would have kept the plan, ignored the sequencer and written its own resumable walk, reproducing below the plan the duplication this entry exists to prevent above it.
 - An imperative engine in the kernel that runs containers / shells out directly: rejected: violates Principle I (kernel neutrality forbids shell invocation, `os.Exit`, non-determinism) and couples the kernel to a runtime environment.
+- A plan the library emits once, leaving each frontend to write its own walk: rejected: it puts the sequencing rules in two places, and a rule with two homes drifts silently. The render half already shows the pattern, where apply ordering was lost in one frontend and nothing failed.
 
-**Rationale:** Same discipline that keeps the render half clean: it emits `*core.Compiled` and never applies. The execution half emits/sequences a plan and never executes; the frontend executes. Makes lifecycle hooks convergent rather than fire-and-forget.
+**Rationale:** Same discipline that keeps the render half clean: it emits compiled output and never applies. The execution half decides and never acts. Advancing one step at a time is what makes one set of decisions usable by both frontends: a one-shot CLI invocation calls it in a loop, and a controller calls it once per reconcile with the state carried in the instance it owns. It also makes cancellation free, which matters because OQ6 measures that cancellation can never reach a running CUE evaluation anyway.
 
-**Source:** User decision 2026-06-29.
+**Source:** User decision 2026-06-29; narrowed by user decision 2026-09-14, recorded as library ADR-008.
+
+**Revised:** 2026-09-14, the sequencing loop moves from the library to the caller and the caller owns the run state; what the library decides is unchanged.
 
 ### D4: Executor backends ship in the library's opt-in layer; frontends compose them à la carte
 
 **Kind:** contract
 
-**Decision:** The generic executor backend *hosts* live under `opm/helper/executor/` (opt-in, like `helper/loader/`). Frontends build a `Registry` from only the backends they want. The runner validates the plan against the registry up front; a step whose backend is unregistered fails fast before any execution.
+**Decision:** The generic executor backend *hosts* ship in the library's opt-in tier, the boundary a frontend may skip. Frontends build a `Registry` from only the backends they want, and the whole plan is checked against that registry before the first action: a step whose backend is unregistered fails fast, before anything runs.
 
 **Alternatives considered:**
 
@@ -88,7 +92,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Kind:** policy
 
-**Decision:** The actual code an Op runs is not compiled into the library. It is a pluggable artifact located by the `@op(...)` attribute's `ref`, distributed through the existing `#Catalog` / `#Platform.#registry` / `materialize` machinery. `core`'s `#Catalog` gains additive `#ops` / `#actions` maps alongside `#transformers`.
+**Decision:** The actual code an Op runs is not compiled into the library. It is a pluggable artifact located by the `@op(...)` attribute's `ref`, distributed through the existing `#Catalog` and `#Platform.#registry` machinery. `core`'s `#Catalog` gains additive `#ops` / `#actions` maps alongside `#transformers`.
 
 **Alternatives considered:**
 
@@ -131,17 +135,19 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Kind:** scope
 
-**Decision:** The cancellation path (a caller's context reaching phase boundaries and registry I/O) is this entry's to design and deliver; until this entry lands it stays as it is, and no other change threads or wires it. The three dependency-injection slots the kernel accepted (logger, tracer, clock) are removed now as write-only surface, in a library change this entry does not carry. This entry introduces the injection surface the planner and runner actually need together with their first reader, in whatever shape that reader dictates, not as a restoration of the removed symbols.
+**Decision:** The cancellation path (a caller's context reaching phase boundaries and registry I/O) is this entry's to design and deliver; until this entry lands it stays as it is, and no other change threads or wires it. Under the one-step-per-call shape (D3) a caller cancels between steps by not calling again, so what remains to design is cancellation inside a single advance, which reaches a registry fetch and nothing else. The three dependency-injection slots the kernel accepted (logger, tracer, clock) are removed now as write-only surface, in a library change this entry does not carry. This entry introduces the injection surface the planner actually needs together with its first reader, in whatever shape that reader dictates, not as a restoration of the removed symbols.
 
 **Alternatives considered:**
 
 - Keep the three slots reserved for this entry, accepted and unread, until the execution half lands (previously adopted, 2026-08-30). Reversed on revision: the kernel carried a write-only option surface whose only effect was to suggest an observability story that did not exist, and the tracer slot alone kept an external tracing dependency direct; the churn argument undervalued the cost of a misleading public surface with one workspace-internal consumer to migrate.
-- Thread cancellation through the kernel as a standalone library change ahead of this entry. Rejected: a cancellation path needs a consumer with a cancellation story, and the runner is the first one; designing it beside the executor port keeps one model across both halves.
+- Thread cancellation through the kernel as a standalone library change ahead of this entry. Rejected: a cancellation path needs a consumer with a cancellation story, and the execution half is the first one; designing it beside the executor port keeps one model across both halves.
 
-**Rationale:** Measured in the library kernel review: the kernel discards the caller's context on most entry points, and the context never reaches a registry fetch because CUE's loader substitutes its own before loading; the logger, tracer and clock slots had no reader since they were added. The planner and runner are the first kernel surface that needs cancellation, logs, spans and time. A lifecycle phase blocks on wait steps and registry pulls, and step-level spans are where an operator reads progress, so the execution half is where an injection surface first earns its existence, shaped by its first reader rather than reserved ahead of it. See OQ6 for the measured limit on how far cancellation can reach.
+**Rationale:** Measured in the library kernel review: the kernel discards the caller's context on most entry points, and the context never reaches a registry fetch because CUE's loader substitutes its own before loading; the logger, tracer and clock slots had no reader since they were added. The planner is the first kernel surface that needs cancellation, logs and spans. A lifecycle phase waits on conditions and registry pulls, and step-level spans are where an operator reads progress, so the execution half is where an injection surface first earns its existence, shaped by its first reader rather than reserved ahead of it. A clock is no longer among them: under D3 the caller holds the loop and therefore the waiting. See OQ6 for the measured limit on how far cancellation can reach.
 
 **Source:** User decision 2026-08-30, from the library kernel review.
 
 **Revised:** 2026-09-01, reserved-slots half reversed by user decision: slots removed now, re-introduced by this entry with their first reader; cancellation half unchanged.
+
+**Revised:** 2026-09-14, cancellation between steps becomes a property of D3's shape rather than a mechanism to design; what is left to design is cancellation inside one advance.
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

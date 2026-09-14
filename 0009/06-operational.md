@@ -12,7 +12,7 @@ New error kinds in `library` for the execution half: plan-resolution errors (mal
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-`core`: additive (four new constructs plus additive `#Catalog` maps). No existing definition is removed or tightened, so it is a minor schema change on `opmodel.dev/core@v1` (confirm at accept). `library`: additive Go surface (new `opm/flow/` package, new `Kernel` methods, new opt-in `helper/executor/` packages); existing render-half signatures are untouched. `catalog_opm`: additive (new Op/Action definitions). Shipping order is core → library → catalog_opm → (cli, opm-operator); each downstream re-pins the published core/catalog versions.
+`core`: additive (four new constructs plus additive `#Catalog` maps). No existing definition is removed or tightened, so it is a minor schema change on `opmodel.dev/core@v1` (confirm at accept). `library`: additive Go surface (plan types, a planner, the advance verb, the executor port, and opt-in backend hosts); existing render-half signatures are untouched. `catalog_opm`: additive (new Op/Action definitions). Shipping order is core → library → catalog_opm → (cli, opm-operator); each downstream re-pins the published core/catalog versions.
 
 ## Deprecation
 
@@ -31,6 +31,6 @@ The execution half is opt-in at two levels: a `#Module` without `#Lifecycle` / `
 **Which repos must coordinate, and in what order?**
 
 1. `core` publishes the four constructs + `#Catalog` extension (with `SPEC.md`); emits a new `opmodel.dev/core@v1` version.
-2. `library` adopts the new schema paths, implements `opm/flow/` and the backend layer; consumes the new core version.
+2. `library` adopts the new schema paths, implements the planner, the advance verb and the backend layer; consumes the new core version.
 3. `catalog_opm` publishes the initial Op/Action definitions and artifacts against the new core; emits a new catalog version.
 4. `cli` and `opm-operator` re-pin core + catalog, register their backend sets, and wire invocation (CLI workflows + lifecycle; operator lifecycle from reconcile). The operator and CLI may land independently of each other.

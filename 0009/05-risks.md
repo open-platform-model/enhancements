@@ -8,7 +8,7 @@ Risks describe what could go wrong; Drawbacks describe what definitely costs som
 
 - **Pluggable, remotely-loaded executable artifacts are a supply-chain and trust surface.** An `@op(ref=…)` pointing at a wasm/OCI artifact pulls and runs third-party code. **Mitigation:** artifact form (OQ1) should favor sandboxed execution (wasm) for the default; backends are frontend-registered so an environment can refuse classes of execution; pinning/version + provenance ride the same registry trust model as catalog transformers. Needs explicit treatment in `06-operational.md` once OQ1 lands.
 
-- **Kernel neutrality erosion.** Pressure to "just run it here" could leak side effects into the planner. **Mitigation:** the `opm/flow/` planner/runner must stay I/O-free with the `Executor` interface the only egress; enforced by the same review discipline as the render half and Principle I.
+- **Kernel neutrality erosion.** Pressure to "just run it here" could leak side effects into the planner. **Mitigation:** the planner and the advance verb must stay I/O-free with the `Executor` interface the only egress; enforced by the same review discipline as the render half, by Principle I, and by library ADR-008.
 
 - **Lifecycle hooks behave non-convergently under reconcile.** If phase steps are treated as fire-and-forget, the operator re-runs them every reconcile. **Mitigation:** lean on convergent executors and completion records (OQ3 design); `#Workflow` (the genuinely non-idempotent case) is on-demand and separated from the reconcile path.
 
@@ -24,6 +24,6 @@ Risks describe what could go wrong; Drawbacks describe what definitely costs som
 
 ## Alternatives
 
-- **Render operations as resources through the existing transformer pipeline.** Operations become Jobs emitted by `opm/compile/`. **Why not:** the render half has no sequencing/ordering model and conflates "what exists" with "what happens" (D1).
+- **Render operations as resources through the existing transformer pipeline.** Operations become Jobs emitted by the render half. **Why not:** the render half has no sequencing/ordering model and conflates "what exists" with "what happens" (D1).
 - **Compile op implementations into the library (hof.io model).** **Why not:** every new operation needs a library release; the system must be pluggable and catalog-sourced (D6).
 - **Adopt Helm-style hooks.** **Why not:** arbitrary script as a hook is the exact maintainability failure this enhancement exists to avoid.

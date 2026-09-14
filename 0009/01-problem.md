@@ -4,9 +4,9 @@ OPM can describe what must exist but not what should happen, and this enhancemen
 
 ## Current State
 
-OPM today is a *rendering* system. The kernel takes a declarative `#Module` (Resources, Traits, Blueprints composed into Components), matches each Component against the transformers a `#Platform` subscribes to, and emits platform-native resources. In the library this is the `opm/compile/` half of the kernel: `finalize → match → execute → emit`, producing `[]*core.Compiled`. The schema describes *what must exist*; the pipeline turns it into Kubernetes manifests.
+OPM today is a *rendering* system. The kernel takes a declarative `#Module` (Resources, Traits, Blueprints composed into Components), matches each Component against the transformers a `#Platform` subscribes to, and emits platform-native resources. In the library this is the render half of the kernel: match, then execute the matched transformers, then emit the rendered objects. The schema describes *what must exist*; the pipeline turns it into Kubernetes manifests.
 
-That covers the declarative side completely. Every concern OPM models has a primitive: `#Resource` ("what must exist"), `#Trait` ("how it behaves"), `#Blueprint` ("what the reusable pattern is"). The render pipeline is pluggable along its whole length: transformers are not hardcoded in the kernel, they live in catalogs (`catalog_opm`, published as `opmodel.dev/catalogs/opm@v1`) and are pulled and composed at runtime through `#Platform.#registry` + `materialize`.
+That covers the declarative side completely. Every concern OPM models has a primitive: `#Resource` ("what must exist"), `#Trait` ("how it behaves"), `#Blueprint` ("what the reusable pattern is"). The render pipeline is pluggable along its whole length: transformers are not hardcoded in the kernel, they live in catalogs (`catalog_opm`) and are pulled and composed at render time through a platform's `#registry`.
 
 ## Gap / Pain
 
@@ -27,7 +27,7 @@ A module author ships an app that needs a schema migration applied after the dat
 
 Today, this is not expressible in OPM. The author writes a `migrate-job.yaml` by hand (pinned to one cluster's shape), documents the seed step as a `kubectl exec` runbook in the README, and hopes the next operator runs them in the right order. None of it is validated, none of it is reusable by the next module, and the platform team cannot see or constrain what these steps do.
 
-What the author *should* be able to write is a typed flow composed from primitives OPM controls (a `wait` Op, then a migration `Action`, bound to the `pre-upgrade` lifecycle phase) and a separate on-demand `Workflow` for the seed step. The same `#Module` that renders to Kubernetes would also carry its operational intent, and the kernel would plan and orchestrate it the same way it already plans and renders resources.
+What the author *should* be able to write is a typed flow composed from primitives OPM controls (a `wait` Op, then a migration `Action`, bound to the `pre-upgrade` lifecycle phase) and a separate on-demand `Workflow` for the seed step. The same `#Module` that renders to Kubernetes would also carry its operational intent, and the kernel would plan it the same way it already plans and renders resources.
 
 ## User Stories
 
