@@ -35,6 +35,11 @@ log:
       Cluster-scoped TransformerRegistration CRD, its admission validation, and the unbound platform-admin ClusterRole that gates who may create a claim
     change: { kind: openspec, repo: opm-operator, change: transformer-registration-crd }
     decisions: [D3, D12]
+  - date: "2026-09-15"
+    summary: >-
+      opm platform check reports a platform's contract inventory; routability alone decides the exit status
+    change: { kind: openspec, repo: cli, change: platform-check-command }
+    decisions: [D1, D2, D18]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
