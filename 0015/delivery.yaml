@@ -34,7 +34,13 @@ log:
     summary: >-
       Cluster-scoped TransformerRegistration CRD, its admission validation, and the unbound platform-admin ClusterRole that gates who may create a claim
     change: { kind: openspec, repo: opm-operator, change: transformer-registration-crd }
-    decisions: [D3, D12]
+    # No decision claimed. Both were over-claimed, and the change's own
+    # proposal says so: its "Not in this change" list names "acceptance (D3's
+    # three checks, D8, D10, D11)" and "the activation health gate and
+    # finalizer (D3, D16)". D12 likewise puts the duplicate refusal AT
+    # ACCEPTANCE in its decision statement, not in a supporting bullet; the
+    # CRD constrains the name, nothing refuses a second claim.
+    # registration-acceptance claims both when it completes them.
   - date: "2026-09-15"
     summary: >-
       opm platform check reports a platform's contract inventory; routability alone decides the exit status
