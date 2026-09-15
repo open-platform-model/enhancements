@@ -142,7 +142,7 @@ import "list"
 	}
 
 	output: {
-		apiVersion: "opm.opmodel.dev/v1alpha1"
+		apiVersion: "opmodel.dev/v1alpha1"
 		kind:       "TransformerRegistration"
 		metadata: name: "\(#instance.namespace).\(#instance.name)" // D12
 		spec: {
