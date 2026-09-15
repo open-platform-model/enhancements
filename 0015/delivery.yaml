@@ -40,6 +40,11 @@ log:
       opm platform check reports a platform's contract inventory; routability alone decides the exit status
     change: { kind: openspec, repo: cli, change: platform-check-command }
     decisions: [D1, D2, D18]
+  - date: "2026-09-15"
+    summary: >-
+      library gains the Catalog acquired kind: opm/catalog with Provides/Requires, two kernel acquire verbs, and the loader shape gate
+    change: { kind: openspec, repo: library, change: acquire-catalog-artifact }
+    decisions: [D10, D11]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
