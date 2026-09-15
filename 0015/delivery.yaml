@@ -70,6 +70,11 @@ log:
       the TransformerRegistration acceptance reconciler: a claim is refused unless its artifact is a catalog, its provides re-derives exactly, no other claim holds the provider, and its build fits the platform's resolution
     change: { kind: openspec, repo: opm-operator, change: registration-acceptance }
     decisions: [D8, D10, D12]
+  - date: "2026-09-15"
+    summary: >-
+      Derive a provider catalog's registration provides from its own transformers
+    change: { kind: openspec, repo: catalog, change: derive-registration-provides }
+    decisions: [D11]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
