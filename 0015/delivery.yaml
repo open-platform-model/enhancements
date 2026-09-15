@@ -30,6 +30,11 @@ log:
       catalog_opm: the transformer-registration@v1alpha1 contract and the transformer rendering the cluster-scoped CR, with D12's dot-joined name and D11's stamped providerRef (opm 4.3.0); acceptance and the CRD are the operator's
     change: { kind: openspec, repo: catalog, change: transformer-registration-contract }
     decisions: [D9]
+  - date: "2026-09-15"
+    summary: >-
+      Cluster-scoped TransformerRegistration CRD, its admission validation, and the unbound platform-admin ClusterRole that gates who may create a claim
+    change: { kind: openspec, repo: opm-operator, change: transformer-registration-crd }
+    decisions: [D3, D12]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
