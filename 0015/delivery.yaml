@@ -25,6 +25,11 @@ log:
     summary: >-
       catalog_opm: the backup@v1alpha1 policy trait and its PVC volume-name label, the first provider-fulfilled contract in any catalog and the one 0015's k8up proof consumes (opm 4.2.0); claims no decision
     change: { kind: openspec, repo: catalog, change: backup-traits-alpha }
+  - date: "2026-09-15"
+    summary: >-
+      catalog_opm: the transformer-registration@v1alpha1 contract and the transformer rendering the cluster-scoped CR, with D12's dot-joined name and D11's stamped providerRef (opm 4.3.0); acceptance and the CRD are the operator's
+    change: { kind: openspec, repo: catalog, change: transformer-registration-contract }
+    decisions: [D9]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
