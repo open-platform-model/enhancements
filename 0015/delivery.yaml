@@ -61,7 +61,10 @@ log:
     summary: >-
       TransformerRegistration renders in the operator's flat opmodel.dev API group
     change: { kind: openspec, repo: catalog, change: correct-registration-api-group }
-    decisions: [D9]
+    # No decision claimed. The change's own proposal says it "corrects the
+    # group that slice emitted; it implements no new decision". D9 was
+    # delivered by transformer-registration-contract above and is claimed
+    # there; a bug fix to a delivered decision is logged, not re-claimed.
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
