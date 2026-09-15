@@ -75,6 +75,11 @@ log:
       Derive a provider catalog's registration provides from its own transformers
     change: { kind: openspec, repo: catalog, change: derive-registration-provides }
     decisions: [D11]
+  - date: "2026-09-15"
+    summary: >-
+      Platform package is a function of the spec plus the active-claim set, held one per identity, with the effective registry on Platform status
+    change: { kind: openspec, repo: opm-operator, change: 2026-09-15-registration-driven-regeneration }
+    decisions: [D13, D17]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
