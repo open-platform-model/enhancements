@@ -57,6 +57,11 @@ log:
     # the reconciler re-deriving provides and verifying exact equality, plus
     # catalog_opm's #PreBoundRegistration fold, which is still authored.
     # registration-acceptance claims both when it completes them.
+  - date: "2026-09-15"
+    summary: >-
+      TransformerRegistration renders in the operator's flat opmodel.dev API group
+    change: { kind: openspec, repo: catalog, change: correct-registration-api-group }
+    decisions: [D9]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
