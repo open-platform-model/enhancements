@@ -85,6 +85,11 @@ log:
       A finalizer blocks deleting a TransformerRegistration while instances demand contracts it provides, counted from each instance's recorded contract demand
     change: { kind: openspec, repo: opm-operator, change: registration-removal-guard }
     decisions: [D3]
+  - date: "2026-09-16"
+    summary: >-
+      Refuse a provider upgrade whose re-rendered claim drops a still-demanded contract, in the operator's own apply path
+    change: { kind: openspec, repo: opm-operator, change: 2026-09-16-registration-shrink-refusal }
+    decisions: [D16]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
