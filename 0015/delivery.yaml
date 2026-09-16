@@ -98,6 +98,12 @@ log:
       Refuse a provider upgrade whose re-rendered claim drops a still-demanded contract, in the operator's own apply path
     change: { kind: openspec, repo: opm-operator, change: registration-shrink-refusal }
     decisions: [D16]
+  - date: "2026-09-16"
+    summary: >-
+      core reports comparable transformer predicates and discriminated on #ContractInventory
+    change: { kind: openspec, repo: core, change: comparable-predicate-guard }
+    decisions: [D5]
+    resolves: [OQ9]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
