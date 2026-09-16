@@ -77,8 +77,16 @@ log:
     decisions: [D11]
   - date: "2026-09-15"
     summary: >-
+      An accepted claim activates when its provider instance reports Ready, and the activation latches against later health regressions
+    change: { kind: openspec, repo: opm-operator, change: registration-activation }
+    # No decision claimed. D3 spans this change and the finalizer, and
+    # registration-removal-guard is the one that completes it. D2's acceptance
+    # arm lands here, but D2 is already covered by the contract-inventory
+    # entries above, so claiming it again would duplicate rather than complete.
+  - date: "2026-09-15"
+    summary: >-
       Platform package is a function of the spec plus the active-claim set, held one per identity, with the effective registry on Platform status
-    change: { kind: openspec, repo: opm-operator, change: 2026-09-15-registration-driven-regeneration }
+    change: { kind: openspec, repo: opm-operator, change: registration-driven-regeneration }
     decisions: [D13, D17]
   - date: "2026-09-16"
     summary: >-
@@ -88,7 +96,7 @@ log:
   - date: "2026-09-16"
     summary: >-
       Refuse a provider upgrade whose re-rendered claim drops a still-demanded contract, in the operator's own apply path
-    change: { kind: openspec, repo: opm-operator, change: 2026-09-16-registration-shrink-refusal }
+    change: { kind: openspec, repo: opm-operator, change: registration-shrink-refusal }
     decisions: [D16]
 no_work:
   D4: >-
