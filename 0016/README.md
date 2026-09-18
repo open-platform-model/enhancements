@@ -1,6 +1,6 @@
 # Enhancement 0016: Initialize a Module Instance Package from a Published Module
 
-Deploying a published OPM module means writing a small CUE package by hand: a module file with the right pins, an instance file wiring the module to OPM's core, and a values file. Nothing generates that today, so people copy an example and edit until validation stops complaining. This entry adds a command that writes all three.
+Deploying an OPM module means hand-writing a small CUE package: a module file with the right pins, an instance file wiring it to core, and a values file. Nothing generates it today, so people copy and edit an example until it validates. This entry adds a command that fetches the module and writes all three. The result builds untouched.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -8,11 +8,11 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The command (D1).** `opm instance init` fetches the named module through the existing registry path and writes a three-file package the load path already accepts. It uses the real module, never a template, so every pin and import comes from what the module declares.
 
-**Version selection mirrors the author-side scaffolder (D5).** `--version` either floats within a major or pins an exact release. Omit it and the command takes the newest release of the highest major whose core dependency matches this CLI's core major, naming every higher major it skipped. A failed run leaves no directory behind.
+**Version selection mirrors the author-side scaffolder (D5).** The module path is given without a major, and `--version` either floats within a major or pins an exact release. Omit it and the command walks majors from highest to lowest, taking the newest release of the first major whose core dependency matches this CLI's core major, and names every higher major it skipped with the reason. A failed run leaves no directory behind, so a retry is never blocked by leftovers.
 
-**The values file comes from the author when the author said so.** The core module definition gains one optional field holding the values a fresh package starts from (D3), open and unchecked against the module's config (D4). The command prefers it, falls back to the module's debug values (D2), and otherwise writes an empty block with a warning (D6).
+**The values file comes from the author when the author said so.** The core module definition gains one optional field holding the values a fresh package starts from (D3), open and unchecked against the module's config (D4). The command prefers it, falls back to the module's debug values (D2), and otherwise writes an empty block with a warning (D6), always naming the source it used. Because the field is unchecked, it renders as the author wrote it: a defaulted field as its default, an undefaulted choice as the choice, an optional field omitted.
 
-**What the command does not do.** It does not validate what it wrote (D8); the report ends by naming the vet command. The renderer lives in the CLI and the kernel library ships nothing (D7). The generated module file pins the exact resolved version and carries a complete dependency set so the package builds offline (D9).
+**What the command does not do.** It does not validate what it wrote (D8); the report ends by naming the vet command. The renderer lives in the CLI and the kernel library ships nothing (D7). The generated module file pins the exact resolved version, takes core at the major the module itself depends on, carries a complete dependency set so the package builds offline, and gives the package a local, never-published path (D9).
 
 ## How it works
 

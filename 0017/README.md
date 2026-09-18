@@ -8,13 +8,13 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Each layer fails differently today.** Trait schemas do not know which Kubernetes kind will carry a field, so they cannot default. Blueprints force every composed field present. Config defaults cancel against any second default. A transformer's fallback is dead code, because the field it guards is never absent.
 
-**One job per layer.** Resource and trait schemas publish bounds and never mark a default (D2). The blueprint is the only catalog-side defaulting layer (D3): one marked default per field, always on a leaf. The author defaults in the config schema, and the kernel turns those into plain values before composition (D4). Transformers keep per-kind fallbacks keyed on absence, reachable now that core honours a trait being optional (D5).
+**One job per layer.** Resource and trait schemas publish bounds and never mark a default (D2). The blueprint is the only catalog-side defaulting layer (D3): it may narrow a composed field to what its target kind accepts, and marks at most one default per field, always on a leaf and never on a whole struct. The author defaults in the config schema, and the kernel turns those into plain values before composition (D4). Transformers keep per-kind fallbacks keyed on absence, reachable now that core honours a trait being optional (D5): an optional trait constrains a field without forcing it present, and a trait that says neither fails loudly instead of being silently required.
 
 **The order falls out of CUE, it is not declared (D1).** Instance values beat config defaults, which beat blueprint defaults, which beat transformer fallbacks. A config default is therefore a commitment: one that breaks a downstream constraint errors loudly.
 
-**What CUE cannot enforce is written down (D6).** The core specification carries rules L1 to L6, enforced by catalog publish gates, module vet gates and transformer review.
+**What CUE cannot enforce is written down (D6).** The core specification carries rules L1 to L6 that CLI gates can name. One is reworded from an author obligation into a kernel guarantee, because D4 makes the collision it warned about impossible. Enforcement splits by layer: catalog publish gates for the primitive and blueprint rules, module vet gates for the config rule, transformer review for the last.
 
-**Plain CUE stays the floor (D8).** Every valid module and catalog must still pass stock `cue vet`, and the kernel must never quietly differ from it. Two divergences are accepted and both are loud. Twelve unused defaulting definitions were already deleted from the first-party catalog (D7).
+**Plain CUE stays the floor (D8).** Every valid module and catalog must still pass stock `cue vet`, and the kernel must never quietly differ from it. Two divergences are accepted and both are loud: the kernel resolves the config-versus-blueprint default collision that plain export reports as an incomplete value, and it rejects the eliminated-default substitution that plain CUE ships silently. Twelve unused defaulting definitions were already deleted from the first-party catalog (D7).
 
 ## How it works
 

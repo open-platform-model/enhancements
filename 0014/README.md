@@ -8,13 +8,13 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The export is a whole directory, not a bare custom resource (D1).** One per instance: the `ModuleInstance`, the namespace, the `ServiceAccount` that applies it, its RBAC, and a `kustomization.yaml`. Repo-level Flux wiring is left out.
 
-**Nothing is written unless the published module still reproduces what is running (D2).** Export reuses the handoff command's checks, ending in a strict re-render whose digest must match the deployed one. A failure leaves nothing on disk; `--force` skips the digest check only, and a deployment rendered from local files is refused outright (0006:D38).
+**Nothing is written unless the published module still reproduces what is running (D2).** Export reuses the handoff command's checks: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. A failure leaves nothing on disk; `--force` skips the digest check only, and a deployment rendered from local files is refused outright (0006:D38). `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
 
 **A dump of the live object would be wrong, not just untidy.** Every CLI-written record is missing its service account name and prune setting, so the document would apply under the controller's identity and orphan its workloads on delete. Fields split three ways: module and values copied verbatim, apply-time fields filled in and reported, status and server metadata dropped.
 
 **Values are copied byte for byte, with a warning (D3).** OPM cannot yet tell which are secret, and a redacted document no longer renders to the deployed digest. The live record is the only input (D4).
 
-This is the third step of entry [0006](../archive/0006/)'s path: the inventory moved into the record (0006:D1), the manager moved to the operator (0006:D40), and this moves the definition into a repository.
+This is the third step of entry [0006](../archive/0006/)'s path: the inventory moved into the record (0006:D1), the manager moved to the operator (0006:D7 and 0006:D40), and this moves the definition into a repository. It reuses 0006's success criterion, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40), restated for a GitOps applier. The open risk sits where 0006 never had to go: a GitOps apply adds a third field manager, Flux's kustomize-controller, onto fields the CLI and the operator already own. That is answered by a runnable experiment, not by argument.
 
 ## How it works
 
