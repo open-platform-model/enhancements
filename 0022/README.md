@@ -1,20 +1,22 @@
 # Enhancement 0022: Machine-Readable Artifact Metadata in cue.mod/module.cue
 
-A CUE module published to a registry is one manifest and two blobs: the zipped source tree, and the module file that declares the module's path and its dependencies, stored again on its own. A consumer that wants the artifact's kind, or the major version of the OPM core schema it was built against, must download the whole zip and parse its dependency list. CUE's module file already reserves a block for third-party tooling data, and the CUE toolchain carries that block through tidy, publish and fetch untouched. This entry defines what OPM writes there, and makes publish refuse a block that disagrees with the rest of the artifact.
+A CUE module in a registry is one manifest and two blobs: the zipped source, and the module file storing its path and dependencies again on its own. A consumer wanting the artifact's kind, or the core major it was built against, has to download the whole zip. This entry puts those facts in the small blob.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**One block, four facts (D1, D2, D3).** OPM claims one key in the module file's reserved `custom` field, and the key's suffix is the block's own schema major. The block carries four facts: the artifact's kind, its identity, the core line it targets, and the catalogs it was built against. Nothing about toolchains goes in. Modules, catalogs and templates carry the block; `core` and the kernel library do not, because nothing selects them by kind or compatibility. The saving is real: for one shipped module the module file is 226 bytes against a 230 268-byte zip, and CUE's client already reads the small one without touching the large one.
+**One block, four facts (D1, D2, D3).** OPM claims one key in the module file's reserved `custom` field, and the key's suffix is the block's own schema major. The block carries the artifact's kind, its identity, the core line it targets, and the catalogs it was built against. Modules, catalogs and templates carry it; `core` and the kernel library do not.
 
-**The block cannot lie (D4).** The identity package is the small committed CUE package that declares an artifact's path and version. Every value in the block that repeats the module line, the dependency list or that package is asserted equal by a publish gate. The gate is a definition `core` ships: publish unifies the artifact against it and reports CUE's own error, exactly as the identity gate of entry 0011 already works (0011:D21). A stale block refuses rather than lies.
+**The saving is real.** For one shipped module the module file is 226 bytes against a 230 268-byte zip, and CUE's client already reads the small one without touching the large one.
 
-**Tooling writes it in the tree, publish never does (D5).** The block is authored in the committed source, the way the version writer authors the identity version. The rule that published bytes are committed bytes therefore stays intact (0011:D2, publish derives coordinates from the artifact and never rewrites it). This needs one amendment inside [entry 0011](../archive/0011/), whose decisions name the identity file as the writer's only target (0011:D3, 0011:D8). The wording of that amendment is OQ4, and 0011 gains that new decision when this entry is accepted.
+**The block cannot be wrong (D4).** Every value that repeats the module line, the dependency list or the identity package is asserted equal by a publish gate, exactly as entry 0011's identity gate already works (0011:D21). A stale block fails rather than misleads.
 
-**Push-time facts stay out of the tree (D6).** Which `opm` and `cue` published the artifact, and from which commit, are unknown until the push. They go into OCI manifest annotations, the key-value pairs attached to a published manifest, beside the ones CUE writes itself.
+**Tooling writes it in the tree; publish never does (D5).** The block is authored in the committed source, so the rule that published bytes are committed bytes stays intact (0011:D2). That needs one amendment inside [entry 0011](../archive/0011/), whose wording is OQ4.
 
-**The first reader is [entry 0016](../0016/) (D7, D8).** Its initializer walks a module's published majors to pick the newest one compatible with the platform's core (0016:D5). With the block it reads the core major and the artifact kind straight from the small blob. Without one it falls back to today's dependency parse, and a missing block is a warning first and a refusal only from a later dated release (D8), so the published fleet is never invalidated.
+**Push-time facts stay out of the tree (D6).** Which `opm` and `cue` published the artifact, and from which commit, go into OCI manifest annotations instead.
+
+**The first reader is [entry 0016](../0016/) (D7, D8).** With the block its initializer reads the core major and kind from the small blob; without one it falls back to today's dependency parse. A missing block is a warning first and a refusal only later (D8).
 
 ## How it works
 
@@ -83,7 +85,7 @@ None at this stage. Update this section when implementation lands and any delibe
 | [0010](../archive/0010/) | Fixed identity, so the module line is byte-identical to the identity package's module path; the gate leans on that equality rather than restating it |
 | `core/src/identity_package.cue` | The existing publish gates, whose pattern of declared-against-implied unification the new gate follows |
 | `core/SPEC.md` §5 | Publish Gates: where the new gate's specification section lands |
-| `cli/internal/publish/identity.go` | How publish unifies a loaded value against a core gate and surfaces CUE's error; the new gate is applied the same way |
+| `cli/internal/publish/identity.go` | How publish unifies a loaded value against a core gate and reports CUE's error; the new gate is applied the same way |
 | `cli/internal/publish/load.go` | Where publish already reads the module line, the source kind and the dependency versions: the implied side of the gate |
 | `cli/internal/publish/registry.go` | The push that zips the tree and uploads it; annotations (D6) land beside it |
 | `cli/internal/cueedit/cueedit.go` | The surgical module-file and identity editors the writer (D5) extends |

@@ -2,26 +2,26 @@
 
 > **Delivered (2026-09-08).** Every live decision is carried by this entry's delivery log or excused in it (18 landings; `task delivery ID=0011`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0011` lists any.
 
-There is no OPM publish command. Every artifact in the registry today was pushed by CUE's own publish command, wrapped in a repo-local task that decides the version by its own rules: a content checksum for modules, a copy-and-stamp for catalogs. Neither wrapper reads what the artifact says about itself, so the bytes in the registry are not the bytes anyone committed. This entry defines how an OPM artifact reaches a registry: the commands that write its version, the checks that run before a push, and where published artifacts live.
+There is no OPM publish command. Every artifact in the registry was pushed by CUE's publish command, wrapped in a repo-local task that decides the version by its own rules. Neither wrapper reads what the artifact says about itself, so the bytes in the registry are not the bytes anyone committed. This entry defined how an artifact reaches a registry.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Five commands over one pipeline (D1).** Module publish and catalog publish decode an artifact, derive its registry coordinates from what the artifact declares, run the gates, and push, never rewriting the artifact to fit a coordinate somebody typed (D2). Version authoring is a separate command on each artifact type, so a commit can sit between deciding a version and pushing one, and a flag on publish is the only other writer (D3). That flag means one thing on both types: fill a field the author left open, or assert one they made concrete (D12). A check command verifies a published catalog out of band (D7), and login sits on the registry command group (D24, renaming D11's spelling).
+**Five commands over one pipeline (D1).** Module publish and catalog publish decode an artifact, derive its registry coordinates from what the artifact declares, run the gates, and push, never rewriting the artifact to fit a coordinate somebody typed (D2). Version authoring is a separate command, so a commit can sit between deciding a version and pushing one (D3). A check command verifies a published catalog out of band (D7).
 
-**Two gates carry the weight.** Publish refuses an artifact whose identity is not concrete (D4), because CUE's own publish will happily push a tree with unfilled identity fields and ordinary validation exits clean on the same tree. And publish never honours a local dependency override (D6). A module may override that with an explicit flag and a catalog may not, because a module's divergence is scoped to one artifact while a catalog's propagates into the key space of everything built against it.
+**Two gates carry the weight.** Publish refuses an artifact whose identity is not concrete (D4), because CUE's own publish will happily push a tree with unfilled identity fields. And publish never honours a local dependency override (D6). A module may override that with an explicit flag and a catalog may not, because a module's divergence is scoped to one artifact while a catalog's spreads into the key space of everything built against it.
 
-**A catalog publish additionally refuses a build that breaks a contract it already published (D9).** The predecessor is found by scanning the published history backwards, prereleases included (D23, restoring D9's own rule after an implementation note conflated it with a different selector). The tag must name the version the artifact declares (D18), published artifacts are immutable (D10), and an already-published version is always a refusal, because nothing predicts a version for you (D15).
+**A catalog publish also refuses a build that breaks a contract it already published (D9).** The predecessor is found by scanning the published history backwards, prereleases included (D23). The tag must name the version the artifact declares (D18), published artifacts are immutable (D10), and an already-published version is always a refusal (D15).
 
-**Underneath, a central registry that hosts rather than indexes (D5).** CUE has no per-domain autodiscovery, so an artifact hosted elsewhere is unresolvable for anyone who has not edited their own configuration first. What the registry does not do is dictate names: **path ownership is domain ownership** (D13). First-party artifacts keep the project's own path prefixes, publishers without a domain get an owner-scoped path under a community prefix, and anyone with a vanity domain or their own registry uses whatever path they like. A bare host in the registry configuration is a catch-all, so a path's domain never has to match the host serving it.
+**Underneath, a central registry that hosts rather than indexes (D5).** CUE has no per-domain autodiscovery, so an artifact hosted elsewhere is unresolvable for anyone who has not edited their own configuration first. What the registry does not do is dictate names: **path ownership is domain ownership** (D13). First-party artifacts keep the project's own prefixes, publishers without a domain get an owner-scoped path, and anyone with a vanity domain uses whatever path they like.
 
 ## How it works
 
 ```mermaid
 flowchart LR
     decide["An author or a release tool decides the version"] --> vset["A command writes it into the identity package, in place"]
-    vset --> commit["Git commit: the seam between deciding and pushing"]
+    vset --> commit["Git commit: the gap between deciding and pushing"]
     commit --> publish["Publish decodes the artifact and reads its identity"]
     flag["The version flag on publish: fills an open version, or asserts an equal concrete one"] -.-> publish
     publish --> derive["Derive the coordinates from the artifact, compared against the module line"]

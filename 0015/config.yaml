@@ -5,7 +5,8 @@ title: Catalog Contracts and Transformer Registration
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  A catalog publishes its resources, traits and blueprints as stamped members, and a transformer provider registers its claim in-cluster under the exactly-one-provider rule.
+  A Catalog lists the resources, traits and blueprints it defines, and installing a transformer
+  provider registers it in the cluster, one provider per contract.
 # Aggregate design impact: schema-additive but a break in effect — the
 # inventory is trivial until every catalog republishes with populated
 # contract maps (06-operational.md ## Semver Impact).
@@ -21,7 +22,7 @@ affects:
   - catalog
 core_schema: true
 created: "2026-08-05"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 history:
@@ -70,6 +71,10 @@ history:
     event: "D18 amends D1: an unfulfilled contract is a non-gating ContractsFulfilled report, never a refusal; only over-subscription refuses generation. Inventory ready split into fulfilled and routable."
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
+  - date: "2026-09-19"
+    event: "D6 revised in place: retrieve means regenerate from the CR's effective inputs with the shared generator; nothing is served. Delivered by cli platform-pull. No answer, number or Source changed."
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

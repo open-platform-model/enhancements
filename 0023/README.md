@@ -2,19 +2,21 @@
 
 > **Note: this entry is deliberately open.** Its committed scope, meaning provenance, signatures and a trust policy, is settled as intent; its design is not. The research and the five scaffolded experiments come before any decision beyond D1 and D2 is written. Two optional extensions, a capability manifest and advisories, are held by OQ1 and OQ2 and may become separate entries.
 
-A published OPM artifact is an OCI manifest with two blobs and nothing else: no annotations, no signature, no record of who built it from what, and no attachments of any kind. A consumer that resolves a version tag is trusting the registry's word, and CUE keeps no digest lock, so the pin names whatever the tag points at when it is fetched. This entry attaches two signed claims to every first-party release and gives a platform, the cluster-side declaration of what OPM consumes, a place to say whose signatures it accepts. Verification then runs once, in the kernel, before either the CLI or the operator uses the artifact.
+A published OPM artifact is an OCI manifest with two blobs and nothing else: no signature, no record of who built it from what. A consumer resolving a version tag is trusting the registry's word, and CUE keeps no digest lock. This entry attaches signed claims to every first-party release and lets a platform say whose signatures it accepts.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Two signed claims, attached as referrers (D1).** Provenance is a signed statement of who built the artifact, from which source, in SLSA's format, produced by the release platform rather than by the author. A signature says who vouches for the artifact. Both attach as OCI referrers, meaning separate artifacts whose subject is the manifest digest that the version tag resolves to. Nothing is added to the module manifest itself, so CUE's client never sees them, and a claim pinned to a digest survives a re-pointed tag. Measured on a shipped module in 2026-08-25, no OPM artifact carries any of this today.
+**Two signed claims, attached as referrers (D1).** Provenance says who built the artifact, from which source, in SLSA's format, produced by the release platform rather than the author. A signature says who vouches for it. Both attach as OCI referrers, so CUE's client never sees them and a claim pinned to a digest survives a re-pointed tag.
 
-**The trust policy belongs to the platform (D2).** A platform states which signer identities and which builders it accepts, platform-wide or per subscription, and every artifact it materializes is verified against that statement before the content is used. The kernel performs the verification, so the CLI and the operator reach the same verdict: the operator enforces it, the CLI reports it. Policy on the artifact was rejected because an artifact cannot vouch for itself, and policy in the CLI's own configuration was rejected because a laptop setting never travels to the operator.
+**No OPM artifact carries any of this today**, measured on a shipped module on 2026-08-25.
 
-**Everything else is open, on purpose.** The research and experiments settle which SLSA level OPM's release workflows can actually reach (OQ4), and how referrers behave on the registry OPM publishes to. They also settle whether verification must consult a public transparency log and what it does offline (OQ5), and the shape of the policy surface itself (OQ3). Two candidate extensions wait on their own questions: a capability manifest describing what a module needs from a cluster (OQ1), and signed advisories saying a version is withdrawn or vulnerable (OQ2).
+**The trust policy belongs to the platform (D2).** A platform states which signer identities and which builders it accepts, platform-wide or per subscription, and every artifact it materializes is verified against that first. The kernel verifies, so the operator enforces and the CLI reports the same verdict. Policy on the artifact was rejected because an artifact cannot vouch for itself, and policy in the CLI's own configuration because a laptop setting never travels to the operator.
 
-**It fits between two neighbours.** Entry [0011](../archive/0011/) produces the artifacts and already verifies a published catalog out of band (0011:D7), so attestation happens in that same release workflow and verification extends that command. Entry [0022](../0022/) carries unsigned metadata in the committed tree; nothing there is evidence, and a verifier may reuse its catalog list to decide what to verify recursively (OQ6). The subscription the trust policy attaches to is the one entry [0019](../archive/0019/) reshaped (0019:D5, a platform imports its catalog whole). The advisory scope held by OQ2 is the artifact-level counterpart of the contract retirement in entry [0020](../0020/).
+**Everything else is open, on purpose.** The research and experiments settle which SLSA level OPM's releases can reach (OQ4), whether verification must consult a transparency log and what it does offline (OQ5), and the shape of the policy itself (OQ3). A capability manifest (OQ1) and signed advisories (OQ2) wait on their own questions.
+
+**It fits between two neighbours.** Entry [0011](../archive/0011/) produces the artifacts and already verifies a catalog out of band (0011:D7), so attestation happens in that release workflow and verification extends that command. Entry [0022](../0022/) carries unsigned metadata in the tree; nothing there is evidence, but a verifier may reuse its catalog list to decide what to verify recursively (OQ6). The subscription the policy attaches to is the one entry [0019](../archive/0019/) reshaped (0019:D5, a platform imports its catalog whole), and the advisories of OQ2 are the artifact-level counterpart of contract retirement in entry [0020](../0020/).
 
 ## How it works
 
@@ -54,9 +56,9 @@ Read the left column as publish time and the right as use time. Keyless signing 
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, which is this entry's working surface
+1. [07-questions.md](07-questions.md): the open-questions register, which is where this entry's work currently sits
 
-Compilable CUE lives in [`schemas/target.cue`](schemas/target.cue), a sketch of the trust-policy surface with every field marked by its open question, and in [`contracts/contracts.cue`](contracts/contracts.cue), the attestation kinds, the referrer attachment contract and the verification verdict. [`research/findings.md`](research/findings.md) holds the measured state of a published artifact and of CUE's registry client, and [`experiments/`](experiments/) holds five measurements, from pushing referrers to comparing a rebuild against the attested digest.
+Compilable CUE lives in [`schemas/target.cue`](schemas/target.cue), a sketch of the trust-policy shape with every field marked by its open question, and in [`contracts/contracts.cue`](contracts/contracts.cue), the attestation kinds, the referrer attachment contract and the verification verdict. [`research/findings.md`](research/findings.md) holds the measured state of a published artifact and of CUE's registry client, and [`experiments/`](experiments/) holds five measurements, from pushing referrers to comparing a rebuild against the attested digest.
 
 ## Scope
 

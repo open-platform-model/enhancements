@@ -1,12 +1,12 @@
 # Enhancement {Enhancement Id}: {Enhancement Title}
 
-{Two to four plain sentences: what is wrong today, and what this entry adds. Write for a developer who knows Kubernetes and Go but not OPM internals. No decision numbers, no dates, no file paths, and define every OPM term you use the first time it appears.}
+{Three or four short sentences, 60 words at most: what is wrong today, and what this entry adds. Write for a developer who knows Kubernetes but not OPM. Plain words only. No decision numbers, no dates, no file paths, and define every OPM term the first time you use it.}
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-{Three to five short paragraphs or bullets, one per load-bearing decision. Every decision reference carries its gist inline, so the reader never has to open another file to parse a sentence: "the registration is a cluster-scoped CR (D3)". A reference to another entry's decision is qualified and glossed the same way: "the one-provider rule from entry 0010 (0010:D37)".}
+{Four to six paragraphs, 200 words at most in total. One per decision that matters, each a bold one-line claim then two short sentences. One idea per sentence. Every decision reference carries its gist inline, so the reader never has to open another file to parse a sentence: "the registration is a cluster-scoped CR (D3)". A reference to another entry's decision is qualified and glossed the same way: "the one-provider rule from entry 0010 (0010:D37)".}
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
@@ -69,17 +69,21 @@ Then:
 
 1. Overwrite every `{Capitalised}` placeholder across this README and the seven
    split documents. `task vet` fails while one remains.
-2. Write `01-problem.md` and `02-design.md` first, in full prose. Decisions
+2. Keep the README in plain English. Say "where it came from" not "provenance",
+   "the fields a user sees" not "the surface", "turned into" not "projected".
+   Keep the OPM nouns (Module, Component, Resource, Trait, Blueprint, Platform,
+   Transformer, Catalog) and define each on first use.
+3. Write `01-problem.md` and `02-design.md` first, in full prose. Decisions
    accrete in `03-decisions.md` as choices get settled; `05-risks.md` and
    `06-operational.md` mature alongside them.
-3. Replace the `## How it works` diagram with this entry's own mechanism. Load
+4. Replace the `## How it works` diagram with this entry's own mechanism. Load
    the `enhancement-diagrams` skill before drawing it.
-4. If the enhancement adds or changes `opmodel.dev/core` definitions
+5. If the enhancement adds or changes `opmodel.dev/core` definitions
    (`config.yaml.core_schema: true`), sketch the delta in `schemas/target.cue`;
    `examples.cue` and `spec.md` are required before `draft → accepted`.
    Otherwise there is no `schemas/`, and non-core compilable CUE goes in
    `contracts/` via `task new:contracts ID=NNNN`.
-5. Do not strip these HTML-comment Agent Instructions when copying. They are the
+6. Do not strip these HTML-comment Agent Instructions when copying. They are the
    in-template guidance for the next author.
 
 The workflow protocol lives in the `enhancements` skill, not here: status

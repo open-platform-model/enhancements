@@ -1,28 +1,28 @@
 # Enhancement 0026: Module-Dictated Catalog Versions and the Generated Platform
 
-A platform is the cluster-side declaration of which catalogs a render may use, and today it pins one exact version of each. Every module then renders against that pin, whether or not it is the version the module's author tested, and a module that needs a newer definition has to wait for a platform edit. This entry splits that one number into the two jobs it was doing. The platform admits a catalog lineage, meaning a catalog path at one major, and bounds it with a required lowest version and an optional highest one. The module's own committed pin then picks the version inside that range, and a pin outside it is refused by name rather than quietly promoted.
+A platform declares which catalogs a render may use, and today it pins one exact version of each. Every module renders against that pin, even if the author tested another, and needing a newer definition means waiting for a platform edit. This entry splits that number into two jobs: the platform sets a range, the module picks inside it.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Admission is the platform's, selection is the module's (D1, D2).** The platform authors a pure-data spec: for each catalog lineage it admits, a required floor, the lowest version accepted, and an optional ceiling, the highest. A module's committed catalog dependency is the version its render holds, provided that version lies inside the range. Outside it, the render is refused, naming the module, the path, the pin, the bound and whose bound it was. Raising the floor is therefore a loud fleet-wide lever: it stops the instances below it rather than moving them.
+**The platform admits, the module selects (D1, D2).** The platform writes a pure-data spec: for each catalog lineage it admits (a catalog path at one major), a required lowest version and an optional highest one. A module's committed catalog dependency is the version its render uses, as long as it sits inside that range. Outside it, the render is refused, naming the module, the path, the pin, the bound and whose bound it was.
 
-**A spec entry admits and bounds, and never loads a catalog (D4).** The spec has no dependencies and imports nothing, so the same fields serve as a cluster resource's spec and as an offline file for the CLI.
+**Raising the floor is a loud lever.** It stops the instances below it rather than moving them.
 
-**The platform value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the spec plus the module's pins: one import and one registry entry per catalog. That value is today's platform definition, unchanged, so nothing downstream learns anything new. Two renders with the same resolved set share one generated platform, and a fleet clusters on a handful of catalog releases, so the set stays small. The offline and cluster authoring forms converge on the one spec.
+**A spec entry admits and bounds, and never loads a catalog (D4).** It has no dependencies and imports nothing, so the same fields serve as a cluster resource's spec and as an offline file for the CLI.
 
-**Provider catalogs follow the same rule (D5, D6).** A provider is a module that registers transformers, and its own catalog pin already fixes the version its registration carries. That version is the pick for any render that does not pin the provider's catalog itself. The registration gains a window, a floor and a ceiling that default to that exact version. A platform spec entry for the provider's catalog path is optional; when present, its range replaces the author's window, and the registration's status reports which window is in effect and where it came from.
+**The platform value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the spec plus the module's pins. That value is today's platform definition, unchanged, so nothing downstream learns anything new.
 
-**The shared-path check runs twice (D7).** When two catalogs must agree on a path, the requirement is checked per render against the consumer's pins, and at acceptance time against the platform's floors.
+**Provider catalogs follow the same rule (D5, D6).** A provider's own catalog pin already fixes the version its registration carries. That version is the pick for any render that does not pin the provider's catalog itself. The registration gains a window defaulting to that version; a platform spec entry for that path is optional and, when present, replaces it, and the registration's status reports which window is in effect and where it came from.
 
-**Nothing else moves (D8).** Matching, the derivation of the transformer set, who holds admission authority, and provider routing are all unchanged.
+**The shared-path check runs twice (D7), and nothing else moves (D8).** It runs per render against the consumer's pins, and at acceptance against the platform's floors. Matching, how the transformer set is derived, who holds admission authority, and provider routing are all unchanged.
 
 ## How it works
 
 ```mermaid
 flowchart TD
-    spec["Platform spec, authored data: catalog lineages by path with major, required floor, optional ceiling"] --> kernel
+    spec["Platform spec, plain data: catalog lineages (path plus major), a required floor, an optional ceiling"] --> kernel
     pins["Consumer module's committed pins, plus the tidied closure"] --> kernel
     reg["Accepted provider registrations: each catalog at its version, inside the provider's window"] --> kernel
     kernel["Kernel: for each catalog the module imports, is the path admitted and the pin inside the range?"] --> refuse["No: refuse by name, naming module, path, pin, bound and whose bound it was"]
@@ -36,7 +36,7 @@ The tidied closure is the module's full committed dependency list, the one the r
 
 ## Documents
 
-1. [01-problem.md](01-problem.md): one platform pin admits a lineage and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
+1. [01-problem.md](01-problem.md): one platform pin both admits a catalog lineage and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
 1. [02-design.md](02-design.md): a pure-data platform spec with ranges, module pins as the held version, a generated render-time platform, and the same rule for provider catalogs
 1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
@@ -50,7 +50,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 
 ### In scope
 
-- The platform spec and its subscription entries in `core`: a lineage by path with its major, an enable flag, an optional registry override, a required floor and an optional ceiling (D2). No existing core definition changes shape.
+- The platform spec and its subscription entries in `core`: a catalog lineage (path with its major), an enable flag, an optional registry override, a required floor and an optional ceiling (D2). No existing core definition changes shape.
 - The source of a catalog version in the render list: the module's committed pin, admitted by the spec and refused by name outside the range (D1, D2). The build records the catalog versions it held.
 - Per-resolution generation of the unchanged platform value from spec plus pins, and the convergence of the offline and cluster authored forms on the spec (D3).
 - The registration window: a floor and a ceiling on the registration contract, defaulting to its exact version, plus the optional spec entry that overrides it. The effective window and its source are reported in the registration's status (D5, D6).

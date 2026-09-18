@@ -5,7 +5,8 @@ title: Initialize a Module Instance Package from a Published Module
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Derive a complete, committable module instance package from an acquired OCI artifact, instead of hand-typing its dependency pins, majors and module wiring.
+  Generate a complete, ready-to-build module instance package from a published module, instead of
+  hand-typing its pins, majors and wiring.
 status: draft
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -21,7 +22,7 @@ affects:
 core_schema: true
 semver: minor
 created: "2026-08-13"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -55,6 +56,8 @@ history:
     event: Category set to distribution, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

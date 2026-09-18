@@ -14,7 +14,8 @@ title: 'Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions'
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Generate both the native Kubernetes mirror and the opinionated abstractions from one Kubernetes OpenAPI source, ending schema drift between the two catalogs.
+  Generate both the raw Kubernetes mirror and the opinionated abstractions from one Kubernetes
+  OpenAPI source, so the two catalogs stop drifting apart.
 status: draft
 category: tooling
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -26,7 +27,7 @@ affects:
   - opmodel.dev
 core_schema: false
 created: "2026-06-20"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -54,6 +55,8 @@ history:
     event: Category set to tooling, area dropped, cross-cutting removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

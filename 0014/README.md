@@ -1,20 +1,20 @@
 # Enhancement 0014: Export a Deployed Instance as GitOps Manifests
 
-OPM can already hand a CLI-deployed application over to its in-cluster operator without disturbing a workload. That moves the manager, not the definition: afterwards the only complete record of the deployment is a live object in the cluster. A team that now wants git to be the source of truth hand-transcribes that object into several YAML documents, and the transcription is quietly wrong in ways that change who applies the instance. This entry adds a command that reads the live record, proves the published module still reproduces what is running, and writes a directory you can commit.
+OPM can hand a CLI-deployed app over to its in-cluster operator without disturbing the workload. That moves the manager, not the definition: afterwards the only record of the deployment is a live object in the cluster. Teams who want git as the source of truth transcribe it by hand, and get it wrong. This entry writes that directory for them.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-The exported unit is one directory per instance holding the whole apply envelope, not a bare custom resource (D1). That means the `ModuleInstance` object plus the namespace, the `ServiceAccount` that applies it, that account's RBAC, and a `kustomization.yaml` listing them. Repo-level Flux wiring is deliberately absent, because a repository has one of those and not one per instance. `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
+**The export is a whole directory, not a bare custom resource (D1).** One per instance: the `ModuleInstance`, the namespace, the `ServiceAccount` that applies it, its RBAC, and a `kustomization.yaml`. Repo-level Flux wiring is left out.
 
-Nothing is written unless the published module still reproduces the deployed render (D2). Export reuses the existing handoff command's precondition chain: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. One more arm is inherited, the refusal when the deployment was rendered from local bytes rather than from the registry (0006:D38, the local-provenance refusal of the archived handoff entry 0006). A failure aborts with nothing on disk, and `--force` bypasses the digest comparison alone.
+**Nothing is written unless the published module still reproduces what is running (D2).** Export reuses the handoff command's checks: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. A failure leaves nothing on disk; `--force` skips the digest check only, and a deployment rendered from local files is refused outright (0006:D38). `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
 
-A dump of the live object is not merely untidy, it is wrong. The CLI's single spec writer records the module coordinate, the owner and the values and nothing else, so every CLI-written record is missing its service account name and its prune setting. A document without them applies under the controller's own identity and orphans its workloads on delete. One partition resolves that against the gate above. Render-bearing fields, the module coordinate and the values, decide what the operator produces and are copied verbatim because the digest proves them right. Apply-bearing fields, which decide who applies and what happens on delete, sit outside the render digest and are completed, with every completion named in the output. Cluster-side fields, status and server-set metadata, are dropped.
+**A dump of the live object would be wrong, not just untidy.** Every CLI-written record is missing its service account name and prune setting, so the document would apply under the controller's identity and orphan its workloads on delete. Fields split three ways: module and values copied verbatim, apply-time fields filled in and reported, status and server metadata dropped.
 
-Values are copied byte for byte with an unconditional warning that OPM cannot yet identify which of them are secret (D3). There is no redaction mode: a redacted document no longer renders to the deployed digest, so redaction would trade a verified artifact for a partial one. The live record is the sole input (D4), because the guarantee is a statement about what is running and only the cluster can answer that.
+**Values are copied byte for byte, with a warning (D3).** OPM cannot yet tell which are secret, and a redacted document no longer renders to the deployed digest. The live record is the only input (D4).
 
-This is the third step of the path the archived entry [0006](../archive/0006/) built. That entry moved the inventory into the `ModuleInstance` record (0006:D1) and then moved the manager to the operator (0006:D7 and 0006:D40); this one moves the definition into a repository. It reuses 0006's success criterion too, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40). Here that criterion is restated for a GitOps applier instead of the operator's first reconcile after a handoff. The open risk sits at the seam 0006 never had to cross: a GitOps apply introduces a third field manager, Flux's kustomize-controller, onto fields the CLI and the operator already own. That question is answered by a runnable experiment rather than by argument.
+This is the third step of entry [0006](../archive/0006/)'s path: the inventory moved into the record (0006:D1), the manager moved to the operator (0006:D7 and 0006:D40), and this moves the definition into a repository. It reuses 0006's success criterion, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40), restated for a GitOps applier. The open risk sits where 0006 never had to go: a GitOps apply adds a third field manager, Flux's kustomize-controller, onto fields the CLI and the operator already own. That is answered by a runnable experiment, not by argument.
 
 ## How it works
 
@@ -78,7 +78,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 - Repo-level Flux wiring. The source and the Flux kustomization are one per repository, so emitting them per export would produce conflicting copies of a singleton. Bootstrapping a GitOps repository is a candidate follow-on.
 - A CUE-native export. Reconstructing an instance package plus a `ModulePackage` record targets a different operator path and waits as a possible second output mode.
-- Secret detection, redaction, and any SOPS or External Secrets integration. It depends on entry [0013](../0013/); until that lands, the warning is the honest surface.
+- Secret detection, redaction, and any SOPS or External Secrets integration. It depends on entry [0013](../0013/); until that lands, the warning is the honest answer.
 
 **Hard boundaries of this entry.**
 
@@ -97,7 +97,7 @@ None at this stage. Update when implementation lands.
 | `/CLAUDE.md` (workspace root) | Cross-repo routing and the vocabulary the metadata validates against |
 | `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | The CLI principles every slice obeys |
 | `cli/internal/cmd/instance/instance.go` | The command group the new subcommand registers on |
-| `cli/internal/cmd/instance/handoff.go` | The closest command surface, whose flags this one mirrors |
+| `cli/internal/cmd/instance/handoff.go` | The closest command, whose flags this one mirrors |
 | `cli/internal/workflow/handoff/handoff.go` | The precondition chain reused, minus the ownership arm |
 | `cli/internal/workflow/handoff/verify.go` | The verification render both callers will share |
 | `cli/internal/inventory/record.go` | The read-side view that gains the service account name |

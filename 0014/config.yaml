@@ -5,7 +5,8 @@ title: Export a Deployed Instance as GitOps Manifests
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Export a live ModuleInstance as a committable GitOps directory, after verifying the published module still reproduces the deployed render.
+  Write a live ModuleInstance out as a directory you can commit, after checking that the published
+  module still renders exactly what is running.
 status: draft
 category: runtime
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -19,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-29"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Design impact on the published contract. none = no core schema change and no
@@ -53,6 +54,8 @@ history:
     event: Category set to runtime, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -2,13 +2,13 @@
 
 > **Mechanism removed 2026-08-22.** This entry was written before decisions carried a `**Kind:**` line, and it recorded construction detail alongside its contracts: file names, directory spellings, internal identifiers, per-repo worklists. That detail has been removed from `03-decisions.md`, `02-design.md`, `06-operational.md` and this file; `## Integration Points` is now `## Affected Surfaces`, stated at the intent level. **Nothing was reversed and no decision changed its answer.** Measured evidence, `Source:` citations and *Alternatives considered* were kept in full, including their file references: those are provenance, not instructions. The removed text is in git history; construction detail belongs to the implementing repo's own change record.
 
-Today a sensitive field carries its own routing inside the value, naming the Secret object and key it belongs in, and every module then repeats that routing by hand where the value is consumed. The two copies disagree in practice, and the plaintext stays visible all the way through the render. This entry moves the routing onto a CUE attribute, inert metadata on the declaring field that evaluation ignores. The field's type then carries only what the deployer supplies: a literal value, or a reference to a Secret that already exists. The kernel rewrites every marked field to a reference before anything downstream sees it.
+Today a secret travels in plain text through the whole render. Core's `#Secret` type also puts the routing inside the value: which Kubernetes Secret and key it lands in. The catalog deleted its copy, so modules pass secrets as plain strings. This entry moves the routing onto a CUE attribute, and the kernel rewrites marked fields to references before render.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-The design rests on one split. The attribute carries routing, which Kubernetes object a key belongs in: author metadata, identical in every environment (D10, which replaced D1's contract struct, in the existing attribute namespace of D2). The type carries fulfilment, the data or where it already lives: deployer data, per environment, checked by CUE.
+**The attribute says where, the type says what (D10, in the attribute namespace D2 already defines).** The attribute carries routing: which Kubernetes object a key belongs in, the same in every environment. The type carries the value the deployer supplies, per environment, checked by CUE. D10 replaced D1's contract struct.
 
 ```cue
 // author, once, in the published module
@@ -19,12 +19,15 @@ values: db: password: {value: "hunter2"}                           // supplied
 values: db: password: {ref: "existing-db-creds", key: "password"}  // referenced
 ```
 
-- Two fulfilment arms ship, supplied and referenced (D7), and `#Secret` narrows to exactly those two. It is six lines in core, their only home (D12), replacing 455 dead lines there, 439 duplicated in the catalog and a 240-line hand-unrolled discovery comprehension, all deleted rather than deprecated (D9).
-- The kernel discovers marked fields from the config schema, not the deployer's values (D3), so it works with no values present, has no depth ceiling, and covers lists and pattern-constrained maps. It keys on type as well as marker and fails closed: a secret-typed field without the attribute gets default routing, a marked field of another type is an error (D13).
-- It then resolves in place: group the declarations, name each object exactly once, send the plaintext out of band, and rewrite every marked path to a reference (D11). Only the kernel may name an object (D5), and it names one per instance and group rather than per component (D6). A literal becomes a reference to the object the kernel just decided to create; a deployer-written reference passes through unchanged.
-- After the rewrite the arms are indistinguishable, so a transformer reads one branch: no variant dispatch, no name computation, no side lookup. One string holds the object name and every consumer reads it, so today's environment-variable-versus-volume mismatch becomes unrepresentable. The reference arm has no value field, so plaintext's absence from the render is structural.
-- Materialisation, as a plain Secret, a sealed one or an external-secrets object, is a platform choice resolved through catalog subscription, never an author decision (D8). That also answers enhancement [0010](../archive/0010/)'s open question about where the secrets resource name comes from: the platform supplies it.
-- SOPS lands at the file seams only, decrypting values on input, never an arm, a backend or kernel code (D14). A literal in a custom resource is plaintext in etcd: accepted and documented, with the referenced arm as the production posture and no indirection field added (D15).
+**Two ways to supply a secret, and no more (D7, D12).** Give a literal, or point at a Secret that already exists. `#Secret` narrows to those two, six lines in core and nowhere else, deleting 455 dead lines there and a 240-line discovery walk; the catalog's 439 duplicated lines are already gone (D9).
+
+**The kernel finds marked fields from the schema, not the values (D3).** So it works with no values present, has no depth ceiling, and covers lists and pattern-constrained maps. It keys on type as well as marker and fails closed: a secret-typed field without the attribute gets default routing, a marked field of another type is an error (D13).
+
+**It rewrites every secret to a reference before render (D11).** Only the kernel names an object (D5), once per instance and group rather than per component (D6), and it sends the plaintext out of band. A literal becomes a reference to the object the kernel just decided to create; a deployer-written reference passes through unchanged. After the rewrite a transformer reads one branch, so the environment-variable-versus-volume name mismatch of today cannot be expressed. The reference has no value field, so plaintext is structurally absent from the render.
+
+**The platform picks the backend, not the author (D8).** Plain Secret, sealed Secret or external-secrets is a catalog-subscription choice. That answers entry [0010](../archive/0010/)'s question about where the secrets resource name comes from.
+
+**SOPS decrypts at the file edge only (D14).** It is never a fulfilment form, a backend or kernel code. A literal in a custom resource is plaintext in etcd: accepted and documented, with the reference form as the production recommendation and no indirection field added (D15).
 
 Two properties fall out that the first draft lacked. Instance files do not change at all for supplied secrets, and a secret interpolated into a rendered config file now fails plain validation at authoring time.
 
@@ -50,7 +53,7 @@ The plaintext and the graph take separate paths and meet again only inside the o
 ## Documents
 
 1. [01-problem.md](01-problem.md): routing stated twice with nothing checking it, three disagreeing name derivations, and plaintext in the render
-1. [02-design.md](02-design.md): routing in the attribute, fulfilment in the type, and a kernel resolving both arms in place
+1. [02-design.md](02-design.md): routing in the attribute, the value in the type, and a kernel resolving both forms in place
 1. [03-decisions.md](03-decisions.md): the decision log, D1 to D17; D10 supersedes D1, D11 supersedes D4, D16 resolves OQ2
 1. [04-graduation.md](04-graduation.md): what had to hold before `draft` became `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
@@ -73,7 +76,7 @@ Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cu
 - The kernel's secret pass, discover and resolve, with discovery keying on type as well as marker and failing closed (D13).
 - Resolve-in-place: rewriting every marked path to a reference before the component graph is built.
 - Kernel-owned Secret object naming, delivered inside the resolved value.
-- Two fulfilment arms: supplied and referenced.
+- Two ways to supply a secret: a literal, or a reference.
 - The extension mechanism by which a catalog supplies another materialisation backend.
 
 **Cleanup and migration:**
@@ -81,10 +84,10 @@ Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cu
 - Deleting the old routing vocabulary and the discovery pyramid, and its catalog duplicate; correcting the core specification's claim that `#Secret` is a primitive.
 - Migrating the one fleet module carrying a secret, including its RBAC scoping by resource name.
 
-**CLI and SOPS surface:**
+**CLI and SOPS:**
 
 - A secrets section in the module inspect output.
-- SOPS support at the CLI input seam (D14): encrypted values files, a skeleton generator, and secrets-aware messaging for unfulfilled secrets.
+- SOPS support where the CLI reads files (D14): encrypted values files, a skeleton generator, and secrets-aware messaging for unfulfilled secrets.
 
 ### Out of scope
 
@@ -96,7 +99,7 @@ Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cu
 
 **Someone else's concern:**
 
-- **Protecting supplied values inside a custom resource.** Accepted and documented, the referenced arm being the production posture on the operator path (D15).
+- **Protecting supplied values inside a custom resource.** Accepted and documented, the reference form being the production recommendation on the operator path (D15).
 - **Retiring the hand-authored secret-schema path.** A module that computes a whole file and stores it as Secret data keeps writing it by hand.
 - **A general-purpose marker framework.** This entry defines the secret marker in the existing namespace; whether enhancement [0009](../0009/)'s operational marker folds into it is 0009's question.
 - **Redacting secrets from logs generally.** The design removes plaintext from the render; log hygiene elsewhere is separate.

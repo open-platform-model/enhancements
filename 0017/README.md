@@ -1,20 +1,20 @@
 # 0017: Layered Defaults
 
-A field on a component can take its value from four places: the values a deployer supplies, the module author's config schema, the blueprint that composes the component, and the transformer that renders it. None of the four can reliably hold a default today, and two defaults that meet cancel into an unresolved choice. Authors work around that by restating Kubernetes' own defaults by hand. This entry gives each layer exactly one defaulting role, and a fixed precedence that falls out of ordinary CUE unification rather than a new language feature.
+A field on a component can get its value from four places: the deployer's values, the module author's config schema, the blueprint that composes the component, and the transformer that renders it. None of the four can hold a default reliably today, and two defaults that meet cancel out. This entry gives each layer exactly one job.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Each of the four layers fails differently today.** Trait schemas, which publish what a capability accepts without knowing which Kubernetes kind will carry it, are kind-agnostic and so cannot default. Blueprints force every composed field present. A module's config defaults annihilate against any second default they meet. And a transformer's fallback is dead code, because the field it guards on is never absent.
+**Each layer fails differently today.** Trait schemas do not know which Kubernetes kind will carry a field, so they cannot default. Blueprints force every composed field present. Config defaults cancel against any second default. A transformer's fallback is dead code, because the field it guards is never absent.
 
-**One role per layer.** Resource and trait schemas publish bounds and never mark a default (D2), a marked default being CUE's starred disjunct. The blueprint is the single catalog-side defaulting layer (D3). It may narrow a composed field to what its target kind accepts, and may mark at most one default per field, always on a leaf and never on a whole struct. The module author defaults in the config schema, and the kernel finalizes those defaults to concrete data before composition (D4), so they arrive as plain values rather than as choices. Transformers keep per-kind fallbacks keyed on absence, and those become reachable because core's component projection now honours a trait's optional posture (D5). An optional trait constrains a field without forcing it present, and a trait that states no posture fails loudly instead of being silently required.
+**One job per layer.** Resource and trait schemas publish bounds and never mark a default (D2). The blueprint is the only catalog-side defaulting layer (D3): it may narrow a composed field to what its target kind accepts, and marks at most one default per field, always on a leaf and never on a whole struct. The author defaults in the config schema, and the kernel turns those into plain values before composition (D4). Transformers keep per-kind fallbacks keyed on absence, reachable now that core honours a trait being optional (D5): an optional trait constrains a field without forcing it present, and a trait that says neither fails loudly instead of being silently required.
 
-**The precedence is composed, not declared** (D1). Instance values beat config defaults, which beat blueprint defaults, which beat transformer fallbacks. Three ordinary lattice facts produce that ordering: concrete data eliminates a marked disjunct, the finalize step turns config defaults into data before composition, and absence falls through to the transformer's guard. Accepted deliberately as part of D4: a config default becomes a commitment, so one that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
+**The order falls out of CUE, it is not declared (D1).** Instance values beat config defaults, which beat blueprint defaults, which beat transformer fallbacks. A config default is therefore a commitment: one that breaks a downstream constraint errors loudly.
 
-**The rules CUE cannot enforce are written down and cited** (D6). The who-writes-what contract is codified in the core specification as rules L1 to L6 that CLI gates can name. One of them is reworded from an author obligation into a kernel guarantee, because D4 makes the collision it warned about unrepresentable. Enforcement is split by layer: catalog publish gates for the primitive and blueprint rules, module vet gates for the config rule, and transformer review for the last.
+**What CUE cannot enforce is written down (D6).** The core specification carries rules L1 to L6 that CLI gates can name. One is reworded from an author obligation into a kernel guarantee, because D4 makes the collision it warned about impossible. Enforcement splits by layer: catalog publish gates for the primitive and blueprint rules, module vet gates for the config rule, transformer review for the last.
 
-**Plain CUE stays the floor** (D8). Every valid module and catalog package must still pass stock `cue vet`, and the kernel must never silently produce different values than plain CUE would. Two divergences are accepted and documented, and both are loud. The kernel resolves the config-versus-blueprint default collision that plain export reports as an incomplete value, and it rejects the eliminated-default substitution that plain CUE ships silently. A related cleanup has already landed: twelve unreferenced defaulting definitions left over from the retired trait-defaults idiom were deleted from the first-party catalog (D7).
+**Plain CUE stays the floor (D8).** Every valid module and catalog must still pass stock `cue vet`, and the kernel must never quietly differ from it. Two divergences are accepted and both are loud: the kernel resolves the config-versus-blueprint default collision that plain export reports as an incomplete value, and it rejects the eliminated-default substitution that plain CUE ships silently. Twelve unused defaulting definitions were already deleted from the first-party catalog (D7).
 
 ## How it works
 
@@ -26,7 +26,7 @@ flowchart LR
     tf["Transformer fallbacks: per target kind, keyed on absence"] --> k8s
     k8s["Kubernetes runtime default, by omission"] --> rendered["Rendered object"]
     traits["Traits publish bounds only, never defaults"] -.-> bp
-    posture["Optional trait: field absent until set. Required trait: field must be set"] -.-> tf
+    optionality["Optional trait: field absent until set. Required trait: field must be set"] -.-> tf
 ```
 
 Read the chain left to right as a fall-through: each layer supplies a value only when everything to its left stayed silent. The last stop is Kubernetes' own default, reached by omitting the field entirely. The two dotted edges are the constraints that make the chain work. Traits contribute bounds and never a default, so they cannot collide with the blueprint. And a trait's posture decides whether its field is genuinely absent, which is what lets a transformer's absence-keyed fallback fire at all.
@@ -53,7 +53,7 @@ Two directories carry compilable CUE: [`schemas/`](schemas/) holds the core-sche
 
 **Per-repo slices.**
 
-- **core:** the optionality-aware component field projection (D5) and its regression fixtures.
+- **core:** the optionality-aware component field view (D5) and its regression fixtures.
 - **library:** the kernel's finalize-before-fill of validated config on all three value paths (D4).
 - **catalog_opm** on the v2 line: the blueprint narrowing and field-level-default idiom (D3) on the workload blueprints, blueprint-path transformer fixtures, and the retired defaulting definitions removed (D7, landed).
 - **cli:** template cleanup and a template render smoke test.
