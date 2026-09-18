@@ -1,245 +1,88 @@
 # 0017: Layered Defaults
 
-See [`config.yaml`](config.yaml) for the metadata contract: it is the sole
-source of metadata; no parallel metadata table lives in this README.
+A field on a component can take its value from four places: the values a deployer supplies, the module author's config schema, the blueprint that composes the component, and the transformer that renders it. None of the four can reliably hold a default today, and two defaults that meet cancel into an unresolved choice. Authors work around that by restating Kubernetes' own defaults by hand. This entry gives each layer exactly one defaulting role, and a fixed precedence that falls out of ordinary CUE unification rather than a new language feature.
+
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-No authoring layer can hold a component-field default today. Four could plausibly do it; each fails differently:
+**Each of the four layers fails differently today.** Trait schemas, which publish what a capability accepts without knowing which Kubernetes kind will carry it, are kind-agnostic and so cannot default. Blueprints force every composed field present. A module's config defaults annihilate against any second default they meet. And a transformer's fallback is dead code, because the field it guards on is never absent.
 
-- Trait schemas are kind-agnostic, so they cannot default.
-- Blueprints force every composed field present.
-- Module `#config` defaults annihilate against any second default they meet.
-- Transformer fallbacks are dead code, because the field they guard on is never absent.
+**One role per layer.** Resource and trait schemas publish bounds and never mark a default (D2), a marked default being CUE's starred disjunct. The blueprint is the single catalog-side defaulting layer (D3). It may narrow a composed field to what its target kind accepts, and may mark at most one default per field, always on a leaf and never on a whole struct. The module author defaults in the config schema, and the kernel finalizes those defaults to concrete data before composition (D4), so they arrive as plain values rather than as choices. Transformers keep per-kind fallbacks keyed on absence, and those become reachable because core's component projection now honours a trait's optional posture (D5). An optional trait constrains a field without forcing it present, and a trait that states no posture fails loudly instead of being silently required.
 
-This enhancement assigns each authoring layer exactly one defaulting role:
+**The precedence is composed, not declared** (D1). Instance values beat config defaults, which beat blueprint defaults, which beat transformer fallbacks. Three ordinary lattice facts produce that ordering: concrete data eliminates a marked disjunct, the finalize step turns config defaults into data before composition, and absence falls through to the transformer's guard. Accepted deliberately as part of D4: a config default becomes a commitment, so one that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
 
-- Primitives publish bounds.
-- Blueprints narrow per kind and carry the single catalog-side default.
-- Module authors default in `#config`, which the kernel finalizes to plain data before composition.
-- Transformers keep absence-keyed per-kind fallbacks.
+**The rules CUE cannot enforce are written down and cited** (D6). The who-writes-what contract is codified in the core specification as rules L1 to L6 that CLI gates can name. One of them is reworded from an author obligation into a kernel guarantee, because D4 makes the collision it warned about unrepresentable. Enforcement is split by layer: catalog publish gates for the primitive and blueprint rules, module vet gates for the config rule, and transformer review for the last.
 
-The result is a deterministic precedence from ordinary CUE unification: **instance values > config defaults > blueprint defaults > transformer fallbacks**. The rules CUE cannot enforce are codified as core SPEC.md §6 (L1–L6) for CLI gates.
+**Plain CUE stays the floor** (D8). Every valid module and catalog package must still pass stock `cue vet`, and the kernel must never silently produce different values than plain CUE would. Two divergences are accepted and documented, and both are loud. The kernel resolves the config-versus-blueprint default collision that plain export reports as an incomplete value, and it rejects the eliminated-default substitution that plain CUE ships silently. A related cleanup has already landed: twelve unreferenced defaulting definitions left over from the retired trait-defaults idiom were deleted from the first-party catalog (D7).
+
+## How it works
+
+```mermaid
+flowchart LR
+    inst["Instance values, set by the deployer"] --> cfg
+    cfg["Module config defaults, set by the author"] --> bp
+    bp["Blueprint defaults: one marked default per field, narrowed to what the kind accepts"] --> tf
+    tf["Transformer fallbacks: per target kind, keyed on absence"] --> k8s
+    k8s["Kubernetes runtime default, by omission"] --> rendered["Rendered object"]
+    traits["Traits publish bounds only, never defaults"] -.-> bp
+    posture["Optional trait: field absent until set. Required trait: field must be set"] -.-> tf
+```
+
+Read the chain left to right as a fall-through: each layer supplies a value only when everything to its left stayed silent. The last stop is Kubernetes' own default, reached by omitting the field entirely. The two dotted edges are the constraints that make the chain work. Traits contribute bounds and never a default, so they cannot collide with the blueprint. And a trait's posture decides whether its field is genuinely absent, which is what lets a transformer's absence-keyed fallback fire at all.
 
 ## Documents
 
-The seven split documents below are mandatory and always present. Add optional
-documents (e.g. `experiments/`, `research/`) only when a
-specific need surfaces.
-
 1. [01-problem.md](01-problem.md): why no layer can default a component field today, and what that costs
-2. [02-design.md](02-design.md): one defaulting role per layer; the precedence chain and its four mechanisms
-3. [03-decisions.md](03-decisions.md): DN decision log
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md): Open Questions register
+1. [02-design.md](02-design.md): one defaulting role per layer, the precedence chain and its four mechanisms
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
+1. [04-graduation.md](04-graduation.md): what must hold before this entry moves from draft to accepted
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register
 
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
-files, never as fenced blocks inside markdown.
+Two directories carry compilable CUE: [`schemas/`](schemas/) holds the core-schema delta with its examples and spec text, and [`contracts/`](contracts/) holds the layer contract as citable rule data plus the catalog-side blueprint idiom it constrains.
 
 ## Scope
-
-Concrete boundary of this enhancement. The validator (future) requires this
-section starting at `status: accepted`. For design-time aspirations (what the
-solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
 
 ### In scope
 
 **Contract.**
 
-- The layer contract (SPEC.md §6, rules L1–L6) and its L5 reword from author obligation to kernel guarantee.
+- The layer contract as core specification rules L1 to L6, including the reword of L5 from an author obligation into a kernel guarantee.
 
 **Per-repo slices.**
 
-- **core:** the optionality-aware `#Component._allFields` trait projection (D5) and its regression fixtures.
-- **library:** kernel finalize-before-fill of validated `#config` on all three value paths (D4).
-- **catalog_opm** (v2 line): the blueprint narrowing + field-level-default idiom (D3) on the workload blueprints; blueprint-path transformer fixtures; the `#*Defaults` removal (D7, landed).
+- **core:** the optionality-aware component field projection (D5) and its regression fixtures.
+- **library:** the kernel's finalize-before-fill of validated config on all three value paths (D4).
+- **catalog_opm** on the v2 line: the blueprint narrowing and field-level-default idiom (D3) on the workload blueprints, blueprint-path transformer fixtures, and the retired defaulting definitions removed (D7, landed).
 - **cli:** template cleanup and a template render smoke test.
-- **modules** (v2 staging): extracted-boilerplate deletion with render-diff verification.
+- **modules** on the v2 staging line: deletion of the extracted boilerplate, verified by render diff.
 
 ### Out of scope
 
-- The exhaustive per-kind field audit across all blueprints: tracked by catalog_opm issue 40 (this entry establishes the mechanism).
-- CLI gate engineering for L1–L6: a later cli slice; this entry defines the rules and their identifiers.
-- Any v1-line change (core `v1` branch, catalog `v1` branches, modules `v1`/`v0_legacy` fleets).
-- In-language precedence (CUE `SetLayer`): rejected for now, D4 alternatives.
-
-## Experiments
-
-Experiments are **optional** and usually appear **part-way through an enhancement's life**: once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
-
-When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
-
-### Rules
-
-- **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
-- **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
-- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
-- **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
-- **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
-
-### Scaffold and layout
-
-```bash
-task new:experiment ID=NNNN NAME=concept-name
-```
-
-Creates `NNNN/experiments/` (with an index README, if absent), computes the next two-digit experiment number from existing `NN-*/` subdirs, creates `NNNN/experiments/NN-concept-name/README.md` with a Hypothesis / Setup / Run / Outcome skeleton, and seeds `Status: Draft`. Run from this directory or via the workspace include (`task enhancements:new:experiment …`).
-
-```
-NNNN/experiments/
-├── README.md                       # Index — table of experiments + status (hand-maintained)
-├── 01-{concept-name}/
-│   ├── README.md                   # Per-experiment: Hypothesis / Setup / Run / Outcome / Status
-│   ├── ...                         # Copied schemas, Go modules, fixtures, etc.
-│   └── ...
-└── 02-{concept-name}/
-    └── ...
-```
-
-### Per-experiment README
-
-Each experiment's README answers four questions and carries a status line:
-
-1. **Hypothesis**: Which claim from the design is this validating?
-2. **Setup**: What was copied in, from where, and what was modified.
-3. **Run**: Exact commands to reproduce the result.
-4. **Outcome**: What was observed; whether the hypothesis held.
-
-The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
-
-Update the per-experiment README in place as the experiment evolves. Once concluded, record the outcome and link the result back into `02-design.md` or `03-decisions.md` so the enhancement carries the evidence.
-
-### Index README
-
-`experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
-
-```markdown
-# Experiments — Layered Defaults
-
-| # | Concept | Status |
-| - | ------- | ------ |
-| 01 | matcher-mechanics | Concluded |
-| 02 | read-portability  | Running   |
-```
-
-The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
-
-## Research
-
-Research is **optional** and holds the external evidence a design rests on: most importantly **deep-research reports**, but also benchmark write-ups, vendor-doc summaries, comparison matrices, and curated link collections. When the design of an enhancement is grounded in research (a `/deep-research` run, a literature sweep, a prior-art survey), drop the cited findings under `research/` so the evidence travels with the design instead of evaporating into a chat log.
-
-Research differs from `experiments/`: research is **gathered and synthesised** (read-only evidence: what is true in the world), whereas experiments are **authored and executed** (runnable proofs we wrote: what holds in our model). A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`.
-
-### Rules
-
-- **Cited.** Every non-obvious claim carries its source (URL, doc, file path). A deep-research dossier reproduces its source list and, where it has them, confidence levels and verification verdicts: distinguish verified facts from design recommendations.
-- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `Source:` line of the relevant decisions in `03-decisions.md`, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
-- **Snapshot, not canon.** Research reflects what was true when gathered; date it. It is not a maintained spec: supersede with a new file rather than silently editing conclusions.
-- **Not gated.** `task vet` does not require or validate `research/`; add it only when an enhancement actually has external evidence worth preserving.
-
-### Layout
-
-```
-NNNN/research/
-├── findings.md                     # primary dossier (e.g. a deep-research report): summary, cited findings, caveats, sources
-└── {topic}.md                      # optional further write-ups (benchmark-x-vs-y.md, prior-art-survey.md, …)
-```
-
-`findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task: `research/` is hand-authored prose.
-
-## Delivery Log
-
-Delivery is recorded in this entry's `delivery.yaml`: an append-only log with one entry per landed change, carrying the local decision numbers the change implemented and optionally the Open Questions it resolves. Log when a change lands (`task delivery:log`), never before; `task delivery` derives the state from the log.
-
-## Diagrams
-
-Diagrams are welcome throughout this enhancement's documents. The medium depends on what's being shown, never a blanket default:
-
-- **Mermaid**: relationships between enhancements: whether one of this entry's decisions depends on another entry's (a `depends_on` edge), or whether this entry supersedes one. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing its `classDef` palette) previews what it will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
-- **ASCII**: how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later: bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
-
-See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
+- The exhaustive per-kind field audit across all blueprints, tracked by catalog_opm issue 40. This entry establishes the mechanism.
+- Engineering the CLI gates for L1 to L6, which is a later CLI slice; this entry defines the rules and their identifiers.
+- Any change on a v1 line, meaning the core and catalog v1 branches and the v1 and legacy module fleets.
+- In-language precedence through CUE's own layering feature, rejected for now in D4's alternatives.
 
 ## Deviations from Design
 
-None at this stage. Update this section when implementation lands and any
-deliberate divergences from the design need to be documented. The validator
-(future) requires this section to be present (it may say "None") for
-`status: implemented`.
+None at this stage. Update this section when implementation lands and any deliberate divergences from the design need to be documented.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `core/SPEC.md` | §6 layering contract (L1–L6, landed ahead of this entry); §2.2/§3.1 constraint updates land with the core slice |
-| `core/src/component.cue` | `_allFields`: the projection D5 changes |
-| `core/src/trait.cue` | `#Trait.optional`, the single-regular-field gate, `#TraitOptionalGate` |
-| `library/opm/kernel/process.go` | instance build: validate → fill → concreteness gate; D4's finalize step lands between validate and fill |
-| `library/opm/kernel/validate.go` | `runValidate` / `ValidateConfigDetailed`: the value paths D4 covers |
-| `library/opm/kernel/synth.go` | debugValues-as-values policy; same fill point |
-| `catalog_opm/src/blueprints/v1beta1/stateless_workload.cue` | first blueprint to carry D3's narrowing + default idiom |
-| `catalog_opm/src/traits/v1beta1/update_strategy.cue` | the motivating trait; `rollingUpdate` union loosening |
-| `catalog_opm/src/transformers/deployment_transformer.cue` | the absence-keyed fallbacks D5 makes reachable |
-| `cli/templates/minimal/module.cue` | the template whose render failure motivated the entry |
-| `research/cue/concepts/default-precedence.md` | workspace research: CUE default semantics (M/U rules, SetLayer status) grounding D1/D4 |
-| catalog_opm issue 40 | per-kind narrowing audit (companion scope) |
-
-<!--
-## Agent Instructions
-
-To create a new enhancement from this template:
-
-1. Pick the next available four-digit id by scanning `enhancements/` for the
-   highest existing NNNN directory and incrementing by one. Ids are
-   never reused: supersession is recorded via `supersedes` / `superseded_by`
-   in `config.yaml`, not by renumbering.
-2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
-3. Overwrite every `{Capitalised}` placeholder string across the README and
-   the seven split documents.
-4. Fill `config.yaml` with real values: id matches the directory name, slug
-   is short kebab-case, title is human-readable, area + affects describe
-   ownership, created + updated set to today's date.
-5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
-   accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `05-risks.md` and `06-operational.md` start as scaffolds
-   and mature alongside the decision log.
-7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
-   line in `schemas/cue.mod/module.cue` to match the new four-digit id.
-8. Do not strip these HTML-comment Agent Instructions when copying: they
-   are the in-template guidance for the next author/agent.
-
-### Status lifecycle
-
-- **draft**: initial design, actively being written
-- **accepted**: design agreed upon, ready for implementation
-- **implemented**: design has been realized in code
-- **superseded**: replaced by a newer enhancement (paired with
-  `superseded_by` on this entry and `supersedes` on the replacement)
-
-### Compaction
-
-These documents state what is true *now*. Provenance lives in git and in `config.yaml.history`: the one strictly append-only structure. `DN` and `OQN` numbers are never reused or renumbered (other repos cite them); a number vacated by a merge or retraction keeps a one-line tombstone.
-
-- **draft**: decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
-- **accepted**: decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path: weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available right up to the flip.
-- **implemented**: frozen. Nothing changes, ever.
-- **superseded**: narrative documents collapse to pointers at the successor;
-  the decision log keeps its numbers and its *Alternatives considered*.
-  `experiments/` and `research/` are never touched.
-
-Run `task compact:plan ID=NNNN` for the candidate list and load the
-`enhancement-compaction` skill to act on it. Compaction lands in its own
-commit: never folded into a content change.
-
-### Cross-refs to legacy library enhancements
-
-The seven three-digit entries under `library/enhancements/` (001..007) are
-frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`, never in
-`depends_on` (a dependency resolves to a decision heading, which the legacy
-entries lack; cite them in prose instead). Once
-those entries are deleted, the references become dangling and the validator
-(future) will flag them: fix or remove at that point.
--->
+| `core/SPEC.md` | The layering contract and its rule identifiers, which landed ahead of this entry, plus the constraint sections the core slice updates |
+| `core/src/component.cue` | The field projection D5 changes |
+| `core/src/trait.cue` | The optional posture, the single-regular-field gate, and the guard that keeps the projection safe |
+| `library/opm/kernel/process.go` | The instance build, where D4's finalize step lands between validation and fill |
+| `library/opm/kernel/validate.go` | The layered-sources value path D4 also has to cover |
+| `library/opm/kernel/synth.go` | The debug-values path, which fills at the same point |
+| `catalog_opm/src/blueprints/v1beta1/stateless_workload.cue` | The first blueprint to carry D3's narrowing and default idiom |
+| `catalog_opm/src/traits/v1beta1/update_strategy.cue` | The motivating trait, and the union that has to loosen |
+| `catalog_opm/src/transformers/deployment_transformer.cue` | The absence-keyed fallbacks D5 makes reachable |
+| `cli/templates/minimal/module.cue` | The template whose render failure motivated the entry |
+| `research/cue/concepts/default-precedence.md` | Workspace research on CUE default semantics, the grounding for D1 and D4 |
+| catalog_opm issue 40 | The per-kind narrowing audit that runs alongside this entry |

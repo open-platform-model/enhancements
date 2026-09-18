@@ -21,7 +21,7 @@ affects:
   - catalog
 core_schema: true
 created: "2026-08-05"
-updated: "2026-09-13"
+updated: "2026-09-18"
 authors:
   - emil@jacero.se
 history:
@@ -68,6 +68,8 @@ history:
     event: "Engine research filed under research/; experiment 02-policy-and-command concluded: a backup policy with an executor switch plus a backup-command contract render one module per app on k8up and Velero."
   - date: "2026-09-13"
     event: "D18 amends D1: an unfulfilled contract is a non-gating ContractsFulfilled report, never a refusal; only over-subscription refuses generation. Inventory ready split into fulfilled and routable."
+  - date: "2026-09-18"
+    event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

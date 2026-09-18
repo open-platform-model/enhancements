@@ -18,7 +18,7 @@ affects:
   - library
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-08"
+updated: "2026-09-18"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -47,6 +47,8 @@ history:
     event: 'Dependency edges: related renamed to depends_on; Depends fields added to decisions resting on another entry. No answer, number, Source or Kind changed. Under the 2026-09-04 dependency-edge carve-out.'
   - date: "2026-09-08"
     event: Category set to misc, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
+  - date: "2026-09-18"
+    event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
