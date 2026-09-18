@@ -114,7 +114,7 @@ log:
   - date: "2026-09-18"
     summary: >-
       the operator refuses platform-package generation on an over-subscribed or undiscriminated inventory, and reports unfulfilled contracts as the non-gating ContractsFulfilled condition
-    change: { kind: openspec, repo: opm-operator, change: 2026-09-18-platform-inventory-gate }
+    change: { kind: openspec, repo: opm-operator, change: platform-inventory-gate }
     # D5 is claimed here: the core entry above deferred it to "the operator's
     # generation gate when it refuses", and this is that refusal.
     # D18 is claimed for its operative half, the non-gating ContractsFulfilled
@@ -126,7 +126,7 @@ log:
   - date: "2026-09-18"
     summary: >-
       opm platform check reports comparable transformer pairs and refuses an undiscriminated platform, matching the operator generation gate
-    change: { kind: openspec, repo: cli, change: 2026-09-18-platform-check-discriminated }
+    change: { kind: openspec, repo: cli, change: platform-check-discriminated }
     # Deliberately claims no decision and resolves nothing. D5 was completed by
     # the operator's generation gate in the entry above; this change lands the
     # same verdict in the offline pre-flight, which is what OQ9's resolution
