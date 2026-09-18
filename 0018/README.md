@@ -1,22 +1,22 @@
 # Enhancement 0018: Documentation Architecture
 
-OPM has no usable public documentation, and not for want of writing. The largest body of prose in the workspace describes a version of OPM that no longer exists, and still names an artifact that was renamed long ago. The material that is current sits where no reader looks: a command-line readme, a contributor specification, and worked examples buried inside catalog code. This entry defines what the documentation is, where each page's content comes from, and what keeps it from drifting again.
+OPM has no usable public documentation, and not for want of writing. The biggest body of prose describes a version of OPM that no longer exists. What is current sits where nobody looks: a command-line readme, a contributor spec, and examples buried in catalog code. This entry says what the docs are and what keeps them from drifting again.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Eight sections, keyed to what a reader is holding on arrival:** nothing, a question about why, a blank module file, a cluster, a vocabulary gap, a Go program, a field name, an error message. Genre still governs how a page is written, but not the navigation. OPM's audiences are close to disjoint, and a genre-first split makes every one of them filter every section.
+**Eight sections, keyed to what a reader arrives holding:** nothing, a question about why, a blank module file, a cluster, a vocabulary gap, a Go program, a field name, an error message. OPM's audiences barely overlap, so a genre-first split would make each of them filter every section.
 
-**Two placements are deliberate.** Diagnostics is top-level because it is an entry point: readers arrive from an error string rather than from the navigation. The kernel's error taxonomy also maps to genuinely different fixes that the message text does not distinguish. Concepts is large in proportion to a concept surface that is unusually big next to the user surface, with seventeen concepts ranked subtle enough that a reader gets them actively wrong without prose.
+**Two placements are deliberate.** Diagnostics is top-level because readers arrive from an error string, not from the menu. Concepts is large because OPM has far more concepts than commands.
 
-**One rule decides where content comes from: generate every fact a rename can invalidate, author everything else** (D1). Member names, keys, spec shapes, trait postures, the transformers that serve a member and their worked examples are emitted by evaluating the CUE source, never by scraping text. That matters because the current text scraper reports an empty description for exactly the members readers need most. Which blueprint to start from, which traits are legal on it, and every Concepts page are written by hand, because none of it is expressible in the schema. A gate refuses a new catalog member that ships without a doc comment.
+**Generate every fact a rename can break; write everything else by hand (D1).** Member names, keys, spec shapes, trait settings and worked examples come from evaluating the CUE, never from scraping text. Today's scraper reports an empty description for exactly the members readers need most.
 
-**Reference splits the catalog by family** (D6). The abstraction family, whose members hide Kubernetes detail, gets full per-member pages and leads every authoring path with blueprints first. The raw passthrough family gets one index page and a generated table, labelled as the last resort, with each entry pointing at the abstraction that covers the same ground where one exists.
+**Reference splits the catalog in two (D6).** The abstraction family gets full per-member pages and leads every authoring path. The raw passthrough family gets one index page and a generated table, labelled as the last resort.
 
-**Every normative statement carries an enforcement badge** naming what actually stops you: CUE unification, the kernel at render, a publish gate, or nothing but convention. That convention exists because OPM enforces across four layers and a reader cannot otherwise tell which claim is load-bearing.
+**Every normative statement says what enforces it:** CUE unification, the kernel at render, a publish gate, or nothing but convention. A reader otherwise cannot tell which claims actually bite.
 
-**Three scoping decisions keep the documentation honest.** The contributor specification is not published (D2): the public reference takes its definition, shape and constraint content as a source and drops the rationale. That rationale is instead mined for Concepts pages and rewritten. A page enumerates what OPM does not have, and draft enhancements are never described as forthcoming features (D3). Another page documents today's deletion and prune behaviour: prune defaults to false so the finalizer's default is to orphan, a CLI-owned instance carries no hold at all, and the two deletion paths have diverged. That page lands now, independent of entry 0012 (D4), and secrets material waits entirely for entry 0013, whose own documentation slice writes it (D5).
+**Three scoping decisions.** The contributor specification is not published (D2). Draft enhancements are never called forthcoming (D3). Deletion and prune behaviour is documented now, independent of entry 0012 (D4); secrets wait for entry 0013 (D5).
 
 ## How it works
 
@@ -82,7 +82,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), wh
 
 **Explicit non-goals.**
 
-- **Publishing the contributor specification.** It stays contributor-facing, and the public reference is a projection of its normative spine.
+- **Publishing the contributor specification.** It stays contributor-facing, and the public reference takes its normative content and leaves the rest.
 - **Documenting draft systems.** Lifecycle, workflows, provider classes, export and rollback do not exist, and D3 makes their absence explicit rather than describing them as forthcoming.
 - **Site presentation.** The theme, search and styling. The theme is currently disabled and no section renders to HTML, which blocks verification but is not this entry's to fix.
 - **A migration guide off the retired line.** That fleet is frozen on its own branch with internal consumers only.

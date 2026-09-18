@@ -14,7 +14,8 @@ title: Self-Service Kinds from Published Modules
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  A platform binds a published module to a kind consumers instantiate: schema from the module's config, module and version chosen by the platform, every instance a projected ModuleInstance.
+  Let a platform team bind a published module to a kind consumers can create, so a consumer supplies
+  values and never names a module or a version.
 status: draft
 # Type of work, single-valued: schema | runtime | distribution | tooling | misc.
 # See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
@@ -38,7 +39,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-08"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -54,6 +55,8 @@ history:
     event: 'Design captured: two layers (binding, kinds), a pure core projection to #ModuleInstance, D1-D10 recorded, OQ1-OQ12 opened; the definition kind name left open by user decision (OQ1).'
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

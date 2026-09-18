@@ -14,7 +14,8 @@ title: 'Operational Primitives: Op, Action, Lifecycle, Workflow'
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Add an execution half to the kernel with #Op, #Action, #Lifecycle and #Workflow, so a module can describe what should happen and not only what should exist.
+  Give the kernel a second half that turns a module into an ordered plan of steps, so a module can
+  say what should happen and not only what should exist.
 status: draft
 category: schema
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -26,7 +27,7 @@ affects:
   - opm-operator
 core_schema: true
 created: "2026-06-29"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -64,6 +65,8 @@ history:
     event: "D3 narrowed by library ADR-008: the library advances one step per call, the caller runs the loop and owns the run state. D4, D9, OQ2, OQ6 follow; stale path citations refreshed."
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

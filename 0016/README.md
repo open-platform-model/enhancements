@@ -1,18 +1,18 @@
 # Enhancement 0016: Initialize a Module Instance Package from a Published Module
 
-Deploying a published OPM module means writing a small CUE package by hand: a module file carrying the right dependency pins, an instance file wiring the module to OPM's core, and a values file. Nothing generates that package today, so deployers copy an example and edit imports and pins until validation stops complaining. This entry adds a command that takes an instance name, a module path and a namespace, fetches the published module from its registry, and writes all three files complete. The result builds before anyone edits it.
+Deploying a published OPM module means writing a small CUE package by hand: a module file with the right pins, an instance file wiring the module to OPM's core, and a values file. Nothing generates that today, so people copy an example and edit until validation stops complaining. This entry adds a command that writes all three.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The command.** `opm instance init` acquires the named module through the existing registry path and writes a standalone three-file package that the existing load path already accepts (D1). The acquired artifact is the module being deployed, never a template, so every pin, import and wiring line is derived from what the module itself declares.
+**The command (D1).** `opm instance init` fetches the named module through the existing registry path and writes a three-file package the load path already accepts. It uses the real module, never a template, so every pin and import comes from what the module declares.
 
-**Version selection mirrors the author-side scaffolder** (D5). The module path is given without a major, and `--version` either floats within a major or pins an exact release. When it is omitted, the command walks majors from highest to lowest and takes the newest release in each. It selects the first major whose declared core dependency matches the core major this CLI build is bound to. The report names the selection and every higher major it skipped, with the reason. A failed run leaves no partial directory, so a retry is never refused by the command's own leftovers.
+**Version selection mirrors the author-side scaffolder (D5).** `--version` either floats within a major or pins an exact release. Omit it and the command takes the newest release of the highest major whose core dependency matches this CLI's core major, naming every higher major it skipped. A failed run leaves no directory behind.
 
-**The values file comes from the author when the author said so.** The core module definition gains one additive optional field carrying the values a freshly initialized package starts from (D3). It is declared open and optional, with no schema-side assertion that it satisfies the module's config (D4). The command prefers that field, falls back to the module's existing debug values (D2), and otherwise writes an empty values block with a warning (D6), always naming the source it used. Because the field is unasserted, how it renders depends on how the author wrote it. A defaulted field renders as its default, an undefaulted disjunction renders as the choice, and an optional field is omitted.
+**The values file comes from the author when the author said so.** The core module definition gains one optional field holding the values a fresh package starts from (D3), open and unchecked against the module's config (D4). The command prefers it, falls back to the module's debug values (D2), and otherwise writes an empty block with a warning (D6).
 
-**What the command does not do.** It does not validate what it wrote (D8). The report ends by naming the vet command, so a non-conforming starting value surfaces at the user's first vet or build. The renderer lives in the CLI beside the author-side scaffolder, and the kernel library ships nothing (D7). The generated module file pins the deployed module to its exact resolved version and takes core at the major the module itself depends on (D9). It carries a complete dependency closure so the package builds offline, and gives the package a local, never-published path.
+**What the command does not do.** It does not validate what it wrote (D8); the report ends by naming the vet command. The renderer lives in the CLI and the kernel library ships nothing (D7). The generated module file pins the exact resolved version and carries a complete dependency set so the package builds offline (D9).
 
 ## How it works
 

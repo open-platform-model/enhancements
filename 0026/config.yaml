@@ -14,7 +14,8 @@ title: Module-Dictated Catalog Versions and the Generated Platform
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  A module's committed catalog pin is the version its render uses, bounded by a platform spec of lineages with a required floor and optional ceiling; the render-time platform is generated from both.
+  Let a platform admit a catalog path with a version range, and let each module's own pin pick the
+  version inside it.
 status: draft
 # Type of work, single-valued: schema | runtime | distribution | tooling | misc.
 # See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
@@ -38,7 +39,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-08"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -52,6 +53,8 @@ history:
     event: Drafted
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
