@@ -123,6 +123,17 @@ log:
     # built, so it rides the cli's platform-check change rather than a second
     # claim here.
     decisions: [D5, D18]
+  - date: "2026-09-18"
+    summary: >-
+      opm platform check reports comparable transformer pairs and refuses an undiscriminated platform, matching the operator generation gate
+    change: { kind: openspec, repo: cli, change: 2026-09-18-platform-check-discriminated }
+    # Deliberately claims no decision and resolves nothing. D5 was completed by
+    # the operator's generation gate in the entry above; this change lands the
+    # same verdict in the offline pre-flight, which is what OQ9's resolution
+    # asked for ("land the check identically in the operator and opm platform
+    # check") rather than the resolving of OQ9 itself. A claim here would
+    # duplicate that entry, not complete anything new. The change's own
+    # enhancement.yaml says the same.
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
