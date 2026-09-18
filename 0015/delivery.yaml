@@ -134,6 +134,11 @@ log:
     # check") rather than the resolving of OQ9 itself. A claim here would
     # duplicate that entry, not complete anything new. The change's own
     # enhancement.yaml says the same.
+  - date: "2026-09-18"
+    summary: >-
+      cli resolves the cluster platform from the operator's effective registry and opm platform pull reproduces the package locally
+    change: { kind: openspec, repo: cli, change: platform-pull }
+    decisions: [D6]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
