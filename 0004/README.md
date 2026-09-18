@@ -1,16 +1,20 @@
 # Automated CUE Dependency Updates via Dagger (0004)
 
-Every OPM repo pins its CUE dependencies in a module file, and those pins move only when a maintainer runs a workspace task by hand from a full checkout of every repo. Nothing watches for a new upstream release, so a repo can sit on a stale pin until someone remembers. This entry replaces that task with one Dagger function, a containerized build step callable from a laptop or from CI, that walks a directory and bumps every CUE module it finds. Each bump stays inside the major version already pinned, and a daily CI run turns the changed files into one reviewable pull request.
+Every OPM repo pins its CUE dependencies in a module file. Those pins move only when a maintainer runs a workspace task by hand. Nothing watches for new releases, so a repo can sit on a stale pin. This entry replaces that task with one Dagger function that bumps every CUE module it finds, and runs it daily in CI.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-- The mechanism is one path-driven Dagger function, not a hosted dependency bot (D7, which replaced the self-hosted Renovate design of D1 and D2). It bumps through CUE's own resolver, then tidies each module so the dependency list is recomputed and the result is a consistent module, not a bare version-string edit. Nothing mirrors the mapping that says which OCI registry serves each module host, so nothing can drift from it.
-- A major version is never crossed automatically, and nothing extra enforces that. Every dependency key already names its major, so asking CUE's resolver for that key returns only releases inside it (D8, which retired the explicit guard of D3). Crossing a major changes import paths, so it stays a human act.
-- The local sweep and the scheduled job are one implementation. The workspace-root update task becomes a thin wrapper over the same function CI calls (D9, replacing D4, where a manual task and a bot were to coexist).
-- CI opens one grouped pull request per repo per run on a fixed branch, refreshed daily (D10). A later run updates that open PR in place instead of stacking duplicates, and closes it if the bumps revert.
-- Every CUE module found is bumped, test fixtures included, because keeping fixtures current avoids bit-rot and costs only some PR churn (D11). The shared pieces live once (D12): the function in the organisation's daggerverse repo under its own subpath and version tags, and the callable CI workflow in the organisation's `.github` repo.
+**One Dagger function, not a hosted bot (D7).** It bumps through CUE's own resolver, then tidies each module, so the result is a consistent module and not a bare version edit. It reads the registry mapping rather than copying it, so nothing can drift. D7 replaced the Renovate design of D1 and D2.
+
+**A major version is never crossed (D8).** Every dependency key already names its major, so CUE's resolver only returns releases inside it. Crossing a major changes import paths, so it stays a human job.
+
+**Local and scheduled runs are the same code (D9).** The workspace update task becomes a thin wrapper over the function CI calls.
+
+**One pull request per repo per run (D10).** CI opens it on a fixed branch and refreshes it daily, updating that PR instead of stacking duplicates.
+
+**Everything gets bumped, and shared parts live once (D11, D12).** Test fixtures too: stale fixtures cost more than PR churn (D11). The function lives in the organisation's daggerverse repo, the callable CI workflow in its `.github` repo (D12).
 
 ## How it works
 
@@ -28,7 +32,7 @@ flowchart LR
     pr --> review["Reviewer merges"]
 ```
 
-The function takes a directory, the registry mapping and a token for the private modules, and returns the changed tree plus an old-to-new summary. Being context-free is what lets one call serve both a developer and a CI job: only what happens to the returned tree differs, and adding a repo configures nothing.
+The function takes a directory, the registry mapping and a token for private modules. It returns the changed tree plus an old-to-new summary. It knows nothing about who called it, which is what lets one call serve both a developer and a CI job. Only what happens to the returned tree differs, and adding a repo configures nothing.
 
 ## Documents
 
@@ -46,7 +50,7 @@ The entry carries [`contracts/`](contracts/): compilable CUE for the function si
 
 ### In scope
 
-- A path-driven Dagger function that walks any directory for CUE modules, including the CLI's module templates, and bumps each dependency inside its pinned major.
+- A directory-driven Dagger function that walks any directory for CUE modules, including the CLI's module templates, and bumps each dependency inside its pinned major.
 - The same function invoked locally, behind the workspace update task, and on a daily CI schedule in `core`, `library`, `catalog`, `cli`, `opm-operator` and `modules`.
 - A shared CI contract, the Dagger module reference plus a callable workflow, so each repo's short caller opens one grouped, tidied bump PR on a fixed branch.
 

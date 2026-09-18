@@ -1,20 +1,20 @@
 # Enhancement 0020: Contract Promotion and Retirement
 
-A contract is what a catalog offers consumers to build on: the schema of a resource, a trait or a blueprint. Every contract is keyed by an API level, from `v1alpha1` up to `v1`, and a module matches on that exact key. Moving a contract from beta to stable therefore changes the key every consumer depends on, and removing one leaves a hole with no explanation. OPM has the ladder of levels but no rule for movement along it. This entry supplies the two missing rules, promotion and retirement, which turn out to be one mechanism seen from two ends.
+A contract is what a catalog offers others: the schema of a resource, a trait or a blueprint. Each is keyed by an API level, `v1alpha1` up to `v1`, and a module matches that exact key. Moving one from beta to stable changes the key every consumer depends on. This entry adds the rules for moving and removing.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**A contract is promoted by dual-shipping, and the promotion is declared (D1, D4).** One catalog build, meaning one published version of a catalog, carries both levels: the new level holds the definition and the old level is defined as the new one. Both keys stay matchable, so consumers move when they choose rather than on one coordinated cutover. Coexistence is not new. Entry 0010, the artifact-identity reshape, already permits two levels in one build for a break (0010:D27, additive-only inside a level) and files them separately (0010:D49). What is new is that the compatible case uses the same permission. The promoted member records the level it came from, permanently, so the artifact states its own lineage.
+**A contract is promoted by shipping both levels at once, and the promotion is declared (D1, D4).** The new level holds the definition and the old level is defined as the new one, so both keys still match and consumers move when they choose. Entry 0010 already allows two levels in one build for a break (0010:D27); the compatible case now uses the same permission.
 
-**A promotion is checked against the level it came from (D2, D3).** This closes a hole rather than adding a rule. The publish gate, the comparison a catalog passes on its way to the registry, finds a predecessor by name plus API level (0011:D9, publish refuses a build that breaks a contract it already published). A member at a brand-new level finds no predecessor and passes trivially. Measured against the shipped gate, a catalog may today publish a stable `container` that drops a field its beta predecessor had, and be told it succeeded. A build may promote a contract or change its shape, never both.
+**A promotion is checked against the level it came from (D2, D3).** The publish gate finds a predecessor by name plus API level (0011:D9), so a member at a brand-new level finds none and passes for free. A catalog can today publish a stable `container` that drops a field its beta predecessor had and be told it succeeded. A build may promote a contract or change its shape, never both.
 
-**A key that stops shipping leaves a tombstone (D6 to D9).** A tombstone is a published record saying that a key is gone, when it went and what replaced it. Entry 0011, the publishing pipeline, records that nothing refuses the removal of a beta or stable member (0011:OQ10). A publish gate cannot know who consumes a catalog, so removal is not blocked, only declared: a key is present, tombstoned, or refused. The record is cumulative across builds, sits on the catalog beside its contract members (0015:D1, a catalog publishes its contracts as members), and carries a required reason plus an optional replacement.
+**A key that stops shipping leaves a tombstone (D6 to D9).** A tombstone is a published record saying a key is gone, when it went and what replaced it. Nothing refuses such a removal today (0011:OQ10), and a publish gate cannot know who consumes a catalog, so removal is declared rather than blocked.
 
-**A key cannot be withdrawn faster than its replacement has been available (D10).** This clock points at the producer. Entry 0010 rejected Kubernetes-style deprecation windows as arbitrary, since a platform moves only when someone edits a version in its own source (0010:D34, levels follow the Kubernetes alpha, beta and stable ladder). That argument is about rules forcing consumers to move, and nothing here expires a module, a pin or a subscription. Only the producer is constrained, and only on how fast it may withdraw a key after offering the successor.
+**A key cannot be withdrawn faster than its replacement has been available (D10).** This clock points at the producer only; nothing here expires a module, a pin or a subscription.
 
-**The tombstone's replacement field is the supersession edge the promotion needs**, which is why this is one entry and not two: promotion emits the record retirement consumes.
+**The tombstone's replacement field is the link promotion needs.** Promotion writes the record retirement reads.
 
 ## How it works
 
@@ -87,7 +87,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core delta, example instance
 
 **Owned by another entry.**
 
-- A read-side compatibility check. The settled posture is publish-side plus the match step, with a check command as an aid (0010:D35).
+- A read-side compatibility check. The settled rule is publish-side plus the match step, with a check command as an aid (0010:D35).
 - Contract enumeration, owned by 0015:D1, and needed here only for the consumer-readable inventory of OQ8.
 - Cross-catalog relocation (0015:OQ5). Catalog consolidation shrank this entry's case to a level bump inside one catalog (0010:D47, 0010:D49).
 

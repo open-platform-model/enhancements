@@ -1,17 +1,20 @@
 # Enhancement 0009: Operational Primitives: Op, Action, Lifecycle, Workflow
 
-The OPM kernel, the engine that turns a module into Kubernetes objects, only renders. A module has no way to say what should happen around a deployment, such as an upgrade hook, a data migration or an on-demand operation, so those end up in side scripts nobody governs. This entry adds a second half to the kernel that reads the same module and produces an ordered plan of steps instead of resources. The library decides what runs next and the caller runs it, so the plan stays pure data and every side effect belongs to the CLI or the operator.
+The OPM kernel, the engine that turns a Module into Kubernetes objects, only renders. A Module cannot say what should happen around a deployment: an upgrade hook, a data migration, an on-demand job. Those end up in side scripts nobody governs. This entry adds a second half to the kernel that produces an ordered plan of steps instead of resources.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-- The kernel gains a parallel execution half over the same module, one input and two interpreters, leaving the render half untouched (D1). Four constructs land in core (D2). An `#Op` is one primitive step from a closed set OPM owns, and an `#Action` is a reusable named composition of Ops a catalog can publish. A `#Lifecycle` binds steps to fixed phases of a deployment's life, and a `#Workflow` is an on-demand flow invoked by name.
-- The library plans, then advances one step per call: given a plan and a state it returns the next state and the one action the caller is to perform (D3). It runs no loop and performs no side effect, and the caller owns the state, which must survive serialization so a controller can carry it across reconciles.
-- Executor backends, the things that actually run a step, ship in the library's opt-in tier, and a frontend registers only the ones it wants (D4). The plan is checked against that registry before the first step, so a plan needing an unregistered backend fails before anything runs: that is how the operator declines ad-hoc container builds.
-- Dispatch is by CUE attribute, inert metadata evaluation ignores and the Go SDK reads (D5). It names a protocol, which selects a backend, and a locator for the executable artifact, which is catalog-sourced rather than compiled in and travels the rails transformers already travel (D6).
-- The `#Lifecycle` vocabulary is a fixed nine phases, a before, a during and an after for install, upgrade and uninstall, and an absent phase is a no-op (D7). The HTTP Op exposes the full verb set and returns the raw response, leaving shaping to CUE (D8).
-- Cancellation belongs to this entry and nothing else wires it until this lands (D9). One step per call means a caller cancels between steps by not calling again, so only cancellation inside a single advance remains, reaching a registry fetch and nothing else.
+**The kernel gains a second half over the same Module (D1).** The render half is untouched. Four constructs land in core (D2): an `#Op` is one step from a closed set, an `#Action` groups Ops under a name a catalog can publish, a `#Lifecycle` binds steps to fixed phases, and a `#Workflow` runs on demand.
+
+**The library plans, then advances one step per call (D3).** Given a plan and a state it returns the next state and the one thing the caller should do. It runs no loop and causes no side effect; the caller owns the state.
+
+**Backends are opt-in (D4).** A frontend registers only the ones it wants, and the plan is checked against that registry before the first step. That is how the operator declines ad-hoc container builds.
+
+**Dispatch is by CUE attribute (D5).** It is inert metadata that evaluation ignores and the Go SDK reads. It names a protocol, which picks a backend, and where to fetch the executable (D6).
+
+**Nine fixed lifecycle phases (D7), and cancellation belongs here (D9).** Before, during and after for install, upgrade and uninstall; an absent phase does nothing. One step per call means a caller cancels by not calling again. The HTTP Op returns the raw response (D8).
 
 ## How it works
 
@@ -54,7 +57,7 @@ The core-schema delta lives under [`schemas/`](schemas/) as compilable CUE with 
 - The execution half of the kernel: a pure planner and a one-step-per-call advance (D3), with the opt-in backend layer, its registry and its fail-fast behaviour.
 - The initial Op vocabulary, `exec`, full-CRUD `http`, `wait`, `cue.eval` and Kubernetes get and apply, as catalog definitions.
 - Frontend wiring: the CLI and operator each composing their own backend set, the operator driving lifecycle phases from its reconcile loop.
-- The kernel's cancellation path, designed and wired here and untouched by any other change until it lands (D9). It also introduces the injection surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
+- The kernel's cancellation path, designed and wired here and untouched by any other change until it lands (D9). It also introduces the injection point surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
 
 ### Out of scope
 

@@ -14,7 +14,8 @@ title: Artifact Provenance, Signatures and Platform Trust Policy
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Catalogs and modules carry signed build provenance and signatures as OCI referrers, and a platform states which signers and builders it trusts before anything it materializes is used.
+  Attach signed build records and signatures to every release, and let a platform say whose
+  signatures it trusts before it uses anything.
 status: draft
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -35,7 +36,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-08-25"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -55,6 +56,8 @@ history:
     event: Category set to distribution, area dropped, cross-cutting and a duplicate core removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
