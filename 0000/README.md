@@ -1,18 +1,12 @@
-# Enhancement Template (id 0000, reserved)
+# Enhancement {Enhancement Id}: {Enhancement Title}
 
-This directory is the canonical copy-from template for OPM enhancements. To
-create a new enhancement, copy the entire directory to `enhancements/NNNN/`
-(the next available four-digit id) and fill in every `{Capitalised}` placeholder
-across the README and the seven split documents.
+{Two to four plain sentences: what is wrong today, and what this entry adds. Write for a developer who knows Kubernetes and Go but not OPM internals. No decision numbers, no dates, no file paths, and define every OPM term you use the first time it appears.}
 
-See [`config.yaml`](config.yaml) for the metadata contract: it is the sole
-source of metadata; no parallel metadata table lives in this README.
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-{One to three sentences describing what this enhancement introduces and why
-it matters. Write this last: once the design has settled the summary writes
-itself. Keep it free of jargon that requires reading further documents.}
+{Three to five short paragraphs or bullets, one per load-bearing decision. Every decision reference carries its gist inline, so the reader never has to open another file to parse a sentence: "the registration is a cluster-scoped CR (D3)". A reference to another entry's decision is qualified and glossed the same way: "the one-provider rule from entry 0010 (0010:D37)".}
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
@@ -21,141 +15,37 @@ status block written here is a snapshot that goes stale the moment another chang
 lands, which is exactly the drift the implementation axis was removed to stop.
 -->
 
+## How it works
+
+```mermaid
+flowchart LR
+    input["What arrives"] --> step["What this entry adds"]
+    step --> output["What comes out"]
+```
+
+{Two to four sentences saying what to take from the diagram. Replace the block above with one diagram of this entry's own mechanism: 6 to 14 nodes, quoted labels, actors and artifacts as nodes and never a file path or a function. Load the `enhancement-diagrams` skill first; it carries the syntax traps that break a render.}
+
 ## Documents
 
-The seven split documents below are mandatory and always present. Add optional
-documents (e.g. `experiments/`, `research/`) only when a
-specific need surfaces.
+1. [01-problem.md](01-problem.md): {one line}
+1. [02-design.md](02-design.md): {one line}
+1. [03-decisions.md](03-decisions.md): the decision log
+1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register
 
-1. [01-problem.md](01-problem.md): {One-line description of the problem being solved}
-2. [02-design.md](02-design.md): {One-line description of the proposed design}
-3. [03-decisions.md](03-decisions.md): DN decision log
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md): OQN Open Questions register
-
-Pure-CUE definitions live as compilable files, never as fenced blocks inside
-markdown. [`schemas/`](schemas/) is strictly the **core-schema delta**: it
-exists iff `config.yaml.core_schema: true` (target.cue + examples.cue +
-spec.md); non-core compilable CUE (decision procedures, behaviour contracts,
-taxonomies) lives in the optional `contracts/` (`task new:contracts ID=NNNN`).
+{One sentence naming any of `schemas/`, `contracts/`, `experiments/` and `research/` this entry carries, and what is in it. Delete the sentence when it carries none. Compilable CUE lives in those directories as real files, never as fenced blocks in markdown.}
 
 ## Scope
 
-Concrete boundary of this enhancement. The validator (future) requires this
-section starting at `status: accepted`. For design-time aspirations (what the
-solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
-
 ### In scope
 
-- {Bulleted boundary of what this enhancement covers.}
+- {Bulleted boundary of what this enhancement covers. Keep each bullet under 25 words; group them under bold labels once there are more than five.}
 
 ### Out of scope
 
 - {Items deliberately deferred, owned by other enhancements, or out of scope by intent.}
-
-## Experiments
-
-Experiments are **optional** and usually appear **part-way through an enhancement's life**, once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
-
-When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
-
-### Rules
-
-- **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
-- **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
-- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
-- **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
-- **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
-
-### Scaffold and layout
-
-```bash
-task new:experiment ID=NNNN NAME=concept-name
-```
-
-Creates `NNNN/experiments/` (with an index README, if absent), computes the next two-digit experiment number from existing `NN-*/` subdirs, creates `NNNN/experiments/NN-concept-name/README.md` with a Hypothesis / Setup / Run / Outcome skeleton, and seeds `Status: Draft`. Run from this directory or via the workspace include (`task enhancements:new:experiment …`).
-
-```
-NNNN/experiments/
-├── README.md                       # Index — table of experiments + status (hand-maintained)
-├── 01-{concept-name}/
-│   ├── README.md                   # Per-experiment: Hypothesis / Setup / Run / Outcome / Status
-│   ├── ...                         # Copied schemas, Go modules, fixtures, etc.
-│   └── ...
-└── 02-{concept-name}/
-    └── ...
-```
-
-### Per-experiment README
-
-Each experiment's README answers four questions and carries a status line:
-
-1. **Hypothesis**: Which claim from the design is this validating?
-2. **Setup**: What was copied in, from where, and what was modified.
-3. **Run**: Exact commands to reproduce the result.
-4. **Outcome**: What was observed; whether the hypothesis held.
-
-The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
-
-Update the per-experiment README in place as the experiment evolves. Once concluded, record the outcome and link the result back into `02-design.md` or `03-decisions.md` so the enhancement carries the evidence.
-
-### Index README
-
-`experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
-
-```markdown
-# Experiments — {Enhancement Title}
-
-| # | Concept | Status |
-| - | ------- | ------ |
-| 01 | matcher-mechanics | Concluded |
-| 02 | read-portability  | Running   |
-```
-
-The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
-
-## Research
-
-Research is **optional** and holds the external evidence a design rests on: most importantly **deep-research reports**, but also benchmark write-ups, vendor-doc summaries, comparison matrices, and curated link collections. When the design of an enhancement is grounded in research (a `/deep-research` run, a literature sweep, a prior-art survey), drop the cited findings under `research/`. This way the evidence travels with the design instead of evaporating into a chat log.
-
-Research differs from `experiments/`: research is **gathered and synthesised** (read-only evidence: what is true in the world), whereas experiments are **authored and executed** (runnable proofs we wrote: what holds in our model). A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`.
-
-### Rules
-
-- **Cited.** Every non-obvious claim carries its source (URL, doc, file path). A deep-research dossier reproduces its source list and, where it has them, confidence levels and verification verdicts: distinguish verified facts from design recommendations.
-- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `Source:` line of the relevant decisions in `03-decisions.md`, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
-- **Snapshot, not canon.** Research reflects what was true when gathered; date it. It is not a maintained spec. Supersede with a new file rather than silently editing conclusions.
-- **Not gated.** `task vet` does not require or validate `research/`; add it only when an enhancement actually has external evidence worth preserving.
-
-### Layout
-
-```
-NNNN/research/
-├── findings.md                     # primary dossier (e.g. a deep-research report): summary, cited findings, caveats, sources
-└── {topic}.md                      # optional further write-ups (benchmark-x-vs-y.md, prior-art-survey.md, …)
-```
-
-`findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task: `research/` is hand-authored prose.
-
-## Delivery Log
-
-Delivery is recorded in this entry's `delivery.yaml`: an append-only log with one entry per landed change (an OpenSpec change archived in a target repo, a PR merged, a commit pushed).
-
-- Each entry carries the local decision numbers the change implemented (`D4`) and optionally the Open Questions it resolves (`resolves: [OQ9]`).
-- Log a change only when it lands (`task delivery:log`): there are no forecast slices or phases.
-- A decision that genuinely needs no change is excused in `no_work` with a reason; a decision is carried or excused, never both.
-- `task delivery` derives the state (`not-started`, `in-progress`, `implemented`) from the log. Nothing about delivery is stored anywhere else in the entry.
-
-## Diagrams
-
-Diagrams are welcome throughout this enhancement's documents. The medium depends on what's being shown, never a blanket default:
-
-- **Mermaid**: relationships between enhancements: whether one of this entry's decisions depends on another entry's (a `depends_on` edge), or whether this entry supersedes one. This is exactly what the generated `GRAPH.md` already renders; a live Mermaid sketch during discussion (reusing the `classDef` palette) previews what that file will look like once the edit lands and `task graph` regenerates it. Never hand-authored into these documents.
-- **ASCII**: how this entry's own design or mechanism works: architecture/layering, data or control flow, state transitions, integration-points/component mapping, before/after comparisons. Plain fenced code blocks, no language tag. `enhancements/0012/02-design.md` is the reference example (a layered architecture diagram and a data-flow diagram). Prefer simple arrow/column layouts over fully bordered boxes for anything likely to be edited later. Bordered boxes are fragile to hand-realign. One concept per diagram; always paired with a sentence or two of prose; never in `03-decisions.md`.
-
-See the `enhancement-diagrams` skill for the full protocol, including live-discussion use during an Open-Questions walk or general design conversation.
 
 ## Deviations from Design
 
@@ -166,80 +56,34 @@ deliberate divergences from the design need to be documented.
 
 | Document | Purpose |
 | -------- | ------- |
-| `CONSTITUTION.md` (workspace root, or target-repo local) | Core design principles governing changes in the touched repo(s) |
-| {path} | {purpose} |
+| {path} | {why a reader of this entry would open it} |
 
 <!--
 ## Agent Instructions
 
-To create a new enhancement from this template:
+To create a new enhancement, run `task new` rather than copying this directory by
+hand; it picks the next id, fills `config.yaml`, substitutes the title and seeds
+the out-of-scope boundary from your `NOT=` answer.
 
-1. Pick the next available four-digit id by scanning `enhancements/` for the
-   highest existing NNNN directory and incrementing by one. Ids are
-   never reused: supersession is recorded via `supersedes` / `superseded_by`
-   in `config.yaml`, not by renumbering.
-2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
-3. Overwrite every `{Capitalised}` placeholder string across the README and
-   the seven split documents.
-4. Fill `config.yaml` with real values: id matches the directory name, slug
-   is short kebab-case, title is human-readable, category names the one
-   dominant type of work, affects lists every repo that ships changes,
-   created + updated set to today's date.
-5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
-   accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `05-risks.md` and `06-operational.md` start as scaffolds
-   and mature alongside the decision log.
-7. If the enhancement adds or changes opmodel.dev/core definitions
-   (`config.yaml.core_schema: true`), sketch the delta in
-   `schemas/target.cue` (scaffolded by `task new CORE_SCHEMA=true`;
-   `examples.cue` + `spec.md` are required before draft → accepted).
-   Otherwise there is no `schemas/`; put non-core compilable CUE in
-   `contracts/` via `task new:contracts ID=NNNN` if needed.
-8. Do not strip these HTML-comment Agent Instructions when copying. They
-   are the in-template guidance for the next author/agent.
+Then:
 
-### Status lifecycle
+1. Overwrite every `{Capitalised}` placeholder across this README and the seven
+   split documents. `task vet` fails while one remains.
+2. Write `01-problem.md` and `02-design.md` first, in full prose. Decisions
+   accrete in `03-decisions.md` as choices get settled; `05-risks.md` and
+   `06-operational.md` mature alongside them.
+3. Replace the `## How it works` diagram with this entry's own mechanism. Load
+   the `enhancement-diagrams` skill before drawing it.
+4. If the enhancement adds or changes `opmodel.dev/core` definitions
+   (`config.yaml.core_schema: true`), sketch the delta in `schemas/target.cue`;
+   `examples.cue` and `spec.md` are required before `draft → accepted`.
+   Otherwise there is no `schemas/`, and non-core compilable CUE goes in
+   `contracts/` via `task new:contracts ID=NNNN`.
+5. Do not strip these HTML-comment Agent Instructions when copying. They are the
+   in-template guidance for the next author.
 
-- **draft**: initial design, actively being written
-- **accepted**: design agreed upon, ready for implementation; the resting
-  state (delivery is derived from `delivery.yaml`, never stored as a status)
-- **rejected**: the idea was not accepted; the entry moves to
-  `archive/NNNN/` with `rejected_reason` (`task reject`)
-- **superseded**: replaced by a newer enhancement (paired with
-  `superseded_by` on this entry and `supersedes` on the replacement); the
-  entry moves to `archive/NNNN/` (`task supersede`)
-- **delivered**: every live decision is carried by `delivery.yaml` or
-  excused in it and the owner closed the design; the entry moves to
-  `archive/NNNN/` (`task close`, which refuses unless `task delivery`
-  derives `implemented`). Nothing in it changes again; later entries amend
-  it by naming its decisions.
-
-All three terminal states are always archived. A terminal entry never stays
-in place, and `task vet` fails one that does.
-
-### Compaction
-
-These documents state what is true *now*. Provenance lives in git and in `config.yaml.history`, the one strictly append-only structure. `DN` and `OQN` numbers are never reused or renumbered (other repos cite them); a number vacated by a merge or retraction keeps a one-line tombstone.
-
-- **draft**: decisions are revised **in place** as part of ordinary editing (fold evidence-backed old positions into *Alternatives considered*); compaction is only the repair path for legacy stacked reversals. Leave Open Question prose alone, it is the active work surface.
-- **accepted**: decision bodies are protected: changes append a new `DN` with `**Amends:**`/`**Supersedes:**` relation fields, and the compaction skill is the only body-edit path, weaving those reversals in, collapsing resolved Open Questions to a one-line `Status: resolved-by-DN`. Available at latest until the design is delivered.
-- **implemented** (derived from `delivery.yaml`, not a status): closed. Nothing changes, ever.
-- **superseded**: narrative documents collapse to pointers at the successor;
-  the decision log keeps its numbers and its *Alternatives considered*.
-  The pass runs on the archived entry (`archive/NNNN/`).
-  `experiments/` and `research/` are never touched.
-
-Run `task compact:plan ID=NNNN` for the candidate list and load the
-`enhancement-compaction` skill to act on it. Compaction lands in its own
-commit, never folded into a content change.
-
-### Cross-refs to legacy library enhancements
-
-The seven three-digit entries under `library/enhancements/` (001..007) are
-frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`; `depends_on`
-cannot target one, because a dependency resolves to a decision heading and the
-legacy entries have none, so cite them in prose instead. Once those entries are
-deleted, the references become dangling and the validator (future) will flag
-them: fix or remove at that point.
+The workflow protocol lives in the `enhancements` skill, not here: status
+lifecycle, decision-body mutability, compaction, experiments, research and the
+delivery log are all documented there and in `CLAUDE.md`. This template holds
+only the shape of an entry README.
 -->

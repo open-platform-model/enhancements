@@ -148,6 +148,17 @@ Writing it: relation fields sit between `**Kind:**` and `**Decision:**`, one fie
 
 **Reach for a diagram during design discussion, not just during the OQ walk.** Discussing High-Level Approach, Schema/API Surface, Integration Points, or Before/After is exactly where a picture often settles a question faster than prose. Load `enhancement-diagrams` — Mermaid is the default medium, and the entry's `README.md ## How it works` carries exactly one.
 
+#### Research: where external evidence goes
+
+`NNNN/research/` holds the external evidence a design rests on: a deep-research report, a benchmark write-up, a vendor-doc or prior-art survey. It is optional, hand-authored, and not gated by `task vet`; add it the first time an enhancement actually has evidence worth preserving, so the evidence travels with the design instead of evaporating into a chat log. The primary dossier is `research/findings.md`; distinct investigations get topic-named files beside it (`prior-art-survey.md`, `benchmark-x-vs-y.md`).
+
+Research is *gathered* evidence, read-only synthesis of what is true in the world. `experiments/` is *authored* runnable proof of what holds in our model — see `enhancement-experiments`. A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`. Four rules:
+
+- **Cited.** Every non-obvious claim carries its source. A deep-research dossier reproduces its source list and, where it has them, its confidence levels: distinguish verified facts from design recommendations.
+- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `**Source:**` line of the decisions it backs, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
+- **Snapshot, not canon.** Research reflects what was true when gathered; date it. Supersede it with a new file rather than silently editing conclusions.
+- **Not gated.** `task vet` neither requires nor validates it.
+
 ### Phase 3 — Promote `draft → accepted`
 
 Promotion is no longer a hand edit to `status:`. It is a command that refuses:
@@ -409,7 +420,7 @@ When guidance conflicts, the most-specific source wins: target repo skill > this
 ## Cross-references
 
 - `enhancements/CLAUDE.md` — repo orientation; points here for the full protocol.
-- `enhancements/0000/README.md` — template; carries the canonical rules text duplicated inside each new entry.
+- `enhancements/0000/README.md` — template; the shape of an entry README, with the workflow rules left to this skill.
 - `enhancements/schema.cue` — CUE contract that `task vet` validates each `config.yaml` against; it also validates every `delivery.yaml` (`#Delivery`) and defines the target-repo `enhancement.yaml` declaration shape (`#ChangeDeclaration`).
 - `enhancements/Taskfile.yml` — workflow tasks source.
 - `enhancement-gates` skill (sibling) — the admission rubric walk; the only path to the verdict file `task promote` requires.

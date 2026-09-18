@@ -202,7 +202,7 @@ enhancements/
 - [`CLAUDE.md`](CLAUDE.md): repository rules and agent orientation.
 - [`.claude/skills/enhancements/SKILL.md`](.claude/skills/enhancements/SKILL.md): the binding workflow, phase by phase.
 - [`schema.cue`](schema.cue) and [`gates.cue`](gates.cue): the metadata contract and the admission rubric, with rationale in comments.
-- [`0000/README.md`](0000/README.md): the template, including the experiments and research conventions.
+- [`0000/README.md`](0000/README.md): the template, which is the shape of an entry README and nothing else.
 - Sibling skills under `.claude/skills/`: `delivery-log`, `enhancement-gates`, `enhancement-compaction`, `enhancement-open-questions`, `enhancement-experiments`, `enhancement-diagrams`.
 
 ## Related repos

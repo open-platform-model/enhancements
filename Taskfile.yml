@@ -1905,8 +1905,10 @@ tasks:
           yq -i '.affects = ((.affects + ["core"]) | unique)' "$NEW_DIR/config.yaml"
         fi
 
-        # Replace {Enhancement Title} placeholder in README + the seven split
-        # docs (+ schemas/spec.md when CORE_SCHEMA=true kept schemas/).
+        # Replace the {Enhancement Title} and {Enhancement Id} placeholders in
+        # README + the seven split docs (+ schemas/spec.md when CORE_SCHEMA=true
+        # kept schemas/). Every other {Capitalised} placeholder is the author's
+        # to overwrite, and `task vet` fails while one remains.
         ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
         for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md schemas/spec.md; do
           # if/then rather than `[ -f ] && sed`: schemas/spec.md is absent on
@@ -1914,6 +1916,7 @@ tasks:
           # the script under set -e.
           if [ -f "$NEW_DIR/$f" ]; then
             sed -i "s#{Enhancement Title}#${ESCAPED_TITLE}#g" "$NEW_DIR/$f"
+            sed -i "s#{Enhancement Id}#${NEW_ID}#g" "$NEW_DIR/$f"
           fi
         done
 

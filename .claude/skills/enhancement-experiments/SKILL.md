@@ -126,7 +126,7 @@ Deletion is a regular `git rm`. Update the `experiments/README.md` index by remo
 
 ## Anti-patterns
 
-- **Adding an experiment upfront when copying the template.** Don't. The template's HTML comments and `0000/README.md ## Experiments` section say "do not create `experiments/` until a specific claim needs validation." Empty experiment scaffolds are noise.
+- **Adding an experiment upfront when copying the template.** Don't. Create `experiments/` the first time a specific claim needs validation, never at scaffold time. Empty experiment scaffolds are noise.
 - **Two claims in one experiment.** If you find yourself writing two Hypothesis sentences, stop and split.
 - **Importing from `core/` or `library/` instead of copying.** A reviewer six months from now reads the experiment, finds it broken because `core/platform.cue` evolved, and cannot tell whether the claim was ever valid. Copy.
 - **Writing tests instead of demonstrations.** Experiments are not `go test ./...`. They are runnable scripts a human invokes to see a behaviour. If your "experiment" wants table-driven test cases and assertions, write a test fixture in `library/` instead.
@@ -141,7 +141,6 @@ Deletion is a regular `git rm`. Update the `experiments/README.md` index by remo
 | Experiments index | `enhancements/NNNN/experiments/README.md` | Hand-maintained by the agent / author. Lists `# / Concept / Status` rows. |
 | Per-experiment README | `enhancements/NNNN/experiments/NN-name/README.md` | Hand-maintained. Hypothesis / Setup / Run / Outcome / `Status:`. |
 | Experiment source files | `enhancements/NNNN/experiments/NN-name/*` | Whatever the experiment needs — `.cue`, `.go`, `Taskfile.yml`, `cue.mod/`, etc. Self-contained. |
-| Rules canonical text | `enhancements/0000/README.md ## Experiments` | The rules duplicated above live there as the template-side reference. |
 | Workflow tasks | `enhancements/Taskfile.yml` (`new:experiment`, `experiments:list`, `vet`) | Tooling source. |
 | Structural validation | `enhancements/Taskfile.yml` (`vet` and `vet:one` `check()` functions) | Index + README presence checks. |
 | This skill | `enhancements/.claude/skills/enhancement-experiments/SKILL.md` | Workflow guidance — the file you are reading. |
@@ -149,6 +148,5 @@ Deletion is a regular `git rm`. Update the `experiments/README.md` index by remo
 ## Cross-references
 
 - `enhancements/CLAUDE.md` — repo guide; points to this skill at the experiments section.
-- `enhancements/0000/README.md ## Experiments` — canonical rules text reproduced in each enhancement's template.
 - `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — when an experiment's outcome lands an OQ in the `informed-by-exp-NN` / `supported-by-exp-NN` partial bucket, the walk formalizes it into a `### DN:` block. Load that skill alongside this one when concluding an experiment whose result resolves a specific OQ.
 - `core/.claude/skills/core-schema-edit/SKILL.md` — sister skill governing SPEC.md co-update when an experiment's conclusion lands as a real schema change in `core/*.cue`.

@@ -221,5 +221,5 @@ that category.
   `## Phase 2 — Iterate` is where general design discussion happens and this skill applies.
 - `enhancements/.claude/skills/enhancement-open-questions/SKILL.md` — the OQ-walk's Present step
   is the primary trigger for a live diagram during a walk.
-- `enhancements/0000/README.md ## Diagrams` — canonical rules text reproduced in each new entry's
-  template.
+- `enhancements/0000/README.md ## How it works` — the placeholder diagram every new entry scaffolds
+  with, and replaces with its own.
