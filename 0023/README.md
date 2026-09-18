@@ -10,13 +10,13 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Two signed claims, attached as referrers (D1).** Provenance says who built the artifact, from which source, in SLSA's format, produced by the release platform rather than the author. A signature says who vouches for it. Both attach as OCI referrers, so CUE's client never sees them and a claim pinned to a digest survives a re-pointed tag.
 
-**No OPM artifact carries any of this today**, measured on a shipped module in August 2026.
+**No OPM artifact carries any of this today**, measured on a shipped module on 2026-08-25.
 
-**The trust policy belongs to the platform (D2).** A platform states which signer identities and which builders it accepts, and every artifact it materializes is verified against that first. The kernel verifies, so the operator enforces and the CLI reports the same verdict. Policy on the artifact was rejected because an artifact cannot vouch for itself.
+**The trust policy belongs to the platform (D2).** A platform states which signer identities and which builders it accepts, platform-wide or per subscription, and every artifact it materializes is verified against that first. The kernel verifies, so the operator enforces and the CLI reports the same verdict. Policy on the artifact was rejected because an artifact cannot vouch for itself, and policy in the CLI's own configuration because a laptop setting never travels to the operator.
 
 **Everything else is open, on purpose.** The research and experiments settle which SLSA level OPM's releases can reach (OQ4), whether verification must consult a transparency log and what it does offline (OQ5), and the shape of the policy itself (OQ3). A capability manifest (OQ1) and signed advisories (OQ2) wait on their own questions.
 
-**It fits between two neighbours.** Entry [0011](../archive/0011/) produces the artifacts and already verifies a catalog out of band (0011:D7). Entry [0022](../0022/) carries unsigned metadata in the tree; nothing there is evidence (OQ6).
+**It fits between two neighbours.** Entry [0011](../archive/0011/) produces the artifacts and already verifies a catalog out of band (0011:D7), so attestation happens in that release workflow and verification extends that command. Entry [0022](../0022/) carries unsigned metadata in the tree; nothing there is evidence, but a verifier may reuse its catalog list to decide what to verify recursively (OQ6). The subscription the policy attaches to is the one entry [0019](../archive/0019/) reshaped (0019:D5, a platform imports its catalog whole), and the advisories of OQ2 are the artifact-level counterpart of contract retirement in entry [0020](../0020/).
 
 ## How it works
 

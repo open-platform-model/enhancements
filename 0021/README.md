@@ -6,15 +6,15 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**One policy, nine artifact classes, one file each (D1, D4).** An artifact class is one kind of thing a consumer can pin, such as a module or a catalog build. Rules already settled elsewhere are copied verbatim under a line naming their source (D3).
+**One policy, nine artifact classes, one file each (D1, D4).** An artifact class is one kind of thing a consumer can pin, such as a module or a catalog build. The rules are collected into [`policy/`](policy/), one file per class plus an index for the rules that apply to every class. Rules already settled elsewhere are copied verbatim under a line naming their source (D3): the contract ladder and its additive-only promise (0010:D27, 0010:D34), authored versions (0011:D15), the commit-type tables of `core` and `catalog_opm`, and the tag scheme.
 
 **A module's version is bound to its config schema (D2).** That schema is already OpenAPIv3-shaped, so two releases compare mechanically. Accepting fewer values is a major, more is a minor, the same is a patch. Whether rendered output's stateful identity is a second surface is OQ1.
 
 **The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the operator on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-operator skew (OQ15).
 
-**Enforcement is layered, and each rule names its layer.** Convention states the rule in writing. A claim is a change stating its own bump. A gate refuses an under-claimed bump at publish. An aid is a check anyone may run. Catalogs reach all four; modules reach the first two plus a gate that compares nothing.
+**Enforcement is layered, and each rule names its layer.** Convention states the rule in writing. A claim is a change stating its own bump. A gate refuses an under-claimed bump at publish. An aid is a check anyone may run. Catalogs reach all four; modules reach the first two plus a gate that compares nothing; core and the Go artifacts reach the first two only. The module gate is scaffolded as design intent with its questions attached (OQ5, OQ6), not decided.
 
-**Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
+**Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing: an author who breaks an alpha contract is encouraged, not required, to bump its alpha number rather than reshape the key in place, and that reaches the convention layer only. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
 
 ## How it works
 

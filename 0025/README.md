@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**The platform binds the module; the consumer supplies values (D1, D5).** The platform team writes one cluster-wide definition: a module path, a major, the bound release, an update policy, and optionally values the platform fixes. The module never ships its own definition (D5), because it would have to be deployed before anyone could use it.
+**The platform binds the module; the consumer supplies values (D1, D5).** The platform team writes one cluster-wide definition: a module lineage (its path without the major), a major, the bound release, an update policy, and optionally values the platform fixes. The module never ships its own definition (D5), because it would have to be deployed before anyone could use it.
 
 **An instance becomes an ordinary ModuleInstance (D3, D6).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the operator all compute the same result. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
 
@@ -22,7 +22,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ```mermaid
 flowchart LR
-    platform["Platform team writes a definition: module path, major, bound release, update policy, fixed values, optional group and kind"] --> crd
+    platform["Platform team writes a definition: module lineage (path without major), major, bound release, update policy, fixed values, optional group and kind"] --> crd
     crd["Operator serves a CRD: schema is the module's config schema, version is the module major"] --> consumer
     consumer["Consumer creates a namespaced instance of that kind: values only, no module path"] --> admission["Admission validates it, access is granted per kind"]
     admission --> project
@@ -54,7 +54,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying 
 
 **Binding layer (D1, D3, D5, D6).**
 
-- A cluster-scoped, platform-owned definition binding a module path, a major, a release and an update policy, which may also carry platform-bound values.
+- A cluster-scoped, platform-owned definition binding a module lineage (its major-free path), a major, a release and an update policy, which may also carry platform-bound values.
 - A way for a ModuleInstance to reference a definition instead of naming a module, with the coordinate resolved from the definition.
 - The conversion from definition plus instance to a ModuleInstance, as a core CUE function the kernel reads and the CLI can compute offline.
 - The self-hosting authoring shape: a definition rendered from a resource contract by a transformer, on the same pattern as transformer registration, beside hand-authored definitions.
@@ -72,7 +72,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying 
 - Managed-resource controllers. Crossplane providers, ACK and ASO stay external, and OPM renders their objects as leaf resources (D8). Rebuilding them on the execution half of the kernel is neither this entry nor a successor of it.
 - A general meta-controller toolkit. The conversion controller is one bounded instance of the idea entry 0009 leaves open; extracting a toolkit waits for a second dynamic-kind controller to exist.
 - The composite-and-claim shape. There is no cluster-scoped composite object behind a namespaced claim (D9).
-- Routing between several definitions of one kind, or several modules behind one kind. One definition binds one module path; classes, channels and capability routing are successor material, as they are in entry 0015.
+- Routing between several definitions of one kind, or several modules behind one kind. One definition binds one module lineage; classes, channels and capability routing are successor material, as they are in entry 0015.
 - Changing the module schema. No authored field is added, and the offered module does not know it is offered (D5). A module-declared status schema is OQ5 and may add one later.
 
 ## Deviations from Design

@@ -2,13 +2,13 @@
 
 > **Mechanism removed 2026-08-22.** This entry was written before decisions carried a `**Kind:**` line, and it recorded construction detail alongside its contracts: file names, directory spellings, internal identifiers, per-repo worklists. That detail has been removed from `03-decisions.md`, `02-design.md`, `06-operational.md` and this file; `## Integration Points` is now `## Affected Surfaces`, stated at the intent level. **Nothing was reversed and no decision changed its answer.** Measured evidence, `Source:` citations and *Alternatives considered* were kept in full, including their file references: those are provenance, not instructions. The removed text is in git history; construction detail belongs to the implementing repo's own change record.
 
-Today a secret's value travels in plain text through the whole render. The field holding it also has to say which Kubernetes Secret object and key it lands in. The catalog already deleted its copy of that mechanism, so modules currently pass secrets as plain strings. This entry moves the routing onto a CUE attribute the author writes once.
+Today a secret travels in plain text through the whole render. Core's `#Secret` type also puts the routing inside the value: which Kubernetes Secret and key it lands in. The catalog deleted its copy, so modules pass secrets as plain strings. This entry moves the routing onto a CUE attribute, and the kernel rewrites marked fields to references before render.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The attribute says where, the type says what (D10).** The attribute carries routing: which Kubernetes object a key belongs in, the same in every environment. The type carries the value the deployer supplies.
+**The attribute says where, the type says what (D10, in the attribute namespace D2 already defines).** The attribute carries routing: which Kubernetes object a key belongs in, the same in every environment. The type carries the value the deployer supplies, per environment, checked by CUE. D10 replaced D1's contract struct.
 
 ```cue
 // author, once, in the published module
@@ -21,13 +21,15 @@ values: db: password: {ref: "existing-db-creds", key: "password"}  // referenced
 
 **Two ways to supply a secret, and no more (D7, D12).** Give a literal, or point at a Secret that already exists. `#Secret` narrows to those two, six lines in core and nowhere else, deleting 455 dead lines there and a 240-line discovery walk; the catalog's 439 duplicated lines are already gone (D9).
 
-**The kernel finds marked fields from the schema, not the values (D3).** So it works with no values present, and covers lists and pattern-constrained maps. A marked field of the wrong type is an error (D13).
+**The kernel finds marked fields from the schema, not the values (D3).** So it works with no values present, has no depth ceiling, and covers lists and pattern-constrained maps. It keys on type as well as marker and fails closed: a secret-typed field without the attribute gets default routing, a marked field of another type is an error (D13).
 
-**It rewrites every secret to a reference before render (D11).** The kernel names each object once per instance and group (D5, D6) and sends the plaintext out of band. The reference has no value field, so plaintext is structurally absent from the render.
+**It rewrites every secret to a reference before render (D11).** Only the kernel names an object (D5), once per instance and group rather than per component (D6), and it sends the plaintext out of band. A literal becomes a reference to the object the kernel just decided to create; a deployer-written reference passes through unchanged. After the rewrite a transformer reads one branch, so the environment-variable-versus-volume name mismatch of today cannot be expressed. The reference has no value field, so plaintext is structurally absent from the render.
 
 **The platform picks the backend, not the author (D8).** Plain Secret, sealed Secret or external-secrets is a catalog-subscription choice. That answers entry [0010](../archive/0010/)'s question about where the secrets resource name comes from.
 
-**SOPS decrypts at the file edge only (D14).** A literal in a custom resource is plaintext in etcd: accepted and documented, with the reference form as the production recommendation (D15).
+**SOPS decrypts at the file edge only (D14).** It is never a fulfilment form, a backend or kernel code. A literal in a custom resource is plaintext in etcd: accepted and documented, with the reference form as the production recommendation and no indirection field added (D15).
+
+Two properties fall out that the first draft lacked. Instance files do not change at all for supplied secrets, and a secret interpolated into a rendered config file now fails plain validation at authoring time.
 
 ## How it works
 

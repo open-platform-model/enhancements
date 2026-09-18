@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**The platform admits, the module selects (D1, D2).** The platform writes a pure-data spec: for each catalog path at one major it admits, a required lowest version and an optional highest one. A module's committed catalog dependency is the version its render uses, as long as it sits inside that range. Outside it, the render is refused by name.
+**The platform admits, the module selects (D1, D2).** The platform writes a pure-data spec: for each catalog lineage it admits (a catalog path at one major), a required lowest version and an optional highest one. A module's committed catalog dependency is the version its render uses, as long as it sits inside that range. Outside it, the render is refused, naming the module, the path, the pin, the bound and whose bound it was.
 
 **Raising the floor is a loud lever.** It stops the instances below it rather than moving them.
 
@@ -14,15 +14,15 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The platform value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the spec plus the module's pins. That value is today's platform definition, unchanged, so nothing downstream learns anything new.
 
-**Provider catalogs follow the same rule (D5, D6).** A provider's own catalog pin already fixes the version its registration carries. The registration gains a window defaulting to that version; a platform spec entry for that path is optional and, when present, replaces it.
+**Provider catalogs follow the same rule (D5, D6).** A provider's own catalog pin already fixes the version its registration carries. That version is the pick for any render that does not pin the provider's catalog itself. The registration gains a window defaulting to that version; a platform spec entry for that path is optional and, when present, replaces it, and the registration's status reports which window is in effect and where it came from.
 
-**The shared-path check runs twice (D7), and nothing else moves (D8).** It runs per render against the consumer's pins, and at acceptance against the platform's floors.
+**The shared-path check runs twice (D7), and nothing else moves (D8).** It runs per render against the consumer's pins, and at acceptance against the platform's floors. Matching, how the transformer set is derived, who holds admission authority, and provider routing are all unchanged.
 
 ## How it works
 
 ```mermaid
 flowchart TD
-    spec["Platform spec, plain data: catalog paths with their major, a required floor, an optional ceiling"] --> kernel
+    spec["Platform spec, plain data: catalog lineages (path plus major), a required floor, an optional ceiling"] --> kernel
     pins["Consumer module's committed pins, plus the tidied closure"] --> kernel
     reg["Accepted provider registrations: each catalog at its version, inside the provider's window"] --> kernel
     kernel["Kernel: for each catalog the module imports, is the path admitted and the pin inside the range?"] --> refuse["No: refuse by name, naming module, path, pin, bound and whose bound it was"]
@@ -36,7 +36,7 @@ The tidied closure is the module's full committed dependency list, the one the r
 
 ## Documents
 
-1. [01-problem.md](01-problem.md): one platform pin both admits a catalog and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
+1. [01-problem.md](01-problem.md): one platform pin both admits a catalog lineage and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
 1. [02-design.md](02-design.md): a pure-data platform spec with ranges, module pins as the held version, a generated render-time platform, and the same rule for provider catalogs
 1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
@@ -50,7 +50,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 
 ### In scope
 
-- The platform spec and its subscription entries in `core`: a catalog path with its major, an enable flag, an optional registry override, a required floor and an optional ceiling (D2). No existing core definition changes shape.
+- The platform spec and its subscription entries in `core`: a catalog lineage (path with its major), an enable flag, an optional registry override, a required floor and an optional ceiling (D2). No existing core definition changes shape.
 - The source of a catalog version in the render list: the module's committed pin, admitted by the spec and refused by name outside the range (D1, D2). The build records the catalog versions it held.
 - Per-resolution generation of the unchanged platform value from spec plus pins, and the convergence of the offline and cluster authored forms on the spec (D3).
 - The registration window: a floor and a ceiling on the registration contract, defaulting to its exact version, plus the optional spec entry that overrides it. The effective window and its source are reported in the registration's status (D5, D6).

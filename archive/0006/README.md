@@ -8,13 +8,15 @@ All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.
 
 ## Summary
 
-**The CLI writes the operator's custom resource instead of a Secret (D1).** Its inventory, meaning the objects it applied plus the digest of what it rendered, goes into that resource's status. The CLI writes a strict subset of the status fields (D2), leaving conditions to the operator (D25). An owner marker tells the operator to skip reconciling it and say so on a condition (D3). Existing Secret inventories migrate on the next apply (D8).
+**The CLI writes the operator's custom resource instead of a Secret (D1).** Its inventory, meaning the objects it applied plus the digest of what it rendered, goes into that resource's status. The CLI writes a strict subset of the status fields (D2), leaving conditions to the operator (D25). An owner marker tells the operator to skip reconciling it and say so on a condition (D3). Existing Secret inventories migrate on the next apply, with a one-release read-fallback window (D8).
 
-**The CLI deletes its own render pipeline and renders through the shared kernel (D9).** A CLI render and an operator render of one instance are then byte-identical by construction. What the CLI keeps is apply: its own server-side-apply engine under its own field manager, duplicated deliberately (D10).
+**The CLI deletes its own render pipeline and renders through the shared kernel (D9).** A CLI render and an operator render of one instance are then byte-identical by construction. What the CLI keeps is apply: its own server-side-apply engine under its own field manager, duplicated deliberately, with server-side apply mandatory on both sides (D10).
 
 **The CLI imports the kernel library only, never the operator (D13).** Importing the operator's types would drag in a controller framework and a GitOps toolkit, measured in this entry's research, so the CLI handles the custom resource as untyped data. D31 reverted the plan to share inventory logic too.
 
-**On top of that contract sits the handoff (D7)**, forward-only, CLI to operator (D16). The CLI re-renders the published module, refuses unless the digest matches the one on the resource, then patches the owner. Success is an inventory-stable reconcile rather than a byte-level no-op (D40), because the kernel stamps runtime identity into a standard label and the operator's first reconcile relabels every object.
+**On top of that contract sits the handoff (D7)**, forward-only, CLI to operator (D16). The CLI re-renders the published module, refuses unless the digest matches the one on the resource, then patches the owner. Success is an inventory-stable reconcile rather than a byte-level no-op (D40), because the kernel stamps runtime identity into a standard label and the operator's first reconcile relabels every object; that relabel is reported rather than hidden.
+
+**This entry consumes enhancement [0001](../0001/) rather than changing it.** D9's render path waited on 0001's kernel slice; the inventory and handoff strand (D1 to D8) did not, and D20 settled that both ship as one wave. Installing the operator is part of it too: a noun-first command group installing one embedded artifact, with the resource definitions a filtered subset of it (D5, D32, D35).
 
 ## How it works
 

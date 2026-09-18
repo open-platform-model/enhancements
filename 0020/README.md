@@ -6,13 +6,13 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**A contract is promoted by shipping both levels at once, and the promotion is declared (D1, D4).** The new level holds the definition and the old level is defined as the new one, so both keys still match and consumers move when they choose. Entry 0010 already allows two levels in one build for a break (0010:D27); the compatible case now uses the same permission.
+**A contract is promoted by shipping both levels at once, and the promotion is declared (D1, D4).** The new level holds the definition and the old level is defined as the new one, so both keys still match and consumers move when they choose. Entry 0010 already allows two levels in one build for a break (0010:D27, additive-only inside a level) and files them separately (0010:D49); the compatible case now uses the same permission. The promoted member records the level it came from, permanently.
 
 **A promotion is checked against the level it came from (D2, D3).** The publish gate finds a predecessor by name plus API level (0011:D9), so a member at a brand-new level finds none and passes for free. A catalog can today publish a stable `container` that drops a field its beta predecessor had and be told it succeeded. A build may promote a contract or change its shape, never both.
 
-**A key that stops shipping leaves a tombstone (D6 to D9).** A tombstone is a published record saying a key is gone, when it went and what replaced it. Nothing refuses such a removal today (0011:OQ10), and a publish gate cannot know who consumes a catalog, so removal is declared rather than blocked.
+**A key that stops shipping leaves a tombstone (D6 to D9).** A tombstone is a published record saying a key is gone, when it went and what replaced it. Nothing refuses such a removal today (0011:OQ10), and a publish gate cannot know who consumes a catalog, so removal is declared rather than blocked: a key is present, tombstoned, or refused. The record is cumulative across builds, sits on the catalog beside its contract members (0015:D1), and carries a required reason plus an optional replacement.
 
-**A key cannot be withdrawn faster than its replacement has been available (D10).** This clock points at the producer only; nothing here expires a module, a pin or a subscription.
+**A key cannot be withdrawn faster than its replacement has been available (D10).** This clock points at the producer only. Entry 0010 rejected Kubernetes-style deprecation windows as arbitrary (0010:D34), but that argument is about forcing consumers to move; nothing here expires a module, a pin or a subscription.
 
 **The tombstone's replacement field is the link promotion needs.** Promotion writes the record retirement reads.
 

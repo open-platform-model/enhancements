@@ -8,11 +8,11 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The kernel gains a second half over the same Module (D1).** The render half is untouched. Four constructs land in core (D2): an `#Op` is one step from a closed set, an `#Action` groups Ops under a name a catalog can publish, a `#Lifecycle` binds steps to fixed phases, and a `#Workflow` runs on demand.
 
-**The library plans, then advances one step per call (D3).** Given a plan and a state it returns the next state and the one thing the caller should do. It runs no loop and causes no side effect; the caller owns the state.
+**The library plans, then advances one step per call (D3).** Given a plan and a state it returns the next state and the one thing the caller should do. It runs no loop and causes no side effect; the caller owns the state, which must survive serialization so a controller can carry it across reconciles.
 
 **Backends are opt-in (D4).** A frontend registers only the ones it wants, and the plan is checked against that registry before the first step. That is how the operator declines ad-hoc container builds.
 
-**Dispatch is by CUE attribute (D5).** It is inert metadata that evaluation ignores and the Go SDK reads. It names a protocol, which picks a backend, and where to fetch the executable (D6).
+**Dispatch is by CUE attribute (D5).** It is inert metadata that evaluation ignores and the Go SDK reads. It names a protocol, which picks a backend, and where to fetch the executable, which comes from a catalog rather than being compiled in and travels the same rails transformers do (D6).
 
 **Nine fixed lifecycle phases (D7), and cancellation belongs here (D9).** Before, during and after for install, upgrade and uninstall; an absent phase does nothing. One step per call means a caller cancels by not calling again. The HTTP Op returns the raw response (D8).
 

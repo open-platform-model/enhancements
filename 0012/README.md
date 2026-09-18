@@ -10,7 +10,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Share every decision; share the steps only where they carry no framework opinion.** Deletion qualifies: ordering, fetching, guarding and deleting are plain Kubernetes steps. Apply does not, so the kernel gives the per-object verdict and each frontend keeps its own engine.
 
-**The duplication is measured, not assumed.** In September 2026 the two repos' object-conversion code was byte-identical, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. Where they decide rather than copy, they have diverged:
+**The duplication is measured, not assumed.** As of 2026-09-14 the two repos' object-conversion code is byte-identical, their label and resource helpers differ only in comments, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. The operator deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the operator orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
 
 - The CLI deletes CustomResourceDefinitions; the operator refuses to.
 - The operator checks live ownership before deleting; the CLI does not.
@@ -18,7 +18,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 Neither side holds both guards.
 
-**It corrects two earlier findings.** Entry 0010 asked how ownership survives deletion (0010:OQ10) but missed that prune defaults to false, so the finalizer orphans by default. Entry 0006 removed this shared code (0006:D31); two of the three facts behind that have changed, and its deferred questions land here (0006:OQ15, 0006:OQ16).
+**It corrects two earlier findings.** Entry 0010 asked how ownership survives deletion (0010:OQ10). `ModuleInstance` does have a finalizer with a tested cleanup path; what 0010:OQ10 got right is that nothing stamps `ownerReferences`. It missed three things: prune defaults to false, so the finalizer orphans by default; a CLI-owned instance carries no hold at all, so deleting its record orphans every workload; and an `ownerReference` garbage-collects whatever prune says, so 0010:OQ10's additive-references idea contradicts `prune: false` rather than speeding it up. Entry 0006 first put this shared logic in the kernel (0006:D13.1), then removed it (0006:D31). D31's safety analysis stands; two of the three facts behind its conclusion have changed, and its two deferred questions, a shared stale-set comparator (0006:OQ15) and an apply-time collision guard (0006:OQ16), land here.
 
 ## How it works
 

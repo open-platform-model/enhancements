@@ -8,15 +8,15 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Eight sections, keyed to what a reader arrives holding:** nothing, a question about why, a blank module file, a cluster, a vocabulary gap, a Go program, a field name, an error message. OPM's audiences barely overlap, so a genre-first split would make each of them filter every section.
 
-**Two placements are deliberate.** Diagnostics is top-level because readers arrive from an error string, not from the menu. Concepts is large because OPM has far more concepts than commands.
+**Two placements are deliberate.** Diagnostics is top-level because readers arrive from an error string, not from the menu, and the kernel's error kinds map to different fixes the message text does not tell apart. Concepts is large because OPM has far more concepts than commands: seventeen were ranked subtle enough that a reader gets them wrong without prose.
 
-**Generate every fact a rename can break; write everything else by hand (D1).** Member names, keys, spec shapes, trait settings and worked examples come from evaluating the CUE, never from scraping text. Today's scraper reports an empty description for exactly the members readers need most.
+**Generate every fact a rename can break; write everything else by hand (D1).** Member names, keys, spec shapes, trait settings and worked examples come from evaluating the CUE, never from scraping text. Today's scraper reports an empty description for exactly the members readers need most. Which blueprint to start from, which traits are legal on it, and every Concepts page are written by hand. A gate refuses a new catalog member that ships without a doc comment.
 
-**Reference splits the catalog in two (D6).** The abstraction family gets full per-member pages and leads every authoring path. The raw passthrough family gets one index page and a generated table, labelled as the last resort.
+**Reference splits the catalog in two (D6).** The abstraction family gets full per-member pages and leads every authoring path. The raw passthrough family gets one index page and a generated table, labelled as the last resort, each entry pointing at the abstraction that covers the same ground where one exists.
 
 **Every normative statement says what enforces it:** CUE unification, the kernel at render, a publish gate, or nothing but convention. A reader otherwise cannot tell which claims actually bite.
 
-**Three scoping decisions.** The contributor specification is not published (D2). Draft enhancements are never called forthcoming (D3). Deletion and prune behaviour is documented now, independent of entry 0012 (D4); secrets wait for entry 0013 (D5).
+**Three scoping decisions.** The contributor specification is not published (D2): the public reference takes its definitions, shapes and constraints and drops the rationale, which is mined for Concepts pages instead. A page lists what OPM does not have, and draft enhancements are never called forthcoming (D3). Today's deletion and prune behaviour, prune defaulting to false, a CLI-owned instance carrying no hold, and two diverged deletion paths, is documented now, independent of entry 0012 (D4); secrets wait for entry 0013 (D5).
 
 ## How it works
 

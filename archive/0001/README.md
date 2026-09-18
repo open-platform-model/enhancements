@@ -2,19 +2,19 @@
 
 > **Delivered (2026-07-24).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0001`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0001` lists any.
 
-A platform is the OPM value saying which catalogs a cluster renders against. A catalog is a published CUE package of transformers, which turn a component's resources and traits into Kubernetes objects. Before this entry a platform imported catalogs under keys an author invented, and two builds of one member collided on one key. This entry fixed both.
+A platform says which catalogs a cluster renders against. A catalog is a CUE package of transformers turning components into Kubernetes objects. Before this entry a platform imported catalogs under invented keys, and two builds of one member shared one key. It made a platform a set of registry subscriptions the kernel resolves, and named each member by exact release.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The registry holds subscriptions, keyed by catalog path (D13).** Each is an on/off switch plus an optional version filter, so CUE's map semantics allow one subscription per catalog. The kernel turns that spec into something renderable in an explicit materialize step the caller drives (D14). CUE cannot evaluate SemVer ranges, so a range is parsed on the Go side (D11) and applied as range, then allow, then deny (D10).
+**The registry holds subscriptions, keyed by catalog path (D13).** Each is an on/off switch plus an optional version filter, so CUE's map semantics allow one subscription per catalog. The kernel turns that spec into something renderable in an explicit materialize step the caller drives, keeping no cache of its own (D14). CUE cannot evaluate SemVer ranges, so a range is parsed on the Go side (D11) and applied as range, then allow, then deny (D10).
 
-**A catalog becomes a plain CUE package with one declared export (D19).** Its root value names its transformers, so the kernel reads a map instead of walking the package tree. Path and version live in a sibling identity package, and a schema constraint stamps that version onto every transformer, so lockstep is built in rather than left to author discipline (D18). Publishing stamps a temporary build directory, never the source tree (D9).
+**A catalog becomes a plain CUE package with one declared export (D19).** Its root value names its transformers, so the kernel reads a map instead of walking the package tree. Path and version live in a sibling identity package, and a schema constraint stamps that version onto every transformer, so lockstep is built in rather than left to author discipline (D18). Publishing stamps a temporary build directory, never the source tree (D9), and the repackage was a hard switch with no coexistence window (D23).
 
-**Names carry an exact release version, and matching always unifies.** A fully-qualified name gains a full SemVer suffix in place of a major-only one (D5), so adjacent builds get distinct keys. Unification runs before predicates (D6), so a same-named pair with different shapes fails at match with a CUE conflict citing both files. A demanded name the platform lacks gives one diagnostic per component and name, listing the versions that do exist (D20).
+**Names carry an exact release version, and matching always unifies.** A fully-qualified name gains a full SemVer suffix in place of a major-only one (D5), so adjacent builds get distinct keys. Unification runs before predicates (D6), so a same-named pair with different shapes fails at match with a CUE conflict citing both files. A demanded name the platform lacks gives one diagnostic per component and name, listing the versions that do exist (D20). Blueprints follow the same path (D21).
 
-**A module gains one home for deployment identity.** An inline context channel carries the instance identity and every component's computed names (D1). Each component owns its own name and DNS variants (D2), and the parent module injects the identity through a pattern constraint (D3).
+**A module gains one home for deployment identity.** An inline context channel carries the instance identity and every component's computed names (D1). Each component owns its own name and DNS variants (D2), the parent module injects the identity through a pattern constraint (D3), and the cluster domain rides on the identity value (D4). All of it landed on the pre-1.0 core line, where a break is a minor bump (D12).
 
 ## How it works
 

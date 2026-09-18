@@ -18,13 +18,15 @@ All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.
 - The operator generates the platform package its custom resource describes (D6).
 - Version skew becomes a kernel-detected signal, defaulting to warn-and-render (D7, D18).
 - The shared-platform decision is superseded by shares-nothing renders (D8).
-- Matching moves into the build with its verdicts as data (D10, D13, D14).
+- Matching moves into the build with its verdicts as data (D10).
 
-**The key artifact across both phases is the parity harness**, which compares the kernel's rendered value against pure-CUE unification of the same inputs. It lands before any fix, and it stays afterwards as the alarm against a future Go-side transformation.
+The render module's dependency list is derived by promotion rather than computed, and a render refuses when derivation cannot cover a path (D13). CUE's natural unfinalized ordering becomes the output contract (D14).
 
-**The architecture being replaced is the expensive one.** Eight experiments measured it: the shared-platform model races under concurrent render (2321 detector reports) and retains 348 MB per render, while a shares-nothing single build wins by 2.5x to 5.5x and retains 117 KB.
+**The key artifact across both phases is the parity harness**, which compares the kernel's rendered value against pure-CUE unification of the same three inputs. It lands before any fix, its first failure is the evidence for the whole entry, and it stays afterwards as the alarm against a future Go-side transformation.
 
-**One finding changes the authoring contract on its own (D11).** CUE resolves references lexically, so a transformer must re-declare a slot in its own body to reference it. The transformer context becomes a view of the other two inputs (D12).
+**The architecture being replaced is the expensive one.** Eight experiments measured it: the shared-platform model races under concurrent render (2321 detector reports, unfixed by pre-evaluation) and retains 348 MB per render, while a shares-nothing single build wins by 2.5x to 5.5x at every size and retains 117 KB. It crosses over at roughly a dozen components and parallelises at about 4x on eight cores. One caveat: run sequentially, small modules pay a fixed 85 ms catalog term, so a two-component render is 1.7x to 2.1x slower in isolation.
+
+**One finding changes the authoring contract on its own (D11).** CUE resolves references lexically, so a transformer must re-declare a slot in its own body to reference it. The transformer context becomes a view of the other two inputs, with the kernel filling only the runtime name (D12).
 
 ## How it works
 

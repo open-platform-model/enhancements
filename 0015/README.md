@@ -8,15 +8,17 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Catalogs list their contracts (D1).** The Catalog definition gains resource, trait and blueprint maps beside its transformer map. A platform can then report the contracts nobody implements instead of failing on them (D18).
 
-**One provider per contract (D2, D5).** Kept from entry 0010 (0010:D37). A second provider is refused by name, at platform assembly and again at acceptance. Overlapping match rules inside one catalog fail too (D5).
+**One provider per contract (D2, D5).** Kept from entry 0010 (0010:D37). Provider classes were adopted on 2026-08-05 and rejected on 2026-08-20, ahead of any real two-engine need; the design waits in D2's alternatives. A second provider is refused by name, at platform assembly and again at acceptance. Overlapping match rules inside one catalog fail too (D5).
 
 **A Module names a contract, never a provider.** Which provider fills it is the platform's choice, not the Module author's.
 
 **Registration is a cluster-scoped custom resource (D3).** A provider Module ships one, and only the platform team can create it, through RBAC the operator already enforces. The catalog publishes the contract and its transformer, so Module authors write nothing new (D9).
 
-**A claim is checked, then it sticks.** The operator re-derives every field and rejects anything that disagrees, that another provider covers, or that needs catalog versions this platform does not run (D8, D10 to D12). It goes active once the provider is Ready and stays until deleted (D14 to D17).
+**A claim is checked, then it sticks.** The operator re-derives every field and rejects anything that disagrees, that another provider covers, or that needs catalog versions this platform does not run (D8, D10 to D12). It goes active once the provider is Ready and stays until deleted (D3). The registration cannot gate its own readiness (D14), a Module ships at most one (D15), and shrinking the provided set while dependents exist is refused like a deletion (D16). The operator keeps one generated platform package per Platform generation plus active-claim set (D13, D17). No transformer-predicate stability rule ships here: predicate widening on a routine catalog bump is the one silent case, deferred to the publish-gate family (D7).
 
 **Contracts and transformers stay in one CUE module (D4).** A contract's full name contains its catalog path, so splitting later breaks identity again.
+
+The entry is baselined on the archived render-pipeline entry 0019: a platform embeds each subscribed catalog whole (0019:D5), the operator generates the platform package each render consumes (0019:D6), the shared materialized platform is gone (0019:D8), matching runs inside the render build (0019:D10), and the platform holds no reverse index (0019:D17).
 
 ## How it works
 
@@ -25,7 +27,7 @@ flowchart TD
     pcat["Provider catalog: contracts, transformers, and a registration value built from its own identity"] --> pmod
     pmod["Provider Module attaches the registration to one component"] --> render
     render["Render: the base catalog's transformer writes the claim, with every field filled in for you"] --> cr
-    cr["Cluster-scoped registration object: a claim, not yet a fact"] --> rbac{"Created by the platform team?"}
+    cr["TransformerRegistration, a cluster-scoped custom resource: a claim, not yet a fact"] --> rbac{"Created by the platform team?"}
     rbac --> denied["No: denied by the RBAC the operator already enforces"]
     rbac --> accept["Yes: the operator re-derives the claim and checks nobody else provides it"]
     accept --> rejected["Mismatch: rejected, naming the claimant"]
