@@ -1,94 +1,115 @@
-> **Delivered (2026-07-20).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0006`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0006` lists any.
-
 # Enhancement 0006: CLI CR Inventory, Library Kernel Adoption, and Operator Handoff
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+> **Delivered (2026-07-20).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0006`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0006` lists any.
+
+OPM can deploy a module two ways: with the CLI, one shot from a laptop, or with the operator, reconciled in the cluster. Before this entry the two shared nothing. The CLI kept its record of what it had applied in a Kubernetes Secret and rendered through its own pipeline. The operator kept the same record in a custom resource and rendered through a shared kernel. A module deployed by hand could therefore never be handed over to the operator. This entry converges the CLI onto the operator's runtime contract, then adds the handover: a verified ownership flip that changes nothing in the cluster.
+
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-Converges the OPM CLI onto the same runtime contract the operator already runs. Three coupled moves:
+**The CLI writes the operator's custom resource instead of a Secret (D1).** Its inventory, the objects it applied plus the digest of what it rendered, goes into that resource's status. The CLI writes a strict subset of the status fields (D2), leaving conditions to the operator (D25). An owner marker tells the operator to skip reconciling it and say so on a condition (D3). Existing Secret inventories migrate on the next apply, with a one-release read-fallback window (D8).
 
-1. The CLI stops storing its release inventory in a Kubernetes Secret and instead writes the operator's `ModuleInstance` custom resource, recording inventory in `status.inventory`, using its own local inventory logic (entry identity, stale-set, digest) rather than a shared package (D31).
-2. The CLI deletes its own render/match pipeline and renders through the `library` kernel, the same kernel the operator uses, so a CLI render and an operator render of the same release are byte-identical by construction.
-3. The CLI imports `library` for the kernel only, **not** `opm-operator` (no CRD types, no inventory package). It handles the `ModuleInstance` CR as `unstructured` and keeps its own server-side-apply engine (duplicated from the operator, SSA mandatory).
+**The CLI deletes its own render pipeline and renders through the shared kernel (D9).** A CLI render and an operator render of one instance are then byte-identical by construction, because both evaluate the same code. What the CLI keeps is apply: its own server-side-apply engine under its own field manager, duplicated deliberately, with server-side apply mandatory on both sides (D10).
 
-On top of that contract sits the headline feature: `opm instance handoff`, a zero-downtime transfer of a CLI-deployed release to operator management. It becomes a no-op server-side apply because both actors read and write the same `InventoryEntry` shape in the same CR (anchored by the CRD schema, not by shared code) and now compute the same render digest from the same kernel.
+**The CLI imports the kernel library only, never the operator (D13).** Importing the operator's types would drag in a controller framework and a GitOps toolkit, measured in this entry's research, so the CLI handles the custom resource as untyped data. It keeps its own inventory logic too: D31 reverted the plan to share that logic, because only the stored entry shape crosses the boundary and the resource schema already anchors it.
 
-This enhancement promotes the storage/handoff design of `cli/docs/rfc/0007` (and, for the inventory-storage mechanism only, the Secret-based `cli/docs/rfc/0001`) into the workspace enhancements workflow, because the work is cross-repo (`cli/` + `opm-operator/`) and now also depends on enhancement [0001](../0001/)'s library-kernel rewrite.
+**On top of that contract sits the handoff (D7)**, forward-only, CLI to operator, with the reverse direction out of scope (D16). The CLI re-renders the published module, refuses unless the digest matches the one recorded on the resource, then patches the owner. Success is an inventory-stable reconcile rather than a byte-level no-op (D40). The kernel stamps runtime identity into a standard label, so the operator's first reconcile relabels every object by construction, and that relabel is reported rather than hidden.
+
+**This entry consumes enhancement [0001](../0001/) rather than changing it.** D9's render path waited on 0001's kernel slice; the inventory and handoff strand (D1 to D8) did not, and D20 settled that both ship as one wave. Installing the operator is part of the surface too: a noun-first command group installing one embedded artifact, with the resource definitions a filtered subset of it (D5, D32, D35).
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    participant CLI as opm CLI
+    participant K as Library kernel
+    participant CR as ModuleInstance CR
+    participant OP as Operator
+    CLI->>K: render the module against the platform
+    K-->>CLI: objects plus render digest
+    CLI->>CR: server-side apply the objects, write inventory and digest, owner is the CLI
+    Note over CR,OP: the operator skips a CLI-owned CR and marks it managed externally
+    CLI->>CR: handoff reads the module coordinate and the last-applied digest
+    CLI->>K: re-render from the published module
+    K-->>CLI: digest
+    CLI->>CLI: refuse unless the two digests are equal
+    CLI->>CR: patch the owner to the operator
+    OP->>K: render through the same kernel
+    OP->>CR: first reconcile is Ready, zero changed, zero pruned
+```
+
+Before this entry the CLI kept its inventory in a Secret and rendered through its own pipeline, so a CLI-deployed module could not be handed to the operator. Afterwards the CLI renders through the same library kernel the operator uses and applies with server-side apply under its own field manager. It records its inventory and render digest in a ModuleInstance custom resource marked as CLI-owned, which the operator leaves alone. Handoff is a verified ownership flip. The CLI re-renders the published module, refuses unless the digest equals the one recorded on the resource, then patches the owner to the operator. That operator's first reconcile changes nothing and prunes nothing, because both sides rendered the same bytes.
 
 ## Documents
 
-1. [01-problem.md](01-problem.md): Why two disjoint inventory stores (CLI Secret vs operator CR) and two divergent render pipelines (CLI `pkg/render` vs library kernel) make the learner-to-operator path impossible and handoff unsafe
-2. [02-design.md](02-design.md): CR-backed inventory, full library-kernel adoption for render/match, CLI-side SSA apply, `spec.owner` marker, `opm operator install`, `opm instance handoff`
-3. [03-decisions.md](03-decisions.md): Decision log (D1–D35)
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, Alternatives not taken
-6. [06-operational.md](06-operational.md): Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md): Open Questions register
+1. [01-problem.md](01-problem.md): why two disjoint inventory stores and two divergent render pipelines make the learner-to-operator path impossible and handoff unsafe
+1. [02-design.md](02-design.md): inventory in the custom resource, kernel adoption, CLI-side apply, the owner marker, operator install, handoff
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D40
+1. [04-graduation.md](04-graduation.md): what had to hold before draft became accepted
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): observability, versioning impact, deprecation, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ18
 
-Pure-CUE / Go-shape sketches live under [`schemas/`](contracts/).
+[`contracts/`](contracts/) holds the compilable shape sketches, and [`research/`](research/) holds the dependency analysis behind D13 plus a note on development tags polluting subscription ranges.
 
 ## Scope
 
 ### In scope
 
-- CLI release inventory moves from the Secret `opm.<releaseName>.<releaseID>` to the operator's `ModuleInstance` CR; inventory stored in `status.inventory` (D1). The CLI writes a strict subset of status (`inventory`, `instanceUUID`, `lastApplied*`, a single `Ready` condition), per D2.
-- CLI deletes its own render/match pipeline and renders through the `library` kernel end-to-end (D9). Match/materialize behaviour is whatever 0001's kernel ships; the CLI does not carry a second implementation.
-- CLI resolves its `#Platform` by precedence: `--platform` flag > cluster `Platform` CR > local/embedded default. It materializes the Platform via the same kernel calls the operator uses; `handoff` forces the cluster CR (D11). The `Platform` carries no owner marker. The operator always owns the singleton, and the CLI writes an un-owned `cluster` Platform write-if-absent in solo clusters (D12).
-- CLI keeps its own apply step (client-go server-side apply, field manager `opm-cli`); duplication of the operator's apply semantics is accepted, SSA is mandatory on both sides (D10).
-- CLI imports `library` only, **not** `opm-operator` (D13, supersedes D4). The CLI handles the `ModuleInstance` CR as `unstructured`, avoiding controller-runtime + Flux, and keeps its own local inventory logic (entry-building, identity, stale set, digest) rather than importing it from a shared package. D31 reverted D13's original plan to home that logic in `library`; see D31 in [`03-decisions.md`](03-decisions.md) for why the shared-package premise didn't hold up. The CLI's apply/prune is a one-shot design borrowing the operator's reconcile concepts, not its machinery. `research/findings.md` has the dependency-analysis evidence for this (that importing `opm-operator/api/v1alpha1` drags in controller-runtime and Flux).
-- No backwards-compatibility or deprecation burden: the CLI has a single user, so it can refactor freely (D14). The CUE v0.16.1 → v0.17.1 bump (retargeted off the alpha and relocated into C1 by D36) is accepted; D8's Secret-format fallback window collapses to a one-time migration.
-- `spec.owner: cli | operator` marker on `ModuleInstance`; the operator skips reconcile of CLI-owned CRs with a `ManagedExternally` condition (D3). Operator-side change, documented here.
-- `opm operator install [--crds-only]`, `opm operator uninstall` (D5; noun-first surface per D32, uninstall semantics per D34); CRDs become a hard prerequisite for every CLI apply (gate lands with the CR-inventory slice, D33); one embedded operator artifact (`dist/install.yaml`) with a `--version` fetch fallback (D35).
-- `spec.module` contents when applying from a local path vs a published reference (D6).
-- `opm instance handoff` with digest verification: forward-only, CLI → operator (D7). Reverse mode is out of scope (D16).
-- Rename the CLI Go module `github.com/opmodel/cli` → `github.com/open-platform-model/cli`, aligning it with `library` and `opm-operator`; a mechanical prep slice landed before the `library` edge is added (D15).
-- Both a local/embedded Platform and the in-cluster `Platform` CR are first-class render sources; OPM stays usable without cluster-admin on every non-`handoff` path (D17).
-- Migration of existing Secret inventories to CR inventories on apply, with a one-release Secret read-fallback window (D8).
+- CLI inventory moves from a Secret into the operator's custom resource status (D1). The CLI writes a strict subset: inventory, the instance UUID, the last-applied fields, one readiness condition (D2).
+- The CLI deletes its own render and match pipeline and renders through the kernel end to end (D9). Match behaviour is whatever the kernel ships; the CLI carries no second implementation.
+- The CLI resolves its platform by precedence: an explicit flag, then the cluster's platform resource, then a local default, materialized through the same kernel calls the operator uses, with handoff forcing the cluster resource (D11). The platform carries no owner marker: the operator always owns the singleton, and in a solo cluster the CLI writes an unowned one only if absent (D12).
+- The CLI keeps its own server-side apply step under its own field manager. Duplicating the operator's apply semantics is accepted, and server-side apply is mandatory on both sides (D10).
+- The CLI imports the kernel library only, never the operator (D13), and handles the resource as untyped data. It keeps its own inventory logic rather than a shared package, after D31 reverted D13's plan to home that logic in the library. Its apply and prune borrows the operator's concepts, not its machinery.
+- No backwards-compatibility or deprecation burden: the CLI has a single user, so it can refactor freely (D14). The CUE bump is accepted, retargeted and relocated by D36, and D8's Secret-format fallback window collapses to a one-time migration.
+- An owner marker on the instance resource, with the operator skipping CLI-owned resources and saying so on a condition (D3). An operator-side change, documented here.
+- Operator install and uninstall commands (D5), noun-first (D32), with uninstall semantics per D34, from one embedded artifact with a version-fetch fallback (D35). The resource definitions become a hard prerequisite for every CLI apply, gated with the inventory slice (D33).
+- What the instance spec carries when applying from a local path versus a published reference (D6).
+- The handoff command with digest verification: forward-only, CLI to operator (D7).
+- Renaming the CLI Go module to match its siblings, as a mechanical prep slice landing before the library dependency is added (D15).
+- Both a local platform and an in-cluster platform resource are first-class render sources, so OPM stays usable without cluster-admin on every path but handoff (D17).
+- Migrating existing Secret inventories on apply, with a one-release read-fallback window (D8).
 
 ### Out of scope
 
-- **Apply-engine unification.** The CLI keeps its own SSA path; the operator keeps Flux `ResourceManager`. Only render/match is unified (via the kernel), not apply (D10). Sharing the apply engine is future work.
-- **Reverse handoff (`--to cli`).** Handoff is forward-only (CLI → operator); flipping a reconciled CR back to CLI ownership (with its own operator-status cleanup and relinquish-race design) is deferred (D16).
-- **`Release` / `BundleRelease` handoff.** This enhancement covers `ModuleInstance` only; the Flux-sourced CRs have no CLI-side equivalent.
-- **Rollback / `status.history`.** Remains operator-only; the CLI does not gain rollback here.
-- **The library-kernel match/materialize redesign itself.** That is enhancement [0001](../0001/); 0006 *consumes* it. 0006 does not modify `core/` or the kernel's match algorithm.
-- **Operator lifecycle beyond install/uninstall** (upgrade orchestration, HA). `opm operator install` applies manifests; it is not a package manager.
-
-## Relationship to 0001
-
-0006 is a downstream consumer of [0001](../0001/). 0001 rewrites the kernel's match/materialize (path-keyed registry, SemVer FQNs, always-unify) and the operator already adopted it. D9 (CLI adopts the library kernel) means the CLI's render path cannot land on the 0001 model until 0001's `library` slice ships. The inventory/CR/handoff strand (D1–D8) does **not** depend on 0001 and can proceed independently. OQ5 covers whether the two strands ship as separate waves.
+- **Apply-engine unification.** The CLI keeps its own apply path and the operator keeps its own. Only render and match are unified, through the kernel (D10). Sharing the apply engine is future work.
+- **Reverse handoff.** Flipping a reconciled resource back to CLI ownership, with its own status cleanup and relinquish-race design, is deferred (D16).
+- **Handoff for the GitOps-sourced resources.** This entry covers the instance resource only; the Flux-sourced kinds have no CLI-side equivalent.
+- **Rollback and revision history.** It stays operator-only; the CLI does not gain rollback here.
+- **The kernel's match and materialize redesign itself.** That is enhancement [0001](../0001/); this entry consumes it and changes neither the schema nor the match algorithm.
+- **Operator lifecycle beyond install and uninstall**, meaning upgrade orchestration and high availability. The install command applies manifests; it is not a package manager.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `/CLAUDE.md` (workspace root) | Cross-repo routing + area vocabulary the `area` / `affects` fields validate against. |
-| `cli/docs/rfc/0007-moduleinstance-cr-inventory-and-operator-handoff.md` | Seed design for D1–D8 (CR inventory, `spec.owner`, `opm install`, handoff, Secret migration). Promoted into this entry. |
-| `cli/docs/rfc/0001-release-inventory.md` | The Secret-based inventory design whose storage mechanism this supersedes. |
-| `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | CLI repo principles governing the slices that land in `cli/`. |
-| `cli/internal/inventory/`, `cli/pkg/inventory/`, `cli/pkg/ownership/` | Secret marshaling (retired by the CR-inventory slice) + entry identity/stale-set/rename-safety/collision-check (kept in place, ported onto the CR, D31) + ownership guard. |
-| `cli/pkg/render/`, `cli/pkg/loader/` | The CLI's own render/match pipeline, deleted by the kernel-adoption slice (D9). |
-| `cli/internal/workflow/apply/apply.go` | Apply workflow: rewired to render via kernel, write CR status, keep CLI-side SSA (D10). |
-| `cli/internal/kubernetes/` | CLI apply/delete against the cluster; the SSA path that stays CLI-owned. |
-| `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Operator repo principles governing the `cli-ownership-marker` slice. |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go`, `common_types.go` | `ModuleInstance` + `Inventory` + `InventoryEntry` types: the CRD serialization shape the CLI's CR fields must agree with (D3 adds `spec.owner` here). Not imported by the CLI (D13); the CLI reads/writes the CR as `unstructured`. |
-| `opm-operator/internal/inventory/` | Stays in place, unchanged by this enhancement (D31 reverted the D13/D4 plans to migrate or promote it elsewhere). |
-| `opm-operator/dist/install.yaml` | The one install artefact the CLI embeds for `opm operator install` (D5/D35; CRDs are a filtered subset: `config/crd/bases/` is not separately embedded). |
-| `opm-operator/openspec/changes/archive/2026-04-12-01-cli-dependency-and-inventory-bridge/` | The original copy of CLI inventory code into the operator; historical context only. D31 keeps both actors' inventory code independent rather than sharing in either direction. |
-| `library/opm/` (kernel) | The CLI imports `library` for the kernel only (D9). No inventory package (D31 reverted `library/opm/inventory`). |
-| `enhancements/0001/` | The library-kernel redesign D9 consumes; gates the kernel-adoption strand. |
+| `/CLAUDE.md` (workspace root) | Cross-repo routing and the vocabulary the affects field is validated against. |
+| `cli/docs/rfc/0007-moduleinstance-cr-inventory-and-operator-handoff.md` | The seed design for D1 to D8, promoted into this entry. |
+| `cli/docs/rfc/0001-release-inventory.md` | The Secret-based inventory design whose storage mechanism this replaces. |
+| `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | Repo principles governing the slices that land in the CLI. |
+| `cli/internal/inventory/`, `cli/pkg/inventory/`, `cli/pkg/ownership/` | Secret marshaling, retired here; entry identity, stale-set and collision checks, kept and ported onto the resource (D31); the ownership guard. |
+| `cli/pkg/render/`, `cli/pkg/loader/` | The CLI's own render and match pipeline, deleted by the kernel-adoption slice (D9). |
+| `cli/internal/workflow/apply/apply.go` | The apply workflow: rewired to render through the kernel and write the resource, keeping CLI-side apply (D10). |
+| `cli/internal/kubernetes/` | The CLI's apply and delete path against the cluster, which stays CLI-owned. |
+| `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Repo principles governing the owner-marker slice. |
+| `opm-operator/api/v1alpha1/moduleinstance_types.go`, `common_types.go` | The serialized shape the CLI's writes must agree with, and where D3 adds the owner marker. Not imported by the CLI (D13). |
+| `opm-operator/internal/inventory/` | Stays in place, unchanged, once D31 reverted the plan to share it. |
+| `opm-operator/dist/install.yaml` | The one install artifact the CLI embeds (D5, D35); the definitions are a filtered subset of it. |
+| `opm-operator/openspec/changes/archive/2026-04-12-01-cli-dependency-and-inventory-bridge/` | The original copy of CLI inventory code into the operator; historical context for D31. |
+| `library/opm/` (kernel) | What the CLI imports, and the only thing it imports (D9, D31). |
+| `enhancements/0001/` | The kernel redesign D9 consumes, and the gate on the kernel-adoption strand. |
 
 ## Deviations from Design
 
-Every deviation is decision-logged; this is the index. The accepted design (2026-06-30, D1–D30) shipped with these reversals and refinements:
+Every deviation is decision-logged; this is the index. The design accepted as D1 to D30 shipped with these reversals and refinements.
 
-- **Shared inventory package reverted (A3/D31, supersedes D13's shared-logic clause and D26 in full).** `library/opm/inventory` shipped, then was deleted after tracing showed only the `InventoryEntry` wire shape crosses the actor boundary, and that is anchored by the CRD schema, not package-sharing. Both actors keep independent local inventory logic; slice B1 was cancelled with it.
-- **Install surface reversed to noun-first (D32, supersedes D28).** `opm operator install [--crds-only]` / `opm operator uninstall` replaced the accepted verb-first `opm install crds` / `opm install operator`, once D35 established the CRDs are a filtered subset of one embedded artifact.
-- **CUE bump retargeted and relocated (D36, amends D14).** v0.17.0-alpha.1-in-C2 became v0.17.1-in-C1 after upstream shipped the fix line and a trial proved the migration cost was zero. Side decisions D37/D38 (local-module.cue workflow, provenance annotation as a fail-closed handoff pre-gate, strict-registry verification render) emerged from the same investigation.
-- **Handoff's "zero changed" no-op redefined (D40, amends D7.5).** The kernel stamps runtime identity into `app.kubernetes.io/managed-by`, so the operator's first post-handoff reconcile relabels every resource by construction. Success became the *inventory-stable reconcile*: Ready, entry set unchanged, revision incremented, zero pruned. Cross-actor digest comparison is forbidden, and the relabel is reported, not hidden.
-- **C3's single-field SSA patches reversed pre-merge (C3 correction, 2026-07-20).** `PatchOwner`/`PatchSpecEdit` inverted server-side-apply semantics (a manager's document is its complete declared intent; omitted owned fields are released and pruned) and were deleted; `ApplySpec` is the single spec writer, with the flip and the thin editor carrying the full current spec.
-- **C3 gained D18 in full at drafting (user decision).** The plan's C3 row listed handoff only; the shipped slice also replaced C1's refusal arms with the thin-editor apply and finalizer-delegating delete.
-- **Two cross-actor bugs surfaced only by live verification (C3):** bare (un-v-prefixed) `spec.module.version` made every CLI-written CR unresolvable by the operator; operator-owned delete over-claimed pruning that `spec.prune`-less CRs never perform. Plus **LD4a**, the flip's stale-snapshot race (concurrent apply inside the verification window silently reverted by the flip's restated spec), fixed by re-read + generation-abort: detect-and-retry, not atomicity.
-- **A5 grew a registry-hygiene finding (OQ18, deferred):** CI dev tags on the consumer registry path satisfy prerelease-tolerant subscription ranges (`dev` sorts above `alpha`), so open ranges resolve CI builds. The demo now pins its catalog exactly. The systemic fix (publish-channel separation and/or filter default-deny) is an open question for a follow-on.
-- **Left open at graduation:** OQ15 (CLI/operator stale-set base-relation consistency: product-consistency, not safety), OQ16 (operator apply-time collision guard: a real, pre-existing exposure deserving its own slice), OQ18 (above).
+- **The shared inventory package was reverted (D31, superseding D13's shared-logic clause and D26).** It shipped, then was deleted once tracing showed only the stored entry shape crosses the actor boundary, and the resource schema anchors that. Both actors keep independent inventory logic; the slice that would have shared it was cancelled.
+- **The install surface reversed to noun-first (D32, superseding D28)**, once D35 established that the resource definitions are a filtered subset of one embedded artifact.
+- **The CUE bump was retargeted and relocated (D36, amending D14)**, onto the released fix line and into the earlier slice, after a trial proved the migration cost was zero. The same investigation produced D37, the sanctioned local-module workflow, and D38, a provenance annotation promoted to a fail-closed handoff pre-gate whose verification render bypasses local replacements.
+- **Handoff's no-op was redefined (D40, amending D7).** The kernel stamps runtime identity into a standard label, so the operator's first reconcile relabels everything by construction. Success became the inventory-stable reconcile: ready, entry set unchanged, revision incremented, nothing pruned. Comparing digests across actors is forbidden, and the relabel is reported.
+- **Single-field patches were reversed before merge.** Two helpers inverted server-side-apply semantics, where a manager's document is its complete declared intent and omitted owned fields are released, so they were deleted. One writer now owns the spec, and both the flip and the thin editor carry it whole.
+- **The handoff slice gained D18 in full at drafting**, on the user's decision: it also replaced the earlier refusal arms with the thin-editor apply and a finalizer-delegating delete.
+- **Three cross-actor defects surfaced only under live verification.** A version written without its prefix made every CLI-written resource unresolvable by the operator. Operator-owned delete over-claimed pruning that prune-less resources never perform. The flip's stale-snapshot race was fixed by re-reading and aborting on a generation change, which is detect-and-retry rather than atomicity.
+- **A registry-hygiene finding was deferred (OQ18).** Continuous-integration development tags satisfy prerelease-tolerant subscription ranges, so an open range resolves a build nobody released. The demo now pins its catalog exactly; the systemic fix is left open.
+- **Left open at graduation:** OQ15, whether the CLI and operator agree on the stale-set base relation, a consistency question rather than a safety one; OQ16, an operator apply-time collision guard, a pre-existing exposure deserving its own slice; and OQ18 above.

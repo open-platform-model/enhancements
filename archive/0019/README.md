@@ -1,56 +1,69 @@
-> **Delivered (2026-09-04).** Every live decision is carried by this entry's delivery log or excused in it (27 landings; `task delivery ID=0019`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0019` lists any.
-
 # Enhancement 0019: Kernel render path parity with pure CUE
 
-The kernel does not hand a transformer what CUE would hand it. Before rendering, it converts each component into a "data" value using `cue.Final()`, and that call deletes every definition field. So `#component.#names`, the identity `core/SPEC.md` calls "the single source of truth for this component's identity", does not exist inside any `#transform`, along with `#resources`, `#traits` and `#instance`. A third declared input, `#moduleInstance`, is never filled at all.
+> **Delivered (2026-09-04).** Every live decision is carried by this entry's delivery log or excused in it (27 landings; `task delivery ID=0019`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0019` lists any.
 
-This enhancement makes plain CUE unification the reference semantics of the render path. It closes the gaps by removing kernel behaviour rather than by adding more of it: first from the render path as it stands, then by removing the multi-build architecture that made the removal reachable in the first place.
+The kernel is the Go code that turns a module into Kubernetes objects, and a transformer is the CUE definition that does the turning: it receives a component and yields objects. Before rendering, the kernel converted each component into plain data, and that conversion deleted every definition field on it. The computed identity the specification calls the single source of truth for a component therefore did not exist inside any transformer, along with the component's declared resources, traits and instance. A third declared input was never filled at all. This entry makes plain CUE unification, the language's own way of combining two values, the reference semantics of the render path, and closes the gaps by removing kernel behaviour rather than adding more.
 
-See [`config.yaml`](config.yaml) for the metadata contract; it is the sole source of metadata, and no parallel metadata table lives in this README.
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Parity is the contract; the single build is what makes it structural.** The entry is one arc executed in two phases, and its design doc states the relationship in one line: two changes that turn out to be the same change.
+**Parity is the contract; the single build is what makes it structural (D1).** The entry is one arc in two phases, and the design doc states the relationship in a line: two changes that turn out to be the same change. A pure-CUE control settles the target. Unifying a real instance's component into a real transformer, with the transformer arriving by import from a separate package, preserves every field and evaluates fully concrete, and strict validation exits clean. The kernel is the only thing that removes anything. The premise that justified the removal is falsified there too: the stated reason, that filling a component fails when schema constraints are present, does not reproduce against a component carrying genuine closedness. The conversion was reached for to strip validators; dropping definitions was collateral.
 
-A pure-CUE control settles what the target behaviour is. Unifying a real `#ModuleInstance`'s component into a real transformer's `#transform`, with the transformer arriving by import from a separate package, preserves **every** field and evaluates fully concrete: `#names.dns.fqdn` renders `web.prod.svc.cluster.local`, `#resources` renders its FQN list, `#moduleInstance.metadata.fqn` renders the instance identity, and `cue vet -c` exits 0. The kernel is the only thing that removes anything.
+**Phase A makes the current path honest.** Fill the component input from the unstripped value and fill the instance input for the first time (D3). Remove the stripping call from the render path and then from the public surface, and repair the flow fixture whose instance construction severs the reference wiring. It is evidence-complete and lands first: no Phase A slice depends on anything in Phase B. Since D15 and D16 it spans four repos. Transformers stop deriving a component's primary object name and read the computed one instead (D15), and the default for that name becomes instance-qualified, flipped before the sweep so rendered fleets see no change (D16).
 
-The premise that justified the removal is falsified there too: the behaviour dates to a March 2026 `cli` experiment whose stated reason ("`FillPath` on `#component` fails with schema constraints present") does not reproduce. The control's component carries genuine closedness and renders anyway. `cue.Final()` was reached for to strip validators and `close()`; dropping definitions was collateral.
+**Phase B removes the reason the strip was reachable: the render step becomes one CUE build per render (D9).** The kernel stages the instance and the platform into a generated render module and evaluates it once, so nothing crosses a build boundary and nothing needs stripping. Parity stops being a property the kernel maintains and becomes one it cannot violate. The collapse carries the platform reshape it requires:
 
-**Phase A** makes the current path honest: fill `#transform.#component` from the unstripped value, fill `#transform.#moduleInstance` for the first time, remove `FinalizeValue` from the render path and then from the public surface, and repair the flow fixture whose instance construction severs `#instance`. It is evidence-complete and lands first: no Phase A slice depends on anything in Phase B. Since D15/D16 it spans four repos: the library fills, then the naming pair (`core` default flip, `catalogs/opm` sweep), then the `modules` fleet revalidation.
-
-**Phase B** removes the reason the strip was reachable: the render step becomes **one CUE build per render** (D9). The kernel stages the instance and the platform into a generated render module and evaluates it once; nothing crosses a build boundary, so nothing needs stripping, and parity stops being a property the kernel maintains and becomes one it cannot violate. That collapse carries the platform reshape it requires:
-
-- A registry entry imports its catalog and embeds the transformer map, replacing the `version!` scalar (D5).
-- The operator generates the platform package the CR describes (D6).
-- Module-versus-platform version skew becomes a kernel-detected, caller-configured signal (D7).
-- ADR-002's shared-materialized-platform model is superseded by shares-nothing renders (D8).
+- A registry entry imports its catalog and embeds the transformer map, replacing the scalar version (D5).
+- The operator generates the platform package its custom resource describes (D6).
+- Version skew between a module and its platform becomes a kernel-detected, caller-configured signal, defaulting to warn-and-render (D7, D18).
+- The shared-platform architecture decision is superseded by shares-nothing renders (D8).
 - Matching moves into the build with its verdicts as data (D10).
 
-The design's load-bearing artifact across both phases is the **parity oracle**: a differential harness comparing the kernel's rendered value against pure-CUE unification of the same three inputs. It lands before any fix, and its first failure is the evidence for the whole entry. It proves each Phase B slice produces what the old path produced, and it survives as the tripwire against a future Go-side transformation of a component value.
+The render module's dependency list is derived by promotion rather than computed, and a render refuses when derivation cannot cover a path (D13). CUE's natural unfinalized ordering becomes the output contract (D14).
 
-The collapse is not only a correctness argument; the architecture it replaces is also the measured-expensive one. Eight concluded experiments put numbers on it. The shared-platform model races under concurrent render (2321 detector reports, unfixed by pre-evaluation) and retains 348 MB per render by construction. A shares-nothing single build is cheaper per component at every size, crosses over at roughly a dozen components, and parallelises at ~4x on eight cores independent of module size. Against today's path serialised as its races require, it wins by 2.5x to 5.5x at every size, while retaining 117 KB per render. One caveat stays attached to the number: sequentially, small modules pay a fixed ~85 ms catalog term, making a two-component render 1.7x-2.1x slower in isolation.
+**The load-bearing artifact across both phases is the parity oracle**, a differential harness comparing the kernel's rendered value against pure-CUE unification of the same three inputs. It lands before any fix, and its first failure is the evidence for the whole entry. It proves each Phase B slice produces what the old path produced, and it survives as the tripwire against a future Go-side transformation of a component value.
 
-One finding changes the authoring contract independently of any code. CUE resolves references **lexically**, so a transformer must re-declare a slot in its own `#transform` body to reference it. That is why shipped transformers write `#component: _` despite `core` already declaring it, and why `#moduleInstance` becomes author-visible only once someone tries to use it.
+**The architecture being replaced is also the measured-expensive one.** Eight concluded experiments put numbers on it. The shared-platform model races under concurrent render (2321 detector reports, unfixed by pre-evaluation) and retains 348 MB per render by construction. A shares-nothing single build is cheaper per component at every size, crosses over at roughly a dozen components, and parallelises at ~4x on eight cores independent of module size. Against today's path serialised as its races require, it wins by 2.5x to 5.5x at every size, while retaining 117 KB per render. One caveat stays attached: sequentially, small modules pay a fixed ~85 ms catalog term, making a two-component render 1.7x to 2.1x slower in isolation.
+
+**One finding changes the authoring contract independently of any code (D11).** CUE resolves references lexically, so a transformer must re-declare a slot in its own body to reference it. That is why shipped transformers restate the component input despite the schema already declaring it, and why the instance input becomes author-visible only once someone tries to use it. The transformer context becomes a projection of the other two inputs, with the kernel filling only the runtime name (D12).
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph before ["Before: several CUE builds, Go in between"]
+        bmod["Module"] --> bbuild["Build 1: the instance value"]
+        bplat["Platform"] --> bcats["Builds 2 and up: catalog values"]
+        bbuild --> bmatch["Go match and Go index pair components with transformers"]
+        bcats --> bmatch
+        bbuild --> bstrip["Strip definitions so the value can cross a build boundary"]
+        bstrip --> bfill["Fill the stripped component into each transformer"]
+        bmatch --> bfill
+        bfill --> bout["Output"]
+    end
+    subgraph after ["After: one CUE build"]
+        amod["Staged instance module"] --> arender
+        aplat["Generated platform module importing its catalogs whole"] --> arender
+        arender["Render module written by the kernel: its dependency list is the resolution, the platform wins every shared path"] --> abuild["One evaluation: match, context and transform are all unification"]
+        abuild --> aout["Kernel reads rendered objects and diagnostics off the value"]
+    end
+    bout -.-> aout
+```
+
+The kernel used to evaluate the module and each catalog in separate CUE builds, then stitch them together in Go. It matched in Go, stripped the component's definitions so the value could cross a build boundary, then filled the stripped value into each transformer. That strip is exactly where the kernel's output diverged from what plain CUE unification of the same inputs produces. Now the kernel writes one throwaway render module whose dependency list is the resolution, so the platform's tidied list wins every shared path and a module cannot pick which transformer bytes run. It evaluates once: matching, context and transform are all unification, and the kernel just reads the rendered objects and diagnostics off the value. A differential harness asserts old and new agree, fixture by fixture.
 
 ## Documents
 
-The seven split documents below are mandatory and always present.
+1. [01-problem.md](01-problem.md): the render path forks one component into two values and hands the transformer the lossy branch; the premise that justified it does not hold in CUE; and the architecture that made it reachable also races, retains and serialises
+1. [02-design.md](02-design.md): parity as the contract, the differential oracle, the fills, the single-build render step, the platform shape that makes it resolvable, what matching costs, and the fixture that has to move first
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D26
+1. [04-graduation.md](04-graduation.md): what had to hold before draft became accepted
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, and the two-phase landing order with its interim operator stopgap
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ14
 
-1. [01-problem.md](01-problem.md): the render path forks one component into two values and hands the transformer the lossy branch; the premise that justified it does not hold in CUE; and the multi-build architecture that made it reachable is also the one that races, retains, and serialises
-2. [02-design.md](02-design.md): parity as the contract, the differential oracle, the fills, the single-build render step and the platform shape that makes it resolvable, what matching costs (measured), and the fixture that has to move first
-3. [03-decisions.md](03-decisions.md): decision log (D1 through D18)
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
-6. [06-operational.md](06-operational.md): operational concerns (PRR-lite), including the two-phase landing order and the interim operator stopgap
-7. [07-questions.md](07-questions.md): Open Questions register (OQ1 through OQ14)
-
-Compilable CUE lives in two places, split by whether it proposes an `opmodel.dev/core` definition.
-
-[`schemas/`](schemas/) is the core-schema delta (`config.yaml core_schema: true`) and holds the three decisions that change core: the registry entry that carries its catalog and derives `version` and `#transformers` from it, with the pattern constraint binding the key (D5); `#TransformerContext` as a projection of `#transform`'s other two inputs (D12); and the instance-qualified `resourceName` default with its validated branch (D16). [`schemas/examples.cue`](schemas/examples.cue) is the test: concrete instances with the derived values pinned by hidden assertions, plus the must-fail cases carrying the exact error text observed on cue v0.17.1. [`schemas/spec.md`](schemas/spec.md) pre-drafts the `core/SPEC.md` co-update each core slice will need.
-
-[`contracts/contracts.cue`](contracts/contracts.cue) carries everything else that has a mechanical surface, which is most of this entry: the parity contract and the direction its fixes take (D1), the runtime's fill obligations per input and which field classes each must preserve (D3, D12), the execution unit (D2, D11), the authoring obligations on transformer authors (lexical declaration, the read-only names rule with its three carve-out classes, the deleted `#ResourceNameTrait` authority) (D11, D15), the render build with its promotion rule, isolation rules and output ordering (D8, D9, D13, D14), platform-package generation (D6), version-skew policy (D7), and matching-in-build with its verdicts-as-data shape (D10). Landing order is deliberately absent from both: decomposition into small changes is delivery's surface (D4).
-
-Cross-repo sequencing intent lives in `06-operational.md ## Cross-Repo Coordination`: Phase A work carries no dependency on Phase B, which is the structural guarantee that the ready half never waits on the unready half. Landings are logged in `delivery.yaml` as they happen.
+Compilable CUE is split by whether it proposes a schema definition. [`schemas/`](schemas/) is the schema delta and holds the three decisions that change it, D5, D12 and D16, with worked examples pinned by hidden assertions plus the must-fail cases carrying the exact observed error text, and a pre-drafted spec co-update. [`contracts/`](contracts/) carries everything else with a mechanical surface, which is most of this entry: the parity contract, the fill obligations, the execution unit, the authoring obligations, the render build with its promotion, isolation and ordering rules, platform-package generation, skew policy and matching-in-build. Landing order is deliberately absent from both, because decomposing into small changes is delivery's surface (D4). [`experiments/`](experiments/) holds thirteen concluded experiments, including the pure-CUE control the whole entry rests on and the cost measurements above.
 
 ## Scope
 
@@ -58,37 +71,37 @@ Cross-repo sequencing intent lives in `06-operational.md ## Cross-Repo Coordinat
 
 **Phase A, parity on the current path:**
 
-- Making pure-CUE unification the reference semantics of the render path, enforced by a differential parity harness in `library` rather than by review.
-- Filling `#transform.#component` from the unstripped component value, so definition fields reach transformers.
-- Filling `#transform.#moduleInstance`, the third input `core` declares and the kernel has never supplied.
-- Removing `FinalizeValue` from the render path, and subsequently from the public kernel surface, with the `MIGRATIONS.md` entry that break requires.
-- Repairing `TestFlow_WebApp_OnOpmPlatform`'s instance construction, which severs the reference wiring `#instance` and must land with the slice that exposes definitions rather than after it.
+- Making pure-CUE unification the reference semantics of the render path, enforced by a differential parity harness rather than by review.
+- Filling the component input from the unstripped component value, so definition fields reach transformers.
+- Filling the instance input, the third input the schema declares and the kernel has never supplied.
+- Removing the stripping call from the render path and then from the public kernel surface, with the migration entry that break requires.
+- Repairing the flow test's instance construction, which severs the reference wiring and must land with the slice that exposes definitions rather than after it.
 - Recording the lexical-declaration rule as an authoring obligation.
-- The instance-qualified `resourceName` default (D16): `metadata.resourceName` defaults to `<instance>-<component>` (validated against `#NameType`, with a hidden assertion for a legible overlong refusal) instead of the bare component name. The flip lands **before** the sweep: rendered objects already carry the instance-qualified name via the hand-rolled formulas, so the flip is output-neutral for rendered fleets and closes core#49's computed-versus-rendered divergence.
-- The read-only names contract (D15): transformers read `#component.#names.resourceName` and its DNS variants for the component's **primary object**, and never derive that name; generation stays upstream on `#Component`. The sweep over all 50 `catalogs/opm` transformers lands as `catalog-names-readonly`, gated on the `#component` fill and on the D16 flip, carries three carve-out classes (exact-name kinds, secondary/multi-object names, cross-object references), deletes `#ResourceNameTrait` and `#WorkloadName` in favour of `metadata.resourceName`, and gates on byte-identical goldens.
-- The fleet revalidation (`modules-fleet-rename`): residual renames (explicit `metadata.resourceName` starts winning; trait users move to the core field) land in the `modules` v2 staging fleet without a deprecation cycle, per the alpha stance.
-- The `env`-ordering migration note (OQ14): removing the strip changes list ordering for modules that assemble environments conditionally, so the note attaches to Phase A's landing, not to the collapse.
+- The instance-qualified name default (D16): a component's resource name defaults to the instance name joined to the component name, validated against the name type with a hidden assertion for a legible overlong refusal, instead of the bare component name. The flip lands **before** the sweep, so it is output-neutral for rendered fleets and closes the computed-versus-rendered divergence a schema issue had raised.
+- The read-only names contract (D15): transformers read the component's computed name and its DNS variants for the component's **primary object** and never derive that name; generation stays upstream on the component. The sweep over all fifty first-party transformers is gated on the component fill and on the D16 flip, and on byte-identical goldens. It carries three carve-out classes, namely exact-name kinds, secondary and multi-object names, and cross-object references, and it deletes the resource-name trait and its helper in favour of the metadata field.
+- The fleet revalidation: residual renames, where an explicit resource name starts winning and trait users move to the schema field, land in the staging fleet without a deprecation cycle, per the alpha stance.
+- The ordering migration note (OQ14): removing the strip changes list ordering for modules that assemble environments conditionally, so the note attaches to Phase A's landing rather than to the collapse.
 
 **Phase B, the single-build collapse:**
 
-- The render step as one CUE build per render (D9): the kernel-generated render module, its `cue.mod` as the resolution, directory replacements for the unpublished inputs, and the OQ6 invariant on what that file owes.
-- `#Platform.#registry` entries carrying the catalog by import (`{enable, #transformers}`), with the `version!` scalar removed (D5), and `#composedTransformers` becoming derived.
-- The operator generating the platform package its CR describes (D6).
-- Kernel-detected, caller-configured module-versus-platform skew (D7).
-- Superseding ADR-002 with shares-nothing renders and the `cue.Context` lifetime rule (D8), including removal of `opm-operator`'s single held platform slot.
-- Matching moving into the render build with verdicts as data, per experiment 05's measured glue shape (D10); the D30 provenance carve-out is deleted rather than ported.
-- `opm/materialize` shrinking to the point of deletion, replaced by the platform's own imports.
+- The render step as one CUE build per render (D9): the kernel-generated render module, its module file as the resolution, directory replacements for the unpublished inputs, and the invariant on what that file owes.
+- Registry entries carrying the catalog by import, with the scalar version removed (D5) and the composed transformer map becoming derived.
+- The operator generating the platform package its custom resource describes (D6).
+- Kernel-detected, caller-configured skew between a module's catalog version and its platform's (D7).
+- Superseding the shared-platform architecture decision with shares-nothing renders and a build-context lifetime rule (D8), including removal of the operator's single held platform slot.
+- Matching moving into the render build with verdicts as data, per the measured glue shape (D10); the provenance carve-out is deleted rather than ported.
+- The materialize package shrinking to the point of deletion, replaced by the platform's own imports.
 
 ### Out of scope
 
-- **Matching semantics.** How components pair with transformers is untouched in both phases. Experiment 05's gate for D10 is that the moved matcher reproduces the kernel's exact pair set. Where matching *executes* changes; what it *decides* does not.
-- **Changing the execution unit.** One component per `#transform` evaluation is the original design intent and stays (D2).
-- **Removing `#moduleInstance` from the schema.** It is intended surface; the fix is to fill it (D3).
-- **Per-transformer selection in the platform file.** D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement 0015 (provider classes, `TransformerRegistration`), as do the runtime-registration questions this entry defers there (OQ9, OQ10).
-- **Publishing platforms to a registry.** Disallowed (D6, revised 2026-08-20): the generated `#Platform` package is build-local by construction, and the reserved namespace stays reserved-unpublished; OQ11 is resolved by that revision.
-- **The core-side name workaround.** open-platform-model/core#49's approach (copying the computed name into a regular field) is made unnecessary rather than implemented: the transformer sweep it motivated is now in scope (D15, `catalog-names-readonly`), reading the projection instead of duplicating it.
+- **Matching semantics.** How components pair with transformers is untouched in both phases. The gate for D10 is that the moved matcher reproduces the kernel's exact pair set. Where matching *executes* changes; what it *decides* does not.
+- **Changing the execution unit.** One component per transform evaluation is the original design intent and stays (D2).
+- **Removing the instance input from the schema.** It is intended surface; the fix is to fill it (D3).
+- **Per-transformer selection in the platform file.** D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement [0015](../../0015/), as do the runtime-registration questions this entry defers there.
+- **Publishing platforms to a registry.** Disallowed under D6 as revised: the generated platform package is build-local by construction and the reserved namespace stays reserved and unpublished.
+- **The schema-side name workaround.** Copying the computed name into a regular field is made unnecessary rather than implemented, because the transformer sweep it motivated is now in scope (D15) and reads the projection instead of duplicating it.
 - **Improving the empty-disjunction error.** Filling all three inputs removes the most common way to reach it; the message itself stays as unhelpful as it is today.
-- **A publish-side gate forbidding unstated trait posture.** Experiment 05 measured that an unstated `optional` posture refuses as a build error rather than as a diagnostics row; making it data would need publish-side enforcement of 0010 D46's authoring rule, which belongs to the publish-gate family (0011), not here.
+- **A publish-side gate forbidding unstated trait posture.** An unstated optional posture refuses as a build error rather than as a diagnostics row; making it data would need publish-side enforcement of an authoring rule, which belongs to the publish-gate family (enhancement [0011](../0011/)), not here.
 
 ## Deviations from Design
 
@@ -98,33 +111,33 @@ None at this stage. Update when implementation lands.
 
 | Document | Purpose |
 | -------- | ------- |
-| `library/CONSTITUTION.md` | Kernel neutrality and small-batch principles governing every slice here |
+| `library/CONSTITUTION.md` | Kernel neutrality and batch-size principles governing every slice here |
 | `library/adr/002-concurrent-render-shared-materialized-platform.md` | Superseded by D8; gains the superseded-by header in a Phase B slice |
 | `library/adr/003-no-cross-build-fillpath-into-closed-values.md` | The no-cross-build-fill invariant, and the federation premise D9 retires |
-| `experiments/00-purecue-definitions/` | The pure-CUE control this entry rests on (relocated 2026-08-20 from `library/docs/design/`) |
+| `experiments/00-purecue-definitions/` | The pure-CUE control this entry rests on |
 | `library/docs/design/transformer-output-hidden-field-scope-bug.md` | The closedness corruption whose hazard shape was probed and did not reproduce |
 | `library/docs/design/cue-closedness-regression-alpha2.md` | The unfixed upstream evaluator regression the canary pair pins |
-| `library/opm/compile/execute.go` | `executePair`, the Phase A fill site |
-| `library/opm/compile/finalize.go` | `FinalizeValue`, the strip, removed in Phase A |
-| `library/opm/compile/match.go` | The Go matcher D10 moves into the build; its D30 carve-out is deleted with federation |
+| `library/opm/compile/execute.go` | The Phase A fill site |
+| `library/opm/compile/finalize.go` | The strip, removed in Phase A |
+| `library/opm/compile/match.go` | The Go matcher D10 moves into the build; its provenance carve-out is deleted with federation |
 | `library/opm/errors/match.go` | Message text naming the reverse index, reworded under D17 |
-| `library/.claude/skills/security-audit/SKILL.md` | Documents `FinalizeValue` as a constraint guard; rewritten in the `library-finalize-removal` slice |
+| `library/.claude/skills/security-audit/SKILL.md` | Documents the strip as a constraint guard; rewritten in the slice that removes it |
 | `library/opm/kernel/compile.go` | Where one components value forks into two |
-| `library/opm/kernel/phases.go` | The public kernel wrapper over `FinalizeValue` |
-| `library/opm/materialize/index.go` | `indexCatalogs`; shrinks or goes under D5 |
-| `library/opm/schema/paths.go` | Path constants; gains `ModuleInstance` |
-| `library/opm/schema/context.go` | Go-side `#context` construction, deleted under D12's projection |
-| `library/opm/kernel/flow_integration_test.go` | The fixture whose instance construction severs `#instance` |
-| `library/opm/materialize/composed_open_test.go` | Closed-platform corruption guard that must keep passing |
+| `library/opm/kernel/phases.go` | The public kernel wrapper over the strip |
+| `library/opm/materialize/index.go` | The catalog index that shrinks or goes under D5 |
+| `library/opm/schema/paths.go` | Path constants; gains the instance input |
+| `library/opm/schema/context.go` | Go-side context construction, deleted under D12's projection |
+| `library/opm/kernel/flow_integration_test.go` | The fixture whose instance construction severs the reference wiring |
+| `library/opm/materialize/composed_open_test.go` | The closed-platform corruption guard that must keep passing |
 | `library/opm/internal/cueregression/closedness_test.go` | The CUE canary pair |
-| `library/MIGRATIONS.md` | Records the `FinalizeValue` removal and the OQ14 ordering note |
-| `core/src/platform.cue` | `#registry`; reshaped by D5 with a `SPEC.md` co-update under the `core-schema-edit` protocol |
-| `core/src/transformer.cue` | `#transform`'s three declared inputs and `#TransformerContext` |
-| `core/src/component.cue` | `#names`, the projection the render path cannot currently read |
-| `catalog_opm/src/` | The 50 transformers whose hand-rolled name formulas the `catalog-names-readonly` slice rewrites to read `#component.#names` (D15), plus `traits/v1beta1/resource_name.cue` and `transformers/name_helpers.cue`, both deleted |
-| `core/SPEC.md` | Normative co-update for D5, D12, D16 and D17 (pre-drafted in `schemas/spec.md`) |
-| `opm-operator/api/v1alpha1/platform_types.go` | The CR that keeps naming a catalog coordinate while the operator generates the package (D6) |
+| `library/MIGRATIONS.md` | Records the strip removal and the ordering note |
+| `core/src/platform.cue` | The registry, reshaped by D5, with a spec co-update under the schema-editing protocol |
+| `core/src/transformer.cue` | The transform's three declared inputs and the transformer context |
+| `core/src/component.cue` | The computed names the render path cannot currently read |
+| `catalog_opm/src/` | The fifty transformers whose hand-rolled name formulas the sweep rewrites to read the computed name (D15), plus the resource-name trait and helper, both deleted |
+| `core/SPEC.md` | The normative co-update for D5, D12, D16 and D17 |
+| `opm-operator/api/v1alpha1/platform_types.go` | The custom resource that keeps naming a catalog coordinate while the operator generates the package (D6) |
 | `opm-operator/internal/platform/store.go` | The single held slot that loses its reason to exist under D8 |
 | `cli/` | Render command configuration, D7's policy surface |
-| `enhancements/0015/` | Provider classes and `TransformerRegistration`; OQ9/OQ10 defer there, and its integration surface re-baselines when this entry reaches `accepted` |
-| `enhancements/0011/` | The publish-gate family; candidate home for the unstated-posture gate experiment 05 surfaced |
+| `enhancements/0015/` | Provider classes and transformer registration; two open questions defer there, and its integration surface re-baselines when this entry is accepted |
+| `enhancements/0011/` | The publish-gate family; candidate home for the unstated-posture gate |
