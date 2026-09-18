@@ -102,8 +102,15 @@ log:
     summary: >-
       core reports comparable transformer predicates and discriminated on #ContractInventory
     change: { kind: openspec, repo: core, change: comparable-predicate-guard }
-    decisions: [D5]
+    # D5 is not claimed here (trimmed 2026-09-18). D5 is the REFUSAL of an
+    # undiscriminated platform at generation; this change reports and never
+    # refuses, and its own proposal's "Not in this change" names the refusal.
+    # The operator's generation gate claims D5 when it refuses.
     resolves: [OQ9]
+  - date: "2026-09-18"
+    summary: >-
+      library reads Comparable and Discriminated off a built platform (Contracts accessor), pins core alpha.10 and asserts the shipped catalog stays discriminated in the parity harness; the refusal is the operator's
+    change: { kind: openspec, repo: library, change: read-comparable-predicates }
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
