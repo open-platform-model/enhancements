@@ -1,6 +1,6 @@
 ---
 name: enhancement-diagrams
-description: When and how to reach for a diagram while designing an OPM enhancement — Mermaid for relationship/dependency graphs between enhancements, ASCII for how a single enhancement's design/mechanism actually works. Load before sketching a diagram during an Open-Questions walk or general design discussion, before adding a diagram to 01-problem.md/02-design.md/05-risks.md, or when unsure which medium a diagram calls for.
+description: When and how to reach for a diagram while designing an OPM enhancement — Mermaid for relationship/dependency graphs between enhancements and for an entry's own architecture diagram, ASCII still accepted for mechanism detail inside the split documents. Load before sketching a diagram during an Open-Questions walk or general design discussion, before adding a diagram to README.md/01-problem.md/02-design.md/05-risks.md, or when unsure which medium a diagram calls for.
 user-invocable: true
 ---
 
@@ -15,26 +15,33 @@ exists to make reaching for a diagram the default move at the right moments, not
 
 ## The core split
 
-> **Mermaid is for relationships between enhancements. ASCII is for how a single
-> enhancement's design/mechanism works. Medium follows content shape — never a blanket default,
-> and never swapped for the other.**
+> **Mermaid is the default medium for both categories: relationships between enhancements, and
+> how a single enhancement's design/mechanism works. ASCII remains accepted for mechanism detail
+> inside the split documents, and is never converted wholesale. Medium follows content shape.**
 
-The two categories are not a style preference; they map onto genuinely different content:
+The two categories are still genuinely different content, and the distinction decides what a
+diagram may show, not which tool draws it:
 
 - A **relationship** question has enhancements or entries as its nodes and
   `depends_on`/`amends`/`supersedes`/`revives` as its edges. This is exactly what `GRAPH.md` (cross-entry)
-  already renders as generated Mermaid. Mermaid is a natural fit because that is what it's
-  for: named nodes, directed edges, `classDef`-based coloring. A `depends_on` edge is earned,
+  already renders as generated Mermaid. A `depends_on` edge is earned,
   not sketched into being: it exists iff a decision in one entry carries a `**Depends:**` line
   naming a decision in the other. An `amends` edge is the same discipline for change: it exists
   iff a live decision carries a qualified `MMMM:DN` token on its `**Amends:**` / `**Supersedes:**`
   line, and `GRAPH.md` labels it `amends n/m` (n of the target's m live decisions changed).
-- A **design/mechanism** question has functions, data, states, or components as its nodes —
+  Relationship diagrams are never hand-authored into an entry: `GRAPH.md` is the only committed
+  artifact for them, and a live sketch during discussion is scaffolding for the conversation.
+- A **design/mechanism** question has actors, artifacts, data, states, or components as its nodes —
   how a deletion protocol resolves, how a rung ladder architecture is layered, how a request
-  flows through a pipeline. This is what `enhancements/0012/02-design.md` already draws by hand,
-  in ASCII, three times over (a layered rung diagram, a data-flow diagram, an integration-points
-  mapping) — the existing house style for this content, consistent with the workspace's
-  `openspec-explore`/`openspec-onboard` skills ("Visualize freely... ASCII diagrams liberally").
+  flows through a pipeline. **Every entry's `README.md` carries exactly one of these, in Mermaid,
+  under `## How it works`**: it is the fastest thing a newcomer can read, and a rendered diagram
+  beats an ASCII one on GitHub. Inside `01-problem.md`, `02-design.md` and `05-risks.md` either
+  medium is fine; `enhancements/0012/02-design.md` is the ASCII reference and stays as it is.
+
+**Why the README diagram is Mermaid and not ASCII.** It is read by people who have not yet decided
+to read the entry, on GitHub, often on a phone. ASCII wraps, loses alignment at small widths, and
+cannot be zoomed. The cost is real but bounded: a syntax error breaks the render, so every
+hand-authored Mermaid block is checked before it lands (see `## Authoring Mermaid safely`).
 
 ## When this skill applies
 
@@ -61,10 +68,12 @@ A concrete trigger list, so this is a default reflex rather than a vague encoura
 | --- | --- | --- |
 | Should this entry `depends_on`/`supersedes` another? | Mermaid relationship sketch | "If 0013 supersedes 0007, does the graph still make sense with 0005 still pointing at 0007?" |
 | Should we split this enhancement into two, or merge two into one? | Mermaid relationship sketch, before/after | Visualize the graph both ways before deciding. |
-| How does this layered architecture fit together? | ASCII layered diagram | `0012`'s rung ladder (kernel emits → decides → acts → owns the CR). |
-| How does data flow through this pipeline / protocol? | ASCII flow diagram | `0012`'s deletion protocol (inputs → `DeletionPlan()` → verdict). |
-| What does this look like before vs. after the change? | ASCII side-by-side | `02-design.md ## Before / After`. |
-| How do the touched repos' new packages depend on each other? | ASCII component mapping | `02-design.md ## Integration Points`. |
+| What is this entry about, in one picture? | Mermaid, in `README.md ## How it works` | One per entry, mandatory. The mechanism the entry designs. |
+| How does this layered architecture fit together? | Mermaid `flowchart` with subgraphs, or ASCII | `0012`'s rung ladder (kernel emits, decides, acts, owns the CR). |
+| How does data flow through this pipeline / protocol? | Mermaid `flowchart`, or ASCII | `0012`'s deletion protocol (inputs, plan, verdict). |
+| Who calls whom, in what order? | Mermaid `sequenceDiagram` | A handoff between two frontends and a controller. |
+| What states does this object move through? | Mermaid `stateDiagram-v2` | A claim that is pending, accepted, then active. |
+| What does this look like before vs. after the change? | Mermaid subgraphs, or ASCII side-by-side | `02-design.md ## Before / After`. |
 
 ## Relationships → Mermaid
 
@@ -100,30 +109,44 @@ encoded there and the real file is regenerated; the live sketch was scaffolding 
 conversation, not a new artifact to maintain. Never hand-edit `GRAPH.md` to match a
 sketch — it carries a "do not edit by hand" header for a reason.
 
-## Design/mechanism → ASCII
+## Design/mechanism → Mermaid (or ASCII)
 
-Plain fenced code blocks, no language tag — matching `0012` and `hatch/DESIGN.md` precedent.
-Two contrasting real examples from `0012/02-design.md` show the craft difference that matters:
+Mermaid in a ```` ```mermaid ```` fence is the default, and the only accepted medium for the
+README's `## How it works`. ASCII in a plain fenced block is still accepted inside
+`01-problem.md`, `02-design.md` and `05-risks.md`; existing ASCII diagrams are left alone, and
+converting one is never busywork worth doing on its own.
 
-- **Lines 80-94, the deletion-protocol data flow** — simple columns and `──▶` arrows. Cheap to
-  edit: shifting a label doesn't require re-counting anything.
-- **Lines 28-43, the rung ladder** — a fully bordered box, already 73 characters wide. Fragile:
-  any edit to the text inside risks breaking the border alignment, and nothing catches that
-  automatically.
-
-**Prefer the first style whenever the diagram is likely to be revised** — arrows and columns, not
-borders. If a bordered box is genuinely the right shape (it groups things visually in a way arrows
-can't), fix one column width up front and reuse it for every row rather than hand-fitting text to
-a border line by line, and re-verify alignment after any edit.
-
-Beyond that:
+Rules for either medium:
 
 - **One concept per diagram** — same discipline as one concept per experiment. If you're drawing
   two things at once, split it.
-- **Never bare.** Every diagram is paired with a sentence or two of prose — the diagram shows the
-  shape, the prose says what to take from it.
-- **Small.** A diagram that needs a legend to stay readable is a sign to split it, not to add a
-  legend.
+- **Never bare.** Every diagram is paired with two to four sentences of prose — the diagram shows
+  the shape, the prose says what to take from it.
+- **Small.** 6 to 14 nodes. A diagram that needs a legend to stay readable is a sign to split it,
+  not to add a legend.
+- **Concepts, not construction.** Nodes are actors, artifacts, data and steps: `Platform spec`,
+  `Registration CR`, `Render`. Never a file path, a package name, a function or a line number —
+  those are the target repo's to choose, and naming one here is prescriptive mechanism (see
+  `CLAUDE.md`).
+
+### Authoring Mermaid safely
+
+A syntax error does not degrade; it replaces the whole diagram with an error box on GitHub. The
+traps that actually bite, all of them learned from real breakage:
+
+- **Quote every label containing punctuation**: `A["Render (one build)"]`, not `A[Render (one
+  build)]`. Parentheses, colons, commas, slashes and quotes all need the surrounding `"`.
+- **No `#` in a label.** Mermaid reads `#` as the start of an entity code, so write `Module`, not
+  `#Module`. Same for `@` at the start of a word.
+- **No node id starting with `o` or `x`**, and none named `graph`, `end`, `set`, `class` or
+  `style`: `A-->oB` parses as a circle arrowhead, and the keywords are reserved.
+- **No `|` or `;` inside a label**, and no colon or parenthesis in an *edge* label.
+- **ASCII only.** No unicode arrows, box-drawing characters or emoji, per `STYLE.md`.
+- **Check before landing.** Render it, or read the block on the PR's Files-changed view, which
+  renders Mermaid. Never commit a block nobody has seen rendered.
+
+ASCII, when you choose it: prefer arrows and columns over bordered boxes, which are fragile to
+realign after an edit. `0012/02-design.md` holds both styles and is the reference.
 
 ## Live, during discussion
 
@@ -135,8 +158,11 @@ the user wants a rendered page just because a diagram exists.
 
 ## Persisting into documents
 
-Design/mechanism ASCII diagrams belong in:
+Design/mechanism diagrams belong in:
 
+- `README.md ## How it works` — **exactly one, in Mermaid, on every entry.** The one picture a
+  reader who has not committed to the entry will look at. It shows the mechanism the entry
+  designs, in the reader's vocabulary, not the entry's internal one.
 - `01-problem.md ## Concrete Example` — current-state architecture, when a picture makes the gap
   obvious faster than prose.
 - `02-design.md ## High-Level Approach` / `## Schema / API Surface` / `## Integration Points` /
@@ -155,9 +181,15 @@ that category.
 
 ## Anti-patterns
 
-- **Using Mermaid for a design/mechanism diagram, or ASCII for an entity-relationship graph.**
-  The swap in either direction is exactly what this skill exists to prevent. If you're not sure
-  which category a diagram is, re-read `## The core split`.
+- **Hand-authoring a relationship diagram into an entry.** `depends_on` and `amends` edges are
+  earned in `config.yaml` and rendered by `task graph`. A hand-drawn copy inside an entry goes
+  stale the first time an edge changes and nothing catches it.
+- **A README diagram in ASCII, or more than one diagram in a README.** The `## How it works`
+  section is one Mermaid block, full stop. A second mechanism belongs in `02-design.md`.
+- **Committing a Mermaid block nobody rendered.** A syntax error replaces the whole diagram with
+  an error box. Re-read `### Authoring Mermaid safely`.
+- **File paths, package names or functions as diagram nodes.** That is prescriptive mechanism.
+  Nodes are actors, artifacts and steps.
 - **A bare diagram with no surrounding prose.** The reader needs to be told what to take from it,
   not left to reverse-engineer the point.
 - **One diagram trying to cover two concepts.** Split it — a reader who needs to hold two ideas in
@@ -177,8 +209,9 @@ that category.
 | --- | --- | --- |
 | Relationship diagrams (generated) | `enhancements/GRAPH.md` | Generated by `task graph`. Never hand-edited. Live sketches during discussion should visually match it. |
 | Mermaid `classDef` palette (entry status, `stub`, `category`) | `enhancements/Taskfile.yml :: graph` | Source of the palette to reuse in a live relationship sketch. |
-| Design/mechanism diagrams (hand-authored) | `enhancements/NNNN/01-problem.md`, `02-design.md`, `05-risks.md` | Plain ASCII fenced blocks, authored in place, mutable like any other prose. |
-| Reference example | `enhancements/0012/02-design.md` (lines 28-43, 80-94) | The existing ASCII convention this skill formalizes — study before drawing a new one. |
+| The entry's architecture diagram | `enhancements/NNNN/README.md ## How it works` | Exactly one Mermaid block per entry, in a ```` ```mermaid ```` fence, paired with two to four sentences. |
+| Design/mechanism diagrams (hand-authored) | `enhancements/NNNN/01-problem.md`, `02-design.md`, `05-risks.md` | Mermaid or plain ASCII fenced blocks, authored in place, mutable like any other prose. |
+| Reference example | `enhancements/0012/02-design.md` (lines 28-43, 80-94) | The ASCII convention this skill still accepts — study before drawing a new one. |
 | This skill | `enhancements/.claude/skills/enhancement-diagrams/SKILL.md` | The protocol — the file you are reading. |
 
 ## Cross-references
