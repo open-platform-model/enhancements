@@ -34,7 +34,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-26"
-updated: "2026-09-08"
+updated: "2026-09-18"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -234,6 +234,8 @@ history:
     event: Category set to distribution, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-08"
     event: 'Closed as delivered: every live decision carried by the delivery log or excused; archived.'
+  - date: "2026-09-18"
+    event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
