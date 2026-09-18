@@ -4,17 +4,21 @@
 
 > **Compacted 2026-07-29.** The narrative documents (`01`, `02`, `04`, `05`, `06`) were collapsed to stubs describing what each covered and where it went, and the Open Questions block was reduced to one line per question naming the successor that inherited it. The decision log keeps every number, decision, and *Alternatives considered*, with supersessions now marked in place so it is safe to read linearly. Two things were deliberately kept in full: `05-risks.md`'s per-site **Blast Radius** audit, which was measured against real code and is reproduced nowhere else, and everything under `experiments/` and `research/`. The prior text of every collapsed document is in git history.
 
-An OPM module states its identity in several places an author fills in independently: a module path and name in its metadata, a declared version, the module line in its CUE module file, and the release tag it is published under. Nothing binds them, and the published fleet already showed them drifting apart, so code holding a loaded module could not reconstruct the reference needed to import it again. This entry proposed one canonical registry reference derived from that metadata, plus the commands that produce it and the check that enforces it. It was superseded before anything shipped, and the work continues in its two successors.
+An OPM module states its identity in several places an author fills in separately: a module path in its metadata, a declared version, the module line in its CUE module file, and the release tag it is published under. Nothing bound them, and the published fleet showed them drifting apart. This entry proposed one reference derived from that metadata.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-The canonical mapping composed a registry reference out of what the module already declared (D1, D3). The module path and a snake-case projection of the name give the path, the version's major gives the suffix, and the release tag equals the declared version. Publishing would derive those coordinates rather than stamp them into the artifact (D4). Version authoring was split into its own command, so publish took no version input at all (D12), and a local dependency override refused the push unless explicitly allowed (D8). The same pipeline covered catalogs, the degenerate case on addressing and the acute one on versioning (D7).
+**One reference, composed from what the module already declares (D1, D3).** The module path and a snake-case form of the name give the path, the version's major gives the suffix, and the release tag equals the declared version. Publishing would derive those coordinates rather than stamp them into the artifact (D4).
 
-The enforcement point was deliberately the read side: the library refuses a module whose declared identity disagrees with the coordinates it was fetched by (D6), so the CLI and the operator inherit one check no publisher can route around. Later decisions moved the ground under the design: D13 removed the declared version from module identity entirely, and D9 settled that published artifacts live in a central hosting registry under owner-scoped paths.
+**Version authoring was split into its own command (D12).** Publish took no version input at all, and a local dependency override refused the push unless explicitly allowed (D8). The same pipeline covered catalogs, which are the simple case on addressing and the hard one on versioning (D7).
 
-Read the decision log as the live record. The narrative documents were collapsed to stubs at compaction, because the design they describe was retired by decisions further down the same log. Entry [0010](../0010/) took over what identity is, and entry [0011](../0011/) took over the commands that write it.
+**The check ran on the read side, not the write side (D6).** The library refuses a module whose declared identity disagrees with the coordinates it was fetched by, so the CLI and the operator inherit one check no publisher can route around.
+
+**Later decisions moved the ground under it.** D13 removed the declared version from module identity entirely, and D9 settled that published artifacts live in a central hosting registry under owner-scoped paths.
+
+Read the decision log as the live record. The narrative documents were collapsed to stubs, because the design they describe was retired by decisions further down the same log. Entry [0010](../0010/) took over what identity is, and entry [0011](../0011/) took over the commands that write it.
 
 ## How it works
 
@@ -30,7 +34,7 @@ flowchart LR
     mp --> canon
     nm --> canon
     ver --> canon
-    canon["Canonical reference: registry path from the module path plus name, major from the version, tag equal to the version"] --> ref["Published module reference"]
+    canon["One reference: registry path from the module path plus name, major from the version, tag equal to the version"] --> ref["Published module reference"]
     modline --> ref
     tag --> ref
     ref --> acquire["Verified where modules are acquired, so CLI and operator inherit one check"]
@@ -42,7 +46,7 @@ An OPM module stated its identity in four places an author set independently, th
 ## Documents
 
 1. [01-problem.md](01-problem.md): *Stub.* Identity and registry coordinates drift; the measurements are restated in both successors
-1. [02-design.md](02-design.md): *Stub.* The canonical mapping, and why it stopped being accurate before supersession
+1. [02-design.md](02-design.md): *Stub.* The one-reference mapping, and why it stopped being accurate before supersession
 1. [03-decisions.md](03-decisions.md): **Kept in full.** The decision log, D1 to D27, with alternatives and supersessions marked in place
 1. [04-graduation.md](04-graduation.md): *Stub.* What would have had to hold before draft became accepted
 1. [05-risks.md](05-risks.md): *Partly kept.* The risk narrative is stubbed; the per-site blast-radius audit is retained in full
@@ -55,7 +59,7 @@ An OPM module stated its identity in four places an author set independently, th
 
 ### In scope
 
-- The canonical mapping from a module's metadata to its CUE registry reference: path leaf, package name, version and major, anchored on a snake-case name projection.
+- The single mapping from a module's metadata to its CUE registry reference: path leaf, package name, version and major, anchored on a snake-case name projection.
 - **Removing the module's declared version (D13):** module source declares no version; the full version exists only as the artifact coordinate, with the major carried in the CUE module path as CUE and Go both do. The fully-qualified name is redesigned around its absence, which supersedes the version-agreement machinery below for modules.
 - ~~**The version-agreement invariant (D3):** a module's declared version and the release tag of the artifact carrying it are the same value.~~ Retired for modules by D13; still live for catalogs.
 - **Verification at acquire (D6):** the read path refuses a module whose metadata disagrees with the coordinates it was fetched by. This is the primary enforcement point, because it is the one no publisher can bypass.
@@ -63,7 +67,7 @@ An OPM module stated its identity in four places an author set independently, th
 - **A separate version-authoring command (D12):** the only writer of the declared version. Publish takes no version input at all, so source and tag have no surface on which to disagree.
 - **Catalog publishing (D7):** the same pipeline for catalogs, extending D3 and D6 to them. One implementation, two artifact types.
 - **The local-override gate at publish (D8):** local dependency replacements are never honoured, and their presence blocks the push unless explicitly allowed.
-- A library helper that computes the canonical import reference from a loaded module, so the render path resolves imported modules from metadata.
+- A library helper that computes the import reference from a loaded module, so the render path resolves imported modules from metadata.
 - **Where published artifacts live (D9):** a central registry that hosts rather than indexes, with owner-scoped module paths under reserved namespace segments that keep module, catalog and schema space distinguishable by path alone.
 - The migration story for in-repo modules whose published path or version does not yet follow the convention, now universal rather than exceptional since D9 moves every currently-published module.
 

@@ -2,31 +2,29 @@
 
 > **Delivered (2026-09-04).** Every live decision is carried by this entry's delivery log or excused in it (27 landings; `task delivery ID=0019`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0019` lists any.
 
-The kernel is the Go code that turns a module into Kubernetes objects, and a transformer is the CUE definition that does the turning: it receives a component and yields objects. Before rendering, the kernel converted each component into plain data, and that conversion deleted every definition field on it. The computed identity the specification calls the single source of truth for a component therefore did not exist inside any transformer, along with the component's declared resources, traits and instance. A third declared input was never filled at all. This entry makes plain CUE unification, the language's own way of combining two values, the reference semantics of the render path, and closes the gaps by removing kernel behaviour rather than adding more.
+The kernel is the Go code that turns a module into Kubernetes objects. A transformer is the CUE definition that does the turning. Before rendering, the kernel converted each component to plain data, and that conversion deleted every definition field on it, so the computed identity a transformer needs did not exist. This entry removed that conversion.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**Parity is the contract; the single build is what makes it structural (D1).** The entry is one arc in two phases, and the design doc states the relationship in a line: two changes that turn out to be the same change. A pure-CUE control settles the target. Unifying a real instance's component into a real transformer, with the transformer arriving by import from a separate package, preserves every field and evaluates fully concrete, and strict validation exits clean. The kernel is the only thing that removes anything. The premise that justified the removal is falsified there too: the stated reason, that filling a component fails when schema constraints are present, does not reproduce against a component carrying genuine closedness. The conversion was reached for to strip validators; dropping definitions was collateral.
+**Plain CUE unification is the contract; one build per render is what makes it stick (D1).** A pure-CUE control settles it: unifying a real component into a real transformer preserves every field and passes strict validation. The kernel was the only thing removing anything, and the stated reason for the conversion does not reproduce.
 
-**Phase A makes the current path honest.** Fill the component input from the unstripped value and fill the instance input for the first time (D3). Remove the stripping call from the render path and then from the public surface, and repair the flow fixture whose instance construction severs the reference wiring. It is evidence-complete and lands first: no Phase A slice depends on anything in Phase B. Since D15 and D16 it spans four repos. Transformers stop deriving a component's primary object name and read the computed one instead (D15), and the default for that name becomes instance-qualified, flipped before the sweep so rendered fleets see no change (D16).
+**Phase A makes the current path honest.** Fill the component input from the unstripped value and fill the instance input for the first time (D3). Remove the stripping call from the render path and then from the public surface. Transformers read the computed object name instead of deriving it (D15), and that name's default becomes instance-qualified, flipped before the sweep so rendered fleets see no change (D16).
 
-**Phase B removes the reason the strip was reachable: the render step becomes one CUE build per render (D9).** The kernel stages the instance and the platform into a generated render module and evaluates it once, so nothing crosses a build boundary and nothing needs stripping. Parity stops being a property the kernel maintains and becomes one it cannot violate. The collapse carries the platform reshape it requires:
+**Phase B removes the reason the strip was reachable: one CUE build per render (D9).** The kernel stages the instance and the platform into a generated render module and evaluates it once, so nothing crosses a build boundary and nothing needs stripping. That collapse carries the platform reshape it requires:
 
 - A registry entry imports its catalog and embeds the transformer map, replacing the scalar version (D5).
 - The operator generates the platform package its custom resource describes (D6).
-- Version skew between a module and its platform becomes a kernel-detected, caller-configured signal, defaulting to warn-and-render (D7, D18).
-- The shared-platform architecture decision is superseded by shares-nothing renders (D8).
-- Matching moves into the build with its verdicts as data (D10).
+- Version skew becomes a kernel-detected signal, defaulting to warn-and-render (D7, D18).
+- The shared-platform decision is superseded by shares-nothing renders (D8).
+- Matching moves into the build with its verdicts as data (D10, D13, D14).
 
-The render module's dependency list is derived by promotion rather than computed, and a render refuses when derivation cannot cover a path (D13). CUE's natural unfinalized ordering becomes the output contract (D14).
+**The key artifact across both phases is the parity harness**, which compares the kernel's rendered value against pure-CUE unification of the same inputs. It lands before any fix, and it stays afterwards as the alarm against a future Go-side transformation.
 
-**The load-bearing artifact across both phases is the parity oracle**, a differential harness comparing the kernel's rendered value against pure-CUE unification of the same three inputs. It lands before any fix, and its first failure is the evidence for the whole entry. It proves each Phase B slice produces what the old path produced, and it survives as the tripwire against a future Go-side transformation of a component value.
+**The architecture being replaced is the expensive one.** Eight experiments measured it: the shared-platform model races under concurrent render (2321 detector reports) and retains 348 MB per render, while a shares-nothing single build wins by 2.5x to 5.5x and retains 117 KB.
 
-**The architecture being replaced is also the measured-expensive one.** Eight concluded experiments put numbers on it. The shared-platform model races under concurrent render (2321 detector reports, unfixed by pre-evaluation) and retains 348 MB per render by construction. A shares-nothing single build is cheaper per component at every size, crosses over at roughly a dozen components, and parallelises at ~4x on eight cores independent of module size. Against today's path serialised as its races require, it wins by 2.5x to 5.5x at every size, while retaining 117 KB per render. One caveat stays attached: sequentially, small modules pay a fixed ~85 ms catalog term, making a two-component render 1.7x to 2.1x slower in isolation.
-
-**One finding changes the authoring contract independently of any code (D11).** CUE resolves references lexically, so a transformer must re-declare a slot in its own body to reference it. That is why shipped transformers restate the component input despite the schema already declaring it, and why the instance input becomes author-visible only once someone tries to use it. The transformer context becomes a projection of the other two inputs, with the kernel filling only the runtime name (D12).
+**One finding changes the authoring contract on its own (D11).** CUE resolves references lexically, so a transformer must re-declare a slot in its own body to reference it. The transformer context becomes a view of the other two inputs (D12).
 
 ## How it works
 
