@@ -1,45 +1,53 @@
 # Enhancement 0014: Export a Deployed Instance as GitOps Manifests
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+OPM can already hand a CLI-deployed application over to its in-cluster operator without disturbing a workload. That moves the manager, not the definition: afterwards the only complete record of the deployment is a live object in the cluster. A team that now wants git to be the source of truth hand-transcribes that object into several YAML documents, and the transcription is quietly wrong in ways that change who applies the instance. This entry adds a command that reads the live record, proves the published module still reproduces what is running, and writes a directory you can commit.
+
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-Enhancement [0006](../archive/0006/) shipped `opm instance handoff`, which transfers a CLI-deployed instance to the operator without touching a workload. It moves the manager; it does not move the definition. After a handoff the only complete record of an instance is a live object in etcd, and a user who now wants git as the source of truth has to hand-assemble four YAML documents per instance from a `kubectl get -o yaml` dump.
+The exported unit is one directory per instance holding the whole apply envelope, not a bare custom resource (D1). That means the `ModuleInstance` object plus the namespace, the `ServiceAccount` that applies it, that account's RBAC, and a `kustomization.yaml` listing them. Repo-level Flux wiring is deliberately absent, because a repository has one of those and not one per instance. `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
 
-This entry adds `opm instance export`: read the live `ModuleInstance`, verify the published module still reproduces the deployed render, and write a committable directory, the CR plus the `Namespace`, applier `ServiceAccount`, RBAC, and `kustomization.yaml` that make it applicable on its own.
+Nothing is written unless the published module still reproduces the deployed render (D2). Export reuses the existing handoff command's precondition chain: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. One more arm is inherited, the refusal when the deployment was rendered from local bytes rather than from the registry (0006:D38, the local-provenance refusal of the archived handoff entry 0006). A failure aborts with nothing on disk, and `--force` bypasses the digest comparison alone.
 
-A `kubectl` dump is not merely untidy, it is **wrong**. `ApplySpec` (`cli/internal/inventory/store.go:119`) writes only `spec.module`, `spec.owner`, and `spec.values`. Every CLI-written CR is therefore missing `spec.serviceAccountName` and `spec.prune`, and a document without them applies under the controller's own identity and orphans its workloads on delete.
+A dump of the live object is not merely untidy, it is wrong. The CLI's single spec writer records the module coordinate, the owner and the values and nothing else, so every CLI-written record is missing its service account name and its prune setting. A document without them applies under the controller's own identity and orphans its workloads on delete. One partition resolves that against the gate above. Render-bearing fields, the module coordinate and the values, decide what the operator produces and are copied verbatim because the digest proves them right. Apply-bearing fields, which decide who applies and what happens on delete, sit outside the render digest and are completed, with every completion named in the output. Cluster-side fields, status and server-set metadata, are dropped.
 
-Converting to GitOps also changes who applies the instance from then on. That is a larger commitment than the ownership flip handoff already made, so export inherits handoff's verification gate instead of settling for a warning (D2: refuse to write anything unless the published module reproduces the deployed render).
+Values are copied byte for byte with an unconditional warning that OPM cannot yet identify which of them are secret (D3). There is no redaction mode: a redacted document no longer renders to the deployed digest, so redaction would trade a verified artifact for a partial one. The live record is the sole input (D4), because the guarantee is a statement about what is running and only the cluster can answer that.
 
-Both problems are handled by one partition, laid out in `02-design.md`: `spec.module` and `spec.values` are render-bearing and are copied verbatim under the digest gate. Apply identity and deletion policy are apply-bearing, absent from the render digest, and can be completed instead, as long as every completion is named in the command output.
+This is the third step of the path the archived entry [0006](../archive/0006/) built. That entry moved the inventory into the `ModuleInstance` record (0006:D1) and then moved the manager to the operator (0006:D7 and 0006:D40); this one moves the definition into a repository. It reuses 0006's success criterion too, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40). Here that criterion is restated for a GitOps applier instead of the operator's first reconcile after a handoff. The open risk sits at the seam 0006 never had to cross: a GitOps apply introduces a third field manager, Flux's kustomize-controller, onto fields the CLI and the operator already own. That question is answered by a runnable experiment rather than by argument.
 
-<!--
-Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
-status block written here is a snapshot that goes stale the moment another change
-lands, which is exactly the drift the implementation axis was removed to stop.
--->
+## How it works
+
+```mermaid
+flowchart LR
+    cr["Live ModuleInstance in the cluster"] --> read["Read the CR: identity, module coordinate, values, digests, inventory"]
+    read --> gates["Cheap gates first: CRDs present, CR exists, not a local render, coordinate concrete, digest recorded"]
+    gates --> verify["Re-render the published module and compare its digest with the deployed one"]
+    verify --> refuse["Mismatch: refuse, nothing is written"]
+    verify --> partition["Match: partition the fields"]
+    partition --> copy["Render-bearing: module and values copied verbatim"]
+    partition --> complete["Apply-bearing: owner, service account, prune completed and reported"]
+    partition --> drop["Cluster-side: status and server metadata dropped"]
+    copy --> compose
+    complete --> compose
+    drop --> compose
+    compose["Compose one directory: namespace, service account, RBAC, ModuleInstance, kustomization"] --> report["Write, then report what was verified, completed and warned about"]
+    report --> flux["Commit, Flux applies, the operator adopts the running instance unchanged"]
+```
+
+The cheap gates run first and the expensive one last, so a doomed export costs nothing. The digest comparison is the guarantee, and its failure message reports the same finding handoff reports: the cluster is running something the registry no longer describes. Only after it passes does anything reach the filesystem, and the report then names everything the export completed rather than copied.
 
 ## Documents
 
-Seven documents, read in this order:
+1. [01-problem.md](01-problem.md): handoff moves the manager and not the definition, and why a dump of the live object changes apply identity and deletion behaviour
+1. [02-design.md](02-design.md): read the live record, run the gate chain, complete the apply-bearing fields, compose a per-instance directory
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D4
+1. [04-graduation.md](04-graduation.md): what must hold before draft becomes accepted
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): observability, versioning, deprecation, rollback, cross-repo coordination
+1. [07-questions.md](07-questions.md): the open-questions register
 
-1. [01-problem.md](01-problem.md): Handoff moves the manager, not the definition; why a CR dump is incomplete in ways that change apply identity and deletion behaviour
-2. [02-design.md](02-design.md): Read the live CR, run handoff's gate chain, complete the apply-bearing fields, compose a per-instance directory
-3. [03-decisions.md](03-decisions.md): Decision log (D1–D4)
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, Alternatives not taken
-6. [06-operational.md](06-operational.md): Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md): Open Questions register
-
-Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue):
-
-- the request shapes
-- the ordered gate chain
-- the render-bearing / apply-bearing / cluster-side field partition (enforced by the schema, so a policy that copies a cluster-side field fails `cue vet`)
-- the exported document set and the report
-- the adoption property
+Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): the request shapes, the ordered gate chain, the three-way field partition, the exported document set with its report, and the adoption property. The partition is enforced by the schema, so a policy that copies a cluster-side field fails `cue vet` rather than review.
 
 ## Scope
 
@@ -47,66 +55,60 @@ Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue
 
 **Command.**
 
-- `opm instance export <name> -n <ns>` reads the live `ModuleInstance` CR and writes a per-instance directory of YAML documents (D1). `--all` repeats the same unit across a namespace or the cluster; nothing is merged between directories.
+- `opm instance export <name> -n <ns>` reads the live `ModuleInstance` and writes a per-instance directory of YAML documents (D1). `--all` repeats that unit across a namespace or the cluster, merging nothing between directories.
 
 **What gets written.**
 
-- The exported set is the CR plus its apply envelope: `Namespace`, `ServiceAccount`, RBAC, and a `kustomization.yaml` listing them (D1). This is the shape `opm-kind-demo/jellyfin/moduleinstance.yaml` has today, generated instead of typed.
-- Field completion for the apply-bearing fields the CLI never writes (`spec.serviceAccountName`, `spec.prune`), with every completion named in the command output. Policy for what to fill in is pending OQ1.
-- `spec.values` copied verbatim, with an unconditional warning that OPM cannot yet identify which values are secret (D3).
+- The record plus its apply envelope: `Namespace`, `ServiceAccount`, RBAC, and a `kustomization.yaml` listing them (D1). It is the shape the demo bundle has today, generated instead of typed.
+- Completion of the apply-bearing fields the CLI never writes, the service account name and the prune setting, with every completion named in the output. What to fill in is still an open question.
+- Values copied verbatim, with an unconditional warning that OPM cannot yet identify which are secret (D3).
 
 **Verification gate.**
 
-- Refuses to write anything unless the published module reproduces `status.lastAppliedRenderDigest` (D2), reusing handoff's precondition chain and its `VerificationDigest` primitive. `--force` bypasses the digest comparison only.
+- Nothing is written unless the published module reproduces the recorded render digest (D2), reusing handoff's precondition chain and its verification render. `--force` bypasses the digest comparison only.
 
 **Inputs and internals.**
 
-- The live CR is the sole input (D4): no local instance file, no values overlay.
-- One read-only field on `cli`'s internal `inventory.Record` (`ServiceAccountName`), and lifting `VerificationDigest` into a package both handoff and export call.
+- The live record is the sole input (D4): no local instance file, no values overlay.
+- One read-only field added to the CLI's internal record type, and the verification render lifted into a package both handoff and export call.
 
 ### Out of scope
 
 **Deferred, not rejected.**
 
-- **Repo-level Flux wiring.** `OCIRepository` and the Flux `Kustomization` are one per repository, not one per instance. Emitting them per export would produce N conflicting copies of a singleton. GitOps repo bootstrapping is a candidate follow-on.
-- **CUE-native export.** Reconstructing an `instance.cue` plus a `ModulePackage` CR targets a different operator path (fetch a CUE package from a Flux source). It is deferred as a possible second output mode.
-- **Secret detection, redaction, or SOPS / External Secrets integration.** Depends on enhancement [0013](../0013/). Until it lands, D3's warning is the honest surface.
+- Repo-level Flux wiring. The source and the Flux kustomization are one per repository, so emitting them per export would produce conflicting copies of a singleton. Bootstrapping a GitOps repository is a candidate follow-on.
+- A CUE-native export. Reconstructing an instance package plus a `ModulePackage` record targets a different operator path and waits as a possible second output mode.
+- Secret detection, redaction, and any SOPS or External Secrets integration. It depends on entry [0013](../0013/); until that lands, the warning is the honest surface.
 
 **Hard boundaries of this entry.**
 
-- **The import direction.** Nothing reads a repo and applies it; nothing continuously compares git against the cluster. After the commit, Flux is the applier and Flux reports drift.
-- **`ModulePackage` export.** `ModuleInstance` only, matching 0006's boundary.
-- **Any change to `core/`, `library/`, or `opm-operator/`.** The export reads an existing CR through an existing read path and writes files.
+- The import direction. Nothing reads a repository and applies it, and nothing compares git against the cluster. After the commit, Flux is the applier and Flux reports drift.
+- `ModulePackage` export. `ModuleInstance` only, matching 0006's boundary.
+- Any change to `core`, `library` or `opm-operator`. The export reads an existing record through an existing read path and writes files.
 
-## Relationship to 0006
+## Deviations from Design
 
-0014 is the third step of the path 0006 built. 0006 moved the inventory into the `ModuleInstance` CR (D1) and then moved the *manager* to the operator (D7, D40); 0014 moves the *definition* out of the cluster and into a repository. It reuses 0006's machinery rather than restating it: the same precondition chain, the same `VerificationDigest`, and the same local-provenance refusal (D38). It also reuses the same success criterion, D40's inventory-stable reconcile, restated in `#AdoptionProperty` for a GitOps applier instead of for the operator's first post-handoff reconcile.
-
-The open risk lives at the seam 0006 never had to cross. Handoff's actors were the CLI and the operator, both of whose field-manager behaviour 0006 verified live. A GitOps apply introduces a third manager (Flux's kustomize-controller) onto fields the first two own, which is why OQ4 is answered by an experiment rather than by argument.
+None at this stage. Update when implementation lands.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `/CLAUDE.md` (workspace root) | Cross-repo routing + the area vocabulary `area` / `affects` validate against. |
-| `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | CLI repo principles governing every slice of this entry; the command/orchestration split the new command follows. |
-| `cli/internal/cmd/instance/instance.go` | The `instance` command group the new `export` subcommand registers on. |
-| `cli/internal/cmd/instance/handoff.go` | The closest existing command surface: flag shape and argument handling to mirror. |
-| `cli/internal/workflow/handoff/handoff.go` | `runPreconditions`: the gate chain export reuses, minus the ownership arm (OQ3). |
-| `cli/internal/workflow/handoff/verify.go` | `VerificationDigest`: the strict-registry verification render; to be lifted into a package both callers use. |
-| `cli/internal/inventory/record.go` | `Record`: the read-side view of the CR; gains `ServiceAccountName`. Its `Prune` comment documents the orphan-on-delete behaviour `01-problem.md` cites. |
-| `cli/internal/inventory/cr.go` | The unstructured read path that populates `Record`. |
-| `cli/internal/inventory/store.go` | `ApplySpec` (line 119): the CLI's single spec writer, and the reason `spec.serviceAccountName` / `spec.prune` are absent; `crLabels` (line 311) is OQ5's subject. Not modified by this entry. |
-| `cli/internal/inventory/discover.go` | Instance listing: what `--all` walks. |
-| `cli/internal/output/` | Report rendering and the values warning. |
-| `cli/tests/e2e/` | Home of the apply → handoff → export → apply-exported e2e case that asserts `#AdoptionProperty`. |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go` | `ModuleInstanceSpec`: the contract the exported CR must satisfy; the four fields the CLI never writes are declared here. |
-| `opm-operator/cmd/main.go` | `--default-service-account`: what an empty `spec.serviceAccountName` falls back to, and why the envelope matters. |
-| `opm-kind-demo/jellyfin/moduleinstance.yaml` | The hand-written reference the export generates the equivalent of, including the `cluster-admin` binding OQ2 must decide about. |
-| `opm-kind-demo/bootstrap/flux/` | The repo-level Flux wiring that is deliberately out of scope: one `OCIRepository` and one `Kustomization` for the whole bundle. |
-| `enhancements/0006/` | Handoff, CR inventory, D38 provenance refusal, D40 inventory-stable criterion. |
-| `enhancements/0013/` | Attribute-declared secret fields: what would make D3's warning unnecessary. |
-
-## Deviations from Design
-
-None at this stage. Update when implementation lands.
+| `/CLAUDE.md` (workspace root) | Cross-repo routing and the vocabulary the metadata validates against |
+| `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | The CLI principles every slice obeys |
+| `cli/internal/cmd/instance/instance.go` | The command group the new subcommand registers on |
+| `cli/internal/cmd/instance/handoff.go` | The closest command surface, whose flags this one mirrors |
+| `cli/internal/workflow/handoff/handoff.go` | The precondition chain reused, minus the ownership arm |
+| `cli/internal/workflow/handoff/verify.go` | The verification render both callers will share |
+| `cli/internal/inventory/record.go` | The read-side view that gains the service account name |
+| `cli/internal/inventory/cr.go` | The unstructured read path behind that record |
+| `cli/internal/inventory/store.go` | The single spec writer, and so the reason two fields are missing |
+| `cli/internal/inventory/discover.go` | Instance listing, which is what `--all` walks |
+| `cli/internal/output/` | Where the report and the values warning are rendered |
+| `cli/tests/e2e/` | Home of the case asserting the adoption property end to end |
+| `opm-operator/api/v1alpha1/moduleinstance_types.go` | The spec the exported record must satisfy |
+| `opm-operator/cmd/main.go` | The identity an empty service account field falls back to |
+| `opm-kind-demo/jellyfin/moduleinstance.yaml` | The hand-written reference this export generates the equivalent of |
+| `opm-kind-demo/bootstrap/flux/` | The repo-level wiring deliberately left out |
+| `enhancements/0006/` | Handoff, the record-based inventory, and the criteria this entry reuses |
+| `enhancements/0013/` | What would make the values warning unnecessary |

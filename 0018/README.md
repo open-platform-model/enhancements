@@ -1,34 +1,53 @@
 # Enhancement 0018: Documentation Architecture
 
-OPM has no usable public documentation, and not for want of writing. The largest body of prose in the workspace describes the v0 catalog line, was last touched in April, and contains 121 references to an artifact renamed four months ago. Meanwhile the material that is current sits where no reader looks: a CLI README, a contributor specification, and worked examples embedded inside catalog transformers. This enhancement defines what the documentation is, how it is sourced, and what keeps it from drifting again.
+OPM has no usable public documentation, and not for want of writing. The largest body of prose in the workspace describes a version of OPM that no longer exists, and still names an artifact that was renamed long ago. The material that is current sits where no reader looks: a command-line readme, a contributor specification, and worked examples buried inside catalog code. This entry defines what the documentation is, where each page's content comes from, and what keeps it from drifting again.
 
-See [`config.yaml`](config.yaml) for the metadata contract; it is the sole source of metadata, and no parallel metadata table lives in this README.
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-Eight sections organised by **what a reader is holding when they arrive**: nothing, a question about why, a blank module file, a cluster, a vocabulary gap, a Go program, a field name, an error message. Genre still governs how a page is written, but not the navigation, because OPM's audiences are close to disjoint and a genre-first split makes each of them filter every section.
+**Eight sections, keyed to what a reader is holding on arrival:** nothing, a question about why, a blank module file, a cluster, a vocabulary gap, a Go program, a field name, an error message. Genre still governs how a page is written, but not the navigation. OPM's audiences are close to disjoint, and a genre-first split makes every one of them filter every section.
 
-Two placements are deliberate. **Diagnostics is top-level** because it is an entry point: readers arrive from an error string, and the kernel's error taxonomy maps to genuinely different fixes that the message text does not distinguish. **Concepts is large** in proportion to a concept surface that is unusually big relative to the user surface; seventeen concepts were ranked subtle enough that a reader gets them actively wrong without prose.
+**Two placements are deliberate.** Diagnostics is top-level because it is an entry point: readers arrive from an error string rather than from the navigation. The kernel's error taxonomy also maps to genuinely different fixes that the message text does not distinguish. Concepts is large in proportion to a concept surface that is unusually big next to the user surface, with seventeen concepts ranked subtle enough that a reader gets them actively wrong without prose.
 
-Underneath sits one rule that decides where content comes from: **generate every fact a rename can invalidate, author everything else**. Member names, keys, spec shapes, postures, the transformers that serve a member and their worked examples are emitted from evaluated CUE. Which blueprint to start from, which traits are legal on it, and every Concepts page are written by hand, because none of it is expressible in the schema.
+**One rule decides where content comes from: generate every fact a rename can invalidate, author everything else** (D1). Member names, keys, spec shapes, trait postures, the transformers that serve a member and their worked examples are emitted by evaluating the CUE source, never by scraping text. That matters because the current text scraper reports an empty description for exactly the members readers need most. Which blueprint to start from, which traits are legal on it, and every Concepts page are written by hand, because none of it is expressible in the schema. A gate refuses a new catalog member that ships without a doc comment.
 
-And one convention that exists because OPM enforces across four layers: every normative statement carries an **enforcement badge** naming what actually stops you, whether that is CUE unification, the kernel at render, a publish gate, or nothing at all.
+**Reference splits the catalog by family** (D6). The abstraction family, whose members hide Kubernetes detail, gets full per-member pages and leads every authoring path with blueprints first. The raw passthrough family gets one index page and a generated table, labelled as the last resort, with each entry pointing at the abstraction that covers the same ground where one exists.
+
+**Every normative statement carries an enforcement badge** naming what actually stops you: CUE unification, the kernel at render, a publish gate, or nothing but convention. That convention exists because OPM enforces across four layers and a reader cannot otherwise tell which claim is load-bearing.
+
+**Three scoping decisions keep the documentation honest.** The contributor specification is not published (D2): the public reference takes its definition, shape and constraint content as a source and drops the rationale. That rationale is instead mined for Concepts pages and rewritten. A page enumerates what OPM does not have, and draft enhancements are never described as forthcoming features (D3). Another page documents today's deletion and prune behaviour: prune defaults to false so the finalizer's default is to orphan, a CLI-owned instance carries no hold at all, and the two deletion paths have diverged. That page lands now, independent of entry 0012 (D4), and secrets material waits entirely for entry 0013, whose own documentation slice writes it (D5).
+
+## How it works
+
+```mermaid
+flowchart LR
+    reader(["Reader arrives holding..."]) --> start["Nothing, evaluating: Start here"]
+    reader --> concepts["A question about why: Concepts"]
+    reader --> authoring["A blank module file: Authoring modules"]
+    reader --> deploying["A cluster: Deploying and operating"]
+    reader --> extending["A vocabulary gap: Extending OPM"]
+    reader --> embedding["A Go program: Embedding the kernel"]
+    reader --> reference["A field name: Reference"]
+    reader --> diagnostics["An error message: Diagnostics"]
+    generated["Generated from source: names, specs, postures, worked examples, CLI help"] -.-> reference
+    authored["Authored by hand, each claim badged with what enforces it"] -.-> concepts
+    authored -.-> diagnostics
+```
+
+The branches out of the reader are the navigation, and each one is a top-level section rather than a genre. The two dotted edges are the sourcing rule. Reference is generated by evaluating the source, so a rename cannot silently invalidate it, while Concepts and Diagnostics are written by hand and badge each normative claim. Diagnostics hangs off the reader like any other section because that is how it is reached, from a search box.
 
 ## Documents
 
-The seven split documents below are mandatory and always present.
+1. [01-problem.md](01-problem.md): documentation exists and describes a version of OPM that has not existed for months, and coverage is inverted against usage
+1. [02-design.md](02-design.md): eight reader-state sections, generated facts versus authored guidance, enforcement badges
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D6
+1. [04-graduation.md](04-graduation.md): what must hold before this entry moves from draft to accepted
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, and the cross-repo landing order with the reasons for it
+1. [07-questions.md](07-questions.md): the open-questions register
 
-1. [01-problem.md](01-problem.md): documentation exists and describes a version of OPM that has not existed since April; coverage is inverted against usage
-2. [02-design.md](02-design.md): eight reader-state sections, generated facts versus authored guidance, enforcement badges
-3. [03-decisions.md](03-decisions.md): decision log
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): risks and mitigations, drawbacks, high-level alternatives
-6. [06-operational.md](06-operational.md): operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md): Open Questions register
-
-Pure-CUE definitions live in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose.
-
-The landing order across five repos is constrained by [`06-operational.md`](06-operational.md) `## Cross-Repo Coordination`, which carries why the order is what it is; landings are logged in `delivery.yaml` as they happen.
+Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose. Landings across the five repos are logged in `delivery.yaml` as they happen.
 
 ## Scope
 
@@ -37,36 +56,36 @@ The landing order across five repos is constrained by [`06-operational.md`](06-o
 **Architecture.**
 
 - The section taxonomy: eight top-level sections keyed to reader state, and what each one owns.
-- The generated-versus-authored split, per field, and the generator changes it requires (evaluate CUE rather than scrape text; fix the `generate:cli` step that fails on a clean tree).
+- The generated-versus-authored split, per field, and the generator changes it requires: evaluate CUE rather than scrape text, and fix the CLI generation step that fails on a clean tree.
 - The enforcement badge vocabulary and its application to normative statements.
 
 **New pages.**
 
-- Concepts pages for the concepts ranked highest for reader harm, mined from `core/SPEC.md`'s Rationale and rewritten.
+- Concepts pages for the concepts ranked highest for reader harm, mined from the contributor specification's rationale and rewritten.
 - A Diagnostics section mapping kernel errors to causes and fixes.
 - A boundaries page stating what OPM does not do.
 - A page documenting the current deletion and prune behaviour, including the orphaning defaults.
 
 **Source repairs.**
 
-- Doc-comment backfill in `catalog_opm` and `core`, plus a CI gate that keeps coverage from regressing.
+- Doc-comment backfill in the first-party catalog and in core, plus a CI gate that keeps coverage from regressing.
 - Splitting catalog reference by family, with the abstraction family as the documented default path.
-- Rewriting `library/docs/getting-started.md` so that following it produces working code.
+- Rewriting the embedder's getting-started guide so that following it produces working code.
 
 ### Out of scope
 
 **Deferred to another entry or open question.**
 
-- **Secrets documentation.** Enhancement 0013 owns the model and its documentation. This entry leaves the gap visible and linked.
-- **Versioned documentation.** Whether the site carries a v1 line alongside v2 is OQ6, deferred while the v1 line has only internal consumers.
-- **Retiring `opm/docs`.** The meta repo is not a member of the area vocabulary and cannot own a slice; the retirement path is OQ4.
+- **Secrets documentation.** Entry 0013 owns the model and its documentation. This entry leaves the gap visible and linked.
+- **Versioned documentation.** Whether the site carries a v1 line alongside v2 is an open question, deferred while the v1 line has only internal consumers.
+- **Retiring the meta repo's docs tree.** That repo is not a member of the area vocabulary and cannot own a slice; its retirement path is an open question.
 
 **Explicit non-goals.**
 
-- **Publishing `core/SPEC.md`.** It stays contributor-facing; the public reference is a projection of its normative spine.
-- **Documenting draft systems.** Lifecycle, workflows, provider classes, export, rollback and reverse handoff do not exist, and D3 makes their absence explicit rather than describing them as forthcoming.
-- **Site presentation.** The Hugo theme, search, and styling. The theme is currently disabled and no section renders to HTML, which blocks verification but is not this entry's to fix.
-- **A v0 migration guide.** The v0 fleet is frozen on its own branch with internal consumers only.
+- **Publishing the contributor specification.** It stays contributor-facing, and the public reference is a projection of its normative spine.
+- **Documenting draft systems.** Lifecycle, workflows, provider classes, export and rollback do not exist, and D3 makes their absence explicit rather than describing them as forthcoming.
+- **Site presentation.** The theme, search and styling. The theme is currently disabled and no section renders to HTML, which blocks verification but is not this entry's to fix.
+- **A migration guide off the retired line.** That fleet is frozen on its own branch with internal consumers only.
 
 ## Deviations from Design
 
@@ -76,13 +95,13 @@ None at this stage. Update when implementation lands.
 
 | Document | Purpose |
 | -------- | ------- |
-| `core/SPEC.md` | Normative schema contract; its Definition/Shape/Constraints spine is the reference's source, its Rationale the raw material for Concepts |
-| `core/src/types.cue` | The identity type system; densest doc-worthy file in the workspace and has no SPEC section |
-| `catalog_opm/src/` | Catalog members and the transformers' embedded golden tests, source of generated reference and its examples |
+| `core/SPEC.md` | The normative schema contract: its definition, shape and constraint spine is the reference's source, and its rationale is the raw material for Concepts |
+| `core/src/types.cue` | The identity type system, the densest doc-worthy file in the workspace and the one with no specification section |
+| `catalog_opm/src/` | Catalog members and the transformers' embedded golden tests, the source of the generated reference and its examples |
 | `library/opm/errors/` | The error taxonomy the Diagnostics section is keyed to |
-| `library/docs/getting-started.md` | The embedder guide, currently missing the mandatory Materialize step |
-| `cli/README.md`, `cli/QUICKSTART.md` | Current, well-written user prose; the only written account of owner semantics and handoff |
-| `cli/docs/STYLE.md` | Prose conventions to inherit, with amendments (cites commands that no longer exist) |
-| `opmodel.dev/site/content/reference/` | The two hand-written pages that landed with enhancement 0010, and the shape the rest follows |
+| `library/docs/getting-started.md` | The embedder guide, currently missing a mandatory step and therefore not runnable as written |
+| `cli/README.md`, `cli/QUICKSTART.md` | Current, well-written user prose, and the only written account of owner semantics and handoff |
+| `cli/docs/STYLE.md` | The prose conventions to inherit, and the amendments they need because they cite commands that no longer exist |
+| `opmodel.dev/site/content/reference/` | The two hand-written pages that already landed, and the shape the rest follows |
 | `opmodel.dev/cmd/docgen/` | The generator this entry repairs and extends |
-| `opm/docs/` | The stale tree this entry replaces; salvage its formats, not its content |
+| `opm/docs/` | The stale tree this entry replaces: salvage its formats, not its content |

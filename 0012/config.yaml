@@ -20,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-27"
-updated: "2026-09-14"
+updated: "2026-09-18"
 authors:
   - emil@jacero.se
 history:
@@ -51,6 +51,8 @@ history:
     event: Category set to runtime, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-14"
     event: "Refreshed against library ADR-008: Rung 3 is a caller-driven transition, the plan-walking helper is dropped, OQ2 answered, OQ1 and OQ10 narrowed. Stale Compile-era citations fixed."
+  - date: "2026-09-18"
+    event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -1,172 +1,72 @@
 # Automated CUE Dependency Updates via Dagger (0004)
 
-See [`config.yaml`](config.yaml) for the metadata contract. It is the sole source of metadata; no parallel metadata table lives in this README.
+Every OPM repo pins its CUE dependencies in a module file, and those pins move only when a maintainer runs a workspace task by hand from a full checkout of every repo. Nothing watches for a new upstream release, so a repo can sit on a stale pin until someone remembers. This entry replaces that task with one Dagger function, a containerized build step callable from a laptop or from CI, that walks a directory and bumps every CUE module it finds. Each bump stays inside the major version already pinned, and a daily CI run turns the changed files into one reviewable pull request.
+
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-CUE dependencies across the OPM repos are bumped only when a maintainer manually runs the workspace-root `task update-deps` from a full-workspace checkout. There is no scheduled detection of upstream releases and no per-bump provenance.
+- The mechanism is one path-driven Dagger function, not a hosted dependency bot (D7, which replaced the self-hosted Renovate design of D1 and D2). It bumps through CUE's own resolver, then tidies each module so the dependency list is recomputed and the result is a consistent module, not a bare version-string edit. Nothing mirrors the mapping that says which OCI registry serves each module host, so nothing can drift from it.
+- A major version is never crossed automatically, and nothing extra enforces that. Every dependency key already names its major, so asking CUE's resolver for that key returns only releases inside it (D8, which retired the explicit guard of D3). Crossing a major changes import paths, so it stays a human act.
+- The local sweep and the scheduled job are one implementation. The workspace-root update task becomes a thin wrapper over the same function CI calls (D9, replacing D4, where a manual task and a bot were to coexist).
+- CI opens one grouped pull request per repo per run on a fixed branch, refreshed daily (D10). A later run updates that open PR in place instead of stacking duplicates, and closes it if the bumps revert.
+- Every CUE module found is bumped, test fixtures included, because keeping fixtures current avoids bit-rot and costs only some PR churn (D11). The shared pieces live once (D12): the function in the organisation's daggerverse repo under its own subpath and version tags, and the callable CI workflow in the organisation's `.github` repo.
 
-This enhancement adds a path-driven **Dagger** function: point it at a directory, and it walks for CUE modules and bumps each via CUE's native `cue mod get` + `cue mod tidy`. It runs identically in local use (`dagger call`) and on a daily schedule in each repo's CI, where it opens a grouped, tidied, reviewable PR. Because resolution is CUE-native, no registry route table or `module.cue`-parsing regex is needed. The same function backs `task update-deps`, collapsing the manual and automated paths to one implementation.
+## How it works
 
-<!--
-Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
-status block written here is a snapshot that goes stale the moment another change
-lands, which is exactly the drift the implementation axis was removed to stop.
--->
+```mermaid
+flowchart LR
+    dev["Developer runs the local update task"] --> fn
+    ci["Scheduled daily CI job in each repo"] --> fn
+    fn["Dagger function: update"] --> walk["Walk the checkout for CUE modules"]
+    walk --> resolve["Ask CUE's resolver for the newest release inside each dependency's pinned major"]
+    registry["Registry mapping the resolver already reads"] -.-> resolve
+    resolve --> tidy["Tidy each module so the bump is consistent"]
+    tidy --> result["Mutated tree plus old-to-new summary"]
+    result --> local["Local: written back to the working tree"]
+    result --> pr["CI: one grouped PR on a fixed branch, updated in place"]
+    pr --> review["Reviewer merges"]
+```
+
+The function takes a directory, the registry mapping and a token for the private modules, and returns the changed tree plus an old-to-new summary. Being context-free is what lets one call serve both a developer and a CI job: only what happens to the returned tree differs, and adding a repo configures nothing.
 
 ## Documents
 
-The seven split documents below are mandatory and always present. Add optional
-documents (e.g. `experiments/`) only when a specific need surfaces.
+1. [01-problem.md](01-problem.md): why the existing workspace task cannot be the automated path
+1. [02-design.md](02-design.md): the function, its inputs and outputs, and the CI wiring both callers share
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D13
+1. [04-graduation.md](04-graduation.md): what had to hold before `draft` became `accepted`
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ6, all closed
 
-1. [01-problem.md](01-problem.md): Why `task update-deps` can't be the automated path: pull-only, full-checkout-only, no provenance
-2. [02-design.md](02-design.md): Path-driven Dagger function (`cue mod get` + `cue mod tidy`) reused local + CI + a shared CUE-authored reusable workflow
-3. [03-decisions.md](03-decisions.md): Decision log
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md): Open Questions register
-
-Pure-CUE schema definitions live in [`schemas/`](contracts/) as compilable
-files, never as fenced blocks inside markdown.
+The entry carries [`contracts/`](contracts/): compilable CUE for the function signature, the registries needing credentials, and the pull-request settings.
 
 ## Scope
 
-Concrete boundary of this enhancement. The validator (future) requires this
-section starting at `status: accepted`. For design-time aspirations (what the
-solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
-
 ### In scope
 
-- A path-driven Dagger function that walks any directory for CUE modules (`cue.mod/module.cue`, plus the CLI's `module.cue.tmpl` templates) and bumps each dependency to the latest version within its pinned major, via `cue mod get` + `cue mod tidy`.
-- The same function invoked both locally (`dagger call`, and as the new implementation behind `task update-deps`) and on a daily schedule in each repo's CI across `core`, `library`, `catalog`, `cli`, `opm-operator`, `modules`.
-- A shared CUE-authored CI contract (the Dagger module ref + a reusable `workflow_call`) so each repo carries a ~10-line caller that opens one grouped, tidied dependency-bump PR on a fixed branch.
+- A path-driven Dagger function that walks any directory for CUE modules, including the CLI's module templates, and bumps each dependency inside its pinned major.
+- The same function invoked locally, behind the workspace update task, and on a daily CI schedule in `core`, `library`, `catalog`, `cli`, `opm-operator` and `modules`.
+- A shared CI contract, the Dagger module reference plus a callable workflow, so each repo's short caller opens one grouped, tidied bump PR on a fixed branch.
 
 ### Out of scope
 
-- Multi-ecosystem updates (`go.mod`, GitHub Actions pins, Dockerfiles). CUE modules only (D6); a unified bot is a separate, later enhancement.
-- Bumping the CUE language/tool version (`language.version`); possible follow-on.
-- Auto-merging PRs and cross-major (`@v0`→`@v1`) migrations.
-
-## Experiments
-
-Experiments are **optional** and usually appear **part-way through an enhancement's life**, once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
-
-When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
-
-### Rules
-
-- **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
-- **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
-- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
-- **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
-- **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
-
-### Scaffold and layout
-
-```bash
-task new:experiment ID=NNNN NAME=concept-name
-```
-
-Creates `NNNN/experiments/` (with an index README, if absent), computes the next two-digit experiment number from existing `NN-*/` subdirs, creates `NNNN/experiments/NN-concept-name/README.md` with a Hypothesis / Setup / Run / Outcome skeleton, and seeds `Status: Draft`. Run from this directory or via the workspace include (`task enhancements:new:experiment …`).
-
-```
-NNNN/experiments/
-├── README.md                       # Index — table of experiments + status (hand-maintained)
-├── 01-{concept-name}/
-│   ├── README.md                   # Per-experiment: Hypothesis / Setup / Run / Outcome / Status
-│   ├── ...                         # Copied schemas, Go modules, fixtures, etc.
-│   └── ...
-└── 02-{concept-name}/
-    └── ...
-```
-
-### Per-experiment README
-
-Each experiment's README answers four questions and carries a status line:
-
-1. **Hypothesis**: Which claim from the design is this validating?
-2. **Setup**: What was copied in, from where, and what was modified.
-3. **Run**: Exact commands to reproduce the result.
-4. **Outcome**: What was observed; whether the hypothesis held.
-
-The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
-
-Update the per-experiment README in place as the experiment evolves. Once concluded, record the outcome and link the result back into `02-design.md` or `03-decisions.md` so the enhancement carries the evidence.
-
-### Index README
-
-`experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
-
-```markdown
-# Experiments — Automated CUE Dependency Updates via Dagger
-
-| # | Concept | Status |
-| - | ------- | ------ |
-| 01 | matcher-mechanics | Concluded |
-| 02 | read-portability  | Running   |
-```
-
-The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
+- Other ecosystems: Go modules, GitHub Action pins and Dockerfiles. CUE modules only (D6, reaffirmed by D13); a unified bot would be a separate later entry.
+- Bumping the CUE language and tool version itself; a possible follow-on.
+- Auto-merging the pull requests, and migrations from one major to the next.
 
 ## Deviations from Design
 
-None at this stage. Update this section when implementation lands and any
-deliberate divergences from the design need to be documented. The validator
-(future) requires this section to be present (it may say "None") for
-`status: implemented`.
+None at this stage. Update this section when implementation lands and any deliberate divergences from the design need to be documented.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `/Taskfile.yml` (`deps:update`, `deps:update:modules`, `deps:update:templates`) | The bash update logic the Dagger function reimplements; `task update-deps` becomes a wrapper over it (D9) |
-| `/CLAUDE.md` (Environment Variables, "Never manually edit version pins") | `CUE_REGISTRY` / `GHCR_CUE_REGISTRY` the function passes to `cue` natively |
-| `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Shared compute layer; subpath in the org daggerverse monorepo, subpath-prefixed version tags; target of `contracts/contracts.cue` |
-| `open-platform-model/.github/.github/workflows/cue-deps.yml` reusable workflow (to be created, D12) | Shared CI contract: invokes the daggerverse module, opens the grouped PR |
-| `<each-repo>/.github/workflows/cue-deps.yml` (to be created) | Per-repo ~10-line caller: daily schedule → `uses:` the reusable workflow → grouped PR on a fixed branch |
-| `enhancements/0002` | Related: module identity vs registry import-path resolution, the same coupling CUE resolves natively here |
-
-<!--
-## Agent Instructions
-
-To create a new enhancement from this template:
-
-1. Pick the next available four-digit id by scanning `enhancements/` for the
-   highest existing NNNN directory and incrementing by one. Ids are
-   never reused: supersession is recorded via `supersedes` / `superseded_by`
-   in `config.yaml`, not by renumbering.
-2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
-3. Overwrite every `{Capitalised}` placeholder string across the README and
-   the seven split documents.
-4. Fill `config.yaml` with real values: id matches the directory name, slug
-   is short kebab-case, title is human-readable, area + affects describe
-   ownership, created + updated set to today's date.
-5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
-   accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `05-risks.md` and `06-operational.md` start as scaffolds
-   and mature alongside the decision log.
-7. Sketch the target schema in `contracts/contracts.cue`. Update the `module:`
-   line in `schemas/cue.mod/module.cue` to match the new four-digit id.
-8. Do not strip these HTML-comment Agent Instructions when copying. They
-   are the in-template guidance for the next author/agent.
-
-### Status lifecycle
-
-- **draft**: initial design, actively being written
-- **accepted**: design agreed upon, ready for implementation
-- **implemented**: design has been realized in code
-- **superseded**: replaced by a newer enhancement (paired with
-  `superseded_by` on this entry and `supersedes` on the replacement)
-
-### Cross-refs to legacy library enhancements
-
-The seven three-digit entries under `library/enhancements/` (001..007) are
-frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`; `depends_on`
-cannot target one, because a dependency resolves to a decision heading and the
-legacy entries have none, so cite them in prose instead. Once those entries are
-deleted, the references become dangling and the validator (future) will flag
-them; fix or remove at that point.
--->
+| `/Taskfile.yml` (`deps:update`, `deps:update:modules`, `deps:update:templates`) | The bash logic the function replaces; the task becomes a wrapper over it (D9) |
+| `/CLAUDE.md` (Environment Variables, "Never manually edit version pins") | Where the registry mapping the function passes to CUE is defined |
+| `open-platform-model/daggerverse//cue-deps` Dagger module (to be created, D12) | Where the shared function lives, versioned by subpath-prefixed tags |
+| `open-platform-model/.github/.github/workflows/cue-deps.yml` reusable workflow (to be created, D12) | The shared CI contract: it invokes the function and opens the grouped PR |
+| `<each-repo>/.github/workflows/cue-deps.yml` (to be created) | The per-repo caller: a daily schedule that calls the shared workflow |
+| `enhancements/0002` | Prior art on module identity against registry import-path resolution |

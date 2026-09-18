@@ -1,72 +1,84 @@
 # Enhancement 0008: CUE-Native CRD Schemas as Single Source of Truth
 
-See [`config.yaml`](config.yaml) for metadata. This README is the index of the seven split documents plus the Scope and Cross-References tables; everything else lives in the split files.
+OPM's Kubernetes custom resources are described three times: as CUE definitions in the core schema, as hand-written Go structs in the operator, and as the custom resource definition YAML generated from those structs. Nothing keeps the three in agreement, and the CLI now compiles against those Go types too, so a mismatch is a cross-repo correctness problem. This entry makes the CUE the single source: each custom resource is authored once as a small envelope around definitions that already exist, and one generator emits both the YAML and the Go types. CI regenerates and fails on any difference, so a bad object is refused by the API server on submission instead of surfacing later at reconcile.
+
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-OPM defines its Kubernetes custom resources twice. The canonical domain schema lives in `core/` as pure CUE (`#ModuleInstance`, `#Platform`, `#Subscription`, …); the operator's API types live independently in `opm-operator/api/v1alpha1/*_types.go` as hand-authored Go structs from which controller-gen generates the CRD YAML and deepcopy. The two are kept in sync by hand, and the CLI now consumes those same Go types. Drift between the CUE contract and the Go/CRD shape is therefore a cross-repo correctness hazard, not a cosmetic one.
+- The three types are authored once in CUE in core, and the operator's Go structs and CRD YAML become generated artifacts (D1). The generator runs downstream, importing the published core module rather than reaching into core's source tree, so core stays pure CUE (D2).
+- The schema body is emitted through CUE's OpenAPI encoder with references expanded, the structural form a Kubernetes CRD requires (D3). The facets that are Go marker comments today, scope, short names, the status subresource and the columns `kubectl get` prints, become CUE data spliced in at assembly (D4).
+- Deepcopy, the boilerplate that lets a Go type be handled as a Kubernetes object, stays controller-gen's job over the generated structs (D5). How those structs are emitted is an implementation detail the design refuses to depend on (D8).
+- CEL validation rules, the expressions the API server evaluates against an incoming object, are carried as opaque strings and injected verbatim (D6). Translating between CEL and CUE is attempted in neither direction; the research found it unbounded.
+- A CI step regenerates from core and fails on any diff against the committed artifacts (D7). That gate is what makes the single source actually single.
+- Entry [0006](../archive/0006/) made the operator's `ModuleInstance` types a shared contract the CLI consumes (0006:D13, which settled the dependency direction: the CLI imports `library`, and the operator owns the CRD types). One hand-maintained definition is now a multi-consumer contract felt in two repos at once. This entry changes only where those definitions originate, not 0006's runtime contract.
 
-This enhancement makes the **CUE schema in `core/` the single source of truth** for the CRD-shaped types, and generates the downstream artefacts from it: the Kubernetes CRD YAML (via CUE's `encoding/openapi` structural-schema encoder), and the Go API types the operator and CLI compile against.
+## How it works
 
-The pieces CUE provably cannot own (`runtime.Object`/deepcopy boilerplate and CEL `x-kubernetes-validations`) are handled honestly: deepcopy stays controller-gen's job over the generated Go, and CEL rules are carried as CUE-expressed verbatim strings injected at assembly time.
+```mermaid
+flowchart LR
+    body["Existing ModuleInstance and Platform definitions supply the schema body"] --> env
+    env["CRD envelope in core: metadata, schema body, printer columns, validation rules, status subresource"] --> pub["Published core module"]
+    pub --> gen["Generator downstream of core"]
+    gen --> yaml["CRD YAML with a structural OpenAPI schema"]
+    gen --> gotypes["Go API types"]
+    gotypes --> deep["Existing tooling adds deepcopy"]
+    yaml --> apiserver["API server rejects a bad object at admission"]
+    deep --> consumers["Operator and CLI compile against the generated types"]
+    gen --> ci["CI regenerates and fails on any diff"]
+```
 
-The non-schema CRD facets (scope, subresources, printer columns, short names) become **CUE data** alongside the schema. A single Go assembler emits both outputs, consuming the *published* `opmodel.dev/core` module and never reaching into core's build.
-
-The design is grounded in a dated, primary-source research dossier ([`research/findings.md`](research/findings.md)); the verified state of the CUE v0.17 toolchain drives every decision, including the ones that say "don't try to derive this from CUE."
+The envelope is small on purpose: it wraps definitions that already exist with the CRD's own metadata and the marker-borne facets, and invents no new schema. Everything right of the published module is derived, so the CUE is the only file a human edits.
 
 ## Documents
 
-1. [01-problem.md](01-problem.md): Why defining the CRD types twice (canonical CUE in `core/` vs hand-authored Go in `opm-operator/`) is a live drift hazard now that the CLI also depends on the Go types
-2. [02-design.md](02-design.md): CUE owns schema + validation + CRD-metadata-as-data; a Go assembler over published `core` emits CRD YAML and Go types; controller-gen retained only for deepcopy; CEL passed through verbatim
-3. [03-decisions.md](03-decisions.md): Decision log (D1–D8)
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, and the Go-source-of-truth / CRD-pivot alternatives not taken
-6. [06-operational.md](06-operational.md): Observability, semver impact, deprecation, rollback, cross-repo coordination
-7. [07-questions.md](07-questions.md): Open Questions register
+1. [01-problem.md](01-problem.md): why defining the types twice is a live drift hazard
+1. [02-design.md](02-design.md): the envelope, the generator's three transforms, and what stays with existing tooling
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
+1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
+1. [05-risks.md](05-risks.md): risks, drawbacks, and the alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register
 
-The core-schema delta lives under [`schemas/`](schemas/) as compilable files: [`target.cue`](schemas/target.cue) (the proposed `opmodel.dev/core` definitions, with a delta manifest), [`examples.cue`](schemas/examples.cue) (worked instances + assertions), and [`spec.md`](schemas/spec.md) (the core SPEC.md delta). External evidence lives under [`research/`](research/).
+The core-schema delta lives under [`schemas/`](schemas/): [`target.cue`](schemas/target.cue) proposes the definitions, [`examples.cue`](schemas/examples.cue) carries worked instances, and [`spec.md`](schemas/spec.md) is the core specification delta. [`research/`](research/) holds the dated dossier on what the CUE toolchain can and cannot do.
 
 ## Scope
 
 ### In scope
 
-- A CUE-native way to declare a Kubernetes CRD in `core/`: a `#CRD` construct bundling group/kind/names/scope, per-version served/storage flags, the OpenAPIv3-compatible spec/status schema (which `core` already mandates), subresources, printer columns, short names, and verbatim CEL rules. Sketched end-to-end in [`schemas/target.cue`](schemas/target.cue) (envelope) and [`schemas/examples.cue`](schemas/examples.cue) (worked `#CRD` instances + assertions).
-- Re-expressing the three existing CRDs, `ModuleInstance` (namespaced), `ModulePackage` (namespaced), `Platform` (cluster singleton), as `#CRD` instances in `core/`, reusing the existing domain definitions for the schema bodies.
-- A generation pipeline that consumes the **published** `opmodel.dev/core` module and emits (a) the CRD YAML in `opm-operator/config/crd/bases/` and (b) the Go API types in `opm-operator/api/v1alpha1/`.
-- Retaining controller-gen for `runtime.Object`/deepcopy generation over the generated Go structs; the generated structs carry the `+kubebuilder:object:root=true` marker so this keeps working unchanged.
-- Carrying CEL `x-kubernetes-validations` (today: the Platform `metadata.name == 'cluster'` singleton rule) as CUE-expressed verbatim strings injected into the assembled CRD.
-- A drift gate: CI fails if regenerating from `core` produces a diff against the committed CRD YAML / Go types.
+- A CUE-native way to declare a CRD in core: group, kind, names, scope, per-version served and storage flags, the spec and status schema, subresources, printer columns, short names and CEL rules.
+- Re-expressing the three existing custom resources, `ModuleInstance`, `ModulePackage` and the cluster-singleton `Platform`, reusing the domain definitions as their bodies.
+- A generation pipeline that consumes the published core module and emits the CRD YAML and the operator's Go API types.
+- Retaining controller-gen for deepcopy over the generated structs, which works because the root types carry its marker.
+- Carrying CEL rules, today only the `Platform` singleton-name rule, as verbatim strings injected into the assembled CRD.
+- A drift gate: CI fails if regenerating from core differs from the committed YAML or Go types.
 
 ### Out of scope
 
-- **Translating CEL to/from CUE.** CEL rules are opaque strings carried through; the research shows bidirectional CEL↔CUE is unbounded work (`research/findings.md` §4). New validation logic that *could* be CEL stays authored as CEL.
-- **Replacing controller-gen wholesale.** deepcopy stays controller-gen's job; this enhancement does not write a deepcopy generator.
-- **Generating controllers, RBAC, or webhook wiring from CUE.** Only the CRD types (schema + metadata) and their Go shapes are in scope. RBAC/printer-column markers that live on controllers, and the reconcilers themselves, stay hand-authored.
-- **The `v1alpha1 → v1beta1` API version bump or conversion webhooks.** This enhancement changes how the *current* version's types are authored, not the versioning story.
-- **Schema redesign.** The field shapes are preserved; this is an authoring/generation change, not a schema change. Any field-level change rides a separate enhancement.
-- **Adopting CUE as source of truth for non-CRD Go types** (inventory entries, internal structs). Only the API/CRD types.
+- **Translating CEL to or from CUE.** Rules pass through as opaque strings, and new validation logic that could be CEL stays authored as CEL.
+- **Replacing controller-gen wholesale.** This entry writes no deepcopy generator.
+- **Generating controllers, RBAC or webhook wiring from CUE.** Reconcilers and controller-borne markers stay hand-authored.
+- **The next API version bump or conversion webhooks.** This changes how the current version is authored, not the versioning story.
+- **Schema redesign.** Field shapes are preserved; a field-level change rides a separate entry.
+- **Non-CRD Go types**, such as inventory entries and internal structs.
 
-## Relationship to 0006
+## Deviations from Design
 
-[0006](../archive/0006/) made the operator's `ModuleInstance` CR types a shared contract that the CLI imports directly (D13: CLI imports `library`; the operator owns the CRD types). That sharing is exactly what raises the stakes here: a single hand-maintained Go definition is now a multi-consumer contract, and its drift from the canonical `core/` CUE is felt in two repos at once. 0008 does not change 0006's runtime contract or handoff design: it changes where the `ModuleInstance`/`Platform` *type definitions* originate (CUE in `core/`, generated into Go) so the contract 0006 relies on cannot silently diverge from `core`.
+None at this stage. Update this section when implementation lands and any deliberate divergences from the design need to be documented.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `/CLAUDE.md` (workspace root) | Cross-repo routing + the area vocabulary the `area` / `affects` fields validate against. |
-| `core/CLAUDE.md`, `core/CONSTITUTION.md`, `core/SPEC.md` | Core repo principles; the pure-CUE rule and the SPEC.md co-update gate the `core/` slice must honour (load `core-schema-edit` before editing `core/*.cue`). |
-| `core/src/module_instance.cue`, `core/src/platform.cue` | The canonical `#ModuleInstance` / `#Platform` / `#Subscription` definitions the `#CRD` instances reuse for their schema bodies. |
-| `core/src/resource.cue`, `core/src/trait.cue`, `core/src/module.cue` | The existing "spec MUST be OpenAPIv3-compatible" constraint this design depends on for clean structural-schema emission. |
-| `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Operator repo principles governing the generator + API-type slice. |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go`, `modulepackage_types.go`, `platform_types.go`, `common_types.go` | The hand-authored Go types this enhancement replaces with generated output. |
-| `opm-operator/api/v1alpha1/zz_generated.deepcopy.go` | controller-gen deepcopy output; stays controller-gen's, now run over generated structs. |
-| `opm-operator/config/crd/bases/*.yaml` | The CRD YAML this enhancement generates from `core` instead of from Go markers. |
-| `opm-operator/.tasks/dev.yaml` (`controller-gen … crd` / `object` targets), `Taskfile.yml` | The generation targets the new pipeline slots into. |
-| `cli/` (imports the operator API types per 0006) | Downstream consumer of the generated Go types; must build unchanged against them. |
-| `enhancements/0006/` | The CR-sharing design that makes this drift cross-repo; relationship described above. |
-| `research/findings.md` | Dated, primary-source research dossier behind every decision (verified CUE v0.17 toolchain capabilities and gaps). |
-
-## Deviations from Design
-
-None at this stage. Update this section when implementation lands and any deliberate divergences from the design need to be documented.
+| `/CLAUDE.md` (workspace root) | Cross-repo routing and the vocabulary `affects` validates against |
+| `core/CLAUDE.md`, `core/CONSTITUTION.md`, `core/SPEC.md` | The pure-CUE rule and specification co-update gate the core slice must honour |
+| `core/src/module_instance.cue`, `core/src/platform.cue` | The canonical definitions the envelopes reuse as schema bodies |
+| `core/src/resource.cue`, `core/src/trait.cue`, `core/src/module.cue` | The OpenAPI-compatibility constraint clean structural emission depends on |
+| `opm-operator/CLAUDE.md`, `opm-operator/CONSTITUTION.md` | Repo principles governing the generator and API-type slice |
+| `opm-operator/api/v1alpha1/moduleinstance_types.go`, `modulepackage_types.go`, `platform_types.go`, `common_types.go` | The hand-authored Go types generated output replaces |
+| `opm-operator/api/v1alpha1/zz_generated.deepcopy.go` | Deepcopy output, still controller-gen's, now over generated structs |
+| `opm-operator/config/crd/bases/*.yaml` | The CRD YAML now generated from core, not from Go markers |
+| `opm-operator/.tasks/dev.yaml` (`controller-gen … crd` / `object` targets), `Taskfile.yml` | The generation targets the new pipeline slots into |
+| `cli/` (imports the operator API types per 0006) | A downstream consumer that must build unchanged |
+| `enhancements/0006/` | The CR-sharing design that makes this drift cross-repo |
+| `research/findings.md` | The dated dossier behind every decision |

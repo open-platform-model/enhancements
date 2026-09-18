@@ -1,202 +1,83 @@
 # Enhancement 0009: Operational Primitives: Op, Action, Lifecycle, Workflow
 
-This entry gives OPM a second kernel half, a pure planner over four new primitives, so a module can carry operational intent (install/upgrade hooks, migrations, on-demand operations) alongside what it renders.
+The OPM kernel, the engine that turns a module into Kubernetes objects, only renders. A module has no way to say what should happen around a deployment, such as an upgrade hook, a data migration or an on-demand operation, so those end up in side scripts nobody governs. This entry adds a second half to the kernel that reads the same module and produces an ordered plan of steps instead of resources. The library decides what runs next and the caller runs it, so the plan stays pure data and every side effect belongs to the CLI or the operator.
 
-See [`config.yaml`](config.yaml) for the metadata contract; it is the sole source of metadata, and no parallel metadata table lives in this README.
+All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-OPM can render declarative modules to Kubernetes but cannot describe what should happen: install/upgrade hooks, migrations, on-demand operations. This enhancement adds a second half to the kernel that interprets the same `#Module` for execution. Four operational primitives land in `core`: `#Op` (a controlled smallest-denominator primitive), `#Action` (compositions over Ops), `#Lifecycle` (steps bound to fixed state-transition phases), and `#Workflow` (on-demand flows). The library plans and advances one step per call while the caller runs the loop and performs every action; the executable code is pluggable and catalog-sourced, dispatched via CUE attributes, so operations are as extensible as transformers already are. Composition never re-imports Helm's "arbitrary script as a hook" failure mode.
+- The kernel gains a parallel execution half over the same module, one input and two interpreters, leaving the render half untouched (D1). Four constructs land in core (D2). An `#Op` is one primitive step from a closed set OPM owns, and an `#Action` is a reusable named composition of Ops a catalog can publish. A `#Lifecycle` binds steps to fixed phases of a deployment's life, and a `#Workflow` is an on-demand flow invoked by name.
+- The library plans, then advances one step per call: given a plan and a state it returns the next state and the one action the caller is to perform (D3). It runs no loop and performs no side effect, and the caller owns the state, which must survive serialization so a controller can carry it across reconciles.
+- Executor backends, the things that actually run a step, ship in the library's opt-in tier, and a frontend registers only the ones it wants (D4). The plan is checked against that registry before the first step, so a plan needing an unregistered backend fails before anything runs: that is how the operator declines ad-hoc container builds.
+- Dispatch is by CUE attribute, inert metadata evaluation ignores and the Go SDK reads (D5). It names a protocol, which selects a backend, and a locator for the executable artifact, which is catalog-sourced rather than compiled in and travels the rails transformers already travel (D6).
+- The `#Lifecycle` vocabulary is a fixed nine phases, a before, a during and an after for install, upgrade and uninstall, and an absent phase is a no-op (D7). The HTTP Op exposes the full verb set and returns the raw response, leaving shaping to CUE (D8).
+- Cancellation belongs to this entry and nothing else wires it until this lands (D9). One step per call means a caller cancels between steps by not calling again, so only cancellation inside a single advance remains, reaching a registry fetch and nothing else.
 
-<!--
-Do NOT add an implementation-status block here. Whether this design has been
-delivered is DERIVED from this entry's `delivery.yaml` log: run `task delivery ID=NNNN`. A
-status block written here is a snapshot that goes stale the moment another change
-lands, which is exactly the drift the implementation axis was removed to stop.
--->
+## How it works
+
+```mermaid
+flowchart TD
+    mod["Module"] --> render["Render half: components become resources"]
+    mod --> lifecycle["Lifecycle: steps bound to fixed phases, such as pre-upgrade"]
+    mod --> workflow["Workflow: an on-demand named flow"]
+    lifecycle --> action
+    workflow --> action
+    action["Action: a reusable composition, publishable in a catalog"] --> prim["Op: one of a closed set of primitives, carrying a protocol and an artifact locator"]
+    prim --> planner["Planner: pure, builds an ordered plan"]
+    planner --> advance["Advance: given the plan and the state, names the next action"]
+    advance --> caller["Caller loop: CLI one-shot, or operator once per reconcile"]
+    caller --> registry["Backend registry: only the backends this frontend chose, checked before the first step"]
+    registry --> backend["Executor backend: wasm, container or Job, http, cue eval"]
+    backend --> caller
+    catalog["Catalog supplies the op artifacts"] -.-> backend
+```
+
+Read the top as authoring and the bottom as execution. One plan behaves differently per frontend without changing the module: a step that runs a local container on the CLI renders a Job and watches it under the operator, purely by swapping the backend.
 
 ## Documents
 
-The seven split documents below are mandatory and always present. Add optional
-documents (e.g. `experiments/`) only when a specific need surfaces.
+1. [01-problem.md](01-problem.md): OPM renders but cannot execute, and why side scripts are the anti-pattern
+1. [02-design.md](02-design.md): the second kernel half, the four constructs, dispatch and the backend tier
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D9
+1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
+1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
+1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ6
 
-1. [01-problem.md](01-problem.md): OPM renders but cannot execute operations; side scripts and Helm-style hooks are the anti-pattern
-2. [02-design.md](02-design.md): A second kernel half (a planner the caller drives) over four operational primitives, with attribute-dispatched, catalog-sourced pluggable executors
-3. [03-decisions.md](03-decisions.md): Decision log
-4. [04-graduation.md](04-graduation.md): Gates that must hold before `draft → accepted`
-5. [05-risks.md](05-risks.md): Risks and Mitigations, Drawbacks, high-level Alternatives
-6. [06-operational.md](06-operational.md): Operational concerns (PRR-lite)
-7. [07-questions.md](07-questions.md): Open Questions register
-
-Pure-CUE schema definitions live in [`schemas/`](schemas/) as compilable
-files, never as fenced blocks inside markdown.
+The core-schema delta lives under [`schemas/`](schemas/) as compilable CUE with worked examples and a specification delta; [`research/`](research/) holds a dated note on how durable the CUE attribute mechanism is.
 
 ## Scope
 
-Concrete boundary of this enhancement. The validator (future) requires this
-section starting at `status: accepted`. For design-time aspirations (what the
-solution must achieve), see [`02-design.md`](02-design.md) `## Design Goals`.
-
 ### In scope
 
-- The four operational constructs in `core`: `#Op`, `#Action`, `#Lifecycle`, `#Workflow`, plus the `@op(...)` dispatch-attribute convention and additive `#ops` / `#actions` maps on `#Catalog`.
-- The execution half of the library kernel: a pure planner plus a one-step-per-call advance verb (D3), and the opt-in executor backend layer with its registry and fail-fast-on-unsupported behavior.
-- The initial Op vocabulary (`exec`, `http` full-CRUD, `wait`, `cue.eval`, k8s get/apply) as catalog-published definitions.
-- Frontend wiring: CLI and operator each composing their backend set; operator driving `#Lifecycle` phases from the reconcile loop.
-- The kernel's cancellation path: designed and wired by this entry, untouched by any other change until it lands (D9). The injection surface the planner needs (the kernel's write-only logger, tracer and clock slots were removed; revised D9), introduced with its first reader.
+- The four constructs in core, plus the dispatch-attribute convention and additive op and action maps on the catalog.
+- The execution half of the kernel: a pure planner and a one-step-per-call advance (D3), with the opt-in backend layer, its registry and its fail-fast behaviour.
+- The initial Op vocabulary, `exec`, full-CRUD `http`, `wait`, `cue.eval` and Kubernetes get and apply, as catalog definitions.
+- Frontend wiring: the CLI and operator each composing their own backend set, the operator driving lifecycle phases from its reconcile loop.
+- The kernel's cancellation path, designed and wired here and untouched by any other change until it lands (D9). It also introduces the injection surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
 
 ### Out of scope
 
-- Any change to the render half: execution is purely additive.
-- A general-purpose scripting language for operations; composition of a closed primitive set is intentional.
-- The meta-controller toolkit (OQ5): a north-star the architecture must allow, not a v1 deliverable; likely a follow-up enhancement.
-- Final production implementations of every executor backend; artifact form is still under decision (OQ1).
-
-## Experiments
-
-Experiments are **optional** and usually appear **part-way through an enhancement's life**: once a specific design claim emerges that benefits from a runnable proof. Do not create `experiments/` upfront when copying this template; add it the first time a claim actually needs validation. If the enhancement reaches `implemented` without ever needing one, that is fine.
-
-When an idea does need to be tested or showcased before adoption, place proofs-of-concept under `experiments/` inside this enhancement directory. Experiments live with the enhancement so reviewers can find them next to the design that motivated them.
-
-### Rules
-
-- **One concept per experiment.** Each experiment proves a single claim. If two claims are entangled, split into two experiments.
-- **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact.
-- **Copy, never reference.** CUE schemas, Go fixtures, transformer bodies: copy them into the experiment's directory and modify the copies. Never import from or mutate the originals.
-- **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on.
-- **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell or other languages where they fit.
-
-### Scaffold and layout
-
-```bash
-task new:experiment ID=NNNN NAME=concept-name
-```
-
-Creates `NNNN/experiments/` (with an index README, if absent), computes the next two-digit experiment number from existing `NN-*/` subdirs, creates `NNNN/experiments/NN-concept-name/README.md` with a Hypothesis / Setup / Run / Outcome skeleton, and seeds `Status: Draft`. Run from this directory or via the workspace include (`task enhancements:new:experiment …`).
-
-```
-NNNN/experiments/
-├── README.md                       # Index — table of experiments + status (hand-maintained)
-├── 01-{concept-name}/
-│   ├── README.md                   # Per-experiment: Hypothesis / Setup / Run / Outcome / Status
-│   ├── ...                         # Copied schemas, Go modules, fixtures, etc.
-│   └── ...
-└── 02-{concept-name}/
-    └── ...
-```
-
-### Per-experiment README
-
-Each experiment's README answers four questions and carries a status line:
-
-1. **Hypothesis**: Which claim from the design is this validating?
-2. **Setup**: What was copied in, from where, and what was modified.
-3. **Run**: Exact commands to reproduce the result.
-4. **Outcome**: What was observed; whether the hypothesis held.
-
-The status line uses one of three values: `Status: Draft` (just scaffolded), `Status: Running` (in flight), `Status: Concluded` (outcome recorded). `task experiments:list ID=NNNN` parses this line to render the status table.
-
-Update the per-experiment README in place as the experiment evolves. Once concluded, record the outcome and link the result back into `02-design.md` or `03-decisions.md` so the enhancement carries the evidence.
-
-### Index README
-
-`experiments/README.md` is a thin hand-maintained index. The scaffold seeds it; you add a row per experiment. Format:
-
-```markdown
-# Experiments — Operational Primitives: Op, Action, Lifecycle, Workflow
-
-| # | Concept | Status |
-| - | ------- | ------ |
-| 01 | matcher-mechanics | Concluded |
-| 02 | read-portability  | Running   |
-```
-
-The validator checks that every `NN-*/` subdir has a `README.md`; it does not enforce the index table's contents (kept loose so the index can carry extra columns or prose if a particular enhancement warrants it).
-
-## Research
-
-Research is **optional** and holds the external evidence a design rests on: most importantly **deep-research reports**, but also benchmark write-ups, vendor-doc summaries, comparison matrices, and curated link collections. When the design of an enhancement is grounded in research (a `/deep-research` run, a literature sweep, a prior-art survey), drop the cited findings under `research/` so the evidence travels with the design instead of evaporating into a chat log.
-
-Research differs from `experiments/`: research is **gathered and synthesised** (read-only evidence: what is true in the world), whereas experiments are **authored and executed** (runnable proofs we wrote: what holds in our model). A claim verified by reading sources belongs in `research/`; a claim verified by running code belongs in `experiments/`.
-
-### Rules
-
-- **Cited.** Every non-obvious claim carries its source (URL, doc, file path). A deep-research dossier reproduces its source list and, where it has them, confidence levels and verification verdicts: distinguish verified facts from design recommendations.
-- **Referenced back.** A `research/` file is dead weight unless the design points at it. Cite it from the `Source:` line of the relevant decisions in `03-decisions.md`, and from `01-problem.md` / `05-risks.md` where the evidence drives a claim.
-- **Snapshot, not canon.** Research reflects what was true when gathered; date it. It is not a maintained spec: supersede with a new file rather than silently editing conclusions.
-- **Not gated.** `task vet` does not require or validate `research/`; add it only when an enhancement actually has external evidence worth preserving.
-
-### Layout
-
-```
-NNNN/research/
-├── findings.md                     # primary dossier (e.g. a deep-research report): summary, cited findings, caveats, sources
-└── {topic}.md                      # optional further write-ups (benchmark-x-vs-y.md, prior-art-survey.md, …)
-```
-
-`findings.md` is the conventional name for the primary dossier; add topic-named files for distinct investigations. There is no per-file scaffold task: `research/` is hand-authored prose.
+- Any change to the render half. Execution is purely additive.
+- A general-purpose scripting language for operations. Composing a closed primitive set is the point.
+- The meta-controller toolkit (OQ5): a north star the architecture must allow, not a first deliverable.
+- Final production implementations of every executor backend, since the artifact form is still open (OQ1).
 
 ## Deviations from Design
 
-None at this stage. Update this section when implementation lands and any
-deliberate divergences from the design need to be documented. The validator
-(future) requires this section to be present (it may say "None") for
-`status: implemented`.
+None at this stage. Update this section when implementation lands and any deliberate divergences from the design need to be documented.
 
 ## Cross-References
 
 | Document | Purpose |
 | -------- | ------- |
-| `core/CLAUDE.md`, `core/SPEC.md`, `core/.claude/skills/core-schema-edit/SKILL.md` | Schema home for the four constructs; SPEC co-update protocol for the core slice |
-| `core/src/catalog.cue` | `#Catalog` shape the additive `#ops` / `#actions` maps extend |
-| `core/src/transformer.cue` | Render-half transformer/matcher pattern the execution half parallels |
-| `library/CLAUDE.md`, `library/CONSTITUTION.md` | Kernel neutrality (Principle I) and the `kernel` vs `helper` boundary the planner/executor split honors |
-| `library/opm/kernel/` | The render half (acquire, then one CUE build that matches and executes) the execution half parallels |
-| `library/opm/helper/` | The opt-in tier, and the fence a frontend may skip, that the executor backends would join |
-| `library/opm/platform/` | The platform artifact whose `#registry` resolves catalogs, the rails the op artifacts ride on |
-| `library/adr/008-kernel-plans-caller-runs.md` | The library's boundary rule this entry's D3 records: the kernel decides, the caller loops and acts |
-| `catalog_opm/CLAUDE.md`, `catalog_opm/src/catalog.cue` | Where the initial Op/Action definitions and artifacts are published (no `#Area` token; tracked in prose) |
-| https://hofstadter.io/getting-started/task-engine/ | Prior art for the attribute-dispatch (`@task`) model adapted here |
-
-<!--
-## Agent Instructions
-
-To create a new enhancement from this template:
-
-1. Pick the next available four-digit id by scanning `enhancements/` for the
-   highest existing NNNN directory and incrementing by one. Ids are
-   never reused: supersession is recorded via `supersedes` / `superseded_by`
-   in `config.yaml`, not by renumbering.
-2. Copy the entire `0000/` directory to `enhancements/NNNN/`.
-3. Overwrite every `{Capitalised}` placeholder string across the README and
-   the seven split documents.
-4. Fill `config.yaml` with real values: id matches the directory name, slug
-   is short kebab-case, title is human-readable, area + affects describe
-   ownership, created + updated set to today's date.
-5. Write `01-problem.md` and `02-design.md` first: full prose. Decisions
-   accrete iteratively in `03-decisions.md` as design choices emerge.
-6. `05-risks.md` and `06-operational.md` start as scaffolds
-   and mature alongside the decision log.
-7. Sketch the target schema in `schemas/target.cue`. Update the `module:`
-   line in `schemas/cue.mod/module.cue` to match the new four-digit id.
-8. Do not strip these HTML-comment Agent Instructions when copying: they
-   are the in-template guidance for the next author/agent.
-
-### Status lifecycle
-
-- **draft**: initial design, actively being written
-- **accepted**: design agreed upon, ready for implementation
-- **implemented**: design has been realized in code
-- **superseded**: replaced by a newer enhancement (paired with
-  `superseded_by` on this entry and `supersedes` on the replacement)
-
-### Cross-refs to legacy library enhancements
-
-The seven three-digit entries under `library/enhancements/` (001..007) are
-frozen historical predecessors. To reference one from a new enhancement, use
-the `legacy:NNN` form in `supersedes` / `superseded_by` / `revives`, never in
-`depends_on` (a dependency resolves to a decision heading, which the legacy
-entries lack; cite them in prose instead). Once
-those entries are deleted, the references become dangling and the validator
-(future) will flag them: fix or remove at that point.
--->
+| `core/CLAUDE.md`, `core/SPEC.md`, `core/.claude/skills/core-schema-edit/SKILL.md` | The schema home for the four constructs and the co-update protocol the core slice follows |
+| `core/src/catalog.cue` | The catalog shape the additive op and action maps extend |
+| `core/src/transformer.cue` | The transformer and matcher pattern the execution half parallels |
+| `library/CLAUDE.md`, `library/CONSTITUTION.md` | Kernel neutrality and the boundary the planner and backend split honours |
+| `library/opm/kernel/` | The render half this one parallels |
+| `library/opm/helper/` | The opt-in tier the backends would join, and the fence a frontend may skip |
+| `library/opm/platform/` | The platform registry that resolves catalogs, the rails op artifacts ride on |
+| `library/adr/008-kernel-plans-caller-runs.md` | The library rule D3 records: the kernel decides, the caller loops and acts |
+| `catalog_opm/CLAUDE.md`, `catalog_opm/src/catalog.cue` | Where the initial Op and Action definitions are published |
+| https://hofstadter.io/getting-started/task-engine/ | Prior art for the attribute-dispatch model adapted here |
