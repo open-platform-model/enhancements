@@ -1,20 +1,20 @@
 # Enhancement 0021: OPM Versioning Policy
 
-OPM publishes versioned artifacts of many kinds: the core schema, catalogs and the contracts inside them, modules, the kernel library, the CLI, and the operator with its custom resource definitions. Each carries a SemVer today, each is released by tooling, and for exactly one of them, the catalog contract, OPM has written down what a version promises and built a check that enforces it. Everything else runs on convention: a commit type chosen by whoever wrote the commit, read by release-please, verified by nobody. This entry writes the policy down once, for every kind of artifact. For each it states what a consumer may rely on across a version, which change moves which number, and whether that rule is enforced or only written.
+OPM publishes many versioned artifacts: the core schema, catalogs and the contracts inside them, modules, the kernel library, the CLI and the operator. Each carries a SemVer, but only one of them has a written rule for what a version promises. Everything else runs on convention that nobody checks. This entry writes the policy down for all of them.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**One policy, nine artifact classes, one file each (D1, D4).** An artifact class is one kind of thing a consumer can pin, such as a module or a catalog build. The rules are not invented here; they are collected into [`policy/`](policy/), the draft of the published policy, one file per class plus an index holding the rules that apply to every class. Rules that accepted entries and repo documents already settled are copied verbatim, each under a line naming its source (D3). The policy is then complete on its own page, and the argument stays where it was made. Those sources include the contract ladder and its additive-only promise, from the artifact-identity entry 0010 (0010:D27, 0010:D34). They also include authored versions from the publishing entry 0011 (0011:D15), the commit-type tables of `core` and `catalog_opm`, and the tag scheme.
+**One policy, nine artifact classes, one file each (D1, D4).** An artifact class is one kind of thing a consumer can pin, such as a module or a catalog build. Rules already settled elsewhere are copied verbatim under a line naming their source (D3).
 
-**A module's version is bound to its configuration schema (D2).** That schema is the one input surface an instance depends on, and it is already required to be OpenAPIv3-shaped, which makes two releases mechanically comparable. A release that stops accepting values the previous release accepted is a major. One that accepts more is a minor. One that accepts exactly the same values is a patch. Whether the rendered output's stateful identity, such as a volume claim name, forms a second surface is the entry's first blocking question (OQ1).
+**A module's version is bound to its config schema (D2).** That schema is already OpenAPIv3-shaped, so two releases compare mechanically. Accepting fewer values is a major, more is a minor, the same is a patch. Whether rendered output's stateful identity is a second surface is OQ1.
 
-**The tooling releases as one train, if OQ14 holds.** The tooling train means the kernel library, the CLI and the operator released together on one version number instead of three. They have only each other as consumers. One number removes the kernel's external Go API contract, removes CLI-to-operator version skew as a compatibility problem, and gives the documentation site one number to be versioned against (OQ15). OQ14 and OQ15 are the entry's largest open design questions.
+**The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the operator on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-operator skew (OQ15).
 
-**Enforcement is layered, and each rule names its layer.** The four layers run from weakest to strongest. Convention states the rule in writing. A claim is a change stating its own bump, through a commit type or an authored version. A gate compares the release against its predecessor at publish and refuses an under-claimed bump. An aid is a check command anyone may run and nobody must. Catalogs already reach all four. Modules reach the first two plus a gate that today compares nothing. Core and the Go artifacts reach the first two only. The module compatibility gate is scaffolded here as design intent with its questions attached (OQ5, OQ6), not decided.
+**Enforcement is layered, and each rule names its layer.** Convention states the rule in writing. A claim is a change stating its own bump. A gate refuses an under-claimed bump at publish. An aid is a check anyone may run. Catalogs reach all four; modules reach the first two plus a gate that compares nothing.
 
-**Two rulings the policy adds rather than collects (D5, D6).** Alpha is the level that promises nothing. An author who breaks an alpha contract is encouraged, not required, to bump its alpha number rather than reshape the key in place, and that rule reaches the convention layer only. A transformer serving more than one level of a resource or trait declares one registration per level, all sharing one transform body.
+**Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
 
 ## How it works
 
@@ -72,7 +72,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
-- The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement posture, the deprecation posture.
+- The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
 - The module compatibility surface (D2) and the questions that complete it (OQ1 to OQ4).
 - The compatibility gate as a pattern, generalized from the catalog gate to any class whose surface is mechanically comparable, scaffolded with its open questions (OQ5, OQ6, OQ8 to OQ10).
 - Where the policy is published, so a third-party author can read it.

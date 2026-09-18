@@ -1,26 +1,24 @@
 # Enhancement 0012: Kubernetes as a First-Class Kernel Platform
 
-The OPM kernel renders and then stops. Both OPM frontends, the operator and the CLI, embed it and each decides for itself what becomes of a rendered object in a cluster. So the same Kubernetes decisions exist twice: what an instance owns, which of those objects are stale, whether one may be deleted, and when the finalizer holding the instance record open may be removed. The two copies have already drifted in ways that decide whether a resource is deleted, which is what this entry moves into the kernel.
+The OPM kernel renders and then stops. Both frontends, the operator and the CLI, embed it and each decides what happens to a rendered object in a cluster. So the same Kubernetes decisions exist twice, and the two copies have already drifted in ways that decide whether a resource gets deleted. This entry moves those decisions into the kernel.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-Two decisions set the direction. The Kubernetes runtime surface belongs in the kernel and both frontends consume it, neither keeping a private implementation (D1). The kernel is written for Kubernetes directly, with no portability layer maintained on its behalf (D2), so `k8s.io/apimachinery` becomes a kernel dependency while `client-go`, `controller-runtime` and Flux stay out.
+**Two decisions set the direction (D1, D2).** The Kubernetes runtime code belongs in the kernel, and both frontends use it instead of private copies. The kernel targets Kubernetes directly, so `k8s.io/apimachinery` becomes a kernel dependency while `client-go`, `controller-runtime` and Flux stay out.
 
-How far past the render line the kernel goes is asymmetric, and lands exactly on this entry's scope: share every decision, and share the sequence only where the sequence carries no framework opinion. Deletion qualifies, because ordering, fetching, guarding and deleting are plain Kubernetes steps. Apply does not, because the operator applies through Flux's server-side-apply engine and the CLI must never inherit it. For apply the kernel supplies the per-object verdict and each frontend keeps its own engine.
+**Share every decision; share the steps only where they carry no framework opinion.** Deletion qualifies: ordering, fetching, guarding and deleting are plain Kubernetes steps. Apply does not, so the kernel gives the per-object verdict and each frontend keeps its own engine.
 
-The duplication is measured, not assumed. As of 2026-09-14 the two repos' object-conversion code is byte-identical and their label and resource helpers differ only in comments. The render-digest function still exists twice, with a comment telling maintainers to keep the copies in sync by hand. The operator deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the operator orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
+**The duplication is measured, not assumed.** In September 2026 the two repos' object-conversion code was byte-identical, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. Where they decide rather than copy, they have diverged:
 
 - The CLI deletes CustomResourceDefinitions; the operator refuses to.
 - The operator checks live ownership before deleting; the CLI does not.
 - The CLI refuses to apply over a foreign object; the operator does not.
 
-Neither actor holds both guards: each grew exactly the half the other lacks.
+Neither side holds both guards.
 
-On deletion the entry corrects an open question of the archived identity entry 0010, which asked how ownership survives deletion (0010:OQ10). `ModuleInstance` does have a finalizer, and it drives a fully tested cleanup path; what 0010:OQ10 got right is that nothing stamps `ownerReferences`. It missed three things. Prune defaults to false, so the finalizer's default behaviour is to orphan. A CLI-owned instance carries no hold at all, so deleting its record destroys the only inventory and orphans every workload. And an `ownerReference` garbage-collects whatever the prune setting says, which makes 0010:OQ10's additive-references candidate a contradiction of `prune: false` rather than a fast path over it.
-
-The entry also re-opens one settled decision. Archived entry 0006 first homed this shared logic in the kernel (0006:D13.1), then deleted it and sent each actor back to its own local implementation (0006:D31). D31's cross-actor safety analysis stands and is not disputed. Two of the three facts supporting its conclusion have changed. The module dependency edge it declined to pay for was added 19 days later by 0006's own later work, and its objection to a third representation applied to the runtime-neutral type D2 removes. Its two deferred questions, a shared stale-set comparator (0006:OQ15) and an apply-time collision guard (0006:OQ16), are absorbed here.
+**It corrects two earlier findings.** Entry 0010 asked how ownership survives deletion (0010:OQ10) but missed that prune defaults to false, so the finalizer orphans by default. Entry 0006 removed this shared code (0006:D31); two of the three facts behind that have changed, and its deferred questions land here (0006:OQ15, 0006:OQ16).
 
 ## How it works
 
@@ -79,7 +77,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 **What moves into the kernel, one definition each**
 
-- The duplicated Kubernetes surface: label vocabulary, terminal object type, resource-order weights, inventory entry construction, stale-set computation and the three digests, with both frontends' copies deleted rather than aliased.
+- The duplicated Kubernetes code: label vocabulary, terminal object type, resource-order weights, inventory entry construction, stale-set computation and the three digests, with both frontends' copies deleted rather than aliased.
 - One stale-set base comparator across implementors, 0006's other deferred question (0006:OQ15).
 
 **Kernel bounds**
@@ -91,14 +89,14 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 **Stays with the frontends**
 
 - A kernel apply engine. The operator keeps Flux server-side apply, the CLI keeps its own, and the kernel supplies apply verdicts only. A kernel apply executor should be refused if proposed during implementation.
-- The reconcile loop. Watches, requeues, backoff, conditions, events and metrics stay in the operator; command surface, output formatting and exit codes stay in the CLI.
+- The reconcile loop. Watches, requeues, backoff, conditions, events and metrics stay in the operator; command shape, output formatting and exit codes stay in the CLI.
 - Credentials. Kubeconfig resolution, REST config construction and ServiceAccount impersonation are the frontends'.
 
 **Belongs to another entry**
 
 - The CRD Go types. Whether the library becomes their home is entangled with entry [0008](../0008/) and is an open question here, not a deliverable.
 - Identity. Fully-qualified names, module paths, instance-UUID derivation and the identity migration belong to [0010](../archive/0010/). This entry consumes whatever identity 0010 landed and compares label values without parsing them.
-- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution-seam convention, tracked as an open question rather than absorbed.
+- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution boundary convention, tracked as an open question rather than absorbed.
 
 **Not touched by this entry**
 
@@ -118,7 +116,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `library/CLAUDE.md` | The helper-versus-kernel boundary the new packages sit across |
 | `library/opm/core/resource.go` | The platform-neutral contract with no implementation |
 | `library/opm/core/compiled.go` | The kernel's current terminal output |
-| `library/opm/kernel` | Where the Kubernetes-shaped render result surfaces today |
+| `library/opm/kernel` | Where the Kubernetes-shaped render result comes out today |
 | `library/go.mod` | The version floor every embedder inherits |
 | `library/MIGRATIONS.md` | The repo's per-breaking-change migration contract |
 | `opm-operator/internal/reconcile/moduleinstance.go` | The finalizer and the deletion branches that become kernel cases |
@@ -141,4 +139,4 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `enhancements/0006/03-decisions.md` | The decision superseded and the two questions absorbed |
 | `enhancements/0010/03-decisions.md` | The question that surfaced this entry, corrected in `01-problem.md` |
 | `enhancements/0008/` | CRD types from CUE, entangled on where the type vocabulary lives |
-| `enhancements/0009/` | The kernel's execution half, entangled on the planner seam |
+| `enhancements/0009/` | The kernel's execution half, tangled up at the planner boundary |

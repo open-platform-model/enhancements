@@ -1,16 +1,20 @@
 # Manifest Passthrough: Side-Channel Raw and Kustomize Manifests
 
-A team adopting OPM usually already has plain YAML manifests or a Kustomize directory, and OPM has nowhere to put them. Applied out of band, those objects are invisible to it: nothing marks them as owned, nothing records them, and nothing removes them when the deployment goes away. This entry lets a deployment declare extra manifests as a side channel, rendered into ordinary Kubernetes objects and merged with the rendered ones before any of that bookkeeping happens. From there OPM cannot tell the two apart: same ownership labels, same recorded set, same staged apply, same pruning.
+A team adopting OPM usually already has plain YAML or a Kustomize directory, and OPM has nowhere to put it. Applied by hand, those objects are invisible: nothing marks them as owned, nothing records them, nothing deletes them later. This entry lets a deployment declare extra manifests, and OPM then treats them exactly like the ones it rendered.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-- The feature lives entirely at the apply layer, the CLI and operator code that talks to the cluster (D1). It changes neither core's schema nor the library kernel, the pure engine that turns a module into objects. The kernel may not read a filesystem or execute anything, and Kustomize does both. Side manifests never become components or transformer output.
-- Kustomize is rendered by the embedded Kustomize Go library, never by shelling out (D2). That pins the version in the build, keeps CLI and operator identical, and lets the hardening, notably disabling exec plugins, be set in code.
-- Passed-through objects are merged into the resource list before labelling, inventory recording, staging, apply and prune (D3). One ownership model covers both, so side objects get drift detection and pruning for free; a marker records only where an object came from.
-- The declaration is an explicit side-channel field on the deployment's own surface, not something woven into the component model (D5), which keeps the typed path and the untyped escape hatch visibly separate.
-- The CLI and the operator wire in the same renderer, so a deployment behaves identically whether it is driven from a laptop or by a controller (D4).
+**It lives in the apply layer only (D1).** That is the CLI and operator code talking to the cluster. Core's schema and the kernel are untouched, because the kernel may not read files or run anything, and Kustomize does both.
+
+**Kustomize runs as an embedded Go library, never a shell-out (D2).** The version is pinned in the build, the CLI and operator behave identically, and exec plugins are disabled in code.
+
+**Passed-through objects join the rendered ones before anything else happens (D3).** Labelling, inventory, staged apply and pruning all see one set, so side objects get drift detection and pruning for free. A marker records only where each object came from.
+
+**The declaration is an explicit side field on the deployment (D5).** It is not woven into the component model, which keeps the typed path and the untyped escape hatch clearly apart.
+
+**The CLI and the operator use the same renderer (D4).** A deployment behaves the same from a laptop or from a controller.
 
 ## How it works
 
@@ -42,7 +46,7 @@ Everything downstream of the merge already exists and is untouched. The inventor
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
 1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ7
 
-The entry carries [`contracts/`](contracts/): compilable CUE for the declared source shape and the provenance marker, modelling the custom resource surface rather than core.
+The entry carries [`contracts/`](contracts/): compilable CUE for the declared source shape and the origin marker, modelling the custom resource surface rather than core.
 
 ## Scope
 
@@ -70,7 +74,7 @@ None at this stage. Update this section when implementation lands and any delibe
 | -------- | ------- |
 | `library/CONSTITUTION.md` | Kernel purity, the constraint that forces passthrough to the apply layer (D1) |
 | `opm-operator/api/v1alpha1/modulerelease_types.go` | Where the side-channel field is added |
-| `opm-operator/api/v1alpha1/release_types.go` | The same field on the package surface |
+| `opm-operator/api/v1alpha1/release_types.go` | The same field on the package type |
 | `opm-operator/api/v1alpha1/common_types.go` | The inventory entry side objects record in |
 | `opm-operator/internal/render/` | Where passthrough output joins the rendered list |
 | `opm-operator/pkg/core/labels.go` | The ownership labels and the passthrough marker |

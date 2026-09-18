@@ -14,7 +14,8 @@ title: Machine-Readable Artifact Metadata in cue.mod/module.cue
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  OPM tooling learns an artifact's kind, identity and core/catalog compatibility from the module.cue blob alone, without the zip, through a gate-checked custom block CUE already carries.
+  Let OPM tooling read an artifact's kind, identity and compatibility from the small module file
+  alone, without downloading the zip.
 status: draft
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -34,7 +35,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-08-24"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -56,6 +57,8 @@ history:
     event: Category set to distribution, area dropped under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
