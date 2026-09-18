@@ -2,7 +2,7 @@
 
 > **Delivered (2026-06-30).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0002`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0002` lists any.
 
-OPM's deployable artifact is one module materialized as a concrete deployment, possibly many times over. It was called a Release: Helm's word for the same thing, and one that foregrounds a shipping event rather than the multiplicity that actually defines the construct. The word recurred inconsistently down the whole stack, in schema definitions, Go identifiers, two custom resource kinds and a command group. This entry renames the family to Instance vocabulary with no behaviour change, and renames the separate GitOps custom resource to ModulePackage so the two stop competing for one word.
+OPM's deployable artifact is one module deployed as a concrete instance, possibly many times over. It used to be called a Release, Helm's word for the same thing, which points at a shipping event rather than the multiplicity that defines it. The word recurred inconsistently down the whole stack. This entry renamed the family, with no behaviour change.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -10,11 +10,11 @@ All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.
 
 **The rename is cross-cutting, and the GitOps custom resource moves with it (D2).** An earlier scope kept the change inside the schema repo and preserved the operator's `Release` custom resource (D1). D2 reversed that, and D1 stays in the log as the original, overturned conclusion.
 
-**Three layers move together.** Layer one is identifiers, the CUE definitions and the Go types that mirror them, resolved within each module at compile time. Layer two is the wire kind strings, the literal `"ModuleRelease"` and friends that the kernel, the reconcilers and the CLI's kind detection all match on (D3). Layer three is the live cluster contract: the label domain stamped on every deployed object (D4), the Kubernetes API group and the finalizer key that go with it (D5). Layers two and three govern objects already running, which is why the rollout was sequenced rather than landed per repo.
+**Three layers move together.** Layer one is identifiers: the CUE definitions and the Go types that mirror them. Layer two is the wire kind strings that the kernel, the reconcilers and the CLI all match on (D3). Layer three is the live cluster contract: the label domain stamped on every deployed object (D4), the Kubernetes API group, and the finalizer key (D5). Layers two and three govern objects already running, which is why the rollout was sequenced rather than landed per repo.
 
-**There is no alias window (D8).** The rename is hard, and every `release`-named file and directory is renamed on disk with it (D10), including the CLI's per-instance file convention (D9). Each renamed identifier and each renamed document section carries a short breadcrumb naming the old spelling, first for exported Go symbols (D11) and then for every surface, code, docs and specs alike (D12). The user-facing command group becomes `opm instance` with a short alias (D6).
+**There is no alias window (D8).** The rename is hard, and every `release`-named file and directory is renamed with it (D9, D10). Each renamed identifier and document section carries a short note naming the old spelling, first for exported Go symbols (D11) and then for every surface (D12). The command group becomes `opm instance` with a short alias (D6).
 
-**Two post-acceptance decisions changed what shipped.** The catalogs were folded in (D14) because they consume the renamed transformer context and break on the new pin. Every artifact also moved from a pre-1.0 minor to a v1 prerelease line (D13), which advanced the core import path. The bundle stub was deleted rather than renamed (D15, overturning D7) once it proved to be unreachable dead code.
+**Two post-acceptance decisions changed what shipped.** The catalogs were folded in (D14) because they consume the renamed transformer context. Every artifact also moved from a pre-1.0 minor to a v1 prerelease line (D13). The bundle stub was deleted rather than renamed (D15, overturning D7) once it proved to be dead code.
 
 ## How it works
 

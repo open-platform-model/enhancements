@@ -5,7 +5,8 @@ title: Module and Catalog Identity
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Make metadata.modulePath the artifact's complete CUE module path including the major, so identity is the path itself and no full version appears in any key.
+  Make the module path the artifact's whole identity, major included, so no full version appears in
+  any key.
 status: delivered
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
@@ -34,7 +35,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-26"
-updated: "2026-09-18"
+updated: "2026-09-19"
 authors:
   - emil@jacero.se
 # Design impact: removes a required field from #Module and changes both the value
@@ -236,6 +237,8 @@ history:
     event: 'Closed as delivered: every live decision carried by the delivery log or excused; archived.'
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
+  - date: "2026-09-19"
+    event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
