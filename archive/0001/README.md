@@ -2,19 +2,19 @@
 
 > **Delivered (2026-07-24).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0001`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0001` lists any.
 
-A platform is the OPM value that says which catalogs a cluster renders against. A catalog is a published CUE package of transformers, the definitions that turn a component's declared resources and traits into Kubernetes objects. Before this entry a platform imported whole catalog values under keys an author invented, and a catalog member was addressed by major version alone, so two builds of one member collided on a single key. This entry makes a platform a set of registry subscriptions the kernel resolves before matching, and addresses every member by its exact release version. It also gives a module one place to read deployment identity and per-component names.
+A platform is the OPM value saying which catalogs a cluster renders against. A catalog is a published CUE package of transformers, which turn a component's resources and traits into Kubernetes objects. Before this entry a platform imported catalogs under keys an author invented, and two builds of one member collided on one key. This entry fixed both.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The registry holds subscriptions, keyed by catalog path**, each an on/off switch plus an optional version filter, so CUE's map semantics allow one subscription per catalog (D13). The kernel turns that spec into something renderable in an explicit materialize step the caller drives, keeping no cache of its own (D14). CUE cannot evaluate SemVer ranges, so a range is parsed on the Go side (D11) and applied as range, then allow, then deny (D10).
+**The registry holds subscriptions, keyed by catalog path (D13).** Each is an on/off switch plus an optional version filter, so CUE's map semantics allow one subscription per catalog. The kernel turns that spec into something renderable in an explicit materialize step the caller drives (D14). CUE cannot evaluate SemVer ranges, so a range is parsed on the Go side (D11) and applied as range, then allow, then deny (D10).
 
-**A catalog becomes a plain CUE package with one declared export.** Its root value names its transformers, so the kernel reads a map instead of walking the package tree (D19, replacing two earlier loose declarations). The catalog's path and version live in a sibling identity package. A schema constraint stamps that version onto every transformer, so lockstep is structural rather than author discipline (D18: the catalog is the unit of versioning and members inherit its version). Publishing stamps a temporary build directory, never the source tree (D9), and the repackage was a hard switch with no coexistence window (D23).
+**A catalog becomes a plain CUE package with one declared export (D19).** Its root value names its transformers, so the kernel reads a map instead of walking the package tree. Path and version live in a sibling identity package, and a schema constraint stamps that version onto every transformer, so lockstep is built in rather than left to author discipline (D18). Publishing stamps a temporary build directory, never the source tree (D9).
 
-**Names carry an exact release version, and matching always unifies.** A fully-qualified name, the key a component demands and a transformer answers to, gains a full SemVer suffix in place of a major-only one (D5), so adjacent builds occupy distinct keys. Unification of the component's value against the transformer's required slot runs before predicates (D6), so a same-named pair with divergent shapes fails at match with a CUE conflict citing both files. A demanded name the platform lacks yields one structured diagnostic per component and name, listing the versions that do exist (D20). Blueprints ride the same trail (D21).
+**Names carry an exact release version, and matching always unifies.** A fully-qualified name gains a full SemVer suffix in place of a major-only one (D5), so adjacent builds get distinct keys. Unification runs before predicates (D6), so a same-named pair with different shapes fails at match with a CUE conflict citing both files. A demanded name the platform lacks gives one diagnostic per component and name, listing the versions that do exist (D20).
 
-**A module gains one home for deployment identity.** An inline context channel carries the instance identity and a projection of every component's computed names (D1). Each component computes and owns its own name and DNS variants (D2); the parent module injects the identity through a pattern constraint (D3), and the cluster domain rides on the identity value (D4). All of it landed on the pre-1.0 core line, where a break is a minor bump (D12).
+**A module gains one home for deployment identity.** An inline context channel carries the instance identity and every component's computed names (D1). Each component owns its own name and DNS variants (D2), and the parent module injects the identity through a pattern constraint (D3).
 
 ## How it works
 
@@ -53,7 +53,7 @@ Read the diagram as two inputs meeting at match. The platform side resolves each
 
 - A registry keyed by catalog module path, each entry a subscription with an enable flag and an optional SemVer filter (D13). Two channels on one path stay inexpressible.
 - Removal of the module definition's dual role: a module is the consumer artifact only, carrying components, config, debug values and the context channel.
-- Removal of the platform's known-resources and known-traits lists. Members surface only through a materialized transformer's required and optional maps.
+- Removal of the platform's known-resources and known-traits lists. Members appear only through a materialized transformer's required and optional maps.
 - A name regex whose suffix is a full SemVer, and a member version field typed as a full version rather than a major.
 
 **Catalog packaging, materialize and match**
