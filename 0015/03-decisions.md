@@ -312,6 +312,8 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 
 **Rationale:** "Sound good" to the two rules as stated (author, 2026-08-21). The readiness definition must live in opm-operator's aggregation as an explicit, tested exclusion rather than be discovered as a stuck cluster; the envtest obligation covers it (a provider module reaches active with no manual intervention).
 
+**Revised:** 2026-09-19 — the wait-set aggregation this decision excludes the registration from does not exist and is not planned. A ModulePackage is Ready when every apply succeeded, after the apply layer's staged wait for CRDs, Namespaces and ClusterRoles to become established (flux `ApplyAllStaged`); nothing waits on the health of ordinary objects. That is the deliberate readiness definition, not a gap: Kubernetes is eventually consistent, an established CRD is the only hard precondition for applying a rendered object, and the provider controller's health is the platform team's to ensure. A consumer object applied before the provider serves waits for it; a provider shipping an admission webhook refuses such applies transiently until it is up, which surfaces as ApplyFailed with a requeue and self-heals. The registration is therefore excluded from readiness by construction and OQ11's loop cannot form; pure-registration modules are legal as before. Nothing is built for this decision; the by-kind exclusion stays recorded as the rule any future health wait must apply. (User decision 2026-09-19; the opm-operator issue filed as a hand-off the same day was closed as superseded.)
+
 **Source:** User decision 2026-08-21. Mechanism read the same day: `opm-operator/internal/apply/manager.go` (kstatus polling via flux `ResourceManager`).
 
 ---
