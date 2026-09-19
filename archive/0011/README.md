@@ -8,7 +8,7 @@ All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.
 
 ## Summary
 
-**Five commands over one pipeline (D1).** Module publish and catalog publish decode an artifact, derive its registry coordinates from what the artifact declares, run the gates, and push, never rewriting the artifact to fit a coordinate somebody typed (D2). Version authoring is a separate command, so a commit can sit between deciding a version and pushing one (D3). A check command verifies a published catalog out of band (D7).
+**Five commands over one pipeline (D1).** Module publish and catalog publish decode an artifact, derive its registry coordinates from what the artifact declares, run the gates, and push, never rewriting the artifact to fit a coordinate somebody typed (D2). Version authoring is a separate command on each artifact type (D3, D12), so a commit can sit between deciding a version and pushing one. A check command verifies a published catalog out of band (D7).
 
 **Two gates carry the weight.** Publish refuses an artifact whose identity is not concrete (D4), because CUE's own publish will happily push a tree with unfilled identity fields. And publish never honours a local dependency override (D6). A module may override that with an explicit flag and a catalog may not, because a module's divergence is scoped to one artifact while a catalog's spreads into the key space of everything built against it.
 

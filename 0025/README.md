@@ -83,10 +83,10 @@ None at this stage. Update when implementation lands.
 
 | Document | Purpose |
 | -------- | ------- |
-| `enhancements/0015/` | The cluster-scoped registration pattern this entry's authoring shape reuses (D3, D9) and what regeneration does on rebinding (D13) |
-| `enhancements/0008/` | The CUE-to-CRD encoder in structural mode (D3) that the kind layer's schema generation relies on |
-| `enhancements/0010/` | Identity: majors are the only artifact distinction (D1), and instance identity survives a major bump (D41), which is what makes rebinding safe |
-| `enhancements/0021/` | The module's configuration schema as what a version promises (D2), the premise under a served version equal to the module major |
+| `enhancements/0015/` | The cluster-scoped registration pattern this entry's authoring shape reuses (0015:D3, 0015:D9) and what regeneration does on rebinding (0015:D13) |
+| `enhancements/0008/` | The CUE-to-CRD encoder in structural mode (0008:D3) that the kind layer's schema generation relies on |
+| `enhancements/0010/` | Identity: majors are the only artifact distinction (0010:D1), and instance identity survives a major bump (0010:D41), which is what makes rebinding safe |
+| `enhancements/0021/` | The module's configuration schema as what a version promises (0021:D2), the premise under a served version equal to the module major |
 | `enhancements/0009/` | The execution half, whose open question on a meta-controller toolkit names the idea this controller is the first instance of |
 | `enhancements/0016/` | Instance package scaffolding: the consumer-side experience this entry's binding layer removes the module coordinate from |
 | `enhancements/0014/` | GitOps export of a live instance; how it interacts with projected instances is OQ7 |

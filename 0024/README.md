@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**Two layers, one question each (D1).** The in-package layer answers whether a definition accepts, rejects and derives what it claims, and runs in its own repo's check. The conformance layer answers whether an unchanged input still produces the same bytes and the same refusal text across versions, and consumes only published artifacts and `cue` binaries.
+**Two layers, one question each (D1).** The in-package layer answers whether a definition accepts, rejects and derives what it claims, and runs in its own repo's check. The conformance layer answers whether an unchanged input still produces the same bytes and the same refusal text across versions, lives outside every product repo, and consumes only published artifacts and `cue` binaries.
 
 **Rejection is asserted, not just acceptance (D6), and a refusal's text is part of the behaviour (D2).** An assertion beside a definition states what it refuses as well as what it takes, in pure CUE with no Go. The same input has been measured producing two different refusals under two spellings on one toolchain.
 

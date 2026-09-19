@@ -1,6 +1,6 @@
 # Enhancement 0021: OPM Versioning Policy
 
-OPM publishes many versioned artifacts: the core schema, catalogs and the contracts inside them, modules, the kernel library, the CLI and the operator. Each carries a SemVer, but only one of them has a written rule for what a version promises. Everything else runs on convention that nobody checks. This entry writes the policy down for all of them.
+OPM publishes many versioned artifacts: the core schema, catalogs and their contracts, modules, the kernel library, the CLI and the operator. Each carries a SemVer. Only the catalog contract has a written rule for what a version promises, and a gate enforcing it. Everything else runs on unchecked convention. This entry writes the policy down for all of them.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -10,7 +10,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **A module's version is bound to its config schema (D2).** That schema is already OpenAPIv3-shaped, so two releases compare mechanically. Accepting fewer values is a major, more is a minor, the same is a patch. Whether rendered output's stateful identity is a second surface is OQ1.
 
-**The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the operator on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-operator skew (OQ15).
+**The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the operator on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-operator skew, and gives the documentation site one number to version against (OQ15).
 
 **Enforcement is layered, and each rule names its layer.** Convention states the rule in writing. A claim is a change stating its own bump. A gate refuses an under-claimed bump at publish. An aid is a check anyone may run. Catalogs reach all four; modules reach the first two plus a gate that compares nothing; core and the Go artifacts reach the first two only. The module gate is scaffolded as design intent with its questions attached (OQ5, OQ6), not decided.
 

@@ -12,11 +12,11 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The block cannot be wrong (D4).** Every value that repeats the module line, the dependency list or the identity package is asserted equal by a publish gate, exactly as entry 0011's identity gate already works (0011:D21). A stale block fails rather than misleads.
 
-**Tooling writes it in the tree; publish never does (D5).** The block is authored in the committed source, so the rule that published bytes are committed bytes stays intact (0011:D2). That needs one amendment inside [entry 0011](../archive/0011/), whose wording is OQ4.
+**Tooling writes it in the tree; publish never does (D5).** The block is authored in the committed source, so the rule that published bytes are committed bytes stays intact (0011:D2). That needs one amendment inside [entry 0011](../archive/0011/), where 0011:D3 and 0011:D8 name the identity file as the version writer's only target; its wording is OQ4.
 
 **Push-time facts stay out of the tree (D6).** Which `opm` and `cue` published the artifact, and from which commit, go into OCI manifest annotations instead.
 
-**The first reader is [entry 0016](../0016/) (D7, D8).** With the block its initializer reads the core major and kind from the small blob; without one it falls back to today's dependency parse. A missing block is a warning first and a refusal only later (D8).
+**The first reader is [entry 0016](../0016/) (D7, D8).** Its initializer walks a module's published majors to pick the newest compatible one (0016:D5); with the block it reads the core major and kind from the small blob; without one it falls back to today's dependency parse. A missing block is a warning first and a refusal only later (D8).
 
 ## How it works
 
