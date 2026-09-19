@@ -143,6 +143,11 @@ log:
     summary: >-
       library helper opm/helper/objectset detects rendered objects sharing one Kubernetes apply identity, naming every producing component and transformer; no decision claimed
     change: { kind: openspec, repo: library, change: render-duplicate-identities }
+  - date: "2026-09-19"
+    summary: >-
+      The operator refuses a render whose objects share one Kubernetes apply identity, before apply, under its own DuplicateIdentities reason
+    change: { kind: openspec, repo: opm-operator, change: 2026-09-19-refuse-duplicate-identities }
+    decisions: [D15]
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
