@@ -5,24 +5,30 @@
 // than importing opmodel.dev/core, so the entry vets offline; MIRROR marks
 // an unchanged core type restated in reduced form for the delta to reference.
 //
-//   #PlatformSpec   NEW        the authored platform: pure data, no imports.
-//                              Metadata, type, and a path-keyed map of
-//                              admitted catalog lineages (D2). Mirrors the
-//                              Platform CRD's spec.
-//   #Subscription   NEW        one admitted lineage: path with major, enable,
-//                              optional registry override, required floor,
-//                              optional ceiling (D2). Same major is structural
-//                              through the path; ordering is a kernel check.
-//   #Platform       UNCHANGED  the render-time value 0019 D5 shipped, now
-//                              generated per resolution from #PlatformSpec
-//                              plus the module's committed pins (D3). Not
-//                              restated: nothing in its shape changes.
-//   #CatalogEntry   UNCHANGED  shape unchanged; `version`'s documented
-//                              meaning widens to "the version this build
-//                              holds" (D1). Not restated.
-//   #ModulePathType MIRROR     reduced: module path with a major suffix.
-//   #VersionType    MIRROR     reduced: semver with optional prerelease.
-//   #NameType       MIRROR     reduced: DNS label.
+//   #Platform          CHANGED    the authored platform: pure data, no imports.
+//                                 Metadata, type, and a path-keyed map of
+//                                 admitted catalog lineages (D2). Takes the
+//                                 name the shipped render-time value held;
+//                                 that value moves to #ResolvedPlatform (D3).
+//                                 Mirrors the Platform CRD's spec.
+//   #CatalogAdmission  NEW        one admitted lineage: path with major, enable,
+//                                 optional registry override, required floor,
+//                                 optional ceiling, prerelease opt-in (D2).
+//                                 Same major is structural through the path;
+//                                 ordering is a kernel check.
+//   #ResolvedPlatform  RENAMED    the render-time value 0019 D5 shipped as
+//                                 #Platform, shape unchanged, generated per
+//                                 resolution from #Platform plus the module's
+//                                 committed pins (D3). Restated in reduced form
+//                                 so examples.cue can show a generated value.
+//   #CatalogEntry      UNCHANGED  shape unchanged; `version`'s documented
+//                                 meaning widens to "the version this build
+//                                 holds" (D1). MIRROR, reduced: the embedded
+//                                 #catalog and the derived #transformers are
+//                                 omitted.
+//   #ModulePathType    MIRROR     reduced: module path with a major suffix.
+//   #VersionType       MIRROR     reduced: semver with optional prerelease.
+//   #NameType          MIRROR     reduced: DNS label.
 //
 // The registration window (D5, D6) is a catalog_opm contract change on the
 // transformer-registration resource, not a core definition, and is
@@ -47,7 +53,10 @@ import (
 // Semver release, prerelease admitted.
 #VersionType: =~"^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
 
-// ─── NEW: #Subscription ─────────────────────────────────────────────────────
+// A GA release: no prerelease suffix.
+#GAVersionType: #VersionType & =~"^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+// ─── NEW: #CatalogAdmission ─────────────────────────────────────────────────
 
 // One admitted catalog lineage. Admits and bounds; never loads (D4).
 //
@@ -55,10 +64,11 @@ import (
 // the range is structural: every version here MUST carry the path's major,
 // and that is the one ordering-adjacent fact CUE can check. floor <= ceiling
 // and pin-in-range are version orderings CUE cannot express and are kernel
-// checks stated as contract in D2.
-#Subscription: {
+// checks stated as contract in D2. Whether a bound may carry a prerelease
+// suffix is a shape fact, and is checked here against `prereleases`.
+#CatalogAdmission: {
 	// Identity of the lineage: module path with major (0010 D1). Bound to
-	// the map key by #PlatformSpec.
+	// the map key by #Platform.
 	path!: #ModulePathType
 
 	enable: bool | *true
@@ -68,6 +78,13 @@ import (
 	// this field is needed at all, and how it composes with 0023's trust
 	// policy.
 	registry?: string
+
+	// Admit prerelease versions inside the range. Off: a pin with a
+	// prerelease suffix is refused as not admitted even when its ordering
+	// falls inside [floor, ceiling]. Semver puts 4.3.0-dev.5 above floor
+	// 4.2.0, so without this gate every -dev tag inside the range renders.
+	// Off also forbids a prerelease suffix on the bounds themselves.
+	prereleases: bool | *false
 
 	// REQUIRED: the lowest release admitted, and the version the platform's
 	// own module-less build imports this catalog at (D2, D4). A pin below it
@@ -79,9 +96,15 @@ import (
 	// present range replaces the registration's author window (D6).
 	ceiling?: #VersionType
 
+	// Bounds are GA unless prereleases are admitted.
+	if !prereleases {
+		floor:    #GAVersionType
+		ceiling?: #GAVersionType
+	}
+
 	// Structural major check: the path's major equals the major of every
 	// version named here.
-	_major: regexp.FindSubmatch("@v([0-9]+)$", path)[1]
+	_major:      regexp.FindSubmatch("@v([0-9]+)$", path)[1]
 	_floorMajor: regexp.FindSubmatch("^([0-9]+)\\.", floor)[1]
 	_floorMajor: _major
 	if ceiling != _|_ {
@@ -90,28 +113,63 @@ import (
 	}
 }
 
-// ─── NEW: #PlatformSpec ─────────────────────────────────────────────────────
+// ─── CHANGED: #Platform ─────────────────────────────────────────────────────
 
 // The authored platform. Pure data: no imports, no cue.mod dependencies of
 // its own, so it is a Platform CR's spec and an offline CLI file with the
-// same fields (D3). The render-time #Platform is generated from this value
-// plus the module's committed pins and the accepted registrations.
-#PlatformSpec: {
-	kind: "PlatformSpec"
+// same fields (D3). The render-time #ResolvedPlatform is generated from
+// this value plus the module's committed pins and the accepted
+// registrations.
+#Platform: {
+	kind: "Platform"
 
 	metadata: {
 		name!:        #NameType
 		description?: string
 	}
 
-	// Informational discriminator, carried as on #Platform.
+	// Informational discriminator, carried onto #ResolvedPlatform.
 	type!: string
 
 	// Path-keyed: the key is the lineage's module path and is bound into the
 	// entry's `path`, so key-versus-field drift is a conflict naming the
 	// entry. Exactly one entry per path.
-	catalogs: [Path=#ModulePathType]: #Subscription & {path: Path}
+	catalogs: [Path=#ModulePathType]: #CatalogAdmission & {path: Path}
 
 	// OQ2: whether a floor or pin for `core` belongs here beside the
 	// catalog entries.
+}
+
+// ─── MIRROR: #CatalogEntry (reduced) ────────────────────────────────────────
+
+// Reduced: the embedded #catalog and the derived #transformers are omitted,
+// and `version` is stated as a plain field rather than a readout of the
+// embedded catalog's stamp. In core it is that readout, unified with the
+// expected version the kernel stamps at generation (the tripwire).
+#CatalogEntry: {
+	enable:  bool | *true
+	version: #VersionType
+}
+
+// ─── RENAMED: #ResolvedPlatform (reduced) ───────────────────────────────────
+
+// The render-time value 0019 D5 shipped as #Platform: a path-keyed registry
+// of catalog entries, each carrying its imported catalog, plus the derived
+// #composedTransformers fold and #contracts inventory. Shape unchanged;
+// only the name moves. Generated by the kernel per resolution, never
+// authored. Reduced here to what the examples show: the derived folds are
+// omitted.
+#ResolvedPlatform: {
+	kind: "ResolvedPlatform"
+
+	metadata: {
+		name!:        #NameType
+		description?: string
+	}
+
+	type!: string
+
+	// One entry per catalog the build holds: the consumer's pin, or the
+	// registration's version for a provider catalog nobody pinned (D1, D5).
+	#registry: [Path=#ModulePathType]: #CatalogEntry
 }
