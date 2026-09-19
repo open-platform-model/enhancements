@@ -150,4 +150,22 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Revised:** 2026-09-14, cancellation between steps becomes a property of D3's shape rather than a mechanism to design; what is left to design is cancellation inside one advance.
 
+### D10: `#Lifecycle` and `#Workflow` attach at module root as module traits on an aspect
+
+**Kind:** contract
+
+**Depends:** 0025:D11, 0025:D12
+
+**Decision:** Lifecycle and workflow declarations attach to a `#Module` through its `#aspects` map (0025 D11): a catalog publishes them as module traits (0025 D12), a module attaches them on a named aspect and fills the spec. There is no per-component attachment and no dedicated field on `#Module`. The execution half reads them off the same aspect the render half sees; no render-side transformer handles them, so their fulfilment is stated under 0025's answer to OQ13.
+
+**Alternatives considered:**
+
+- **Per-component attachment.** Rejected: a workflow spans components by construction (drain one, migrate another, verify a third); scoping it to one component would need a cross-component reference vocabulary the render half does not have either.
+- **Both module root and per-component.** Rejected: two attachment points is the two-interpreter problem 0025 D10 names, transposed to placement; every consumer would merge the two.
+- **A dedicated `lifecycle` and `workflows` field on `#Module`** (the sketch this entry carried until 2026-09-19). Rejected once 0025 gave the module one named extension point: a field per feature is what the aspect map exists to stop.
+
+**Rationale:** The execution half consumes the same `#Module` the render half does; an aspect is exactly the module-scoped, catalog-published, versioned slot it needs, and 0025 D13 already reserves non-resource output for this interpreter rather than for a render-side transformer.
+
+**Source:** User decision 2026-09-19.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

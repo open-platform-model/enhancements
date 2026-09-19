@@ -10,7 +10,7 @@ Each entry carries a `Status:` line; close with `resolved-by-D##`, `deferred-to-
 
 - **OQ3: What is the run-state / idempotency model for `#Workflow` (and how does it differ from `#Lifecycle`)?** Status: open. Blocking: deferrable. `#Lifecycle` is tractable inside the operator reconcile loop: re-plan each reconcile, lean on convergent executors (k8s apply) plus completion records for run-once steps. On-demand `#Workflow` invocation is harder: it may be non-idempotent, may need run history, re-entrancy guarantees, and a place to store invocation state. This needs its own design pass.
 
-- **OQ4: Where do `#Lifecycle` and `#Workflow` attach on `#Module`: module root, per-component, or both?** Status: open. Blocking: deferrable. The execution half reads them off the same `#Module` the render half consumes; the exact field placement and whether workflows can be component-scoped is undecided. `schemas/target.cue` sketches a module-root attachment only.
+- **OQ4: Where do `#Lifecycle` and `#Workflow` attach on `#Module`: module root, per-component, or both?** Status: resolved-by-D10. Module root, as module traits on a 0025 aspect; no per-component attachment.
 
 - **OQ5: Is the meta-controller toolkit in scope, and when?** Status: open (likely deferred). The same primitives + execution half could let authors stand up Kubernetes meta-controllers quickly (PoC operators): an operator becomes "a reconcile loop + an executor registry." Treated as a north-star the architecture should not preclude, not a v1 deliverable; may split to a follow-up enhancement.
 

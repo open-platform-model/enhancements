@@ -185,13 +185,16 @@ package schema
 #WorkflowMap: [#Name]: #Workflow
 
 // ---------------------------------------------------------------------------
-// Attachment on #Module (OQ4 — exact shape/field names not yet decided).
-// The execution half of the kernel reads these off the SAME #Module the
-// render half consumes. Sketch only:
+// Attachment on #Module: decided by D10. Lifecycle and workflows are module
+// traits (0025 D12) a module attaches on a named aspect (0025 D11); the
+// execution half reads them off the same #Module the render half consumes.
+// Sketched as the spec an aspect exposes once the two traits are attached;
+// the trait and aspect shapes themselves are 0025's delta.
 // ---------------------------------------------------------------------------
 
 #ModuleOperationalSketch: {
-	// OQ4: do lifecycle/workflows live at module root, per-component, or both?
+	// The spec of an aspect attaching the `lifecycle` and `workflow` module
+	// traits: one camelCase key per trait, filled by the module author.
 	lifecycle?: #Lifecycle
 	workflows?: #WorkflowMap
 }

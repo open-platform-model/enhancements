@@ -63,6 +63,8 @@ history:
     event: Category set to schema, area dropped, cross-cutting removed from affects under the 2026-09-08 category carve-out. No answer, number, Source or Kind changed.
   - date: "2026-09-14"
     event: "D3 narrowed by library ADR-008: the library advances one step per call, the caller runs the loop and owns the run state. D4, D9, OQ2, OQ6 follow; stale path citations refreshed."
+  - date: "2026-09-19"
+    event: 'OQ4 resolved by D10: lifecycle and workflows attach as module traits on a 0025 aspect, no per-component attachment; depends_on gains 0025.'
   - date: "2026-09-18"
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
   - date: "2026-09-19"
@@ -73,7 +75,8 @@ history:
 # list every MMMM those lines name. Four-digit ids only (a dependency
 # resolves to a decision heading; legacy:NNN has none). `task vet` enforces
 # both directions and refuses a cycle.
-depends_on: []
+depends_on:
+  - "0025"
 # Lifecycle relationships.
 supersedes: []
 # Archived ids this entry re-opens. One-way: the archived entry is frozen

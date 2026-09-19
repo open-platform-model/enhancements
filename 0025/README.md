@@ -1,56 +1,83 @@
-# Enhancement 0025: Self-Service Kinds from Published Modules
+# Enhancement 0025: Self-Describing Modules and Self-Service Kinds
 
-Deploying a module in OPM today means naming its registry path and version yourself. So every app team has to know which module and which release sits behind the thing they want. This entry lets the platform team pick the module once. Consumers then supply values and nothing else.
+A module today describes its workloads and nothing about itself. And deploying one means naming its registry path and version yourself, so every app team has to know which module and which release sits behind the thing they want. This entry gives a module one place to say what it is, and lets the platform team pick a module once. Consumers then supply values and nothing else.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The platform binds the module; the consumer supplies values (D1, D5).** The platform team writes one cluster-wide definition: a module lineage (its path without the major), a major, the bound release, an update policy, and optionally values the platform fixes. The module never ships its own definition (D5), because it would have to be deployed before anyone could use it.
+**A module describes itself through aspects (D11 to D14).** An aspect is a named bundle of module-level traits, a sibling of a component, published by a catalog and versioned like any trait. Module transformers render aspects through the same matching path components use, and an aspect nobody handles is reported, never silent. The first two are network isolation and a resource budget (D15).
 
-**An instance becomes an ordinary ModuleInstance (D3, D6).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the operator all compute the same result. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
+**The module may declare what it offers; the platform decides to offer it (D5, D1).** The offering declaration is one such aspect: the intended kind, a suggested update policy, later a status schema. The platform reads it when it writes the binding. The module never emits the binding itself, because it would have to be deployed before anyone could use it.
 
-**The consumer-facing schema is the module's own config schema (D2, D7).** The definition also names an API group and kind, and the operator serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The served version is the module's major (D7).
+**The platform binds the module; the consumer supplies values (D1, D6).** One cluster-wide definition names a module lineage, a major, the bound release, an update policy and optionally values the platform fixes. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
 
-**Two layers, the second built on the first (D4).** Binding alone gives platform-owned versioning and a tenant guardrail, with no new controller. Kinds add typed API objects, `kubectl explain` and per-kind access control, at the cost of one data-driven controller.
+**An instance becomes an ordinary ModuleInstance (D3).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the operator compute the same result. There is no second render path.
 
-**What this does not replace (D8, D9).** Crossplane-style providers stay external and render as leaf resources (D8). OPM's typed CUE replaces the composition layer above them, with one namespaced object instead of a composite-and-claim pair (D9).
+**The consumer-facing schema is the module's own config schema (D2, D7).** The definition names an API group and kind, and the operator serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The served version is the module's major.
 
-**The kind name is undecided (OQ1).** Five candidates are recorded; the draft uses "offering" as a placeholder.
+**Two layers on top of aspects, and what they do not replace (D4, D8, D9).** Binding alone gives platform-owned versioning and a tenant guardrail. Kinds add typed API objects, `kubectl explain` and per-kind access control, at the cost of one data-driven controller. Crossplane-style providers stay external and render as leaf resources, with one namespaced object instead of a composite-and-claim pair.
+
+The kind name of the definition is undecided (OQ1); the draft uses "offering" as a placeholder.
 
 ## How it works
 
 ```mermaid
-flowchart LR
-    platform["Platform team writes a definition: module lineage (path without major), major, bound release, update policy, fixed values, optional group and kind"] --> crd
-    crd["Operator serves a CRD: schema is the module's config schema, version is the module major"] --> consumer
-    consumer["Consumer creates a namespaced instance of that kind: values only, no module path"] --> admission["Admission validates it, access is granted per kind"]
-    admission --> project
-    platform --> project
-    module["Published module, unchanged"] --> project
-    project["Conversion, pure CUE: platform values merge with consumer values, a clash is rejected"] --> mi["The resulting ModuleInstance, referencing the definition"]
-    mi --> render["Existing render path: components, transformers, resources"]
-    render --> status["Status mirrored back onto the consumer's object"]
-    platform --> mi
+flowchart TB
+    subgraph author["Module author decides what the module is"]
+        mod["Module: components plus aspects"]
+        asp["Aspect: a named bundle of module traits, such as network isolation, a budget, or an offering declaration"]
+    end
+    subgraph catalog["Catalog decides the vocabulary"]
+        mt["Module traits: typed, versioned, published beside component traits"]
+        mtx["Module transformers: turn an aspect into resources"]
+    end
+    subgraph platform["Platform team decides what is offered"]
+        def["Definition: bound module and release, update policy, fixed values, group and kind"]
+    end
+    subgraph consumer["Consumer decides only the values"]
+        inst["Instance of the served kind: values, nothing else"]
+    end
+    subgraph runtime["Operator and kernel decide nothing new"]
+        proj["Projection, pure CUE: definition plus instance becomes a ModuleInstance"]
+        render["One render: component transformers and module transformers"]
+        res["Rendered resources, status mirrored to the consumer's object"]
+    end
+    mt --> asp
+    asp --> mod
+    mod -- "the offering declaration drafts the definition" --> def
+    def --> proj
+    inst --> proj
+    mod --> proj
+    proj --> render
+    mtx --> render
+    render --> res
 ```
 
-One definition is the whole platform-side job: rolling a patch to every instance is one edit to it. The published module is untouched and does not know it is being offered. Everything to the right of the conversion is the path OPM already has, which is why the render never learns that served kinds exist.
+Read it top to bottom as "who decides". The module author decides what the module is, the catalog decides which words exist for saying so, the platform team decides what to offer and at which release, and the consumer decides values. Everything below the projection is the path OPM already has: aspects join the same render beside components, and the render never learns that served kinds exist.
 
 ## Documents
 
-1. [01-problem.md](01-problem.md): the consumer binds the module coordinate, the configuration schema has no presence at the API server, and tenancy is all-or-nothing
-1. [02-design.md](02-design.md): a platform-owned binding object, a pure conversion to a ModuleInstance, and a second layer serving the binding as a typed kind
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D10
+1. [01-problem.md](01-problem.md): a module cannot describe itself, the consumer binds the module coordinate, the configuration schema has no presence at the API server, and tenancy is all-or-nothing
+1. [02-design.md](02-design.md): aspects on the module, a platform-owned binding object, a pure conversion to a ModuleInstance, and a layer serving the binding as a typed kind
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D15
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, and the composition-layer alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ16
 
-Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying the definition shape, the instance shape and the conversion.
+Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying the aspect, module trait and module transformer shapes, the definition shape, the instance shape and the conversion, with a worked module that attaches three aspects and a transformer that renders one.
 
 ## Scope
 
 ### In scope
+
+**Aspects (D5, D11 to D15).**
+
+- A named `#aspects` map on the module, each entry a bundle of module traits with a derived matching identity and a closed spec the author fills.
+- Module traits as a core definition beside component traits, published, keyed and gated the same way.
+- Module transformers as a core definition beside component transformers, folded by the platform and covered by its contract inventory.
+- Three module traits in catalog_opm: network isolation and a resource budget, rendered on Kubernetes, and the offering declaration a module makes about itself.
 
 **Binding layer (D1, D3, D5, D6).**
 
@@ -73,7 +100,9 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying 
 - A general meta-controller toolkit. The conversion controller is one bounded instance of the idea entry 0009 leaves open; extracting a toolkit waits for a second dynamic-kind controller to exist.
 - The composite-and-claim shape. There is no cluster-scoped composite object behind a namespaced claim (D9).
 - Routing between several definitions of one kind, or several modules behind one kind. One definition binds one module lineage; classes, channels and capability routing are successor material, as they are in entry 0015.
-- Changing the module schema. No authored field is added, and the offered module does not know it is offered (D5). A module-declared status schema is OQ5 and may add one later.
+- A third interpreter of a module. The render half renders aspects and the execution half of entry 0009 reads them; nothing else does.
+- Aspects on a ModuleInstance (OQ15). What an instance does is 0009's, attached at its transitions (D10).
+- Emitting the definition from the offered module. The module may declare; only the platform binds (D5).
 
 ## Deviations from Design
 
@@ -87,10 +116,14 @@ None at this stage. Update when implementation lands.
 | `enhancements/0008/` | The CUE-to-CRD encoder in structural mode (0008:D3) that the kind layer's schema generation relies on |
 | `enhancements/0010/` | Identity: majors are the only artifact distinction (0010:D1), and instance identity survives a major bump (0010:D41), which is what makes rebinding safe |
 | `enhancements/0021/` | The module's configuration schema as what a version promises (0021:D2), the premise under a served version equal to the module major |
-| `enhancements/0009/` | The execution half, whose open question on a meta-controller toolkit names the idea this controller is the first instance of |
+| `enhancements/0009/` | The execution half, whose open question on a meta-controller toolkit names the idea this controller is the first instance of, and whose lifecycle and workflow constructs attach as module traits on an aspect |
 | `enhancements/0016/` | Instance package scaffolding: the consumer-side experience this entry's binding layer removes the module coordinate from |
 | `enhancements/0014/` | GitOps export of a live instance; how it interacts with projected instances is OQ7 |
-| `core/src/module.cue` | The configuration schema and the comment declaring it OpenAPIv3-compatible, the constraint the kind layer depends on |
+| `enhancements/0019/` | One CUE build per render (0019:D9) and once-per-pair execution (0019:D2), which module transformers keep |
+| `core/src/module.cue` | The configuration schema and the comment declaring it OpenAPIv3-compatible, the constraint the kind layer depends on; the `#components` pattern constraint `#aspects` transposes |
+| `core/src/component.cue` | The derived matching labels, name cascade and closed spec that `#Aspect` transposes to module scope |
+| `core/src/trait.cue` | The identity block and optionality gate `#ModuleTrait` shares |
+| `core/src/transformer.cue` | The matching buckets and transform signature `#ModuleTransformer` transposes |
 | `core/src/module_instance.cue` | The ModuleInstance shape the conversion produces |
 | `opm-operator/api/v1alpha1/moduleinstance_types.go` | The operator resource whose module reference the binding layer makes optional |
 | https://docs.kratix.io/ | Closest prior art: a Promise installs a CRD from an API schema and fulfils requests through pipelines |

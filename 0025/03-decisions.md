@@ -1,4 +1,4 @@
-# Design Decisions: Self-Service Kinds from Published Modules
+# Design Decisions: Self-Describing Modules and Self-Service Kinds
 
 ## Summary
 
@@ -78,23 +78,26 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Source:** Design conversation 2026-09-08.
 
-### D5: The definition is authored by the platform, never emitted by the module it offers; the self-hosting shape is a resource contract rendered by a transformer
+### D5: The platform authors the binding; the module may declare its offering through an aspect, and never emits the definition
 
 **Kind:** contract
 
 **Depends:** 0015:D3, 0015:D9
 
-**Decision:** A definition is written by the platform team, either directly as a CR or as rendered output of a platform product module that attaches a definition resource contract, published by catalog_opm, to a component; a catalog_opm transformer renders the CR. The offered module never emits its own definition and `#Module` gains no authored field. In the rendered shape the CR reaches the cluster as ordinary rendered output applied under tenant impersonation, so the RBAC gate 0015 D3 rests on holds unchanged: only a platform-team identity can create one.
+**Revised:** 2026-09-19. Previously "the definition is never emitted by the module it offers, and `#Module` gains no authored field". The first half survives; the second is replaced by D11.
+
+**Decision:** A definition is written by the platform team, either directly as a CR or as rendered output of a platform product module that attaches a definition resource contract, published by catalog_opm, to a component; a catalog_opm transformer renders the CR. In the rendered shape the CR reaches the cluster as ordinary rendered output applied under tenant impersonation, so the RBAC gate 0015 D3 rests on holds unchanged: only a platform-team identity can create one. The offered module MAY declare what it is when offered, through an `offering` module trait attached on an aspect (D11, D12): the intended API group and kind, a suggested update policy, and a status schema where one exists (OQ5). That declaration is input to authoring: the CLI drafts a definition from it, and the definition reconciler reports disagreement between a definition and the bound module's declaration. The module never emits the definition itself, and a declaration without a platform-authored definition offers nothing.
 
 **Alternatives considered:**
 
-- **The offered module emits its own definition**, mirroring how a provider module ships its registration in 0015. Rejected on lifecycle: a provider runs once per cluster and its registration is a side effect of that one deployment, while an offered module runs N times and must be instantiable before any deployment of it exists. A module that publishes its own offering would have to be deployed first.
-- **An authored field on `#Module` naming the intended kind.** Rejected for the reasons 0015 D9 rejects an authored registration field: it bakes an operator CR shape into runtime-neutral core and weakens the RBAC gate. It also violates the posture that the module does not know it is offered.
+- **No authored field on `#Module`; the offered module does not know it is offered** (previously adopted, 2026-09-08). Kept the module artifact free of any operator-shaped fact and the RBAC gate simple. Replaced because the same need recurs across entries (lifecycle placement in 0009, a status schema in OQ5, seed values in 0016) and answering it field by field is what D11's aspect map exists to stop; the RBAC argument survives untouched because a declaration is not a CR.
+- **The offered module emits its own definition**, mirroring how a provider module ships its registration in 0015. Rejected on lifecycle: a provider runs once per cluster and its registration is a side effect of that one deployment, while an offered module runs N times and must be instantiable before any deployment of it exists. A module that publishes its own offering would have to be deployed first. This objection is why the declaration is read from the artifact and never rendered.
+- **An authored field on `#Module` naming the intended kind.** Rejected as a bare field for the reasons 0015 D9 rejects an authored registration field: it bakes an operator CR shape into runtime-neutral core. As a catalog-published module trait the shape lives in the catalog, versioned under its own API version, which is the difference.
 - **Operator-synthesised definitions from module metadata.** Rejected: privilege on a namespaced object and a second emission path, as 0015 D3 and D9 already record.
 
-**Rationale:** The registration pair in 0015 is the existing answer to "a platform-level CR that is rendered output and RBAC-gated by that fact". Reusing it gives definitions the same authoring surface, the same gate and the same reproducibility, and lets a platform team ship a bundle of offerings as one module.
+**Rationale:** The registration pair in 0015 is the existing answer to "a platform-level CR that is rendered output and RBAC-gated by that fact". Reusing it gives definitions the same authoring surface, the same gate and the same reproducibility. Letting the module declare its intent on top costs nothing at the gate (a declaration is data on an artifact, not an object in a cluster) and gives the platform team a draft instead of a blank page.
 
-**Source:** Design conversation 2026-09-08.
+**Source:** Design conversation 2026-09-08; user decision 2026-09-19.
 
 ### D6: The projection from definition and instance to `#ModuleInstance` is a pure CUE function in core
 
@@ -169,5 +172,91 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 **Rationale:** The projection is what makes the execution half free for served kinds. Adding a second attachment point would recreate exactly the two-interpreter problem D3 avoids.
 
 **Source:** Design conversation 2026-09-08.
+
+### D11: `#Module` gains `#aspects`, a named map of module-scoped attachment units, sibling of `#components`
+
+**Kind:** contract
+
+**Depends:** 0010:D28, 0010:D36
+
+**Decision:** `#Module` gains one optional map, `#aspects`, keyed like `#components`. Each entry is an `#Aspect`: a named bundle of module traits (D12) with a `resourceName` that defaults to the instance-qualified name, a `matchLabels` derived wholesale from its attached traits and enforced derived, an injected instance identity, and a closed `spec` unifying the attached traits' specs that the module author makes concrete. An aspect attaches at least one trait; it carries no resources, no blueprints, no name constraint and no DNS names. Its spec is authored inside the module and so reads `#config` and `#ctx.components` lexically.
+
+**Alternatives considered:**
+
+- **A flat `#traits` map plus `spec` at module root.** Rejected: nothing to name, so no second aspect of one kind with a different spec (an edge and an internal isolation policy), and no per-aspect rendered object name.
+- **A trait-only `#Component`.** Rejected: it satisfies the component transformer contract (one workload, one component context) while lying about scope; every component transformer would have to know it might be looking at a fake.
+- **`metadata.annotations` on `#Module`.** Rejected: untyped, unversioned, no consumer contract; the Kubernetes annotation sprawl this design exists to avoid.
+- **A separate `#ServiceModule` schema.** Rejected: a second whole-object schema to maintain, sharing nothing with `#Module`, and needing a third for the next module kind.
+- **Resources on an aspect.** Rejected: a resource is a workload demand the platform must satisfy (0010 D28); an aspect describes the module, it does not demand a workload.
+
+**Rationale:** Four entries each wanted a top-level field on `#Module` (lifecycle in 0009, seed values in 0016, a status schema and an offerability flag here). One named extension point, filled from catalogs, is how 0010 already answered the same pressure for primitives: shapes in core, vocabulary in catalogs. Transposing `#Component` rather than inventing a shape keeps the derived-matchLabels rule (0010 D36), the name cascade and the closed spec as they are.
+
+**Source:** User decision 2026-09-19.
+
+### D12: `#ModuleTrait` is a sibling of `#Trait`, not a mode of it
+
+**Kind:** contract
+
+**Depends:** 0010:D4, 0010:D28
+
+**Decision:** Core defines `#ModuleTrait` beside `#Trait`. It carries the same identity block (name, module path, API version, catalog version, FQN), the same `matchLabels`, `fulfilment`, `optional` and `spec`, and is published, keyed and gated the same way: `#CatalogMemberFQNGate` and `#TraitOptionalGate` apply unchanged. It has no `appliesTo` and no name constraint. A module trait's `optional` is stated by its catalog as a default and may be narrowed at the attachment site, never pinned, the rule 0010 D28 sets for traits.
+
+**Alternatives considered:**
+
+- **A `scope: "component" | "module"` field on `#Trait`.** Rejected: `appliesTo!` and `#nameConstraint` would become conditional on the mode, and every consumer of `#Trait` (matching, the name assertion, the contract inventory) would have to branch on it.
+- **Reusing `#Trait` unchanged with an empty `appliesTo`.** Rejected: `appliesTo!` is required, and an empty list reads as "applies to nothing".
+
+**Rationale:** The same reasoning that named `#ComponentTransformer` rather than `#Transformer`: two definitions with one shared block cost less than one definition with a mode. Catalog gates keyed on the shared block keep holding.
+
+**Source:** User decision 2026-09-19.
+
+### D13: `#ModuleTransformer` is `#ComponentTransformer` transposed; it renders resources and never sees rendered output
+
+**Kind:** contract
+
+**Depends:** 0019:D2, 0019:D9
+
+**Decision:** Core defines `#ModuleTransformer` beside `#ComponentTransformer`. It matches on an aspect's `matchLabels` and attached module traits (no resource buckets), executes once per matched (aspect, transformer) pair, and takes the concrete module instance and one aspect; whole-module facts reach it through the instance's module, never through a second input. Its output is rendered resources and nothing else. It never reads rendered component output: the render stays one build (0019 D9), and aspects join it.
+
+**Alternatives considered:**
+
+- **A post-processor over rendered component output** (a module-level pass that sees the components' objects). Rejected: a second build after the first, which breaks the single build and the parity oracle 0019 D1 rests on.
+- **Non-resource output (a plan, a CRD) from the same transformer.** Rejected: the render half renders; the execution half 0009 designs reads the same aspects for operational intent. A transformer with two output types is a third interpreter.
+- **Component transformers reading `#moduleInstance.#module.#aspects` directly**, with no module transformer at all. Rejected: every component transformer would re-implement the module-scoped concern per component, and nothing would render an object that belongs to no component.
+
+**Rationale:** Symmetry is the whole point: one matching discipline, one inventory, one parity oracle. The kernel adds one matching pass keyed on aspects and emits into the same output set; frontends observe nothing new.
+
+**Source:** User decision 2026-09-19.
+
+### D14: Aspects participate in the platform's matching and contract inventory; an unhandled aspect demand is never silent
+
+**Kind:** contract
+
+**Depends:** 0015:D1, 0015:D18
+
+**Decision:** `#Catalog` carries module transformers beside component transformers, stamped the same way. `#Platform` folds enabled catalogs' module transformers as it folds component transformers, and its contract inventory covers module traits and the module transformers that require them. An aspect whose demand no enabled transformer handles is reported or refused by the trait's `optional` and `fulfilment`, exactly as an unhandled component demand is (0015 D18).
+
+**Alternatives considered:**
+
+- **Aspects outside the inventory** (a module trait nobody handles is simply not rendered). Rejected: this is the silently-inert failure `optional` and `fulfilment` exist to prevent; a network-isolation aspect that renders nothing is a security hole with no diagnostic.
+
+**Rationale:** Without a consumer contract a module-level attachment is an annotation with a schema. The inventory is what makes a module trait a contract.
+
+**Source:** User decision 2026-09-19.
+
+### D15: The first module traits are `network-isolation` and `resource-budget`, rendered; `offering` ships with the binding layer; `lifecycle` and a status schema are named successors
+
+**Kind:** scope
+
+**Decision:** catalog_opm's abstraction family publishes two module traits with module transformers rendering them on Kubernetes: `network-isolation` (a module-scoped default-deny NetworkPolicy whose allowed CIDRs the module reads from `#config`) and `resource-budget` (a ResourceQuota across the module's components). They are this entry's proof that the aspect pass works end to end. The `offering` module trait (D5) ships with the binding layer and is consumed by the CLI and the definition reconciler, not by a transformer. Lifecycle and workflow traits belong to 0009, and a module-declared status schema waits for OQ5; both are named consumers, not deliverables.
+
+**Alternatives considered:**
+
+- **Ship the field with no rendered instance.** Rejected: an extension point nobody has used is a design, not a capability, and the `feature` gate asks for the latter.
+- **Make `lifecycle` the first instance.** Rejected: it needs the execution half, which does not exist; the two rendered traits exercise the pass with machinery that does.
+
+**Rationale:** Two rendered traits prove the pass through code that exists today; one declaration-only trait proves the module can say what it is. Together they cover both things an aspect is for.
+
+**Source:** User decision 2026-09-19.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.

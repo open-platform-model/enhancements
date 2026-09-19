@@ -26,23 +26,21 @@ graph LR
   classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
-  Cschema["schema (5 live entries, 2 closed)"]:::category
-  Cruntime["runtime (4 live entries, 2 closed)"]:::category
+  Cschema["schema (6 live entries, 2 closed)"]:::category
+  Cruntime["runtime (3 live entries, 2 closed)"]:::category
   Cdistribution["distribution (5 live entries, 3 closed)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (1 entry)"]:::category
 
-  Cschema -->|3| Cruntime
-  Cschema -->|3| Cdistribution
-  Cruntime -->|1| Cschema
-  Cruntime -->|2| Cdistribution
-  Cruntime -->|1| Ctooling
+  Cschema -->|4| Cruntime
+  Cschema -->|5| Cdistribution
+  Cschema -->|1| Ctooling
   Cdistribution -->|1| Cschema
   Ctooling -->|1| Cruntime
   Cmisc -->|1| Cschema
 ```
 
-Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ runtime, schema ↔ distribution, schema ↔ tooling, runtime ↔ distribution, runtime ↔ tooling, distribution ↔ tooling.
+Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ distribution.
 
 ## schema
 
@@ -61,25 +59,32 @@ graph TD
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
   N0015["0015: Catalog Contracts and Transformer Registration"]:::accepted
   N0017["0017: Layered Defaults"]:::draft
+  N0025["0025: Self-Describing Modules and Self-Service Kinds"]:::draft
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
+  N0008["0008 · tooling"]:::stub
   N0010["0010 · distribution"]:::stub
   N0014["0014 · runtime"]:::stub
   N0018["0018 · misc"]:::stub
   N0019["0019 · runtime"]:::stub
   N0020["0020 · distribution"]:::stub
-  N0025["0025 · runtime"]:::stub
+  N0021["0021 · distribution"]:::stub
 
+  N0009 -->|depends on| N0025
   N0013 -->|depends on| N0014
   N0015 -->|depends on| N0010
   N0015 -->|depends on| N0019
   N0017 -->|depends on| N0010
   N0018 -->|depends on| N0013
   N0020 -->|depends on| N0015
+  N0025 -->|depends on| N0008
+  N0025 -->|depends on| N0010
   N0025 -->|depends on| N0015
+  N0025 -->|depends on| N0019
+  N0025 -->|depends on| N0021
   N0026 -->|depends on| N0010
   N0026 -->|depends on| N0015
   N0026 -->|depends on| N0019
-  N0026 -.->|amends 2/17| N0015
+  N0026 -.->|amends 2/18| N0015
   N0026 -.->|amends 3/26| N0019
 ```
 
@@ -101,13 +106,10 @@ graph TD
   N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
-  N0025["0025: Self-Service Kinds from Published Modules"]:::draft
-  N0008["0008 · tooling"]:::stub
-  N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
-  N0021["0021 · distribution"]:::stub
   N0024["0024 · tooling"]:::stub
+  N0025["0025 · schema"]:::stub
   N0026["0026 · schema"]:::stub
 
   N0012 -->|depends on| N0006
@@ -115,10 +117,7 @@ graph TD
   N0014 -->|depends on| N0006
   N0015 -->|depends on| N0019
   N0024 -->|depends on| N0019
-  N0025 -->|depends on| N0008
-  N0025 -->|depends on| N0010
-  N0025 -->|depends on| N0015
-  N0025 -->|depends on| N0021
+  N0025 -->|depends on| N0019
   N0026 -->|depends on| N0019
   N0026 -.->|amends 3/26| N0019
 ```
@@ -145,7 +144,7 @@ graph TD
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
-  N0025["0025 · runtime"]:::stub
+  N0025["0025 · schema"]:::stub
   N0026["0026 · schema"]:::stub
 
   N0015 -->|depends on| N0010
@@ -182,7 +181,7 @@ graph TD
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0024["0024: CUE Testing and Conformance"]:::draft
   N0019["0019 · runtime"]:::stub
-  N0025["0025 · runtime"]:::stub
+  N0025["0025 · schema"]:::stub
 
   N0024 -->|depends on| N0019
   N0025 -->|depends on| N0008

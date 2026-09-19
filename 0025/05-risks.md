@@ -1,4 +1,4 @@
-# Risks, Drawbacks, Alternatives: Self-Service Kinds from Published Modules
+# Risks, Drawbacks, Alternatives: Self-Describing Modules and Self-Service Kinds
 
 Risks describe what could go wrong. Drawbacks describe what definitely costs something. Alternatives describe the high-level paths not taken; per-decision detail lives in `03-decisions.md`.
 
@@ -10,7 +10,13 @@ Risks describe what could go wrong. Drawbacks describe what definitely costs som
 - **The guardrail is bypassed by a direct `ModuleInstance`.** A tenant that may create `ModuleInstance` objects can name a module directly and skip the offering. **Mitigation:** OQ8's admission rule refuses a direct module reference under a tenant identity; in the kind layer, tenants are granted the served kinds and not `ModuleInstance` at all.
 - **Two definitions serve one kind.** Two platform-team definitions naming the same group and kind would fight over one CRD. **Mitigation:** acceptance refuses the second naming the first, the same exactly-one posture 0015 D2 keeps for providers; the CLI pre-flight reports the collision before apply.
 
+- **Extension-slot sprawl.** A generic attachment point on `#Module` invites every future need to become a module trait, and Kubernetes annotations show where an untyped version of that ends. **Mitigation:** a module trait is catalog-published under its own API version and the additive promise, `#TraitOptionalGate` refuses a pinned posture, and D14 puts every aspect under the contract inventory, so a trait nobody handles is a diagnostic, not a silent no-op. The gate on sprawl is the catalog's, where it already is for component traits.
+- **Two questions in one entry.** Aspects and self-service kinds could be read as two designs bundled under one title, which the `single-question` admission gate refuses. **Mitigation:** they share one premise, that the module is the unit a platform offers and the module may say so: D5 rests on D11 for the declaration, D15 ships the declaration with the binding layer, and OQ5's status schema lives on the same trait. The gate walk quotes this; if it does not hold, the aspect layer splits out with a `depends_on` edge from here.
+- **A second matching pass per render.** Aspects add a walk over their attachment maps and a matching pass beside the components'. **Mitigation:** the per-component cost 0019 measured is small and linear; an aspect count is far below a component count in any real module. Re-measure before promotion if a module with many aspects appears.
+
 ## Drawbacks
+
+- **Two attachment vocabularies.** A catalog author now keeps component traits and module traits apart, and a module author learns which concern belongs where. The rule is short (a workload's concern is a trait, the module's is a module trait) and the schemas refuse the wrong one, but it is one more distinction to teach.
 
 - **A second way to deploy a module.** Hand-authored `ModuleInstance` and offering-projected instance coexist. Documentation and the CLI must say when each applies; the projection being pure keeps the answer "the same render, different binding".
 - **A CRD and a dynamic informer per offering.** An organisation with fifty offerings has fifty served kinds. That is the cost Crossplane and KRO pay for the same benefit; it is accepted, and the binding layer exists for platforms that do not want it.

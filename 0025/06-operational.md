@@ -1,4 +1,4 @@
-# Operational Concerns: Self-Service Kinds from Published Modules
+# Operational Concerns: Self-Describing Modules and Self-Service Kinds
 
 This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answered.
 
@@ -10,13 +10,14 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 - **Instance status.** A served-kind instance mirrors the projected `ModuleInstance`'s readiness and its render diagnostics, so a consumer reads failures on the object they created. The exact status shape is OQ5.
 - **Dependents.** A definition reports how many instances bind to it; deletion refused while that count is non-zero names it.
 - **Guardrail refusals.** An admission refusal of a direct module reference under a tenant identity is an API-server error naming the definition path the tenant should use.
-- **Pre-flight.** The CLI reports, for a definition before it is applied, whether the bound release resolves, whether the module's `#config` is a valid kind schema, and whether the group and kind collide with an existing definition.
+- **Pre-flight.** The CLI reports, for a definition before it is applied, whether the bound release resolves, whether the module's `#config` is a valid kind schema, whether the group and kind collide with an existing definition, and whether the definition disagrees with the bound module's `offering` declaration.
+- **Unhandled aspects.** An aspect whose demand no enabled module transformer handles surfaces through the contract inventory as every unhandled demand does: a refusal naming the trait when it is not optional, a warning naming it when it is. A network-isolation aspect that rendered nothing would otherwise be a silent security hole.
 
 ## Semver Impact
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-Additive throughout. Core gains three definitions and changes neither `#Module` nor `#ModuleInstance`. The operator gains a CRD, an optional field on `ModuleInstance`, and served kinds that exist only where a definition asks for them. Catalog_opm gains a resource contract and a transformer. The CLI gains commands. A module that is never bound as an offering observes nothing. The one new refusal, a non-structural `#config` as a definition target, applies to a module only at the moment someone binds it. `semver` is set at promotion; the expected value is `minor`.
+Additive throughout. Core gains six definitions, an optional `#aspects` map on `#Module`, a module-transformer map on `#Catalog` and its fold on `#Platform`; `#ModuleInstance` does not change, and a module, catalog or platform that declares no aspect and no module transformer observes nothing. The operator gains a CRD, an optional field on `ModuleInstance`, and served kinds that exist only where a definition asks for them. Catalog_opm gains three module traits, two module transformers, a resource contract and a transformer. The library gains a matching pass. The CLI gains commands. A module that is never bound as an offering observes nothing. The one new refusal, a non-structural `#config` as a definition target, applies to a module only at the moment someone binds it. `semver` is set at promotion; the expected value is `minor`.
 
 ## Deprecation
 
@@ -38,7 +39,8 @@ Nothing is removed. Hand-authored `ModuleInstance` objects stay first-class; the
 
 Constraints only; landings are logged in this entry's `delivery.yaml`.
 
-- **Core before everything.** The definition shape, the served-instance shape and the projection are core definitions every other repo reads. The kernel cannot read a projection core does not define.
+- **Core before everything.** The aspect definitions, the definition shape, the served-instance shape and the projection are core definitions every other repo reads. The kernel cannot match an aspect or read a projection core does not define.
+- **Core's aspect definitions before catalog_opm's module traits, and those before any module attaches them.** A module trait is published against `#ModuleTrait`; a module can attach one only once a catalog publishes it; the `offering` trait must exist before the CLI drafts a definition from it.
 - **Library before the operator and the CLI.** The kernel's projection read and its "is this `#config` structural" answer are the single implementation both frontends share; each frontend implementing its own would be the drift D6 exists to prevent.
 - **Catalog_opm's definition pair before rendered definitions.** A platform product module can attach the definition resource contract only once catalog_opm publishes it and the transformer that renders it. Hand-authored definitions do not wait for this.
 - **The kind layer depends on the encoder.** CRD generation from `#config` uses the structural encoder 0008 chose. If 0008 has not landed the operator vendors the same encoder; either way the encoder's behaviour is one thing, not two.

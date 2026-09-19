@@ -9,17 +9,17 @@
 
 id: "0025"
 slug: self-service-kinds
-title: Self-Service Kinds from Published Modules
+title: Self-Describing Modules and Self-Service Kinds
 # One line: the capability OPM will have and does not have today, or the
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Let a platform team bind a published module to a kind consumers can create, so a consumer supplies
-  values and never names a module or a version.
+  Let a module describe itself through named bundles of module-level traits, and let a platform team
+  offer such a module as a kind consumers create with values alone.
 status: draft
 # Type of work, single-valued: schema | runtime | distribution | tooling | misc.
 # See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
-category: runtime
+category: schema
 # Every repo that ships code/schema/content changes driven by this enhancement:
 # its blast radius. Several entries means it spans repos; no label is needed.
 # Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
@@ -57,6 +57,8 @@ history:
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
   - date: "2026-09-19"
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
+  - date: "2026-09-19"
+    event: 'Module aspects folded in: #aspects on #Module, #ModuleTrait and #ModuleTransformer added; D5 revised (module declares, platform binds), D11-D15 recorded, OQ13-OQ16 opened; retitled, category schema.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -67,6 +69,7 @@ depends_on:
   - "0008"
   - "0010"
   - "0015"
+  - "0019"
   - "0021"
 # Lifecycle relationships. These accept four-digit ids ("0042") and legacy
 # three-digit refs ("legacy:003") that point at frozen library/enhancements/
