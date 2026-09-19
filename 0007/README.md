@@ -73,8 +73,8 @@ None at this stage. Update this section when implementation lands and any delibe
 | Document | Purpose |
 | -------- | ------- |
 | `library/CONSTITUTION.md` | Kernel purity, the constraint that forces passthrough to the apply layer (D1) |
-| `opm-operator/api/v1alpha1/modulerelease_types.go` | Where the side-channel field is added |
-| `opm-operator/api/v1alpha1/release_types.go` | The same field on the package type |
+| `opm-operator/api/v1alpha1/moduleinstance_types.go` | Where the side-channel field is added |
+| `opm-operator/api/v1alpha1/modulepackage_types.go` | The same field on the package type |
 | `opm-operator/api/v1alpha1/common_types.go` | The inventory entry side objects record in |
 | `opm-operator/internal/render/` | Where passthrough output joins the rendered list |
 | `opm-operator/pkg/core/labels.go` | The ownership labels and the passthrough marker |

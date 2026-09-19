@@ -1,6 +1,6 @@
 # Enhancement 0014: Export a Deployed Instance as GitOps Manifests
 
-OPM can hand a CLI-deployed app over to its in-cluster operator without disturbing the workload. That moves the manager, not the definition: afterwards the only record of the deployment is a live object in the cluster. Teams who want git as the source of truth transcribe it by hand, and get it wrong. This entry writes that directory for them.
+OPM once had a command handing a CLI-deployed app to its operator (removed 2026-08-31, cli PR 196). That moved the manager, not the definition: the only record left is a live object in the cluster. Teams who want git as the source of truth transcribe it by hand, and get it wrong. This entry writes that directory for them.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -8,7 +8,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The export is a whole directory, not a bare custom resource (D1).** One per instance: the `ModuleInstance`, the namespace, the `ServiceAccount` that applies it, its RBAC, and a `kustomization.yaml`. Repo-level Flux wiring is left out.
 
-**Nothing is written unless the published module still reproduces what is running (D2).** Export reuses the handoff command's checks: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. A failure leaves nothing on disk; `--force` skips the digest check only, and a deployment rendered from local files is refused outright (0006:D38). `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
+**Nothing is written unless the published module still reproduces what is running (D2).** Export re-implements the checks that handoff command had: the cluster gates, the record's existence, a concrete module coordinate, a recorded render digest, and a strict-registry re-render whose digest must equal it. A failure leaves nothing on disk; `--force` skips the digest check only, and a deployment rendered from local files is refused outright (0006:D38). `--all` repeats the same unit across a namespace or a cluster and merges nothing between directories.
 
 **A dump of the live object would be wrong, not just untidy.** Every CLI-written record is missing its service account name and prune setting, so the document would apply under the controller's identity and orphan its workloads on delete. Fields split three ways: module and values copied verbatim, apply-time fields filled in and reported, status and server metadata dropped.
 
@@ -97,9 +97,9 @@ None at this stage. Update when implementation lands.
 | `/CLAUDE.md` (workspace root) | Cross-repo routing and the vocabulary the metadata validates against |
 | `cli/CLAUDE.md`, `cli/CONSTITUTION.md` | The CLI principles every slice obeys |
 | `cli/internal/cmd/instance/instance.go` | The command group the new subcommand registers on |
-| `cli/internal/cmd/instance/handoff.go` | The closest command, whose flags this one mirrors |
-| `cli/internal/workflow/handoff/handoff.go` | The precondition chain reused, minus the ownership arm |
-| `cli/internal/workflow/handoff/verify.go` | The verification render both callers will share |
+| `cli/internal/cmd/instance/handoff.go` | Removed in cli PR 196 (2026-08-31); the closest command, whose flags this one mirrors, in git history |
+| `cli/internal/workflow/handoff/handoff.go` | Removed in cli PR 196; the precondition chain to re-implement, minus the ownership check |
+| `cli/internal/workflow/handoff/verify.go` | Removed in cli PR 196; the verification render to re-implement |
 | `cli/internal/inventory/record.go` | The read-side view that gains the service account name |
 | `cli/internal/inventory/cr.go` | The unstructured read path behind that record |
 | `cli/internal/inventory/store.go` | The single spec writer, and so the reason two fields are missing |

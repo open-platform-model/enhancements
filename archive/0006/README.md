@@ -2,7 +2,7 @@
 
 > **Delivered (2026-07-20).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0006`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0006` lists any.
 
-OPM can deploy a module two ways: with the CLI, one shot from a laptop, or with the operator, reconciled in the cluster. Before this entry the two shared nothing, each keeping its own record and its own render pipeline. So a module deployed by hand could never be handed over. This entry converged them and added the handover.
+OPM can deploy a module two ways: with the CLI, one shot from a laptop, or with the operator, reconciled in the cluster. Before this entry the two shared nothing: each kept its own record, and the CLI rendered through its own pipeline instead of the operator's kernel. So a module deployed by hand could never be handed over. This entry converged them and added the handover.
 
 All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 

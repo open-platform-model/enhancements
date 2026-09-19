@@ -16,7 +16,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **CI regenerates and fails on any diff (D7).** That gate is what makes the single source actually single.
 
-The entry sits on [0006](../archive/0006/), which made the operator's `ModuleInstance` types a contract the CLI consumes (0006:D13). This entry changes only where those definitions come from.
+The entry sits on [0006](../archive/0006/), which fixed the dependency direction: the CLI imports `library` only and writes the operator-owned `ModuleInstance` CRD shape by field path (0006:D13). This entry changes only where those definitions come from.
 
 ## How it works
 
