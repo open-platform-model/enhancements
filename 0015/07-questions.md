@@ -10,7 +10,7 @@
 - **OQ6: What is the blast radius of a registration change, and what does the store key become?** Status: answered. The blast-radius residue transferred to OQ8 and is explicitly accepted in D13. The store key is D13's package identity: the question was first closed on the premise that 0019 D8 deleted the store, and D17 records that the generated-module record survived reshaped and takes that identity as its key.
 - **OQ7: Where is a registration refused when the provider requires a build the platform does not run?** Status: resolved-by-D8.
 - **OQ8: What regenerates the platform package when the effective registry changes, and what keys it?** Status: resolved-by-D13.
-- **OQ9: What does "comparable predicates" mean operationally? How is a duplicate detected?** Status: deferred, to D5's implementation slice. The full operational definition is over-specification at design time (user decision 2026-08-21). Filed 2026-08-20 from D5's guard.
+- **OQ9: What does "comparable predicates" mean operationally? How is a duplicate detected?** Status: resolved-by-D5's implementation slice (core `comparable-predicate-guard`, 2026-09-16: the predicate is every required demand, resources, traits and label key-value pairs together; a pair is comparable when one predicate contains the other over a shared catalog-fulfilled contract). The deferral record below is kept as the hand-off it was; originally deferred, to D5's implementation slice. The full operational definition is over-specification at design time (user decision 2026-08-21). Filed 2026-08-20 from D5's guard.
 
   The slice inherits a measured starting point from the 2026-08-21 walk:
 

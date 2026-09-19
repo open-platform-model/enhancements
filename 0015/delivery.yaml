@@ -146,8 +146,12 @@ log:
   - date: "2026-09-19"
     summary: >-
       The operator refuses a render whose objects share one Kubernetes apply identity, before apply, under its own DuplicateIdentities reason
-    change: { kind: openspec, repo: opm-operator, change: 2026-09-19-refuse-duplicate-identities }
+    change: { kind: openspec, repo: opm-operator, change: refuse-duplicate-identities }
     decisions: [D15]
+  - date: "2026-09-19"
+    summary: >-
+      cli refuses a render whose objects share one apply identity in renderInstance, so build, apply and diff refuse what the operator refuses, with the library's wording; no decision claimed
+    change: { kind: openspec, repo: cli, change: refuse-duplicate-identities }
 no_work:
   D4: >-
     Decides against building a packaging split; no code anywhere.
