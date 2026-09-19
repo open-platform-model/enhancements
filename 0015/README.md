@@ -25,20 +25,31 @@ The entry is baselined on the archived render-pipeline entry 0019: a platform em
 ```mermaid
 flowchart TD
     pcat["Provider catalog: contracts, transformers, and a registration value built from its own identity"] --> pmod
-    pmod["Provider Module attaches the registration to one component"] --> render
+    pmod["Provider Module attaches the registration to one component, at most one per Module (D15)"] --> render
     render["Render: the base catalog's transformer writes the claim, with every field filled in for you"] --> cr
     cr["TransformerRegistration, a cluster-scoped custom resource: a claim, not yet a fact"] --> rbac{"Created by the platform team?"}
-    rbac --> denied["No: denied by the RBAC the operator already enforces"]
-    rbac --> accept["Yes: the operator re-derives the claim and checks nobody else provides it"]
-    accept --> rejected["Mismatch: rejected, naming the claimant"]
-    accept --> ready{"Provider package Ready?"}
-    ready --> waiting["Not yet: accepted but inactive"]
-    ready --> active["Yes: active, and it stays active until deleted"]
+    rbac -- no --> denied["Denied by the RBAC the operator already enforces"]
+    rbac -- yes --> c1{"Named artifact is a catalog? (D10)"}
+    c1 -- no --> rejected["Rejected, naming the claimant"]
+    c1 -- yes --> c2{"Provided set equals the operator's re-derivation? (D11)"}
+    c2 -- no --> rejected
+    c2 -- yes --> c3{"No duplicate under the instance-derived name? (D12)"}
+    c3 -- no --> rejected
+    c3 -- yes --> c4{"No other provider covers these contracts? (D2, D3)"}
+    c4 -- no --> rejected
+    c4 -- yes --> c5{"Provider's core and catalog resolution run on this platform? (D8)"}
+    c5 -- no --> rejected
+    c5 -- yes --> ready{"Provider package Ready? The registration itself is left out of that check (D14)"}
+    ready -- "not yet" --> waiting["Accepted but inactive"]
+    waiting --> ready
+    ready -- yes --> active["Active, and it stays active until deleted (D3)"]
     active --> registry["Effective registry: subscribed catalogs plus accepted claims"]
-    registry --> regen["Platform package rebuilt, so the next render can use the provider's transformers"]
+    registry --> regen["Platform package rebuilt, one per Platform generation plus active-claim set (D13, D17)"]
+    active --> shrink["Shrinking the provided set while dependents exist: refused like a deletion (D16)"]
+    active --> widen["A routine catalog bump widening a predicate: not caught here, deferred to the publish-gate family (D7)"]
 ```
 
-Everything left of the registration object is ordinary rendering. That is what lets the existing RBAC be the gate. Everything right of it is one operator deciding whether to believe the claim, so a bad registration is rejected by name instead of breaking somebody else's render later. Activation waits for the provider to be Ready, so a transformer never registers before the CRDs it renders against exist. Reproducing a render later is a fetch of the generated platform package, never a write-back (D6, D13).
+Everything above the registration object is ordinary rendering. That is what lets the existing RBAC be the gate. Everything below it is one operator deciding whether to believe the claim, five checks in a row, so a bad registration is rejected by name instead of breaking somebody else's render later. Activation waits for the provider to be Ready, so a transformer never registers before the CRDs it renders against exist. Reproducing a render later is a fetch of the generated platform package, never a write-back (D6, D13).
 
 ## Documents
 
