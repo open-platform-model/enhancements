@@ -89,7 +89,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 - Floating an instance forward within a range without an owner's act. That waits on entry 0021's compatibility answers and belongs to a later entry.
 - Module-hosted transformers. The ruling that transformers never ship inside a module artifact stands (0015:D10).
 - Generating the Platform custom resource definition from the authored platform, which is entry 0008's route. This entry states the authored shape, not how that definition is produced.
-- Self-service kinds over published modules, which is entry 0025 and reuses this entry's range vocabulary.
+- Self-service kinds over published modules, which is entry 0027 and reuses this entry's range vocabulary.
 
 ## Deviations from Design
 
@@ -105,7 +105,7 @@ deliberate divergences from the design need to be documented.
 | `enhancements/0010/` | Identity is the module path with its major (D1); the committed platform module is the resolution (D14); evolution inside a major is additive (D27) |
 | `enhancements/0021/` | The module compatibility surface, and the concrete case of a patch release orphaning a claim; it gates any future in-range floating |
 | `enhancements/0008/` | CUE-native CRD schemas: the route from the authored platform to the Platform custom resource definition |
-| `enhancements/0025/` | Self-service kinds, the consumer of this entry's range vocabulary for an offering's update policy |
+| `enhancements/0027/` | Self-service kinds, the consumer of this entry's range vocabulary for an offering's update policy |
 | `core/src/platform.cue` | The shipped platform and catalog-entry definitions this entry renames to `#ResolvedPlatform`, shape unchanged, and generates |
 | `core/src/module_instance.cue` | Why core injects nothing tied to a catalog contract, the reason the registration window is not injected into a module's configuration schema |
 | `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |

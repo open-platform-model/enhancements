@@ -1,4 +1,4 @@
-# Operational Concerns: Self-Describing Modules and Self-Service Kinds
+# Operational Concerns: Self-Describing Modules
 
 This document is the OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answered.
 
@@ -6,32 +6,30 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-- **Definition status.** Conditions for accepted versus refused (with the refusal reason: module not found, bound release outside the bound major, `#config` not structural, kind already served by another definition), for the served CRD being established, and for the bound release in effect. A rebind that is pending under a manual update policy is visible as a condition, never inferred.
-- **Instance status.** A served-kind instance mirrors the projected `ModuleInstance`'s readiness and its render diagnostics, so a consumer reads failures on the object they created. The exact status shape is OQ5.
-- **Dependents.** A definition reports how many instances bind to it; deletion refused while that count is non-zero names it.
-- **Guardrail refusals.** An admission refusal of a direct module reference under a tenant identity is an API-server error naming the definition path the tenant should use.
-- **Pre-flight.** The CLI reports, for a definition before it is applied, whether the bound release resolves, whether the module's `#config` is a valid kind schema, whether the group and kind collide with an existing definition, and whether the definition disagrees with the bound module's `offering` declaration.
 - **Unhandled aspects.** An aspect whose demand no enabled module transformer handles surfaces through the contract inventory as every unhandled demand does: a refusal naming the trait when it is not optional, a warning naming it when it is. A network-isolation aspect that rendered nothing would otherwise be a silent security hole.
+- **Where a rendered object came from.** Every object a module transformer renders carries the instance label and the aspect's name, so an object that belongs to no component is still traceable to the aspect that asked for it and to the module trait behind that.
+- **An aspect refusal names its subject.** An aspect with no trait, an aspect contributing a matching key of its own, and a spec key no attached trait declares each fail at the aspect, naming the module and the aspect key, rather than somewhere inside the render.
+- **Coverage before any module exists.** Because the contract inventory covers module traits (D14), a platform reports that an enabled catalog publishes a module trait no enabled module transformer requires, with no module in hand.
 
 ## Semver Impact
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-Additive throughout. Core gains six definitions, an optional `#aspects` map on `#Module`, a module-transformer map on `#Catalog` and its fold on `#Platform`; `#ModuleInstance` does not change, and a module, catalog or platform that declares no aspect and no module transformer observes nothing. The operator gains a CRD, an optional field on `ModuleInstance`, and served kinds that exist only where a definition asks for them. Catalog_opm gains three module traits, two module transformers, a resource contract and a transformer. The library gains a matching pass. The CLI gains commands. A module that is never bound as an offering observes nothing. The one new refusal, a non-structural `#config` as a definition target, applies to a module only at the moment someone binds it. `semver` is set at promotion; the expected value is `minor`.
+Additive throughout. Core gains three definitions, an optional `#aspects` map on `#Module`, a module-transformer map on `#Catalog` and its fold on `#Platform`; `#ModuleInstance` does not change, and a module, catalog or platform that declares no aspect and no module transformer observes nothing. The library gains a matching pass. No catalog gains a member (D15), so no published vocabulary changes and no module in the wild renders differently. `semver` is set at promotion; the expected value is `minor`.
 
 ## Deprecation
 
 **What gets removed and when? What replaces it?**
 
-Nothing is removed. Hand-authored `ModuleInstance` objects stay first-class; the definition reference is an alternative to the module reference, not a replacement.
+Nothing is removed and nothing is deprecated. `#components` and component traits keep their meaning exactly; an aspect is a second unit beside them, never a replacement for one. The workarounds this entry displaces stay legal: a label or annotation on `#Module.metadata` still means whatever its reader agrees it means, and a component trait standing in for a module-wide concern still renders. Retiring one of those is a catalog's decision about its own vocabulary, made under the catalog's API versions, and no catalog publishes a module trait under this entry (D15).
 
 ## Rollback
 
 **If this lands and proves bad, what's the rollback story?**
 
-- **Binding layer.** Delete the definitions. Instances referencing one lose their binding and stop reconciling with a diagnostic naming the missing definition; rewriting each to name its module directly restores it, which is the state before this entry. No rendered resource changes on rollback alone.
-- **Kind layer.** A definition cannot be deleted while instances exist, so rollback is: delete the served-kind instances (or convert them to hand-authored `ModuleInstance` objects, which the projection makes mechanical), then the definition, then the CRD goes with it. Whether the projected `ModuleInstance` is a real object that can outlive its served-kind parent is OQ7 and decides whether the conversion step is a rename or a re-create.
-- **Core.** Additive definitions; a consumer that never references them is unaffected by their presence or removal.
+- **Core.** Additive definitions and one optional map. A module that declares no aspect is unaffected by their presence or their removal.
+- **Library.** The aspect pass is a second matching pass emitting into the same output set. Removing it renders exactly today's output for a module that declares no aspect, and silently drops the module-scoped objects for one that does. That is why the inventory coverage (D14) lands with the pass rather than after it: without it, a rollback is invisible to the module author.
+- **Catalogs and modules.** Nothing to withdraw. No catalog member ships under this entry (D15), so no published vocabulary has to be pulled and no module in the wild is carrying an aspect that would stop rendering.
 
 ## Cross-Repo Coordination
 
@@ -39,9 +37,6 @@ Nothing is removed. Hand-authored `ModuleInstance` objects stay first-class; the
 
 Constraints only; landings are logged in this entry's `delivery.yaml`.
 
-- **Core before everything.** The aspect definitions, the definition shape, the served-instance shape and the projection are core definitions every other repo reads. The kernel cannot match an aspect or read a projection core does not define.
-- **Core's aspect definitions before catalog_opm's module traits, and those before any module attaches them.** A module trait is published against `#ModuleTrait`; a module can attach one only once a catalog publishes it; the `offering` trait must exist before the CLI drafts a definition from it.
-- **Library before the operator and the CLI.** The kernel's projection read and its "is this `#config` structural" answer are the single implementation both frontends share; each frontend implementing its own would be the drift D6 exists to prevent.
-- **Catalog_opm's definition pair before rendered definitions.** A platform product module can attach the definition resource contract only once catalog_opm publishes it and the transformer that renders it. Hand-authored definitions do not wait for this.
-- **The kind layer depends on the encoder.** CRD generation from `#config` uses the structural encoder 0008 chose. If 0008 has not landed the operator vendors the same encoder; either way the encoder's behaviour is one thing, not two.
-- **The offered module's `#config` must be structural.** A platform team wanting to offer a module whose `#config` uses templating must first change that module. That is a constraint on module authors, and the CLI pre-flight is how they learn it before binding.
+- **Core before the library.** The kernel cannot match an aspect core does not define, and the inventory cannot cover a module trait that has no shape.
+- **The inventory lands with the pass, not after it.** D14 is what makes an unhandled demand visible; shipping the matching pass first would render module-scoped objects with no way to report the ones nobody handles.
+- **Nothing waits on a catalog.** The delta is exercised by fixtures (D15), so no catalog release gates this entry. The first catalog member ships with the entry that consumes it, which is entry 0027 for the offering declaration and entry 0009 for lifecycle.

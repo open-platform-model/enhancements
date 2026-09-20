@@ -1,32 +1,40 @@
-// Core-schema delta for enhancement 0025: Self-Describing Modules.
+// Core-schema delta for enhancement 0027: Self-Service Kinds from Published
+// Modules.
 //
 // Delta manifest (vs opmodel.dev/core@v2). The file is standalone rather
 // than importing opmodel.dev/core, so the entry vets offline; MIRROR marks
-// an unchanged core type restated in reduced form for the delta to reference.
+// an unchanged core type restated in reduced form for the delta to reference,
+// and MIRROR (0025) marks a type entry 0025 adds, restated here for the same
+// reason.
 //
-//   #ModuleTrait       NEW      a module-scoped trait, sibling of #Trait: same
-//                               identity block, no appliesTo, no name
-//                               constraint (D12).
-//   #Aspect            NEW      a named bundle of module traits on #Module,
-//                               sibling of #Component: derived matchLabels,
-//                               closed spec, resourceName cascade (D11).
-//   #ModuleTransformer NEW      renders an aspect to resources, sibling of
-//                               #ComponentTransformer (D13).
-//   #Module            CHANGED  gains #aspects (D11); mirrored reduced:
-//                               identity, #config, #aspects, #ctx.
+//   #Offering          NEW      the platform-owned definition binding a module
+//                               lineage, major, release, update policy and
+//                               bound values, optionally served as a kind.
+//                               IDENTIFIER IS A PLACEHOLDER: the kind name is
+//                               OQ1 and every #Offering* identifier renames
+//                               with the decision.
+//   #OfferingAPI       NEW      the served kind's group and kind (kind layer).
+//   #UpdatePolicy      NEW      what a rebind does to live instances (OQ3).
+//   #OfferingInstance  NEW      an instance of a served kind: apiVersion and
+//                               kind derived from the definition, spec = the
+//                               consumer's values, status per OQ5.
+//   #Project           NEW      the pure projection (D6): definition +
+//                               instance + resolved module -> #ModuleInstance.
+//   #KindVersion       NEW      the served CRD version derived from the
+//                               module major (D7).
+//   #Module            MIRROR (0025)  reduced: identity, #config, #aspects,
+//                               #ctx. The #aspects map is entry 0025's
+//                               (0025:D11); the offering declaration D11
+//                               publishes attaches there.
+//   #ModuleTrait       MIRROR (0025)  the vocabulary the offering trait is
+//                               published against (0025:D12).
+//   #Aspect            MIRROR (0025)  the attachment unit the declaration
+//                               rides on (0025:D11).
 //   #ModuleInstance    MIRROR   reduced: identity, #module and values only;
-//                               wires #ctx.instance as core does. It is what
-//                               supplies an aspect its instance identity.
-//   #Catalog           CHANGED  gains #moduleTransformers beside
-//                               #transformers (D14); mirrored reduced.
-//   #Platform          CHANGED  folds module transformers as it folds
-//                               component transformers (D14); mirrored
-//                               reduced.
+//                               wires #ctx.instance as core does.
 //
-// No catalog member is defined here: the module traits and the module
-// transformer in examples.cue are the test's own fixtures (D15).
-//
-// Unresolved fields carry `// OQN:` markers pointing at 07-questions.md.
+// Unresolved fields carry `// OQN:` markers pointing at 07-questions.md; a
+// marker naming another entry's question carries that entry's id.
 package schema
 
 import "strings"
@@ -48,6 +56,7 @@ import "strings"
 // A full SemVer release.
 #VersionType: =~"^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
 
+#MajorType: int & >=0
 
 // A contract key: path/name@vN where vN is the primitive's own apiVersion (0010 D4).
 #ContractFQNType: =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+((alpha|beta)[0-9]+)?$"
@@ -110,7 +119,7 @@ import "strings"
 		_hasTraits: true
 	}
 
-	// Reduced: the real #ctx also projects #components' names. OQ14: whether
+	// Reduced: the real #ctx also projects #components' names. entry 0025 OQ14: whether
 	// it gains an `aspects` projection beside `components`.
 	#ctx: {
 		instance: #InstanceIdentity
@@ -147,7 +156,121 @@ import "strings"
 	_configCheck: #module.#config & values
 	...
 }
-// ─── NEW: #ModuleTrait, a module-scoped trait (D12) ─────────────────────────
+
+// ─── NEW: the definition (placeholder identifier, OQ1) ──────────────────────
+
+// #Offering: the platform-owned, cluster-scoped binding (D1). The consumer
+// never sees spec.module; the platform owns the coordinate.
+#Offering: {
+	kind: "Offering" // OQ1: placeholder kind name.
+
+	metadata: name!: #NameType
+
+	spec: {
+		module: {
+			// The lineage (major-free), the bound major and the bound release.
+			registryPath!: #PackagePathType
+			major!:        #MajorType
+			version!:      #VersionType
+
+			// The release must sit inside the bound major (D7). Same shape
+			// as core's own hidden checks: a boolean that must be true.
+			_agrees: strings.HasPrefix(version, "\(major).")
+			_agrees: true
+		}
+
+		// What a rebind does to live instances. OQ3: vocabulary and default.
+		updatePolicy: #UpdatePolicy
+
+		// Platform-bound values, unified with the consumer's at projection;
+		// a conflict is a refusal (D6). OQ10: whether the served schema is
+		// #config minus these fields.
+		values?: {...}
+
+		// Present only in the kind layer (D4). Absent means binding only.
+		api?: #OfferingAPI
+	}
+}
+
+// OQ3: candidates recorded; default and semantics undecided.
+#UpdatePolicy: *"manual" | "automatic"
+
+// The served kind's coordinates (kind layer). The CRD version is derived from
+// the module major (D7), never authored here.
+#OfferingAPI: {
+	group!:  =~"^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+	kind!:   =~"^[A-Z][A-Za-z0-9]*$"
+	plural?: =~"^[a-z][a-z0-9]*$"
+}
+
+// ─── NEW: the served CRD version (D7) ───────────────────────────────────────
+
+#KindVersion: {
+	#major: #MajorType
+	out:    "v\(#major)"
+}
+
+// ─── NEW: an instance of a served kind ──────────────────────────────────────
+
+// #OfferingInstance: what a consumer creates in the kind layer. apiVersion
+// and kind derive from the definition; the consumer authors metadata and
+// spec only (D9: namespaced, the only consumer-facing object).
+#OfferingInstance: {
+	// A served-kind instance exists only for a definition that names an API.
+	#offering: #Offering & {spec: api: #OfferingAPI}
+
+	apiVersion: "\(#offering.spec.api.group)/\((#KindVersion & {#major: #offering.spec.module.major}).out)"
+	kind:       #offering.spec.api.kind
+
+	metadata: {
+		name!:      #NameType
+		namespace!: #NameType
+	}
+
+	// The consumer's values. Validated against the served schema at the API
+	// server (D2) and against #config again at projection (the mirror's
+	// _configCheck). OQ10: this is #config minus the bound fields.
+	spec: {...}
+
+	// OQ5: the status contract. Left open here; the minimum is conditions
+	// mirrored from the projected instance plus a reference to it.
+	status?: {...}
+}
+
+// ─── NEW: the projection (D6) ───────────────────────────────────────────────
+
+// #Project: definition + instance + resolved module -> #ModuleInstance. Pure:
+// every frontend computes exactly this. The module is supplied resolved (the
+// artifact the definition's coordinate names); the projection asserts it is
+// the bound one rather than fetching it.
+#Project: {
+	#offering: #Offering
+	#instance: #OfferingInstance & {#offering: #Project.#offering}
+	#module: #Module & {
+		metadata: {
+			registryPath: #offering.spec.module.registryPath
+			version:      #offering.spec.module.version
+		}
+	}
+
+	let mod = #module
+
+	out: #ModuleInstance & {
+		metadata: {
+			name:      #instance.metadata.name
+			namespace: #instance.metadata.namespace
+		}
+		#module: mod
+
+		// Bound values and consumer values unify; a conflict is a refusal,
+		// never an override (D6).
+		values: #instance.spec
+		if #offering.spec.values != _|_ {
+			values: #offering.spec.values
+		}
+	}
+}
+// ─── MIRROR (0025): #ModuleTrait, a module-scoped trait (0025:D12) ─────────────────────────
 
 // #ModuleTrait: what a catalog publishes for a module to say something about
 // itself as a whole. The identity block, matchLabels, fulfilment, optional
@@ -172,7 +295,7 @@ import "strings"
 	// this trait; the keys a #ModuleTransformer selects on. Never rendered.
 	matchLabels?: #LabelsAnnotationsType
 
-	// OQ13: how a declaration-only module trait (consumed outside the render
+	// 0025 OQ13: how a declaration-only module trait (consumed outside the render
 	// path, such as `offering` or `lifecycle`) states this, given "provider"
 	// demands a transformer on the platform.
 	fulfilment: *"catalog" | "provider"
@@ -189,7 +312,7 @@ import "strings"
 
 #ModuleTraitMap: [#ContractFQNType]: #ModuleTrait
 
-// ─── NEW: #Aspect, a named bundle of module traits on #Module (D11) ─────────
+// ─── MIRROR (0025): #Aspect, module traits attached on #Module (0025:D11) ─────────
 
 // #Aspect: #Component transposed to module scope. What carries over: the
 // resourceName cascade, the derived matchLabels and its enforcement, the
@@ -249,96 +372,4 @@ import "strings"
 	spec: close({
 		_allFields
 	})
-}
-
-// ─── NEW: #ModuleTransformer, renders an aspect (D13) ───────────────────────
-
-// #ModuleTransformer: #ComponentTransformer transposed. Matching buckets are
-// labels and module traits (no resource buckets); the transform takes the
-// concrete module instance and ONE aspect; whole-module facts come through
-// #moduleInstance.#module. Output is rendered resources and nothing else,
-// and the transformer never sees rendered component output: one build.
-#ModuleTransformer: {
-	kind: "ModuleTransformer"
-
-	metadata: {
-		modulePath!:     #PackagePathType
-		name!:           #NameType
-		catalogVersion!: #VersionType
-		fqn!:            #ImplFQNType
-		description!:    string
-		labels?:         #LabelsAnnotationsType
-		annotations?:    #LabelsAnnotationsType
-	}
-
-	requiredLabels?: #LabelsAnnotationsType
-	optionalLabels?: #LabelsAnnotationsType
-	requiredTraits?: [#ContractFQNType]: #ModuleTrait
-	optionalTraits?: [#ContractFQNType]: #ModuleTrait
-
-	producesKinds?: [...string]
-
-	#transform: {
-		#moduleInstance: _ // fully concrete #ModuleInstance (0019 D3)
-
-		#aspect: _ // validated by matching, not by the signature
-
-		#context: {
-			#moduleInstanceMetadata: {
-				name:      #moduleInstance.metadata.name
-				namespace: #moduleInstance.metadata.namespace
-			}
-			#aspectMetadata: {
-				name: #aspect.metadata.name
-				if #aspect.metadata.labels != _|_ {
-					labels: #aspect.metadata.labels
-				}
-			}
-
-			// The labels every rendered object carries: instance plus aspect.
-			labels: {
-				"module-instance.opmodel.dev/name": #moduleInstanceMetadata.name
-				"aspect.opmodel.dev/name":          #aspectMetadata.name
-			}
-		}
-
-		output: {...} | [...{...}]
-	}
-}
-
-#ModuleTransformerMap: [#ImplFQNType]: #ModuleTransformer
-
-// ─── CHANGED: #Catalog and #Platform carry module transformers (D14) ────────
-
-// Reduced. The real #Catalog stamps modulePath / catalogVersion on every
-// transformer entry; the pattern is the same for both maps.
-#Catalog: {
-	kind: "Catalog"
-	metadata: name!:               #NameType
-	#transformers: [#ImplFQNType]: _ // component transformers, unchanged
-	#moduleTransformers: #ModuleTransformerMap
-	...
-}
-
-// Reduced. The real #Platform derives a contract inventory over the folded
-// transformers; under D14 that inventory covers module transformers and
-// their required module traits too, so an unhandled aspect demand is
-// reported or refused exactly as an unhandled component demand is.
-#Platform: {
-	kind: "Platform"
-	#catalogs: [string]: {
-		#catalog: #Catalog
-		enabled:  bool | *true
-	}
-	#composedTransformers: {
-		for _, e in #catalogs if e.enabled {
-			for fqn, tf in e.#catalog.#transformers {(fqn): tf}
-		}
-	}
-	#composedModuleTransformers: {
-		for _, e in #catalogs if e.enabled {
-			for fqn, tf in e.#catalog.#moduleTransformers {(fqn): tf}
-		}
-	}
-	...
 }

@@ -161,7 +161,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Alternatives considered:**
 
 - **Per-component attachment.** Rejected: a workflow spans components by construction (drain one, migrate another, verify a third); scoping it to one component would need a cross-component reference vocabulary the render half does not have either.
-- **Both module root and per-component.** Rejected: two attachment points is the two-interpreter problem 0025 D10 names, transposed to placement; every consumer would merge the two.
+- **Both module root and per-component.** Rejected: two attachment points is the two-interpreter problem entry 0027 names for served kinds, transposed to placement; every consumer would merge the two.
 - **A dedicated `lifecycle` and `workflows` field on `#Module`** (the sketch this entry carried until 2026-09-19). Rejected once 0025 gave the module one named extension point: a field per feature is what the aspect map exists to stop.
 
 **Rationale:** The execution half consumes the same `#Module` the render half does; an aspect is exactly the module-scoped, catalog-published, versioned slot it needs, and 0025 D13 already reserves non-resource output for this interpreter rather than for a render-side transformer.

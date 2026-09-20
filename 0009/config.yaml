@@ -27,7 +27,7 @@ affects:
   - opm-operator
 core_schema: true
 created: "2026-06-29"
-updated: "2026-09-19"
+updated: "2026-09-20"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces

@@ -39,7 +39,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-08"
-updated: "2026-09-19"
+updated: "2026-09-20"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces

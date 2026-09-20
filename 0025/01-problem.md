@@ -1,68 +1,69 @@
-# Problem Statement: Self-Describing Modules and Self-Service Kinds
+# Problem Statement: Self-Describing Modules
 
-A module can say what each of its workloads is, and nothing about itself as a whole. And a platform team cannot offer a module to the rest of the organisation without handing every consumer the module's coordinate: the consumer names the module path and version, supplies values, and carries the upgrade. Nothing at the API server knows the module's `#config` exists, and permission to deploy one module is permission to deploy any module. This entry closes four gaps: one named attachment point on the module for what it is, and one object the platform owns for how it is offered.
+A module can say what each of its workloads is, and nothing about itself as a whole. That every workload in it should be network-isolated, that the set has one budget, that it is meant to be offered to other teams: each is a fact about the module, and none has a place to live. This entry gives a module one named attachment point for what it is.
 
 ## Current State
 
-**A deployment binds its own module.** Core's `#ModuleInstance` takes the module as a value and supplies `values` against its `#config`. The operator's `ModuleInstance` CR carries the same two facts as `spec.module` and `spec.values`. Whoever writes the instance decides which module and which version render. Enhancement 0016 scaffolds that package from a published module so the coordinate does not have to be typed by hand, and the consumer still owns it.
+**Everything a module says is per component.** `#Module` carries `#components`, `#config` and metadata. A component attaches resources and traits, and a transformer renders each component on its own. There is no place for a fact about the module as a whole. Labels and annotations on `#Module.metadata` are the only escape hatch, and nothing types, versions or consumes them.
 
-**Values are validated at render.** The kernel unifies `#module & {#config: values}` and the failure surfaces as a render diagnostic on the instance. Core's module schema declares `#config` as OpenAPIv3-compatible, with no templating, and nothing enforces the declaration: a `#config` carrying a comprehension renders fine and is simply not encodable as a schema.
+**A component is the only thing a transformer sees.** A component transformer matches a component's labels and attached traits, takes one component context, and runs once per matched pair. Nothing matches a module, so nothing can render one object for the whole of it.
 
-**Tenancy is per instance, not per module.** The operator applies rendered output under a per-tenant ServiceAccount (the RBAC gate 0015 D3 rests on). A tenant permitted to create `ModuleInstance` objects may reference any module the registry serves. There is no vocabulary for "this team may deploy the platform's PostgreSQL offering and nothing else".
+**A catalog can publish words about workloads only.** A `#Trait` declares `appliesTo`, naming the resource kinds it may attach to, and the platform's contract inventory covers what component transformers require. A catalog has no way to publish a word that means something about a module rather than a workload, and therefore no way to be told that nobody implements one.
 
-**Everything a module says is per component.** `#Module` carries `#components`, `#config` and metadata. A component attaches resources and traits, and a transformer renders each component on its own. There is no place for a fact about the module as a whole: that every workload in it should be network-isolated, that it has a resource budget, that it is meant to be offered to other teams. Labels and annotations on `#Module.metadata` are the only escape hatch, and nothing types, versions or consumes them.
-
-**Registration exists for transformers, not for modules.** Enhancement 0015 lets a provider module ship a cluster-scoped registration CR that the Platform reconciler accepts or rejects, RBAC-gated because the CR is rendered output applied under tenant impersonation. That pattern binds a catalog's transformers into a cluster. Nothing binds a module into a cluster as something others may instantiate.
+**Each entry that meets this gap proposes its own field.** Lifecycle placement in entry 0009 and seed values in entry 0016 both reached for a new top-level field on `#Module`. That is how a schema grows a field per feature, each with its own consumer and no matching.
 
 ## Gap / Pain
 
-**Gap 1: the module coordinate is bound by the consumer.** A platform team maintaining PostgreSQL for forty application teams cannot roll a patch release to the fleet. Each team's instance pins `example.com/modules/postgres` at a version, and each team edits it. The platform team's actual knowledge, which module and which release is the supported one, has no home except documentation.
+**Gap 1: a module cannot describe itself.** A module author who wants one default-deny NetworkPolicy across the module either writes it per component, where it is a workload concern it is not, or ships none. A module author who wants to say "this is a database offering, here is its kind" has nowhere to say it that a tool reads.
 
-**Gap 2: `#config` has no presence at the API server.** A consumer cannot `kubectl explain` what a PostgreSQL deployment accepts. A typo in a field name is discovered at render, after the object is stored. Admission policy engines cannot key on the kind because there is no kind: every deployment is a `ModuleInstance` with an opaque `values` map. RBAC cannot distinguish deployments by what they are.
+**Gap 2: a module-scoped concern has no renderer.** Even with somewhere to write the fact, nothing would render it. The render path walks components and runs component transformers; a module-wide object has no matched pair to be produced from, so the fact would be documentation rather than a resource.
 
-**Gap 3: tenancy is all-or-nothing.** The guardrail an organisation wants is "application teams may create databases, caches and web services from the platform's approved set". OPM's guardrail is "this ServiceAccount may create `ModuleInstance` objects", which admits every module the registry can serve.
-
-**Gap 4: a module cannot describe itself.** A module author who wants one default-deny NetworkPolicy across the module either writes it per component, where it is a workload concern it is not, or ships none. A module author who wants to say "this is a database offering, here is its kind and its status" has nowhere to say it that a tool reads. Each entry that has met this gap so far (lifecycle placement in 0009, seed values in 0016) has proposed its own top-level field on `#Module`, which is how a schema grows a field per feature.
+**Gap 3: what a module says cannot be a contract.** A fact parked in an annotation cannot be required, cannot be versioned, and cannot be reported as unhandled. A platform that does not implement isolation has no way to say so, and a module that wanted isolation and got nothing looks exactly like a module that never asked.
 
 ## Concrete Example
 
-A platform team publishes `example.com/modules/postgres` on the v1 line. Its `#config` declares `storage`, `replicas` with a default of one, and `storageClass`. The team supports release 1.4.2 and wants every internal PostgreSQL on it, on the `fast-ssd` storage class, without any application team knowing either fact.
+A module called `payments` ships three workloads: an API, a queue worker and a nightly backup job. Two facts about the module as a whole have nowhere to live.
+
+The first is that every workload in it talks only to the other two and to one allowed network range. The author can attach a network-policy trait to each of the three components. That is three copies of one decision, and four the day a fourth workload lands. Each copy also says the wrong thing: it says "this workload is isolated", and none of them says "this module is isolated".
+
+The second fact cannot be written even three times. The module has one memory budget for the set, and no workload owns it. There is no component to attach it to, because it is not a property of any workload.
 
 ```
-  today                                        wanted
+  today                                    wanted
 
-  team-orders                                  team-orders
-    ModuleInstance orders-db                     PostgresDatabase orders-db
-      spec.module:  example.com/modules/           spec.storage:  20Gi
-                    postgres, version 1.4.2        spec.replicas: 2
-      spec.values:  storage 20Gi, replicas 2,
-                    storageClass fast-ssd        platform (cluster-scoped, one object)
-                                                   definition postgres-database
-  team-billing                                       module   example.com/modules/postgres
-    ModuleInstance billing-db                        major    1, release 1.4.2
-      spec.module:  ... version 1.3.9  <- drift      values   storageClass fast-ssd
-      spec.values:  ... storageClass gp2 <- drift    api      platform.example.com / PostgresDatabase
+  module payments                          module payments
+    #components:                             #components:
+      api:    [network-policy]  ┐              api, worker, backup
+      worker: [network-policy]  ├ copies
+      backup: [network-policy]  ┘            #aspects:
+                                               isolation: network-isolation
+    the module's memory budget:                  allowed ranges read from #config
+      nowhere                                  budget:    resource-budget
+                                                 one figure for the whole module
+    a catalog can publish:
+      words about workloads only             rendered: one NetworkPolicy
+                                                       one ResourceQuota
 ```
 
-Three failures in the left column. The version drifts per team because each team carries it. The storage class drifts because the value is consumer-supplied and there is no way to bind it. And the object on the right, `PostgresDatabase`, cannot exist: there is no kind, so no schema at the API server, no RBAC on it, and no way to say "team-orders may create these".
+Three failures on the left. The isolation decision is copied per workload and drifts the first time one copy is edited. The budget cannot be stated at all. And a platform that does not implement isolation cannot say so, because nothing in the module declares a demand for it: the copies are ordinary component traits, and a module that ships none looks exactly like a module that wanted isolation and got nothing.
 
 ## User Stories
 
-- As a **platform team operator**, I want to bind one supported release of a module to a name the organisation uses, so that upgrading the fleet is one edit on my side. Today: forty instances carry forty copies of the coordinate.
-- As an **application team member**, I want to create a database by filling in the fields the platform documented, validated when I apply it, so that a mistake is refused before anything renders. Today: I copy an instance package, learn the module path, and find field errors in render diagnostics.
-- As a **module author**, I want to declare module-wide facts once, such as "isolate every workload in this module" and "this module is offered as a PostgresDatabase", so that they are typed, versioned and rendered, instead of copied per component or parked in an annotation nothing reads. Today: per-component traits or nothing.
-- As a **platform product owner**, I want to grant a team the right to create databases and web services from the approved set and nothing else, so that self-service does not mean unrestricted deployment. Today: the grant is on `ModuleInstance`, which admits every module.
+- As a **module author**, I want to declare module-wide facts once, such as "isolate every workload in this module" and "this module has one memory budget", so that they are typed, versioned and rendered, instead of copied per component or parked in an annotation nothing reads. Today: per-component traits or nothing.
+- As a **catalog author**, I want to publish a word that means something about a module rather than a workload, under my own API version and the additive promise, so that a module-wide concern is vocabulary like any other. Today: `#Trait` requires `appliesTo`, so every word I publish is about a workload.
+- As a **platform operator**, I want to be told that a module asks for something no transformer I enable implements, before anything renders, so that a missing capability is a diagnostic rather than a quietly absent object. Today: there is no demand to report, because the module could not state one.
+- As a **designer of another entry**, I want one place to attach what a module says about itself, so that the next such need does not add a fourth top-level field to `#Module`. Today: lifecycle placement and seed values each proposed their own.
 
 ## Why Existing Workarounds Fail
 
-**Scaffold the instance package for them.** Enhancement 0016 removes the typing, not the binding. The coordinate still lives in the consumer's package, and the fleet upgrade is still a per-team edit.
+**Copy the trait onto every component.** The closest thing to working, and what authors do today. It drifts the first time one copy is edited, it scales with the component count, and it renders N objects where the concern is one. It also states the wrong scope: nothing in the output says the fact belongs to the module.
 
-**Template `ModuleInstance` objects with GitOps tooling.** A Helm chart or Kustomize overlay that stamps out instances with the platform's coordinate and bound values puts text templating back on top of a typed system. The API server still validates nothing, and the template becomes a second place the platform's knowledge lives.
-
-**Put Crossplane or KRO on top.** An XRD or ResourceGraphDefinition can wrap a `ModuleInstance`, but its schema is hand-written and drifts from the module's `#config`, its composition re-expresses in patches or CEL what the module already states in CUE, and there are then two composition layers to operate.
-
-**Annotations on the module.** `#Module.metadata.annotations` can carry "isolate me" or "offer me as X". Nothing types the value, nothing versions the key, and no transformer or reconciler consumes it, so it is documentation with a colon in it.
+**Annotations on the module.** `#Module.metadata.annotations` can carry "isolate me". Nothing types the value, nothing versions the key, and no transformer or reconciler consumes it, so it is documentation with a colon in it.
 
 **A component with only traits.** A component that attaches a trait and no resource could carry a module-wide concern. It would pass the component transformer contract (one workload, one component context) while lying about scope, and every transformer author would have to know it might be looking at one.
 
-**Restrict modules with admission policy alone.** A ValidatingAdmissionPolicy can refuse a `ModuleInstance` whose module is not on an allowlist. That closes Gap 3 for one identity and does nothing for Gaps 1 and 2: the consumer still binds the coordinate and the API server still has no schema.
+**Author the objects beside the module.** The platform team writes the NetworkPolicy and the ResourceQuota by hand, or an external policy engine attaches them by label. The fact then does not travel with the module artifact, is not versioned with it, and cannot read `#config`, so the two drift the first time the module changes shape.
+
+**A module-level pass over the rendered output.** Render the components, then append to or mutate the result. That is a second build after the first, which is what the single build and its parity oracle exist to prevent (0019:D9).
+
+**A new top-level field on `#Module` per concern.** What the entries meeting this gap have each proposed. Every field arrives with its own consumer, its own versioning story and no matching, so nothing can report a field nobody implements.

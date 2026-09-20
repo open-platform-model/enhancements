@@ -21,8 +21,9 @@
 | [0022](./0022/) | distribution | core, cli, catalog, modules, opmodel.dev | draft | not-started | Machine-Readable Artifact Metadata in cue.mod/module.cue | Let OPM tooling read an artifact's kind, identity and compatibility from the small module file alone, without downloading the zip. |
 | [0023](./0023/) | distribution | cli, library, opm-operator, catalog, modules, core | draft | not-started | Artifact Provenance, Signatures and Platform Trust Policy | Attach signed build records and signatures to every release, and let a platform say whose signatures it trusts before it uses anything. |
 | [0024](./0024/) | tooling | core, catalog, library | draft | not-started | CUE Testing and Conformance | Verify CUE behaviour two ways: assertions beside each definition, and an outside suite replaying fixtures across CUE, core, catalog and Kubernetes versions. |
-| [0025](./0025/) | schema | core, library, catalog, cli, opm-operator | draft | not-started | Self-Describing Modules and Self-Service Kinds | Let a module describe itself through named bundles of module-level traits, and let a platform team offer such a module as a kind consumers create with values alone. |
+| [0025](./0025/) | schema | core, library | draft | not-started | Self-Describing Modules | Let a module state facts about itself as a whole, as named bundles of catalog-published traits that the kernel matches and renders the way it already does components. |
 | [0026](./0026/) | schema | core, library, cli, opm-operator, catalog | draft | not-started | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
+| [0027](./0027/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create, so a consumer supplies values and never names a module or a version. |
 
 ## Archived (delivered / rejected / superseded)
 
