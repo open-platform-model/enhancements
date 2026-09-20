@@ -107,6 +107,16 @@ Noun-first operator command group — content now in D28. Number retired.
 
 Two lines. Never reuse the number, never renumber around the gap. `task compact:plan` counts tombstones when computing the next free `DN`, and so does the `enhancement-open-questions` walk.
 
+A scope split that carries a decision to another entry uses the same stub with a third verb, and keeps the number on both sides so an existing citation repoints by entry id alone:
+
+```markdown
+### D7: (moved to 0027:D7, 2026-09-20)
+
+A served kind's API version is the bound module's major: content now in entry 0027 under the same number. Number retired here.
+```
+
+Delete the moved decision's `**Depends:**` line with it: a tombstone carries no relation field, `scripts/depends.sh` refuses one that does, and dropping it is what removes the vacated entries from `config.yaml.depends_on`. Open Questions do not take this form. They move with `Status: deferred-to-NNNN`, which is a documented status token, keeps the question readable where it was first asked, and always carries its own `Status:` line.
+
 ### COLLAPSE-OQ — reduce a resolved question to its pointer
 
 `accepted` and `superseded` only. A resolved Open Question keeps its number, its question, and its status token. Everything after the status token goes — the answer lives in the decision it points at, and restating it here is how this block grows into an unreadable second decision log.
