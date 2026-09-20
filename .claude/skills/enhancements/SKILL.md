@@ -114,6 +114,11 @@ Decisions are written **after** they are made, not speculatively, and only if th
 
 **Decision:** {What was decided. State it as a fact.}
 
+**Requirements:**
+
+- R1: {One observable statement a repo change can claim}
+- R2: {...}
+
 **Alternatives considered:**
 
 - {Alternative A and why it was not chosen}
@@ -125,6 +130,8 @@ Decisions are written **after** they are made, not speculatively, and only if th
 ```
 
 Source is specific. "User decision 2026-05-23" beats "discussion"; an experiment outcome reference (`enhancements/NNNN/experiments/01-name/`) beats a vague "validated".
+
+`**Requirements:**` states what must observably hold once the decision is delivered, as numbered `- Rn:` items. Numbers are permanent like `DN` and are cited as `NNNN:DN:Rn` from repo delta specs. A `contract` decision carries at least one; a `policy` or `scope` decision carries `**Requirements:** none ({reason})`, so a missing block reads as an omission, never as "not applicable". A requirement is observable from outside one repo's code: a module author, platform operator or consumer can see it hold or fail. If it can only be phrased with a Go symbol, a CLI flag or a file path, it is a repo delta-spec line, not an entry requirement; `MAY`-only content is not a requirement. A decision that only reaffirms or bounds another entry's rule carries `none` and the behaviour keeps its original ID. Scenarios (`WHEN` / `THEN`) never appear here; they belong to the repo change that implements the requirement.
 
 `**Depends:**` is optional and tokens-only (`MMMM:DN`, comma-separated, no prose). It is owed when the decision rests on another entry's decision: *if that decision were reversed, would this one need an `Amends:`?* A citation for precedent, contrast, or a delegated enforcement site is prose, not a dependency. Every entry the lines name goes in `config.yaml.depends_on`, and nothing else does; `task vet` enforces both directions, requires each target to be a live heading in that entry's log, and refuses a cycle.
 

@@ -22,7 +22,7 @@ affects:
   - catalog
 core_schema: true
 created: "2026-08-05"
-updated: "2026-09-19"
+updated: "2026-09-20"
 authors:
   - emil@jacero.se
 history:
@@ -77,6 +77,8 @@ history:
     event: "D6 revised in place: retrieve means regenerate from the CR's effective inputs with the shared generator; nothing is served. Delivered by cli platform-pull. No answer, number or Source changed."
   - date: "2026-09-19"
     event: "D14 revised in place: readiness is apply success plus CRD establishment, no health wait exists or is planned, so the registration is excluded by construction. No answer, number or Source changed."
+  - date: "2026-09-20"
+    event: 'Requirements added to every decision (D1-D18; none on D2, D4, D7), additive, no decision body changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

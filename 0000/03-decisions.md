@@ -14,7 +14,7 @@ other repos cite them from commit messages and OpenSpec changes.
 
 Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
 
-Each decision carries a `**Kind:**` line plus the same four-field shape: Decision, Alternatives considered, Rationale, Source. The Source field is specific: `"User decision YYYY-MM-DD"`, a URL, or a file path, so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line. *Alternatives considered* always survives revision and compaction: it is what stops a rejected option being re-litigated later.
+Each decision carries a `**Kind:**` line plus the body fields: Decision, Requirements (numbered `Rn` items cited as `NNNN:DN:Rn`; `none` with a reason on a `policy` or `scope` decision), Alternatives considered, Rationale, Source. The Source field is specific: `"User decision YYYY-MM-DD"`, a URL, or a file path, so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line. *Alternatives considered* always survives revision and compaction: it is what stops a rejected option being re-litigated later.
 
 A decision that rests on another entry's decision also carries a `**Depends:** MMMM:DN` line (tokens only, comma-separated) directly after `Kind`, and `config.yaml.depends_on` lists exactly the entries those lines name; `task vet` enforces both directions and refuses a cycle. The test for whether the line is owed: *if that other decision were reversed, would this one need an `Amends:`?* If yes, it depends. A citation for precedent, contrast, or a delegated enforcement site is prose, not a dependency.
 
@@ -47,6 +47,10 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Amends:** {DN or MMMM:DN, only when this decision narrows an existing decision; use **Supersedes:** when it replaces one; delete the line otherwise}
 
 **Decision:** {What was decided. State it as a fact, not a question.}
+
+**Requirements:**
+
+- R1: {One observable statement a repo change can claim; scenarios stay in the repo change}
 
 **Alternatives considered:**
 

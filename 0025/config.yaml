@@ -58,6 +58,8 @@ history:
     event: 'Module aspects folded in: #aspects on #Module, #ModuleTrait and #ModuleTransformer added; D5 revised (module declares, platform binds), D11-D15 recorded, OQ13-OQ16 opened; retitled, category schema.'
   - date: "2026-09-20"
     event: 'Scope split: the self-service kinds half moved to entry 0027, same numbers. D1-D10 tombstoned, OQ1-OQ12 and OQ16 deferred there; D15 ships no catalog member; affects narrowed to core and library.'
+  - date: "2026-09-20"
+    event: 'Requirements added to D11-D15 (none on D15), additive, no decision body changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

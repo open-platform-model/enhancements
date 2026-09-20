@@ -6,7 +6,7 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 **Decision text states what is true now.** While the entry is `draft`, decisions are living text: a changed choice is an in-place edit to the existing `DN`, and the log never contains two conflicting decisions. Evidence-backed old positions fold into *Alternatives considered* before overwriting. Once `accepted`, decision bodies are protected: a change lands as a new `DN` with `**Amends:**` / `**Supersedes:**` relation fields, and existing bodies are edited only through the `enhancement-compaction` skill.
 
-Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and the four-field shape: Decision, Alternatives considered, Rationale, Source. A decision that rests on another entry's decision carries a `**Depends:** MMMM:DN` line, and `config.yaml.depends_on` lists exactly the entries those lines name.
+Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and the body fields: Decision, Requirements (numbered `Rn` items cited as `0025:DN:Rn`; `none` with a reason on a `policy` or `scope` decision), Alternatives considered, Rationale, Source. A decision that rests on another entry's decision carries a `**Depends:** MMMM:DN` line, and `config.yaml.depends_on` lists exactly the entries those lines name.
 
 **The Kind gate.** A decision belongs here only if a from-scratch rewrite of the affected repos would still be bound by it. Mechanism (how a repo achieves the contract) belongs in the implementing OpenSpec change in the target repo.
 **D1 to D10 are tombstones.** The self-service kinds half of this design is entry 0027, which carries those decisions under the same numbers, so a citation of `0025:D7` resolves by changing only the entry id.
@@ -84,6 +84,15 @@ Operational primitives attach at the projected instance's transitions, and a ser
 
 **Decision:** `#Module` gains one optional map, `#aspects`, keyed like `#components`. Each entry is an `#Aspect`: a named bundle of module traits (D12) with a `resourceName` that defaults to the instance-qualified name, a `matchLabels` derived wholesale from its attached traits and enforced derived, an injected instance identity, and a closed `spec` unifying the attached traits' specs that the module author makes concrete. An aspect attaches at least one trait; it carries no resources, no blueprints, no name constraint and no DNS names. Its spec is authored inside the module and so reads `#config` and `#ctx.components` lexically.
 
+**Requirements:**
+
+- R1: A module without `#aspects` is valid and unchanged in meaning.
+- R2: An aspect attaching no module trait is rejected at module validation.
+- R3: An aspect declaring a resource or a blueprint is rejected at module validation.
+- R4: An aspect's `matchLabels` is derived from its attached traits; an authored value that differs is rejected.
+- R5: An aspect's rendered object name defaults to the instance-qualified name and may be set per aspect.
+- R6: An aspect spec may read `#config` and the module's components.
+
 **Alternatives considered:**
 
 - **A flat `#traits` map plus `spec` at module root.** Rejected: nothing to name, so no second aspect of one kind with a different spec (an edge and an internal isolation policy), and no per-aspect rendered object name.
@@ -104,6 +113,12 @@ Operational primitives attach at the projected instance's transitions, and a ser
 
 **Decision:** Core defines `#ModuleTrait` beside `#Trait`. It carries the same identity block (name, module path, API version, catalog version, FQN), the same `matchLabels`, `fulfilment`, `optional` and `spec`, and is published, keyed and gated the same way: `#CatalogMemberFQNGate` and `#TraitOptionalGate` apply unchanged. It has no `appliesTo` and no name constraint. A module trait's `optional` is stated by its catalog as a default and may be narrowed at the attachment site, never pinned, the rule 0010 D28 sets for traits.
 
+**Requirements:**
+
+- R1: A catalog publishes a module trait under the same identity, FQN and optional gates as a component trait.
+- R2: A module trait cannot be attached to a component, and a component trait cannot be attached to an aspect.
+- R3: An attachment may narrow a module trait's `optional` from true to false; widening is rejected.
+
 **Alternatives considered:**
 
 - **A `scope: "component" | "module"` field on `#Trait`.** Rejected: `appliesTo!` and `#nameConstraint` would become conditional on the mode, and every consumer of `#Trait` (matching, the name assertion, the contract inventory) would have to branch on it.
@@ -120,6 +135,13 @@ Operational primitives attach at the projected instance's transitions, and a ser
 **Depends:** 0019:D2, 0019:D9
 
 **Decision:** Core defines `#ModuleTransformer` beside `#ComponentTransformer`. It matches on an aspect's `matchLabels` and attached module traits (no resource buckets), executes once per matched (aspect, transformer) pair, and takes the concrete module instance and one aspect; whole-module facts reach it through the instance's module, never through a second input. Its output is rendered resources and nothing else. It never reads rendered component output: the render stays one build (0019 D9), and aspects join it.
+
+**Requirements:**
+
+- R1: A module transformer runs once per matched aspect and transformer pair, never per component.
+- R2: A module transformer's output is resources only; any other output is refused at catalog validation.
+- R3: Rendered component output is not an input to any module transformer; the render is one build.
+- R4: A module's rendered set is the union of component and aspect output, with duplicate object identities refused as today.
 
 **Alternatives considered:**
 
@@ -139,6 +161,13 @@ Operational primitives attach at the projected instance's transitions, and a ser
 
 **Decision:** `#Catalog` carries module transformers beside component transformers, stamped the same way. `#Platform` folds enabled catalogs' module transformers as it folds component transformers, and its contract inventory covers module traits and the module transformers that require them. An aspect whose demand no enabled transformer handles is reported or refused by the trait's `optional` and `fulfilment`, exactly as an unhandled component demand is (0015 D18).
 
+**Requirements:**
+
+- R1: A platform's contract inventory lists module traits defined by enabled catalogs and the module transformers requiring them.
+- R2: An aspect attaching a required, catalog-fulfilled trait that no enabled transformer handles fails the render, naming the trait and the aspect.
+- R3: The same case for an optional trait is reported, not refused, with the same naming.
+- R4: A disabled catalog contributes no module transformers and no module traits.
+
 **Alternatives considered:**
 
 - **Aspects outside the inventory** (a module trait nobody handles is simply not rendered). Rejected: this is the silently-inert failure `optional` and `fulfilment` exist to prevent; a network-isolation aspect that renders nothing is a security hole with no diagnostic.
@@ -154,6 +183,8 @@ Operational primitives attach at the projected instance's transitions, and a ser
 **Revised:** 2026-09-20. Previously "the first module traits are `network-isolation` and `resource-budget`, rendered; `offering` ships with the binding layer". The declaration left with the scope split and the rendered pair became examples; what survives is the rule about where a module trait ships.
 
 **Decision:** No catalog publishes a module trait or a module transformer under this entry. `network-isolation` and `resource-budget` appear throughout as worked examples of what the extension point is for, and `schemas/examples.cue` stands them up as fixtures beside a declaration-only trait and a module transformer, attaches them to a module, and pins the rendered object's name, labels and one field read from `#config`. Publishing any of them is a later catalog decision, made under the catalog's own API versions. A module trait ships in the catalog change that publishes it, alongside the entry that consumes it: the offering declaration with entry 0027, lifecycle and workflow traits with entry 0009, a rendered policy trait with the first platform that asks for one. Each carries a `**Depends:**` edge into D11 and D12 rather than a section here.
+
+**Requirements:** none (ships no vocabulary; a module trait's requirements belong to the entry that publishes it)
 
 **Alternatives considered:**
 
