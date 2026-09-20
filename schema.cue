@@ -65,7 +65,7 @@ import (
 // `cross-cutting` for half the entries, which is a field admitting it has
 // nothing to say).
 #Repo: "core" | "library" | "catalog" | "cli" | "opm-operator" | "opmodel.dev" |
-	"orca" | "modules"
+	"orca" | "modules" | "opm"
 
 // Controlled vocabulary of work types. `category` names the ONE dominant
 // type of work an enhancement is: the contract itself (schema), how a

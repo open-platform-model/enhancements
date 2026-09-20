@@ -20,11 +20,9 @@
 
   Candidate mechanisms: a test in `library` asserting that every exported error type appears in the site's diagnostics index, a checklist item in the library's own change protocol, or explicit acceptance that the section drifts and is audited periodically. The first is the only one that fails loudly, and it couples two repos that are otherwise independent.
 
-- **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: open. Blocking: acceptance (decides whether the area vocabulary changes).
+- **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: partially resolved. Blocking: acceptance (the rewrite rule still needs a decision).
 
-  `enhancements/schema.cue`'s `#Area` enumeration has no `opm` entry, so the meta repo cannot appear in `affects` and cannot own a slice in this entry's plan. That tree holds the stale prose this enhancement replaces, and it remains reachable and looks current, which is the failure mode.
-
-  Options: add `opm` to the area vocabulary, which is a schema change to the enhancements repo itself; retire the tree as uncoordinated cleanup outside the plan; or move the salvageable formats into `opmodel.dev` and leave the deletion to whoever owns the meta repo. Worth salvaging as format rather than content: the glossary's shape, the persona routing at the top of `docs/index.md`, and the raw-versus-blueprint side-by-side in `concepts/resources-traits-blueprints.md`.
+  Resolved 2026-09-20: `opm` joined the repo vocabulary, so the meta repo can appear in `affects` and own a slice. The tree is not retired; it is rewritten in place as the home of the authored prose that has no code owner: Start here, cross-repo guides and the boundaries page. Still open: the rule that nothing describing the v0 line survives the rewrite, and whether that rule is a gate or a review judgement. Worth salvaging as format rather than content: the glossary's shape, the persona routing at the top of `docs/index.md`, and the raw-versus-blueprint side-by-side in `concepts/resources-traits-blueprints.md`.
 
 - **OQ5: What happens to the two catalog members that render nothing?** Status: open. Blocking: acceptance.
 
@@ -37,3 +35,11 @@
   `core` maintains a v1 line on a protected branch alongside v2 on main, and the module fleet is mid-migration. Whether the public site documents only the current line or carries a version switcher changes both the generator's contract and the site's information architecture.
 
   Deferring is viable while the v1 line has only internal consumers, which is true today. The question becomes forcing the moment an external consumer pins v1.
+
+  Amended 2026-09-20: the answer is yes, the site is versioned. Which version it conforms to is a versioning-policy question and is held in 0021 (OQ14, whether the CLI and operator share a version, and OQ15, how the site is versioned against it). This question waits on those two and adds nothing of its own beyond the generator consequence: the reference for a given site version is evaluated from the published core and catalog the CLI pins at that tag.
+
+- **OQ7: How is the author's voice captured so prose written in five repos reads as one?** Status: open. Blocking: deferrable.
+
+  Authored prose lands in whichever repo owns the behaviour it describes, so five repos write it, and the plain-English requirement for first-contact pages is the hardest one to hold that way. A shared style rule inherited from the workspace is necessary and not sufficient: it constrains shape, not voice.
+
+  Candidate: a skill that learns the author's voice by eliciting writing samples on set prompts, distils them into a voice document, and ships that document to every repo so any writer, human or agent, can be checked against it. This is research to do later, not now; nothing in this entry's design depends on how it is built, only on a voice document existing before the authoring track publishes.

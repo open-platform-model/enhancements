@@ -102,8 +102,7 @@ The framing is a fact about the system rather than an editorial preference: no f
 | `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost |
 | `cli` | Command help text aligned with the generated reference; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
 | `library` | `docs/getting-started.md`, which omits the mandatory Materialize step and therefore cannot be followed to working code |
-
-The `opm` meta repo holds the stale prose this entry replaces, but `opm` is not a member of the area vocabulary in `enhancements/schema.cue`, so it cannot own a slice. Its retirement is tracked in `06-operational.md` and raised as OQ4 (whether and how `opm/docs` retires when no repo in the area vocabulary can own the task).
+| `opm` | The authored prose with no code owner: Start here, cross-repo guides, the boundaries page. Its stale v0 tree is rewritten in place, not retired; the surviving-content rule is OQ4 |
 
 ## Before / After
 

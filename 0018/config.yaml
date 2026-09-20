@@ -17,9 +17,10 @@ affects:
   - catalog
   - cli
   - library
+  - opm
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-19"
+updated: "2026-09-20"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -52,6 +53,8 @@ history:
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
   - date: "2026-09-19"
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
+  - date: "2026-09-20"
+    event: 'opm joined the repo vocabulary and affects; OQ4 partially resolved (rewrite in place); OQ6 amended (versioned, anchor undecided); OQ7 added (voice capture).'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

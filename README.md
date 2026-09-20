@@ -218,5 +218,6 @@ The `affects` values map to workspace repos:
 | `opm-operator` | `opm-operator/` | The Kubernetes controller |
 | `opmodel.dev` | `opmodel.dev/` | The public docs site |
 | `modules` | `modules/` | Workspace OPM module definitions |
+| `opm` | `opm/` | The meta repo: authored documentation prose, internal specs, benchmarks |
 
 Delivery crosses several of these. `06-operational.md` in each entry states what must land before what.

@@ -236,7 +236,7 @@ tasks:
         area_of_dir() {
           case "$1" in
             catalog_opm) echo catalog ;;
-            cli|core|library|opm-operator|modules|opmodel.dev) echo "$1" ;;
+            cli|core|library|opm-operator|modules|opmodel.dev|opm) echo "$1" ;;
             *) return 1 ;;
           esac
         }
@@ -1820,8 +1820,8 @@ tasks:
       # and an unstated blast radius is the same drift for `affects`.
       - sh: 'printf %s "{{.CATEGORY}}" | grep -Eqx "schema|runtime|distribution|tooling|misc"'
         msg: 'CATEGORY is required and must be one of schema|runtime|distribution|tooling|misc — the ONE dominant type of work (see schema.cue #Category). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category>'
-      - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules)(,(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules))*"'
-        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opmodel.dev|orca|modules, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
+      - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules|opm)(,(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules|opm))*"'
+        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opmodel.dev|orca|modules|opm, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
         msg: 'CORE_SCHEMA must be true or false'
       - sh: '[ -z "{{.ISSUE}}" ] || printf %s "{{.ISSUE}}" | grep -Eq "^[0-9]+$"'

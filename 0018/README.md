@@ -78,7 +78,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), wh
 
 - **Secrets documentation.** Entry 0013 owns the model and its documentation. This entry leaves the gap visible and linked.
 - **Versioned documentation.** Whether the site carries a v1 line alongside v2 is an open question, deferred while the v1 line has only internal consumers.
-- **Retiring the meta repo's docs tree.** That repo is not a member of the area vocabulary and cannot own a slice; its retirement path is an open question.
+- **Retiring the meta repo's docs tree.** The tree is rewritten in place as the home of prose with no code owner; what may survive the rewrite is an open question.
 
 **Explicit non-goals.**
 
