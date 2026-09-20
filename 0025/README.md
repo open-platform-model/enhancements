@@ -1,20 +1,20 @@
 # Enhancement 0025: Self-Describing Modules and Self-Service Kinds
 
-A module today describes its workloads and nothing about itself. And deploying one means naming its registry path and version yourself, so every app team has to know which module and which release sits behind the thing they want. This entry gives a module one place to say what it is, and lets the platform team pick a module once. Consumers then supply values and nothing else.
+A module today describes its workloads and nothing about itself. And a team that just wants a database has to name the module that provides it and the exact release to run, then write both into their own deployment, so a decision the platform team should make once is copied into every app team's files. This entry gives a module one place to say what it is, and lets the platform team pick a module once. Consumers then supply values and nothing else.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**A module describes itself through aspects (D11 to D14).** An aspect is a named bundle of module-level traits, a sibling of a component, published by a catalog and versioned like any trait. Module transformers render aspects through the same matching path components use, and an aspect nobody handles is reported, never silent. The first two are network isolation and a resource budget (D15).
+**A module describes itself through aspects (D11 to D14).** An aspect is a named bundle of module-level traits. It attaches to the module the way a component does, and is published by a catalog, versioned and rendered by the same machinery. Module transformers render aspects through the same matching path components use, and an aspect nobody handles is reported, never silent. The first two are network isolation and a resource budget (D15).
 
-**The module may declare what it offers; the platform decides to offer it (D5, D1).** The offering declaration is one such aspect: the intended kind, a suggested update policy, later a status schema. The platform reads it when it writes the binding. The module never emits the binding itself, because it would have to be deployed before anyone could use it.
+**The module may declare what it offers; the platform decides to offer it (D5, D1).** The offering declaration is one such aspect: the intended kind, a suggested update policy, later a status schema. The platform reads it when it writes the binding. The module never emits the binding itself. That would be a circular dependency: the binding is what makes the module deployable, so producing it from the module means deploying the module before anything is allowed to deploy it.
 
-**The platform binds the module; the consumer supplies values (D1, D6).** One cluster-wide definition names a module lineage, a major, the bound release, an update policy and optionally values the platform fixes. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
+**The platform binds the module; the consumer supplies values (D1, D6).** One cluster-wide object, owned by the platform team, records which module, which major version, which exact release, how it updates, and optionally values the platform pins so consumers cannot change them. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
 
 **An instance becomes an ordinary ModuleInstance (D3).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the operator compute the same result. There is no second render path.
 
-**The consumer-facing schema is the module's own config schema (D2, D7).** The definition names an API group and kind, and the operator serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The served version is the module's major.
+**The consumer-facing schema is the module's own config schema (D2, D7).** The definition names an API group and kind, and the operator serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The CRD is served at the module's major, so `v1` of the kind is `v1` of the module.
 
 **Two layers on top of aspects, and what they do not replace (D4, D8, D9).** Binding alone gives platform-owned versioning and a tenant guardrail. Kinds add typed API objects, `kubectl explain` and per-kind access control, at the cost of one data-driven controller. Crossplane-style providers stay external and render as leaf resources, with one namespaced object instead of a composite-and-claim pair.
 
@@ -84,7 +84,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, carrying 
 - A cluster-scoped, platform-owned definition binding a module lineage (its major-free path), a major, a release and an update policy, which may also carry platform-bound values.
 - A way for a ModuleInstance to reference a definition instead of naming a module, with the coordinate resolved from the definition.
 - The conversion from definition plus instance to a ModuleInstance, as a core CUE function the kernel reads and the CLI can compute offline.
-- The self-hosting authoring shape: a definition rendered from a resource contract by a transformer, on the same pattern as transformer registration, beside hand-authored definitions.
+- A second way for the platform team to author a definition, beside writing the object by hand: a separate platform-owned module carries a definition resource contract on a component, and a catalog_opm transformer renders the definition objects. The emitting module is never the module being offered (D5). The reason for this shape is the permission gate: the objects arrive as ordinary rendered output under the tenant ServiceAccount, so only a platform-team identity can create one. Same shape as transformer registration in entry 0015 (0015:D9).
 
 **Kind layer (D2, D4, D7, D9).**
 
