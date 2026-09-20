@@ -50,6 +50,8 @@ authors:
 history:
   - date: "2026-09-20"
     event: 'Drafted as the self-service kinds half of entry 0025. D1-D10 and OQ1-OQ12 plus OQ16 keep the numbers they carried there, so a citation repoints by entry id alone; D11 adds the offering module trait.'
+  - date: "2026-09-20"
+    event: 'Design: The Declaration section in 02-design.md, with the offering trait and its aspect in CUE, what #Aspect derives, the empty match set, the three readers and the narrow read path.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

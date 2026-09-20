@@ -49,6 +49,78 @@ A definition whose module `#config` cannot be encoded as a structural schema is 
 
 **Why the layers are ordered this way.** Layer 1 delivers platform-owned versioning and the tenancy guardrail with no dynamic CRDs and no new controller: a CR, a field, an admission rule. Layer 2 is where dynamic-kind cost lives (CRD lifecycle, dynamic informers, status mirroring) and is exactly the meta-controller shape 0009 leaves open. Making layer 2 a projection onto layer 1 means the projection function is written once, the render path never learns about kinds, and the controller has one job.
 
+## The Declaration
+
+The module's statement of what it is when offered is a module trait attached on an aspect, both of which are entry 0025's constructs. The trait is catalog content (D11); the aspect is two lines in the module.
+
+```cue
+// Published by the catalog, against 0025's #ModuleTrait:
+#OfferingTrait: #ModuleTrait & {
+	metadata: {name: "offering", fqn: ".../module-traits/offering@v1alpha1", ...}
+	optional: bool | *true
+	spec: offering: {
+		api:          #OfferingAPI    // the declared group and kind
+		updatePolicy: #UpdatePolicy   // a suggestion, per OQ3's vocabulary
+		status?: {...}                // OQ5
+	}
+}
+
+// Written by the module author, inside #Module:
+#aspects: self: {
+	#traits: (#OfferingTrait.metadata.fqn): #OfferingTrait
+	spec: offering: {
+		api: {group: "platform.example.com", kind: "PostgresDatabase"}
+		updatePolicy: "manual"
+	}
+}
+```
+
+Everything else about the aspect is derived by 0025's shapes, and one derivation is what makes the whole arrangement work:
+
+| Field | Value on this aspect | Where it comes from |
+| --- | --- | --- |
+| `metadata.name` | `self` | The map key defaults it, the component cascade transposed |
+| `metadata.labels` | the aspect-name stamp | `#Module`'s `#aspects` pattern constraint |
+| `matchLabels` | empty | Derived wholesale from the attached traits, and `offering` declares none |
+| `spec` | closed over `offering` alone | Built from the attached traits' specs; a key no trait declares is refused |
+| `#instance` | injected | Never authored, and absent until a `#ModuleInstance` supplies it |
+
+**An empty `matchLabels` is the mechanism, not an accident.** An aspect's matching identity is the unification of its traits' matching identities. A trait that declares none yields an aspect no module transformer can select, so "read but never rendered" needs no mode, no flag and no special case in the render. The declaration is inert by construction.
+
+**Three readers, one field.** The CLI reads the declaration off a published module artifact with no cluster and no instance, and drafts a definition from it (D5). The definition reconciler reads it again in-cluster and reports a definition that disagrees with the module it binds. The render reads it not at all: the declaration rides through the projection into the rendered instance and nothing branches on it, which is what keeps D3's single render path honest.
+
+**A reader takes the trait spec, never the whole aspect.** An aspect's `metadata.resourceName` interpolates the instance name, so on a bare module artifact, where no instance exists, evaluating the aspect as a whole yields an incomplete value while `spec.offering` is fully concrete. Offline drafting depends on reading the narrow path. This is a property of every declaration-only aspect, not of this trait, so entry 0009's lifecycle declaration inherits it.
+
+```mermaid
+flowchart TB
+    subgraph e25["Entry 0025 gives the slot and the rules"]
+        mt["Module trait shape: identity, optional, fulfilment, a spec"]
+        asp["Aspect: spec closed over its traits, match labels derived from them"]
+    end
+    trait["This entry publishes one module trait, offering"]
+    decl["A module attaches it on an aspect, declaring group, kind and update policy"]
+    nomatch["The trait declares no match labels, so the aspect derives an empty set"]
+    inert["Nothing can select it: read by tools, rendered by no transformer"]
+    cli["The CLI drafts the definition, with no cluster"]
+    def["The definition, written by the platform team"]
+    rec["The reconciler reports a definition that disagrees"]
+    render["The render carries it through and never branches on it"]
+    mt --> trait
+    trait --> decl
+    asp --> decl
+    decl --> nomatch
+    nomatch --> inert
+    inert --> cli
+    cli --> def
+    def --> rec
+    inert --> rec
+    inert --> render
+```
+
+One attachment unit, used the other way round. Entry 0025's ordinary aspect ends at a transformer that turns it into resources; this one ends at the tools that read it, and reaches the render only to be carried past. What the declaration states for `fulfilment` is entry 0025's OQ13: neither `catalog` nor `provider` is true of a trait whose implementers are a command-line tool and a reconciler, and the contract inventory that makes an unhandled demand visible is exactly the machinery that would report this one forever.
+
+Two edges worth naming. A declaration-only aspect still derives a `resourceName`, an instance-qualified name for an object nothing will create; it is harmless and it is meaningless. And the aspect carries `optional`, which on a declaration decides whether a platform that cannot serve kinds at all refuses the module or merely reports it.
+
 ## Schema / API Surface
 
 Full shapes in [`schemas/target.cue`](schemas/target.cue). The definition kind's name is undecided (OQ1); the CUE identifiers below are placeholders that rename with the decision. Entry 0025's `#Module`, `#ModuleInstance`, `#Aspect` and `#ModuleTrait` appear there as mirrors, restated so this entry's delta vets on its own.
