@@ -2,7 +2,7 @@
 
 **This file is the single canonical location for Open Questions.** An `## Open Questions` block anywhere else in the entry fails `task vet`. This is the entry's working question register: track unresolved questions surfaced during design. The validator requires this file for every entry; the `## Open Questions` block below (with or without entries) is required starting at `status: accepted`.
 
-`OQ` numbers are permanent, never reused, never renumbered, because decisions (`**Resolves:** OQ4`), `// OQN:` markers in `schemas/`/`contracts/` CUE, and delivery-log entries in `delivery.yaml` (`resolves: [OQ9]`) cite them. A vacated number keeps a one-line tombstone.
+`OQ` numbers are permanent, never reused, never renumbered, like `DN` and `DN:Rn`, because decisions (`**Resolves:** OQ4`), `// OQN:` markers in `schemas/`/`contracts/` CUE, and delivery-log entries in `delivery.yaml` (`resolves: [OQ9]`) cite them. A vacated number keeps a one-line tombstone.
 
 Each entry carries a `Status:` line; close it with `resolved-by-D##`, `deferred-to-NNNN`, `deferred-to-implementation`, or `answered` when the question resolves.
 

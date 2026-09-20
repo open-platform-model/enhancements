@@ -170,7 +170,7 @@ Design/mechanism diagrams belong in:
 - `05-risks.md ## Alternatives` — sparingly, illustrating the shape of a rejected alternative when
   the shape itself is the reason it was rejected.
 
-**Never in `03-decisions.md`.** The decision log's four-field format (Decision / Alternatives
+**Never in `03-decisions.md`.** The decision log's format (Decision / Requirements / Alternatives
 considered / Rationale / Source) is deliberately compact and text-only — see the main
 `enhancements` skill. If a decision needs to point at a diagram, reference the section of
 `02-design.md` that carries it; don't embed one in the decision body.

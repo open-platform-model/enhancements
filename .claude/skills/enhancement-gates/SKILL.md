@@ -41,7 +41,7 @@ This prints every applicable rule with its question and evidence requirement, pl
 For each rule, in the order `task gate` printed them:
 
 1. State the rule's question back, in one line, as it applies to *this* entry.
-2. Gather the evidence the rule demands. Probe hits are candidates, not verdicts: a hit inside a `**Source:**` line is provenance and passes, a hit inside a design claim is prescription and fails.
+2. Gather the evidence the rule demands. Probe hits are candidates, not verdicts: a hit inside a `**Source:**` line is provenance and passes, a hit inside a design claim is prescription and fails. A hit inside a `- Rn:` requirement line always fails: a requirement is observable from outside one repo's code by rule, so a Go symbol, flag or path there is a requirement that belongs in the repo's delta spec instead.
 3. Give the verdict: `pass` or `fail`, with the quote and one sentence of reasoning.
 4. On `fail`, name the rule's `redirect` destination concretely — which repo's OpenSpec change, an idea issue (label `idea` on the enhancements repo), or the specific edit that would fix it.
 

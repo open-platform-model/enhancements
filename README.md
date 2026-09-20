@@ -35,7 +35,7 @@ An idea that is not ready to be an entry goes in a GitHub issue labelled `idea`.
 | --- | --- |
 | `01-problem.md` | What is wrong today, with a concrete example |
 | `02-design.md` | What changes, and what deliberately does not |
-| `03-decisions.md` | Each design choice, the alternatives, and why this one won |
+| `03-decisions.md` | Each design choice, what must observably hold once it lands, the alternatives, and why this one won |
 | `04-graduation.md` | What must be true before the draft is accepted |
 | `05-risks.md` | What could go wrong, and what this costs |
 | `06-operational.md` | Rollout, versioning, rollback, cross-repo ordering |
@@ -44,9 +44,10 @@ An idea that is not ready to be an entry goes in a GitHub issue labelled `idea`.
 Two notations appear everywhere:
 
 - `D4` is decision 4 in `03-decisions.md`. `0010:D4` is decision 4 of entry 0010.
+- `D4:R2` is requirement 2 of decision 4, the second `- R2:` line under its `**Requirements:**`. `0010:D4:R2` is the same from another repo; `0010:D4:R1/R2` lists two.
 - `OQ9` is open question 9 in `07-questions.md`.
 
-Decision and question numbers never change and are never reused, because other repos cite them. A retired number keeps a one-line tombstone saying where its content went.
+Decision, requirement and question numbers never change and are never reused, because other repos cite them. A retired number keeps a one-line tombstone saying where its content went.
 
 An entry can also carry code and evidence, in folders the prose links to:
 
@@ -190,7 +191,8 @@ enhancements/
 | Term | Meaning |
 | --- | --- |
 | Entry | One enhancement: the folder `NNNN/` and everything in it |
-| Decision (`DN`) | A numbered design choice in `03-decisions.md`, with alternatives and rationale |
+| Decision (`DN`) | A numbered design choice in `03-decisions.md`, with requirements, alternatives and rationale |
+| Requirement (`DN:Rn`) | One numbered observable statement under a decision's `**Requirements:**`; what a repo change delivers and what its delta spec cites |
 | Open question (`OQN`) | A numbered unresolved point in `07-questions.md`, with a `Blocking:` line |
 | Live decision | A decision whose number has not been retired to a tombstone |
 | Delivery log | `delivery.yaml`: the record of changes that landed, per decision |

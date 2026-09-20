@@ -12,7 +12,7 @@ Thirteen criteria must hold:
 - **OQ5 may remain open** if it names the entry that inherits it. OQ6 is answered: overtaken by 0019 D8; its blast-radius residue lives in OQ8.
 - **OQ7 and OQ8 are resolved or explicitly deferred with a written reason.** Both were filed from 0019's OQ walk (its OQ10's refusal half and its OQ9). OQ7 in particular was deferred here because it needs experiments rather than argument, so resolving it likely means a concluded experiment under `experiments/`; OQ8 decides what the operator slice actually builds, so deferring it past acceptance would leave the D3 integration surface unspecified.
 - Goals and Non-Goals in `02-design.md` are final and reviewed.
-- Every decision D1..DN is locked and carries the four-field format.
+- Every decision D1..DN is locked and carries the decision format, requirements included.
 - `schemas/target.cue` compiles (`cue vet ./...` from `schemas/` passes) and captures the target shape end-to-end, with every `// OQN:` marker either tightened or pointing at a still-open question.
 - `config.yaml.semver` is set. Expected **major**: D1 adds required stamped members to `#Catalog`, landing inside 0010's core major window.
 - `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.

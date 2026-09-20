@@ -87,7 +87,7 @@ When updating an experiment in flight (`Running`):
 When transitioning `Running → Concluded`:
 
 - The Outcome section must end with an unambiguous statement: "Hypothesis held." or "Hypothesis refuted." with a one-sentence summary of the evidence.
-- Link the result into the enhancement: add a one-line reference in `02-design.md` (where the claim was stated) or `03-decisions.md` (under the relevant decision's Rationale or as a Source). Format suggestion: `Validated by experiments/01-concept-name/ — outcome 2026-06-04`.
+- Link the result into the enhancement: add a one-line reference in `02-design.md` (where the claim was stated) or `03-decisions.md` (under the relevant decision's Rationale or as a Source; when the outcome confirms or refutes one observable statement, cite it on that `- Rn:` line). Format suggestion: `Validated by experiments/01-concept-name/ — outcome 2026-06-04`.
 - Update the index row's Status column.
 - If the hypothesis was refuted, the design must change. Record a new decision in `03-decisions.md` capturing what the refutation taught you and what the design changed to.
 

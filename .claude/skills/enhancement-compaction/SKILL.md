@@ -74,6 +74,7 @@ Rewrite the surviving decision's title and `**Decision:**` to state what is now 
 
 - **Fold the overturned position into `**Alternatives considered:**`,** marked as previously chosen. This is the most important instruction in this skill. The old decision was not a hypothetical someone dreamed up — it was actually adopted, and *why it failed in practice* is stronger evidence than any speculative alternative. Losing it means the next person re-proposes it.
 - **Keep the original `**Source:**`** and add a `**Revised:**` line naming the date and what was absorbed.
+- **Keep the survivor's `**Requirements:**` numbers** and append the absorbed decision's requirements under it with the next free `Rn`; the absorbed tombstone says where they went (`(merged into D3, YYYY-MM-DD; R1-R2 now D3:R5-R6)`). A requirement that no longer holds keeps its number as a one-line tombstone, `- R2: (retired, YYYY-MM-DD)`, because repos cite `NNNN:DN:Rn` the way they cite `DN`.
 - **Add structured relation fields** (see below) rather than leaving relations in the heading.
 - **Tombstone every higher number that was merged in.**
 
@@ -81,6 +82,11 @@ Rewrite the surviving decision's title and `**Decision:**` to state what is now 
 ### D28: Noun-first `opm operator` command group
 
 **Decision:** The operator install surface is `opm operator install [--crds-only]` / `opm operator uninstall`. There are no `install` / `uninstall` verb groups.
+
+**Requirements:**
+
+- R1: The operator installs and uninstalls through one noun-first command group.
+- R2: CRDs can be installed on their own without the operator.
 
 **Alternatives considered:**
 
@@ -139,7 +145,7 @@ Keep the bullet's `- **OQN: …** Status: …` shape exactly. `task questions:li
 
 - **`README.md`** — keep the `> **Superseded by NNNN (YYYY-MM-DD).**` banner and its migration paragraph. Keep `## Scope`. Everything else reduces to a short statement of what the entry still usefully holds.
 - **`01`, `02`, `04`, `05`, `06`** — each collapses to a few sentences: what it covered, which successor owns it now. A stubbed document is not an empty one; a reader who lands here from a cross-reference needs to know where to go. (`07-questions.md` is not stubbed — its bullets collapse under COLLAPSE-OQ, keeping every `OQN` and its final status.)
-- **`03-decisions.md`** — keep every `### DN:` heading, a one-or-two-sentence `**Decision:**`, and `**Alternatives considered:**` in full. Drop `**Rationale:**`. Keep `**Source:**` when it cites an `experiments/` or `research/` file that still lives in the entry, so the pointer is not orphaned.
+- **`03-decisions.md`** — keep every `### DN:` heading, a one-or-two-sentence `**Decision:**`, `**Requirements:**` in full (repos cite its numbers), and `**Alternatives considered:**` in full. Drop `**Rationale:**`. Keep `**Source:**` when it cites an `experiments/` or `research/` file that still lives in the entry, so the pointer is not orphaned.
 - **`experiments/` and `research/`** — never touched. The measurements are usually the expensive part of a superseded entry and they remain valid evidence for the successor.
 
 ### Relation fields — hoist relations out of headings
@@ -153,7 +159,7 @@ Relations belong in structured fields, not in a 120-character `### DN:` heading 
 **Resolves:** OQ13
 ```
 
-Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), `**Resolves:**` (an OQ), and `**Depends:**` (a cross-entry premise, tokens-only `MMMM:DN`, sitting under `**Kind:**`). `**Amends:**` and `**Supersedes:**` also take the qualified `MMMM:DN` token when the decision they change belongs to another entry; `config.yaml.amends` then lists `MMMM`, the amended entry is never edited (`task show ID=MMMM` derives "amended by"), and a decision never both depends on and supersedes the same foreign token. This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
+Use `**Supersedes:**` (the other decision is dead), `**Amends:**` (it survives, narrowed), `**Resolves:**` (an OQ), and `**Depends:**` (a cross-entry premise, tokens-only `MMMM:DN`, sitting under `**Kind:**`). `**Requirements:**` is a body field, not a relation field: it sits between `**Decision:**` and `**Alternatives considered:**` and is never parsed for edges. `**Amends:**` and `**Supersedes:**` also take the qualified `MMMM:DN` token when the decision they change belongs to another entry; `config.yaml.amends` then lists `MMMM`, the amended entry is never edited (`task show ID=MMMM` derives "amended by"), and a decision never both depends on and supersedes the same foreign token. This is also what makes the `vet` reference-integrity check cheap — it can find every citation without parsing prose.
 
 `**Depends:**` has its own rules under a weave, because `config.yaml.depends_on` is derived from it and `task vet` holds the two equal:
 

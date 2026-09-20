@@ -9,7 +9,7 @@ The enhancement is ready to be implemented when:
 - **OQ2 is resolved.** [x] Met 2026-08-14: `experiments/03-kernel-omission` (Concluded) measured the arm rewrite against the real published kernel (library v1.0.0-alpha.12, re-verified on v1.0.0-alpha.13): clean omission holds via both candidate mechanisms, override is structurally refused, one component-graph build suffices. Recorded as D16.
 - OQ1 stays `resolved-by-D10` and `schemas/target.cue` carries no `OQ` marker comments.
 - `cue vet ./...` passes from `schemas/`, and `schemas/examples.cue`'s `_assert*` fields still unify.
-- Decisions D1..D17 are locked, each carrying the four-field format, with the supersession chain intact:
+- Decisions D1..D17 are locked, each carrying the decision format, with the supersession chain intact:
   - D10 supersedes D1
   - D11 supersedes D4
   - D12 amends D9

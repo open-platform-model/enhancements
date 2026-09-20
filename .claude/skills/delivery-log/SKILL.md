@@ -94,7 +94,7 @@ The shape is `#ChangeDeclaration` in `enhancements/schema.cue`. The file rides a
 | `task delivery:deferred` | Every `deferred-to-implementation` OQ and whether a log entry claims it via `resolves`. |
 | `task delivery:reconcile` | Drift detection: archived changes in sibling repos that declared an enhancement but were never logged. Report-only; the printed `task delivery:log` command is the fix. |
 
-What `task vet` enforces on every `delivery.yaml`: the `#Delivery` schema; every cited `DN`/`OQN` resolves against `03-decisions.md`/`07-questions.md` (tombstones resolve; retired is not absent); `no_work` keys are live, not tombstoned, and not also carried by a log entry. It also fails any `plan.yaml`/`PLAN.md` inside an entry: forecast plans are retired, the delivery record is `delivery.yaml`.
+What `task vet` enforces on every `delivery.yaml`: the `#Delivery` schema; every cited `DN`/`OQN` resolves against `03-decisions.md`/`07-questions.md` (tombstones resolve; retired is not absent); `no_work` keys are live, not tombstoned, and not also carried by a log entry. Claims are decision-granular: vet does not yet resolve `DN:Rn` tokens, so a change claims a decision only when every requirement of it is delivered; the requirement list is the checklist to read before claiming. It also fails any `plan.yaml`/`PLAN.md` inside an entry: forecast plans are retired, the delivery record is `delivery.yaml`.
 
 ## Red flags
 

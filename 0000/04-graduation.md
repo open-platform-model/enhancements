@@ -23,6 +23,8 @@ accepted:
 - {Every decision in `03-decisions.md` carries a valid `**Kind:**`
   (contract | policy | scope) and passes the admission test: mechanism
   decisions have been moved out or left to the implementing slices.}
+- {Every `contract` decision lists at least one `- Rn:` requirement; every
+  `policy` or `scope` decision carries `**Requirements:** none` with a reason.}
 - {No document in the entry prescribes mechanism: no filename, identifier
   spelling, directory layout, or code structure is stated as instruction.
   Paths cited as evidence are fine; paths cited as the address of an edit

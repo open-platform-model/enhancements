@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-{Four to six paragraphs, 200 words at most in total. One per decision that matters, each a bold one-line claim then two short sentences. One idea per sentence. Every decision reference carries its gist inline, so the reader never has to open another file to parse a sentence: "the registration is a cluster-scoped CR (D3)". A reference to another entry's decision is qualified and glossed the same way: "the one-provider rule from entry 0010 (0010:D37)".}
+{Four to six paragraphs, 200 words at most in total. One per decision that matters, each a bold one-line claim then two short sentences. One idea per sentence. Every decision reference carries its gist inline, so the reader never has to open another file to parse a sentence: "the registration is a cluster-scoped CR (D3)". A reference to another entry's decision is qualified and glossed the same way: "the one-provider rule from entry 0010 (0010:D37)". A single requirement is cited the same way: "a second provider is refused naming the first (0010:D37:R1)".}
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been

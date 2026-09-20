@@ -618,6 +618,8 @@ tasks:
         #   - `**Supersedes:** / **Amends:** / **Resolves:**` relation fields
         #   - `// OQ##` markers in schemas/*.cue and contracts/*.cue
         #
+        # `**Requirements:**` is a body field (`- Rn:` lines cited as
+        # `NNNN:DN:Rn` from repos) and is never parsed for edges here.
         # `**Depends:**` is deliberately absent from that alternation: its
         # tokens are foreign (`MMMM:DN`) and scripts/depends.sh resolves them
         # against MMMM's decision log (step 3b below). A qualified `MMMM:DN`
@@ -1369,6 +1371,8 @@ tasks:
                         (plan.yaml / PLAN.md; forecast plans are retired)
         - draft       → every decision carries '**Kind:** contract |
                         policy | scope'
+        - draft/acc   → an entry carrying '**Requirements:**' on any
+                        decision carries it on every live decision
         - draft/acc   → undeclared-dependency smell: prose cites another
                         entry's decision that no '**Depends:**' line names
         - accepted    → finished but live: derives implemented; nudge to
@@ -1531,6 +1535,20 @@ tasks:
             kind_total=$(grep -cE '^\*\*Kind:\*\* (contract|policy|scope)$' "$dir/03-decisions.md" 2>/dev/null || true)
             if [ "${dn_total:-0}" -gt "${kind_total:-0}" ]; then
               warnings="${warnings}\n    03-decisions.md: $((dn_total - kind_total)) decision(s) without a '**Kind:** contract | policy | scope' line"
+            fi
+          fi
+
+          # Requirements gate (draft + accepted): once an entry carries a
+          # '**Requirements:**' block on any decision, every live decision
+          # carries one ('- Rn:' items on contract; 'none (reason)' on
+          # policy / scope). Entries predating the field are left alone
+          # until they adopt it; the hard vet gate is a separate change.
+          if { [ "$status" = "draft" ] || [ "$status" = "accepted" ]; } && [ -f "$dir/03-decisions.md" ]; then
+            local req_total dn_live
+            req_total=$(grep -cE '^\*\*Requirements:\*\*' "$dir/03-decisions.md" 2>/dev/null || true)
+            dn_live=$(grep -cE '^#{2,4} D[0-9]+: [^(]' "$dir/03-decisions.md" 2>/dev/null || true)
+            if [ "${req_total:-0}" -gt 0 ] && [ "${dn_live:-0}" -gt "${req_total:-0}" ]; then
+              warnings="${warnings}\n    03-decisions.md: $((dn_live - req_total)) live decision(s) without a '**Requirements:**' block while $req_total carry one"
             fi
           fi
 
@@ -1958,7 +1976,7 @@ tasks:
         else
           echo "  2. Non-core compilable CUE? Scaffold it with: task new:contracts ID=$NEW_ID"
         fi
-        echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively"
+        echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively, each with **Kind:** and a **Requirements:** list (or none with a reason on policy / scope)"
         echo "  4. Update $NEW_DIR/README.md scope; a decision resting on another entry's decision carries **Depends:** MMMM:DN and lists MMMM in depends_on; one changing another entry's decision carries the qualified MMMM:DN token on **Amends:** / **Supersedes:** and lists MMMM in amends"
         echo "  5. Validate:           task vet:one ID=$NEW_ID"
         echo "  6. Regenerate index:   task index"

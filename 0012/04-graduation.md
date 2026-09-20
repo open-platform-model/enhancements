@@ -25,6 +25,6 @@ Schema and metadata:
 
 Prose completeness:
 
-- `03-decisions.md` records every resolution in the four-field format, with `Source` naming a dated user decision, an experiment outcome, or a file path.
+- `03-decisions.md` records every resolution in the decision format, with `Source` naming a dated user decision, an experiment outcome, or a file path.
 - The Cross-References table in `README.md` lists every file path implementation will touch, and each exists today.
 - `05-risks.md` and `06-operational.md` carry concrete content, in particular a stated position on the `apimachinery` MVS floor and on the rollback story for a kernel that both frontends pin at the same version.
