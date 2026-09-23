@@ -91,7 +91,8 @@ Operational primitives attach at the projected instance's transitions, and a ser
 - R3: An aspect declaring a resource or a blueprint is rejected at module validation.
 - R4: An aspect's `matchLabels` is derived from its attached traits; an authored value that differs is rejected.
 - R5: An aspect's rendered object name defaults to the instance-qualified name and may be set per aspect.
-- R6: An aspect spec may read `#config` and the module's components.
+- R6: An aspect spec may read `#config` and the components' computed names, as a component spec does.
+- R7: An aspect spec key that no attached trait declares is rejected at module validation.
 
 **Alternatives considered:**
 
