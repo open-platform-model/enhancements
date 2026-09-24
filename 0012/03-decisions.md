@@ -24,6 +24,16 @@ This entry is `draft`. Only decisions actually taken are recorded below; everyth
 
 This supersedes the placement conclusion of enhancement 0006 D31 ("`library/opm/inventory` is reverted… each actor keeps an independently maintained local implementation"). It does **not** supersede D31's data-flow analysis, which stands. Only the `InventoryEntry` wire shape crosses the actor boundary unmediated; that shape is anchored by the CRD's OpenAPI schema, and the handoff instant is independently gated by D7.4's render-digest check. 0006 remains `implemented` as an entry; exactly one of its decisions is replaced.
 
+**Requirements:**
+
+- R1: For the same rendered output, inventory, instance identity, deletion policy and live object state, the CLI and the operator compute the same inventory entries, stale set, digest and deletion plan, with the same skip reasons.
+- R2: Neither frontend deletes an object the deletion plan marked as skipped.
+- R3: A `Namespace` or a `CustomResourceDefinition` in an instance's inventory is never deleted automatically by either frontend.
+- R4: A live object whose manager label is not an OPM runtime identity, or whose instance identity differs from the deleting instance's, is skipped by both frontends with the reason named.
+- R5: Whether an instance's deletion hold may be released is decided from its policy and the plan's outcome, identically for whichever frontend asks, with the reason named.
+- R6: Deletions happen in a defined order that is the same on both frontends.
+- R7: Before applying, each object receives a verdict that refuses an existing object not managed by OPM or one being deleted, and the verdict is the same on both frontends.
+
 **Alternatives considered:**
 
 - **Keep independent implementations, close the gaps with documented conventions.** Rejected on measured evidence rather than principle: this is precisely what 0006 chose, and OQ15 and OQ16 are that convention in its strongest available form: written down on 2026-07-01, reviewed, and carried through a graduation gate on 2026-07-20 that explicitly acknowledged them as unresolved. Twenty-six days after they were recorded neither has been implemented in either repo, and two further divergences that no convention documented (the CLI's missing CRD exclusion and its missing delete-time ownership guard) were found by inspection on 2026-07-27.
@@ -53,6 +63,8 @@ What D31 got right and this decision preserves is that none of this logic is *cr
 **Decision:** Kubernetes is the kernel's platform, not one of several the kernel abstracts over. New kernel surface is written directly against Kubernetes concepts: GVK, namespace, labels, ownerReferences, finalizers, propagation policy. There is no intervening neutral vocabulary, and no generalisation work is undertaken to keep a non-Kubernetes backend viable. `k8s.io/apimachinery` becomes a library dependency and therefore, by MVS, a floor for every embedder.
 
 The dependency is bounded to `apimachinery`. `client-go`, `controller-runtime`, and Flux are explicitly excluded: the first because the kernel does not resolve credentials, the second and third because they are the operator's framework and must not become the CLI's.
+
+**Requirements:** none (vocabulary and dependency posture; every behaviour it enables is stated under D1)
 
 **Alternatives considered:**
 
