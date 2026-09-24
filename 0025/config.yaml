@@ -36,7 +36,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-08"
-updated: "2026-09-20"
+updated: "2026-09-23"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -60,6 +60,8 @@ history:
     event: 'Scope split: the self-service kinds half moved to entry 0027, same numbers. D1-D10 tombstoned, OQ1-OQ12 and OQ16 deferred there; D15 ships no catalog member; affects narrowed to core and library.'
   - date: "2026-09-20"
     event: 'Requirements added to D11-D15 (none on D15), additive, no decision body changed.'
+  - date: "2026-09-23"
+    event: 'Concrete Example rewritten around a module declaring what it is rather than how it is deployed; gaps 1 and 3, one user story, a bespoke-controller workaround and the risk benchmark realigned.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -29,7 +29,8 @@ One layer, on the module. An aspect is a named bundle of module traits, matched 
     #aspects:
       isolation: network-isolation  --------> matched, rendered: one NetworkPolicy for the module
       budget:    resource-budget    --------> matched, rendered: one ResourceQuota for the module
-      owner:     ownership          ----> no transformer matches it: a statement other tools read
+      offered:   self-description   ----> no transformer matches it: a fact the runtime reads,
+                                           changing what it does with the module
 ```
 
 **Aspects (D11 to D15).** A module carries named aspects beside its components. Each attaches one or more module traits published by a catalog, derives its matching labels from them, and exposes a closed spec the author fills, reading `#config` and the components' computed names as any component spec does. A module transformer matches an aspect the way a component transformer matches a component and renders resources into the same output; the platform's contract inventory covers both, so an aspect nobody handles is reported, never silently dropped. An aspect that no transformer renders is legitimate: it is a statement other tools read, and entry 0027's offering declaration is the first of those.
@@ -52,6 +53,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 **catalogs and modules.** Nothing, under this entry. No catalog publishes a module trait or a module transformer here (D15), and no module attaches an aspect until one exists to attach.
 
 ## Before / After
+
+**Saying what a module is.** Before: a module means one thing, an application somebody deploys, and a team wanting anything else writes a controller beside it and an API by hand. After: one aspect on the module carrying a catalog-published trait that says what it is, read by whatever consumes the module, with no second codebase and no schema to keep in step.
 
 **Isolating a module.** Before: a NetworkPolicy trait on each of the module's components, or none, because the concern belongs to no single workload. After: one `isolation` aspect on the module, its allowed CIDRs read from `#config`, rendered as one NetworkPolicy selecting every workload of the instance.
 

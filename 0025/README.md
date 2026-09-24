@@ -1,6 +1,6 @@
 # Enhancement 0025: Self-Describing Modules
 
-A module today describes its workloads and nothing about itself. That every workload in it should be isolated, that the set has one budget, that it is meant to be offered to other teams: each is a fact about the module, and none has anywhere to live. This entry gives a module one place to say what it is.
+A module today describes its workloads and nothing about itself. It is limiting, not allowing a module to describe something else. For example, instead of the module being installed, it could declare an input schema and a way to transform that input into a new output (Abstraction). This entry gives a module one place to say what it is.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -41,8 +41,6 @@ flowchart TB
     render --> res
     asp --> readers
 ```
-
-Read it left to right as "who decides". The catalog decides which words exist, the module author decides which of them this module says about itself, and the render treats an aspect the way it already treats a component. An aspect no transformer matches is still worth attaching: it is a statement other tools read, which is the arm on the right.
 
 ## Documents
 

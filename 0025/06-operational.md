@@ -6,7 +6,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-- **Unhandled aspects.** An aspect whose demand no enabled module transformer handles surfaces through the contract inventory as every unhandled demand does: a refusal naming the trait when it is not optional, a warning naming it when it is. A network-isolation aspect that rendered nothing would otherwise be a silent security hole.
+- **Unhandled aspects.** An aspect whose demand no enabled module transformer handles surfaces through the contract inventory as every unhandled demand does: a refusal naming the trait when it is not optional, a warning naming it when it is. Silence is the failure either way: an aspect that should have become an object and did not, and an aspect stating what the module is that nothing read, are both a module whose request went unanswered with nothing said about it.
 - **Where a rendered object came from.** Every object a module transformer renders carries the instance label and the aspect's name, so an object that belongs to no component is still traceable to the aspect that asked for it and to the module trait behind that.
 - **An aspect refusal names its subject.** An aspect with no trait, an aspect contributing a matching key of its own, and a spec key no attached trait declares each fail at the aspect, naming the module and the aspect key, rather than somewhere inside the render.
 - **Coverage before any module exists.** Because the contract inventory covers module traits (D14), a platform reports that an enabled catalog publishes a module trait no enabled module transformer requires, with no module in hand.
