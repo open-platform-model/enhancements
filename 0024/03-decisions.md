@@ -33,6 +33,8 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 **Decision:** OPM's CUE artifacts are verified at two layers with distinct questions. The in-package layer answers "does this definition accept, reject and derive what it claims" and lives beside the definition in the owning repo, run by that repo's own checks. The conformance layer answers "does an unchanged input still produce the same bytes and the same refusal text across versions" and lives outside every product repo, consuming only published artifacts and `cue` binaries. Neither layer replaces the other, and neither replaces `library`'s Go harnesses.
 
+**Requirements:** none (a boundary on where each verification layer lives; the layers' behaviours are D2, D4 and D6, and the suite's location is OQ5)
+
 **Alternatives considered:**
 
 - **One layer, in-package only.** Rejected: a `cue.mod` pins exactly one core, one catalog and one `k8s.io`, so a package cannot compare versions of itself, and an in-package file cannot capture a diagnostic's text at all.
@@ -49,6 +51,12 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 **Decision:** A conformance case's expected outcome is captured verbatim: for an accepted input, the rendered output bytes; for a refused input, the diagnostic's message lines. Refusal text is compared, not only the fact of refusal. A change in a diagnostic between version cells is drift and is treated the same as a change in rendered bytes.
 
+**Requirements:**
+
+- R1: A conformance case's expected outcome for an accepted input is the rendered output, recorded verbatim.
+- R2: A conformance case's expected outcome for a refused input is the diagnostic's message lines, recorded verbatim and compared on replay, not the fact of refusal alone.
+- R3: A change in a refusal's message between two version cells is reported as drift, the same as a change in rendered output.
+
 **Alternatives considered:**
 
 - **Assert only exit status for refusals.** Rejected: 0019 D16 chose its spelling for the diagnostic's content (the offending string named, not a bare constraint); an exit-status assertion cannot tell the two apart, and the entire reason that choice was measured would go unrecorded.
@@ -63,6 +71,8 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 **Kind:** policy
 
 **Decision:** The conformance record is keyed by version cell: the CUE toolchain version, the `opmodel.dev/core` version, the catalog version(s), and the `cue.dev/x/k8s.io` version. A cell's recorded outcome is expected to be reproducible for as long as those artifacts exist. When a new cell's outcome differs from its predecessor along one axis, the suite fails unless the difference is recorded as intentional. Recording a new cell is a reviewed act, and its diff is the human-readable account of what that version changed. Versions on every axis are published artifacts (GHCR for OPM, the Central Registry for `k8s.io`, released `cue` binaries), never checkouts.
+
+**Requirements:** none (a verification posture for OPM's own release process: per-cell records, reviewed recording, published artifacts only; where the drift gate fails is OQ9)
 
 **Alternatives considered:**
 
@@ -79,6 +89,13 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 **Kind:** contract
 
 **Decision:** Every object a catalog transformer renders satisfies the `cue.dev/x/k8s.io` definition selected by the object's own `apiVersion` and `kind`, for both catalog families. For the raw passthrough family this conformance is verified by the conformance suite, which imports the upstream definitions; the raw module itself keeps its core-only dependency. Every raw member's `(group, version, kind)` exists in the upstream snapshot the suite pins. The abstraction family's in-module unification with upstream definitions remains its in-package layer and is additionally exercised by the suite.
+
+**Requirements:**
+
+- R1: Every object a catalog transformer renders satisfies the upstream Kubernetes definition selected by the object's own `apiVersion` and `kind`, for both catalog families.
+- R2: The raw passthrough family's conformance is verified outside its module, and the raw module keeps its core-only dependency.
+- R3: Every raw member's group, version and kind exists in the upstream snapshot the suite pins; a member for an API upstream has removed fails.
+- R4: The abstraction family's in-module unification with upstream definitions is also exercised by the suite.
 
 **Alternatives considered:**
 
@@ -98,6 +115,8 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 **Decision:** Render cases in the conformance suite are rendered by pure-CUE unification, using the oracle 0019 D1 names as the render contract. The kernel is not required to run the suite. Whether the kernel's render also joins the version matrix is an open question (OQ1) and, if adopted, is an additional axis rather than a replacement.
 
+**Requirements:** none (bounds the suite's renderer to 0019:D1's oracle; a kernel axis is OQ1)
+
 **Alternatives considered:**
 
 - **Render through the `opm` CLI.** Rejected as the baseline: it would put `library` and `cli` versions on the axis of a suite whose subject is the CUE artifacts, and the parity harness already proves the kernel agrees with the oracle.
@@ -112,6 +131,8 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 **Kind:** policy
 
 **Decision:** The in-package layer asserts what a definition rejects, in pure CUE, beside the assertions of what it accepts and derives. A negative assertion is paired with a positive one on the same idiom so that an inert assertion is detectable. The in-package layer does not assert diagnostic text; that is the conformance layer's (D2).
+
+**Requirements:** none (an authoring discipline for OPM's own CUE repos; diagnostic text is D2)
 
 **Alternatives considered:**
 
