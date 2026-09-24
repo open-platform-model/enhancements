@@ -14,6 +14,13 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 
 **Decision:** Every signed claim about a published catalog or module (build provenance, signature, and any optional claim this entry later admits) is a separate OCI artifact whose `subject` is the manifest digest the artifact's tag resolves to. Nothing is added to the CUE module manifest, its config blob or its layers. The claim's subject is always a digest, never a tag.
 
+**Requirements:**
+
+- R1: Every signed claim about a published catalog or module is a separate OCI artifact whose subject is the manifest digest the artifact's tag resolves to, never a tag.
+- R2: Attaching a claim leaves the CUE module manifest, its config blob and its layers unchanged, so the artifact's digest and CUE's client behaviour are unaffected.
+- R3: A claim attached to a digest is discoverable from that digest alone and stays attached to it when the tag is re-pointed.
+- R4: A claim declares its kind, so a verifier can tell provenance from a signature.
+
 **Alternatives considered:**
 
 - *A third layer or a config-blob payload.* Rejected: CUE's client refuses a module manifest that does not have exactly two layers, and treats the config only as a type tag.
@@ -27,9 +34,16 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 
 ### D2: The trust policy is the platform's
 
-**Kind:** scope
+**Kind:** contract
 
 **Decision:** Whom to trust is declared on the platform, not on the artifact, the CLI or the cluster. A platform states the signer identities and builders it accepts, with a per-subscription override, and every artifact the platform materializes is verified against that statement before its content is used. The kernel performs the verification so that the CLI and the operator reach the same verdict; the operator enforces, the CLI reports.
+
+**Requirements:**
+
+- R1: A platform declares whom it trusts, the signer identities and builders it accepts, on the platform itself, platform-wide with a per-subscription override.
+- R2: Every artifact a platform with a declared trust policy materializes is verified against that policy before its content is used.
+- R3: The CLI and the operator reach the same verdict for the same artifact and policy.
+- R4: A failing verdict is enforced by the operator and reported by the CLI.
 
 **Alternatives considered:**
 
