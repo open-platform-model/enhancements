@@ -39,7 +39,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-08"
-updated: "2026-09-20"
+updated: "2026-09-24"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -57,6 +57,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-19"
     event: 'Naming and prerelease pass: #PlatformSpec becomes #Platform, shipped #Platform becomes #ResolvedPlatform, #Subscription becomes #CatalogAdmission with a prereleases opt-in (D2, D3); example; OQ7.'
+  - date: "2026-09-24"
+    event: 'Requirements added to every decision (none on D4, D8), additive.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

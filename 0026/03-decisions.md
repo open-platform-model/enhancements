@@ -46,6 +46,13 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Decision:** On every OPM catalog path a module imports, the render build holds the version the module's committed dependency list names, provided the platform admits it (D2). The render module's dependency list is still written by promotion from committed resolutions, never by a resolver or a render-time tidy; what changes against 0019 D13 is the source promoted on a catalog path: the module's list, not the platform's. Every other path the module carries, `core` included, is promoted from the module's tidied closure, so the list stays the complete main-module view 0019 D13 relies on. The build records the catalog versions it held, and that record is part of the render's identity.
 
+**Requirements:**
+
+- R1: On every catalog path a module imports, the render holds the version the module's committed dependency list names, provided the platform admits it.
+- R2: Every other path the module carries, `core` included, is held at the version in the module's tidied closure; no resolver, tidy or maximum-version selection runs at render.
+- R3: Every render records the catalog version it held on each path, and that record is part of the render's identity.
+- R4: Two modules on one platform pinning different admitted releases of the same catalog each render at their own pin, and a platform catalog change moves neither.
+
 **Alternatives considered:**
 
 - **Platform-exact, the shipped rule (0019 D13).** The platform's pin is floor and ceiling. Rejected here because it makes the platform the throttle on catalog evolution and every platform bump a fleet re-render (Gaps 1 and 2).
@@ -65,6 +72,16 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Depends:** 0010:D1
 
 **Decision:** `#Platform` is the authored platform: metadata, type, and a path-keyed map of `#CatalogAdmission` entries. An entry names a lineage by its module path with the major (0010 D1), an `enable` flag, an optional `registry` override for where the path resolves, a `prereleases` flag defaulting to false, a required `floor` and an optional `ceiling`. The platform has no imports and no `cue.mod` dependencies of its own. A module importing a catalog path with no enabled entry is refused as not admitted. A pin below the floor or above the ceiling is refused naming the module, the path, the pin and the bound. An absent ceiling admits every release of the major at or above the floor. With `prereleases` false, a pin carrying a prerelease suffix is refused as not admitted even when its ordering falls inside the range, and the bounds themselves carry no prerelease suffix, which CUE checks structurally; with it true, prerelease pins and bounds are admitted by ordering alone. Same major is structural through the path; version ordering is checked by the kernel, since CUE has no semver comparison.
+
+**Requirements:**
+
+- R1: An authored platform imports nothing and carries no dependency list of its own; it names each admitted lineage by module path with its major, with an enable flag, a required floor, an optional ceiling and a prerelease opt-in defaulting to off.
+- R2: A module importing a catalog path with no enabled admission entry is refused as not admitted.
+- R3: A pin below an entry's floor or above its ceiling is refused naming the module, the path, the pin and the bound; it is never promoted to a version inside the range.
+- R4: An entry without a ceiling admits every release of the path's major at or above the floor.
+- R5: With prereleases off, a pin carrying a prerelease suffix is refused even when its ordering falls inside the range, and a bound carrying a prerelease suffix is rejected at platform validation; with prereleases on, prerelease pins and bounds are admitted by ordering alone.
+- R6: An entry without a floor, or whose floor or ceiling carries a major other than the path's, is rejected at platform validation.
+- R7: The platform's own module-less build, for readiness and the contract inventory, holds each enabled static catalog at its floor.
 
 **Alternatives considered:**
 
@@ -92,6 +109,13 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Decision:** The render-time registry 0019 D5 shipped as `#Platform`, with `#CatalogEntry`, `#registry` and `#composedTransformers` exactly as shipped, is renamed `#ResolvedPlatform` and is no longer authored; the name `#Platform` passes to the pure-data authored value of D2. The kernel generates a resolved-platform module whose dependency list carries the catalog versions the build will hold and whose value imports and embeds each catalog in the build, one `#registry` entry per path, and consumes it in the single render build as today. Generation is keyed by the resolved catalog set plus the authored platform's generation and the accepted registrations that reached the build, so renders with the same resolution share one resolved platform. The two authored forms of today, a hand-written platform module for offline renders and a Platform CR for the operator, become one: a `#Platform`, as a CR spec or as a file. 0019 D6's platform-package generation remains the operator's, and moves from once per CR change to once per distinct resolution. The rename is a breaking change to a shipped core definition, admissible because `opmodel.dev/core@v2` is pre-GA; the only consumer of the shipped value is the kernel.
 
+**Requirements:**
+
+- R1: The render-time registry keeps the shape 0019 D5 shipped, under the name `#ResolvedPlatform`, and is never an authored input: a render takes an authored platform and a module, never a resolved platform.
+- R2: The resolved platform for a render carries exactly one entry per catalog the build holds, at the version the build holds; an admitted lineage that no module imported and no registration supplied is absent.
+- R3: One authored platform value, with the same fields, serves as the operator's Platform CR spec and as the offline file a render starts from; a hand-written platform module is no longer an input.
+- R4: Platform-package generation happens once per distinct resolution, keyed by the resolved catalog set, the authored platform's generation and the accepted registrations, so renders with the same resolution share one generated package.
+
 **Alternatives considered:**
 
 - **Keep an authored platform module and override catalog versions in the render list.** Works mechanically, since the import resolves through the render list either way, but leaves an authored import whose version is decorative and keeps two authored forms alive.
@@ -110,6 +134,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Kind:** policy
 
 **Decision:** Listing a catalog in the authored `#Platform` does not put it in any build. A catalog enters a render build in exactly two ways: a consumer module imports it, or an accepted registration (0015 D3) supplies it. A static catalog admitted by the platform and imported by no module is absent from that module's build. The platform's own module-less build, for readiness and inventory, imports each enabled static catalog at its floor.
+
+**Requirements:** none (policy; its observable consequences are homed elsewhere: an admitted-but-unimported catalog absent from the build is D3 R2, the module-less build at the floor is D2 R7)
 
 **Alternatives considered:**
 
@@ -131,6 +157,13 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Decision:** A provider catalog is a catalog. When a consumer module imports it, D1 and D2 apply unchanged. When no consumer pins the path, the version the build holds is the registration's `version`, which 0015 D11 derives from the provider module's own dependency on its catalog and verifies at acceptance; that derivation is unchanged. The registration's claim gains `floor` and `ceiling`, each defaulting to `version`, authored by the provider module beside the operator release it deploys: the releases of the catalog whose emitted resources that operator accepts. The `transformer-registration` contract in catalog_opm carries the two fields with their defaults; the rendering transformer copies them to the CR. This is the first authored field on the claim, and 0015 D11 is amended to that extent: `catalog`, `version` and `provides` stay derived and verified; the window is authored, trusted because the CR already requires the platform-admin identity to apply. The window carries no `prereleases` flag; whether it needs one is OQ7.
 
+**Requirements:**
+
+- R1: A consumer module importing a provider catalog's path renders at its own committed pin, checked against the effective window, under the same admission rules as a static catalog.
+- R2: When no consumer pins a provider catalog's path, the render holds the registration's derived version.
+- R3: A provider module may state a compatibility window, a floor and a ceiling, on its registration; each defaults to the registration's version, so a provider that states none is unchanged in behaviour, and catalog, version and provides stay derived and verified.
+- R4: The window reaches the cluster on the rendered registration with its defaults filled, so the claim is readable without the provider module in hand.
+
 **Alternatives considered:**
 
 - **Derive the window from the catalog.** Impossible: a catalog release cannot vouch for releases after it. Only the provider module release, which post-dates the catalog releases it tested, can state the window.
@@ -150,6 +183,15 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Depends:** 0015:D3
 
 **Decision:** A `#Platform` admission entry for a provider catalog's path is not required for the catalog to be admitted; admission is the accepted registration's (0015 D3), and install-and-register stays one act. When an entry exists, its `floor` and `ceiling` replace the registration's window, whole; when it does not, the registration's window binds. Acceptance writes the effective window and its source, platform or provider, to the registration's status, which the operator owns and no render overwrites. A platform range wider than the author's window is accepted with a warning condition on the registration naming both bounds. A platform range that excludes the registration's `version` is refused at acceptance, since the default pick would be inadmissible and nobody chose a replacement. Consumer pins are checked against the effective window.
+
+**Requirements:**
+
+- R1: A provider catalog is admitted by its accepted registration alone; no admission entry for its path is required.
+- R2: When an admission entry exists for a provider catalog's path, its floor and ceiling replace the registration's window whole; when none exists, the registration's window is the effective one, and removing the entry makes the author's window bind again.
+- R3: The registration's status reports the effective window and its source, platform or provider.
+- R4: A platform range wider than the author's window is accepted with a warning condition on the registration naming both bounds.
+- R5: A platform range that excludes the registration's version is refused at acceptance.
+- R6: A consumer pin on a provider catalog's path outside the effective window is refused naming the module, the path, the pin and the bound.
 
 **Alternatives considered:**
 
@@ -173,6 +215,12 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Decision:** For every catalog the build holds, its committed requirement on each shared OPM-namespace path must be at most the version the build holds there, within the same major; a different major refuses unconditionally. With the consumer's pin deciding the held version (D1), the comparison 0015 D8 defines runs per render, against the consumer's pins, and a failure names the provider catalog, the consumer module, the path and both versions. It also runs at registration acceptance against the platform's static floors, so a provider that no admitted render could ever hold is refused where it can be named early. Acceptance-time success is necessary, not sufficient; the render-time check is the binding one.
 
+**Requirements:**
+
+- R1: For every catalog a build holds, its committed requirement on each shared OPM-namespace path is at most the version the build holds there within the same major, a different major refusing unconditionally; a render violating this is refused naming the provider catalog, the consumer module, the path and both versions.
+- R2: The same comparison runs at registration acceptance against the platform's static floors, and a provider no admitted render could hold is refused there naming the provider and the path.
+- R3: A provider accepted at registration can still be refused at render when a consumer's pins do not hold the versions it requires; acceptance never exempts a render.
+
 **Alternatives considered:**
 
 - **Acceptance only, as 0015 D8.** Sufficient when the platform held one version per path; not once pins are free.
@@ -189,6 +237,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Kind:** scope
 
 **Decision:** The render build's match glue, the fold that derives `#composedTransformers`, and the buckets derived from it are exactly as 0019 left them. Static catalogs are admitted by the authored platform and provider catalogs by the RBAC-gated registration, as before. Provider routing, classes and capability-based selection stay 0015 D2's successor material. Floating an instance forward within a range without an owner's act is out of scope and gated on enhancement 0021's answers about what a compatible module change is.
+
+**Requirements:** none (scope; reaffirms 0019:D5's fold, 0015:D3's admission split and 0015:D2's routing deferral)
 
 **Alternatives considered:**
 
