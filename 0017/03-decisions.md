@@ -20,6 +20,13 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 - the kernel resolves `#config` defaults to data before composition (config beats blueprint, D4);
 - absence falls through to the transformer's guard (blueprint silence delegates per-kind, D5).
 
+**Requirements:**
+
+- R1: A component field the instance values set concretely renders with that value, whatever default a `#config`, a blueprint or a transformer states for it.
+- R2: A `#config` default renders over a blueprint default for the same field, with no unresolved-disjunction error.
+- R3: A blueprint default renders when neither the instance values nor `#config` speak for the field.
+- R4: A field no layer above the transformer speaks for is absent on the composed component spec, and the transformer's absence-keyed per-kind fallback (or the platform runtime's own default) supplies it.
+
 **Alternatives considered:**
 
 - *In-language precedence via CUE's layer machinery*: rejected, see D4 alternatives.
@@ -36,6 +43,12 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 **Decision:** Trait and resource `spec` schemas MUST NOT mark defaults (`*`). They publish the union of what any target kind accepts. (SPEC.md §6 rule L1.)
 
+**Requirements:**
+
+- R1: A trait or resource spec schema marks no default; attaching a primitive alone never makes a field concrete.
+- R2: A primitive's spec admits the union of what every target kind accepts, so a value legal on any kind is never refused by the primitive itself.
+- R3: A catalog member whose trait or resource spec marks a default is refused at catalog publish.
+
 **Alternatives considered:**
 
 - *Default the trait schema* (`type: *"RollingUpdate" | …`): measured to work mechanically for the defaultable subset (component goes concrete, catalog vet and transformer regression tests pass). Rejected anyway: the default is a global claim across all kinds made by the one layer that cannot see the kind, and it permanently spends the field's single default slot so no downstream layer can re-default. It also cannot rescue undefaultable fields (`workloadIdentity.name!`, `disruptionBudget`'s `matchN`), and for object-emitting traits a default would materialize a resource (a PDB on every workload) rather than pick a value.
@@ -50,6 +63,12 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 **Kind:** contract
 
 **Decision:** A `#Blueprint` MAY conjoin narrowing constraints onto composed fields (every admitted value MUST be admitted by the primitive's schema) and MAY mark at most one default per field, always field-level on a leaf, never a whole-struct marked disjunct. (SPEC.md §6 rules L2/L3.) The idiom, verified: `type: ("RollingUpdate" | "Recreate") & (*"RollingUpdate" | string)`: unset → default; author's concrete value → wins; kind-invalid value → vet-time conflict naming the blueprint line. The exhaustive per-kind audit across all five workload blueprints is tracked by catalog_opm issue 40.
+
+**Requirements:**
+
+- R1: A blueprint may narrow a composed field, and every value the narrowing admits is admitted by the primitive's schema; a narrowing that admits a value the primitive refuses is refused at catalog publish.
+- R2: A blueprint marks at most one default per field, always on a leaf; a whole-struct marked disjunct is refused at catalog publish.
+- R3: With the author silent the blueprint's default renders; an author's concrete value wins over it; a value outside the blueprint's narrowing fails at vet time naming the blueprint line.
 
 **Alternatives considered:**
 
@@ -68,6 +87,12 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 **Decision:** Between config validation and `FillPath(schema.Values, …)` (`library/opm/kernel/process.go:42`), the kernel resolves every `#config` default to its concrete value, so the composition receives plain data. Applies identically to the `ValidateConfigDetailed` layered-sources path (finalize after the last source merges) and the debugValues/synth path. Consequence, accepted deliberately: a config default becomes a commitment. A default that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
 
 Under D8's compatibility contract, this is divergence *elimination*: the kernel is stricter and louder than plain CUE, which silently substitutes. The collision case the finalize resolves is divergence *collision*: the kernel succeeds where plain CUE fails loudly with `incomplete value`. Neither is a silent fork of plain-CUE semantics.
+
+**Requirements:**
+
+- R1: A `#config` default that violates a downstream constraint fails the render loudly at the config boundary, naming the config field, instead of being replaced by a surviving disjunct.
+- R2: The same outcome holds whether the values arrive as instance values, as layered value sources, or as `debugValues` through the synth path.
+- R3: An optional `#config` field the values leave unset stays absent after finalization; finalization never materializes a field nobody set.
 
 **Alternatives considered:**
 
@@ -89,6 +114,15 @@ Under D8's compatibility contract, this is divergence *elimination*: the kernel 
 
 A single-regular-field guarantee on trait specs accompanies the change: nested `!`/`?` markers ride inside the projected value intact, but a top-level `req!` sibling would abort the comprehension and a top-level `?` sibling would be silently dropped. Core's existing `spec!: (name): _` gate plus definition closedness prevents both, and the target schema pins the guarantee.
 
+**Requirements:**
+
+- R1: An `optional: true` trait attached to a component constrains its field without making it present; with the author silent the composed spec carries no such field.
+- R2: When the author sets the field, the trait's schema is enforced and the field is present on the composed spec.
+- R3: An `optional: false` trait's field is present and required on the composed spec, exactly as unconditional embedding behaves today.
+- R4: A trait that states no posture fails at every consumer of the component, not only at the publish gate.
+- R5: The composed spec stays closed: a field no attached resource, trait or blueprint declares is still rejected.
+- R6: A trait spec carries exactly one top-level regular field, and nested required or optional markers inside it survive projection intact.
+
 **Alternatives considered:**
 
 - *Fix in the catalog* (`spec: updateStrategy?: …` across all 27 traits): measured no-op: core's trait gate forces the projected field regular; the catalog cannot express optionality the projection discards.
@@ -105,6 +139,8 @@ A single-regular-field guarantee on trait specs accompanies the change: nested `
 
 **Decision:** The who-writes-what contract is codified as core SPEC.md §6 with rule identifiers L1–L6 for CLI gates to cite (landed 2026-08-18, core 504e927, ahead of this entry). This enhancement rewrites L5 from an author obligation ("MUST NOT flow a defaulted reference into a defaulted field") into a kernel guarantee (D4 makes the collision unrepresentable). Enforcement points: catalog publish gates for L1–L3, module vet gates for L4, transformer review for L6.
 
+**Requirements:** none (enforcement stance; the refusals it assigns are stated on D2 R3, D3 R1/R2 and D4 R1, and the gate mechanics are a cli delta spec)
+
 **Alternatives considered:**
 
 - *Enforce in CUE*: impossible for the load-bearing rules: they are all statements about which layer a value came from, and the lattice erases provenance by construction.
@@ -116,7 +152,7 @@ A single-regular-field guarantee on trait specs accompanies the change: nested `
 
 ### D8: Plain-CUE compatibility is a hard constraint on every mechanism
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** OPM artifacts remain stock-CUE evaluable, under three clauses:
 
@@ -125,6 +161,12 @@ A single-regular-field guarantee on trait specs accompanies the change: nested `
 - **C3:** two loud divergences are accepted and documented. The kernel resolves the config-vs-blueprint default collision that plain `cue export` reports as `incomplete value` (kernel more capable). The kernel also rejects the eliminated-default substitution that plain CUE ships silently (kernel stricter).
 
 Modules needing plain-CUE export parity SHOULD avoid the collision pattern (OQ5 covers gate support). The core slice adds the compatibility clauses to SPEC.md §6.
+
+**Requirements:**
+
+- R1: Plain `cue vet` passes on every valid module and catalog package.
+- R2: Wherever the kernel's rendered value would differ from plain CUE's export, at least one side reports an error; the kernel never silently produces a different value.
+- R3: Exactly two divergences exist and both are documented in the spec: the config-versus-blueprint default collision, which plain CUE reports as incomplete and the kernel resolves, and the eliminated-default substitution, which plain CUE ships silently and the kernel refuses.
 
 **Alternatives considered:**
 
@@ -141,6 +183,10 @@ Modules needing plain-CUE export parity SHOULD avoid the collision pattern (OQ5 
 **Kind:** contract
 
 **Decision:** The twelve unreferenced `#*Defaults` definitions (relics of the v1alpha1 trait-defaults idiom, retired when defaulting moved into transformers post-014) are deleted from catalog_opm. Landed: catalog_opm eab9b12 (`feat!`), 2026-08-18, after verifying zero references across the workspace and downstream consumers.
+
+**Requirements:**
+
+- R1: The first-party catalog on the v2 line publishes no `#*Defaults` definition; a module referencing one fails to resolve.
 
 **Alternatives considered:**
 
