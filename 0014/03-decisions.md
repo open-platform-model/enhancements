@@ -16,6 +16,15 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** `opm instance export` emits a directory containing the `ModuleInstance` plus the `Namespace`, the applier `ServiceAccount`, its RBAC, and a `kustomization.yaml` listing them, one directory per instance. It does not emit repo-level Flux wiring (`OCIRepository`, Flux `Kustomization`), and it does not emit a bare CR.
 
+**Requirements:**
+
+- R1: `opm instance export` writes one directory per instance containing the `ModuleInstance`, its `Namespace`, the applier `ServiceAccount`, that account's RBAC binding, and a kustomization listing exactly those four documents in apply-safe order.
+- R2: The exported directory applies into a cluster holding only the operator and produces the same instance under the same applier identity with the same deletion behaviour; nothing outside the directory is assumed.
+- R3: No repo-level Flux wiring (`OCIRepository`, Flux `Kustomization`) is emitted, and no bare-CR output mode exists.
+- R4: Exporting an unchanged instance twice produces byte-identical output.
+- R5: The exported `spec.module.version` carries its `v` prefix, so the operator can resolve the document without a second actor correcting it.
+- R6: A field the export writes that the live CR did not carry is named in the command output together with its behavioural consequence; a render-bearing field is only ever copied, never completed or altered.
+
 **Alternatives considered:**
 
 - **Bare `ModuleInstance` only.** Rejected: the CR references a `ServiceAccount` by name for impersonated apply, and neither that account nor its authorization nor the namespace exists as a file anywhere. A repo containing only the CR either fails to reconcile or silently applies under the controller's own identity (`opm-operator/cmd/main.go:101`). It is also barely more than `kubectl get -o yaml`, which is the workaround this enhancement exists to replace.
@@ -34,6 +43,13 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** Export runs handoff's precondition chain before writing any file: cluster gates, CR existence, non-local render provenance, concrete `spec.module`, a recorded `status.lastAppliedRenderDigest`, and a strict-registry verification render whose digest equals it. A failure aborts with nothing written. `--force` bypasses the digest comparison only, exactly as it does for handoff; it does not relax the provenance or resolvability gates.
 
+**Requirements:**
+
+- R1: Export writes nothing unless the published module at the live CR's coordinate, rendered against the live values, reproduces `status.lastAppliedRenderDigest`; a mismatch aborts and reports that the cluster is running something the registry no longer describes.
+- R2: The preconditions handoff enforces (cluster gates, CR existence, non-local render provenance, a concrete module path and version, a recorded digest) apply to export unchanged, and any failure aborts with nothing written, naming the reason.
+- R3: A forced export bypasses the digest comparison only; the provenance and resolvability refusals cannot be overridden.
+- R4: The export report states the deployed digest, the rendered digest, and whether they matched or the comparison was forced.
+
 **Alternatives considered:**
 
 - **Best-effort scaffold.** Dump what the cluster holds, warn on anything suspect, let the user review before committing. Rejected: it reproduces the defect of the manual workaround rather than fixing it. The failure mode this enhancement exists to prevent (a committed document that describes something other than what is running) is precisely the one a warning does not prevent, because the file has already been written and the next `git add` is unconditional.
@@ -49,6 +65,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** The exported `ModuleInstance` carries the live CR's `spec.values` byte-for-byte. The command prints a warning that the values were written to disk unredacted and that OPM cannot yet identify which of them are secret. There is no redaction mode and no refusal on suspected secrets.
 
+**Requirements:**
+
+- R1: The exported `ModuleInstance` carries the live CR's `spec.values` byte-for-byte; no value is redacted, substituted or omitted.
+- R2: Every export that writes values prints a warning that the values were written to disk unredacted and that OPM cannot identify which of them are secret.
+
 **Alternatives considered:**
 
 - **Refuse unless `--allow-plaintext-values`.** Rejected for now: the CLI has no reliable way to tell which values are secret. Enhancement [0013](../0013/) is the design that introduces attribute-declared secret fields, and building a refusal on top of a detector that does not exist would either gate on 0013 or produce false confidence from heuristics (key-name matching).
@@ -63,6 +84,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 **Kind:** contract
 
 **Decision:** Export reads the `ModuleInstance` from the cluster and nothing else. It does not read the local instance file, accept a values file, or merge local state into the output.
+
+**Requirements:**
+
+- R1: Export reads the `ModuleInstance` from the cluster and nothing else; no local instance file or values file is read or merged into the output.
+- R2: An export invocation names one instance, or exports every exportable instance in a namespace or in the cluster, writing one directory each with nothing shared or merged between them.
 
 **Alternatives considered:**
 

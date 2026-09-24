@@ -20,7 +20,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-29"
-updated: "2026-09-19"
+updated: "2026-09-24"
 authors:
   - emil@jacero.se
 # Design impact on the published contract. none = no core schema change and no
@@ -56,6 +56,8 @@ history:
     event: 'README readability pass: plain lede, glossed decision refs, a diagram, boilerplate cut. No answer, number, scope item, banner or citation changed. Under the 2026-09-18 README-readability carve-out.'
   - date: "2026-09-19"
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
+  - date: "2026-09-24"
+    event: 'Requirements added to every decision, additive.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
