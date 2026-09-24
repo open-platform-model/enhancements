@@ -15,7 +15,7 @@
 // WHERE THEY CAME FROM. Most of this was already repo law, scattered:
 // `feature` and `contract` were the unwritten test for what deserved an
 // entry; `durability` is why the implementation axis was removed; `rewrite`
-// is CLAUDE.md's prescriptive-mechanism rule; `prior-art` is what archive/
+// is AGENTS.md's prescriptive-mechanism rule; `prior-art` is what archive/
 // exists for. Collecting them makes them checkable.
 package enhancements
 

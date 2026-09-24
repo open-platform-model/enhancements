@@ -265,7 +265,7 @@ Mixing compaction into a content change makes the two indistinguishable in revie
 
 ## Cross-references
 
-- `enhancements/CLAUDE.md` — repo orientation; lists this skill under sibling skills.
+- `enhancements/AGENTS.md` — repo orientation; lists this skill under sibling skills.
 - `enhancements/.claude/skills/enhancements/SKILL.md` — the canonical workflow protocol. `## Repo rules` defines the numbering invariants this skill preserves; `## Phase 3 — Promote` and `## Phase 5 — Supersede` are where compaction passes belong.
 - `enhancements/.claude/skills/enhancement-open-questions/SKILL.md` — resolves OQs by appending decisions; run it to completion before collapsing an OQ block.
 - `enhancements/0000/03-decisions.md` — the template preamble carrying the numbering and compaction rules into every new entry.

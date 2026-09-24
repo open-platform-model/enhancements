@@ -58,7 +58,7 @@ import (
 // Controlled vocabulary of OPM repos. `affects` lists every repo that ships
 // code, schema, or content changes driven by this enhancement (its blast
 // radius), and a delivery-log change names the repo it landed in. Validated
-// against the workspace directory map in `/CLAUDE.md`. Add a value here when
+// against the workspace directory map in `/AGENTS.md`. Add a value here when
 // a new repo joins the workspace; do not allow free-text. There is no
 // "cross-cutting" value: an entry that spans repos simply lists several, and
 // there is no primary-owner field either (the former `area` said

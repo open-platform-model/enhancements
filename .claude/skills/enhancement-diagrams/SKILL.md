@@ -127,7 +127,7 @@ Rules for either medium:
 - **Concepts, not construction.** Nodes are actors, artifacts, data and steps: `Platform spec`,
   `Registration CR`, `Render`. Never a file path, a package name, a function or a line number —
   those are the target repo's to choose, and naming one here is prescriptive mechanism (see
-  `CLAUDE.md`).
+  `AGENTS.md`).
 
 ### Authoring Mermaid safely
 
@@ -216,7 +216,7 @@ that category.
 
 ## Cross-references
 
-- `enhancements/CLAUDE.md` — repo guide; lists this skill under sibling skills.
+- `enhancements/AGENTS.md` — repo guide; lists this skill under sibling skills.
 - `enhancements/.claude/skills/enhancements/SKILL.md` — the authoritative workflow protocol;
   `## Phase 2 — Iterate` is where general design discussion happens and this skill applies.
 - `enhancements/.claude/skills/enhancement-open-questions/SKILL.md` — the OQ-walk's Present step

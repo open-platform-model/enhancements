@@ -6,7 +6,7 @@ user-invocable: true
 
 # Enhancements Workflow
 
-This skill is the **authoritative protocol** for working with OPM enhancement proposals under `enhancements/NNNN/`. The repo's `CLAUDE.md` is the orientation document; this skill is the binding workflow.
+This skill is the **authoritative protocol** for working with OPM enhancement proposals under `enhancements/NNNN/`. The repo's `AGENTS.md` is the orientation document; this skill is the binding workflow.
 
 ## When this skill applies
 
@@ -39,7 +39,7 @@ These hold across every enhancement in the repo. Violations fail PR review even 
 
 1. **`config.yaml` is the sole source of metadata.** Do not reintroduce a metadata table to `README.md`. The table was removed by design; `config.yaml` is canonical.
 2. **Folder names are id-only.** `0001/`, `0042/` — four digits, zero-padded, no slug suffix. The slug lives in `config.yaml.slug` and surfaces in `INDEX.md`. `0000` is reserved for the template; never repurpose it.
-3. **Compilable CUE is pure CUE files, and `schemas/` means exactly one thing: the core-schema delta.** Never write CUE inside a markdown fence longer than a few illustrative lines. `NNNN/schemas/` exists **iff** `config.yaml.core_schema: true` — the enhancement adds or changes `opmodel.dev/core` definitions — and holds `target.cue` (the proposed delta; import published `opmodel.dev/core@vN` for unchanged referenced types where practical, fully restate changed definitions with a delta-manifest header), `examples.cue` (concrete instances + assertions whose unification is the actual test), and `spec.md` (the specification changes, one section per construct in core SPEC.md's four-part Definition/Shape/Constraints/Rationale format — pre-drafting the SPEC.md co-update the core change will need). `examples.cue` + `spec.md` are hard-required from `accepted`; a compiling `target.cue` suffices at `draft`; an entry that already derives `implemented` is exempt, its spec having landed in `core/SPEC.md`. `core_schema: true` implies `core ∈ affects`. All other compilable CUE — decision procedures, kernel-behaviour contracts, CLI command contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts ID=NNNN`), which vet compiles when present but never requires. (One-time exception on record: the 2026-08-20 full-sweep migration to this rule restructured frozen entries' folders and metadata — structure only, no content rewrites; see `CLAUDE.md ## Repository Rules`.)
+3. **Compilable CUE is pure CUE files, and `schemas/` means exactly one thing: the core-schema delta.** Never write CUE inside a markdown fence longer than a few illustrative lines. `NNNN/schemas/` exists **iff** `config.yaml.core_schema: true` — the enhancement adds or changes `opmodel.dev/core` definitions — and holds `target.cue` (the proposed delta; import published `opmodel.dev/core@vN` for unchanged referenced types where practical, fully restate changed definitions with a delta-manifest header), `examples.cue` (concrete instances + assertions whose unification is the actual test), and `spec.md` (the specification changes, one section per construct in core SPEC.md's four-part Definition/Shape/Constraints/Rationale format — pre-drafting the SPEC.md co-update the core change will need). `examples.cue` + `spec.md` are hard-required from `accepted`; a compiling `target.cue` suffices at `draft`; an entry that already derives `implemented` is exempt, its spec having landed in `core/SPEC.md`. `core_schema: true` implies `core ∈ affects`. All other compilable CUE — decision procedures, kernel-behaviour contracts, CLI command contracts, taxonomies — lives in the optional `NNNN/contracts/` (`task new:contracts ID=NNNN`), which vet compiles when present but never requires. (One-time exception on record: the 2026-08-20 full-sweep migration to this rule restructured frozen entries' folders and metadata — structure only, no content rewrites; see `AGENTS.md ## Repository Rules`.)
 4. **`config.yaml.history` is append-only.** Never delete or reorder past events. Reversed conclusions get a new event recording the reversal; the original event stays. This is the only strictly append-only structure in the repo — it is short, structured, and it is where provenance is supposed to live.
 5. **Decision and OQ *numbers* are immutable; body mutability is status-gated.** `D1`, `D2`, `OQ1`, … are never reused and never renumbered — other repos cite them from commit messages and OpenSpec changes. A number vacated by a merge or retraction keeps a one-line tombstone (`### D18: (merged into D3, YYYY-MM-DD)`) so the citation still resolves, and one carried to another entry by a scope split keeps the same stub with a third verb (`### D7: (moved to 0027:D7, YYYY-MM-DD)`), the number surviving on both sides. What may happen to the prose under a number depends on `status`:
    - **`draft`** — decision bodies are freely revised **in place**. The log never contains two conflicting decisions: a changed choice is an edit to the existing `DN`, not a new one. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* before overwriting; a mere sketch may be replaced outright.
@@ -417,16 +417,16 @@ Workflow:
 
 ## Source of truth precedence
 
-- Workspace root `/CLAUDE.md` governs cross-repo routing and the repo vocabulary (`schema.cue` `#Repo`).
-- `enhancements/CLAUDE.md` orients agents to the repo; this skill is the authoritative protocol.
-- Each target repo's own `CLAUDE.md` governs its source code; implementation changes follow those rules.
+- Workspace root `/AGENTS.md` governs cross-repo routing and the repo vocabulary (`schema.cue` `#Repo`).
+- `enhancements/AGENTS.md` orients agents to the repo; this skill is the authoritative protocol.
+- Each target repo's own `AGENTS.md` governs its source code; implementation changes follow those rules.
 - When a change touches `core/`, `core-schema-edit` (at `core/.claude/skills/core-schema-edit/`) is the binding protocol for SPEC.md co-updates.
 
-When guidance conflicts, the most-specific source wins: target repo skill > this skill > target repo CLAUDE.md > workspace root CLAUDE.md.
+When guidance conflicts, the most-specific source wins: target repo skill > this skill > target repo AGENTS.md > workspace root AGENTS.md.
 
 ## Cross-references
 
-- `enhancements/CLAUDE.md` — repo orientation; points here for the full protocol.
+- `enhancements/AGENTS.md` — repo orientation; points here for the full protocol.
 - `enhancements/0000/README.md` — template; the shape of an entry README, with the workflow rules left to this skill.
 - `enhancements/schema.cue` — CUE contract that `task vet` validates each `config.yaml` against; it also validates every `delivery.yaml` (`#Delivery`) and defines the target-repo `enhancement.yaml` declaration shape (`#ChangeDeclaration`).
 - `enhancements/Taskfile.yml` — workflow tasks source.

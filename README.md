@@ -147,7 +147,7 @@ Run both before opening a PR. Run `task index` after editing any `config.yaml`, 
 ```text
 enhancements/
 ├── README.md               this file
-├── CLAUDE.md               repository rules and agent orientation
+├── AGENTS.md               repository rules and agent orientation
 ├── INDEX.md                generated: every entry with status, delivery state and summary
 ├── GRAPH.md                generated: Mermaid diagrams of how entries relate, one per category
 ├── schema.cue              what config.yaml may contain
@@ -201,7 +201,7 @@ enhancements/
 
 ## Where the full rules live
 
-- [`CLAUDE.md`](CLAUDE.md): repository rules and agent orientation.
+- [`AGENTS.md`](AGENTS.md): repository rules and agent orientation.
 - [`.claude/skills/enhancements/SKILL.md`](.claude/skills/enhancements/SKILL.md): the binding workflow, phase by phase.
 - [`schema.cue`](schema.cue) and [`gates.cue`](gates.cue): the metadata contract and the admission rubric, with rationale in comments.
 - [`0000/README.md`](0000/README.md): the template, which is the shape of an entry README and nothing else.

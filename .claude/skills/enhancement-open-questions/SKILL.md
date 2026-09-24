@@ -175,7 +175,7 @@ After the queue is exhausted (or the user exits early):
 
 ## Cross-references
 
-- `enhancements/CLAUDE.md` — repo guide; lists this skill under sibling skills.
+- `enhancements/AGENTS.md` — repo guide; lists this skill under sibling skills.
 - `enhancements/.claude/skills/enhancements/SKILL.md` — the canonical workflow protocol. `## Phase 2 — Iterate` defines the decision block format this skill follows; `## Phase 3 — Promote` defines the OQ-resolved gate this skill exists to satisfy.
 - `enhancements/.claude/skills/enhancement-experiments/SKILL.md` — experiment outcomes feed `informed-by-exp-NN` / `supported-by-exp-NN` partial OQs; the walk reads experiment READMEs when presenting those.
 - `enhancements/.claude/skills/enhancement-diagrams/SKILL.md` — sketching guidance for the Present step: Mermaid for relationship-shaped OQs, ASCII for design/mechanism-shaped ones.
