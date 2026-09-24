@@ -18,7 +18,11 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D1: A sensitive field is marked with a CUE field attribute, not typed with a contract struct
 
+**Kind:** scope
+
 **Decision:** Module authors mark a `#config` field sensitive by writing `@opm(secret, …)` on it. The field keeps its natural type (`string`), and `#Secret`, `#SecretLiteral`, `#SecretK8sRef`, and the `$opm` / `$secretName` / `$dataKey` meta-fields are removed. No `value:` wrapper is introduced on the values side.
+
+**Requirements:** none (superseded by D10 on the day it was written; the attribute-marker rule it introduced is D10 R1 and R2, the no-`#Secret`-type half is withdrawn; what survives is its record of rejected alternatives)
 
 **Alternatives considered:**
 
@@ -34,7 +38,15 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D2: The marker reuses the existing `@opm(...)` namespace, dispatched on position 0
 
+**Kind:** contract
+
 **Decision:** The attribute name is `opm` and the first positional argument names the marker kind: `@opm(secret, …)`. Remaining arguments are `key=value` pairs specific to that kind. Unknown position-0 values are ignored by the secret pass.
+
+**Requirements:**
+
+- R1: A secret marker is written as `@opm(secret, …)`: attribute name `opm`, the marker kind `secret` in position 0, and routing arguments as `key=value` pairs after it.
+- R2: An `@opm(...)` attribute whose position-0 value is not `secret` is ignored by secret discovery, so a field may carry another `@opm` marker without being treated as a secret.
+- R3: Every argument past position 0 is optional; `@opm(secret)` with no arguments is a complete declaration and resolves to group `secrets`, a key derived from the config path with separators folded to underscores, type `Opaque`, and not immutable.
 
 **Alternatives considered:**
 
@@ -49,7 +61,15 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D3: Discovery reads the module's `#config` schema, not the instance's values
 
+**Kind:** contract
+
 **Decision:** The kernel's Discover phase walks `#module.#config` (`library/opm/schema/paths.go` `Config`). It never looks for marks in `values`.
+
+**Requirements:**
+
+- R1: A module's declared secrets (config path, group, key, type, immutability) are listable from the published module alone, with no instance values present.
+- R2: A marker written in instance values rather than on the module's `#config` field declares nothing; only the schema-side declaration is honoured.
+- R3: Discovery has no depth ceiling and covers list elements and the entries of a pattern-constrained map, so a deployer-added key under an open `[string]: #Secret` map is discovered.
 
 **Alternatives considered:**
 
@@ -64,7 +84,11 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D4: The kernel substitutes an opaque handle for every marked value before components are built
 
+**Kind:** scope
+
 **Decision:** Before the component graph is constructed, the kernel rewrites the render-time values so every marked path holds a `#SecretHandle` (`opm:secret:v1:<10 hex>`, SHA-256 of the config path) instead of its plaintext. The kernel retains the plaintext out of band. Transformers resolve handles through `#TransformerContext.secrets`.
+
+**Requirements:** none (superseded by D11 on the day it was written; the plaintext-never-enters-the-graph property it aimed at is D11 R2, delivered without a handle; what survives is its record of rejected alternatives)
 
 **Alternatives considered:**
 
@@ -81,7 +105,14 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D5: Secret object naming is owned solely by the kernel
 
+**Kind:** contract
+
 **Decision:** The Kubernetes object name for a secret is computed exactly once, by the kernel, during resolution. No transformer computes a name; every consumer reads the one string the kernel produced. How that string reaches consumers is a separate question, settled by D11.
+
+**Requirements:**
+
+- R1: An OPM-owned Secret object's name is computed once per instance and group, and every rendered reference to that group (environment variable, volume mount, any other consumer) carries the identical name.
+- R2: When a group is declared immutable, its object name carries a content-hash suffix computed from the group's data before resolution, so every reference to the group already carries the suffixed name and follows the object when the data changes.
 
 **Alternatives considered:**
 
@@ -96,7 +127,16 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D6: OPM-owned Secret objects are instance-scoped and group-named, not component-scoped
 
+**Kind:** contract
+
 **Decision:** An OPM-materialised Secret object is named `{instance}-{group}`, where `group` defaults to `secrets`. The component that happens to consume a secret plays no part in the name. The `opm-secrets` special-case component name is removed.
+
+**Requirements:**
+
+- R1: An OPM-materialised Secret object is named `{instance}-{group}`, with `group` defaulting to `secrets` when the declaring fields name none.
+- R2: Two components of one instance consuming secrets from one group reach the same Secret object; the consuming component's name appears nowhere in the object name.
+- R3: Fields sharing a group land in one object, and a group whose members disagree on the Secret `type` or on immutability is rejected.
+- R4: An instance carries no `opm-secrets` component, and no object name is derived from a special-case component name.
 
 **Alternatives considered:**
 
@@ -111,7 +151,14 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D7: Two fulfilment kinds ship, supplied and referenced
 
+**Kind:** contract
+
 **Decision:** `#SecretSource` has exactly two members. `#SuppliedSecret` carries a plaintext value the instance provides and causes OPM to materialise an object. `#ReferencedSecret` names a pre-existing object and remote key, and causes OPM to materialise nothing and wire a reference. No third kind ships in this enhancement.
+
+**Requirements:**
+
+- R1: A deployer fulfils a secret either by supplying its value inline or by naming an existing object and a key inside it; no third form is accepted.
+- R2: A supplied secret causes OPM to materialise a Secret object holding the value; a referenced secret causes OPM to materialise nothing and wires a reference to the named object.
 
 **Alternatives considered:**
 
@@ -126,7 +173,15 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D8: How a supplied secret is materialised is a platform choice, resolved through catalog subscription
 
+**Kind:** contract
+
 **Decision:** The attribute expresses author intent (this field is sensitive, this is its group and key) and nothing about backends. The kernel synthesises a secrets component from the resolved plans and matches it against the platform's materialized catalogs by exact FQN, like any other component. A third party adds a backend (SealedSecrets, ESO, CSI) by publishing a catalog whose transformer requires that resource. The `#secretsResourceFQN` is an input supplied by the platform, never a literal in core or in this schema.
+
+**Requirements:**
+
+- R1: A marked field's declaration names no backend; the same published module renders on a platform whose catalog materialises plain Kubernetes Secrets and on one whose catalog materialises a different object kind, without republishing.
+- R2: The secrets component the kernel synthesises matches a platform transformer by exact FQN like any other component, so a third party adds a backend by publishing a catalog whose transformer requires that resource, with no kernel change.
+- R3: The secrets resource FQN is taken from the platform's subscribed catalogs at render time, so a catalog version change needs no change in core or in the kernel.
 
 **Alternatives considered:**
 
@@ -142,9 +197,16 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ### D9: The dead and duplicated secret machinery is deleted, not deprecated
 
+**Kind:** contract
+
 **Mechanism removed 2026-08-22**: construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
 
 **Decision:** Core withdraws its entire secret block and the catalog drops its duplicate of the contract type. No aliases, no transition shims: a module written against the withdrawn shapes stops type-checking rather than being carried by a compatibility layer. `#SecretsResource` / `#SecretSchema` survive in the catalog for hand-authored Secret data, with `data` narrowed from `#Secret | string` to `string`.
+
+**Requirements:**
+
+- R1: A module written against the withdrawn shapes (the `$opm`/`$secretName`/`$dataKey` marker fields, the old reference struct, the discovery and grouping helpers) fails to type-check against the new core; no alias or compatibility shim accepts them.
+- R2: The catalog's hand-authored Secret object shape survives with `data` values typed `string` only; a `#Secret` value in that slot is rejected.
 
 **Alternatives considered:**
 
@@ -157,6 +219,8 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 ---
 ### D10: The secret field is typed `#Secret`, a two-arm disjunction; the attribute carries routing only
+
+**Kind:** contract
 
 **Supersedes D1.** Closes **OQ1**.
 
@@ -171,6 +235,15 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 All routing (`group`, `key`, `type`, `immutable`, `description`) lives in the attribute. `$opm`, `$secretName`, and `$dataKey` are removed. The deployer chooses the arm, per environment, in `values`.
 
 Both arms are structs. The bare-scalar form (`string | #SecretRef`) was considered and rejected below.
+
+**Requirements:**
+
+- R1: A sensitive `#config` field is declared with type `#Secret`, optionally carrying an `@opm(secret, …)` attribute; the type accepts exactly two struct arms, `{value}` and `{ref, key}`, and a bare scalar is rejected.
+- R2: Routing (group, key, type, immutable, description) is stated only in the attribute; a value carrying routing fields such as `$opm`, `$secretName` or `$dataKey` is rejected.
+- R3: The deployer chooses the arm per environment in the instance values; a published module fixes neither arm, and moving an environment between arms needs no republish.
+- R4: An instance values file that supplies a secret as `{value: "…"}` today is accepted unchanged.
+- R5: A module carrying either arm vets standalone without the kernel in the loop.
+- R6: An unfulfilled secret is non-concrete, so plain `cue vet -c` names it by config path with no OPM tooling involved.
 
 **Alternatives considered:**
 
@@ -188,11 +261,20 @@ Keeping both arms as structs has a second effect that was not the goal but is wo
 
 ### D11: The kernel resolves in place; it rewrites each secret value to its `#SecretRef` form
 
+**Kind:** contract
+
 **Supersedes D4.** Implements D5's single naming authority.
 
 **Decision:** Before the component graph is built, the kernel rewrites every marked path in the render-time values to a `#SecretRef`, whichever arm the deployer wrote. A `#SecretLiteral` is replaced by a reference to the object the kernel has decided to create; a `#SecretRef` passes through as itself. The plaintext leaves through `#SecretGroupPlan.data` to the materialising component and never enters the graph.
 
 There is no handle format, no `#TransformerContext.secrets` lookup, and no prefix scanning. A transformer reads `.ref` and `.key` from a single branch.
+
+**Requirements:**
+
+- R1: At render, every marked path holds the `{ref, key}` form whichever arm the deployer wrote: a supplied value is replaced by a reference to the object OPM materialises, and a deployer-written reference passes through byte-identical and is never instance-prefixed.
+- R2: No `value` field exists at any marked path in the render-time values, and the supplied plaintext appears in no rendered manifest other than the materialised Secret's own data.
+- R3: A module that interpolates a secret into a string (`"\(#config.db.password)"`) fails at plain `cue vet` at authoring time, before any kernel is involved.
+- R4: A module or transformer that reads a resolved secret's literal value is told so against the config path it wrote, not through an error about a missing field.
 
 **Alternatives considered:**
 
@@ -216,11 +298,20 @@ Three consequences follow:
 
 ### D12: `#Secret` lives in `core`, and `core` is its only definition
 
+**Kind:** contract
+
 **Amends D9.**
 
 **Decision:** `#Secret`, `#SecretLiteral`, and `#SecretRef` are defined in `opmodel.dev/core@v1` and imported by catalogs. `catalog_opm` does not redeclare them. D9's deletions stand for everything else: `$opm`/`$secretName`/`$dataKey`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName`, and the duplicated copies of all of it. `#SecretSchema` (the Kubernetes Secret *object* shape) stays in the catalog, with `data` narrowed to `string`.
 
 The `#SecretRef` arm's fields are named `ref` and `key`.
+
+**Requirements:**
+
+- R1: `#Secret`, `#SecretLiteral` and `#SecretRef` are published by core and imported by catalogs; no catalog publishes a definition of its own for them.
+- R2: The referenced arm's fields are named `ref` and `key`; `secretName` and `remoteKey` are not accepted.
+- R3: Core publishes none of `$opm`, `$secretName`, `$dataKey`, `#SecretK8sRef`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` or `#SecretSchema`; the Kubernetes Secret object shape lives in the catalog only.
+- R4: `#Secret` carries no `metadata`, no FQN and no version, and core's specification lists it as a config-value type, not a primitive.
 
 **Alternatives considered:**
 
@@ -235,7 +326,14 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D13: Discovery keys on the type and the marker, and fails closed
 
+**Kind:** contract
+
 **Decision:** Discover recognises a declaration by either signal. A `#config` field typed `#Secret` with no `@opm(secret, …)` attribute is discovered with all-default routing, exactly as if it carried a bare `@opm(secret)`: group `secrets`, key derived from the path (`#DeriveKey`). A field carrying the `secret` marker whose type is not `#Secret` is a Discover error. The marker is therefore pure override; it is never load-bearing for the security property.
+
+**Requirements:**
+
+- R1: A `#config` field typed `#Secret` with no `@opm(secret, …)` attribute is discovered and resolved with default routing, exactly as if it carried a bare `@opm(secret)`.
+- R2: A field carrying the `secret` marker whose type is not `#Secret` is rejected at discovery.
 
 **Alternatives considered:**
 
@@ -251,6 +349,8 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D14: SOPS support lands at the file seams, decrypt on input, encrypt on export; never an arm, a backend, or kernel code
 
+**Kind:** contract
+
 **Depends:** 0014:D1
 
 **Decision:** Encrypted-at-rest instance values are supported via SOPS at exactly two seams, both outside the kernel.
@@ -260,6 +360,13 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 **Export:** when rendered output is written for GitOps consumption (enhancement 0014's flow), Secret manifests can be SOPS-encrypted on write for cluster-side decryption by Flux's kustomize-controller; the placement is recorded here, the implementation rides 0014's export surface.
 
 **CLI UX:** `opm secrets template <module>` walks Discover's output with no values present and emits a skeleton values file containing exactly the marked paths, ready to populate and `sops -e`. Unfulfilled-secret reporting lives in `opm module vet`: Discover's path list lets vet intercept CUE's incompleteness errors at marked paths and replace them with one grouped "unfulfilled secrets" message naming each path, group, and key. No standalone `opm secrets verify` command ships.
+
+**Requirements:**
+
+- R1: A SOPS-encrypted values file (YAML or JSON) is accepted wherever a plain values file is, and the render is identical whether the values arrived encrypted or plain.
+- R2: `opm secrets template <module>` emits, from the module alone with no values present, a skeleton values file containing exactly the marked paths.
+- R3: `opm module vet` reports unfulfilled secrets as one grouped message naming each path, group and key, in place of CUE's per-field incompleteness errors.
+- R4: When an instance is exported for GitOps consumption, its Secret-bearing output can be SOPS-encrypted on write for cluster-side decryption.
 
 **Alternatives considered:**
 
@@ -276,7 +383,14 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection
 
+**Kind:** contract
+
 **Decision:** A `ModuleInstance` CR may carry supplied-arm secrets (`{value: …}`) in its values, and that is accepted as-is: the plaintext sits in the CR object in etcd. Documentation states this plainly and directs production deployments on the operator path to the referenced arm (`{ref, key}` against an existing Secret). No `valuesFrom` mechanism (merging values from Kubernetes Secrets, as Flux HelmRelease does) is added.
+
+**Requirements:**
+
+- R1: A `ModuleInstance` CR carrying supplied-arm secrets (`{value: …}`) in its values is accepted and renders exactly as the same values given to the CLI would.
+- R2: The operator documentation states that a supplied-arm literal in a CR is plaintext at rest in etcd and directs production deployments to the referenced arm.
 
 **Alternatives considered:**
 
@@ -291,11 +405,18 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D16: The rewrite is omission at build assembly, measured viable on the real kernel path, one graph build, no new kernel seams
 
+**Kind:** contract
+
 **Resolves OQ2.**
 
 **Mechanism removed 2026-08-22**: construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
 
 **Decision:** Resolve-in-place is achieved by assembling the render build **without** the deployer's original values conjunct, never by overriding it. That is the constraint; which of the two viable mechanisms delivers it is the kernel's to choose. Measured against the published kernel (`github.com/open-platform-model/library v1.0.0-alpha.12`, `opmodel.dev/core@v2` at `v2.0.0-alpha.4`), both work today through existing public entry points, with no new seam required. A **fill-style** path loads the instance spec with values omitted and fills the resolved ones through the existing validate-and-fill seam; it's the natural fit for parameter-carried values such as CLI flags and CR decode. A **bake-style** path bakes them at load time through the overlay mechanism synthetic instances already use; it's the natural fit for package-staged loads. The pipeline needs exactly **one component-graph build**: the deployer's raw values are validated in their own evaluation by the existing, separate validation phase, and the render build carries the resolved statement only.
+
+**Requirements:**
+
+- R1: The deployer's values as written are validated against the module's `#config` schema, and a validation error names the path and value as the deployer wrote them, not the resolved form.
+- R2: The instance artifact carrying the deployer's supplied values (instance file or CR) builds and validates as its own artifact, independent of the render.
 
 **Alternatives considered:**
 
@@ -311,9 +432,15 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ### D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data, not AST, not FillPath-graft
 
+**Kind:** contract
+
 **Mechanism removed 2026-08-22**: construction detail recorded before the Kind gate (file names and layout) has been dropped from this decision. Nothing here is reversed; the contract and the evidence are unchanged.
 
 **Decision:** Resolution operates on *evaluated data*, never on source. Two properties are contract: **the deployer's file is untouched on disk**, and marked-field attributes are read from values rather than from parsed source, so nothing in the pass parses, patches or round-trips an AST. The mechanism that delivers them (decode the concrete values to Go data, splice `{ref, key}` at each marked path, encode a fresh value) is experiment 02's prototype and is also the measured-fastest; it is recorded below as evidence that resolution costs nothing the design has to bend around, not as a constraint on the implementing repo.
+
+**Requirements:**
+
+- R1: Resolution never modifies the deployer's values file on disk.
 
 **Alternatives considered:**
 
