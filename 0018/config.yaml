@@ -20,7 +20,7 @@ affects:
   - opm
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-20"
+updated: "2026-09-24"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -55,6 +55,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-20"
     event: 'opm joined the repo vocabulary and affects; OQ4 partially resolved (rewrite in place); OQ6 amended (versioned, anchor undecided); OQ7 added (voice capture).'
+  - date: "2026-09-24"
+    event: 'Requirements added to every decision (none on D2, D3, D4, D5, D6); Kind changed to contract on D1 (body states observable behaviour), additive.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

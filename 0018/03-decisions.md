@@ -12,11 +12,17 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: Reference is generated from source; guidance is authored
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** Every reference fact that can be derived from CUE or from cobra is generated, never hand-transcribed. That covers a member's name, `apiVersion`, `fqn`, `modulePath`, description, category, spec key and schema shape, a trait's `optional` posture and `appliesTo`, a blueprint's composed sets and `matchLabels`, the set of transformers that serve a member, worked examples taken from the transformers' embedded golden tests, and the full CLI command reference. Everything a reader needs that CUE does not encode is authored by hand: which blueprint to start from, which traits are legal on which blueprint, cross-member interactions, family guidance, and every Concepts and Diagnostics page.
 
 Generation reads evaluated CUE, not source text. The catalog's `metadata.description` is populated on all 70 members; the current index generator is a shell text scraper that reads doc comments instead and therefore reports an empty description for exactly the members readers need most. Hand-written doc comments remain load-bearing for what a one-line description cannot carry, and a CI gate refuses a new catalog member that ships without one.
+
+**Requirements:**
+
+- R1: A generated reference entry's one-line summary is the member's evaluated `metadata.description`, so every member that carries a description shows one.
+- R2: Generated and authored content on a reference page are distinguishable to the reader; a generated block is delimited as such.
+- R3: A new catalog blueprint, resource or trait that ships without a doc comment is refused by the catalog's CI.
 
 **Alternatives considered:**
 
@@ -34,6 +40,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Decision:** `SPEC.md` remains contributor-facing. The public reference takes its Definition, Shape and Constraints content as a source and drops the Rationale sections. Rationale is instead mined as raw material for Concepts pages, rewritten rather than copied.
 
+**Requirements:** none (documentation stance on what the public reference is projected from)
+
 **Alternatives considered:**
 
 - **Publish `SPEC.md` as the reference.** Rejected: its stated audience is "anyone evolving the schema", its Rationale is dense with enhancement decision numbers, experiment paths and cross-repo file references that a public reader cannot resolve, and it documents unshipped state as first-class content, so a reader would take a Constraint's MUST as a description of what the toolchain does today.
@@ -48,6 +56,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 **Kind:** policy
 
 **Decision:** A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no reverse handoff from operator back to CLI, no export to GitOps manifests, no provider classes. Draft enhancements are not described as forthcoming features on that page or anywhere else.
+
+**Requirements:** none (documentation stance; the page's content list is authored guidance, not a behaviour a consumer relies on)
 
 **Alternatives considered:**
 
@@ -68,6 +78,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 - A CLI-owned instance carries no hold, so deleting the CR destroys the only inventory record and orphans everything it tracked.
 - CLI and operator deletion paths have diverged in ways that decide whether a resource is actually removed.
 
+**Requirements:** none (sequencing decision; the deletion semantics it documents are owned by the operator and cli today and by 0012 once it lands)
+
 **Alternatives considered:**
 
 - **Wait for enhancement 0012.** Rejected: 0012 is draft and not started, while the behaviour it describes already exists. Documentation that waits for a design to merge leaves the hazard undocumented for as long as the design takes.
@@ -85,6 +97,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Decision:** The public documentation carries no secrets material until enhancement 0013 lands. 0013's `docs-secrets-authoring` slice authors it, and its concern was amended on 2026-08-18 to say so: it writes the first secrets documentation rather than rewriting anything.
 
+**Requirements:** none (defers to 0013's docs slice; recorded as no_work in delivery.yaml)
+
 **Alternatives considered:**
 
 - **Document the current vocabulary with an expiry banner.** Rejected: 0013 is accepted with zero open questions and four concluded experiments, and it deletes the `$opm` / `$secretName` / `$dataKey` shape entirely. Writing a page with a known expiry spends authoring effort on content whose replacement is already specified.
@@ -99,6 +113,8 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 **Kind:** policy
 
 **Decision:** Reference splits catalog members by family. The abstraction family (11 resources, 27 traits, 5 blueprints) gets full per-member pages and leads every authoring path, with blueprints first. The raw `k8s-*` family (27 resources) gets one index page plus a generated table, labelled as the last resort, each entry pointing at the abstraction that covers the same ground where one exists.
+
+**Requirements:** none (documentation stance on reference layout and family framing)
 
 **Alternatives considered:**
 
