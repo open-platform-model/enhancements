@@ -20,6 +20,13 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** A cluster-scoped object owned by the platform team binds a module lineage (its major-free registry path), a major, a bound release and an update policy, and may carry platform-bound values. A consumer instantiates the definition and supplies values alone. No consumer-facing object carries a module path or a version; the coordinate has exactly one home per cluster per offering.
 
+**Requirements:**
+
+- R1: A definition is cluster-scoped and binds one module lineage by its major-free registry path, one major, one bound release and an update policy, and may carry platform-bound values.
+- R2: A consumer instantiates a definition by supplying values alone; no consumer-facing object carries a module path or a version.
+- R3: Rebinding a definition to another release re-renders every instance of it under the definition's update policy, with no per-instance edit.
+- R4: A definition without an API group and kind is valid and binds only; no served-kind instance exists for it.
+
 **Alternatives considered:**
 
 - **A version allowlist on the existing `ModuleInstance`** (admission policy restricting which module and version a tenant may name). Closes the tenancy gap for one identity and leaves the coordinate in the consumer's object, so the fleet upgrade stays a per-consumer edit. Kept as the guardrail half of OQ8, not as the binding.
@@ -38,6 +45,13 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** Where a definition names an API group and kind, the served CRD's schema is the bound module's `#config` encoded as a structural OpenAPI schema, and nothing else is authored. A definition whose module `#config` does not encode that way is refused at acceptance, naming the module and the reason. Core's existing declaration that `#config` is OpenAPIv3-compatible becomes load-bearing at that point and only there: a module that is never offered as a kind is unaffected.
 
+**Requirements:**
+
+- R1: Where a definition names an API group and kind, the served kind's schema is the bound module's `#config` and nothing else; no schema is authored on the definition.
+- R2: An instance of a served kind whose values violate that schema is refused at admission, before it is stored.
+- R3: A definition naming a kind whose bound module's `#config` does not encode as a structural schema is refused at acceptance, naming the module and the reason.
+- R4: A module never bound as a served kind is unaffected: its publication and its renders do not change under the structural requirement.
+
 **Alternatives considered:**
 
 - **A hand-authored schema on the definition**, as Crossplane's XRD carries. Rejected because it drifts from the module's `#config` by construction; the whole point is that the consumer sees what the module accepts.
@@ -54,6 +68,12 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** Every instance of a definition, in either layer, is projected to a complete `#ModuleInstance` and rendered by the render path unchanged. The render never learns about definitions or kinds. Whatever the render path does for a hand-authored instance (matching, transformers, diagnostics, ordering) it does identically for a projected one.
 
+**Requirements:**
+
+- R1: Every instance of a definition, from either layer, renders as a complete `#ModuleInstance` through the render path unchanged; the render observes nothing that distinguishes a projected instance from a hand-authored one.
+- R2: A projected instance and a hand-authored `#ModuleInstance` with the same module, name, namespace and values render identical output.
+- R3: A render diagnostic for a projected instance is the one a hand-authored instance would receive for the same input.
+
 **Alternatives considered:**
 
 - **Rendering a definition's instances through a dedicated composition path**, as Crossplane's composition functions and KRO's resource graph do. Rejected: it would be a second interpreter of `#components`, and every render-path guarantee (0019's single build, its parity oracle) would need restating for it.
@@ -68,6 +88,8 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 **Kind:** scope
 
 **Decision:** The design has two layers. The binding layer is the definition, a definition reference on `ModuleInstance` as an alternative to a module reference, and a tenant guardrail. The kind layer adds an API group and kind on the definition, CRD generation from `#config`, and one data-driven controller that projects served-kind instances to `ModuleInstance` objects carrying the definition reference. The kind layer introduces no concept the binding layer lacks; it is a typed front over it. Whether the binding layer ships as a product on its own is OQ2.
+
+**Requirements:** none (scope; the layer contents are D1, D2, D6, D7 and D9, and the binding-only case is D1 R4)
 
 **Alternatives considered:**
 
@@ -88,6 +110,15 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** A definition is written by the platform team, either directly as a CR or as rendered output of a platform product module that attaches a definition resource contract, published by catalog_opm, to a component; a catalog_opm transformer renders the CR. In the rendered shape the CR reaches the cluster as ordinary rendered output applied under tenant impersonation, so the RBAC gate 0015 D3 rests on holds unchanged: only a platform-team identity can create one. The offered module MAY declare what it is when offered, through an `offering` module trait attached on an aspect (0025:D11, 0025:D12), shipped by D11: the intended API group and kind, a suggested update policy, and a status schema where one exists (OQ5). That declaration is input to authoring: the CLI drafts a definition from it, and the definition reconciler reports disagreement between a definition and the bound module's declaration. The module never emits the definition itself, and a declaration without a platform-authored definition offers nothing.
 
+**Requirements:**
+
+- R1: A definition is created only under a platform-team identity, whether applied directly or as rendered output; one applied under a tenant identity is refused.
+- R2: A platform product module can ship definitions as ordinary rendered output by attaching the catalog-published definition resource contract to a component, so they appear in dry-run and export like any other object.
+- R3: An offered module's declaration, its intended group and kind and suggested update policy, is readable off the published artifact with no cluster and no instance, and a definition can be drafted from it.
+- R4: A declaration without a platform-authored definition offers nothing: no kind is served and no instance can be created from it.
+- R5: A definition whose bound module carries a declaration that disagrees with it is reported on the definition, not refused.
+- R6: An offered module's declaration renders no object; nothing in the module's own output is a definition of itself.
+
 **Alternatives considered:**
 
 - **No authored field on `#Module`; the offered module does not know it is offered** (previously adopted, 2026-09-08). Kept the module artifact free of any operator-shaped fact and the RBAC gate simple. Replaced because the same need recurs across entries (lifecycle placement in 0009, a status schema in OQ5, seed values in 0016) and answering it field by field is what entry 0025's aspect map exists to stop; the RBAC argument survives untouched because a declaration is not a CR.
@@ -104,6 +135,14 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 **Kind:** contract
 
 **Decision:** Core defines the projection: given a definition, an instance and the resolved `#Module`, it yields a `#ModuleInstance` whose name and namespace are the instance's, whose module is the bound one, and whose values are the unification of the definition's bound values with the instance's values. A conflict between a bound value and a consumer value is a refusal. The kernel reads the projection off a built value; the CLI computes it offline; the operator's controller applies it. No frontend implements the projection in Go.
+
+**Requirements:**
+
+- R1: The projected instance's name and namespace are the consumer instance's, its module is the bound one, and its values are the unification of the definition's bound values with the consumer's values.
+- R2: A consumer value that conflicts with a bound value is refused; neither side overrides the other.
+- R3: The same definition, instance and module project to the same `#ModuleInstance` offline and in-cluster, so a render is reproducible with no cluster.
+- R4: A `#config` default reaches the projected values when neither the definition nor the consumer sets the field.
+- R5: A module supplied to the projection that is not the bound one, by registry path or version, is refused.
 
 **Alternatives considered:**
 
@@ -122,6 +161,12 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** The CRD a definition serves carries one version per bound module major, spelled `v` followed by the major. Within a major the served schema may change only additively, which is what 0021 D2 already requires of `#config` inside a major. Rebinding a definition to a new release inside the same major regenerates the CRD's schema in place; existing instances stay valid because the change is additive. Rebinding across a major is a new served version and is OQ4.
 
+**Requirements:**
+
+- R1: A served kind carries one API version per bound module major, spelled `v` followed by the major; it is derived from the definition and never authored.
+- R2: A definition whose bound release lies outside its bound major is rejected.
+- R3: Rebinding a definition to another release inside the same major regenerates the served schema in place, and every existing instance stays valid.
+
 **Alternatives considered:**
 
 - **CRD version from the module's full release** (`v1-4-2` or similar). Rejected: every patch release would be a new API version with no conversion path, and instance identity would move with it.
@@ -137,6 +182,8 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** The scope of "OPM instead of Crossplane" is the composition layer: what XRD, Composition and Claim do. Managed-resource controllers (Crossplane providers, ACK, ASO, Config Connector) stay external, and the objects they reconcile are leaf resources OPM's transformers render. Neither this entry nor a successor of it rebuilds external-API reconciliation on the execution half of the kernel.
 
+**Requirements:** none (scope; a boundary against external-API reconciliation)
+
 **Alternatives considered:**
 
 - **Reconciling external APIs with 0009's `http` operations.** Rejected as scope: it is the multi-year part of Crossplane, it has no relation to the composition problem this entry solves, and the execution half is not designed for continuous reconciliation of external state.
@@ -150,6 +197,11 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 **Kind:** contract
 
 **Decision:** An instance of a served kind is a namespaced object. There is no cluster-scoped composite behind it. The projected `ModuleInstance` is the render's input and the operator's existing reconcile surface, not a consumer-facing object; the consumer's object carries status mirrored from it (shape per OQ5).
+
+**Requirements:**
+
+- R1: An instance of a served kind is namespaced, and no cluster-scoped object is created on its behalf.
+- R2: The consumer's object carries a status mirrored from the projected instance, at minimum its conditions and a reference to it.
 
 **Alternatives considered:**
 
@@ -165,6 +217,8 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Decision:** Lifecycle phases and workflows, as 0009 designs them, attach to `#ModuleInstance` transitions. Because every served-kind instance is a projected `#ModuleInstance` (D3), those hooks fire for it without any addition on the definition or the served kind. This entry adds no hook vocabulary of its own; if 0009 changes where operational primitives attach, this entry follows and does not need amending.
 
+**Requirements:** none (scope; hooks fire for a projected instance because D3 R1 makes it a `#ModuleInstance`, and the hook vocabulary is 0009's)
+
 **Alternatives considered:**
 
 - **Definition-level hooks** (on bind, on rebind). Rejected for now: a rebind is a change to N instances, and the per-instance upgrade hooks 0009 provides already fire for each. A definition-level hook would be a fleet-wide operation with no instance to scope it; if one is needed it is a successor's design.
@@ -177,11 +231,17 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 ### D11: catalog_opm publishes the `offering` module trait; this entry is its only consumer
 
-**Kind:** scope
+**Kind:** contract
 
 **Depends:** 0025:D12
 
 **Decision:** The `offering` module trait ships in catalog_opm with this entry, published against `#ModuleTrait` and attached by an offered module on an aspect. Its spec carries the intended API group and kind, a suggested update policy, and a status schema where one exists (OQ5). No module transformer handles it: the CLI reads it to draft a definition, and the definition reconciler compares a definition against it. Its `fulfilment` is whatever entry 0025 answers for its OQ13, the same answer entry 0009's lifecycle trait takes; this entry does not decide it.
+
+**Requirements:**
+
+- R1: A catalog publishes an `offering` module trait whose spec carries the intended API group and kind and a suggested update policy.
+- R2: The trait declares no match labels, so an aspect attaching it derives an empty match set and no module transformer selects it.
+- R3: An aspect attaching the trait renders nothing and is carried through the render unchanged.
 
 **Alternatives considered:**
 
