@@ -16,6 +16,8 @@ Each decision uses the same body fields: Decision, Requirements (numbered `Rn` i
 
 ### D1: `#Catalog` publishes its contracts as members, beside its transformers
 
+**Kind:** contract
+
 **Depends:** 0010:D37, 0019:D5
 
 **Decision:** `#Catalog` gains `#resources`, `#traits` and `#blueprints` beside `#transformers`, each carrying the same kind of pattern constraint that stamps `metadata.modulePath` onto every member. A contract is a published member of the catalog artifact whether or not the same artifact ships an adapter for it.
@@ -52,6 +54,8 @@ Four things stop being derivations and become lookups:
 
 ### D2: One provider per contract stands; provider classes are rejected in this entry
 
+**Kind:** scope
+
 **Depends:** 0010:D37
 
 **Decision:** 0010 D37's exactly-one-provider rule stands **unamended**: a provider-fulfilled contract has at most one active provider on a platform, and a second is refused, loudly, naming the contract and both catalog paths. This entry ships no routing mechanism for provider multiplicity: provider classes, adopted 2026-08-05 and rejected 2026-08-20, are preserved under *Alternatives considered* as the leading candidate for the successor entry that picks routing up when a real two-engine requirement arrives, which is how 0010 D32 said arbitration should be designed: against a real instance. With D3 the rule gains a second enforcement arm: a registration claiming a contract that an active subscription or registration already provides is refused at acceptance, where the failure names the provider.
@@ -74,6 +78,8 @@ Four things stop being derivations and become lookups:
 ---
 
 ### D3: A transformer registration is a cluster-scoped CR, gated by the RBAC the operator already enforces
+
+**Kind:** contract
 
 **Depends:** 0010:D37, 0019:D6, 0019:D8
 
@@ -121,6 +127,8 @@ What this decision does **not** resolve is reproducibility. 0010 D14 deleted sub
 
 ### D4: Contracts and adapters stay in one CUE module
 
+**Kind:** scope
+
 **Decision:** No packaging split. A catalog ships its contracts and its adapters in one CUE module, one `cue.mod`, one release, one subscription entry. `catalog_opm` is not divided into `catalogs/opm_contracts` + `catalogs/opm`.
 
 This is recorded as a decision rather than left undecided because the timing is asymmetric: a contract FQN embeds its declaring catalog's registry path, so splitting changes **every contract FQN in the system**: every module import, every transformer's `requiredTraits` key. Riding 0010's already-major break costs nearly nothing; a standalone break later is a second flag day across five repos. Declining by default would have been a decision made by omission.
@@ -142,6 +150,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 
 ### D5: Comparable predicates within one catalog-fulfilled bucket are refused, not arbitrated
 
+**Kind:** contract
+
 **Decision:** The duplicate-adapter case inside a `"catalog"`-fulfilled contract bucket is resolved by a **hard guard**: when two transformers in one bucket carry comparable predicates (one's required set a subset of the other's, so every component the narrower one matches is also matched by the broader one), the platform is **refused**, with an error naming the bucket and both transformer FQNs. No arbitration, no ordering, no most-specific-wins. The intentional-override topology stays inexpressible until a successor entry designs refinement; the two-engine topology is out of scope entirely (D2, as revised, keeps 0010 D37's one-provider rule and defers routing to a successor entry). Transformers with incomparable predicates (`requiredLabels` carrying different values, the property that keeps `catalog_opm`'s 8-transformer `#ContainerResource` bucket legal) coexist untouched. The guard runs at platform-package generation (0019 D6's cold path), the same site as `#ContractRouting` and D13's acceptance battery; render-build tripwires are defense in depth, not the gate (resolves OQ10, 2026-08-21). What "comparable" means operationally is OQ9, deferred to the implementation slice.
 
 **Requirements:**
@@ -162,6 +172,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 ---
 
 ### D6: A cluster's render is reproduced by pulling the operator-generated platform package
+
+**Kind:** contract
 
 **Depends:** 0019:D6, 0019:D13
 
@@ -189,6 +201,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 
 ### D7: No transformer-predicate stability rule in this entry; the widening gate is deferred to the publish-gate family
 
+**Kind:** scope
+
 **Depends:** 0010:D27, 0010:D28, 0010:D44
 
 **Decision:** This entry ships no stability rule for transformer predicates across catalog builds, and records the resulting coverage explicitly so 0010 D27's additive-only promise is not read as covering a guarantee it does not make. D27 relates two builds of one *primitive*; a transformer is an adapter (0010 D44), and its predicate may change between builds. The three arrival cases land as follows: a **new transformer in an existing bucket** is caught by D5's comparable-predicate guard at platform assembly, naming both FQNs (an incomparable arrival coexists, same as authored intent); **predicate tightening** surfaces as 0010 D28's fail-closed refusal at render: loud and attributable, never silent; **predicate widening** (a build dropping a requirement, so the transformer matches components it never matched before and new objects appear on a routine catalog bump) is the one silent case, and it is explicitly **not guaranteed against** by this entry. The mechanism that could catch it, a publish-side predicate diff between consecutive builds, belongs to the publish-gate family (0011 D9's shape) and is deferred there, or to a successor entry if 0011 declines it.
@@ -208,6 +222,8 @@ This is recorded as a decision rather than left undecided because the timing is 
 ---
 
 ### D8: A build-incompatible registration is refused at acceptance, by comparing committed resolutions under the stability discipline
+
+**Kind:** contract
 
 **Depends:** 0019:D18
 
@@ -242,6 +258,8 @@ Refusal is unconditional: no warn-and-accept override in this entry.
 
 ### D9: Registration is authored as a `#Resource` contract in catalog_opm; `#Module` is unchanged
 
+**Kind:** contract
+
 **Decision:** The authoring surface for D3's CR is a `transformer-registration` `#Resource` contract published by catalog_opm (`fulfilment: "catalog"`), rendered into the cluster-scoped CR by a catalog_opm transformer that selects on the contract's FQN alone (`requiredResources`, no `matchLabels`, so D5's guard and the match glue are untouched). A provider module attaches the resource to a component (typically the one carrying the provider's own workload primitives), and the CR reaches the cluster as ordinary rendered output. `#Module` gains **no authored field**. A derived `#provides` fold over components (the same derived-not-authored philosophy as `#Component.matchLabels`) is available to a future 0011-family publish gate or `opm module inspect`, and is deliberately not part of this entry's core delta: it ships when a consumer for it exists. Shapes in `contracts/contracts.cue` (`#TransformerRegistrationContract`).
 
 Two constraints force this surface. D3's RBAC gate exists only because the CR is a *rendered resource applied under the impersonated tenant ServiceAccount*: an operator that synthesized the CR from module metadata would have to reimplement the gate as its own identity check. And everything rendered flows component → transformer; a `#Module` field would need either a synthetic component or a second emission path, and would bake an opm-operator CRD shape into runtime-neutral core. Modeled as a contract-and-transformer pair, registration is itself an OPM abstraction: the contract states "this module provides these platform contracts", the Kubernetes transformer renders the opm-operator CR, and a future non-Kubernetes runtime ships a different transformer for the same contract.
@@ -265,6 +283,8 @@ Two constraints force this surface. D3's RBAC gate exists only because the CR is
 
 ### D10: The claim names a published catalog artifact, and only that; transformers never ship inside module artifacts and never ride the CR
 
+**Kind:** contract
+
 **Decision:** The registration spec's coordinates are `catalog` (an OCI CUE module path) plus `version`, and the named artifact MUST be a catalog: acceptance imports its root package and requires a `#Catalog` value, so a module artifact is refused by shape (`kind: "Module"` does not unify with `kind: "Catalog"`): a type error, not a maintained rule (`contracts/contracts.cue` `#ClaimedArtifactGate`). Transformer code never rides the CR in any form; the CR is pure data and the registry remains the sole code channel. A provider wanting one repository publishes **two artifacts in lockstep**: catalog first, then the module whose registration pins it (see `06-operational.md` for the CI sequence). Both refusals are the cheap direction to be wrong in: allowing module-hosted transformers later is additive (an optional `package` field selecting a non-root package, plus extending the member publish gates to any artifact exposing one), while shipping the general mechanism now and retracting it would be a flag day.
 
 **Requirements:**
@@ -285,6 +305,8 @@ Two constraints force this surface. D3's RBAC gate exists only because the CR is
 ---
 
 ### D11: Every field of the claim is derived or stamped; the only authored fact is the module's catalog dependency version
+
+**Kind:** contract
 
 **Decision:** No field of the shipped CR is hand-written by the module author. The provider catalog exports a **pre-bound registration value**: `catalog` and `version` interpolate from its own `identity/` package via the module's `cue.mod` dependency, and `provides` derives as a fold over the catalog's own transformers: every required contract whose value carries `fulfilment: "provider"` (`contracts/contracts.cue` `#PreBoundRegistration`; the fulfilment field is already on the `#Trait`/`#Resource` values in the demand maps, so no second fetch). The rendering transformer stamps `providerRef` from `#TransformerContext` instance metadata (the provider IS the instance that rendered the claim and cannot name anyone else's package), and `providerRef` is not an authorable spec field at all. At acceptance the reconciler re-derives the provider set from the catalog it fetches anyway and verifies the claimed `provides` for **exact equality**; drift in either direction refuses the claim naming both lists (`#ProvidesVerification`), so a claim is never partially honoured. The one human decision left in the flow is the catalog version in the module's `cue.mod`, which is exactly where a dependency decision belongs and where it is reviewed.
 
@@ -309,6 +331,8 @@ One verification is deliberately deferred to the operator slice, per the OQ9/D15
 
 ### D12: The rendered CR's name is instance-derived: dot-joined `namespace.name`
 
+**Kind:** contract
+
 **Decision:** The rendering transformer names the cluster-scoped CR `"\(instance.namespace).\(instance.name)"`. The join is collision-free (a namespace cannot contain a dot) and the choice decides *where* duplicate providers are arbitrated: two instances of one provider module produce two distinct CRs, both claims reach the reconciler, and the second is refused at acceptance naming the claimant: D3's designed refusal site, with its designed diagnostic.
 
 **Requirements:**
@@ -327,6 +351,8 @@ One verification is deliberately deferred to the operator slice, per the OQ9/D15
 ---
 
 ### D13: The platform package regenerates edge-triggered and level-computed, keyed by generation plus the active-claim set; blast radius accepted
+
+**Kind:** contract
 
 **Depends:** 0019:D6
 
@@ -360,6 +386,8 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 
 ### D14: The registration CR is excluded by kind from its package's readiness; pure-registration modules are legal
 
+**Kind:** contract
+
 **Decision:** A `TransformerRegistration` never counts toward its own ModulePackage's readiness: the operator's wait-set aggregation skips every resource of that kind, treating it as done the moment it is applied, so the package's Ready is decided by its workloads, CRDs and everything else. This breaks OQ11's loop by construction: the package becomes Ready without waiting for the registration, and the registration's activation then waits on the package (D3). The exclusion is **by kind**, not by tracing the ownership edge: equivalent in practice, since D11 stamps `providerRef` from instance identity so a well-formed registration always names its own package, and by-kind also covers a hand-applied stray. The exclusion has mechanical teeth, not just policy ones: the apply layer's kstatus polling (`opm-operator/internal/apply/manager.go`, flux `ResourceManager`) computes a CR carrying conditions as InProgress until they go True, and `TransformerRegistration.status` carries conditions by design (D3's observability surface), so without the exclusion the deadlock is the shipped default, not an edge case. **A module containing only a registration is legal**: a provider catalog whose transformers render plain Kubernetes objects needs no runtime operator, its package is Ready on apply, and the registration activates immediately: correct, because there is nothing to wait for. The exclusion's accepted trade: a *refused* claim leaves its package Ready too, so refusal surfaces on the CR and in Platform status, never on the package, documented as a runbook step in `06-operational.md`, with a non-gating package condition left to the slice's discretion.
 
 **Requirements:**
@@ -383,6 +411,8 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 
 ### D15: One registration per module
 
+**Kind:** contract
+
 **Decision:** A module MAY ship at most one `transformer-registration` resource; a second is refused loudly, naming both carrying components. Forbidding the multi-registration module keeps two load-bearing simplicities intact: D11's derivation stays single-catalog (the registration derives from *the* provider catalog dependency in the module's `cue.mod`, with no disambiguation of which dependency feeds which resource), and D12's instance-derived CR name stays collision-free by construction. A vendor with two catalogs (or one per major) ships two provider modules: separate catalogs, separate health gates, separate lifecycle. The refusal site (module vet or render-output validation) is implementation-grade and left to the slice, per OQ9's precedent; what is fixed is that the refusal happens before apply, so the D12 name collision never surfaces as an SSA ownership fight.
 
 **Requirements:**
@@ -401,6 +431,8 @@ The **blast radius is accepted explicitly**: every regeneration changes the rend
 ---
 
 ### D16: Shrinking `provides` while dependents exist is a removal, and is refused before the old claim is lost
+
+**Kind:** contract
 
 **Decision:** Taking a contract away from instances that depend on it is refused regardless of the door it comes through: deletion (D3's finalizer) or **update**. When a provider module upgrade re-renders its registration with a `provides` set that drops one or more contracts still demanded by instances, the change is refused **before the new spec replaces the accepted claim**, naming the dropped contracts and the dependent count: the same shape and diagnostic as the finalizer's blocked delete. Upgrades that keep `provides` intact (a new catalog version with the same contract set, the common case) pass untouched. This decision is intent: the refusal site and mechanics are implementation-grade and left to the operator slice, per the OQ9/D15 precedent, under one fixed constraint: the refusal must land while the previously accepted claim is still effective, because a post-overwrite rejection protects nobody (see Alternatives).
 
