@@ -14,6 +14,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Decision:** The Kubernetes OpenAPI is the single source of Kubernetes type truth. Generation tooling derives all downstream type schemas from it, and both `catalog_kubernetes` and `catalog_opm` consume the generated output rather than independently-maintained schemas. The project targets Kubernetes only.
 
+**Requirements:** none (posture: Kubernetes-only target and one generated type source; the observable shapes rest on OQ1 to OQ5, none of which has a decision yet)
+
 **Alternatives considered:**
 
 - Keep hand-written schemas in `catalog_kubernetes` and independently-vendored `cue.dev/x/k8s.io` in `catalog_opm` (status quo), rejected: two sources drift silently, and hand-authoring does not scale to all kinds/versions or to CRDs.
@@ -29,6 +31,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Decision:** Composition between catalogs is an available capability for layering abstractions *on top* of a lower catalog (notably third-party / provider golden-path catalogs). The base catalogs are not required to compose each other: `catalog_opm` keeps its own constructing transformers, re-pointed at the strict generated types, and does not flow through `catalog_kubernetes`.
 
+**Requirements:** none (posture on catalog layering; composition already works in pure CUE today and the base catalogs are left as they are)
+
 **Alternatives considered:**
 
 - Force `catalog_opm` to project onto `catalog_kubernetes` resources so the pass-through mirror does all rendering (the earlier "Model B as mandate"), rejected: pass-through and construction are different jobs, so routing one through the other adds indirection without removing real duplication, which D1's shared type source already handles.
@@ -42,6 +46,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 **Kind:** scope
 
 **Decision:** This enhancement makes no change to `opmodel.dev/core@v0`; the transformation model stays single-pass. A separate `core` enhancement for multi-phase / fixpoint lowering (transformer outputs that re-enter matching) is opened only when a concrete case demonstrates that pure-CUE schema projection cannot express it. As cheap insurance, the transformer-output convention is kept compatible with typed outputs later, without adopting fixpoint lowering now.
+
+**Requirements:** none (boundary: no core change, follow-on gated on OQ6 evidence)
 
 **Alternatives considered:**
 
