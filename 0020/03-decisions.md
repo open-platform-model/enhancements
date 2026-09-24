@@ -38,6 +38,13 @@ A *mechanism* decision (how a repo achieves the contract: algorithm choice, code
 
 Promotion is a movement along enhancement 0010 D34's ladder in the direction the ladder implies: alpha to beta, beta to GA. It is not a break, and D27 is not what triggers it.
 
+**Requirements:**
+
+- R1: A contract published at a higher level than the one it was born at carries `metadata.promotedFrom` naming the level it came from, and a contract born at its level carries no such field.
+- R2: `promotedFrom` names a level strictly below the member's own `apiVersion` under the ordering alpha < beta < GA within a major; an equal or higher origin is refused at publish.
+- R3: `promotedFrom` stays on the published member in every later build rather than being consumed at publish and dropped, so a reader of the artifact can see the contract's origin.
+- R4: `promotedFrom` never enters a contract key; a promoted contract is matched only at its own level.
+
 **Alternatives considered:**
 
 - **Infer the promotion from the name.** A member at `container@v1` with no `promotedFrom` could be compared against any lower-level `container` the history carries. Rejected on two counts. It makes every new GA contract look like a promotion of something, so an author who deliberately starts a fresh contract at a level gets an unexpected comparison against an unrelated predecessor. It also leaves the published artifact with no statement of lineage, so a consumer reading the contract cannot tell where it came from.
@@ -59,6 +66,11 @@ This closes a hole rather than adding a rule. 0011 D9 keys its predecessor looku
 
 The comparison is the existing one. `0011/experiments/03` measured that `cue.Value.Subsume` cannot express D27 in either direction (10/14 and 8/14 on disjoint failure sets, with changed defaults invisible to both) and that a three-rule field-wise walk expresses it at 14/14. That walk is the comparator; what this decision changes is which predecessor it is handed.
 
+**Requirements:**
+
+- R1: A member carrying `promotedFrom` is compared at publish against the newest published build carrying the same `name` at the `promotedFrom` level, under the additive-only rule of 0010:D27.
+- R2: An incompatible promotion is refused, naming both contract keys and the offending path.
+
 **Alternatives considered:**
 
 - **Leave promotion ungated.** Rejected on the standing argument that 0010 D13 made against D4 and 0010 D17 repeated: a promise nothing checks is a convention. It is worse here than elsewhere, because a promotion is precisely the moment a catalog tells consumers the contract is *more* trustworthy.
@@ -74,6 +86,11 @@ The comparison is the existing one. `0011/experiments/03` measured that `cue.Val
 **Kind:** contract
 
 **Decision:** A member carrying `promotedFrom` must be structurally identical to the predecessor D2 resolves. A build that moves a contract to a new level and changes its shape in the same release is refused, and the author is told to publish the additive change at the origin level first and promote in a later build.
+
+**Requirements:**
+
+- R1: A member carrying `promotedFrom` is structurally identical to the predecessor D2 resolves; a build that moves a contract to a new level and changes its shape in the same release is refused.
+- R2: The refusal tells the author to publish the change at the origin level first and promote in a later build.
 
 **Alternatives considered:**
 
@@ -94,6 +111,8 @@ The comparison is the existing one. `0011/experiments/03` measured that `cue.Val
 
 Coexistence itself is not new. Enhancement 0010 D27 already permits a new `apiVersion` to "ship alongside the old one in the same catalog build", and D34 repeats it for level bumps. What this decision adds is that the compatible case uses the same permission, and that the two levels are one definition rather than two, so they cannot drift.
 
+**Requirements:** none (authoring posture; coexistence of two levels in one build is 0010:D27, the identical-shape consequence of aliasing is D3 R1)
+
 **Alternatives considered:**
 
 - **A supersession edge the matcher follows on a lookup miss.** The promoted contract declares what it supersedes and the matcher falls back. Rejected for now, not on principle: enhancement 0010 D34 records that "the match path is exact-key, so no comparator ever decides what matches". While an authored edge is not the implicit ordering D34 rejected, following it makes a lookup miss ambiguous between "absent" and "present under another name". It stays available as a later accelerant if flag days prove too slow, and it costs nothing to defer because the tombstone's `replacedBy` already records the edge as data.
@@ -110,6 +129,8 @@ Coexistence itself is not new. Enhancement 0010 D27 already permits a new `apiVe
 **Kind:** policy
 
 **Decision:** A contract may be promoted from alpha directly to GA. The gate does not refuse it, and D2's comparison applies against whatever level `promotedFrom` names. The guidance against it lives in `core/SPEC.md` and in the catalog authoring documentation, not in a check.
+
+**Requirements:** none (permission plus guidance only; the upward-movement rule it relies on is D1 R2)
 
 **Alternatives considered:**
 
@@ -128,6 +149,14 @@ Coexistence itself is not new. Enhancement 0010 D27 already permits a new `apiVe
 
 The tombstone is a published record carrying the `fqn` that went, the `since` build it went in, a required `reason`, and an optional `replacedBy`. Removal is never blocked: an author who wants a contract gone writes one record and publishes.
 
+**Requirements:**
+
+- R1: A build that omits a member a previous build published at beta or GA is refused at publish unless the same build carries a tombstone for that key.
+- R2: A tombstone records the retired contract key, the catalog build it went in and why it went, and optionally the key that replaced it.
+- R3: A build that carries a tombstone for every omitted beta or GA member publishes; the removal itself is never refused.
+- R4: A tombstone's `since` is the version of the build carrying the tombstone, not the last build that carried the member.
+- R5: A tombstone for an alpha-level key is refused at publish.
+
 **Alternatives considered:**
 
 - **Refuse removal outright while consumers exist.** Rejected because a publish gate cannot know who consumes a catalog. The knowledge lives in the cluster, which is where enhancement 0015 D3's finalizer and D16's shrink refusal already put the equivalent rule, and 0015 D16 fixes the constraint any such refusal must satisfy: it must land while the previous claim is still effective. A publish-side version would be arbitrary if it blocked always and useless if it blocked never.
@@ -143,6 +172,11 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 **Kind:** contract
 
 **Decision:** Every build carries the catalog's complete tombstone history, not the delta since the previous build. A build that drops a tombstone its predecessor carried is refused by the same walk that enforces D6.
+
+**Requirements:**
+
+- R1: Every published catalog build carries the catalog's complete tombstone history, so a consumer answers what happened to a key from the build it already holds.
+- R2: A build that lacks a tombstone its predecessor carried is refused at publish.
 
 **Alternatives considered:**
 
@@ -161,6 +195,12 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Decision:** `#Catalog` gains `#removed`, a map keyed by `#ContractFQNType` whose values are `#Tombstone`, stamping the key onto each value the way `#transformers` already stamps provenance onto its members. It sits beside enhancement 0015 D1's `#resources`, `#traits` and `#blueprints` as a fourth member map.
 
+**Requirements:**
+
+- R1: `#Catalog` carries a `#removed` map keyed by contract FQN whose values are tombstones, beside the `#resources`, `#traits` and `#blueprints` maps of 0015:D1.
+- R2: Each tombstone's `fqn` equals its map key; an entry authoring a differing `fqn` is rejected.
+- R3: A catalog with no `#removed` map, or an empty one, remains valid.
+
 **Alternatives considered:**
 
 - **On the contract itself, as a `deprecated` marker.** Not available: the contract is what is gone. A marker on a member that still ships describes a *deprecation*, which is a different and weaker statement than a removal, and it disappears with the member at the moment the record is needed.
@@ -173,9 +213,15 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 ### D9: `replacedBy` is optional; `reason` is required
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** A tombstone must state why the key went. It need not name a successor, because a contract removed as a mistake has none. A tombstone without `replacedBy` is legal and is not warned about.
+
+**Requirements:**
+
+- R1: A tombstone with no `reason`, or an empty one, is rejected.
+- R2: A tombstone without `replacedBy` publishes without a warning.
+- R3: A tombstone naming its own key as `replacedBy` is rejected.
 
 **Alternatives considered:**
 
@@ -188,11 +234,15 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 ### D10: A key may not be withdrawn until its replacement has been published for a minimum seasoning
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** A tombstone naming a `replacedBy` is refused unless that replacement has been present in the published history for at least a minimum seasoning. The unit and the value are OQ1 and OQ2; the rule is that there is a floor and that the gate enforces it.
 
 **This is a floor on the producer, not a deadline on the consumer.** Nothing expires a module, a pin, or a platform subscription. What is constrained is how fast a catalog may withdraw a key after offering its successor.
+
+**Requirements:**
+
+- R1: A tombstone naming a `replacedBy` is refused at publish unless the named replacement has been present in the catalog's published history for at least the seasoning floor.
 
 **Alternatives considered:**
 
@@ -212,6 +262,8 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Decision:** D6, D7 and D10 apply at beta and GA only. An alpha member may be removed from a build with no record and no refusal. `#ComponentTransformer` is outside the whole of this entry.
 
+**Requirements:** none (bounds D6, D7 and D10 to beta and GA under 0010:D34; the transformer exclusion is structural under 0010:D44; the alpha-tombstone refusal is D6 R5)
+
 **Alternatives considered:**
 
 - **Tombstone alpha members too**, for the diagnostic value. Rejected on enhancement 0010 D34's own argument for the alpha carve-out: requiring ceremony at a level whose definition is that it promises nothing empties the label. An alpha contract that vanishes is alpha behaving as documented.
@@ -225,6 +277,8 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 **Kind:** scope
 
 **Decision:** This entry stops at the published artifact. Refusing a provider change that would take a contract away from instances currently depending on it needs a live dependency graph, which no publish gate holds, and it lands in `opm-operator` beside enhancement 0015 D3's finalizer and D16's shrink refusal.
+
+**Requirements:** none (defers the dependent-side guard to the operator beside 0015:D3 and 0015:D16; delivery.yaml already records no_work)
 
 **Alternatives considered:**
 
