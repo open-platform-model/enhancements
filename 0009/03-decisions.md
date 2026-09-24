@@ -16,6 +16,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** The kernel grows a parallel *execution half* that consumes the same `#Module` as the render half and produces an ordered plan rather than resources. One input, two interpreters.
 
+**Requirements:**
+
+- R1: A `#Module` renders identically with and without operational declarations; the render output carries no resource derived from a lifecycle or workflow.
+- R2: From the same `#Module` the render half reads, a caller obtains an ordered plan of steps for a lifecycle phase or a named workflow, never a rendered resource.
+
 **Alternatives considered:**
 
 - Render operations as resources through the existing transformer pipeline (operations as Jobs emitted by the render half): rejected: it overloads the render half with sequencing/ordering semantics it has no model for, and conflates "what must exist" with "what must happen."
@@ -31,6 +36,14 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** Introduce `#Op`, `#Action`, `#Lifecycle`, `#Workflow` into `opmodel.dev/core@v1`. `#Op` is the controlled primitive (closed set of kinds), `#Action` is a composition with FQN identity, `#Lifecycle` binds steps to state-transition phases, `#Workflow` is on-demand.
 
+**Requirements:**
+
+- R1: A module or catalog author declares operational intent with `#Op`, `#Action`, `#Lifecycle` and `#Workflow` from the published core module, not from a catalog.
+- R2: An author composes existing Op kinds and cannot declare a new one; an `opKind` outside the OPM-owned vocabulary is rejected.
+- R3: An `#Action` carries an FQN derived from its module path, name and version, and an FQN authored independently of them is rejected.
+- R4: A `#Workflow` runs only when explicitly invoked by name; no state transition triggers it.
+- R5: A step's ordering edges name sibling steps in the same map; an edge naming anything else is rejected.
+
 **Alternatives considered:**
 
 - A single "operation" construct with a mode flag: rejected: lifecycle (phase-triggered) and workflow (on-demand) have genuinely different trigger and state semantics; collapsing them hides that.
@@ -45,6 +58,13 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Kind:** contract
 
 **Decision:** The execution half plans a flow into an ordered graph and advances it one step per call: given a plan and a state value it returns the next state and the action the caller is to perform. It runs no loop, holds no run state between calls, and performs no side effects. The caller drives the loop, performs each action through an executor backend it registered, and owns the state, which MUST survive serialisation so a controller can carry it across reconciles. Every decision about what happens next stays in the library: which steps are eligible, in what order, what counts as a step being satisfied, what a failure does, and when a phase and a plan are complete.
+
+**Requirements:**
+
+- R1: Given a plan and a state value, one advance returns the next state and at most one action for the caller to perform, and performs no side effect itself.
+- R2: A run state written out and read back advances identically to one held in memory.
+- R3: Which steps are eligible, in what order, what satisfies a step, what a failure does and when a phase or plan is complete are decided by the library; two callers with the same plan, state and result receive the same next action.
+- R4: The library holds no run state between calls; a caller that stops calling advance owes nothing further.
 
 **Alternatives considered:**
 
@@ -64,6 +84,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** The generic executor backend *hosts* ship in the library's opt-in tier, the boundary a frontend may skip. Frontends build a `Registry` from only the backends they want, and the whole plan is checked against that registry before the first action: a step whose backend is unregistered fails fast, before anything runs.
 
+**Requirements:**
+
+- R1: A frontend runs a plan through only the backends it registered; the same plan runs through different backends on different frontends.
+- R2: A plan containing a step whose protocol has no registered backend is refused before any step runs, naming the step and the protocol.
+
 **Alternatives considered:**
 
 - Backends as kernel-core, always present: rejected: forces every frontend to carry every runtime (container, wasm, …) and removes the clean "operator declines workflows" path.
@@ -79,6 +104,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** Each concrete `#Op` carries a CUE attribute, hof.io-style, as a **field attribute** (placed after the field value, e.g. `opKind: "exec" @op(...)`) or a declaration/file-level attribute. It is invisible to CUE evaluation and read by the Go SDK (`cue.Value.Attribute`). It carries `protocol` (which backend) and `ref` (locator for the pluggable artifact). Note: CUE does **not** support attributes placed *before* a field/identifier (the "before the field" hof.io form is not portable CUE; see `research/cue-attribute-longevity.md`), so 0009 uses the on-field placement.
 
+**Requirements:**
+
+- R1: Every concrete Op kind carries an `@op(...)` attribute naming the backend protocol and the artifact locator, placed on the field after its value.
+- R2: The attribute does not change the evaluated value: exporting an Op with and without its attribute yields identical data.
+
 **Alternatives considered:**
 
 - A regular CUE field (e.g. `executor: "..."`): rejected: this is runtime dispatch metadata, not user configuration; attributes are CUE's designed mechanism for exactly this and keep the evaluated value clean.
@@ -90,9 +120,15 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 ### D6: Executable op code is catalog-sourced, not hardcoded in the library
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** The actual code an Op runs is not compiled into the library. It is a pluggable artifact located by the `@op(...)` attribute's `ref`, distributed through the existing `#Catalog` and `#Platform.#registry` machinery. `core`'s `#Catalog` gains additive `#ops` / `#actions` maps alongside `#transformers`.
+
+**Requirements:**
+
+- R1: `#Catalog` carries `#ops` and `#actions` maps beside `#transformers`, keyed by FQN, and a catalog that omits them is unchanged in meaning.
+- R2: An `#actions` entry is keyed by the contained Action's FQN.
+- R3: A platform gains a new Op by subscribing a catalog that publishes it, with no library release involved.
 
 **Alternatives considered:**
 
@@ -109,6 +145,12 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** `#Lifecycle` phases are the fixed set: `pre-install`, `install`, `post-install`, `pre-upgrade`, `upgrade`, `post-upgrade`, `pre-uninstall`, `uninstall`, `post-uninstall`. Each phase is an ordered list of steps; absent phases are no-ops.
 
+**Requirements:**
+
+- R1: A `#Lifecycle` accepts exactly the phases `pre-install`, `install`, `post-install`, `pre-upgrade`, `upgrade`, `post-upgrade`, `pre-uninstall`, `uninstall` and `post-uninstall`, and rejects any other phase key at module validation.
+- R2: Steps within a phase run in the order authored.
+- R3: A phase that is absent or empty is a no-op; the transition proceeds with nothing to run.
+
 **Alternatives considered:**
 
 - Author-defined arbitrary phase names: rejected: a closed vocabulary is what lets the operator reason about and drive transitions from its reconcile loop.
@@ -123,6 +165,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Decision:** The `http` Op exposes the full verb set (GET/POST/PUT/PATCH/DELETE) and returns the raw status, headers, and body. Response parsing/shaping is done in CUE downstream, not inside the executor.
 
+**Requirements:**
+
+- R1: The `http` Op accepts GET, POST, PUT, PATCH and DELETE and rejects any other method at validation.
+- R2: The `http` Op's output is the raw status, headers and body; the executor performs no parsing or shaping of the body.
+
 **Alternatives considered:**
 
 - A typed/parsed HTTP op that decodes JSON in the executor: rejected (for the initial version): keeps the executor dumb and pushes shaping into CUE, where OPM already does data work.
@@ -136,6 +183,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Kind:** scope
 
 **Decision:** The cancellation path (a caller's context reaching phase boundaries and registry I/O) is this entry's to design and deliver; until this entry lands it stays as it is, and no other change threads or wires it. Under the one-step-per-call shape (D3) a caller cancels between steps by not calling again, so what remains to design is cancellation inside a single advance, which reaches a registry fetch and nothing else. The three dependency-injection slots the kernel accepted (logger, tracer, clock) are removed now as write-only surface, in a library change this entry does not carry. This entry introduces the injection surface the planner actually needs together with its first reader, in whatever shape that reader dictates, not as a restoration of the removed symbols.
+
+**Requirements:** none (bounds ownership of cancellation and of the planner's injection surface to this entry; what cancellation inside one advance observably does is OQ6 and lands under D3 and D4)
 
 **Alternatives considered:**
 
@@ -157,6 +206,11 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Depends:** 0025:D11, 0025:D12
 
 **Decision:** Lifecycle and workflow declarations attach to a `#Module` through its `#aspects` map (0025 D11): a catalog publishes them as module traits (0025 D12), a module attaches them on a named aspect and fills the spec. There is no per-component attachment and no dedicated field on `#Module`. The execution half reads them off the same aspect the render half sees; no render-side transformer handles them, so their fulfilment is stated under 0025's answer to OQ13.
+
+**Requirements:**
+
+- R1: A module attaches lifecycle and workflow declarations as module traits on a named aspect and nowhere else; a lifecycle or workflow declared on a component or as a dedicated `#Module` field is rejected.
+- R2: A module carrying lifecycle or workflow traits renders with no resource emitted for them and no missing-transformer failure.
 
 **Alternatives considered:**
 
