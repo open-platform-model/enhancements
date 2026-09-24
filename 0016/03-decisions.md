@@ -219,7 +219,7 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Decision:** Init writes the package and reports; it does not run the equivalent of `opm instance vet`. The report ends by naming the validation command for the generated package's `instance.cue` (the file, which is what `opm instance vet` and `build` take; experiment 03), as `module init` ends with `opm module vet`. A template source that does not satisfy `#config` therefore surfaces at the user's first vet or build, not at init. Whether publishing a module with a non-conforming `initValues` is a publish-time error is 0011's decision and is not made here.
 
-**Requirements:** none (none (init writes without validating; the closing hint naming the validation command is a cli delta-spec line))
+**Requirements:** none (init writes without validating; the closing hint naming the validation command is a cli delta-spec line)
 
 **Alternatives considered:**
 
