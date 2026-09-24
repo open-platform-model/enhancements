@@ -20,6 +20,8 @@ Each decision carries a `**Kind:**` line (`contract`, `policy` or `scope`) and p
 
 **Decision:** OPM has one versioning policy, and it covers every class of artifact a consumer can pin: the core schema, catalog builds, catalog contracts, modules, the kernel library, the CLI, the operator and its CRDs. Each class answers the same five questions (carrier, compatibility surface, bump rules, pre-stable semantics, enforcement layer), and a class with an unanswered question is an open question in this entry, not a class the policy is silent on. The policy is published where a third-party author can read it without access to the workspace.
 
+**Requirements:** none (fixes the entry's coverage; the class list is D4 and each class's rule is its own decision or copied source)
+
 **Alternatives considered:**
 
 - **A module-only entry.** The originating question was about modules, and a module-only entry would have been smaller. Rejected by the author: the module rule is the fourth versioning rule OPM would have written in four places, and the gaps in 01-problem.md (cross-class relations, uneven enforcement) are between classes, which a per-class entry cannot see.
@@ -37,6 +39,14 @@ Each decision carries a `**Kind:**` line (`contract`, `policy` or `scope`) and p
 **Decision:** A module's version is bound to its `#config` schema, and compatibility between two releases is subsumption over the values that schema accepts. A release that stops accepting values the previous release accepted is **breaking** and requires a new major. A release that accepts a strict superset (an optional field, a field with a default, a loosened constraint) is **additive** and requires at least a minor. A release whose accepted value set is unchanged is a **fix** and requires at least a patch. A release's bump is the maximum change class across the schema (U2). Adding a required field is breaking because the previous release accepted values without it.
 
 Whether the rendered output's stateful identity forms a second surface is OQ1; whether a default change is additive or breaking is OQ3; the pre-stable form is OQ4. This decision fixes the first surface and its classification; those questions complete it and do not reopen it.
+
+**Requirements:**
+
+- R1: A module release whose `#config` stops accepting a value the previous release accepted is breaking and carries a new major.
+- R2: A module release whose `#config` accepts a strict superset of the previous release's values (an optional field, a defaulted field, a loosened constraint) carries at least a minor.
+- R3: A module release whose `#config` accepts exactly the values the previous release accepted carries at least a patch.
+- R4: A release's bump is the maximum change class across the whole `#config` schema.
+- R5: Adding a required field to `#config` is breaking.
 
 **Alternatives considered:**
 
@@ -58,6 +68,8 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 **Decision:** Where an accepted enhancement or a repo document has already decided a versioning rule, the policy text ([`policy/`](policy/), one file per class plus an index carrying the universal rules) carries that rule **verbatim**, unedited, under a line naming its source. The copy is what a reader follows and what the published policy page ships; the source is where the reasoning, alternatives and measurements stay, and a reader who wants them follows the citation. Copied today: 0010 D4, D27, D34, D35, D41, D44, D45, D48; 0011 D9, D15, D18, D23; the commit-type tables and repository rules of `core` and `catalog_opm`; the `modules` major separation rule; the core `schema-release` spec; and the tag-format, leading-zero and consumer-resolution sections of `core/docs/publishing.md`. Enhancement 0020 is cited, not copied, until it is accepted, because a draft body may still move. A copied block is refreshed only when its source changes through that source's own process (a new amending decision, a compaction, a repo-document edit); it is never edited in place here.
 
+**Requirements:** none (documentation posture; every copied rule keeps its original decision ID)
+
 **Alternatives considered:**
 
 - **Inherit by reference and paraphrase for the reader.** Previously adopted here (2026-08-24), on the argument that a copy drifts and a reader with two texts does not know which binds. Reversed by the author: a policy a third-party author reads must be complete on its own page, and a page that is a list of citations into a design repo is not a policy. Drift is answered by the refresh rule above and by the source line on every block, not by refusing to copy.
@@ -75,6 +87,8 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 The sweep also surfaced cross-actor wire contracts: the operator version-skew ceiling, the CRD constants the CLI mirrors, the inventory digest, the label vocabulary, and the catalog-version coupling between platform and modules. These are compatibility contracts without a version of their own. They are named under the CRD class as its shared surface and gated by parity, not by a bump rule.
 
+**Requirements:** none (names the nine classes in and the four artifact kinds out)
+
 **Alternatives considered:**
 
 - **Every class the sweep found.** Fourteen artifact classes plus eight wire contracts. Rejected by the author as scope: the fixtures and the CLI's Go packages have no consumer a promise could reach, and the install manifest is the operator release seen from the CLI's side.
@@ -91,6 +105,8 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 **Depends:** 0010:D34
 
 **Decision:** A contract at an alpha `apiVersion` (`vNalphaM`) still promises nothing and its publish gate stays off (0010 D34, unchanged). On top of that, the policy **encourages** an author who breaks an alpha contract, by adding a required field, removing or renaming a field, narrowing a type or changing a default, to bump the alpha number (`v1alpha1` → `v1alpha2`) rather than reshape the same key in place. The bump is a courtesy signal to whoever is already consuming the alpha: the key they matched on no longer means what it did. It reaches the convention layer only: no gate refuses an in-place alpha break, no check command reports one, and a catalog that reshapes an alpha in place has violated nothing. The published policy states it as "should", and the catalog repositories carry it as an authoring convention.
+
+**Requirements:** none (should-only guidance at the convention layer; the alpha gate stays off under 0010:D34)
 
 **Alternatives considered:**
 
@@ -111,6 +127,12 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 **Decision:** A transformer binds to exact contract keys, and a contract key embeds its `apiVersion`. So a transformer that serves more than one level of a resource or trait declares **one transformer per level**, each naming that level's key in its required or optional maps, with all of them sharing one transform body. Nothing in the match path changes: each registration matches exactly the components that demand its key, and the exact-key rule of 0010 D34 stands. Under promotion by aliasing (0020 D4) the levels are one definition, so the shared body serves both without change.
 
 **Backup rule, for a breaking level:** when two served levels differ in shape, the shared body reads a canonical shape and each per-level registration supplies the projection from its level into it. The projection is a struct, authored beside the registration, and a level with no projection is a level the transformer does not serve. The catalog states which levels each transformer serves; how it states it (index, label, vet check) is the catalog's own decision.
+
+**Requirements:**
+
+- R1: A transformer that serves more than one level of a resource or trait is declared once per level, each registration naming that level's exact contract key in its required or optional maps.
+- R2: When two served levels differ in shape, each per-level registration carries its own projection into the shared canonical shape, and a level with no projection is a level the transformer does not serve.
+- R3: A catalog states which levels each of its transformers serves, where a consumer can read it.
 
 **Alternatives considered:**
 
