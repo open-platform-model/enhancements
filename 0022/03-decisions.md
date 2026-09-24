@@ -20,6 +20,14 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** OPM's artifact metadata is a struct under the `custom` field of `cue.mod/module.cue`, keyed `"opmodel.dev@v0"`. The `@v0` suffix versions the block's own shape: it is bumped only when a key changes meaning or is removed, never for an added key. A reader ignores keys it does not know. The block holds concrete data only, because CUE parses the module file in data mode.
 
+**Requirements:**
+
+- R1: An artifact's metadata block is the struct under the module file's `custom` field at key `opmodel.dev@v0`, and a reader holding the module file needs no other file or layer to find it.
+- R2: Adding a key to the block leaves the key suffix at `v0`; the suffix changes only when an existing key changes meaning or is removed.
+- R3: A reader ignores block keys it does not know.
+- R4: Every value in the block is concrete; a block holding a reference, a definition or a default does not parse as a module file.
+- R5: The block reaches the registry byte-verbatim in the published module file and survives dependency tidying with every value intact.
+
 **Alternatives considered:**
 
 - *Key `"opmodel.dev"` with no suffix.* This is what CUE's documentation calls conventional and what CUE's own unit test uses. Rejected: CUE's schema file also defines a stricter `#Strict` variant whose key regex requires an `@vN` suffix. Nothing enforces it today, but a published convention is permanent, and a key that satisfies both schemas costs nothing.
@@ -44,6 +52,15 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 Nothing about the toolchain that authored the file lives in the block.
 
+**Requirements:**
+
+- R1: The block carries `kind`, `identity`, `core` and `catalogs`; a block missing any of them fails validation.
+- R2: `kind` is `module`, `catalog` or `template`; any other value fails validation.
+- R3: `identity` carries the identity package's module path and version as two named fields.
+- R4: `core` names the core major and the exact core version pinned in the module file's dependencies.
+- R5: `catalogs` maps every catalog dependency, keyed by module path with major, to its pinned version, and may be empty.
+- R6: The block carries no fact about the toolchain that authored it.
+
 **Alternatives considered:**
 
 - *Only fields the module file does not already state (`kind` alone, or `kind` plus a list of catalog keys).* The tighter shape, and the entry's own first draft. Rejected by the owner: a reader that holds the module file should not have to know how `deps` keys are spelled or where the identity version lives; the duplication is the feature, and D4 makes it safe.
@@ -62,6 +79,8 @@ Nothing about the toolchain that authored the file lives in the block.
 
 **Decision:** The block is required (after D8's window) on every artifact OPM publishes as a module, a catalog or a template. `opmodel.dev/core` carries no block, and `library` publishes no CUE artifact.
 
+**Requirements:** none (bounds D1 and D2 to the three artifact kinds OPM publishes; requiredness and its window are D8)
+
 **Alternatives considered:**
 
 - *Core carries a block with `kind: "core"`.* Rejected: nothing selects core by kind or by compatibility; it is the thing compatibility is measured against.
@@ -78,6 +97,13 @@ Nothing about the toolchain that authored the file lives in the block.
 
 **Decision:** `core` ships a publish gate beside `#IdentityPackage` that states each duplicated field twice: as the block declares it and as the module file and identity package imply it. `identity.ModulePath` is `module:`; `identity.Version` is the identity package's `Version`; `core.version` is the `deps` pin of `opmodel.dev/core@<core.major>`; `catalogs` holds every `opmodel.dev/catalogs/*` dependency at its pin and nothing that is not a dependency. Publish unifies the block against the gate and refuses on conflict with CUE's own diagnostic, naming the writer verb that repairs the tree. Publish never edits the block (0011 D16).
 
+**Requirements:**
+
+- R1: Publish refuses a block whose `identity.ModulePath` differs from the module file's module path or whose `identity.Version` differs from the identity package's version.
+- R2: Publish refuses a block whose `core.version` differs from the pinned version of the core dependency at the declared `core.major`, or whose `core.major` names a core line the module file does not depend on.
+- R3: Publish refuses a block whose `catalogs` omits a first-party catalog dependency, lists it at a different version, or lists a path that is not a dependency.
+- R4: A refusal names the conflicting field with both values and names the writer verb that repairs the tree.
+
 **Alternatives considered:**
 
 - *Auto-fix at publish.* Rejected: 0011 D2 and D16 forbid publish writing into the tree, and an auto-fixed value is one the author never reviewed.
@@ -90,13 +116,20 @@ Nothing about the toolchain that authored the file lives in the block.
 
 ### D5: Tooling authors the block in the tree; publish never writes it
 
-**Kind:** policy
+**Kind:** contract
 
 **Depends:** 0011:D3, 0011:D8, 0011:D16
 
 **Decision:** The block is written by the same tooling 0011 already trusts with the tree. `opm module init` seeds it when it seeds the identity package; `version set` and `publish --version` keep `identity.Version` in step when they write the identity version; template re-identification rewrites `identity.ModulePath` when it rewrites `module:`. Each write is surgical (comments preserved, no-op when the value already matches), as the identity writer is. Publish reads and refuses, never writes.
 
 This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the version writer's only target. Once this entry is accepted, 0011 gains a new decision carrying `**Amends:** D3, D8`: the writer keeps every schema-fixed copy of `Version` in step. The wording is OQ4.
+
+**Requirements:**
+
+- R1: Scaffolding a module seeds the block in the same step that seeds the identity package.
+- R2: Writing a new version to the identity package writes the same version to the block's `identity.Version` in the same operation, so the two never differ after a write.
+- R3: Re-identifying a template rewrites the block's `identity.ModulePath` when it rewrites the module path.
+- R4: A block write preserves comments and is a no-op when the value already matches.
 
 **Alternatives considered:**
 
@@ -113,6 +146,8 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 
 **Decision:** Publish writes OCI manifest annotations beside CUE's own `org.cuelang.vcs-type`, `-commit` and `-commit-time`: the publishing `opm` version, the CUE toolchain version, and any further `dev.opmodel.*` key `contracts/` lists. Annotations are written through the client call CUE provides for module metadata, are not part of the zip or the module file, and are never required by any gate.
 
+**Requirements:** none (a placement posture: push-time facts go to manifest metadata and never gate anything; the key set is OQ3 and the observable keys belong to the change that writes them)
+
 **Alternatives considered:**
 
 - *Provenance in the block.* Rejected with D2: the tree cannot know who will publish it.
@@ -124,11 +159,17 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 
 ### D7: 0016's major walk is the first reader, and a missing block falls back to parsing `deps`
 
-**Kind:** scope
+**Kind:** contract
 
 **Depends:** 0016:D5
 
 **Decision:** The first consumer of the block is `opm instance init`'s selection walk (0016 D5). For each candidate major it reads `kind` (refusing anything but `module`) and `core.major` (comparing against the CLI's core major). When the block is absent, the walk does what it does today: parse `deps` for the `opmodel.dev/core@vN` key, treating absence as incompatible. The two rules agree by construction on any artifact published with the block.
+
+**Requirements:**
+
+- R1: A candidate whose block declares a kind other than `module` is skipped by the instance-init walk, and the report names the declared kind as the reason.
+- R2: A candidate carrying the block is judged compatible by its declared `core.major` alone; a candidate without the block is judged by its core dependency as 0016:D5 states, so no artifact published before the block becomes unselectable.
+- R3: For an artifact published with the block, the block verdict and the dependency verdict agree.
 
 **Alternatives considered:**
 
@@ -140,9 +181,16 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 
 ### D8: A missing block is a warning first and a refusal only from a dated release
 
-**Kind:** policy
+**Kind:** contract
 
 **Decision:** Publish warns on a missing block from the release that ships the writer, and refuses from a later, dated release named in the CLI changelog. Already-published artifacts are never affected. `opm module vet` reports the same condition.
+
+**Requirements:**
+
+- R1: Publish warns on a module, catalog or template artifact without the block from the release that ships the writer.
+- R2: From a later release, dated in the CLI changelog, publish refuses such an artifact.
+- R3: `opm module vet` reports a missing block as the same condition.
+- R4: An artifact already published without the block is never affected.
 
 **Alternatives considered:**
 
