@@ -26,6 +26,12 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** The CLI gains an init command for module instances: the user names a published module (its module path) and an instance name and namespace, and the command acquires that module from the registry and writes a complete, standalone on-disk instance package: `cue.mod/module.cue`, `instance.cue`, `values.cue`. That is the same shape `LoadInstancePackage` consumes and `opm instance build`/`apply` accept. The acquired artifact is the module being deployed, never a template: init generates the package from what the module declares (D5 fixes the surface, D9 the generated module file).
 
+**Requirements:**
+
+- R1: Given a published module path, an instance name and a namespace, init writes a complete standalone instance package (a module file, an instance file and a values file) into the target directory.
+- R2: The generated package is accepted as-is by `opm instance build` and `opm instance apply`, with no edit between init and the first build.
+- R3: Every generated line derives from the acquired module artifact (its pins, majors and wiring); nothing in the package is copied from a template the user did not name.
+
 **Alternatives considered:**
 
 - *Extend `opm module build --name/--namespace` (the synth path) with a `--write` flag.* Rejected: synth answers "does this module render?" and is deliberately fileless and ephemeral. Grafting file emission onto it conflates a validation tool with a scaffolding tool. Its output (an overlay inside the module's staged tree) is not the standalone committable package the user needs.
@@ -41,6 +47,12 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Decision:** When the module declares no dedicated init field (D3), init populates the generated `values.cue` from the module's `debugValues`. The command output names the source used, so a `debugValues`-scaffolded file is visibly that.
 
+**Requirements:**
+
+- R1: When the acquired module declares no `initValues`, the generated values file carries the module's `debugValues` content.
+- R2: The init report names `debugValues` as the source used, so a values file scaffolded from it is visibly that.
+- R3: A values file scaffolded from `debugValues` is accompanied by a warning telling the user to review it before deploying.
+
 **Alternatives considered:**
 
 - *Always start from an empty `values: {}` scaffold.* Rejected as the default: it discards author knowledge that already exists in every published module today and makes the first `opm instance build` fail out of the box for any module with required config.
@@ -55,6 +67,12 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 **Kind:** contract
 
 **Decision:** `#Module` gains a new optional field, `initValues` (shape fixed by D4), whose meaning is: the values a freshly initialized instance package starts from. When present, init uses it and never reads `debugValues`. `debugValues` keeps its existing contract (concrete example values for testing and debugging) unchanged.
+
+**Requirements:**
+
+- R1: `#Module` accepts an optional `initValues` field beside `debugValues`; a module without it stays valid and unchanged in meaning.
+- R2: When `initValues` is present, the generated values file carries it, and no `debugValues` content reaches the package.
+- R3: Adding `initValues` changes nothing about how `debugValues` is read by any consumer; a module may carry both with different content.
 
 **Alternatives considered:**
 
@@ -80,6 +98,12 @@ Measured (experiment 04), the render path shapes the scaffold by field kind:
 - an optional field is omitted from the file.
 
 An author who wants a field to appear as a prompt therefore writes it as an undefaulted disjunction or a bare type, not as optional.
+
+**Requirements:**
+
+- R1: A module whose `initValues` does not satisfy its `#config` still loads and validates as a module; the non-conformance is observed only where the value is consumed.
+- R2: `initValues` may be non-concrete, and a module carrying a non-concrete `initValues` is valid.
+- R3: A non-concrete `initValues` renders by field kind: a defaulted field appears as its default, an undefaulted disjunction appears as the disjunction, and an optional field is omitted from the generated values file.
 
 **Alternatives considered:**
 
@@ -124,6 +148,16 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 - Those of `module init`: 0 written, 2 refused, 3 registry unreachable.
 
+**Requirements:**
+
+- R1: The deployed module is named by a major-free module path; a path carrying a major suffix is refused with a hint to select the major through the version selector, and naming the module twice is refused rather than ranked.
+- R2: A version selector of the form `vN` resolves to the newest release within that major (newest stable, else newest named prerelease, never a development build), and an exact SemVer pins that tag.
+- R3: With no version given, init selects the newest release of the highest major whose declared core dependency major equals the CLI's core major, skipping any major that declares no core dependency or holds no selectable release, and the report names the selection and every higher major skipped with its reason.
+- R4: A missing instance name or namespace is prompted for when a terminal is attached and refused when none is.
+- R5: A target directory that already exists, or that already holds a module or instance package, is refused.
+- R6: A failed init leaves no partial directory behind; the package is written completely or not at all, so a retry into the same directory is never refused by init's own leftovers.
+- R7: Exit codes are those of `opm module init`: 0 written, 2 refused, 3 registry unreachable.
+
 **Alternatives considered:**
 
 - *Path carries the major (`…/cert_manager@v2`), `--version` floats only within it.* This is the grammar every other command uses, and it was the entry's working shape. Rejected by the owner: a deployer arriving with only a module name should not have to know its major line to get started; the CLI knows which core line it speaks and can pick the newest module line that speaks it.
@@ -144,6 +178,12 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Decision:** When the module carries no `initValues` and its `debugValues` is not concrete, init still writes all three files; `values.cue` contains an empty `values: {}` and the report carries a warning naming the empty source and pointing at `opm instance vet` for the contract the user must now satisfy. A concrete non-struct `debugValues` (or `initValues`) is rendered verbatim: it is the author's stated value and `#config` may legitimately be a non-struct.
 
+**Requirements:**
+
+- R1: When the module carries no `initValues` and its `debugValues` is not concrete, init still writes all three files, with an empty values struct.
+- R2: The report names the source as empty, warns that the values file is empty, and points at the vet command for the contract the user must now satisfy.
+- R3: A concrete non-struct `initValues` or `debugValues` is rendered verbatim into the values file.
+
 **Alternatives considered:**
 
 - *Refuse unless an explicit `--empty` flag is given.* Rejected: it makes init useless for exactly the modules that most need scaffolding, and the user's next action is identical either way.
@@ -161,6 +201,8 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Decision:** Rendering the three-file package is CLI-side, beside the existing `opm module init` scaffolding, and reuses that command's acquire and version-resolution paths. `library` is not in `affects`: `synth.Instance` keeps its in-memory overlay renderer unchanged, and its documented refusal to fall back to `debugValues` stands. The instance-file shape therefore exists in two repos; the CLI's end-to-end test for init loads and builds the generated package through the real `LoadInstancePackage`, so a shape drift is a visible CLI test failure rather than a silent break.
 
+**Requirements:** none (locates the renderer; the package shape it must satisfy is D1 R1 and R2)
+
 **Alternatives considered:**
 
 - *Export synth's renderer from library and add the `cue.mod/module.cue` generation there, so both frontends share one generator.* Rejected by the owner: init is a scaffolding concern of the same kind as `module init`, which is wholly CLI-side; the library kernel deliberately carries no file-writing or scaffolding policy, and one exported renderer would be the first.
@@ -176,6 +218,8 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 **Resolves:** OQ5
 
 **Decision:** Init writes the package and reports; it does not run the equivalent of `opm instance vet`. The report ends by naming the validation command for the generated package's `instance.cue` (the file, which is what `opm instance vet` and `build` take; experiment 03), as `module init` ends with `opm module vet`. A template source that does not satisfy `#config` therefore surfaces at the user's first vet or build, not at init. Whether publishing a module with a non-conforming `initValues` is a publish-time error is 0011's decision and is not made here.
+
+**Requirements:** none (none (init writes without validating; the closing hint naming the validation command is a cli delta-spec line))
 
 **Alternatives considered:**
 
@@ -193,6 +237,13 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 **Resolves:** OQ6
 
 **Decision:** The generated `cue.mod/module.cue` declares the deployed module as a dependency, pinned to the exact resolved version, and `opmodel.dev/core` at the major the acquired module itself depends on, with the rest of the dependency closure complete. The file is equivalent to a tidied module file, so the package builds offline from the module cache with no further step. The package's own `module:` path is `instance.local/<instance-name>@v0` unless `--module-path` overrides it; the package is never published, so the path only has to be valid and unique within the user's tree. Pins never float: the report states the pinned version, and bumping it is the existing dependency-update tooling's job.
+
+**Requirements:**
+
+- R1: The generated module file declares the deployed module pinned to the exact resolved version and `opmodel.dev/core` at the major the acquired module itself depends on, with the rest of the dependency closure complete, equivalent to a tidied module file.
+- R2: The generated package builds offline from the module cache with no command between init and the first build.
+- R3: The package's own module path defaults to `instance.local/<instance-name>@v0`, can be overridden by the user, and is never looked up in any registry.
+- R4: Pins never float; the report states the pinned version, and bumping it is left to the existing dependency-update tooling.
 
 **Alternatives considered:**
 
