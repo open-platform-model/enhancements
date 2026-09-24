@@ -6,13 +6,15 @@ What must be true before this entry moves between statuses. Each gate is stated 
 
 **Open Questions and scope.**
 
-- Every Open Question (OQ1 through OQ6) is resolved by a decision, deferred to a named enhancement, or answered in place.
+- Every Open Question marked `Blocking: acceptance` is resolved by a decision, deferred to a named enhancement, or answered in place.
 - The retirement path for `opm/docs` is decided (OQ4), including whether the area vocabulary changes.
 
 **Taxonomy and schema.**
 
 - The eight-section taxonomy is ratified, including the two placements that are deliberate: Diagnostics as a top-level entry point, and Concepts sized in proportion to the concept surface rather than treated as an appendix.
 - The enforcement badge vocabulary is closed and compiles in `contracts/contracts.cue`, and each of the four values has at least one worked example drawn from a real constraint.
+- The page contract (D7) and the parts of every page type (D9) compile in `contracts/contracts.cue`, and the contract refuses a page that declares its own section.
+- Every page in the initial inventory has one type and an owner from this entry's `affects`.
 - The generated-versus-authored field classification covers every field a reference entry will carry, so that no field's provenance is decided during implementation.
 
 **Coordination and mechanics.**

@@ -10,6 +10,8 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Two placements are deliberate.** Diagnostics is top-level because readers arrive from an error string, not from the menu, and the kernel's error kinds map to different fixes the message text does not tell apart. Concepts is large because OPM has far more concepts than commands: seventeen were ranked subtle enough that a reader gets them wrong without prose.
 
+**Every page is one of four types, written where the thing it describes lives (D7 to D10).** A page is a tutorial, a how-to guide, an explanation or reference, and each type has fixed parts in a fixed order. A page's source sits in the repository whose change would make it wrong; prose with no single owner lives in `opm`. The site puts pages together by section, so the reader never sees which repository a page came from.
+
 **Generate every fact a rename can break; write everything else by hand (D1).** Member names, keys, spec shapes, trait settings and worked examples come from evaluating the CUE, never from scraping text. Today's scraper reports an empty description for exactly the members readers need most. Which blueprint to start from, which traits are legal on it, and every Concepts page are written by hand. A gate refuses a new catalog member that ships without a doc comment.
 
 **Reference splits the catalog in two (D6).** The abstraction family gets full per-member pages and leads every authoring path. The raw passthrough family gets one index page and a generated table, labelled as the last resort, each entry pointing at the abstraction that covers the same ground where one exists.
@@ -40,14 +42,14 @@ The branches out of the reader are the navigation, and each one is a top-level s
 ## Documents
 
 1. [01-problem.md](01-problem.md): documentation exists and describes a version of OPM that has not existed for months, and coverage is inverted against usage
-1. [02-design.md](02-design.md): eight reader-state sections, generated facts versus authored guidance, enforcement badges
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D6
+1. [02-design.md](02-design.md): eight reader-state sections, one type and one shape per page, placement by owning repository, the initial page inventory, generated facts versus authored guidance, enforcement badges
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D10
 1. [04-graduation.md](04-graduation.md): what must hold before this entry moves from draft to accepted
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, and the cross-repo landing order with the reasons for it
 1. [07-questions.md](07-questions.md): the open-questions register
 
-Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose. Landings across the five repos are logged in `delivery.yaml` as they happen.
+Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), which states the section taxonomy, the page contract, the parts of each page type, the badge vocabulary, the per-field provenance of a reference entry, and the doc-comment obligation as shapes rather than prose. The evidence behind the page decisions, a survey of the KCP docs and the Diátaxis and Write the Docs guidance, is in [`research/findings.md`](research/findings.md). Landings across the five repos are logged in `delivery.yaml` as they happen.
 
 ## Scope
 
@@ -56,6 +58,9 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), wh
 **Architecture.**
 
 - The section taxonomy: eight top-level sections keyed to reader state, and what each one owns.
+- The page contract: one declared type, a title and a one-line description per page, with generated section indexes.
+- Placement by owning repository, assembly by section, and a fixed shape for each page type.
+- The initial page inventory the design is sized against.
 - The generated-versus-authored split, per field, and the generator changes it requires: evaluate CUE rather than scrape text, and fix the CLI generation step that fails on a clean tree.
 - The enforcement badge vocabulary and its application to normative statements.
 

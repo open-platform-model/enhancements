@@ -18,6 +18,7 @@ affects:
   - cli
   - library
   - opm
+  - opm-operator
 core_schema: false
 created: "2026-08-18"
 updated: "2026-09-24"
@@ -57,6 +58,8 @@ history:
     event: 'opm joined the repo vocabulary and affects; OQ4 partially resolved (rewrite in place); OQ6 amended (versioned, anchor undecided); OQ7 added (voice capture).'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D2, D3, D4, D5, D6); Kind changed to contract on D1 (body states observable behaviour), additive.'
+  - date: "2026-09-24"
+    event: 'D7-D10: one type per page, placement by owning repo, fixed shape per type, member notes in doc comments; page inventory; opm-operator in affects'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

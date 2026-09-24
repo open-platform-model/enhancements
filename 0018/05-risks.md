@@ -8,7 +8,11 @@
 
 **Generated pages look authoritative and say nothing.** Generating against today's doc-comment coverage produces empty descriptions for every blueprint and most traits. *Mitigation:* the backfill slices land before the generator's output is published, and the CI gate keeps coverage from regressing. Sequenced the other way, the site would publish 43 hollow pages.
 
-**Diagnostics goes stale silently.** Its content is keyed to error types in `library` that change with the kernel, and nothing connects the two repos. *Mitigation:* OQ3 exists to pick a mechanism. Until it is resolved, this is an open exposure rather than a mitigated one, and it is the most likely section to rot first.
+**Diagnostics goes stale silently.** Its content is keyed to error types in `library` that change with the kernel. *Mitigation:* D8 puts the kernel's diagnostics entries in `library` beside the error types, so a change and its page can land in one pull request. OQ3 still has to pick the check that makes a missing entry fail. Until it does, this is the section most likely to rot first.
+
+**Several repositories, several house styles.** Distributed writing makes types blur into each other more easily, not less, because each repository writes about its own part. *Mitigation:* the declared type (D7) and the fixed parts per type (D9) give reviewers in every repository the same checklist, and the writing guide in `opm` carries one template per type. Voice is the part neither fixes; that is OQ7.
+
+**The inventory becomes a checklist.** The initial page inventory is a sizing aid. Treated as a plan to fill in, it produces the placeholder pages D8 forbids. *Mitigation:* a page is written when a reader needs it, and once pages exist the live list is the generated section index.
 
 **The doc-comment CI gate becomes a rubber stamp.** A gate that only checks presence invites a one-word comment that satisfies the check and helps nobody. *Mitigation:* the gate checks presence; review checks usefulness. Stating that split honestly is better than pretending a linter can judge prose.
 
@@ -28,11 +32,13 @@
 
 ## Alternatives
 
+**Copy KCP's site model.** KCP publishes one documentation site per repository under one domain, each with its own navigation and version list. Rejected by D8: it shows readers the repository layout instead of the product. What this entry takes from KCP is how its pages are written, not how its site is put together.
+
 **Do nothing structural and update `opm/docs` in place.** Rejected in `01-problem.md`: the vocabulary drift is total rather than partial, so what survives is the argument structure of three or four documents, not their content. Updating in place also preserves the property that made the current state possible, which is prose that nothing checks.
 
 **Site-only scope, with no source changes.** Attractive because it touches one repo. Rejected because the highest-leverage fix is in the source: switching the generator to read evaluated CUE yields 70 descriptions at no authoring cost, and the doc-comment backfill is what makes generated reference worth publishing. A site-only effort would hand-write what generation should own, reproducing the decay.
 
-**Adopt Diátaxis wholesale as the top-level structure.** Genre-first navigation (tutorials, how-to, reference, explanation) is proven and well understood. Rejected as the *top* level for the disjointness reason above, but retained below it: genre still governs how an individual page is written.
+**Adopt Diátaxis wholesale as the top-level structure.** Genre-first navigation (tutorials, how-to, reference, explanation) is proven and well understood. Rejected as the *top* level for the disjointness reason above, but retained below it: every page is one of the four types (D7) and follows that type's shape (D9).
 
 **Treat `SPEC.md` as the reference and write only tutorials publicly.** Rejected by D2. It would publish a contributor document to users, including its unshipped-state content and its unresolvable citations.
 

@@ -125,4 +125,105 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Source:** User decision 2026-08-18.
 
+### D7: Every page declares one type, a title and a one-line description
+
+**Kind:** contract
+
+**Decision:** Every page on the site is exactly one of four types: tutorial, how-to guide, explanation or reference. A section holds several types, but a page never mixes them. Each authored page declares its title, a one-line description and its type, and nothing else is required.
+
+The section a page belongs to, and the address other pages link it by, come from where the page sits, never from a declared field, so the two cannot disagree. Every section's index page is generated from its pages' descriptions, grouped by type in a fixed order: tutorials, how-to guides, explanations, reference. No index page is written by hand.
+
+**Requirements:**
+
+- R1: Every published page carries a title, a one-line description and exactly one of the four types; a page missing any of them, or declaring any other type, fails the site build.
+- R2: A section's index lists every page in the section with its description, grouped by type in the order tutorial, how-to guide, explanation, reference.
+- R3: A page's section and link address follow from where it sits in the site; no page declares either.
+
+**Alternatives considered:**
+
+- **One genre per section.** Previously adopted in this entry's design and contract. Rejected: Authoring modules held guides and reference from the start, and a section-level genre cannot tell a reviewer which rules a given page must follow.
+- **The four types as the top-level navigation.** Already rejected for the disjoint-audience reason in `05-risks.md`. Kept one level down instead, on every page.
+- **Declare the section and a link id on each page.** Rejected: the same fact stated in two places drifts, and a moved page would keep claiming its old section.
+- **Hand-written section index pages.** Rejected: an index nobody regenerates is the first page to go stale. KCP generates its section indexes from each page's description line and writes none by hand.
+
+**Rationale:** The central failure Diátaxis names is types bleeding into each other, worst of all tutorials and how-to guides collapsing into one. The risk is higher here than in a single-repo project because several repositories write pages. A declared type tells the writer which rules apply and lets a reviewer check them. The description does double duty as the index entry and the search snippet, so it is always written.
+
+**Source:** User decision 2026-09-24. Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's section indexes.
+
+### D8: A page lives in the repository whose change would make it wrong; the site is assembled by section
+
+**Kind:** policy
+
+**Decision:** A page's source lives in the repository whose change would make the page wrong. The site engine owns no content.
+
+- `core` owns concepts about a single core definition and the schema reference.
+- `catalog` owns catalog member reference, blueprint and trait guidance, and the extending guides for catalog authors.
+- `cli` owns command reference, publishing guides, registry namespaces and publish refusals.
+- `opm-operator` owns operator installation, deletion behaviour, its resource reference and its status conditions.
+- `library` owns kernel embedding and every kernel diagnostics entry.
+- `opm` owns what has no single owner: the home page, Start here, concepts and tutorials that span repositories, the boundaries page and the glossary.
+
+Each repository keeps its published pages apart from its contributor documents, and only the published pages reach the site. The site is assembled by section, never by repository: pages from several repositories sit side by side in one section, and the reader never sees a repository boundary. Two repositories publishing the same address fail the build.
+
+A section appears in the navigation only once it holds a real page. No placeholder page is ever published; a known gap, such as the secrets pointer D5 describes, is stated on a page that exists for its own reason.
+
+**Requirements:** none (a placement and assembly posture; what a reader observes of it is D7's page contract)
+
+**Alternatives considered:**
+
+- **All content in the site repository.** Rejected: prose far from the code it describes is the drift this entry exists to end. Write the Docs' "Nearby" principle says the same.
+- **All authored prose in `opm`, only generated reference in the source repositories.** Rejected: a concept page about one core definition would change in a different repository from the definition, so a core change could not carry its own documentation fix.
+- **One site per repository under one domain, linked from a landing page.** This is KCP's model: kcp and kcp-operator are separate sites with separate navigation and separate version lists. Rejected: it shows the reader the repository layout instead of the product, and the reader must know which repository owns a topic before they can find it.
+- **Publish each repository's whole documentation folder.** Rejected: those folders hold contributor material today, such as catalog authoring rules, CLI design RFCs and core's publishing strategy. KCP's public navigation shows the result, with load-test reports and a long architecture brain dump beside user pages.
+- **Create every section up front with placeholder pages.** Rejected: Diátaxis calls empty four-part scaffolds the thing not to do, and a placeholder looks like documentation while saying nothing.
+
+**Rationale:** The owning-change test makes placement mechanical: whoever changes the behaviour is in the same pull request as the page describing it. Assembling by section keeps the reader-state navigation independent of how OPM happens to be split into repositories, which will change. The diagnostics placement pays off twice: with the entries next to the kernel's error types, a check that every error type has an entry stays inside one repository (OQ3).
+
+**Source:** User decisions 2026-09-20 (reference in the owning repository, prose with no natural home in `opm`) and 2026-09-24 (the site engine assembles one cohesive site and holds no content). Evidence: [research/findings.md](research/findings.md), sections on KCP's site model and on Write the Docs.
+
+### D9: Each page type has a fixed shape
+
+**Kind:** policy
+
+**Decision:** Every page of a type carries that type's parts, in that order.
+
+- **Tutorial:** the end result shown first; prerequisites with exact versions; numbered steps, each followed by its expected output; what was built; at most three next links. One path, no options, and no explanation beyond one line and a link.
+- **How-to guide:** a title that starts with a verb; one sentence on what it achieves and when to use it; the state the reader must already be in; steps as imperatives, with forks written as conditions; how to check it worked; links to the reference and the concept.
+- **Explanation:** a title that reads naturally after "About"; the concept in Kubernetes terms, including where the comparison stops holding; how it works; why it is built this way; the misreadings people actually make; what enforces each rule. No steps and no field tables.
+- **Reference:** an authored reference page says in one sentence what it lists, then gives entries ordered by the product's structure, with each rule stated plainly and badged. A generated entry follows one order everywhere: summary, an at-a-glance table, spec, example, notes, what serves it, what enforces it.
+- **Diagnostics entry:** a how-to guide with a fixed shape: the error's name as printed, the exact message, what it means in two sentences at most, each cause with its fix, and where the error is raised.
+
+Exact heading wording and the page templates belong to the writing guide in `opm`, not to this entry. Length targets per type are a convention, not a gate.
+
+**Requirements:** none (a writing posture checked in review; the only part enforced mechanically is the declared type, D7:R1)
+
+**Alternatives considered:**
+
+- **Free-form pages within a type.** Rejected: several repositories writing independently produce several house styles, and a reader cannot predict where the prerequisites or the fix will be. KCP shows it: similar pages put their parts in different orders, and page length runs from a few hundred words to over six thousand.
+- **Diagnostics entries as authored reference.** Previously adopted in this entry's design and contract. Rejected: a reader on a diagnostics page is at work fixing something, which the Diátaxis compass classifies as a how-to guide. A reference entry would describe the error and stop short of the fix.
+- **Fix the exact headings in this entry.** Rejected as mechanism: wording is refined as pages get written, and writers look in the writing guide, not here.
+
+**Rationale:** A fixed shape per type is what makes a site written in several repositories read as one. The explanation shape leads with Kubernetes terms because the target reader already runs Kubernetes. KCP defines its concepts that way ("similar cost as a namespace", "almost identical to a CRD"), and it is the shortest route to plain English for that reader. The tutorial shape shows expected output after every step because Diátaxis requires a visible result per step, and KCP does it on every command.
+
+**Source:** User decision 2026-09-24. Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's writing.
+
+### D10: Notes on one catalog member live in its doc comment; guidance across members lives in how-to guides
+
+**Kind:** policy
+
+**Decision:** Hand-written notes about a single catalog member, such as why two of its fields conflict, what a default means or why the member exists, are written in the member's doc comment and rendered on its generated reference page. Guidance relating several members lives in how-to guides and explanations: which blueprint to start from, which traits are legal on which blueprint, how members interact, and when to reach for the raw family. No per-member Markdown file exists beside the source.
+
+D1 still decides what is generated and what is authored. This decision places the authored text about members.
+
+**Requirements:** none (a placement posture for authored text; the doc-comment gate is D1:R3)
+
+**Alternatives considered:**
+
+- **A Markdown notes file per member, merged into the generated page.** Rejected: two sources per member, one of which a rename leaves behind.
+- **Authored fields on each member entry for when to use it, its interactions and family guidance.** Previously in this entry's contract. Rejected: all three relate members to each other, so they belong on one page about the choice, not repeated on every member the choice involves.
+
+**Rationale:** The doc comment moves with the member, so a rename carries its notes along, which is D1's test for what can be trusted to stay current. Guidance about choosing between members is read by someone making that choice, and that reader is on a how-to guide.
+
+**Source:** User decision 2026-09-24.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

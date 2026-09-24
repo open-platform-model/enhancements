@@ -1,6 +1,6 @@
 # Design: Documentation Architecture
 
-Eight sections organised by what a reader is holding when they arrive, a hard split between generated facts and authored guidance, and an enforcement badge on every normative statement.
+Eight sections organised by what a reader is holding when they arrive, one declared type and a fixed shape for every page, each page written in the repository that owns what it describes, a hard split between generated facts and authored guidance, and an enforcement badge on every normative statement.
 
 ## Design Goals
 
@@ -29,24 +29,24 @@ Eight sections organised by what a reader is holding when they arrive, a hard sp
 
 ## High-Level Approach
 
-The organising question is what the reader has in their hands, not what genre the content belongs to. Genre (tutorial, guide, reference, explanation) still governs how a page is written; it does not govern the top-level navigation, because OPM's audiences are close to disjoint and a genre-first split forces each of them to filter every section.
+The organising question is what the reader has in their hands, not what type of page the content is. The type still governs how each page is written: every page is exactly one of the four Diátaxis types, tutorial, how-to guide, explanation or reference (D7). It does not govern the top-level navigation, because OPM's audiences are close to disjoint and a type-first split forces each of them to filter every section.
 
 ```
-reader arrives with...            section                      dominant genre
---------------------------------------------------------------------------------
-nothing, evaluating           1. Start here                tutorial
+reader arrives with...            section                      page types in the initial inventory
+------------------------------------------------------------------------------------------------
+nothing, evaluating           1. Start here                tutorial, explanation, reference
 a question about why          2. Concepts                  explanation
-a blank module file           3. Authoring modules         guide + reference
-a cluster                     4. Deploying and operating   guide
-a vocabulary gap              5. Extending OPM             guide (advanced)
-a Go program                  6. Embedding the kernel      guide (narrow)
-a field name                  7. Reference                 generated
-an error message              8. Diagnostics               reference (authored)
+a blank module file           3. Authoring modules         tutorial, how-to
+a cluster                     4. Deploying and operating   tutorial, how-to, explanation
+a vocabulary gap              5. Extending OPM             how-to
+a Go program                  6. Embedding the kernel      tutorial
+a field name                  7. Reference                 reference, mostly generated
+an error message              8. Diagnostics               how-to with a fixed shape, reference
 ```
 
 Two of those placements are deliberate and worth stating.
 
-**Diagnostics is top-level because it is an entry point.** A reader arrives from an error string pasted into a search box, not from navigation. The kernel's error taxonomy is unusually well structured and maps to genuinely different fixes: an unresolved demand, an unhandled trait, an identity mismatch and a materialize failure are four distinct problems that a reader cannot tell apart from the message text alone. This section also carries the "why does a render now fail that used to succeed" question, whose answer is that the render was under-delivering rather than succeeding.
+**Diagnostics is top-level because it is an entry point.** A reader arrives from an error string pasted into a search box, not from navigation. Each entry is a how-to guide with a fixed shape (D9), because that reader is at work fixing something. The kernel's error taxonomy is unusually well structured and maps to genuinely different fixes: an unresolved demand, an unhandled trait, an identity mismatch and a materialize failure are four distinct problems that a reader cannot tell apart from the message text alone. This section also carries the "why does a render now fail that used to succeed" question, whose answer is that the render was under-delivering rather than succeeding.
 
 **Concepts is large, and that is proportionate.** The `core` survey ranked seventeen concepts as subtle enough to need prose. The top four are the four version-shaped axes, `fqn == modulePath` for artifacts, `matchLabels` versus `metadata.labels`, and the component derivation rule. Each of these has a measured failure story behind it in `SPEC.md`'s Rationale, which is the raw material for these pages.
 
@@ -67,6 +67,8 @@ which transformers serve a member          every Diagnostics entry
 worked examples (transformer golden tests)
 CLI command reference (cobra)
 ```
+
+Authored notes about a single member are written in that member's doc comment and rendered on its generated page. Guidance relating members, such as which blueprint to start from, lives in how-to guides and explanations, never repeated on every member entry (D10).
 
 The precondition is smaller than it looks. `metadata.description` is populated on all 70 catalog members; the reason `src/INDEX.md` shows empty descriptions is that its generator is a text scraper reading CUE doc comments rather than an evaluator reading the field. Switching to evaluation yields 70 of 70 one-line descriptions at no authoring cost. Hand-written doc comments then carry only what a one-liner cannot: why `exactName` and `immutable` conflict, why `podMetadata` exists, what `clusterIP: "None"` means.
 
@@ -89,20 +91,118 @@ Reference splits by family rather than presenting 38 resources as one list. The 
 
 The framing is a fact about the system rather than an editorial preference: no first-party module imports the raw family, and `task vet:layering` in `catalog_opm` fails the build if an abstraction member depends on one.
 
+### Every page: one type, one owner, one shape
+
+**The page contract (D7).** Every page declares a title, a one-line description and its type, and nothing else. Where the page sits decides its section and its address, so a page cannot claim a section it is not in. Each section's index page is generated from the descriptions, grouped as tutorials, how-to guides, explanations, then reference. KCP uses the same mechanism for its section indexes and writes none by hand.
+
+**Placement (D8).** A page lives in the repository whose change would make it wrong, so the pull request that changes a behaviour can fix its page. Pages with no single owner live in `opm`. The site engine owns no content and assembles the site by section, so pages from several repositories sit side by side and the reader never sees where each came from. A section appears only once it holds a real page.
+
+```mermaid
+flowchart LR
+    core["core"] --> concepts
+    opm["opm"] --> start
+    opm --> concepts
+    catalog["catalog"] --> authoring
+    cli["cli"] --> authoring
+    operator["opm-operator"] --> operating
+    library["library"] --> diagnostics
+    subgraph site ["One site, assembled by section"]
+        start["Start here"]
+        concepts["Concepts"]
+        authoring["Authoring modules"]
+        operating["Deploying and operating"]
+        diagnostics["Diagnostics"]
+    end
+```
+
+The diagram shows a few of the edges, not all of them. The point it carries is that a section draws from several repositories, and a repository feeds several sections.
+
+**Shapes (D9).** Each type carries fixed parts in a fixed order, listed in D9 and stated as data in `contracts/contracts.cue`. The explanation shape opens with the concept in Kubernetes terms, because that is the reader this site is written for. Starting length targets keep pages comparable across repositories; they are a convention, not a gate:
+
+| Type | Starting length target |
+| --- | --- |
+| Tutorial | 800 to 1500 words |
+| Explanation | 600 to 1200 words |
+| How-to guide | 300 to 800 words |
+| Diagnostics entry | 200 to 500 words |
+| Reference | As long as what it describes |
+
+### Initial page inventory
+
+This is the inventory the design is sized against, not a list to fill in. A page is written when a reader needs it, and once pages exist the generated section indexes are the live list (D8). Pages are named by title; their addresses are decided when they are written.
+
+| Section | Page | Type | Owner |
+| --- | --- | --- | --- |
+| Start here | What is OPM | explanation | opm |
+| Start here | OPM for Kubernetes users | reference | opm |
+| Start here | Quickstart | tutorial | opm |
+| Start here | What OPM does not do (D3) | reference | opm |
+| Concepts | Modules and instances | explanation | opm |
+| Concepts | Components and blueprints | explanation | core |
+| Concepts | Resources and traits | explanation | core |
+| Concepts | How matching works | explanation | opm |
+| Concepts | Platforms and catalogs | explanation | opm |
+| Concepts | Versions in OPM | explanation | core |
+| Concepts | Identity and names | explanation | core |
+| Concepts | Who owns an instance | explanation | opm |
+| Concepts | What enforces a rule | explanation | opm |
+| Authoring modules | Your first module | tutorial | opm |
+| Authoring modules | Choose a blueprint | how-to | catalog |
+| Authoring modules | Attach a trait to a component | how-to | catalog |
+| Authoring modules | Define a module's configuration | how-to | core |
+| Authoring modules | Use a raw Kubernetes resource (D6) | how-to | catalog |
+| Authoring modules | Publish a module | how-to | cli |
+| Deploying and operating | Deploy a module with the CLI | tutorial | opm |
+| Deploying and operating | Install the operator | how-to | opm-operator |
+| Deploying and operating | Hand an instance to the operator | how-to | opm |
+| Deploying and operating | Delete an instance safely (D4) | how-to | opm-operator |
+| Deploying and operating | Deletion and pruning (D4) | explanation | opm-operator |
+| Extending OPM | Write a trait | how-to | catalog |
+| Extending OPM | Write a transformer | how-to | catalog |
+| Extending OPM | Publish a catalog | how-to | cli |
+| Embedding the kernel | Embed the kernel | tutorial | library |
+| Reference | Schema definitions, one entry each | generated | core |
+| Reference | Abstraction family members, one entry each (D6) | generated | catalog |
+| Reference | Raw Kubernetes family, one index (D6) | generated | catalog |
+| Reference | CLI commands, one entry each | generated | cli |
+| Reference | Operator resources, one entry each | generated | opm-operator |
+| Reference | Glossary | reference | opm |
+| Reference | Registry namespaces | reference | cli |
+| Reference | The catalog contract | reference | catalog |
+| Diagnostics | Unresolved demands | how-to | library |
+| Diagnostics | Unmatched components | how-to | library |
+| Diagnostics | Oversubscribed contracts | how-to | library |
+| Diagnostics | Identity mismatch | how-to | library |
+| Diagnostics | Version skew | how-to | library |
+| Diagnostics | Transform failed | how-to | library |
+| Diagnostics | Publish refusals | how-to | cli |
+| Diagnostics | Operator conditions | reference | opm-operator |
+
+Three things tie the inventory to the system as it is. The top four of the seventeen concepts the `core` survey ranked as needing prose each get a page: the version axes, identity, the two label sets in how matching works, and how a component is derived in components and blueprints. The six kernel diagnostics entries match the six error types the kernel defines today in `library/opm/errors`. The operator reference covers its four resource kinds: ModuleInstance, ModulePackage, Platform and TransformerRegistration.
+
+Existing prose is source material rather than a starting point from scratch:
+
+- `cli/QUICKSTART.md` and `cli/README.md` feed the quickstart, the deploy tutorial and the page on who owns an instance.
+- `library/docs/getting-started.md` becomes the embedding tutorial once its missing step is fixed.
+- The catalog's authoring rules under `catalog_opm/docs/` feed the extending guides.
+- The raw-versus-blueprint side-by-side in `opm/docs/concepts/resources-traits-blueprints.md` is the teaching device for the components and blueprints page.
+- The two reference pages already on the site move to the repositories that own them: registry namespaces to `cli`, the catalog contract to `catalog`.
+
 ## Schema / API Surface
 
-`contracts/contracts.cue` states four shapes: the section taxonomy with its reader-state entry condition, the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. Stating them in CUE makes the taxonomy testable before any page exists, and gives the generator a contract to emit against.
+`contracts/contracts.cue` states six shapes: the section taxonomy with its reader-state entry condition, the page contract every page declares and the order section indexes group pages in (D7), the parts each page type carries (D9), the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. Stating them in CUE makes the taxonomy and the page contract testable before any page exists, and gives the site engine a contract to validate every repository's pages against.
 
 ## Integration Points
 
 | Repo | What changes |
 | --- | --- |
-| `opmodel.dev` | All site content; the `docgen` generator (evaluate CUE rather than scrape comments, emit enforcement badges, split reference by family); the broken `generate:cli` step |
-| `catalog` | Doc-comment backfill on blueprints, abstraction resources and traits; a CI gate refusing a new member without one |
-| `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost |
-| `cli` | Command help text aligned with the generated reference; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
-| `library` | `docs/getting-started.md`, which omits the mandatory Materialize step and therefore cannot be followed to working code |
-| `opm` | The authored prose with no code owner: Start here, cross-repo guides, the boundaries page. Its stale v0 tree is rewritten in place, not retired; the surviving-content rule is OQ4 |
+| `opmodel.dev` | The engine, holding no content: assembles every repository's published pages by section, validates them against the page contract, generates section indexes; the `docgen` generator (evaluate CUE rather than scrape comments, emit enforcement badges, split reference by family); the broken `generate:cli` step |
+| `catalog` | Doc-comment backfill on blueprints, abstraction resources and traits; a CI gate refusing a new member without one; the pages it owns under D8: choosing a blueprint, attaching traits, the raw-family escape hatch, the extending guides, the catalog contract |
+| `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost; the concept pages about single definitions and the configuration guide |
+| `cli` | Command help text aligned with the generated reference; the publishing guides, the registry namespaces page and the publish-refusal diagnostics entry; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
+| `library` | `docs/getting-started.md`, which omits the mandatory Materialize step and therefore cannot be followed to working code, rewritten as the embedding tutorial; every kernel diagnostics entry |
+| `opm-operator` | Installing the operator, deleting an instance safely, the deletion and pruning explanation (D4), its resource reference and its status conditions |
+| `opm` | The authored prose with no code owner: the home page, Start here, cross-repo concepts and tutorials, the boundaries page, the glossary, and the writing guide with one page template per type. Its stale v0 tree is rewritten in place, not retired; the surviving-content rule is OQ4 |
 
 ## Before / After
 

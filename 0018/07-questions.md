@@ -14,11 +14,13 @@
 
   Three candidates: badge only authored statements and leave generated entries unbadged; badge generated entries with a conservative default; or teach the generator the small set of derivable cases and leave the remainder unbadged. The third is the most useful and the most work, and it risks a badge that says `cue` where the real answer is `convention`, which is worse than no badge.
 
-- **OQ3: Who keeps Diagnostics current as the kernel's error types change?** Status: open. Blocking: acceptance.
+- **OQ3: Who keeps Diagnostics current as the kernel's error types change?** Status: partially resolved. Blocking: acceptance (the mechanism is still unchosen).
 
   The Diagnostics section maps kernel errors to causes and fixes. Those types live in `library/opm/errors` and change with the kernel; nothing connects a change there to a documentation update, and this is the section most likely to rot first.
 
   Candidate mechanisms: a test in `library` asserting that every exported error type appears in the site's diagnostics index, a checklist item in the library's own change protocol, or explicit acceptance that the section drifts and is audited periodically. The first is the only one that fails loudly, and it couples two repos that are otherwise independent.
+
+  Partially resolved 2026-09-24 by D8: the kernel's diagnostics entries live in `library`, next to the error types, so the test no longer couples two repositories. Still open: whether the check is that test, a checklist item, or a periodic audit.
 
 - **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: partially resolved. Blocking: acceptance (the rewrite rule still needs a decision).
 

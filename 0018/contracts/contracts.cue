@@ -1,14 +1,15 @@
 // Target schema for enhancement 0018 (Documentation Architecture).
 //
-// Four shapes: the section taxonomy keyed by what a reader is holding when
-// they arrive, the enforcement badge vocabulary, the provenance
+// Six shapes: the section taxonomy keyed by what a reader is holding when
+// they arrive, the page contract every page declares (D7), the parts each
+// page type carries (D9), the enforcement badge vocabulary, the provenance
 // classification for a reference entry's fields, and the doc-comment
 // obligation a catalog member satisfies to pass the CI gate.
 //
 // Stating these in CUE rather than in prose makes the taxonomy testable
-// before any page exists, and gives the generator a contract to emit
-// against. Unresolved fields carry an OQ# comment pointing at
-// ../03-decisions.md.
+// before any page exists, and gives the site engine a contract to validate
+// pages against. Unresolved fields carry an OQ# comment pointing at
+// ../07-questions.md.
 package contracts
 
 // ---------------------------------------------------------------------------
@@ -30,24 +31,19 @@ package contracts
 	"a cluster" | "a vocabulary gap" | "a Go program" |
 	"a field name" | "an error message"
 
-// The genre governing how pages in a section are written. Genre does not
-// govern navigation (see 02-design.md), but it does govern voice, length and
-// whether a page may assume prior reading.
-#Genre: "tutorial" | "guide" | "reference" | "explanation"
-
 #Section: {
 	id!:       #SectionID
 	title!:    string
 	arriving!: #ReaderState
-	genre!:    #Genre
 
 	// Sections a reader is assumed to have read. Kept explicit so a guide
 	// that silently restates a concept instead of linking it is visible.
 	assumes?: [...#SectionID]
 
-	// True when the section's pages are emitted by the generator rather than
-	// authored. Only `reference` is generated wholesale; other sections may
-	// still embed generated blocks.
+	// True when the generator writes pages into the section. Only
+	// `reference`, and authored reference pages such as the glossary sit
+	// beside the generated ones there. A section holds pages of several
+	// types; the type is declared per page, never per section (D7).
 	generated: bool | *false
 }
 
@@ -56,15 +52,75 @@ package contracts
 // The taxonomy as decided. Each entry pairs a section with the single reader
 // state it answers; no two sections answer the same state.
 sections: #Sections & [
-	{id: "start", title: "Start here", arriving: "nothing", genre: "tutorial"},
-	{id: "concepts", title: "Concepts", arriving: "a question about why", genre: "explanation"},
-	{id: "authoring", title: "Authoring modules", arriving: "a blank module file", genre: "guide", assumes: ["concepts"]},
-	{id: "operating", title: "Deploying and operating", arriving: "a cluster", genre: "guide", assumes: ["concepts"]},
-	{id: "extending", title: "Extending OPM", arriving: "a vocabulary gap", genre: "guide", assumes: ["concepts", "authoring"]},
-	{id: "embedding", title: "Embedding the kernel", arriving: "a Go program", genre: "guide", assumes: ["concepts"]},
-	{id: "reference", title: "Reference", arriving: "a field name", genre: "reference", generated: true},
-	{id: "diagnostics", title: "Diagnostics", arriving: "an error message", genre: "reference"},
+	{id: "start", title: "Start here", arriving: "nothing"},
+	{id: "concepts", title: "Concepts", arriving: "a question about why"},
+	{id: "authoring", title: "Authoring modules", arriving: "a blank module file", assumes: ["concepts"]},
+	{id: "operating", title: "Deploying and operating", arriving: "a cluster", assumes: ["concepts"]},
+	{id: "extending", title: "Extending OPM", arriving: "a vocabulary gap", assumes: ["concepts", "authoring"]},
+	{id: "embedding", title: "Embedding the kernel", arriving: "a Go program", assumes: ["concepts"]},
+	{id: "reference", title: "Reference", arriving: "a field name", generated: true},
+	{id: "diagnostics", title: "Diagnostics", arriving: "an error message"},
 ]
+
+// ---------------------------------------------------------------------------
+// Pages (D7)
+// ---------------------------------------------------------------------------
+
+// The four page types. Every page is exactly one; a section holds several.
+#PageType: "tutorial" | "how-to" | "explanation" | "reference"
+
+// What an authored page declares, and all it declares. Closed on purpose:
+// the section a page belongs to and the address it is linked by come from
+// where the page sits, so a page that also declares them fails to unify
+// instead of drifting from its location.
+#Page: {
+	title!: string & !=""
+
+	// One line. It is the page's entry on its section index and its search
+	// snippet, so it is always written.
+	description!: string & !="" & !~"\n"
+
+	type!: #PageType
+
+	// Order within the page's type group on the section index.
+	weight?: int & >=0
+}
+
+// The order a generated section index groups its pages in.
+indexOrder: [...#PageType] & ["tutorial", "how-to", "explanation", "reference"]
+
+_examplePage: #Page & {
+	title:       "Attach a trait to a component"
+	description: "Add scaling, health checks or exposure to one component."
+	type:        "how-to"
+}
+
+// ---------------------------------------------------------------------------
+// Page shapes (D9)
+// ---------------------------------------------------------------------------
+
+// The parts a page of a type carries, in order, named by role. Exact heading
+// wording belongs to the writing guide in the opm repo, not to this contract.
+#Shape: [...string]
+
+shapes: [#PageType]: #Shape
+shapes: {
+	tutorial: ["end result", "prerequisites", "numbered steps, each with expected output", "what was built", "next steps"]
+	"how-to": ["what it achieves and when", "starting state", "steps", "how to check it worked", "related reference and concept"]
+	explanation: ["in Kubernetes terms", "how it works", "why it is built this way", "common misreadings", "what enforces it"]
+	reference: ["what it lists", "entries ordered by the product's structure", "see also"]
+}
+
+// A generated catalog member or schema entry. One order everywhere, so a
+// reader who has used one entry can find their way around every other.
+generatedEntryShape: #Shape & ["summary", "at a glance", "spec", "example", "notes", "served by", "enforcement"]
+
+// A diagnostics entry is a how-to guide with a fixed shape: its reader is at
+// work fixing something, not looking something up.
+diagnosticShape: {
+	type: #PageType & "how-to"
+	parts: #Shape & ["error name as printed", "exact message", "what it means", "causes, each with its fix", "where it is raised"]
+}
 
 // ---------------------------------------------------------------------------
 // Enforcement badges
@@ -161,13 +217,17 @@ memberEntry: #MemberEntry & {
 		{name: "servedBy", provenance: "generated", source: "reverse index over transformer required and optional maps"},
 		{name: "example", provenance: "generated", source: "the serving transformer's embedded golden test"},
 
-		// Authored: none of these is expressible in the CUE. Which blueprint
-		// to start from is implied only by a transformer's requiredLabels, and
-		// appliesTo is uniformly [#ContainerResource] on 26 of 27 traits and
-		// therefore says nothing about what is legal where.
-		{name: "whenToUse", provenance: "authored"},
-		{name: "interactions", provenance: "authored"},
-		{name: "familyGuidance", provenance: "authored"},
+		// Hand-written, but kept in source so a rename carries it along
+		// (D10). It is the entry's body; the description is its summary.
+		{name: "notes", provenance: "generated", source: "the member's doc comment"},
+
+		// Not on the entry at all: guidance relating members to each other
+		// (which blueprint to start from, which traits are legal where, how
+		// members interact, when to use the raw family) lives in how-to
+		// guides and explanations (D10). None of it is derivable: which
+		// blueprint to start from is implied only by a transformer's
+		// requiredLabels, and appliesTo is uniformly [#ContainerResource] on
+		// 26 of 27 traits.
 
 		// OQ2: whether a generated entry can carry an enforcement badge, or
 		// whether badges are authored-only.
