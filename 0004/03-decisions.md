@@ -12,7 +12,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D1: Self-hosted Renovate via `renovatebot/github-action`
 
+**Kind:** policy
+
 **Decision:** Renovate runs self-hosted as a scheduled GitHub Action in each repo, not as the hosted Mend GitHub App.
+
+**Requirements:** none (superseded by D7; no live behaviour, the tool choice is a mechanism)
 
 **Alternatives considered:**
 
@@ -25,7 +29,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D2: Uniform OCI (`docker`) datasource for all CUE deps
 
+**Kind:** policy
+
 **Decision:** New versions are resolved through Renovate's `docker` datasource against the backing OCI registry, for both internal (`ghcr.io`) and external (`registry.cue.works`) deps. No `github-releases` datasource.
+
+**Requirements:** none (superseded by D7; the datasource was a Renovate mechanism)
 
 **Alternatives considered:**
 
@@ -38,7 +46,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D3: Major version pinned, no auto cross-major bumps
 
+**Kind:** policy
+
 **Decision:** The regex managers disable major updates (`#pinMajor`, `major.enabled: false`). A dependency's `@vN` import-path major is never crossed automatically.
+
+**Requirements:** none (mechanism superseded by D8; the never-cross-a-major property is 0004:D8:R1)
 
 **Alternatives considered:**
 
@@ -51,7 +63,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D4: Renovate augments, does not replace, `task update-deps`
 
+**Kind:** policy
+
 **Decision:** `task deps:update` stays as the local/manual sweep; Renovate is added as the scheduled-CI path. They coexist.
+
+**Requirements:** none (superseded by D9; the coexistence posture no longer holds)
 
 **Alternatives considered:**
 
@@ -63,7 +79,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D5: Design home is enhancement 0004
 
+**Kind:** policy
+
 **Decision:** This cross-OPM concern is captured as a top-level `enhancements/` entry (this one), per the routing rules for cross-cutting work.
+
+**Requirements:** none (records where the design lives; nothing a consumer can observe)
 
 **Alternatives considered:**
 
@@ -76,7 +96,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D6: Scope locked to CUE modules only
 
+**Kind:** scope
+
 **Decision:** This enhancement automates CUE module dependency updates only. `go.mod`, GitHub Actions pins, and Dockerfiles are explicitly out of scope and deferred to a possible later enhancement.
+
+**Requirements:** none (boundary: non-CUE ecosystems are out; reaffirmed and closed by D13)
 
 **Alternatives considered:**
 
@@ -88,7 +112,16 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D7: Path-driven Dagger module replaces self-hosted Renovate
 
+**Kind:** contract
+
 **Decision:** The mechanism is a bespoke, path-driven **Dagger function**, `update(source, cueRegistry, ghcrToken) → Directory`, that walks a directory for CUE modules and bumps each via `cue mod get` + `cue mod tidy`. This **supersedes D1** (no self-hosted Renovate) and **D2** (no `docker` datasource, no route table).
+
+**Requirements:**
+
+- R1: Pointing the updater at a directory bumps every CUE module found beneath it, at any depth, with no per-repo list of module directories to maintain.
+- R2: Each bumped module is consistent after the run: a subsequent tidy of it changes nothing.
+- R3: The registry serving each module is the one the CUE registry mapping names; the updater carries no second host-to-registry table.
+- R4: A run reports an old-to-new summary for every dependency it bumped.
 
 **Alternatives considered:**
 
@@ -101,7 +134,14 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D8: Major-version pinning is inherent to `cue mod get <mod>@v<major>`
 
+**Kind:** contract
+
 **Decision:** The major is pinned because each deps key carries `@vN` and `cue mod get <mod>@vN` resolves only within major `N`. No packageRule or `major.enabled: false` guard is needed. This **supersedes D3's mechanism**. The property of never auto-crossing a major is preserved.
+
+**Requirements:**
+
+- R1: An automatic update never changes a dependency's major; the version chosen is the newest within the major the dependency key already names.
+- R2: A newer major published in the same registry repository is not offered as a candidate.
 
 **Alternatives considered:**
 
@@ -113,7 +153,14 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D9: `task update-deps` is reimplemented over the Dagger function
 
+**Kind:** contract
+
 **Decision:** `task update-deps` (`deps:update*` in `/Taskfile.yml`) is reimplemented as a thin wrapper that invokes the same Dagger function the CI workflow uses, so the local sweep and the scheduled job share one implementation. This **supersedes D4**. Renovate is gone, and the relationship is now "one shared implementation," not "two coexisting paths."
+
+**Requirements:**
+
+- R1: The local workspace sweep and the scheduled CI job run one implementation; the same tree bumped by either yields the same result.
+- R2: A developer invokes the local sweep the same way as before the change; only its body changes.
 
 **Alternatives considered:**
 
@@ -126,7 +173,16 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D10: One grouped PR per repo per run, on a fixed branch, daily
 
+**Kind:** contract
+
 **Decision:** The CI workflow opens one grouped CUE-dependency PR per repo per run on a fixed branch (`chore/cue-deps`), refreshed daily. `peter-evans/create-pull-request` on that fixed branch updates the existing open PR in place when new bumps appear, and closes it if the diff reverts. This **resolves OQ3 and OQ6**.
+
+**Requirements:**
+
+- R1: A scheduled run opens at most one dependency pull request per repo, grouping every bump found in that run.
+- R2: A later run that finds new bumps updates the open pull request in place rather than opening a second one.
+- R3: A run whose bumps no longer differ from the base branch closes the open pull request.
+- R4: The scheduled run happens daily in every enrolled repo.
 
 **Alternatives considered:**
 
@@ -139,7 +195,13 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D11: Test-fixture modules are included
 
+**Kind:** contract
+
 **Decision:** The walker bumps every discovered CUE module, including the ~63 `module.cue` files under `library/testdata/` fixtures.
+
+**Requirements:**
+
+- R1: A CUE module under a test-fixture directory is bumped like any other module; no path is excluded from discovery.
 
 **Alternatives considered:**
 
@@ -151,7 +213,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D12: Dagger module in `daggerverse`, reusable workflow in `.github`
 
+**Kind:** policy
+
 **Decision:** The Dagger module lives in an `open-platform-model/daggerverse` monorepo at subpath `cue-deps/` (its own `dagger.json`), following the daggerverse catalog convention, and is independently versioned via subpath-prefixed git tags (`cue-deps/vX.Y.Z`). The reusable `workflow_call` GitHub workflow lives in `open-platform-model/.github`. Each consumer repo's caller `uses:` the workflow in `.github`, which invokes the module from `daggerverse`. Resolves OQ4.
+
+**Requirements:** none (placement and versioning stance for the shared module and workflow; a consumer observes only D7 and D10 behaviour)
 
 **Alternatives considered:**
 
@@ -164,7 +230,11 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 ### D13: Multi-ecosystem parked, deferred to a separate enhancement after investigating Renovate-in-Dagger
 
+**Kind:** scope
+
 **Decision:** Go and other non-CUE ecosystems stay fully out of scope for 0004. The CUE-only design ships as-is; multi-ecosystem automation, if pursued, lands as a separate future enhancement rather than by widening 0004. This reaffirms and closes D6.
+
+**Requirements:** none (reaffirms and closes D6; records the deferred starting point for a successor)
 
 **Alternatives considered:**
 
