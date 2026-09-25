@@ -97,7 +97,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue), wh
 
 - **Publishing the contributor specification.** It stays contributor-facing, and the public reference takes its normative content and leaves the rest.
 - **Documenting draft systems.** Lifecycle, workflows, provider classes, export and rollback do not exist, and D3 makes their absence explicit rather than describing them as forthcoming.
-- **Site presentation.** The theme, search and styling. The theme is currently disabled and no section renders to HTML, which blocks verification but is not this entry's to fix.
+- **Site presentation.** The site generator, theme, search and styling. The site is built with Astro and Starlight; how it looks is not this entry's to decide.
 - **A migration guide off the retired line.** That fleet is frozen on its own branch with internal consumers only.
 
 ## Deviations from Design

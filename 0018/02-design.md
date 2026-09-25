@@ -25,7 +25,7 @@ Eight sections organised by what a reader is holding when they arrive, one decla
 - Documenting secrets. The current vocabulary has a known expiry and enhancement 0013 owns its replacement, including the documentation (D5).
 - Documenting draft systems as features. Lifecycle hooks, workflows, provider classes, export, rollback and reverse handoff do not exist.
 - A migration guide from the v0 line. The v0 fleet is frozen on its own branch and its consumers are internal.
-- Site theming, search, or the Hugo theme decision. Presentation, not architecture.
+- Site theming, search, or the choice of site generator. Presentation, not architecture.
 
 ## High-Level Approach
 
