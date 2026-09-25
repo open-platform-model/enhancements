@@ -23,7 +23,7 @@ Eight sections organised by what a reader is holding when they arrive, one decla
 
 - Publishing `core/SPEC.md`. It stays contributor-facing (D2).
 - Documenting secrets. The current vocabulary has a known expiry and enhancement 0013 owns its replacement, including the documentation (D5).
-- Documenting draft systems as features. Lifecycle hooks, workflows, provider classes, export, rollback and reverse handoff do not exist.
+- Documenting draft systems as features. Lifecycle hooks, workflows, provider classes, export, rollback and a handoff between the CLI and the operator do not exist.
 - A migration guide from the v0 line. The v0 fleet is frozen on its own branch and its consumers are internal.
 - Site theming, search, or the choice of site generator. Presentation, not architecture.
 
@@ -95,13 +95,13 @@ The framing is a fact about the system rather than an editorial preference: no f
 
 **The page contract (D7).** Every page declares a title, a one-line description and its type, and nothing else. Where the page sits decides its section and its address, so a page cannot claim a section it is not in. Each section's index page is generated from the descriptions, grouped as tutorials, how-to guides, explanations, then reference. KCP uses the same mechanism for its section indexes and writes none by hand.
 
-**Placement (D8).** A page lives in the repository whose change would make it wrong, so the pull request that changes a behaviour can fix its page. Pages with no single owner live in `opm`. The site engine owns no content and assembles the site by section, so pages from several repositories sit side by side and the reader never sees where each came from. A section appears only once it holds a real page.
+**Placement (D8).** A page lives in the repository whose change would make it wrong, so the pull request that changes a behaviour can fix its page. Concepts is the exception: every Concepts page lives in `core`, next to the definitions it explains. Pages with no single owner live in `opm`. The site engine owns no content and assembles the site by section, so pages from several repositories sit side by side and the reader never sees where each came from. A section appears only once it holds a real page.
 
 ```mermaid
 flowchart LR
     core["core"] --> concepts
     opm["opm"] --> start
-    opm --> concepts
+    opm --> authoring
     catalog["catalog"] --> authoring
     cli["cli"] --> authoring
     operator["opm-operator"] --> operating
@@ -133,19 +133,19 @@ This is the inventory the design is sized against, not a list to fill in. A page
 
 | Section | Page | Type | Owner |
 | --- | --- | --- | --- |
-| Start here | What is OPM | explanation | opm |
+| Start here | What OPM is | explanation | opm |
 | Start here | OPM for Kubernetes users | reference | opm |
 | Start here | Quickstart | tutorial | opm |
 | Start here | What OPM does not do (D3) | reference | opm |
-| Concepts | Modules and instances | explanation | opm |
+| Concepts | Modules and instances | explanation | core |
 | Concepts | Components and blueprints | explanation | core |
 | Concepts | Resources and traits | explanation | core |
-| Concepts | How matching works | explanation | opm |
-| Concepts | Platforms and catalogs | explanation | opm |
+| Concepts | How matching works | explanation | core |
+| Concepts | Platforms and catalogs | explanation | core |
 | Concepts | Versions in OPM | explanation | core |
 | Concepts | Identity and names | explanation | core |
-| Concepts | Who owns an instance | explanation | opm |
-| Concepts | What enforces a rule | explanation | opm |
+| Concepts | Who owns an instance | explanation | core |
+| Concepts | What enforces a rule | explanation | core |
 | Authoring modules | Your first module | tutorial | opm |
 | Authoring modules | Choose a blueprint | how-to | catalog |
 | Authoring modules | Attach a trait to a component | how-to | catalog |
@@ -154,7 +154,6 @@ This is the inventory the design is sized against, not a list to fill in. A page
 | Authoring modules | Publish a module | how-to | cli |
 | Deploying and operating | Deploy a module with the CLI | tutorial | opm |
 | Deploying and operating | Install the operator | how-to | opm-operator |
-| Deploying and operating | Hand an instance to the operator | how-to | opm |
 | Deploying and operating | Delete an instance safely (D4) | how-to | opm-operator |
 | Deploying and operating | Deletion and pruning (D4) | explanation | opm-operator |
 | Extending OPM | Write a trait | how-to | catalog |
@@ -170,8 +169,8 @@ This is the inventory the design is sized against, not a list to fill in. A page
 | Reference | Registry namespaces | reference | cli |
 | Reference | The catalog contract | reference | catalog |
 | Diagnostics | Unresolved demands | how-to | library |
-| Diagnostics | Unmatched components | how-to | library |
-| Diagnostics | Oversubscribed contracts | how-to | library |
+| Diagnostics | No matching transformer | how-to | library |
+| Diagnostics | Over-subscribed provider contracts | how-to | library |
 | Diagnostics | Identity mismatch | how-to | library |
 | Diagnostics | Version skew | how-to | library |
 | Diagnostics | Transform failed | how-to | library |
@@ -230,11 +229,11 @@ The tooling stays deliberately small. A rule moves from review to a machine chec
 | --- | --- |
 | `opmodel.dev` | The engine, holding no content: assembles every repository's published pages by section, validates them against the page contract, generates section indexes, links glossary terms on first use (D11), and provides the shared check each repository runs in its pull requests (D13, OQ10); the `docgen` generator (evaluate CUE rather than scrape comments, emit enforcement badges, split reference by family); the broken `generate:cli` step |
 | `catalog` | Doc-comment backfill on blueprints, abstraction resources and traits; a CI gate refusing a new member without one; the pages it owns under D8: choosing a blueprint, attaching traits, the raw-family escape hatch, the extending guides, the catalog contract |
-| `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost; the concept pages about single definitions and the configuration guide |
+| `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost; every Concepts page and the configuration guide |
 | `cli` | Command help text aligned with the generated reference; the publishing guides, the registry namespaces page and the publish-refusal diagnostics entry; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
 | `library` | `docs/getting-started.md`, which omits the mandatory Materialize step and therefore cannot be followed to working code, rewritten as the embedding tutorial; every kernel diagnostics entry |
 | `opm-operator` | Installing the operator, deleting an instance safely, the deletion and pruning explanation (D4), its resource reference and its status conditions |
-| `opm` | The authored prose with no code owner: the home page, Start here, cross-repo concepts and tutorials, the boundaries page, the glossary, and the writing guide with one page template per type. Its stale v0 tree is rewritten in place, not retired; the surviving-content rule is OQ4 |
+| `opm` | The authored prose with no code owner: the home page, Start here, cross-repo tutorials, the boundaries page, the glossary, and the writing guide with one page template per type. Its stale v0 tree is rewritten in place, not retired; the surviving-content rule is OQ4 |
 
 ## Before / After
 

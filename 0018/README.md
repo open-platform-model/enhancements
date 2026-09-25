@@ -10,7 +10,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Two placements are deliberate.** Diagnostics is top-level because readers arrive from an error string, not from the menu, and the kernel's error kinds map to different fixes the message text does not tell apart. Concepts is large because OPM has far more concepts than commands: seventeen were ranked subtle enough that a reader gets them wrong without prose.
 
-**Every page is one of four types, written where the thing it describes lives (D7 to D10).** A page is a tutorial, a how-to guide, an explanation or reference, and each type has fixed parts in a fixed order. A page's source sits in the repository whose change would make it wrong; prose with no single owner lives in `opm`. The site puts pages together by section, so the reader never sees which repository a page came from.
+**Every page is one of four types, written where the thing it describes lives (D7 to D10).** A page is a tutorial, a how-to guide, an explanation or reference, and each type has fixed parts in a fixed order. A page's source sits in the repository whose change would make it wrong, except that every concept page lives in `core`; prose with no single owner lives in `opm`. The site puts pages together by section, so the reader never sees which repository a page came from.
 
 **Voice from KCP, page rules from Diátaxis, and every rule says what checks it (D11, D13).** Pages assume the reader runs Kubernetes and knows nothing about CUE or OPM. The voice is KCP's, captured in [research/kcp-voice.md](research/kcp-voice.md) with what OPM keeps, adapts and drops. Each writing rule names what enforces it, and the few machine checks run in the pull request of the repository that owns the page.
 
@@ -29,7 +29,7 @@ flowchart LR
     reader(["Reader arrives holding..."])
     subgraph site ["One site, assembled by section"]
         sStart["Start here<br/>tutorial, explanation, reference<br/>written in opm"]
-        sConcepts["Concepts<br/>explanation<br/>written in opm and core"]
+        sConcepts["Concepts<br/>explanation<br/>written in core"]
         sAuthoring["Authoring modules<br/>tutorial, how-to<br/>written in opm, core, catalog and cli"]
         sDeploy["Deploying and operating<br/>tutorial, how-to, explanation<br/>written in opm and opm-operator"]
         sExtending["Extending OPM<br/>how-to<br/>written in catalog and cli"]

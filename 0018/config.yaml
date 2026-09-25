@@ -62,6 +62,8 @@ history:
     event: 'D7-D10: one type per page, placement by owning repo, fixed shape per type, member notes in doc comments; page inventory; opm-operator in affects'
   - date: "2026-09-25"
     event: 'D11 Kubernetes-only audience, D12 retracted, D13 a named checker per writing rule; KCP voice captured; templates and docs skill drafted; OQ8-OQ14, three withdrawn'
+  - date: "2026-09-25"
+    event: 'D8: every Concepts page lives in core. D3 and the inventory: the CLI-to-operator handoff is removed, and its how-to page with it.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

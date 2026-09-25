@@ -55,7 +55,7 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Kind:** policy
 
-**Decision:** A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no reverse handoff from operator back to CLI, no export to GitOps manifests, no provider classes. Draft enhancements are not described as forthcoming features on that page or anywhere else.
+**Decision:** A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no handoff of an instance between the CLI and the operator, no export to GitOps manifests, no provider classes. Draft enhancements are not described as forthcoming features on that page or anywhere else.
 
 **Requirements:** none (documentation stance; the page's content list is authored guidance, not a behaviour a consumer relies on)
 
@@ -66,7 +66,7 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Rationale:** The cost of stating an absence is one page. The cost of leaving it implicit is paid repeatedly by every reader who assumes presence, and once by whoever discovers the absence after building on the assumption.
 
-**Source:** User decision 2026-08-18.
+**Source:** User decisions 2026-08-18 and 2026-09-25 (the handoff between the CLI and the operator is removed indefinitely, so the page names no handoff at all).
 
 ### D4: The deletion and prune hazard is documented now, independent of enhancement 0012
 
@@ -154,14 +154,14 @@ The section a page belongs to, and the address other pages link it by, come from
 
 **Kind:** policy
 
-**Decision:** A page's source lives in the repository whose change would make the page wrong. The site engine owns no content.
+**Decision:** A page's source lives in the repository whose change would make the page wrong. The site engine owns no content. Concepts is the one exception: every Concepts page lives in `core`, including the pages about ownership and enforcement that span repositories.
 
-- `core` owns concepts about a single core definition and the schema reference.
+- `core` owns every Concepts page and the schema reference.
 - `catalog` owns catalog member reference, blueprint and trait guidance, and the extending guides for catalog authors.
 - `cli` owns command reference, publishing guides, registry namespaces and publish refusals.
 - `opm-operator` owns operator installation, deletion behaviour, its resource reference and its status conditions.
 - `library` owns kernel embedding and every kernel diagnostics entry.
-- `opm` owns what has no single owner: the home page, Start here, concepts and tutorials that span repositories, the boundaries page and the glossary.
+- `opm` owns what has no single owner: the home page, Start here, tutorials that span repositories, the boundaries page and the glossary.
 
 Each repository keeps its published pages apart from its contributor documents, and only the published pages reach the site. The site is assembled by section, never by repository: pages from several repositories sit side by side in one section, and the reader never sees a repository boundary. Two repositories publishing the same address fail the build.
 
@@ -173,13 +173,14 @@ A section appears in the navigation only once it holds a real page. No placehold
 
 - **All content in the site repository.** Rejected: prose far from the code it describes is the drift this entry exists to end. Write the Docs' "Nearby" principle says the same.
 - **All authored prose in `opm`, only generated reference in the source repositories.** Rejected: a concept page about one core definition would change in a different repository from the definition, so a core change could not carry its own documentation fix.
+- **Concepts that span repositories in `opm`, concepts about one core definition in `core`.** Previously adopted in this entry. Rejected: it splits one section of explanation across two repositories, while every concept page explains a part of the model that `core` defines.
 - **One site per repository under one domain, linked from a landing page.** This is KCP's model: kcp and kcp-operator are separate sites with separate navigation and separate version lists. Rejected: it shows the reader the repository layout instead of the product, and the reader must know which repository owns a topic before they can find it.
 - **Publish each repository's whole documentation folder.** Rejected: those folders hold contributor material today, such as catalog authoring rules, CLI design RFCs and core's publishing strategy. KCP's public navigation shows the result, with load-test reports and a long architecture brain dump beside user pages.
 - **Create every section up front with placeholder pages.** Rejected: Diátaxis calls empty four-part scaffolds the thing not to do, and a placeholder looks like documentation while saying nothing.
 
-**Rationale:** The owning-change test makes placement mechanical: whoever changes the behaviour is in the same pull request as the page describing it. Assembling by section keeps the reader-state navigation independent of how OPM happens to be split into repositories, which will change. The diagnostics placement pays off twice: with the entries next to the kernel's error types, a check that every error type has an entry stays inside one repository (OQ3).
+**Rationale:** The owning-change test makes placement mechanical: whoever changes the behaviour is in the same pull request as the page describing it. Concepts gives up that test on purpose, so the explanation of the model is written in one place, next to the definitions. The cost is accepted: a CLI or operator change to who owns an instance, or to where a rule is enforced, must fix a page in `core` in a second pull request. Assembling by section keeps the reader-state navigation independent of how OPM happens to be split into repositories, which will change. The diagnostics placement pays off twice: with the entries next to the kernel's error types, a check that every error type has an entry stays inside one repository (OQ3).
 
-**Source:** User decisions 2026-09-20 (reference in the owning repository, prose with no natural home in `opm`) and 2026-09-24 (the site engine assembles one cohesive site and holds no content). Evidence: [research/findings.md](research/findings.md), sections on KCP's site model and on Write the Docs.
+**Source:** User decisions 2026-09-20 (reference in the owning repository, prose with no natural home in `opm`), 2026-09-24 (the site engine assembles one cohesive site and holds no content) and 2026-09-25 (every Concepts page in `core`). Evidence: [research/findings.md](research/findings.md), sections on KCP's site model and on Write the Docs.
 
 ### D9: Each page type has a fixed shape
 
