@@ -26,6 +26,7 @@ Gathered 2026-09-24 for D7 to D10. Three sources: the KCP documentation as a wor
 - **Expectations are set on the first page.** The quickstart opens: "kcp is not a platform you can simply pick up and use immediately. Instead, it's a framework for building platforms."
 - **Commands are followed by their output.** The tenancy quickstart follows commands with "Output should look similar to below" and a console block.
 - **Admonitions carry limitations.** Notes state what does not work yet, for example that upstream controller-runtime does not support multi-cluster reconciliation.
+- **The voice is measured separately.** Person, register, sentence length, hedges, analogies and promises are measured and quoted in [kcp-voice.md](kcp-voice.md), sorted into what OPM keeps, adapts and drops.
 - **Length and polish vary.** Most concept and setup pages run 300 to 2,500 words. The longest, the architecture brain dump in Concepts, runs 6,197. Typos sit on key pages: "it's own" on the terminology page, "in-transtit" and "indivudual" on the production setup page.
 
 ## Diátaxis
@@ -36,6 +37,7 @@ Gathered 2026-09-24 for D7 to D10. Three sources: the KCP documentation as a wor
 - **Types blur into their neighbours.** The worst case is tutorials and how-to guides collapsing into one, so neither need is met (`/map/`, `/tutorials-how-to/`).
 - **Each type has its own rules.** A tutorial gives a visible result at every step and keeps explanation to a line and a link (`/tutorials/`). A how-to guide assumes competence and follows the user's goal, not the tool's features (`/how-to-guides/`). Reference describes and only describes, in a structure that mirrors the product (`/reference/`). Explanation answers why, and a title for it reads naturally after "About" (`/explanation/`).
 - **Do not scaffold empty sections.** Creating empty tutorial, how-to, reference and explanation sections up front is named directly: "Don't do that. It's horrible." Structure should grow from improvements to real content (`/how-to-use-diataxis/`).
+- **Each type has its own language.** Tutorials use "we" for the learner and the tutor together, and "The output should look something like…". How-to guides use conditional imperatives: "If you want x, do y." Reference states facts and plain rules: "You must use a. Never d." Explanation weighs and compares: "An x in system y is analogous to a w in system z. However…" (the per-type pages above).
 - **Limit.** Diátaxis describes itself. It says what good documentation is and offers no evidence that following it works.
 
 ## Write the Docs
@@ -55,4 +57,5 @@ These are recommendations, not facts:
 - **From Diátaxis, the type of every page, and a shape per type.** Taken in D7 and D9. The top level stays keyed to reader state, as decided before this research.
 - **From KCP, the writing and not the site model.** Defining by Kubernetes comparison, setting expectations early, and showing output after every command are written into D9's shapes. Generating section indexes from description lines is taken in D7, with the description made mandatory because KCP's optional one leaves 27 pages as bare titles. The one-site-per-repository model is rejected in D8.
 - **From Write the Docs, placement.** Nearby becomes D8's owning-change test, and Unique becomes D10's single source for member notes.
+- **From KCP's Concepts pages, the voice, and from Diátaxis, the register.** Taken in D11 and in [kcp-voice.md](kcp-voice.md): the reader is addressed as you, ideas are introduced through Kubernetes, and each type keeps its own language. KCP's Developers pages, its promises and its long sentences are what OPM drops.
 - **From the scaffold disagreement, the no-placeholder rule.** D8 lets a section appear only once it has a real page. The initial inventory in the design is a sizing aid for exactly that reason.

@@ -12,6 +12,8 @@
 
 **Several repositories, several house styles.** Distributed writing makes types blur into each other more easily, not less, because each repository writes about its own part. *Mitigation:* the declared type (D7) and the fixed parts per type (D9) give reviewers in every repository the same checklist, and the writing guide in `opm` carries one template per type. Voice is the part neither fixes; that is OQ7.
 
+**Lint noise teaches writers to ignore the linter.** A prose rule that fires on correct text is worse than no rule, because writers learn to skip every warning. *Mitigation:* D13 starts every new rule as a warning and promotes it only once existing pages pass; when to promote is OQ13. Rules that cannot be checked without false alarms stay review rules.
+
 **The inventory becomes a checklist.** The initial page inventory is a sizing aid. Treated as a plan to fill in, it produces the placeholder pages D8 forbids. *Mitigation:* a page is written when a reader needs it, and once pages exist the live list is the generated section index.
 
 **The doc-comment CI gate becomes a rubber stamp.** A gate that only checks presence invites a one-word comment that satisfies the check and helps nobody. *Mitigation:* the gate checks presence; review checks usefulness. Stating that split honestly is better than pretending a linter can judge prose.

@@ -38,7 +38,7 @@ Landings across five repos. This section carries why the order is what it is; th
 
 **The generator repair gates everything generated.** `task generate:cli` fails on a clean tree, and the index generator scrapes text rather than evaluating CUE. Until both are fixed, no generated reference can be published, and the fix is what turns 70 populated `metadata.description` fields into 70 populated entries at no authoring cost.
 
-**The page contract and the writing guide come before any repository publishes a page.** Every repository's pages are validated against D7 and written to D9's shapes, so a repository that publishes first would write against a contract that does not exist yet. The contract lands in the site engine; the writing guide and its page templates land in `opm`.
+**The page contract, the writing guide and the shared checks come before any repository publishes a page.** Every repository's pages are validated against D7, written to D9's shapes and checked under D13, so a repository that publishes first would write against rules that do not exist yet. The contract check and first-use linking land in the site engine; the writing guide and its page templates land in `opm`. The drafts in this entry's `drafts/` are the starting point, not the result.
 
 **The first pages written cover every shape once.** Each shape should be proven on a real page before several repositories repeat it. The boundaries page, the quickstart, one concept page, choosing a blueprint and one diagnostics entry cover explanation, reference, tutorial, how-to and the diagnostics shape between them.
 

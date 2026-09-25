@@ -60,6 +60,8 @@ history:
     event: 'Requirements added to every decision (none on D2, D3, D4, D5, D6); Kind changed to contract on D1 (body states observable behaviour), additive.'
   - date: "2026-09-24"
     event: 'D7-D10: one type per page, placement by owning repo, fixed shape per type, member notes in doc comments; page inventory; opm-operator in affects'
+  - date: "2026-09-25"
+    event: 'D11 Kubernetes-only audience, D12 retracted, D13 a named checker per writing rule; KCP voice captured; templates and docs skill drafted; OQ8-OQ14, three withdrawn'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

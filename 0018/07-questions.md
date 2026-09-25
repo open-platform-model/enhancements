@@ -44,4 +44,26 @@
 
   Authored prose lands in whichever repo owns the behaviour it describes, so five repos write it, and the plain-English requirement for first-contact pages is the hardest one to hold that way. A shared style rule inherited from the workspace is necessary and not sufficient: it constrains shape, not voice.
 
-  Candidate: a skill that learns the author's voice by eliciting writing samples on set prompts, distils them into a voice document, and ships that document to every repo so any writer, human or agent, can be checked against it. This is research to do later, not now; nothing in this entry's design depends on how it is built, only on a voice document existing before the authoring track publishes.
+  Candidate: a skill that learns the author's voice by eliciting writing samples on set prompts, distils them into a voice document, and ships that document to every repo so any writer, human or agent, can be checked against it. This is research to do later, not now; nothing in this entry's design depends on how it is built, only on a voice document existing before the authoring track publishes. The stand-in is written down in [research/kcp-voice.md](research/kcp-voice.md). When the voice document exists, it refines that capture rather than replacing it, and may add rules to the writing guide under D13.
+
+- **OQ8: Where does the vocabulary live, `opm` or `core`?** Status: answered. Withdrawn 2026-09-25 with D12: there is no separate vocabulary to place. The glossary is a page like any other, placed by D8.
+
+- **OQ9: How does the linter pick the rules for a page's type?** Status: answered. Withdrawn 2026-09-25: the rules that bind only some page types are review rules under D13, so the linter applies one rule set to every page.
+
+- **OQ10: How does the shared rule set reach every repository and every agent session, and how is it versioned?** Status: open. Blocking: implementation.
+
+  D13 requires one shared rule set, checked in each repository's pull requests. Candidates for the checks: a reusable CI step published by the site engine, or a lint package each repository downloads from an `opm` release. Candidates for agents: the docs skill drafted in [`drafts/skill/`](drafts/skill/), placed in the workspace's shared skills or copied per repository. Versioning is the harder part. A floating rule set can start failing pull requests in six repositories at once; a pinned one needs a bump in each, the way `task deps:update` moves CUE pins today.
+
+- **OQ11: Is Vale the prose linter?** Status: open. Blocking: implementation.
+
+  Write the Docs points at Vale, and it is the linter this entry assumes, but nothing has been run against OPM pages yet. Alternatives include textlint and proselint. markdownlint checks Markdown mechanics only and does not replace a prose linter. What would settle it: linting the first five pages with it, and checking that it runs in CI without a network fetch on every job.
+
+- **OQ12: What is the sentence-length ceiling, and does it vary by section?** Status: open. Blocking: deferrable.
+
+  Measured on KCP's Concepts pages, the median sentence is 16 words and 12% of sentences run past 30. Candidate: a tighter ceiling on Start here and Concepts, where first-time readers land, and a looser one on reference, where tables and rule statements dominate.
+
+- **OQ13: When does a warning-level rule become an error, and who decides?** Status: open. Blocking: deferrable.
+
+  D13 starts every new machine-checked rule as a warning. It does not say what triggers the promotion. Candidates: when every existing page passes the rule; after a fixed period with no false positives; or by explicit decision in the writing guide's own change history.
+
+- **OQ14: How does the first-use check handle plurals and other inflected forms?** Status: answered. Withdrawn 2026-09-25: first-use linking is the site's job under D11, not a check on the writer. How the site matches a plural is a detail for the implementing change.

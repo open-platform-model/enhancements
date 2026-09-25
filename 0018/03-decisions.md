@@ -226,4 +226,53 @@ D1 still decides what is generated and what is authored. This decision places th
 
 **Source:** User decision 2026-09-24.
 
+### D11: The documentation assumes Kubernetes knowledge, never CUE or OPM knowledge
+
+**Kind:** contract
+
+**Decision:** Every public page is written for a reader who runs Kubernetes and has never used OPM or CUE. Kubernetes terms such as Pod, CRD, controller and namespace are used without explanation. Every CUE term and every OPM term is defined once, in the glossary, and linked to that entry the first time it appears on a page. The site may make that link itself; either way the reader gets it.
+
+**Requirements:**
+
+- R1: On every public page, the first use of a CUE or OPM term links to the term's glossary entry.
+
+**Alternatives considered:**
+
+- **Assume nothing, and explain Kubernetes too.** Rejected: OPM's reader already runs a cluster. Explaining Pods to them costs every page length and signals the wrong audience.
+- **Assume CUE as well.** Rejected: OPM asks its users to read and write CUE, but most arrive from Helm and YAML. A page that assumes unification or closedness loses them on the first sentence. Even the catalog's own maintainers keep written authoring rules for closedness and for disjunctions.
+- **Define terms inline on each page instead of in a glossary.** Rejected: the same definition written in many places drifts. A link costs the reader one click and costs the writer nothing.
+
+**Rationale:** Naming the audience makes "plain English" checkable. A reviewer cannot judge whether a page is plain enough in general, but anyone can tell whether it assumes a term the reader does not have. The Kubernetes comparison that KCP and Diátaxis both recommend only works if the reader knows Kubernetes, so the assumption and the voice rely on each other.
+
+**Source:** User decision 2026-09-25. Evidence: [research/kcp-voice.md](research/kcp-voice.md), traits 1 and 2, and [research/findings.md](research/findings.md), the section on Diátaxis.
+
+### D12: (retracted, 2026-09-25)
+
+One vocabulary, as CUE data, generating the glossary and the linter's word lists. Retracted the day it was drafted: a hand-written vocabulary is no more tied to the definitions it names than a hand-written glossary page, so it did not fix the drift it was meant to fix. Number retired here.
+
+### D13: Every writing rule names what checks it, and machine checks run in the owning repository's pull requests
+
+**Kind:** contract
+
+**Decision:** Each rule in the writing guide names what checks it: the page contract, the prose linter, the site build, a script that walks a tutorial, or review. A rule nothing checks is either assigned to review or left out of the guide.
+
+A rule becomes a machine check only after review has caught the same problem twice. Machine checks run in the pull requests of the repository that owns the page, against one shared rule set. No repository keeps its own copy of the rules. A new machine check starts as a warning, and becomes an error once the existing pages pass it.
+
+**Requirements:**
+
+- R1: A page that breaks the page contract or an error-level writing rule fails the pull request in the repository that owns it, before merge.
+- R2: Every repository checks its pages against the same shared rule set; none carries a copy that can diverge.
+
+**Alternatives considered:**
+
+- **A custom rule register and vocabulary in CUE, with a generated review checklist and generated word lists.** Drafted in this entry on 2026-09-25, with experiments showing both could be built, and withdrawn the same day. Rejected: CUE suits data shapes, not prose rules. A "checked by" column in the guide does the register's job, and review or a standard linter does the rest.
+- **Check only when the site builds.** Rejected: the failure reaches the author after the merge, in a repository they do not watch. KCP avoids this only because each of its repositories builds its own site, which D8 rejects.
+- **Copy the rules into every repository and keep the copies identical with a sync check.** Rejected: the workspace already does this twice, for the fixture flow and for the doc-comment gate, and needs a dedicated lint task for each.
+- **A guide with no machine checks.** Rejected: several repositories and agent sessions write pages, and agents follow a failing check more reliably than a guide.
+- **New checks as errors from the start.** Rejected: a banned-word rule meets its exceptions within days, such as "just" in "just-in-time". An error that fires on correct prose teaches writers to switch the linter off.
+
+**Rationale:** Naming the checker keeps the guide honest, the way D1's badges keep OPM's own rules honest: no rule claims more than whatever enforces it. The twice-caught threshold keeps tooling driven by evidence, not by what could be automated. Running checks where the page is written keeps the feedback in the pull request that caused the problem.
+
+**Source:** User decision 2026-09-25.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

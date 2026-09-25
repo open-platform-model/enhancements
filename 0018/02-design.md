@@ -188,15 +188,47 @@ Existing prose is source material rather than a starting point from scratch:
 - The raw-versus-blueprint side-by-side in `opm/docs/concepts/resources-traits-blueprints.md` is the teaching device for the components and blueprints page.
 - The two reference pages already on the site move to the repositories that own them: registry namespaces to `cli`, the catalog contract to `catalog`.
 
+### Writing rules: voice from KCP, register from Diátaxis
+
+Three layers, each with its own source and home:
+
+1. **Markdown mechanics** stay in the workspace `STYLE.md`, for every Markdown file.
+2. **The writing guide and the page templates** hold everything specific to the site, in `opm`. Drafts of the templates and of the docs skill are in [`drafts/`](drafts/).
+3. **The voice document** from OQ7 comes later and refines the voice capture below.
+
+**The audience (D11).** The reader runs Kubernetes and has never used OPM or CUE. Kubernetes terms are used without explanation. CUE and OPM terms are defined in the glossary and linked on first use.
+
+**The voice, from KCP's Concepts pages.** [research/kcp-voice.md](research/kcp-voice.md) captures it: fifteen traits, measured and quoted, sorted into what OPM keeps, adapts and drops. In short, OPM keeps KCP's habit of making the product the subject and placing it against Kubernetes, its labelled analogies, its answers to the reader's next question, its statements of scope, and its candour about limits. It adapts KCP's conversational register, its opinions and its hedges. It drops KCP's promises, hype, Latin abbreviations, long sentences and uneven polish. KCP's Developers section is not the model:
+
+| Measured on KCP | Concepts | Developers |
+| --- | --- | --- |
+| "you" per 1,000 words | 8.7 | 2.4 |
+| "we" per 1,000 words | 4.1 | 8.0 |
+| Median sentence length in words | 16 | 21 |
+| Sentences over 30 words | 12% | 28% |
+
+**The register, from Diátaxis.** The voice stays the same on every page; the register shifts with the type. A tutorial is warm and guiding. A how-to guide is brisk and imperative. An explanation is discursive and may hold an opinion. Reference is plain and neutral.
+
+**Every rule names what checks it (D13).** The writing guide's rule table has a "checked by" column:
+
+| Checker | Rules it holds | When it runs |
+| --- | --- | --- |
+| Site build | Every page declares a title, a one-line description and one type; defined terms are linked on first use | Every build |
+| Prose linter | Promises, decision numbers, banned words; sentence length once OQ12 sets a ceiling | The owning repository's pull request |
+| Walk script | A tutorial runs end to end | The owning repository's CI, once the tutorial exists |
+| Review | Everything else: one path per tutorial, no teaching in a how-to guide, an explanation answers a why, the Kubernetes comparison is accurate, "we" only in tutorials, no opinion in reference | Pull request review |
+
+The tooling stays deliberately small. A rule moves from review to a machine check only after review has caught the same problem twice. On 2026-09-25 this entry drafted a heavier design, a CUE rule register and a CUE vocabulary with generated word lists, and withdrew it the same day as more tooling than the problem needs (D12, D13).
+
 ## Schema / API Surface
 
-`contracts/contracts.cue` states six shapes: the section taxonomy with its reader-state entry condition, the page contract every page declares and the order section indexes group pages in (D7), the parts each page type carries (D9), the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. Stating them in CUE makes the taxonomy and the page contract testable before any page exists, and gives the site engine a contract to validate every repository's pages against.
+`contracts/contracts.cue` states six shapes: the section taxonomy with its reader-state entry condition, the page contract every page declares and the order section indexes group pages in (D7), the parts each page type carries (D9), the enforcement badge vocabulary, the generated-versus-authored field classification for a reference entry, and the doc-comment obligation a catalog member must satisfy to pass the CI gate. The page contract is the specification the site build checks, not a requirement that the build run CUE. Stating them in CUE makes the taxonomy and the page contract testable before any page exists, and gives the site engine a contract to validate every repository's pages against.
 
 ## Integration Points
 
 | Repo | What changes |
 | --- | --- |
-| `opmodel.dev` | The engine, holding no content: assembles every repository's published pages by section, validates them against the page contract, generates section indexes; the `docgen` generator (evaluate CUE rather than scrape comments, emit enforcement badges, split reference by family); the broken `generate:cli` step |
+| `opmodel.dev` | The engine, holding no content: assembles every repository's published pages by section, validates them against the page contract, generates section indexes, links glossary terms on first use (D11), and provides the shared check each repository runs in its pull requests (D13, OQ10); the `docgen` generator (evaluate CUE rather than scrape comments, emit enforcement badges, split reference by family); the broken `generate:cli` step |
 | `catalog` | Doc-comment backfill on blueprints, abstraction resources and traits; a CI gate refusing a new member without one; the pages it owns under D8: choosing a blueprint, attaching traits, the raw-family escape hatch, the extending guides, the catalog contract |
 | `core` | Doc-comment backfill on the roughly 35 definitions that have no `SPEC.md` section, `types.cue` foremost; the concept pages about single definitions and the configuration guide |
 | `cli` | Command help text aligned with the generated reference; the publishing guides, the registry namespaces page and the publish-refusal diagnostics entry; `cli/docs/STYLE.md` amended (it cites commands that no longer exist and links the glossary by a workspace-relative path its own sibling rule forbids) |
