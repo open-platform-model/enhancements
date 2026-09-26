@@ -4,7 +4,7 @@ description: Why a component starts from a blueprint, and what the blueprint dec
 type: explanation
 ---
 
-<!-- The title reads naturally after "About". No steps, no field tables. Open with the concept, OPM as the subject. Where a Kubernetes idea is the nearest match, name it in the sentence that introduces the concept and say where the comparison stops; where none fits, leave it out. Future work goes only in a :::note[Direction] block that states its status in the present tense and links its enhancement when one exists. -->
+<!-- The title reads naturally after "About". No steps, no field tables. Open with the concept, OPM as the subject. Where a Kubernetes idea is the nearest match, name it in the sentence that introduces the concept and say where the comparison stops; where none fits, leave it out. Never compare with Helm or another deployment tool; only Start here pages do. Future work goes only in a :::note[Direction] block that states its status in the present tense and links its enhancement when one exists. -->
 
 ## How it works
 

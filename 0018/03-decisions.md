@@ -198,6 +198,8 @@ Every page is built and shown from the moment it exists in its owning repository
 - **Reference:** an authored reference page says in one sentence what it lists, then gives entries ordered by the product's structure, with each rule stated plainly and badged. A generated entry follows one order everywhere: summary, an at-a-glance table, spec, example, notes, what serves it, what enforces it.
 - **Diagnostics entry:** a how-to guide with a fixed shape: the error's name as printed, the exact message, what it means in two sentences at most, each cause with its fix, and where the error is raised.
 
+A comparison with Helm, or with any other deployment tool, appears only on Start here pages. Those pages compare OPM with Helm because most readers arrive from it. Every other page, of every type, explains OPM on its own terms and does not mention Helm. A page may still name a tool OPM works with, such as the Flux source a ModulePackage reads.
+
 Exact heading wording and the page templates belong to the writing guide in `opm`, not to this entry. Length targets per type are a convention, not a gate.
 
 **Requirements:** none (a writing posture checked in review; the only part enforced mechanically is the declared type, D7:R1)
@@ -208,10 +210,11 @@ Exact heading wording and the page templates belong to the writing guide in `opm
 - **Diagnostics entries as authored reference.** Previously adopted in this entry's design and contract. Rejected: a reader on a diagnostics page is at work fixing something, which the Diátaxis compass classifies as a how-to guide. A reference entry would describe the error and stop short of the fix.
 - **Fix the exact headings in this entry.** Rejected as mechanism: wording is refined as pages get written, and writers look in the writing guide, not here.
 - **A fixed "in Kubernetes terms" section on every explanation.** Previously adopted in this entry's design, contract and template. Rejected: a concept with no close Kubernetes counterpart gets a forced comparison, and the page loses focus before it reaches its subject.
+- **Compare with Helm wherever it helps.** Rejected: OPM has to stand on its own. Past Start here, a Helm reference keeps defining OPM by another tool, and every page that makes one has to say where the comparison stops.
 
-**Rationale:** A fixed shape per type is what makes a site written in several repositories read as one. An explanation compares with Kubernetes because the target reader already runs Kubernetes, and the comparison is the shortest route to plain English for that reader. KCP makes it inside the sentence that introduces a concept ("similar cost as a namespace", "almost identical to a CRD"), never in a section of its own. The tutorial shape shows expected output after every step because Diátaxis requires a visible result per step, and KCP does it on every command.
+**Rationale:** A fixed shape per type is what makes a site written in several repositories read as one. An explanation compares with Kubernetes because the target reader already runs Kubernetes, and the comparison is the shortest route to plain English for that reader. KCP makes it inside the sentence that introduces a concept ("similar cost as a namespace", "almost identical to a CRD"), never in a section of its own. Helm is different: it is another tool, not the platform OPM runs on. The Start here pages use it once to orient a reader who arrives from it, and the rest of the site teaches OPM's own terms. The tutorial shape shows expected output after every step because Diátaxis requires a visible result per step, and KCP does it on every command.
 
-**Source:** User decisions 2026-09-24 and 2026-09-26 (the Kubernetes comparison woven into the prose, not a fixed section). Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's writing.
+**Source:** User decisions 2026-09-24 and 2026-09-26 (the Kubernetes comparison woven into the prose, not a fixed section; Helm compared only on Start here pages). Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's writing.
 
 ### D10: Notes on one catalog member live in its doc comment; guidance across members lives in how-to guides
 

@@ -12,7 +12,7 @@ Draft. This skill carries the writing guide and the templates into an agent sess
 1. **Pick the type.** Ask two questions. Does the page help the reader act, or understand? Is the reader studying, or working? Act and study is a tutorial, act and work a how-to guide, understand and work reference, understand and study an explanation. A page that needs two types is two pages.
 2. **Place it.** The page goes in the repository whose change would make it wrong, in the section that matches what the reader arrives holding.
 3. **Start from the template** for its type. Keep the parts in order.
-4. **Write to the guide.** Assume Kubernetes, never CUE or OPM. Make OPM the subject and place it against Kubernetes, saying where the comparison stops. Say what OPM does today, with no filler words. Future work goes only in a direction note on an explanation page.
+4. **Write to the guide.** Assume Kubernetes, never CUE or OPM. Make OPM the subject and place it against Kubernetes, saying where the comparison stops. Compare with Helm only on a Start here page; everywhere else OPM stands on its own. Say what OPM does today, with no filler words. Future work goes only in a direction note on an explanation page.
 5. **Run the checks** the repository runs in its pull requests, and fix every error.
 6. **Walk the review checklist** for the type: every rule the writing guide marks as checked by review.
 

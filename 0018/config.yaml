@@ -72,6 +72,8 @@ history:
     event: 'Voice capture gains the author''s first writing sample: no contractions, mechanism before analogy, schema names only where the model is explained.'
   - date: "2026-09-26"
     event: 'D8: every page is built and shown from the moment it exists while the site is unpublished; the no-placeholder rule moves to Alternatives; OQ15 opened (what a page holds before publication).'
+  - date: "2026-09-26"
+    event: 'D9: a comparison with Helm, or with any other deployment tool, appears only on Start here pages; every other page explains OPM on its own terms. Template and skill updated.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
