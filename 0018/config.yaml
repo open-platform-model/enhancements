@@ -21,7 +21,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-25"
+updated: "2026-09-26"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -64,6 +64,14 @@ history:
     event: 'D11 Kubernetes-only audience, D12 retracted, D13 a named checker per writing rule; KCP voice captured; templates and docs skill drafted; OQ8-OQ14, three withdrawn'
   - date: "2026-09-25"
     event: 'D8: every Concepts page lives in core. D3 and the inventory: the CLI-to-operator handoff is removed, and its how-to page with it.'
+  - date: "2026-09-26"
+    event: 'D3: future work allowed only in a marked direction note on an explanation page; the platform model joins the absences. Inventory gains the application model and platform model page.'
+  - date: "2026-09-26"
+    event: 'D9: the explanation shape drops its fixed Kubernetes-terms section; the comparison is woven into the prose where it helps, and only a Start here page gives it a section.'
+  - date: "2026-09-26"
+    event: 'Voice capture gains the author''s first writing sample: no contractions, mechanism before analogy, schema names only where the model is explained.'
+  - date: "2026-09-26"
+    event: 'D8: every page is built and shown from the moment it exists while the site is unpublished; the no-placeholder rule moves to Alternatives; OQ15 opened (what a page holds before publication).'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

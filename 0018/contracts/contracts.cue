@@ -107,7 +107,7 @@ shapes: [#PageType]: #Shape
 shapes: {
 	tutorial: ["end result", "prerequisites", "numbered steps, each with expected output", "what was built", "next steps"]
 	"how-to": ["what it achieves and when", "starting state", "steps", "how to check it worked", "related reference and concept"]
-	explanation: ["in Kubernetes terms", "how it works", "why it is built this way", "common misreadings", "what enforces it"]
+	explanation: ["how it works", "why it is built this way", "common misreadings", "what enforces it"]
 	reference: ["what it lists", "entries ordered by the product's structure", "see also"]
 }
 

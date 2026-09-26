@@ -76,7 +76,7 @@ OPM keeps this, and it is the voice for the deletion and prune hazard in D4.
 
 ## Adapt
 
-**6. Conversational, but not chatty.** Contractions run at about six per 1,000 words. "let's" appears 24 times once "Let's Encrypt" is excluded, spread across the tenancy tutorial ("Let's verify that the resource provided by the `APIExport` is now available"), the architecture brain dump and several explanation pages. OPM keeps contractions everywhere and keeps "let's" for tutorials only, where Diátaxis wants the tutor and learner working together.
+**6. Conversational, but not chatty.** Contractions run at about six per 1,000 words. "let's" appears 24 times once "Let's Encrypt" is excluded, spread across the tenancy tutorial ("Let's verify that the resource provided by the `APIExport` is now available"), the architecture brain dump and several explanation pages. OPM follows the author instead, who writes without contractions (see "The author's own writing"), and keeps "let's" for tutorials only, where Diátaxis wants the tutor and learner working together.
 
 **7. Opinions, in the right place.** The best-practices page gives firm advice, and it is the most useful page on the site for someone designing with WorkspaceTypes. OPM allows opinion in explanation pages ("OPM checks this at render rather than at apply, because…") and never in reference.
 
@@ -110,7 +110,27 @@ The same opening, adapted: the reader's situation stated plainly, no exclamation
 
 The voice applied to OPM, keeping traits 1, 2, 4 and 8:
 
-> "A ModuleInstance is to a Module roughly what a Helm release is to a chart: one installed, configured copy, in one namespace. The comparison stops at the values. Helm renders your values into templates, and a mistake shows up when Kubernetes rejects the result. OPM checks your values against the module's configuration schema first, so a misspelled field fails before anything reaches the cluster."
+> "A ModuleInstance is to a Module roughly what a Helm release is to a chart: one installed, configured copy, in one namespace. The comparison stops at the values. Helm renders your values into templates, and a mistake shows up when Kubernetes rejects the result. OPM checks the values you pass with `-f` against the module's configuration schema first, so a field the schema does not allow fails before anything reaches the cluster."
+
+The example first claimed that any misspelled field fails early. Values written inside the instance package are not checked for unknown fields today, so it was narrowed on 2026-09-26: a voice example states only what OPM does.
+
+## The author's own writing
+
+First sample, 2026-09-26: the opening of "What OPM is", written by the author. One sample is not the voice document OQ7 asks for, but where it differs from KCP, OPM follows the author.
+
+| Observed | Example | What it changes |
+| --- | --- | --- |
+| Leads with a firm position | "Open Platform Model (OPM) is first and foremost an application model." | Nothing; it is trait 1, stated more firmly than KCP does. |
+| Mechanism before analogy | "It embeds the module and holds the values you defined." | An explanation says what a thing does. A Kubernetes comparison goes only in the sentence that needs one (0018:D9). |
+| Direct "you" with plain verbs | "To deploy a module, you have to create a module instance." | "You" and "have to" are both in the voice. |
+| No contractions | "you have to", "It embeds" | Replaces trait 6: pages write "does not" and "they are". |
+| A term introduced by its full name | "module instance", then "the instance" | The full OPM name on first use in a page. |
+| Schema names in parentheses | "The module (#Module)" | Kept for the page that explains the model: it names each definition next to the plain word and links its schema reference. First-contact pages use the plain word only, to keep the number of new terms down. |
+
+What review changed in the sample, as patterns to watch rather than rules:
+
+- One sentence joined two clauses with different subjects ("The module describes … and settings can be defined by you …"), which hid who does what. It became two sentences.
+- The sample's first two paragraphs introduced eight new terms. Transformers and catalogs moved out of the opening.
 
 ## How this is used
 

@@ -24,7 +24,7 @@
 
 - **OQ4: How is `opm/docs` retired, given that `opm` is not an area?** Status: partially resolved. Blocking: acceptance (the rewrite rule still needs a decision).
 
-  Resolved 2026-09-20: `opm` joined the repo vocabulary, so the meta repo can appear in `affects` and own a slice. The tree is not retired; it is rewritten in place as the home of the authored prose that has no code owner: Start here, cross-repo guides and the boundaries page. Still open: the rule that nothing describing the v0 line survives the rewrite, and whether that rule is a gate or a review judgement. Worth salvaging as format rather than content: the glossary's shape, the persona routing at the top of `docs/index.md`, and the raw-versus-blueprint side-by-side in `concepts/resources-traits-blueprints.md`.
+  Resolved 2026-09-20: `opm` joined the repo vocabulary, so the meta repo can appear in `affects` and own a slice. The tree is not retired; it is rewritten in place as the home of the authored prose that has no code owner: Start here, cross-repo guides and the boundaries page. Still open: the rule that nothing describing the v0 line survives the rewrite, and whether that rule is a gate or a review judgement. Worth salvaging as format rather than content: the glossary's shape, the persona routing at the top of `docs/legacy/index.md`, and the raw-versus-blueprint side-by-side in `docs/legacy/concepts/resources-traits-blueprints.md`.
 
 - **OQ5: What happens to the two catalog members that render nothing?** Status: open. Blocking: acceptance.
 
@@ -67,3 +67,9 @@
   D13 starts every new machine-checked rule as a warning. It does not say what triggers the promotion. Candidates: when every existing page passes the rule; after a fixed period with no false positives; or by explicit decision in the writing guide's own change history.
 
 - **OQ14: How does the first-use check handle plurals and other inflected forms?** Status: answered. Withdrawn 2026-09-25: first-use linking is the site's job under D11, not a check on the writer. How the site matches a plural is a detail for the implementing change.
+
+- **OQ15: What must a page hold before the site is published?** Status: open. Blocking: implementation.
+
+  Every page is built and shown from the moment it exists (D8), which suits writing pages one at a time while nothing is published. Once readers arrive, a page that is still an outline looks like documentation while saying nothing, which is the cost Diátaxis warns about.
+
+  Candidates: publish only the pages with no placeholders left and leave the rest out; publish every page and mark the unfinished ones; or hold publication until every page in the inventory is written. A page's leftover placeholders make the first two mechanical to check.

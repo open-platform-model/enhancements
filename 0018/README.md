@@ -120,4 +120,4 @@ None at this stage. Update when implementation lands.
 | `cli/docs/STYLE.md` | The prose conventions to inherit, and the amendments they need because they cite commands that no longer exist |
 | `opmodel.dev/site/content/reference/` | The two hand-written pages that already landed, and the shape the rest follows |
 | `opmodel.dev/cmd/docgen/` | The generator this entry repairs and extends |
-| `opm/docs/` | The stale tree this entry replaces: salvage its formats, not its content |
+| `opm/docs/legacy/` | The stale tree this entry replaces: salvage its formats, not its content |

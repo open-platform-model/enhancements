@@ -51,11 +51,13 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Source:** User decision 2026-08-18.
 
-### D3: The documentation states what OPM does not do
+### D3: The documentation states what OPM does not do, and future work appears only as direction
 
 **Kind:** policy
 
-**Decision:** A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no handoff of an instance between the CLI and the operator, no export to GitOps manifests, no provider classes. Draft enhancements are not described as forthcoming features on that page or anywhere else.
+**Decision:** The documentation states what OPM does today. A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no handoff of an instance between the CLI and the operator, no export to GitOps manifests, no provider classes, no model of the platform itself.
+
+Future work appears only in a direction note: a marked block on an explanation page that names the work, states its status in the present tense and links its enhancement when one exists. A direction note gives no date. No tutorial, how-to guide or reference page carries one, so the page of absences never forecasts. Outside a direction note, draft enhancements are not described as forthcoming features.
 
 **Requirements:** none (documentation stance; the page's content list is authored guidance, not a behaviour a consumer relies on)
 
@@ -63,10 +65,12 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 - **Silence.** Rejected: nine of seventeen enhancements are draft, several of them describing systems a reader would reasonably assume exist (enhancement 0009 defines an entire execution half of the kernel). Silence converts each into a question that reaches the maintainers individually.
 - **A roadmap page instead.** Rejected as answering a different question. A roadmap says what may come; this page says what is absent today, which is what someone evaluating the tool needs before committing to it.
+- **No future work anywhere in the documentation.** Previously adopted in this entry. Rejected: some explanations need to say where the model is heading, such as why OPM is named a platform model while it models applications today.
+- **Future work at the writer's discretion.** Rejected: it produces what KCP's pages show, forecasts such as "in the future" mixed into present-tense prose, with no way for a reader to tell what exists.
 
-**Rationale:** The cost of stating an absence is one page. The cost of leaving it implicit is paid repeatedly by every reader who assumes presence, and once by whoever discovers the absence after building on the assumption.
+**Rationale:** The cost of stating an absence is one page. The cost of leaving it implicit is paid repeatedly by every reader who assumes presence, and once by whoever discovers the absence after building on the assumption. A direction note keeps the vision visible without letting it pass for a feature: it is marked, it carries a status, and it never sits on a page a reader follows to get something done.
 
-**Source:** User decisions 2026-08-18 and 2026-09-25 (the handoff between the CLI and the operator is removed indefinitely, so the page names no handoff at all).
+**Source:** User decisions 2026-08-18, 2026-09-25 (the handoff between the CLI and the operator is removed indefinitely, so the page names no handoff at all) and 2026-09-26 (future work allowed in a marked direction note). Evidence: [research/kcp-voice.md](research/kcp-voice.md), trait 11.
 
 ### D4: The deletion and prune hazard is documented now, independent of enhancement 0012
 
@@ -165,7 +169,7 @@ The section a page belongs to, and the address other pages link it by, come from
 
 Each repository keeps its published pages apart from its contributor documents, and only the published pages reach the site. The site is assembled by section, never by repository: pages from several repositories sit side by side in one section, and the reader never sees a repository boundary. Two repositories publishing the same address fail the build.
 
-A section appears in the navigation only once it holds a real page. No placeholder page is ever published; a known gap, such as the secrets pointer D5 describes, is stated on a page that exists for its own reason.
+Every page is built and shown from the moment it exists in its owning repository, finished or not. An unfinished page is one that still carries its outline's placeholders. A known gap, such as the secrets pointer D5 describes, is stated on a page that exists for its own reason. What a page must hold before the site is published is OQ15.
 
 **Requirements:** none (a placement and assembly posture; what a reader observes of it is D7's page contract)
 
@@ -176,11 +180,11 @@ A section appears in the navigation only once it holds a real page. No placehold
 - **Concepts that span repositories in `opm`, concepts about one core definition in `core`.** Previously adopted in this entry. Rejected: it splits one section of explanation across two repositories, while every concept page explains a part of the model that `core` defines.
 - **One site per repository under one domain, linked from a landing page.** This is KCP's model: kcp and kcp-operator are separate sites with separate navigation and separate version lists. Rejected: it shows the reader the repository layout instead of the product, and the reader must know which repository owns a topic before they can find it.
 - **Publish each repository's whole documentation folder.** Rejected: those folders hold contributor material today, such as catalog authoring rules, CLI design RFCs and core's publishing strategy. KCP's public navigation shows the result, with load-test reports and a long architecture brain dump beside user pages.
-- **Create every section up front with placeholder pages.** Rejected: Diátaxis calls empty four-part scaffolds the thing not to do, and a placeholder looks like documentation while saying nothing.
+- **Hide a page until it is written.** Previously adopted in this entry: no placeholder page was published, and a section appeared only once it held a real page. Rejected: the pages are written one at a time in their owning repositories, and the author reviews each one in place on the site as it grows. Each starts from an outline written for that page, not from an empty four-part scaffold of the kind Diátaxis warns against. The cost Diátaxis names, a page that looks like documentation while saying nothing, arrives with readers, so it is settled before the site is published (OQ15).
 
 **Rationale:** The owning-change test makes placement mechanical: whoever changes the behaviour is in the same pull request as the page describing it. Concepts gives up that test on purpose, so the explanation of the model is written in one place, next to the definitions. The cost is accepted: a CLI or operator change to who owns an instance, or to where a rule is enforced, must fix a page in `core` in a second pull request. Assembling by section keeps the reader-state navigation independent of how OPM happens to be split into repositories, which will change. The diagnostics placement pays off twice: with the entries next to the kernel's error types, a check that every error type has an entry stays inside one repository (OQ3).
 
-**Source:** User decisions 2026-09-20 (reference in the owning repository, prose with no natural home in `opm`), 2026-09-24 (the site engine assembles one cohesive site and holds no content) and 2026-09-25 (every Concepts page in `core`). Evidence: [research/findings.md](research/findings.md), sections on KCP's site model and on Write the Docs.
+**Source:** User decisions 2026-09-20 (reference in the owning repository, prose with no natural home in `opm`), 2026-09-24 (the site engine assembles one cohesive site and holds no content), 2026-09-25 (every Concepts page in `core`) and 2026-09-26 (every page built and shown while the site is unpublished). Evidence: [research/findings.md](research/findings.md), sections on KCP's site model and on Write the Docs.
 
 ### D9: Each page type has a fixed shape
 
@@ -190,7 +194,7 @@ A section appears in the navigation only once it holds a real page. No placehold
 
 - **Tutorial:** the end result shown first; prerequisites with exact versions; numbered steps, each followed by its expected output; what was built; at most three next links. One path, no options, and no explanation beyond one line and a link.
 - **How-to guide:** a title that starts with a verb; one sentence on what it achieves and when to use it; the state the reader must already be in; steps as imperatives, with forks written as conditions; how to check it worked; links to the reference and the concept.
-- **Explanation:** a title that reads naturally after "About"; the concept in Kubernetes terms, including where the comparison stops holding; how it works; why it is built this way; the misreadings people actually make; what enforces each rule. No steps and no field tables.
+- **Explanation:** a title that reads naturally after "About"; how it works; why it is built this way; the misreadings people actually make; what enforces each rule. No steps and no field tables. A comparison with Kubernetes is woven into the prose where the concept is introduced, only where one helps, and says where it stops holding. Only a Start here page gives the comparison a section of its own.
 - **Reference:** an authored reference page says in one sentence what it lists, then gives entries ordered by the product's structure, with each rule stated plainly and badged. A generated entry follows one order everywhere: summary, an at-a-glance table, spec, example, notes, what serves it, what enforces it.
 - **Diagnostics entry:** a how-to guide with a fixed shape: the error's name as printed, the exact message, what it means in two sentences at most, each cause with its fix, and where the error is raised.
 
@@ -203,10 +207,11 @@ Exact heading wording and the page templates belong to the writing guide in `opm
 - **Free-form pages within a type.** Rejected: several repositories writing independently produce several house styles, and a reader cannot predict where the prerequisites or the fix will be. KCP shows it: similar pages put their parts in different orders, and page length runs from a few hundred words to over six thousand.
 - **Diagnostics entries as authored reference.** Previously adopted in this entry's design and contract. Rejected: a reader on a diagnostics page is at work fixing something, which the Diátaxis compass classifies as a how-to guide. A reference entry would describe the error and stop short of the fix.
 - **Fix the exact headings in this entry.** Rejected as mechanism: wording is refined as pages get written, and writers look in the writing guide, not here.
+- **A fixed "in Kubernetes terms" section on every explanation.** Previously adopted in this entry's design, contract and template. Rejected: a concept with no close Kubernetes counterpart gets a forced comparison, and the page loses focus before it reaches its subject.
 
-**Rationale:** A fixed shape per type is what makes a site written in several repositories read as one. The explanation shape leads with Kubernetes terms because the target reader already runs Kubernetes. KCP defines its concepts that way ("similar cost as a namespace", "almost identical to a CRD"), and it is the shortest route to plain English for that reader. The tutorial shape shows expected output after every step because Diátaxis requires a visible result per step, and KCP does it on every command.
+**Rationale:** A fixed shape per type is what makes a site written in several repositories read as one. An explanation compares with Kubernetes because the target reader already runs Kubernetes, and the comparison is the shortest route to plain English for that reader. KCP makes it inside the sentence that introduces a concept ("similar cost as a namespace", "almost identical to a CRD"), never in a section of its own. The tutorial shape shows expected output after every step because Diátaxis requires a visible result per step, and KCP does it on every command.
 
-**Source:** User decision 2026-09-24. Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's writing.
+**Source:** User decisions 2026-09-24 and 2026-09-26 (the Kubernetes comparison woven into the prose, not a fixed section). Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's writing.
 
 ### D10: Notes on one catalog member live in its doc comment; guidance across members lives in how-to guides
 
