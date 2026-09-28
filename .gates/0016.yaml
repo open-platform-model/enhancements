@@ -1,0 +1,24 @@
+entry: "0016"
+entry_hash: "b66ee8e56815deef6d3c59dd07a141ebbcc80efaddaee190b7cc17da3add4db1"
+walked: "2026-09-28"
+verdicts:
+  - gate: feature
+    verdict: pass
+    evidence: "config.yaml summary: 'Generate a complete, ready-to-build module instance package from a published module, instead of hand-typing its pins, majors and wiring.' 01-problem.md Current State: 'Nothing creates that package.'"
+    reasoning: "Names a capability OPM lacks: the three adjacent capabilities (module init, in-memory synthesis, debugValues) each stop short of an on-disk instance package from a published module."
+  - gate: contract
+    verdict: pass
+    evidence: "02-design.md Schema / API Surface: 'Core: one new optional field on #Module (D3, D4): initValues?: _' and 'CLI: one new command (D5): opm instance init [instance-name] [module-path] ...'. affects: cli, core."
+    reasoning: "Changes what module authors (a core schema field) and deployers (a CLI command and the package it writes) can rely on. Two repos, so the single-repo clause does not apply."
+  - gate: durability
+    verdict: pass
+    evidence: "The probe's only hits are the five Source lines (provenance). A read of 01..07 finds 'today' only in before-state framing ('Nothing creates that package. Today there are exactly three adjacent capabilities', the Before/After 'Before (today, cert_manager)'), and one version-line clause that carries both cases: 'it can even be removed on the alpha line if it proves wrong ... If removal happens after stabilization instead, the field stays as documented-but-unread surface.' 06-operational.md now reads 'The vet the report points at relies on 0019's render behaviour' and D8 'a separate publish-gate decision, outside this entry'."
+    reasoning: "A problem statement describes the state it replaces, and the version clause stays true on either side of stabilization. The spent 0019 ordering and the delegation to the closed 0011 are gone; no sentence records progress."
+  - gate: rewrite
+    verdict: pass
+    evidence: "Probe hits: five Source lines, provenance. Former mechanism rewritten: D7 now ends 'The instance-file shape therefore exists in two repos, a drift risk recorded in 05-risks.md.'; 02-design.md Integration Points: 'version selection, the values-source ladder and package rendering are CLI-side (D5, D7)'; the diagram step reads 'through the kernel's registry acquire'. Closest remaining call, 05-risks.md mitigation: 'the CLI's end-to-end test for init loads and builds a generated package through the real loader, so the break is a CLI test failure at the library bump'."
+    reasoning: "Decisions and design now state repo boundaries and observable behaviour only; the acquire-path reuse and test design moved to the cli change. The 05-risks mitigation is the containment the risk document exists to name, and it binds any rewrite to keep generated packages proven loadable by the kernel; it prescribes no code path."
+  - gate: single-question
+    verdict: pass
+    evidence: "02-design.md Goals: 'A single CLI command turns a published module's path (plus an optional version) into a complete on-disk module instance package' and 'The module author controls what a fresh instance's values.cue starts as, through a new optional field on #Module dedicated to that purpose.' D3: 'whose meaning is: the values a freshly initialized instance package starts from.'"
+    reasoning: "One question: how a deployer gets a correct, ready-to-build instance package from a published module. D1, D5, D7, D8, D9 answer the package half; D2, D3, D4, D6 answer its values half, and initValues has no reader other than init."

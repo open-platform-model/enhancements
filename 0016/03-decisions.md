@@ -24,7 +24,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
-**Decision:** The CLI gains an init command for module instances: the user names a published module (its module path) and an instance name and namespace, and the command acquires that module from the registry and writes a complete, standalone on-disk instance package: `cue.mod/module.cue`, `instance.cue`, `values.cue`. That is the same shape `LoadInstancePackage` consumes and `opm instance build`/`apply` accept. The acquired artifact is the module being deployed, never a template: init generates the package from what the module declares (D5 fixes the surface, D9 the generated module file).
+**Decision:** The CLI gains an init command for module instances: the user names a published module (its module path) and an instance name and namespace, and the command acquires that module from the registry and writes a complete, standalone on-disk instance package: `cue.mod/module.cue`, `instance.cue`, `values.cue`. That is the same shape the kernel's instance-package acquire consumes and `opm instance build`/`apply` accept. The acquired artifact is the module being deployed, never a template: init generates the package from what the module declares (D5 fixes the surface, D9 the generated module file).
 
 **Requirements:**
 
@@ -89,7 +89,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Resolves:** OQ1
 
-**Decision:** The new `#Module` field is named `initValues`, declared optional and open (`initValues?: _`), a direct sibling of `debugValues`. Core does not assert that it satisfies `#config`. Conformance is the author's stated intent (SHOULD), observed where the value is consumed: by `opm instance vet` on the generated package, and by a publish-time gate if 0011 adopts one. The field MAY be non-concrete.
+**Decision:** The new `#Module` field is named `initValues`, declared optional and open (`initValues?: _`), a direct sibling of `debugValues`. Core does not assert that it satisfies `#config`. Conformance is the author's stated intent (SHOULD), observed where the value is consumed: by `opm instance vet` on the generated package, and by a publish-time gate if one is adopted, a separate decision outside this entry. The field MAY be non-concrete.
 
 Measured (experiment 04), the render path shapes the scaffold by field kind:
 
@@ -199,7 +199,7 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Resolves:** OQ4
 
-**Decision:** Rendering the three-file package is CLI-side, beside the existing `opm module init` scaffolding, and reuses that command's acquire and version-resolution paths. `library` is not in `affects`: `synth.Instance` keeps its in-memory overlay renderer unchanged, and its documented refusal to fall back to `debugValues` stands. The instance-file shape therefore exists in two repos; the CLI's end-to-end test for init loads and builds the generated package through the real `LoadInstancePackage`, so a shape drift is a visible CLI test failure rather than a silent break.
+**Decision:** Rendering the three-file package is CLI-side, beside the existing `opm module init` scaffolding. `library` is not in `affects`: the kernel's instance synthesis keeps its in-memory overlay renderer unchanged, and its documented refusal to fall back to `debugValues` stands. The instance-file shape therefore exists in two repos, a drift risk recorded in `05-risks.md`.
 
 **Requirements:** none (locates the renderer; the package shape it must satisfy is D1 R1 and R2)
 
@@ -217,7 +217,7 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Resolves:** OQ5
 
-**Decision:** Init writes the package and reports; it does not run the equivalent of `opm instance vet`. The report ends by naming the validation command for the generated package's `instance.cue` (the file, which is what `opm instance vet` and `build` take; experiment 03), as `module init` ends with `opm module vet`. A template source that does not satisfy `#config` therefore surfaces at the user's first vet or build, not at init. Whether publishing a module with a non-conforming `initValues` is a publish-time error is 0011's decision and is not made here.
+**Decision:** Init writes the package and reports; it does not run the equivalent of `opm instance vet`. The report ends by naming the validation command for the generated package, as `module init` ends with `opm module vet`. A template source that does not satisfy `#config` therefore surfaces at the user's first vet or build, not at init. Whether publishing a module with a non-conforming `initValues` is a publish-time error is a separate publish-gate decision, outside this entry.
 
 **Requirements:** none (init writes without validating; the closing hint naming the validation command is a cli delta-spec line)
 

@@ -147,7 +147,7 @@ graph TD
 
   N0010["0010: Module and Catalog Identity"]:::delivered
   N0011["0011: Module and Catalog Publishing"]:::delivered
-  N0016["0016: Initialize a Module Instance Package from a Publi…"]:::draft
+  N0016["0016: Initialize a Module Instance Package from a Publi…"]:::accepted
   N0020["0020: Contract Promotion and Retirement"]:::draft
   N0021["0021: OPM Versioning Policy"]:::draft
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft

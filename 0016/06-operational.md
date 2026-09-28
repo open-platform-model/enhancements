@@ -16,7 +16,7 @@ Failure modes reuse the CLI's existing error surfaces and exit codes: refusals (
 **Is this a breaking change for any consumer? If so, what's the
 backwards-compatibility plan?**
 
-No. The core change is one *optional* field on `#Module`: additive on the v2 line (`opmodel.dev/core@v2`, currently alpha), a `feat:` commit, no existing module invalidated, no consumer forced to read it. The CLI change is a new subcommand: additive, minor on the CLI's own version. Library ships nothing (D7). Enhancement-level `semver`: `minor`. The v1 maintenance lines get nothing (new work lands on `main` only, per the branch model).
+No. The core change is one *optional* field on `#Module`: additive on the v2 line (`opmodel.dev/core@v2`), a `feat:` commit, no existing module invalidated, no consumer forced to read it. The CLI change is a new subcommand: additive, minor on the CLI's own version. Library ships nothing (D7). Enhancement-level `semver`: `minor`. The v1 maintenance lines get nothing (new work lands on `main` only, per the branch model).
 
 Backwards direction: a new CLI running against a module published before the field exists falls back to `debugValues` (D2): that fallback *is* the compatibility plan, and it makes the feature useful against the entire already-published fleet with no republish. Forward direction: `#Module` is closed, so an author who sets `initValues` must first pin the module to the core v2 tag that ships the field (experiment 06); older core tags reject it with "field not allowed". Only the core v2 line is in scope; nothing here reaches v1 or v0.
 
@@ -38,17 +38,17 @@ The core field can stop being read at any time. As an optional field it can even
 
 **Which repos must coordinate, and in what order?**
 
-Sequence: `core` → (`0019` render-path changes in `library` and `cli`) → `cli` → `opmodel.dev` (mechanical CLI-reference regeneration, follows the landing).
+Sequence: `core` → `cli` → `opmodel.dev` (mechanical CLI-reference regeneration, follows the landing).
 
-- **This entry depends on [0019](../archive/0019/).** The generated package is only useful through `opm instance vet`/`build`, and 0019 redefines what those do:
+- **The vet the report points at relies on [0019](../archive/0019/)'s render behaviour.** The generated package is only useful through `opm instance vet`/`build`, and 0019 defines what those do:
   - one CUE build per render with a derived render `cue.mod` (D9, D13 in 0019);
   - a platform that embeds its catalog (D5, D6 in 0019);
   - module-versus-platform catalog skew surfaced as a kernel-detected signal that defaults to warn-and-render (D7, D18 in 0019).
 
-  Experiment 03 showed the pre-0019 behavior: a correct package fails outright with "unresolved demands" when the platform's catalog pin differs from the module's. After 0019 that same package renders with a skew warning instead. The `cli` slice of this entry therefore lands after 0019's render-path changes are in the CLI's kernel dependency, so that the vet the report points at behaves as designed. The `core` slice (the `initValues` field) has no such constraint and may land first.
+  Without that behaviour a correct package fails outright with "unresolved demands" when the platform's catalog pin differs from the module's (experiment 03); with it, the same package renders with a skew warning.
 
-- `core` ships the new optional field (with SPEC.md co-update) and publishes a v2 alpha tag; the artefact downstream consumes is that published tag.
+- `core` ships the new optional field (with SPEC.md co-update) and publishes a v2 tag; the artefact downstream consumes is that published tag.
 - `cli` ships `opm instance init` against that core tag. The fallback ladder means the CLI does not hard-require modules republished with the new field, only the new core *schema* version so the field is legal to read. No library release is required (D7).
 - `modules` is not required to do anything; authors adopt `initValues` module-by-module at their own pace, each adoption moving that module's core pin to the shipping tag first.
 
-Two hand-offs in a straight line plus the 0019 precondition on the `cli` slice; the constraints here suffice, and landings are logged in `delivery.yaml` as they happen.
+Two hand-offs in a straight line; landings are logged in `delivery.yaml` as they happen.

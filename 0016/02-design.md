@@ -11,7 +11,7 @@
 **Correctness.**
 
 - The generated package is correct by construction: dependency majors and pins, the core import, and the `#module:` wiring all derive from the acquired artifact, never from user-typed boilerplate.
-- The generated package is the same shape `LoadInstancePackage` already consumes. The output of init is immediately valid input to `opm instance build`, `opm instance apply`, and the operator's ModulePackage path.
+- The generated package is the same shape the kernel's instance-package acquire already consumes. The output of init is immediately valid input to `opm instance build`, `opm instance apply`, and the operator's ModulePackage path.
 
 **Values authoring.**
 
@@ -47,9 +47,8 @@
   |                               |      highest major whose core dep major ==
   |                               |      this CLI's core major, newest release
   |                               |
-  |  2 acquire module from        |----> CUE registry (OCI): fetch + decode,
-  |    registry (existing kernel  |      same path opm module init uses
-  |    acquire path)              |      (AcquireModuleFromRegistry)
+  |  2 acquire module from        |----> CUE registry (OCI): fetch + decode
+  |    registry                   |      through the kernel's registry acquire
   |                               |
   |  3 pick values source         |      initValues  present -> use it
   |    (D2, D3, D6)               |      else debugValues    -> use it
@@ -70,9 +69,9 @@
     values.cue                     package p; values: { ...rendered source... }
 ```
 
-The command is the write-to-disk sibling of `synth.Instance`. Synth overlays a generated `instance.cue`/`values.cue` *inside the acquired module's staged tree* for one in-memory build. Init emits the same logical package as a *standalone* directory whose `cue.mod/module.cue` declares the module and core as registry dependencies. The two renderers are separate by decision (D7): init's lives in the CLI beside `opm module init`, and the CLI's end-to-end test loads the generated package through the real `LoadInstancePackage` so the two shapes cannot drift silently.
+The command is the write-to-disk sibling of the kernel's instance synthesis. Synthesis overlays a generated `instance.cue`/`values.cue` *inside the acquired module's staged tree* for one in-memory build. Init emits the same logical package as a *standalone* directory whose `cue.mod/module.cue` declares the module and core as registry dependencies. The two renderers are separate by decision (D7): init's lives in the CLI beside `opm module init`, and the drift this allows is a named risk (`05-risks.md`).
 
-`synth.Instance`'s documented refusal to fall back to `debugValues` ("a frontend policy concern") stays intact. Init is precisely the frontend defining that policy, and only for its own scaffolding output.
+The synthesis's documented refusal to fall back to `debugValues` ("a frontend policy concern") stays intact. Init is precisely the frontend defining that policy, and only for its own scaffolding output.
 
 ## Schema / API Surface
 
@@ -94,8 +93,8 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue) (core delta) and [`con
 ## Integration Points
 
 - **`core/`**: `src/module.cue`: add the optional field beside `debugValues` (`core-schema-edit` protocol; `SPEC.md` co-update). This is the only schema change.
-- **`cli/`**: the new subcommand in the instance command group, with the version selection, values-source ladder and package rendering CLI-side beside the existing `opm module init` scaffolding, reusing its reference grammar, version resolution and kernel acquire path (D5, D7).
-- **`library/`**: nothing ships. The kernel acquire path and the module decode surface are used as they are; `initValues` is read off the decoded module value like any other field. `synth.Instance` is unchanged (D7).
+- **`cli/`**: the new subcommand in the instance command group; version selection, the values-source ladder and package rendering are CLI-side (D5, D7).
+- **`library/`**: nothing ships. The kernel acquire path and the module decode surface are used as they are; `initValues` is read off the decoded module value like any other field. The kernel's instance synthesis is unchanged (D7).
 - **`opmodel.dev/`**: CLI reference regenerates mechanically after the command lands; follows the landing, does not gate it.
 
 ## Before / After

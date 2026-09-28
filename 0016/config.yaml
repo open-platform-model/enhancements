@@ -5,9 +5,8 @@ title: Initialize a Module Instance Package from a Published Module
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Generate a complete, ready-to-build module instance package from a published module, instead of
-  hand-typing its pins, majors and wiring.
-status: draft
+  Generate a complete, ready-to-build module instance package from a published module, instead of hand-typing its pins, majors and wiring.
+status: accepted
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
@@ -22,7 +21,7 @@ affects:
 core_schema: true
 semver: minor
 created: "2026-08-13"
-updated: "2026-09-24"
+updated: "2026-09-28"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -60,6 +59,13 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D7, D8), additive.'
+  - date: "2026-09-28"
+    event: "Pre-walk refresh: library references renamed after the kernel refactor, D7 no longer claims module init's version resolution, D8 drops its reason, probe hits cleared."
+  - date: "2026-09-28"
+    event: "Gate-walk fixes: 0019 ordering restated as reliance on its delivered render behaviour, publish-gate delegation moved off closed 0011, mechanism cut from D7 and design. No answer changed."
+  - date: "2026-09-28"
+    event: Accepted.
+    semver: minor
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

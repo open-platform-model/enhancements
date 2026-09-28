@@ -114,10 +114,10 @@ None at this stage. Update this section when implementation lands and any delibe
 | `core/SPEC.md` | The specification section co-updated with the new field |
 | `cli/internal/cmd/instance/instance.go` | The command group the new subcommand joins |
 | `cli/internal/cmd/module/init.go` | The sibling command whose surface this one mirrors |
-| `cli/internal/scaffold/ref.go` | The reference grammar and version resolution reused |
-| `library/opm/materialize/enumerate.go` | Evidence that a major-free path enumerates every published major |
+| `cli/internal/scaffold/ref.go` | The template-reference grammar and version selection that D5 departs from |
+| `enhancements/0016/experiments/01-cross-major-enumeration/README.md` | Evidence that a major-free path enumerates every published major |
 | `library/opm/schema/loader.go` | Where the core major a CLI build is bound to is defined |
-| `library/opm/helper/synth/instance.go` | In-memory synthesis, whose debug-values refusal stands unchanged |
-| `library/opm/helper/loader/file/instance_test.go` | The load behaviour the generated package must satisfy |
+| `library/opm/kernel/synth.go` | In-memory synthesis, whose debug-values refusal stands unchanged |
+| `library/opm/kernel/acquire.go` | The instance-package acquire the generated package must satisfy |
 | `modules/cert_manager/module.cue` | The real config and debug-values pair used as the worked example |
 | `opm-kind-demo/web_app/instance.cue` | The hand-written package this command generates the equivalent of |
