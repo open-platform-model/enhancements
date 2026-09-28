@@ -256,4 +256,25 @@ opm instance init [instance-name] [module-path] [--from <module-path>] [--versio
 
 **Source:** User decision 2026-08-24. Measured: `experiments/03-generated-package-builds` (the package for cert_manager v2.0.1 tidies to one added catalog pin, vets, fans 20 components, builds through `opm instance build` against a platform that implements its contracts, works offline, and never looks up `instance.local`).
 
+### D10: Init refuses a target directory inside an existing CUE module
+
+**Kind:** contract
+
+**Amends:** D5
+
+**Decision:** Init refuses a target directory that sits inside an existing CUE module, before it writes anything. Every refusal D5 names still holds, and re-running init is still the repair. What changes against D5 is one case it accepted: a fresh directory nested in another CUE module's tree is now refused, with the enclosing module named.
+
+**Requirements:**
+
+- R1: A target directory that lies inside an existing CUE module is refused before anything is written, and the refusal names the enclosing module's root.
+
+**Alternatives considered:**
+
+- *The accepted rule (D5): refuse only a directory that exists or already holds a module or instance package.* Not kept: a standalone package nested in another module's tree is legal CUE, but the enclosing module's tooling may walk into it.
+- *Scaffold a colocated instance there instead: a package inside the enclosing module, with no module file of its own.* Rejected for this entry: colocated instances are a different package shape with their own dependency story, and init scaffolds only the standalone one.
+
+**Rationale:** Removing a refusal later breaks nobody; adding one after release breaks every script that relied on the looser rule. Starting strict keeps the choice open until colocated instances are designed.
+
+**Source:** User decision 2026-09-28, made while planning the cli change (`cli/openspec/changes/add-instance-init/design.md`, "Refusing a target inside a CUE module").
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

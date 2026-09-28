@@ -34,8 +34,9 @@ package contracts
 	// newest release".
 	version?: #VersionSelector
 
-	// Target directory. Defaults to the instance name; must not exist and
-	// must not already hold a module or instance package (D5).
+	// Target directory. Defaults to the instance name; must not exist,
+	// must not already hold a module or instance package (D5), and must not
+	// sit inside another CUE module (D10).
 	dir?: string
 
 	// The generated package's own module path. Never published; defaults

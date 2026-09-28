@@ -38,7 +38,7 @@ The core field can stop being read at any time. As an optional field it can even
 
 **Which repos must coordinate, and in what order?**
 
-Sequence: `core` → `cli` → `opmodel.dev` (mechanical CLI-reference regeneration, follows the landing).
+Sequence: `core` lands before the part of `cli` that reads the new field. The rest of the command, including the `debugValues` and empty rungs of the ladder, does not wait for it. `opmodel.dev` follows the landing (mechanical CLI-reference regeneration).
 
 - **The vet the report points at relies on [0019](../archive/0019/)'s render behaviour.** The generated package is only useful through `opm instance vet`/`build`, and 0019 defines what those do:
   - one CUE build per render with a derived render `cue.mod` (D9, D13 in 0019);
@@ -48,7 +48,7 @@ Sequence: `core` → `cli` → `opmodel.dev` (mechanical CLI-reference regenerat
   Without that behaviour a correct package fails outright with "unresolved demands" when the platform's catalog pin differs from the module's (experiment 03); with it, the same package renders with a skew warning.
 
 - `core` ships the new optional field (with SPEC.md co-update) and publishes a v2 tag; the artefact downstream consumes is that published tag.
-- `cli` ships `opm instance init` against that core tag. The fallback ladder means the CLI does not hard-require modules republished with the new field, only the new core *schema* version so the field is legal to read. No library release is required (D7).
+- `cli` ships `opm instance init` without moving its own core pin. A module is evaluated against the core version that module itself pins, so the CLI reads the field off any module that sets it, whatever core the CLI is bound to. The only thing that needs the core tag is a module that sets the field; for `cli` that is the test module exercising the `initValues` rung. The fallback ladder means no module has to be republished. No library release is required (D7).
 - `modules` is not required to do anything; authors adopt `initValues` module-by-module at their own pace, each adoption moving that module's core pin to the shipping tag first.
 
-Two hand-offs in a straight line; landings are logged in `delivery.yaml` as they happen.
+One hard hand-off, `core` to the `cli` part that reads the field; landings are logged in `delivery.yaml` as they happen.

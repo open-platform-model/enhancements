@@ -38,7 +38,7 @@ Two choices carry the design and everything else follows. The first is which ver
 
 1. [01-problem.md](01-problem.md): no path from a published module to a runnable instance package, and no home for the author's answer to what a new deployment starts as
 1. [02-design.md](02-design.md): resolve and acquire the module, pick a values source, render the standalone three-file package
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D9
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D10
 1. [04-graduation.md](04-graduation.md): what must hold before draft becomes accepted
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): observability, versioning, deprecation, rollback, cross-repo coordination

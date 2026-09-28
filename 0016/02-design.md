@@ -87,7 +87,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue) (core delta) and [`con
 - `opm instance init [instance-name] [module-path] [--from <module-path>] [--version <vN | X.Y.Z>] --namespace <ns> [--dir <dir>] [--module-path <path>]`
 - `module-path` is major-free (`opmodel.dev/modules/cert_manager`); a major suffix is refused with a hint to use `--version`. Resolution to an OCI repository goes through the standard `CUE_REGISTRY`/`OPM_REGISTRY` routing, exactly as every existing registry-facing command; there is no OCI-URL form and no bare-word shortcut.
 - `--version vN` floats within a major; an exact SemVer pins. Omitted, init selects the newest release of the highest major whose `opmodel.dev/core` dependency major equals the CLI's core major, and the report names what it chose and which higher majors it skipped.
-- Missing name or namespace is prompted for when a terminal is attached and refused otherwise; `--dir` defaults to the instance name and refuses an existing or module-holding directory. Exit codes 0 / 2 refused / 3 registry unreachable, as `module init`.
+- Missing name or namespace is prompted for when a terminal is attached and refused otherwise; `--dir` defaults to the instance name and refuses an existing or module-holding directory, and one inside another CUE module (D10). Exit codes 0 / 2 refused / 3 registry unreachable, as `module init`.
 - Output: the three-file package above plus a report naming the resolved version, the values source used, any warnings, and the vet command to run next.
 
 ## Integration Points
