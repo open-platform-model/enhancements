@@ -3160,7 +3160,11 @@ tasks:
             hits=$(for f in "$DIR"/$glob; do
                      [ -f "$f" ] || continue
                      if [ -n "$exc" ]; then
-                       grep -nE "$pat" "$f" 2>/dev/null | grep -vE "$exc" | sed "s|^|$(basename "$f"):|"
+                       # Test exclude against the line text, not the "N:" grep -n
+                       # prefix, so an anchored exclude (^\*\*Source:) can match.
+                       grep -nE "$pat" "$f" 2>/dev/null | while IFS= read -r hit; do
+                         printf '%s\n' "${hit#*:}" | grep -qE "$exc" || printf '%s\n' "$hit"
+                       done | sed "s|^|$(basename "$f"):|"
                      else
                        grep -nE "$pat" "$f" 2>/dev/null | sed "s|^|$(basename "$f"):|"
                      fi
