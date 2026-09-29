@@ -25,6 +25,8 @@ Each decision uses the four-field shape: Decision, Alternatives considered, Rati
 
 **Source:** User decision 2026-06-20.
 
+**Measured (2026-09-29):** the two type foundations still diverge. In `catalog_opm` at `dc33389`, the raw passthrough module (`opmodel.dev/catalogs/k8s@v1`, the successor of `catalog_kubernetes`) pins no `cue.dev/x/k8s.io` dependency: `grep -rl 'cue.dev/x/k8s.io' --include=*.cue k8s | grep -vc cue.mod/` counts 0 of its 69 CUE files outside `cue.mod/`, and its Kubernetes shapes are 9 hand-written files under `k8s/schemas/` (786 lines). The opinionated module (`opmodel.dev/catalogs/opm@v4`) pins `cue.dev/x/k8s.io@v0` at `v0.11.0`, and the same count over `opm` gives 7 of its 85 CUE files outside `cue.mod/`.
+
 ### D2: Catalog-on-catalog composition is supported, not forced
 
 **Kind:** policy
