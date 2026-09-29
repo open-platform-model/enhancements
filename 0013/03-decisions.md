@@ -53,9 +53,11 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 - **A dedicated `@secret(...)` attribute.** Rejected: it starts a second OPM attribute namespace for the second marker OPM has ever wanted, and a third for the third. One namespace with a dispatch slot scales; a name per concept does not.
 - **`@opm(kind=secret, …)` with no positional slot.** Rejected: more to type in the common case, and it diverges from the form already in use.
 
-**Rationale:** Enhancement 0011 D5 already establishes `@opm(identity, owner=publish)` for tool-owned identity fields, with the same shape: kind in position 0, key/value pairs after. Following it means one attribute name across OPM, one parse path in Go, and a reader who learns the convention once. Measured in experiment 01 that `Attribute.String(0)` cleanly separates `secret` from `identity` on a shared name, and that a field may carry `@opm(...)` alongside unrelated attributes without interference.
+**Rationale:** Enhancement 0010's original identity design used `@opm(identity, owner=publish)` for tool-owned identity fields, and 0011's publish design preserved it on write, with the same shape: kind in position 0, key/value pairs after. Enhancement 0010 later dropped that identity marker, so the shape is followed for its own merits rather than as a binding precedent. Following it means one attribute name across OPM, one parse path in Go, and a reader who learns the convention once. Measured in experiment 01 that `Attribute.String(0)` cleanly separates `secret` from `identity` on a shared name, and that a field may carry `@opm(...)` alongside unrelated attributes without interference.
 
 **Source:** Design proposal 2026-07-27, following the precedent in `enhancements/0011/02-design.md` and `enhancements/0003/experiments/06-identity-supply-mechanisms/`.
+
+**Revised:** 2026-09-29, Rationale only: the precedent was cited as a 0011 decision that concerns registry hosting; the marker came from 0010's original identity design, which later dropped it, and it is restated that way. The decision and its requirements are unchanged.
 
 ---
 
@@ -117,11 +119,13 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 **Alternatives considered:**
 
 - **Keep name computation in the transformers and fix the three formulas to agree.** Rejected: it repairs today's instance of the bug and leaves the mechanism that produced it: three derivations in two files, which drifted once and would drift again.
-- **Keep the derivation in CUE but funnel every call site through one shared helper.** Rejected because that is already the situation and it did not hold: `catalog_opm` has `#SecretImmutableName`, and both consumption sites call it: with *different inputs*. `container_helpers.cue:374` passes `{instance}-{component}` while `:78` builds `{instance}-{$secretName}` itself. A shared helper only guarantees agreement if every caller agrees on what to feed it, which is the thing that cannot be enforced from inside CUE.
+- **Keep the derivation in CUE but funnel every call site through one shared helper.** Rejected because that is already the situation and it did not hold: `catalog_opm` has `#SecretImmutableName`, and both consumption sites call it: with *different inputs*. The volume site passes `{instance}-{component}` while the environment-variable site builds `{instance}-{$secretName}` itself. A shared helper only guarantees agreement if every caller agrees on what to feed it, which is the thing that cannot be enforced from inside CUE.
 
 **Rationale:** Three independent derivations of one name is the root cause of the live mismatch in `01-problem.md`. Collapsing them to one authority does not so much fix the bug as make it unrepresentable: the volume site and the env site necessarily read the same string, and `schemas/examples.cue` pins that with `_assertVolumeAgreesWithEnv`. It also relocates content-hash immutable naming to the only party that can still see the data, since transformers no longer can.
 
 **Source:** Design proposal 2026-07-27, motivated by `catalog_opm/src/transformers/secret_transformer.cue:64-65` vs `container_helpers.cue:78` vs `:374-379`.
+
+**Revised:** 2026-09-29, one Alternatives bullet: the two call sites are named by role (volume, environment variable) instead of by line; the line references remain in Source. No answer changed.
 
 ---
 
