@@ -10,7 +10,7 @@ A published OPM artifact, as fetched from GHCR on 2026-08-25 (`opmodel.dev/modul
 
 So nothing signed travels with the artifact. Who published it, from which commit, on which builder, is unrecorded; and no consumer asks. The CLI's publish pipeline calls the plain `PutModule` (0011, `cli/internal/publish/registry.go`) and stops. The kernel's acquire path resolves a tag to a manifest and trusts what it gets. The operator materializes a platform's subscriptions the same way.
 
-CUE's package manager adds no protection of its own here: `cue.mod/module.cue` records versions, not digests (no sum field exists in the module-file schema, and the module cache verifies nothing beyond OCI content addressing). A pin names whatever manifest the tag points at when fetched. Immutability is a registry promise (0011 D10), not something a consumer can check.
+CUE's package manager adds no protection of its own here: `cue.mod/module.cue` records versions, not digests (no sum field exists in the module-file schema, and the module cache verifies nothing beyond OCI content addressing). A pin names whatever manifest the tag points at when fetched. Immutability is a registry promise (enhancement 0011), not something a consumer can check.
 
 What CUE does do is useful: its registry client mirrors **referrers** along with a module (`modregistry` `mirrorReferrers`). Claims attached beside a manifest survive a `cue mod mirror`; CUE otherwise ignores referrers entirely. The attachment channel exists and is empty.
 
@@ -54,5 +54,5 @@ and a failure at any step refuses the materialization with a message naming what
 
 - **Trust the registry's immutability.** Protects against tag re-pointing only if the registry enforces it and only against accidents, not against a push with a valid token.
 - **Sign the git tag.** Attests the source, not the artifact; nothing links the manifest digest to the tag, and nothing on the consumer side checks git.
-- **Put the commit in an annotation** (0022 D6). A useful pointer, unsigned; anyone who can push can write it.
-- **Verify by rebuilding.** Possible thanks to the deterministic zip (0011 D2) and worth doing (experiment 04), but it needs the source and a toolchain at verification time; it complements provenance rather than replacing it.
+- **Put the commit in an annotation** (enhancement 0022). A useful pointer, unsigned; anyone who can push can write it.
+- **Verify by rebuilding.** Possible thanks to the deterministic zip ([research/findings.md](research/findings.md)) and worth doing (experiment 04), but it needs the source and a toolchain at verification time; it complements provenance rather than replacing it.

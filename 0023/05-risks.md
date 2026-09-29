@@ -26,5 +26,5 @@
 ## Alternatives
 
 - **Do nothing beyond registry immutability.** Cheapest; leaves a valid-token push indistinguishable from a release. Rejected by the problem statement.
-- **Verify by rebuilding only.** Strong and independent of any signing service (the zip is deterministic, 0011 D2), but needs source and toolchain at verification time; experiment 04 measures it as a complement, not a replacement.
+- **Verify by rebuilding only.** Strong and independent of any signing service (the zip is deterministic; see [research/findings.md](research/findings.md)), but needs source and toolchain at verification time; experiment 04 measures it as a complement, not a replacement.
 - **Enforce only at the cluster with a generic admission policy.** Sees rendered objects, not artifacts; cannot check provenance of the CUE that produced them. Complementary.

@@ -24,7 +24,7 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 **Alternatives considered:**
 
 - *A third layer or a config-blob payload.* Rejected: CUE's client refuses a module manifest that does not have exactly two layers, and treats the config only as a type tag.
-- *Manifest annotations.* Rejected for signed claims: annotations are written by whoever pushes and carry no signature; they are the right place for unsigned hints (0022 D6) and nothing more.
+- *Manifest annotations.* Rejected for signed claims: annotations are written by whoever pushes and carry no signature; they are the right place for unsigned hints (as enhancement 0022 uses them) and nothing more.
 - *A parallel tag (`v2.0.1.sig`, `v2.0.1.att`).* Rejected as the primary form: the referrers convention already defines the fallback tag (`sha256-<digest>`) keyed by digest, which is what makes a claim follow the artifact rather than the tag name. The fallback may still be what the registry actually serves (experiment 01).
 - *A transparency log only, nothing in the registry.* Rejected: a consumer that resolves a tag has the registry in hand and may not have the log; the log is the discovery and audit channel, the referrer is the artifact-local copy.
 
@@ -35,6 +35,8 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 ### D2: The trust policy is the platform's
 
 **Kind:** contract
+
+**Depends:** 0019:D5
 
 **Decision:** Whom to trust is declared on the platform, not on the artifact, the CLI or the cluster. A platform states the signer identities and builders it accepts, with a per-subscription override, and every artifact the platform materializes is verified against that statement before its content is used. The kernel performs the verification so that the CLI and the operator reach the same verdict; the operator enforces, the CLI reports.
 
