@@ -30,7 +30,7 @@
 
 **Deliberately narrow.**
 
-- **Round-tripping a deployed instance.** Exporting a *live* instance to files is enhancement [0014](../0014/)'s territory (cluster → git). This entry is registry → disk, pre-deployment.
+- **Round-tripping a deployed instance.** Exporting a *live* instance to files is enhancement [0014](../../0014/)'s territory (cluster → git). This entry is registry → disk, pre-deployment.
 - **A general templating language.** The new `#Module` field carries a CUE value, not a text template; rendering it to `values.cue` is serialization, not template expansion.
 
 ## High-Level Approach

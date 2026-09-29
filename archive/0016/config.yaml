@@ -6,7 +6,7 @@ title: Initialize a Module Instance Package from a Published Module
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
   Generate a complete, ready-to-build module instance package from a published module, instead of hand-typing its pins, majors and wiring.
-status: accepted
+status: delivered
 category: distribution
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
@@ -21,7 +21,7 @@ affects:
 core_schema: true
 semver: minor
 created: "2026-08-13"
-updated: "2026-09-28"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. Free-form `event` strings;
@@ -68,6 +68,8 @@ history:
     semver: minor
   - date: "2026-09-28"
     event: "D10 added (Amends D5): init refuses a target inside an existing CUE module. Cross-repo order corrected: only the cli part reading initValues waits for core."
+  - date: "2026-09-29"
+    event: 'Closed as delivered: every live decision carried by the delivery log or excused; archived.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

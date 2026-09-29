@@ -40,7 +40,7 @@ The core field can stop being read at any time. As an optional field it can even
 
 Sequence: `core` lands before the part of `cli` that reads the new field. The rest of the command, including the `debugValues` and empty rungs of the ladder, does not wait for it. `opmodel.dev` follows the landing (mechanical CLI-reference regeneration).
 
-- **The vet the report points at relies on [0019](../archive/0019/)'s render behaviour.** The generated package is only useful through `opm instance vet`/`build`, and 0019 defines what those do:
+- **The vet the report points at relies on [0019](../0019/)'s render behaviour.** The generated package is only useful through `opm instance vet`/`build`, and 0019 defines what those do:
   - one CUE build per render with a derived render `cue.mod` (D9, D13 in 0019);
   - a platform that embeds its catalog (D5, D6 in 0019);
   - module-versus-platform catalog skew surfaced as a kernel-detected signal that defaults to warn-and-render (D7, D18 in 0019).

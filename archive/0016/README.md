@@ -1,3 +1,5 @@
+> **Delivered (2026-09-29).** Every live decision is carried by this entry's delivery log or excused in it (1 landings; `task delivery ID=0016`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0016` lists any.
+
 # Enhancement 0016: Initialize a Module Instance Package from a Published Module
 
 Deploying an OPM module means hand-writing a small CUE package: a module file with the right pins, an instance file wiring it to core, and a values file. Nothing generates it today, so people copy and edit an example until it validates. This entry adds a command that fetches the module and writes all three. The result builds untouched.
@@ -79,8 +81,8 @@ Three directories carry the shapes and the evidence. [`schemas/target.cue`](sche
 
 **Deferred to a different entry or command.**
 
-- Exporting a deployed instance to files. That is entry [0014](../0014/), from cluster to git; this entry goes from registry to disk.
-- A publish-time check that the starting values satisfy the module's config. If wanted, it is [0011](../archive/0011/)'s decision.
+- Exporting a deployed instance to files. That is entry [0014](../../0014/), from cluster to git; this entry goes from registry to disk.
+- A publish-time check that the starting values satisfy the module's config. If wanted, it is [0011](../0011/)'s decision.
 - Validating the generated package at init time. The report names the vet command; running it is the user's next step (D8).
 
 **Unaffected.**
@@ -94,10 +96,10 @@ Three directories carry the shapes and the evidence. [`schemas/target.cue`](sche
 
 ## Relationship to adjacent enhancements
 
-- [0002](../archive/0002/) renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary.
-- [0014](../0014/) covers the opposite direction of the same lifecycle, turning a deployed instance into committable files. Both share the generated-not-hand-assembled stance.
-- [0011](../archive/0011/) owns publish-time gates and the author-side scaffolder this command mirrors, so a publish-time conformance check on the new field would land there.
-- [0019](../archive/0019/) is the kernel render path the generated package is handed to, and this entry lands after it. The command's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`. Three of its decisions bear on the output:
+- [0002](../0002/) renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary.
+- [0014](../../0014/) covers the opposite direction of the same lifecycle, turning a deployed instance into committable files. Both share the generated-not-hand-assembled stance.
+- [0011](../0011/) owns publish-time gates and the author-side scaffolder this command mirrors, so a publish-time conformance check on the new field would land there.
+- [0019](../0019/) is the kernel render path the generated package is handed to, and this entry lands after it. The command's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`. Three of its decisions bear on the output:
   - Catalog version skew between a module and its platform becomes a kernel-detected signal that warns and renders by default (0019:D7 and 0019:D18). That is the failure experiment 03 met as unresolved demands against a platform on a different catalog pin.
   - The render step becomes one CUE build whose module file is derived by promotion from the inputs (0019:D9 and 0019:D13), the same derivation this entry's D9 performs.
   - The platform reshape (0019:D5 and 0019:D6) defines what the vet and build commands evaluate against.
