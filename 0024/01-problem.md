@@ -30,7 +30,7 @@ Almost everything OPM promises is the result of CUE evaluation: the core schema 
 
 **Drift across versions is invisible until a cluster sees it.** A `cue` toolchain bump, a core release, a catalog release and an upstream `k8s.io` snapshot can each change what an unchanged module renders to. The only mechanism that detects such a change today is the Go canary for one evaluator regression, built after the fact. 0019's own gate for the D15 sweep is "no default-named golden changes by a byte", and there is no golden.
 
-**The raw family's conformance claim is untested.** `catalog_opm/k8s` mirrors upstream group versions at adoption (0010 D48: `apps/v1 → @v1`, `autoscaling/v2 → @v2`). But no check confirms that a member's `(apiVersion, kind)` exists upstream at any Kubernetes version, that its rendered object satisfies the upstream definition, or which upstream kinds have no member. "Each version of Kubernetes is represented, and represented correctly" is a belief.
+**The raw family's conformance claim is untested.** `catalog_opm/k8s` mirrors upstream group versions at adoption (enhancement 0010's raw-family versioning rule: `apps/v1 → @v1`, `autoscaling/v2 → @v2`). But no check confirms that a member's `(apiVersion, kind)` exists upstream at any Kubernetes version, that its rendered object satisfies the upstream definition, or which upstream kinds have no member. "Each version of Kubernetes is represented, and represented correctly" is a belief.
 
 ## Concrete Example
 
