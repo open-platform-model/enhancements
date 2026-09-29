@@ -26,18 +26,19 @@ graph LR
   classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
-  Cschema["schema (6 live entries, 2 closed)"]:::category
+  Cschema["schema (5 live entries, 3 closed)"]:::category
   Cruntime["runtime (4 live entries, 2 closed)"]:::category
-  Cdistribution["distribution (5 live entries, 3 closed)"]:::category
+  Cdistribution["distribution (4 live entries, 4 closed)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (1 entry)"]:::category
 
-  Cschema -->|4| Cruntime
-  Cschema -->|4| Cdistribution
+  Cschema -->|3| Cruntime
+  Cschema -->|3| Cdistribution
   Cruntime -->|2| Cschema
   Cruntime -->|2| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
+  Cdistribution -->|1| Cruntime
   Ctooling -->|1| Cruntime
   Cmisc -->|1| Cschema
 ```
@@ -59,7 +60,7 @@ graph TD
 
   N0009["0009: Operational Primitives: Op, Action, Lifecycle, Wo…"]:::draft
   N0013["0013: Attribute-Declared Secret Fields"]:::accepted
-  N0015["0015: Catalog Contracts and Transformer Registration"]:::accepted
+  N0015["0015: Catalog Contracts and Transformer Registration"]:::delivered
   N0017["0017: Layered Defaults"]:::draft
   N0025["0025: Self-Describing Modules"]:::draft
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
@@ -72,8 +73,6 @@ graph TD
 
   N0009 -->|depends on| N0025
   N0013 -->|depends on| N0014
-  N0015 -->|depends on| N0010
-  N0015 -->|depends on| N0019
   N0017 -->|depends on| N0010
   N0018 -->|depends on| N0013
   N0020 -->|depends on| N0015
@@ -113,6 +112,7 @@ graph TD
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
   N0021["0021 · distribution"]:::stub
+  N0023["0023 · distribution"]:::stub
   N0024["0024 · tooling"]:::stub
   N0025["0025 · schema"]:::stub
   N0026["0026 · schema"]:::stub
@@ -120,7 +120,7 @@ graph TD
   N0012 -->|depends on| N0006
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006
-  N0015 -->|depends on| N0019
+  N0023 -->|depends on| N0019
   N0024 -->|depends on| N0019
   N0025 -->|depends on| N0019
   N0026 -->|depends on| N0019
@@ -147,18 +147,18 @@ graph TD
 
   N0010["0010: Module and Catalog Identity"]:::delivered
   N0011["0011: Module and Catalog Publishing"]:::delivered
-  N0016["0016: Initialize a Module Instance Package from a Publi…"]:::accepted
+  N0016["0016: Initialize a Module Instance Package from a Publi…"]:::delivered
   N0020["0020: Contract Promotion and Retirement"]:::draft
   N0021["0021: OPM Versioning Policy"]:::draft
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
+  N0019["0019 · runtime"]:::stub
   N0025["0025 · schema"]:::stub
   N0026["0026 · schema"]:::stub
   N0027["0027 · runtime"]:::stub
 
-  N0015 -->|depends on| N0010
   N0017 -->|depends on| N0010
   N0020 -->|depends on| N0010
   N0020 -->|depends on| N0011
@@ -169,6 +169,7 @@ graph TD
   N0022 -->|depends on| N0010
   N0022 -->|depends on| N0011
   N0022 -->|depends on| N0016
+  N0023 -->|depends on| N0019
   N0025 -->|depends on| N0010
   N0026 -->|depends on| N0010
   N0027 -->|depends on| N0010
