@@ -12,7 +12,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **An admission entry admits and bounds, and never loads a catalog (D4).** The platform has no dependencies and imports nothing, so the same fields serve as a cluster resource's spec and as an offline file for the CLI.
 
-**The render-time value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the authored platform plus the module's pins. That value is the registry today's core ships as `#Platform`, unchanged in shape and renamed `#ResolvedPlatform`; the authored value takes the name `#Platform`.
+**The render-time value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the module's pins plus the authored platform, when one is given. That value is the registry today's core ships as `#Platform`, unchanged in shape and renamed `#ResolvedPlatform`; the authored value takes the name `#Platform`.
 
 **A render with no platform stays a platform-less path (D3).** A render takes a module and, optionally, an authored `#Platform`. With none, the kernel generates the resolved platform from the render's own pins alone: every pinned catalog is held and no admission runs, because there is no platform team and no fleet to bound. Today the CLI generates that platform itself; this entry moves the generation into the kernel.
 
