@@ -32,7 +32,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-27"
-updated: "2026-09-24"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 history:
@@ -83,6 +83,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D1, D4); Kind on D1-D17, additive.'
+  - date: "2026-09-29"
+    event: 'D2 Rationale: miscited 0011 decision restated as 0010 original identity design, no edge. D9: an Alternatives bullet names call sites by role, not line. Revised lines added; no answer changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
