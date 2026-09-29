@@ -61,6 +61,8 @@ history:
     event: 'Requirements added to every decision (none on D4, D8), additive.'
   - date: "2026-09-29"
     event: "Revised for the CLI's own-deps platform on renders given no platform: gaps scoped to platform renders, D3's offline form restated, OQ8 opened (generated #Platform or platform-less)."
+  - date: "2026-09-29"
+    event: 'OQ8 resolved-by-D3 as option B: a render given no platform stays platform-less, its resolved platform kernel-generated from its pins, no admission; D3 R1 and R3 narrowed, R5 added.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

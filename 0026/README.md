@@ -14,7 +14,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The render-time value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the authored platform plus the module's pins. That value is the registry today's core ships as `#Platform`, unchanged in shape and renamed `#ResolvedPlatform`; the authored value takes the name `#Platform`.
 
-**A render with no platform already holds its own pins (OQ8).** When the CLI is given no platform and uses no cluster Platform, it generates one from the render's own dependency list, so there is nothing to admit against and no fleet to bound. Whether that path becomes a generated `#Platform` admitting exactly those pins, or stays platform-less, is open.
+**A render with no platform stays a platform-less path (D3).** A render takes a module and, optionally, an authored `#Platform`. With none, the kernel generates the resolved platform from the render's own pins alone: every pinned catalog is held and no admission runs, because there is no platform team and no fleet to bound. Today the CLI generates that platform itself; this entry moves the generation into the kernel.
 
 **Provider catalogs follow the same rule (D5, D6).** A provider's own catalog pin already fixes the version its registration carries. That version is the pick for any render that does not pin the provider's catalog itself. The registration gains a window defaulting to that version; an admission entry for that path is optional and, when present, replaces it, and the registration's status reports which window is in effect and where it came from.
 
@@ -83,7 +83,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 - Per-resolution generation of the resolved platform from the authored platform plus pins, and the convergence of the offline and cluster authored forms on one value (D3).
 - The registration window: a floor and a ceiling on the registration contract, defaulting to its exact version, plus the optional admission entry that overrides it. The effective window and its source are reported in the registration's status (D5, D6).
 - The shared-path requirement check, per render against the consumer's pins and at acceptance against the floors (D7).
-- How a render with no platform relates to the authored `#Platform`: a generated platform admitting exactly the render's pins, or a platform-less path (OQ8).
+- The platform-less path: a render given no platform generates its resolved platform from its own pins alone, holds every pinned catalog and runs no admission, and that generation moves from the CLI into the kernel (D3).
 
 ### Out of scope
 
