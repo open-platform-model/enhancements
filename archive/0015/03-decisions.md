@@ -203,7 +203,7 @@ This is recorded as a decision rather than left undecided because the timing is 
 
 **Kind:** scope
 
-**Depends:** 0010:D27, 0010:D28, 0010:D44
+**Depends:** 0010:D27, 0010:D28, 0010:D44, 0011:D9
 
 **Decision:** This entry ships no stability rule for transformer predicates across catalog builds, and records the resulting coverage explicitly so 0010 D27's additive-only promise is not read as covering a guarantee it does not make. D27 relates two builds of one *primitive*; a transformer is an adapter (0010 D44), and its predicate may change between builds. The three arrival cases land as follows: a **new transformer in an existing bucket** is caught by D5's comparable-predicate guard at platform assembly, naming both FQNs (an incomparable arrival coexists, same as authored intent); **predicate tightening** surfaces as 0010 D28's fail-closed refusal at render: loud and attributable, never silent; **predicate widening** (a build dropping a requirement, so the transformer matches components it never matched before and new objects appear on a routine catalog bump) is the one silent case, and it is explicitly **not guaranteed against** by this entry. The mechanism that could catch it, a publish-side predicate diff between consecutive builds, belongs to the publish-gate family (0011 D9's shape) and is deferred there, or to a successor entry if 0011 declines it.
 

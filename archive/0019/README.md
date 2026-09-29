@@ -97,7 +97,7 @@ Compilable CUE is split by whether it proposes a schema definition. [`schemas/`]
 - **Matching semantics.** How components pair with transformers is untouched in both phases. The gate for D10 is that the moved matcher reproduces the kernel's exact pair set. Where matching *executes* changes; what it *decides* does not.
 - **Changing the execution unit.** One component per transform evaluation is the original design intent and stays (D2).
 - **Removing the instance input from the schema.** It is intended surface; the fix is to fill it (D3).
-- **Per-transformer selection in the platform file.** D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement [0015](../../0015/), as do the runtime-registration questions this entry defers there.
+- **Per-transformer selection in the platform file.** D5 embeds a catalog's transformer map whole; choosing among transformers belongs to enhancement [0015](../0015/), as do the runtime-registration questions this entry defers there.
 - **Publishing platforms to a registry.** Disallowed under D6 as revised: the generated platform package is build-local by construction and the reserved namespace stays reserved and unpublished.
 - **The schema-side name workaround.** Copying the computed name into a regular field is made unnecessary rather than implemented, because the transformer sweep it motivated is now in scope (D15) and reads the projection instead of duplicating it.
 - **Improving the empty-disjunction error.** Filling all three inputs removes the most common way to reach it; the message itself stays as unhelpful as it is today.
