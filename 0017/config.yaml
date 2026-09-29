@@ -19,7 +19,7 @@ affects:
   - modules
 core_schema: true
 created: "2026-08-18"
-updated: "2026-09-24"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones.
@@ -52,6 +52,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D6); Kind changed to contract on D8 (body states observable behaviour), additive.'
+  - date: "2026-09-29"
+    event: 'Mechanism smell cleared in D4: the finalize point is stated as a contract (after validation, before values reach the composition) instead of a file:line and function names. Meaning unchanged.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
