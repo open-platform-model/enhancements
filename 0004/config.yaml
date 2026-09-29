@@ -32,7 +32,7 @@ affects:
   - modules
 core_schema: false
 created: "2026-06-17"
-updated: "2026-09-24"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -69,6 +69,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D1, D2, D3, D4, D5, D6, D12, D13); Kind on D1-D13, additive.'
+  - date: "2026-09-29"
+    event: 'check WARNs cleared: D13 Architecture B bullet drops a function token (Revised line added); research/findings.md measures tracked CUE modules per repo. No answer changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
