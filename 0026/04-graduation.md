@@ -13,7 +13,7 @@ is what is true of THIS design and no other.
 
 Beyond the repo-wide gates, five criteria specific to this design must hold:
 
-- OQ1, OQ2, OQ3 and OQ8 are resolved into decisions: the record of held catalog versions has a named field, the platform's relation to `core`'s version is stated, the reference versions for the module-less readiness build are named per path kind, and a render given no platform is either served by a generated `#Platform` or stated as a platform-less path.
+- OQ1, OQ2 and OQ3 are resolved into decisions: the record of held catalog versions has a named field, the platform's relation to `core`'s version is stated, and the reference versions for the module-less readiness build are named per path kind.
 - `schemas/examples.cue` exercises an authored platform with a static entry, a static entry with a ceiling, a provider entry, a disabled entry and an entry admitting prereleases, plus a resolved platform for one render, and pins must-fail cases for a missing floor, a ceiling on a different major than the path, and a prerelease bound without opt-in.
 - 0019 D13, 0019 D6, 0015 D3, 0015 D8 and 0015 D11 each have their amendment stated in this entry's decision that depends on them, in one sentence a reader of the older entry can find.
 - The refusal vocabulary is complete: not admitted, below floor, above ceiling, prerelease without opt-in, shared-path requirement exceeded, and platform range excluding a registration's version each name the parties and the values involved.
