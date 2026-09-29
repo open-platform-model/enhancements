@@ -48,6 +48,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Source:** Design review 2026-06-23.
 
+**Measured (2026-09-29):** embedding costs the operator no new module, and costs the CLI one. In `opm-operator` at `8529e00`, `go.mod` already lists `sigs.k8s.io/kustomize/api v0.21.1` as indirect, and `go mod why -m sigs.k8s.io/kustomize/api` shows the operator's apply package reaching `sigs.k8s.io/kustomize/api/krusty` through Flux `cli-utils` and `k8s.io/cli-runtime`. In `cli` at `e9a9e4e`, `go.mod` names no kustomize module and the same command reports that the main module does not need it.
+
 ---
 
 ### D3: Side manifests reuse the existing ownership, inventory, and prune machinery
