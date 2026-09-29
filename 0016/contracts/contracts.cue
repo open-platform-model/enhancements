@@ -51,14 +51,23 @@ package contracts
 
 // #VersionSelection: how the resolved version was arrived at, reported to
 // the user (D5). When the selector was absent, `skipped` lists every
-// higher major passed over because its opmodel.dev/core dependency major
-// differs from this CLI build's core major.
+// higher major passed over, with the reason: its opmodel.dev/core
+// dependency major differs from this CLI build's core major, it declares
+// no opmodel.dev/core dependency, or it holds no selectable release.
 #VersionSelection: {
-	major:    =~"^v[0-9]+$"
-	version:  string // bare SemVer, e.g. "3.0.0"
-	strategy: "exact" | "float-major" | "highest-compatible-major"
+	major:        =~"^v[0-9]+$"
+	version:      string // bare SemVer, e.g. "3.0.0"
+	strategy:     "exact" | "float-major" | "highest-compatible-major"
 	cliCoreMajor: =~"^v[0-9]+$"
-	skipped: [...{major: =~"^v[0-9]+$", coreMajor: =~"^v[0-9]+$"}]
+	skipped: [...#SkippedMajor]
+}
+
+#SkippedMajor: {
+	major:  =~"^v[0-9]+$"
+	reason: "other-core-major" | "no-core-dependency" | "no-selectable-release"
+	if reason == "other-core-major" {
+		coreMajor!: =~"^v[0-9]+$"
+	}
 }
 
 // #ValuesSource: which content populated the generated values.cue —
@@ -100,10 +109,10 @@ package contracts
 // does not validate the package it wrote (D8); `next` names the command
 // that does.
 #InstanceInitReport: {
-	modulePath: string
-	selection:  #VersionSelection
+	modulePath:   string
+	selection:    #VersionSelection
 	valuesSource: #ValuesSource
-	dir:        string
+	dir:          string
 
 	// Non-fatal notices — "values.cue scaffolded from debugValues; review
 	// before deploying" when valuesSource is "debugValues"; "no initValues
@@ -122,7 +131,10 @@ _exampleReport: #InstanceInitReport & {
 		version:      "2.0.1"
 		strategy:     "highest-compatible-major"
 		cliCoreMajor: "v2"
-		skipped: [{major: "v3", coreMajor: "v3"}]
+		skipped: [
+			{major: "v4", reason: "no-selectable-release"},
+			{major: "v3", reason: "other-core-major", coreMajor: "v3"},
+		]
 	}
 	valuesSource: "debugValues"
 	dir:          "cert-manager"
