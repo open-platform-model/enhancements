@@ -84,7 +84,7 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 **Kind:** contract
 
-**Decision:** Between config validation and `FillPath(schema.Values, …)` (`library/opm/kernel/process.go:42`), the kernel resolves every `#config` default to its concrete value, so the composition receives plain data. Applies identically to the `ValidateConfigDetailed` layered-sources path (finalize after the last source merges) and the debugValues/synth path. Consequence, accepted deliberately: a config default becomes a commitment. A default that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
+**Decision:** After config validation and before the validated values are filled into the composition, the kernel resolves every `#config` default to its concrete value, so the composition receives plain data. Applies identically to every path that hands values to the composition: layered-source validation (finalize after the last source merges) and the debug-values/synthesis path. Consequence, accepted deliberately: a config default becomes a commitment. A default that violates a downstream constraint errors loudly instead of being silently replaced by a surviving disjunct.
 
 Under D8's compatibility contract, this is divergence *elimination*: the kernel is stricter and louder than plain CUE, which silently substitutes. The collision case the finalize resolves is divergence *collision*: the kernel succeeds where plain CUE fails loudly with `incomplete value`. Neither is a silent fork of plain-CUE semantics.
 
