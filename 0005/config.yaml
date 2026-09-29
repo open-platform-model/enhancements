@@ -27,7 +27,7 @@ affects:
   - opmodel.dev
 core_schema: false
 created: "2026-06-20"
-updated: "2026-09-24"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -59,6 +59,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D1, D2, D3), additive.'
+  - date: "2026-09-29"
+    event: 'check WARNs cleared: design drops a file:line pointer for the contract it showed; D1 gains a measured claim on the diverging type foundations. No answer changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
