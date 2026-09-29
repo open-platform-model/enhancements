@@ -5,13 +5,12 @@ title: Catalog Contracts and Transformer Registration
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  A Catalog lists the resources, traits and blueprints it defines, and installing a transformer
-  provider registers it in the cluster, one provider per contract.
+  A Catalog lists the resources, traits and blueprints it defines, and installing a transformer provider registers it in the cluster, one provider per contract.
 # Aggregate design impact: schema-additive but a break in effect — the
 # inventory is trivial until every catalog republishes with populated
 # contract maps (06-operational.md ## Semver Impact).
 semver: major
-status: accepted
+status: delivered
 category: schema
 # Every repo that ships code/schema/content changes driven by this enhancement.
 affects:
@@ -22,7 +21,7 @@ affects:
   - catalog
 core_schema: true
 created: "2026-08-05"
-updated: "2026-09-24"
+updated: "2026-09-29"
 authors:
   - emil@jacero.se
 history:
@@ -81,6 +80,10 @@ history:
     event: 'Requirements added to every decision (D1-D18; none on D2, D4, D7), additive, no decision body changed.'
   - date: "2026-09-24"
     event: 'Kind on D1-D16, additive.'
+  - date: "2026-09-29"
+    event: 'D7 gains Depends 0011:D9, the publish-gate family it defers the widening gate to; depends_on lists 0011. No answer, number, Source or Kind changed.'
+  - date: "2026-09-29"
+    event: 'Closed as delivered: every live decision carried by the delivery log or excused; archived.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -89,6 +92,7 @@ history:
 # both directions and refuses a cycle.
 depends_on:
   - "0010"
+  - "0011"
   - "0019"
 supersedes: []
 # Archived ids this entry re-opens. One-way: the archived entry is frozen

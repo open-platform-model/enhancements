@@ -106,6 +106,6 @@ None at this stage. Update when implementation lands.
 | -------- | ------- |
 | [0010](../archive/0010/) | The identity reshape this entry extends: contracts keyed by API version (D4), additive-only inside a level (D27), the ladder and the rejected deprecation window (D34), publish-side enforcement (D35), transformers without an API version (D44), catalog consolidation and version-segment filing (D47, D49) |
 | [0011](../archive/0011/) | The publishing pipeline these gates join: the compatibility gate (D9), predecessor selection by backward scan (D23), immutable published artifacts (D10), gates written as schema (D21, D22), and the open removal question this entry closes (OQ10) |
-| [0015](../0015/) | Catalog contract members (D1), the prerequisite for iterating contracts; the removal-with-dependents refusal (D16), whose cluster-side half this entry defers; the deferred aliasing question (OQ5) |
+| [0015](../archive/0015/) | Catalog contract members (D1), the prerequisite for iterating contracts; the removal-with-dependents refusal (D16), whose cluster-side half this entry defers; the deferred aliasing question (OQ5) |
 | `core/SPEC.md` §2.1, §2.2, §3.3, §5.2, §5.3 | The sections the delta in [`schemas/spec.md`](schemas/spec.md) changes |
 | `core/openspec/config.yaml` | The constitution governing `core` schema changes |

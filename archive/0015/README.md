@@ -1,3 +1,5 @@
+> **Delivered (2026-09-19).** Every live decision is carried by this entry's delivery log or excused in it (24 landings; `task delivery ID=0015`). The design is closed: a correction is a new enhancement that amends it, and `task show ID=0015` lists any.
+
 # Enhancement 0015: Catalog Contracts and Transformer Registration
 
 A Catalog ships two things: contracts, the Resources, Traits and Blueprints a Module can use, and transformers, the code that builds Kubernetes objects from them. A Catalog can define a contract it does not implement, like backup. Today that gap is invisible until a render fails. This entry lists contracts in the Catalog, and installing a provider registers its transformers.
