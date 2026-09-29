@@ -1,0 +1,8 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-09-29"
+    summary: >-
+      opm instance init writes a standalone, tidied instance package for a published module, values from initValues, debugValues or empty (cli PR 235)
+    change: { kind: openspec, repo: cli, change: 2026-09-29-add-instance-init }
+    decisions: [D1, D2, D3, D4, D5, D6, D7, D8, D9, D10]
