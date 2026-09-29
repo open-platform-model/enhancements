@@ -36,6 +36,6 @@ Core is additive; a previous library builds against the same core major. Publish
 
 - `core` publishes the authored `#Platform`, `#CatalogAdmission` and `#ResolvedPlatform` before any consumer can author a platform or generate a resolved one; the library's rename of its `#Platform` reader lands in the same step.
 - The `transformer-registration` contract in catalog_opm carries `floor` and `ceiling` before a provider module can author a window; a provider on the previous contract still registers, with an exact window by default.
-- The library's render-list derivation, the resolved-platform generation and the refusal vocabulary exist before either frontend can consume an authored platform; the CLI's offline path and the operator's CR path are independent consumers of the same kernel behaviour.
+- The library's render-list derivation, the resolved-platform generation and the refusal vocabulary exist before either frontend can consume an authored platform; the CLI's authored-file path and the operator's CR path are independent consumers of the same kernel behaviour.
 - The operator's acceptance-side reading of an admission entry (D6, D7) needs the range-form CR, so the CRD shape lands with or before it.
 - Enhancement 0027 consumes this entry's range vocabulary; nothing here depends on 0027.

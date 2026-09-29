@@ -67,6 +67,6 @@ The provider case has the same shape with nobody holding the pin. A module decla
 
 **Ship the transformer inside the module.** Rejected by 0015 D10 and by 0019 D13's authority rule: the platform decides what code executes. It also gives up the fleet-wide fix lever entirely, the Helm chart-library failure where a fix reaches an instance only when its author re-releases.
 
-**Render without a platform.** The CLI renders against the render's own pins whenever no platform is given, and the render then holds the tested version. It works only where no platform exists: the operator always renders against its Platform, and a CLI render against a cluster that has one takes the platform's pin. It also admits whatever the module pins, bounded by nothing, and carries no registrations, so a provider-fulfilled demand is unresolved on this path.
+**Render without a platform.** The CLI renders against the render's own pins whenever no platform is used, and the render then holds the tested version. It holds nothing once a platform is in play: the operator always renders against its Platform, and an instance render or module apply against a cluster that has one takes the platform's pin. It also admits whatever the module pins, bounded by nothing, and carries no registrations, so a provider-fulfilled demand is unresolved on this path.
 
 **Report the skew and carry on.** The current state. It names the problem on every render and cannot act on it, because the render list is derived before the diagnostic is written.
