@@ -50,6 +50,8 @@ Two layers replace one file.
 
 **Refusal replaces promotion.** A consumer pin below the floor is refused. Raising the floor is therefore the platform's fleet-wide lever, and it is a lever that names every instance it stops rather than moving them.
 
+**A render with no platform holds its own pins already.** The CLI already renders against the render's own pins when no platform is given: a module render without a platform directory, and an instance render or module apply that uses no cluster Platform. It generates a platform module from those pins, so the module's version is held and nothing is admitted or bounded, because there is no platform team and no fleet. Everything above applies when a platform is given. Whether the platform-less path survives as a generated `#Platform` admitting exactly the render's pins, or stays a path with no `#Platform` at all, is OQ8; the answer decides whether D3's "a render takes an authored platform and a module" holds for every render or only for renders given one.
+
 ## Schema / API Surface
 
 Full shapes in [`schemas/target.cue`](schemas/target.cue).
@@ -68,7 +70,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 
 **opm-operator.** The Platform CRD's spec takes the authored `#Platform` shape: a map of catalogs with floor, optional ceiling, prerelease opt-in and optional registry, replacing an exact version per path. Registration acceptance reads the admission entry for the claimed catalog, if any, and writes the effective window and its source to the registration's status. A warning condition marks a platform range that exceeds the provider's declared window. Platform-package generation becomes per-resolution.
 
-**cli.** Offline renders start from an authored `#Platform` file instead of a platform module; the module-form platform under the CLI's hack tooling goes away. `opm platform check` evaluates against the static floors and the registration versions as reference versions.
+**cli.** A render given a platform, by an explicit directory or by the cluster Platform, starts from an authored `#Platform` instead of a platform module, and its catalog versions come from the render's pins inside that platform's ranges rather than from the platform. A render given none already holds its own pins through a platform the CLI generates from them; what becomes of that path is OQ8. `opm platform check` evaluates against the static floors and the registration versions as reference versions.
 
 **catalog_opm.** The `transformer-registration` contract gains `floor` and `ceiling` with `version` as their default, and the rendering transformer copies them to the CR.
 

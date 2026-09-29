@@ -22,13 +22,13 @@ The Platform CRD's spec changes shape: a map of catalogs with floor, optional ce
 
 **What gets removed and when? What replaces it?**
 
-The hand-authored platform module for offline CLI renders is replaced by an authored `#Platform` file with the same fields as the Platform CR's spec. The names `#PlatformSpec` and `#Subscription` from this entry's first draft never ship. The exact-version-per-path form of the Platform CR is replaced by the range form. 0019 D13's rule that the platform wins on catalog paths is replaced by D1; 0019 D6's once-per-CR platform generation is replaced by per-resolution generation. Nothing in core is removed; the shipped `#Platform` continues under the name `#ResolvedPlatform`.
+The platform module the CLI takes as an explicit directory is replaced by an authored `#Platform` file with the same fields as the Platform CR's spec. There is no implicit local platform to replace: a CLI render given no platform generates one from its own pins, and whether that generated form is kept, or becomes a generated `#Platform`, is OQ8. The names `#PlatformSpec` and `#Subscription` from this entry's first draft never ship. The exact-version-per-path form of the Platform CR is replaced by the range form. 0019 D13's rule that the platform wins on catalog paths is replaced by D1; 0019 D6's once-per-CR platform generation is replaced by per-resolution generation. Nothing in core is removed; the shipped `#Platform` continues under the name `#ResolvedPlatform`.
 
 ## Rollback
 
 **If this lands and proves bad, what's the rollback story?**
 
-Core is additive; a previous library builds against the same core major. Published catalogs and modules are untouched: no artifact changes, and every module's `cue.mod` pin was already committed before this entry. Reverting the kernel restores platform-wins promotion and the authored platform module, and every instance renders again at the platform's pin, which is a fleet-wide change of held versions and must be treated as one. The Platform CR's range form does not read back as the exact form; a rollback of the operator needs the CR restored to its previous shape, which is why the CRD version question belongs to the implementing change.
+Core is additive; a previous library builds against the same core major. Published catalogs and modules are untouched: no artifact changes, and every module's `cue.mod` pin was already committed before this entry. Reverting the kernel restores platform-wins promotion and the module-form platform input, and every instance rendered against a platform renders again at the platform's pin, which is a fleet-wide change of held versions and must be treated as one. A CLI render given no platform is unaffected: it held its own pins before this entry and holds them after a rollback. The Platform CR's range form does not read back as the exact form; a rollback of the operator needs the CR restored to its previous shape, which is why the CRD version question belongs to the implementing change.
 
 ## Cross-Repo Coordination
 

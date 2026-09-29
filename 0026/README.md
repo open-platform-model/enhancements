@@ -1,6 +1,6 @@
 # Enhancement 0026: Module-Dictated Catalog Versions and the Generated Platform
 
-A platform declares which catalogs a render may use, and today it pins one exact version of each. Every module renders against that pin, even if the author tested another, and needing a newer definition means waiting for a platform edit. This entry splits that number into two jobs: the platform sets a range, the module picks inside it.
+A platform declares which catalogs a render may use, and today it pins one exact version of each. Every module rendered against a platform uses that pin, even if the author tested another, and needing a newer definition means waiting for a platform edit. This entry splits that number into two jobs: the platform sets a range, the module picks inside it.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -13,6 +13,8 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 **An admission entry admits and bounds, and never loads a catalog (D4).** The platform has no dependencies and imports nothing, so the same fields serve as a cluster resource's spec and as an offline file for the CLI.
 
 **The render-time value is generated, and its shape does not change (D3).** For each render the kernel builds a platform module from the authored platform plus the module's pins. That value is the registry today's core ships as `#Platform`, unchanged in shape and renamed `#ResolvedPlatform`; the authored value takes the name `#Platform`.
+
+**A render with no platform already holds its own pins (OQ8).** When the CLI is given no platform and uses no cluster Platform, it generates one from the render's own dependency list, so there is nothing to admit against and no fleet to bound. Whether that path becomes a generated `#Platform` admitting exactly those pins, or stays platform-less, is open.
 
 **Provider catalogs follow the same rule (D5, D6).** A provider's own catalog pin already fixes the version its registration carries. That version is the pick for any render that does not pin the provider's catalog itself. The registration gains a window defaulting to that version; an admission entry for that path is optional and, when present, replaces it, and the registration's status reports which window is in effect and where it came from.
 
@@ -68,7 +70,7 @@ The tidied closure is the module's full committed dependency list, the one the r
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ6
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ8
 
 Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the example instances whose unification is the test, and the specification delta.
 
@@ -81,6 +83,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 - Per-resolution generation of the resolved platform from the authored platform plus pins, and the convergence of the offline and cluster authored forms on one value (D3).
 - The registration window: a floor and a ceiling on the registration contract, defaulting to its exact version, plus the optional admission entry that overrides it. The effective window and its source are reported in the registration's status (D5, D6).
 - The shared-path requirement check, per render against the consumer's pins and at acceptance against the floors (D7).
+- How a render with no platform relates to the authored `#Platform`: a generated platform admitting exactly the render's pins, or a platform-less path (OQ8).
 
 ### Out of scope
 
