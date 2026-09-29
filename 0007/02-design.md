@@ -97,7 +97,7 @@ spec:
 ```
 render(module) ──┐
                  ├─► [Unstructured…] ─► label+inventory ─► staged SSA ─► prune
-passthrough() ───┘   (rendered + side manifests, one set, one uuid)
+extraManifests ──┘   (rendered + side manifests, one set, one uuid)
 ```
 
 `kubectl delete modulerelease web-app` now prunes the `ServiceMonitor` and the overlay output along with the rendered workload, because all three are in `status.inventory` under the release UUID.
