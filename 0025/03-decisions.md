@@ -104,6 +104,8 @@ Operational primitives attach at the projected instance's transitions, and a ser
 
 **Rationale:** Four entries each wanted a top-level field on `#Module` (lifecycle in 0009, seed values in 0016, a status schema and an offerability flag here). One named extension point, filled from catalogs, is how 0010 already answered the same pressure for primitives: shapes in core, vocabulary in catalogs. Transposing `#Component` rather than inventing a shape keeps the derived-matchLabels rule (0010 D36), the name cascade and the closed spec as they are.
 
+**Measured (2026-09-29):** the unchecked gap R2, R3 and R7 close exists today. Against `opmodel.dev/core@v2` at core `main` 4c68be0 with cue v0.17.1, a probe in package `core` evaluating `#Module & {#aspects: edge: {}}` succeeds, while the same probe with a regular `aspects` field fails with "field not allowed". CUE's closedness does not cover definition fields, so a module can already write `#aspects` and core accepts it unvalidated; `grep -rn '#aspects\|#ModuleTrait\|#ModuleTransformer' core/src --include=*.cue` returns 0 lines, so nothing reads it either.
+
 **Source:** User decision 2026-09-19.
 
 ### D12: `#ModuleTrait` is a sibling of `#Trait`, not a mode of it
