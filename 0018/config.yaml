@@ -21,7 +21,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-26"
+updated: "2026-09-29"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -74,6 +74,10 @@ history:
     event: 'D8: every page is built and shown from the moment it exists while the site is unpublished; the no-placeholder rule moves to Alternatives; OQ15 opened (what a page holds before publication).'
   - date: "2026-09-26"
     event: 'D9: a comparison with Helm, or with any other deployment tool, appears only on Start here pages; every other page explains OPM on its own terms. Template and skill updated.'
+  - date: "2026-09-29"
+    event: 'D7: a section index may open with an authored overview above its generated list, written where the section is owned; the Start here overview is authored in opm.'
+  - date: "2026-09-29"
+    event: 'D14 added: figures are hand-built inline SVG components with one visual language; D2 was prototyped and rejected.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -135,7 +135,7 @@ Future work appears only in a direction note: a marked block on an explanation p
 
 **Decision:** Every page on the site is exactly one of four types: tutorial, how-to guide, explanation or reference. A section holds several types, but a page never mixes them. Each authored page declares its title, a one-line description and its type, and nothing else is required.
 
-The section a page belongs to, and the address other pages link it by, come from where the page sits, never from a declared field, so the two cannot disagree. Every section's index page is generated from its pages' descriptions, grouped by type in a fixed order: tutorials, how-to guides, explanations, reference. No index page is written by hand.
+The section a page belongs to, and the address other pages link it by, come from where the page sits, never from a declared field, so the two cannot disagree. Every section's index page lists its pages, generated from their descriptions and grouped by type in a fixed order: tutorials, how-to guides, explanations, reference. No index list is written by hand. Above the list, an index may open with an authored overview, written in the repository that owns the section; the Start here overview is one, a visual map of OPM written in `opm`. An overview declares no type.
 
 **Requirements:**
 
@@ -149,10 +149,11 @@ The section a page belongs to, and the address other pages link it by, come from
 - **The four types as the top-level navigation.** Already rejected for the disjoint-audience reason in `05-risks.md`. Kept one level down instead, on every page.
 - **Declare the section and a link id on each page.** Rejected: the same fact stated in two places drifts, and a moved page would keep claiming its old section.
 - **Hand-written section index pages.** Rejected: an index nobody regenerates is the first page to go stale. KCP generates its section indexes from each page's description line and writes none by hand.
+- **Generated indexes with no authored text.** Previously adopted in this entry. Rejected for the overview only: a section's first page is where a new reader needs a picture of the whole before any list of pages, and a generated list cannot give one. The list itself stays generated.
 
 **Rationale:** The central failure Diátaxis names is types bleeding into each other, worst of all tutorials and how-to guides collapsing into one. The risk is higher here than in a single-repo project because several repositories write pages. A declared type tells the writer which rules apply and lets a reviewer check them. The description does double duty as the index entry and the search snippet, so it is always written.
 
-**Source:** User decision 2026-09-24. Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's section indexes.
+**Source:** User decisions 2026-09-24 and 2026-09-29 (an authored overview above the generated list; the Start here overview in `opm`). Evidence: [research/findings.md](research/findings.md), sections on Diátaxis and on KCP's section indexes.
 
 ### D8: A page lives in the repository whose change would make it wrong; the site is assembled by section
 
@@ -283,5 +284,23 @@ A rule becomes a machine check only after review has caught the same problem twi
 **Rationale:** Naming the checker keeps the guide honest, the way D1's badges keep OPM's own rules honest: no rule claims more than whatever enforces it. The twice-caught threshold keeps tooling driven by evidence, not by what could be automated. Running checks where the page is written keeps the feedback in the pull request that caused the problem.
 
 **Source:** User decision 2026-09-25.
+
+### D14: Figures are hand-built inline SVG with one visual language
+
+**Kind:** policy
+
+**Decision:** A figure on the site is an Astro component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the site's import alias for components. Every figure speaks one visual language: one colour per role (module author, deployer, platform team) with Kubernetes objects neutral, one shape per kind of thing, arrows labelled with verbs, and a top-to-bottom flow that stays readable at phone width. It uses only the site theme's colour tokens, so it follows the site's light/dark switch. Each figure states one point in a caption, and carries the same text as its accessible label, so nothing is only in the picture.
+
+**Requirements:** none (a design posture checked in review)
+
+**Alternatives considered:**
+
+- **D2 code blocks, rendered by `astro-d2`.** Prototyped 2026-09-29 with the Start here overview's first figure, and rejected. Its dark mode is a `prefers-color-scheme` media query baked into the SVG, so a reader who sets the site to dark on a light OS sees a light diagram on a dark page. Its dark theme clashes with the site palette, and its text shrank to about 6 px at phone width. Editing a figure as text in the page did not outweigh these.
+- **Mermaid.** Not prototyped. Rejected: a generic look and little control over layout. GitHub rendering it in previews was its main advantage.
+- **Image files next to the page.** Rejected: an SVG in an `img` element cannot use the site's colour tokens, and the site build copies only Markdown and MDX files from the source repositories.
+
+**Rationale:** The documentation leans on figures because OPM's model is easier to see than to read. With many figures, consistency matters more than any single one: a reader who learns that orange means the platform team on one page reads the next figure without a legend. Hand-built SVG costs more per figure, and a change needs an SVG edit rather than a text edit, but it was the only option measured that follows the site's theme switch and stays readable on a phone.
+
+**Source:** User request and decision 2026-09-29 (lots of well-designed visuals; hand-built SVG after comparing the D2 prototype).
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
