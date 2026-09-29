@@ -60,6 +60,8 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 **Rationale:** The encoder 0008 chose for core's own CRDs is the same one this needs; the gap between "declared OpenAPIv3-compatible" and "encodes" is exactly what the refusal names. Structural schemas are also what admission policy engines and typed clients key on, so the promise is worth enforcing where it is used.
 
+**Measured (2026-09-29):** a legal `#config` can fail to encode structurally, so the refusal has real inputs to catch. Method: `cue def --out openapi` (cue v0.17.1, the `encoding/openapi` encoder 0008:D3 names; the probe has no references, so `ExpandReferences` does not change the output) on `#Config: {port: int | string, replicas: int & >=1 | *1}`, then the `components.schemas.Config` schema it emits checked with the Kubernetes structural-schema validator from `k8s.io/apiextensions-apiserver` v0.36.4 (the version opm-operator pins). Result: 3 violations, all on `port`: each `oneOf` branch's `type` is forbidden ("must be empty to be structural") and the property's own `type` is missing ("must not be empty for specified object fields"). The control, the same `#Config` with `port: int`, has 0 violations.
+
 **Source:** Design conversation 2026-09-08; core's module schema comment declaring `#config` OpenAPIv3-compatible, read the same day.
 
 ### D3: An instance of a definition is a projected `#ModuleInstance`; there is no second render path
