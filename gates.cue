@@ -59,7 +59,8 @@ package enhancements
 	// Extended regex, applied per line (grep -nE).
 	pattern!: string
 
-	// Lines matching this are dropped BEFORE matching. Evidential citation
+	// Pattern hits whose line text matches this are dropped, so `^` anchors
+	// at the start of the line, not the grep -n prefix. Evidential citation
 	// is the desired state, not a smell: a path in a Source line or a dated
 	// measurement is provenance the repo wants kept, and counting it would
 	// reward deleting exactly what the rule protects.
