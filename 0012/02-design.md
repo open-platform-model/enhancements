@@ -97,13 +97,13 @@ Deletion becomes a kernel-owned state machine over inputs the kernel already und
    ──────                          ──────                        ──────
    inventory entries
    instance identity (UUID)   ┌──────────────────┐
-   deletion policy            │  DeletionPlan()  │──▶ ordered []PlannedAction
+   deletion policy            │  deletion plan   │──▶ ordered []PlannedAction
    live object state          │                  │      each: Delete | Skip(reason)
                               └──────────────────┘
                                        │
                                        ▼                        performs each
                               ┌──────────────────┐              action itself,
-                              │ MayReleaseHold() │──▶ verdict   asking the kernel
+                              │   hold verdict   │──▶ verdict   asking the kernel
                               └──────────────────┘              for the next one
                                 Release | Hold(reason)
 ```
@@ -170,7 +170,7 @@ The `postgres` CRD-removal scenario from [`01-problem.md`](01-problem.md):
 ```
 stale entry: CustomResourceDefinition/backups.example.com
 
-  operator ──▶ isSafeToDelete()        ──▶ skip, log, PruneResult.Skipped++
+  operator ──▶ safety exclusion check  ──▶ skip, log, PruneResult.Skipped++
   cli      ──▶ Kind == "Namespace"?    ──▶ no ──▶ DELETE
                                                   └─▶ every Backup CR, cluster-wide
 ```
@@ -181,7 +181,7 @@ stale entry: CustomResourceDefinition/backups.example.com
 stale entry: CustomResourceDefinition/backups.example.com
 
   operator ─┐
-            ├──▶ lifecycle.DeletionPlan()  ──▶  Skip{reason: SafetyExcluded}
+            ├──▶ kernel deletion plan      ──▶  Skip{reason: SafetyExcluded}
   cli      ─┘                                    (one implementation, one reason string,
                                                   one test asserting it)
 ```
