@@ -16,6 +16,8 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing: an author who breaks an alpha contract is encouraged, not required, to bump its alpha number rather than reshape the key in place, and that reaches the convention layer only. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
 
+**A beta line promises a path to GA, and GA has written exit criteria (D7, D8).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered and a CLI-to-operator version ceiling that compares MAJOR.MINOR only (OQ14). A beta release line is not a `v1beta1` contract level; the two are independent.
+
 ## How it works
 
 ```mermaid
@@ -71,6 +73,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 **The rest of the boundary.**
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
+- The `-beta.N` release line as a pre-stable form with its own promise (D7), and the criteria a beta line meets before GA (D8).
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
 - The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
 - The module compatibility surface (D2) and the questions that complete it (OQ1 to OQ4).
@@ -79,7 +82,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 
 ### Out of scope
 
-- Not a change to any version format, release tool or tag scheme already in use: SemVer 2.0, release-please, the `-alpha.N` release lines, the `-0.dev.` branch tags and the `<kind>/<apiVersion>/` filing all stay as they are.
+- Not a change to any version format, release tool or tag scheme already in use: SemVer 2.0, release-please, the `-0.dev.` branch tags and the `<kind>/<apiVersion>/` filing all stay as they are. The `-alpha.N` release lines do not stay: they move to `-beta.N` lines with the promise D7 states, a prerelease label change inside SemVer rather than a new format.
 - Not a consumer-facing support window. Entry 0010 rejected one (0010:D34) and entry 0020 constrains the producer instead (0020:D10, a key may not be withdrawn until its replacement has seasoned); both stand.
 - Not a maturity ladder for modules, unless OQ2 decides one.
 - Not the promotion and retirement mechanics of catalog contracts. Entry 0020 owns them and is cited, not copied, while it is a draft.
