@@ -12,7 +12,7 @@ The policy is a matrix: one row per artifact class, one column per question ever
 
 ## Non-Goals
 
-- Changing any version format, release tool, tag scheme or filing convention already in use.
+- Changing any version format, release tool, tag scheme or filing convention already in use. Moving a release line from `-alpha.N` to `-beta.N` (D7) changes a prerelease label inside SemVer, not the format.
 - A consumer-facing support or deprecation window (0010 D34 rejected it; 0020 D10 constrains the producer instead).
 - Building the module compatibility gate or any other gate; this entry states what a gate for a class must check and leaves the building to the implementing change.
 - Versioning enhancements or platforms; the first are not artifacts consumers pin, and platforms are consumers today (OQ11 records whether that changes). Documentation is a class (OQ15).
@@ -25,13 +25,15 @@ The policy is a matrix. Rows are artifact classes; columns are the five question
 ```
                     carrier            surface                       bump rules        pre-stable          enforcement
                     ---------------    --------------------------    --------------    ----------------    -------------
-core schema         CUE module semver  published definitions         stable table      alpha line (U3)     claim
-catalog build       CUE module semver  member set + transformers     OQ7               alpha line (U3)     gate (0011 D9)
+core schema         CUE module semver  published definitions         stable table      beta line (D7)      claim
+catalog build       CUE module semver  member set + transformers     OQ7               per path: opm       gate (0011 D9)
+                                                                                       stable, k8s beta
+                                                                                       line (D7)
 catalog contract    apiVersion ladder  the contract's shape          0010 D27 / D34    alpha rung (D5)     gate + match + aid
 transformer         the build's        required/optional + render    the build's       the build's         convention (D6)
 module              CUE module semver  #config (D2) [+ OQ1]          stable table      0.x / alpha (OQ4)   open (OQ5)
 cli template        CUE module semver  the module surface, scaffold  the CLI's         the CLI's           gate at release
-tooling train       Go module semver   kernel API / CLI surface /    stable table      alpha line          claim
+tooling train       Go module semver   kernel API / CLI surface /    stable table      beta line (D7)      claim
   (kernel,cli,op)   one or three (OQ14)  controller behaviour
 crd                 group/version      served schema + wire shapes   K8s ladder        v1alpha1            open (OQ9)
 documentation      the train's (OQ15)  versions a page describes     n/a               n/a                 open
@@ -43,7 +45,7 @@ The "stable table" is the ordinary SemVer mapping, stated once and reused: a **b
 
 - **U1: SemVer 2.0 everywhere, major in the path for CUE modules.** Already true for every class; stated so the policy has one precedence rule. Branch builds keep the `-0.dev.` form and rank below every named channel (`core/docs/publishing.md`).
 - **U2: One named surface per class; a release's bump is the maximum change class across its surface.** A release that adds one optional field and removes one required one is a major.
-- **U3: Pre-stable means the promise is off, and the line says so.** A `0.x` major, an `-alpha.N` release line, and an alpha contract rung all permit breaking changes without a major bump. What they promise instead is that the label is honest: a consumer who pins a pre-stable line has opted into breakage. The per-class cell states which form each class uses (OQ4 for modules).
+- **U3: Pre-stable means the stable promise is off, and the line says which promise it keeps.** A `0.x` major, an `-alpha.N` release line, and an alpha contract rung all permit breaking changes without a major bump. What they promise instead is that the label is honest: a consumer who pins one has opted into breakage. A `-beta.N` release line is also pre-stable, with a stronger promise than alpha's (D7). It is on the path to GA. A break is still allowed, but only as a declared breaking change whose migration note the changelog shows; it advances the `-beta.N` counter and never moves the module path to a new major. The beta release line is not the beta contract rung: a release line's prerelease label and a contract's `apiVersion` level are independent axes (0010 D34), so moving a line to beta changes no contract's level or promise. Stable lines keep the stable table. The per-class cell states which form each class uses (OQ4 for modules), and D8 states what a beta line must hold before it drops the suffix.
 - **U4: A version is declared by an author or a release tool, never predicted by publish** (0011 D15, inherited). release-please is a decider that hands a version to the artifact's writer; a repo without it authors the version directly. Either way the number is a claim.
 - **U5: A major is an import rewrite, and each class names what survives it.** Two majors of one artifact are distinct to CUE and to the registry, both resolvable forever. For modules, `registryPath` survives so instance identity survives (0010 D41/D45). For contracts, the key changes and both levels may ship together (0010 D27). For the core schema, every consumer edits its imports.
 - **U6: Enforcement is publish-side where the surface is mechanically comparable, convention where it is not, and a check command is always an aid** (0010 D35, inherited). A class whose surface can be compared by unification or by a typed diff earns a gate; a class whose surface is behaviour earns a written rule and a changelog section.

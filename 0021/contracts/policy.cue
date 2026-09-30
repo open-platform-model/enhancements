@@ -40,8 +40,25 @@ stableBump: #BumpTable & {
 // highest layer; "open" marks a cell an Open Question still decides.
 #Layer: "convention" | "claim" | "gate" | "aid" | "open"
 
-// The pre-stable form a class uses, under U3 (promise off pre-stable).
-#PreStable: "alpha-line" | "zero-major" | "alpha-rung" | "inherited" | "open"
+// The pre-stable form a class uses, under U3, or "stable" once the line has
+// left pre-stable and the stable table binds in full.
+//
+//   alpha-line  an -alpha.N release line: promise off, label honest (U3)
+//   beta-line   a -beta.N release line: on the path to GA; a break is still
+//               allowed, only as a declared breaking change with a migration
+//               note, advancing -beta.N and never moving the module path (D7)
+//   zero-major  a 0.x major (SemVer's own escape hatch)
+//   alpha-rung  an alpha contract or CRD apiVersion level (0010 D34)
+//   stable      no prerelease: a break is a new major (stableBump)
+//
+// A release line's prerelease label and a contract's apiVersion level are
+// independent axes: "beta-line" is never the beta contract rung, which
+// promises additive-only inside the level and has no value here.
+#PreStable: "alpha-line" | "beta-line" | "zero-major" | "alpha-rung" | "stable" | "inherited" | "open"
+
+// A class whose module paths sit at different stages types each line on its
+// own, keyed by the module path and major a consumer imports.
+#PreStableLines: {lines!: [path=string]: #PreStable}
 
 #Policy: {
 	class!:   #ArtifactClass
@@ -54,7 +71,7 @@ stableBump: #BumpTable & {
 	// For SemVer carriers the stable table; ladder carriers cite the ruling.
 	bump!: #BumpTable | {cite!: string} | {inherits!: #ArtifactClass}
 
-	prestable!: #PreStable
+	prestable!: #PreStable | #PreStableLines
 
 	// Highest enforcement layer the class's rules reach today.
 	enforcement!: #Layer
@@ -75,18 +92,23 @@ policies: {
 		carrier: "cue-module-semver"
 		surface: ["the published definitions of the core package"]
 		bump: stableBump
-		prestable:   "alpha-line"
+		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U5"]
+		cites: ["U1", "U3", "U5", "D7", "D8"]
 		open: ["OQ6", "OQ13"] // OQ6: gate on definition subsumption; OQ13: major cascade
 	}
 	catalog: {
 		carrier: "cue-module-semver"
 		surface: ["the member set at each level, and the transformers keyed by the build"]
 		bump: stableBump
-		prestable:   "alpha-line"
+		// Two module paths at two stages: opm is a stable line, k8s is on
+		// its beta line toward 1.0.0 (D7, D8).
+		prestable: lines: {
+			"opmodel.dev/catalogs/opm@v4": "stable"
+			"opmodel.dev/catalogs/k8s@v1": "beta-line"
+		}
 		enforcement: "gate"
-		cites: ["0010 D4", "0010 D44", "0011 D9", "0011 D15", "0011 D23"]
+		cites: ["0010 D4", "0010 D44", "0011 D9", "0011 D15", "0011 D23", "D7", "D8"]
 		open: ["OQ7"] // OQ7: how a contract-level event moves the build number
 	}
 	contract: {
@@ -132,27 +154,27 @@ policies: {
 		carrier: "go-module-semver"
 		surface: ["the exported Go API"] // OQ10: promised to whom
 		bump: stableBump
-		prestable:   "alpha-line"
+		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6"]
+		cites: ["U1", "U3", "U6", "D7", "D8"]
 		open: ["OQ10", "OQ14", "OQ16"] // OQ14: one train; OQ16: what replaces the migration ledger
 	}
 	cli: {
 		carrier: "go-module-semver"
 		surface: ["commands, flags, exit codes and declared machine-readable output"] // OQ8
 		bump: stableBump
-		prestable:   "alpha-line"
+		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6"]
+		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
 		open: ["OQ8", "OQ14"]
 	}
 	operator: {
 		carrier: "go-module-semver"
 		surface: ["controller behaviour over the served CRDs"]
 		bump: stableBump
-		prestable:   "alpha-line"
+		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6"]
+		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
 		open: ["OQ9", "OQ14"]
 	}
 	documentation: {

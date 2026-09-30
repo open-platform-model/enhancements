@@ -38,7 +38,7 @@ graph LR
   Cruntime -->|2| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
-  Cdistribution -->|1| Cruntime
+  Cdistribution -->|2| Cruntime
   Ctooling -->|1| Cruntime
   Cmisc -->|1| Cschema
 ```
@@ -122,6 +122,7 @@ graph TD
   N0012 -->|depends on| N0006
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006
+  N0021 -->|depends on| N0006
   N0023 -->|depends on| N0019
   N0024 -->|depends on| N0019
   N0025 -->|depends on| N0019
@@ -132,6 +133,7 @@ graph TD
   N0027 -->|depends on| N0021
   N0027 -->|depends on| N0025
   N0013 -.->|amends 1/4| N0014
+  N0021 -.->|amends 1/40| N0006
   N0026 -.->|amends 3/26| N0019
 ```
 
@@ -155,6 +157,7 @@ graph TD
   N0021["0021: OPM Versioning Policy"]:::draft
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
+  N0006["0006 · runtime"]:::stub
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
   N0019["0019 · runtime"]:::stub
@@ -166,6 +169,7 @@ graph TD
   N0020 -->|depends on| N0010
   N0020 -->|depends on| N0011
   N0020 -->|depends on| N0015
+  N0021 -->|depends on| N0006
   N0021 -->|depends on| N0010
   N0021 -->|depends on| N0011
   N0021 -->|depends on| N0020
@@ -177,6 +181,7 @@ graph TD
   N0026 -->|depends on| N0010
   N0027 -->|depends on| N0010
   N0027 -->|depends on| N0021
+  N0021 -.->|amends 1/40| N0006
   N0026 -.->|amends 1/37| N0010
 ```
 
