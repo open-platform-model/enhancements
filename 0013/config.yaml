@@ -95,6 +95,8 @@ history:
     event: 'Experiments settle OQ3-OQ8 (research note): D29-D36 name sources by exact FQN, split settings, tag core arms, check values and synthesised components, widen redaction. OQ9 opened.'
   - date: "2026-09-30"
     event: 'Schema delta updated to D18-D36: arms tagged, #SecretSourceInput, #ModuleInstance values check, wave-2 #SecretSource marked, gotify migration example; spec.md rewritten.'
+  - date: "2026-09-30"
+    event: 'README updated to the secret-source design: plain lede, summary per D18-D36 and the two waves, a new How it works diagram, scope and cross-references brought current.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

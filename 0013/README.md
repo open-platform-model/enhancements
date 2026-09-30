@@ -2,65 +2,64 @@
 
 > **Mechanism removed 2026-08-22.** This entry was written before decisions carried a `**Kind:**` line, and it recorded construction detail alongside its contracts: file names, directory spellings, internal identifiers, per-repo worklists. That detail has been removed from `03-decisions.md`, `02-design.md`, `06-operational.md` and this file; `## Integration Points` is now `## Affected Surfaces`, stated at the intent level. **Nothing was reversed and no decision changed its answer.** Measured evidence, `Source:` citations and *Alternatives considered* were kept in full, including their file references: those are provenance, not instructions. The removed text is in git history; construction detail belongs to the implementing repo's own change record.
 
-Today a secret travels in plain text through the whole render. Core's `#Secret` type also puts the routing inside the value: which Kubernetes Secret and key it lands in. The catalog deleted its copy, so modules pass secrets as plain strings. This entry moves the routing onto a CUE attribute, and the kernel rewrites marked fields to references before render.
+Today a secret travels in plain text through the whole render, and core's `#Secret` puts its routing inside the value. This entry moves the routing onto a CUE attribute, lets the deployer choose how each secret is supplied, and has the kernel rewrite every secret to a reference before render, so plaintext reaches only the object that stores it.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
-**The attribute says where, the type says what (D10, in the attribute namespace D2 already defines).** The attribute carries routing: which Kubernetes object a key belongs in, the same in every environment. The type carries the value the deployer supplies, per environment, checked by CUE. D10 replaced D1's contract struct.
+**The attribute says where, the type says how (D10, D18).** The author marks the field once; the deployer fills it per environment.
 
 ```cue
 // author, once, in the published module
 #config: db: password: #Secret @opm(secret, group=db-creds, key=password)
 
 // deployer, per environment
-values: db: password: {value: "hunter2"}                           // supplied
-values: db: password: {ref: "existing-db-creds", key: "password"}  // referenced
+values: db: password: {value: "hunter2"}                           // a literal
+values: db: password: {ref: "existing-db-creds", key: "password"}  // an existing Secret
+values: db: password: {source: "<contract FQN>", spec: {...}}      // a named source (wave 2)
 ```
 
-**Two ways to supply a secret, and no more (D7, D12).** Give a literal, or point at a Secret that already exists. `#Secret` narrows to those two, six lines in core and nowhere else, beside two named types for Secret keys and object types, deleting 455 dead lines there and a 240-line discovery walk; the catalog's 439 duplicated lines are already gone (D9).
+**Secret methods are catalog sources, and the deployer picks one per value (D18, D19, D29).** A source is a resource a catalog defines and the platform installs, several side by side. A literal is sugar for the platform's one literal source (D30); a named source is chosen by exact contract FQN. Core adds the arms and one input envelope once, and never grows with new methods.
 
-**The kernel finds marked fields from the schema, not the values (D3).** So it works with no values present, has no depth ceiling, and covers lists and pattern-constrained maps. It keys on type as well as marker and fails closed: a secret-typed field without the attribute gets default routing, a marked field of another type is an error (D13).
+**The schema declares secrets, and the kernel rewrites each to a reference before render (D11, D13, D33).** Every core arm carries a hidden tag, so discovery fails closed. The kernel names each object once per instance and group (D5, D6); the plaintext travels only in the source's input, never in the component graph.
 
-**It rewrites every secret to a reference before render (D11).** Only the kernel names an object (D5), once per instance and group rather than per component (D6), and it sends the plaintext out of band. A literal becomes a reference to the object the kernel just decided to create; a deployer-written reference passes through unchanged. After the rewrite a transformer reads one branch, so the environment-variable-versus-volume name mismatch of today cannot be expressed. The reference has no value field, so plaintext is structurally absent from the render.
+**Mistakes fail loudly (D34, D35, D28).** A malformed value fails plain `cue vet`; an unfulfilled secret fails every render; diagnostics never carry a secret value.
 
-**The platform picks the backend, not the author (D8).** Plain Secret, sealed Secret or external-secrets is a catalog-subscription choice. That answers entry [0010](../archive/0010/)'s question about where the secrets resource name comes from.
+**Two waves (06-operational).** Wave 1 ships the literal and the reference; named sources follow in wave 2 without changing what wave 1 shipped.
 
-**SOPS decrypts at the file edge only (D14).** It is never a fulfilment form, a backend or kernel code. A literal in a custom resource is plaintext in etcd: accepted and documented, with the reference form as the production recommendation and no indirection field added (D15).
-
-Two properties fall out that the first draft lacked. Instance files do not change at all for supplied secrets, and a secret interpolated into a rendered config file now fails plain validation at authoring time.
+**SOPS works at the file edge only (D14, D26).** A literal in a custom resource is plaintext at rest, documented, on the operator and CLI paths alike (D15, D27); an authored instance package refuses one (D25).
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    schema["Module config schema: a secret-typed field, an attribute naming its group and key"] --> discover
-    discover["Discover: walk the schema, one declaration per marked field"] --> resolve
-    dev["Deployer values, dev: a literal value"] --> resolve
-    prod["Deployer values, prod: a reference to an existing Secret"] --> resolve
-    resolve["Resolve: group, name each object once, plan, rewrite"] --> values["Resolved values: every marked path is now a reference"]
-    resolve --> plan["Secret group plan: plaintext carried out of band"]
-    values --> cgraph["Component graph and transformers read only the reference"]
-    cgraph --> readers["Env var and volume mount read the same object name"]
-    plan --> synth["Synthesized secrets component"]
-    synth --> backend["The platform's secrets transformer: plain, sealed, or external"]
-    backend --> secret["Kubernetes Secret object"]
+    schema["Module config schema: a field typed Secret, an attribute naming its group and key"] --> disc
+    vals["Deployer values, per environment: a literal, a reference, or a named source"] --> res
+    disc["Discover: the schema declares every secret"] --> res
+    res["Resolve: group, name each object once, rewrite"] --> refs["Resolved values: every secret is a reference to one object name"]
+    refs --> comps["Components and transformers read only the reference"]
+    res --> input["Source input per group: target, settings, entries"]
+    input --> synth["Synthesised component carrying the chosen source's contract"]
+    plat["Platform: installed secret sources, the literal one plus any named ones"] --> tfm
+    synth --> tfm["The source's transformer: a plain Secret, an ExternalSecret, a SealedSecret"]
+    tfm --> k8s["Kubernetes Secret with the planned name"]
+    comps -.->|reads by name| k8s
 ```
 
-The plaintext and the graph take separate paths and meet again only inside the object the platform's transformer produces, so switching environments changes the value, never the module. The rewrite is a decode, splice and encode over evaluated data, 12 to 39 times faster than grafting onto the build (D17). It is done as omission at build assembly, measured on the real kernel path and needing no new seam (D16).
+The plaintext and the component graph take separate paths and meet again only inside the object a source produces, so switching environment or method changes the values, never the module. Whichever arm the deployer wrote, consumers read the same reference, so an environment variable and a volume can never disagree about the name. The rewrite is a decode, splice and encode over evaluated data (D17), assembled so the original values never enter the render build (D16).
 
 ## Documents
 
 1. [01-problem.md](01-problem.md): routing stated twice with nothing checking it, three disagreeing name derivations, and plaintext in the render
-1. [02-design.md](02-design.md): routing in the attribute, the value in the type, and a kernel resolving both forms in place
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D17; D10 supersedes D1, D11 supersedes D4, D16 resolves OQ2
+1. [02-design.md](02-design.md): routing in the attribute, the value in the type, and a kernel resolving both forms in place (written before D18; the decision log is current)
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D36; D10 supersedes D1, D11 supersedes D4, D18 and D19 supersede D7 and D8, D16 resolves OQ2
 1. [04-graduation.md](04-graduation.md): what had to hold before `draft` became `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 and OQ2, both resolved
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ8 resolved, OQ9 open
 
-Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cue`](schemas/target.cue), and in [`examples.cue`](schemas/examples.cue) worked values covering the marker grammar and a before and after of the one affected fleet module. Both compile, and the examples pin derived values with assertion fields, so a wrong example is a build failure. [`experiments/`](experiments/) holds the four concluded proofs the decisions cite, including the one that settled OQ2 on the real kernel path.
+Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cue`](schemas/target.cue), with the wave-2 surface marked, and in [`examples.cue`](schemas/examples.cue) worked values covering the marker grammar, the synthesised component, a fleet module's migration and why wave 2 is additive. Both compile, and the examples pin derived values with assertion fields, so a wrong example is a build failure. [`experiments/`](experiments/) holds the four concluded proofs the early decisions cite; [`research/`](research/) records the six probes that settled OQ3 to OQ8.
 
 ## Scope
 
@@ -69,37 +68,39 @@ Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cu
 **Core contract:**
 
 - The secret marker grammar and its parsed contract.
-- Narrowing `#Secret` to the two arms, and making core its only definition, together with the named key and object-type types its arms and marker use.
+- `#Secret` as tagged arms (literal and reference in wave 1, a named source in wave 2), with core its only definition, the source input envelope, and the named key and object types.
+- The instance's values check, and the reserved annotation prefix kernel features read.
 
 **Kernel pass:**
 
-- The kernel's secret pass, discover and resolve, with discovery keying on type as well as marker and failing closed (D13).
-- Resolve-in-place: rewriting every marked path to a reference before the component graph is built.
+- The kernel's secret pass, discover and resolve, with the schema declaring secrets and discovery failing closed (D13, D33).
+- Resolve-in-place: rewriting every declared path to a reference before the component graph is built.
 - Kernel-owned Secret object naming, delivered inside the resolved value.
-- Two ways to supply a secret: a literal, or a reference.
-- The extension mechanism by which a catalog supplies another materialisation backend.
+- One synthesised component per group, held to the checks an authored component passes, with redacted diagnostics.
+- Secret sources as catalog resources the deployer chooses per value, and a platform's settings for them.
 
 **Cleanup and migration:**
 
-- Deleting the old routing vocabulary and the discovery pyramid, and its catalog duplicate; correcting the core specification's claim that `#Secret` is a primitive.
-- Migrating the one fleet module carrying a secret, including its RBAC scoping by resource name.
+- Deleting the old routing vocabulary and the discovery pyramid, and its catalog duplicate; correcting the core specification's secret text.
+- catalog_opm's literal source.
+- Migrating the fleet modules that carry secrets as plain strings, including RBAC scoping by resource name.
 
 **CLI and SOPS:**
 
-- A secrets section in the module inspect output.
 - SOPS support where the CLI reads files (D14): encrypted values files, a skeleton generator, and secrets-aware messaging for unfulfilled secrets.
+- Encrypting the literal values of an exported instance (D26, wave 2).
 
 ### Out of scope
 
 **Explicitly deferred:**
 
-- **Implementing cryptography.** SOPS calls the upstream library; OPM ships no cipher code, and key management is deployer configuration. Encrypting rendered Secret manifests on export rides enhancement [0014](../0014/)'s surface.
-- **Shipping an external-secrets, Vault, sealed-secrets or CSI backend.** The mechanism is in scope; backends are follow-on catalogs.
+- **Implementing cryptography.** SOPS calls the upstream library; OPM ships no cipher code, and key management is deployer configuration. Export rides enhancement [0014](../0014/)'s surface.
+- **Shipping an external-secrets, Vault, sealed-secrets or CSI source.** The mechanism is in scope; named sources are follow-on catalogs.
 - **Secret rotation, leasing or dynamic secrets.** A secret is resolved once per render.
 
 **Someone else's concern:**
 
-- **Protecting supplied values inside a custom resource.** Accepted and documented, the reference form being the production recommendation on the operator path (D15).
+- **Protecting supplied values inside a custom resource.** Accepted and documented on the operator and CLI paths, a reference or a named source being the production recommendation (D15, D27).
 - **Retiring the hand-authored secret-schema path.** A module that computes a whole file and stores it as Secret data keeps writing it by hand.
 - **A general-purpose marker framework.** This entry defines the secret marker in the existing namespace; whether enhancement [0009](../0009/)'s operational marker folds into it is 0009's question.
 - **Redacting secrets from logs generally.** The design removes plaintext from the render; log hygiene elsewhere is separate.
@@ -118,8 +119,9 @@ Divergences between the accepted design and what shipped, recorded as each slice
 | -------- | ------- |
 | `core/openspec/config.yaml`, `library/CONSTITUTION.md`, `cli/CONSTITUTION.md` | The principles governing changes in the touched repos |
 | `core/.claude/skills/core-schema-edit/SKILL.md` | The binding protocol for the core slice, which also carries a stale helper list this entry corrects |
-| `core/SPEC.md` | Misdescribes `#Secret` as a primitive, and records the synthesis removal |
+| `core/SPEC.md` | Its §1 and §3.5 secret text, which this entry changes |
 | `cli/docs/rfc/0002-sensitive-data-model.md` | The original sensitive-data proposal whose redaction goal this design delivers |
 | Enhancement [0009](../0009/) | Evidence that depending on CUE attributes is safe |
-| Enhancement [0010](../archive/0010/) | The open question whose candidate answer D8 supplies |
-| Enhancement [0011](../archive/0011/) | The attribute precedent D2 follows |
+| Enhancement [0010](../archive/0010/) | The original `@opm(identity, …)` marker shape D2 follows, and the secrets-resource question the superseded D8 answered |
+| Enhancement [0011](../archive/0011/) | Preserved the identity marker on write (background to D2) |
+| Enhancement [0014](../0014/) | The instance export whose literal values D26 encrypts |
