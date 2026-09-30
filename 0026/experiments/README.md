@@ -25,4 +25,6 @@ All nine back D9, side-by-side catalog majors.
 - **06 is the core fix OQ17 asks about**: a contract fold that reports colliding keys instead of failing to evaluate.
 - **07 to 09 render through the real library.** 07 is the shipped library and core with no patch, 08 renders 03's keys, 09 renders 05's scoping with a patched render glue.
 
+Two exceptions to the experiment protocol were accepted by the entry owner on 2026-09-30: 07 to 09 clone library and core at pinned commits instead of copying their bytes, and 07 and 08 each test more than one concept, kept as they are so every citation stays valid.
+
 01 to 06 are pure CUE and run from their `probe/` directory with `cue` alone. 07 to 09 need a library checkout: each carries a `run.sh` that clones library (and core, for 08 and 09) at a pinned commit into a fresh work directory, applies the experiment's patches and runs one probe test.
