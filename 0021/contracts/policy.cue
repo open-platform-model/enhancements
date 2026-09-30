@@ -165,7 +165,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6", "D7", "D8"]
+		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
 		open: ["OQ8", "OQ14"]
 	}
 	operator: {
@@ -174,7 +174,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6", "D7", "D8"]
+		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
 		open: ["OQ9", "OQ14"]
 	}
 	documentation: {

@@ -16,7 +16,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing: an author who breaks an alpha contract is encouraged, not required, to bump its alpha number rather than reshape the key in place, and that reaches the convention layer only. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
 
-**A beta line promises a path to GA, and GA has written exit criteria (D7, D8).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered and a CLI-to-operator version ceiling that compares MAJOR.MINOR only (OQ14). A beta release line is not a `v1beta1` contract level; the two are independent.
+**A beta line promises a path to GA, and GA has written exit criteria (D7, D8, D9).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered. The CLI's ceiling on operator versions compares MAJOR.MINOR only, which amends 0006:D24's full-version rule (D9, the OQ14 skew answer). A beta release line is not a `v1beta1` contract level; the two are independent.
 
 ## How it works
 
@@ -73,7 +73,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 **The rest of the boundary.**
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
-- The `-beta.N` release line as a pre-stable form with its own promise (D7), and the criteria a beta line meets before GA (D8).
+- The `-beta.N` release line as a pre-stable form with its own promise (D7), the criteria a beta line meets before GA (D8), and the MAJOR.MINOR ceiling on operator versions (D9).
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
 - The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
 - The module compatibility surface (D2) and the questions that complete it (OQ1 to OQ4).
@@ -98,6 +98,7 @@ None at this stage.
 | Document | Purpose |
 | -------- | ------- |
 | `core/docs/publishing.md` | The tag scheme and the branch-build ranking rule this policy inherits |
+| Enhancement 0006 (D24) | The CLI-not-older-than-the-cluster skew rule and its operator-version ceiling, which D9 narrows to `MAJOR.MINOR` |
 | Enhancement 0010 (D4, D27, D34, D35, D41, D45) | Contract keys (D4), additive-only levels (D27), the ladder (D34), publish-side enforcement (D35), instance identity surviving a major (D41, D45) |
 | Enhancement 0011 (D9, D15, D23) | The catalog compatibility gate (D9), authored not predicted versions (D15), predecessor selection by backward scan (D23) |
 | Enhancement 0020 | Contract promotion and retirement on the ladder, cited while it is a draft rather than copied |

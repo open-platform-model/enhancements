@@ -148,11 +148,11 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 
 **Kind:** contract
 
-**Decision:** A `-beta.N` release line is a pre-stable form under U3 with a promise narrower than alpha's. From its first beta, a prerelease line is on the path to GA. The prerelease lines are `opmodel.dev/core@v2`, `opmodel.dev/catalogs/k8s@v1`, the kernel library, the CLI and the operator. A breaking change is still allowed during beta, but only as a `feat!` commit whose `BREAKING CHANGE:` footer is the migration note the changelog shows. It advances the `-beta.N` counter and never moves the module path to a new major. Stable lines keep the stable table: `opmodel.dev/catalogs/opm@v4` and the module fleets cut a new major for a break, whatever line their dependencies are on. A core beta break that would force a major on a stable catalog line needs owner sign-off before it ships. GA drops the suffix per package, in dependency order, once D8 holds.
+**Decision:** A `-beta.N` release line is a pre-stable form under U3 with a stronger promise than alpha's. From its first beta, a prerelease line is on the path to GA. The prerelease lines are `opmodel.dev/core@v2`, `opmodel.dev/catalogs/k8s@v1`, the kernel library, the CLI and the operator. A breaking change is still allowed during beta, but only as a declared breaking change whose migration note the changelog shows. It advances the `-beta.N` counter and never moves the module path to a new major. Stable lines keep the stable table: `opmodel.dev/catalogs/opm@v4` and the module fleets cut a new major for a break, whatever line their dependencies are on. A core beta break that would force a major on a stable catalog line needs owner sign-off before it ships. GA drops the suffix per package, in dependency order, once D8 holds.
 
 A beta release line is not a beta contract rung. The line is the build's prerelease label; the rung is a contract's `apiVersion` level, whose additive-only promise the catalog contract class carries (0010 D34). The two axes are independent: moving a line to beta changes no contract's level or promise, and a `v1beta1` contract may ship in a build on any line.
 
-For the core schema this narrows the pre-stable rule copied under class 1: on a beta line, the major-crossing path that an unabsorbable break may take on an alpha line is closed, and every break advances the counter. The copied block is refreshed after its source changes (D3).
+For the core schema this narrows the pre-stable rule copied under class 1: on a beta line, the major-crossing path that an unabsorbable break must take on an alpha line is closed, and every break advances the counter. The copied block is refreshed after its source changes (D3).
 
 **Requirements:**
 
@@ -168,7 +168,7 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 - **Beta keeps U3's alpha promise: promise off, label honest.** Breaks advance `-beta.N` with nothing more said. Rejected: it makes the label change carry no meaning a consumer can act on, which is the problem U3 exists to prevent.
 - **Additive-only from the first beta.** Rejected by the owner: enhancement 0013 is an accepted breaking change to core, the kernel and the modules, and it lands during beta. An additive-only promise would either hold the beta cut until 0013 lands or be broken by it.
-- **A break during beta may cross a module major, as the core alpha rule permits for an unabsorbable break.** Rejected: a beta line exists to reach GA on its current major, and a major crossing during beta resets that path. An unabsorbable break is sequenced before the line enters beta, or after GA as the next major.
+- **A break during beta may cross a module major, as the core alpha rule requires for an unabsorbable break.** Rejected: a beta line exists to reach GA on its current major, and a major crossing during beta resets that path. On a beta line an unabsorbable break lands like any other, as a declared break with a migration note that advances the counter; crossing a major waits for GA.
 
 **Rationale:** Consumers move onto the beta lines to build against what GA will be. They can absorb a break they are told about, but not a silent one or a path change, so the promise is the migration note and the fixed path. Scoping it to the prerelease lines keeps the stable lines on the rule they already follow. The sign-off clause exists because a core break reaching catalog contracts would otherwise cut a stable catalog major as a side effect.
 
@@ -178,29 +178,54 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 **Kind:** contract
 
-**Decision:** A beta line drops its suffix only when every requirement below holds for it. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion. The CLI's ceiling on operator versions compares `MAJOR.MINOR` only, which answers OQ14's skew question for the two binaries.
+**Depends:** 0011:D9
+
+**Decision:** A beta line drops its suffix only when every requirement below holds for it. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion.
 
 **Requirements:**
 
 - R1: Enhancement 0013 is delivered before any line it breaks reaches GA.
 - R2: Before GA, the policy names each draft entry whose delivery would break a GA line, and each named entry either lands before GA or waits for that line's next major.
-- R3: The CLI refuses an operator only when the operator's `MAJOR.MINOR` is above the CLI's own; patch and prerelease differences are never refused, so the two release patches independently.
-- R4: Before the operator reaches GA, the CRD API version it serves is decided: a move from `v1alpha1` to `v1beta1` or `v1` is served with conversion, and every first-party artifact that names the CRD version (platform pins, the installer, the CLI's mirrored CRD types) names the served one.
-- R5: From GA on, the kernel library records a migration note for every breaking change of its exported API, and its published API-stability statement describes the GA promise.
-- R6: `opmodel.dev/catalogs/k8s` reaches 1.0.0 with the catalog compatibility gate (0011 D9) armed for it; the `apiVersion` level of each of its members is decided; and installing it needs no prerelease opt-in.
-- R7: After GA, the repository's "latest" release on GitHub, the operator image's `latest` tag and Go's latest-version query each resolve the GA release; no `0.x` release is advertised as latest.
-- R8: Workspace tooling that resolves "the latest release" of a line prefers the newest stable release over any prerelease, as CUE's resolution does.
-- R9: CLI templates, test fixtures, the suite installer and the quickstart are republished against the GA versions, and the documentation site drops its beta label.
-- R10: GA releases are cut in dependency order: core; then `catalogs/k8s` and the kernel library; then the CLI; then the operator; then a CLI release embedding the GA operator. No GA release pins a prerelease dependency.
+- R3: Before the operator reaches GA, the CRD API version it serves is decided: a move from `v1alpha1` to `v1beta1` or `v1` is served with conversion, and every first-party artifact that names the CRD version (platform pins, the installer, the CLI's mirrored CRD types) names the served one.
+- R4: From GA on, the kernel library records a migration note for every breaking change of its exported API, and its published API-stability statement describes the GA promise.
+- R5: `opmodel.dev/catalogs/k8s` reaches 1.0.0 with the catalog compatibility gate (0011 D9) armed for it; the `apiVersion` level of each of its members is decided; and installing it needs no prerelease opt-in.
+- R6: After GA, the GitHub "latest" release of the core, kernel library, CLI and operator repositories, the operator image's `latest` tag, and Go's latest-version query for the kernel library and the CLI each resolve the GA release; no `0.x` release or prerelease is advertised as latest.
+- R7: After a line reaches GA, no first-party pin written from then on names a prerelease of that line.
+- R8: The CLI's module templates and the quickstart are republished against the GA versions, and the documentation site drops its beta label.
+- R9: GA releases are cut in dependency order: core; then `catalogs/k8s` and the kernel library; then the operator; then the CLI, embedding the GA operator. No GA release pins a prerelease dependency; a CI tool pin is not a dependency.
 
 **Alternatives considered:**
 
 - **Hold the beta cut until 0013 lands.** Rejected by the owner in favour of an announced beta-period break under D7, with delivery moved to the GA criteria (R1).
-- **Keep the ceiling on full SemVer and enforce release order by hand.** The ceiling refuses an operator whose version, prerelease counter included, is above the CLI's. With counters restarting at `beta.1`, two operator releases before one CLI release refuse every apply. Rejected: the OQ14 position already says the two share `MAJOR.MINOR` and release patches independently, and a gate that contradicts the position turns every operator docs release into an outage risk.
 - **An exit checklist tracked as progress in this entry.** Rejected: an entry stores rules, not progress. The criteria are requirements, and whether they hold is read from the artifacts.
 
-**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R10 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one.
+**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R9 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one. The operator goes GA before the CLI because the CLI embeds a pinned operator and the operator depends on no CLI; under D9's `MAJOR.MINOR` ceiling a GA operator is not refused by a beta CLI of the same `MAJOR.MINOR`.
 
-**Source:** User decision 2026-09-30 (GA exit criteria; the ceiling compares MAJOR.MINOR as the OQ14 answer).
+**Source:** User decision 2026-09-30 (GA exit criteria).
+
+### D9: The CLI's ceiling on operator versions compares `MAJOR.MINOR` only
+
+**Kind:** contract
+
+**Depends:** 0006:D24
+
+**Amends:** 0006:D24
+
+**Decision:** The CLI refuses an operator only when the operator's `MAJOR.MINOR` is above its own, and ignores patch and prerelease differences. This amends 0006 D24. What survives: the CLI still refuses the unsafe direction, an operator newer than itself, and still reads the operator's version from what the operator reports about itself on the Platform; the CRD capability floor is unchanged. What changes: the comparison drops patch and prerelease, so each binary releases patches and beta counters without the other. This answers OQ14's skew question for the two binaries.
+
+During beta every release of both binaries shares one `MAJOR.MINOR`, so the ceiling refuses nothing; R2 carries the guarantee the ceiling cannot.
+
+**Requirements:**
+
+- R1: The CLI refuses an operator only when the operator's `MAJOR.MINOR` is above the CLI's own; patch and prerelease differences are never refused.
+- R2: No operator release needs a CLI newer than the newest released CLI: a change the released CLI cannot drive ships in an operator release only after a CLI release that drives it.
+
+**Alternatives considered:**
+
+- **Keep the ceiling on full SemVer, the delivered rule (0006 D24), and enforce release order by hand.** The ceiling refuses an operator whose version, prerelease counter included, is above the CLI's. With counters restarting at `beta.1`, two operator releases before one CLI release refuse every apply. Rejected: the OQ14 position already says the two share `MAJOR.MINOR` and release patches independently, and a gate that contradicts the position turns every operator docs release into an outage risk.
+
+**Rationale:** The ceiling exists to stop a CLI driving an operator that expects more than it can write. A `MAJOR.MINOR` step is where that can happen under the shared-`MAJOR.MINOR` position; a patch or a beta counter is not. Where a beta counter does carry such a change, R2 keeps the operator from shipping it before a CLI that can drive it.
+
+**Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.
