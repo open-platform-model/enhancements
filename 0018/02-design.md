@@ -157,7 +157,9 @@ This is the inventory the design is sized against. Every page in it exists as an
 | Deploying and operating | Install the operator | how-to | opm-operator |
 | Deploying and operating | Delete an instance safely (D4) | how-to | opm-operator |
 | Deploying and operating | Deletion and pruning (D4) | explanation | opm-operator |
+| Extending OPM | Write a resource | how-to | catalog |
 | Extending OPM | Write a trait | how-to | catalog |
+| Extending OPM | Write a blueprint | how-to | catalog |
 | Extending OPM | Write a transformer | how-to | catalog |
 | Extending OPM | Publish a catalog | how-to | cli |
 | Embedding the kernel | Embed the kernel | tutorial | library |
