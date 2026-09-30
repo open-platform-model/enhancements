@@ -59,6 +59,8 @@ history:
     event: 'D7: -beta.N line is pre-stable on the path to GA, breaks only as feat! with a migration note; D8: GA exit criteria; U3 and PreStable gain beta-line and stable; OQ14 ceiling compares MAJOR.MINOR'
   - date: "2026-09-30"
     event: 'D9 split from D8: the CLI ceiling compares MAJOR.MINOR, amending 0006:D24; D8 exit criteria reordered (operator GA before CLI GA), opm added to affects'
+  - date: "2026-09-30"
+    event: 'D3 refresh: verbatim policy blocks re-copied from their sources after the beta cutover, stale source paths fixed; core, catalog and tooling headers retyped to the beta line (D7)'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
