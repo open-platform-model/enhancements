@@ -459,4 +459,286 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 **Source:** `experiments/04-rewrite-performance/` — outcome 2026-08-14 (graft-scaling hypothesis refuted; decode-encode wins 12–39× on every shape); mechanism proven correct in `experiments/02-resolve-in-place/`; AST fragility evidence from enhancement 0011's compat work.
 
+---
+
+### D18: `#Secret` gains an open source arm; the literal stays as sugar; core defines the source input once
+
+**Kind:** contract
+
+**Supersedes:** D7
+
+**Amends:** D10, D12
+
+**Decision:** `#Secret` is `#SecretLiteral | #SecretRef | #SecretSource`. `#SecretSource` is an open envelope, `{source!: string, spec?: {...}}`: `source` names a secret method and `spec` carries whatever that method needs. Core never names a method. `#SecretLiteral` (`{value}`) stays as sugar for the method a platform marks as the literal source, and `#SecretRef` stays as the escape hatch to an existing object. Core also defines, once, `#SecretSourceInput`: the envelope the kernel hands every method, a `target` (object name, type, immutable) plus `entries` (data key to that member's source spec). A method's own schema types `entries`; the envelope itself never grows.
+
+What survives of D10: the attribute carries routing only, and the deployer chooses fulfilment in the type. What changes against D10 is the arm set, which is no longer closed at two. What survives of D12: core is the only definition of `#Secret`; what changes is that core also defines `#SecretSource` and `#SecretSourceInput`.
+
+**Requirements:**
+
+- R1: A deployer fulfils a secret with a literal value, a reference to an existing object, or a named secret source with that source's own data; each is accepted by the same published module without republishing it.
+- R2: Adding a secret method needs no change to core and no change to the kernel.
+- R3: A literal value renders through whichever source the platform marks as the literal source, exactly as the equivalent named-source form would.
+- R4: Every secret method receives the same input envelope, a target object and a map of entries, and a method whose schema does not accept that envelope fails to vet in its own catalog.
+
+**Alternatives considered:**
+
+- **The shipped rule (D7): exactly two arms, supplied and referenced.** Replaced: it forced the backend to be a platform-wide switch, and for a supplied plaintext only a plain Secret is a sensible backend. SealedSecrets needs ciphertext, which a CUE transformer cannot produce (no asymmetric encryption in CUE's standard library, and randomised output would break the render digest). External-store operators need a pointer into the store, not a value. Each method needs different data from the deployer, so the method belongs in the deployer's arm.
+- **Product-named arms in core** (`sealed`, `eso`, …). Rejected: core would name third-party products, and every new product would be a core change.
+- **Data-kind arms in core** (`external`, `encrypted`) with the product chosen by provider fulfilment. Rejected: better, but a new kind of data would still be a core change, and the arm set would still be closed.
+- **No literal sugar**, the literal being only a named source. Rejected: the most common case would become three levels of nesting in every values file and CR.
+- **The input envelope as a catalog convention.** Rejected: a catalog spelling it differently would fail only at render, and nothing would state the contract in code.
+
+**Rationale:** Core defines envelopes and catalogs define the concrete kinds, identified by FQN, and matched by the kernel. That is how OPM already extends workloads, traits and blueprints; secret methods now extend the same way. Core adds this capability once and does not grow with it.
+
+**Source:** User decisions 2026-09-30, after the feasibility review of this entry: the deployer chooses the method; core must be extendable after the fact without new fields; literal kept as sugar; envelope defined by core.
+
+---
+
+### D19: A secret source is a catalog-defined resource; the platform installs any number side by side; the deployer chooses per value
+
+**Kind:** contract
+
+**Supersedes:** D8
+
+**Amends:** D11
+
+**Decision:** A secret method is a `#Resource` defined by a catalog and annotated `opmodel.dev/secret-source: <name>` (D20), with a spec of `#SecretSourceInput` whose `entries` it types. Its transformer turns the input into whatever materialises a Kubernetes Secret named `target.name` holding the `target` keys: a plain Secret, an ExternalSecret, a SealedSecret. A platform installs sources by enabling catalogs, several at once; each source is its own contract, so ordinary matching keeps them apart.
+
+The deployer names the source per value. `source` resolves against the platform's defined contracts by the annotation's value; a name no installed source carries is refused, listing the installed ones; a name two sources carry is refused as ambiguous, and the contract FQN is accepted in its place. All non-reference members of one group must name the same source with the same settings, since one object has one producer; a group that disagrees is refused, naming the group and its paths.
+
+The kernel synthesises one component per group carrying the chosen source's contract, fills its input out of band, and rewrites every member's value to `{ref, key}` naming the target object. What survives of D11: every marked path holds the reference form at render and plaintext never enters the component graph. What changes against D11: the reference is produced for every source, not only for a literal.
+
+**Requirements:**
+
+- R1: A platform can carry several secret sources at once, and each renders only the secrets whose deployer named it.
+- R2: The same module instance can use different sources for different secrets, and different sources per environment, with no change to the module.
+- R3: A value naming a source the platform does not carry fails the render with an error listing the sources the platform does carry.
+- R4: A short source name carried by two installed sources fails the render as ambiguous, and the full contract name is accepted instead.
+- R5: A group whose non-reference members name different sources, or the same source with different settings, fails with an error naming the group and each member path.
+- R6: Every consumer of a secret reads the same reference form whichever source produced it.
+
+**Alternatives considered:**
+
+- **The shipped rule (D8): the backend is a platform-wide choice through catalog subscription.** Replaced for the reason given in D18: the backend depends on what data the deployer holds, which varies per secret and per environment.
+- **Provider fulfilment as the only mechanism**: one abstract secrets contract, one provider enabled per platform. Rejected as the mechanism: it permits one backend per platform. It stays available inside one source, when two products should be interchangeable behind one name.
+- **FQN-only source names.** Rejected: long catalog-bound strings in every values file and CR.
+- **Platform-defined aliases** (a name-to-contract map on the platform). Rejected: a new platform-side map, either a core field or a convention; the annotation already names the source.
+- **The source chosen per group in a separate values block.** Rejected: it exposes the author's routing to the deployer and adds a second place to look.
+
+**Rationale:** Every source being its own contract is what lets them coexist: there is nothing to over-subscribe. The kernel still only resolves, names and rewrites; what a source does with its input is the catalog's.
+
+**Source:** User decisions 2026-09-30: sources coexist on a platform; the deployer chooses per value; short name with FQN fallback; per-value choice that must agree per group.
+
+---
+
+### D20: Kernel-interpreted primitive annotations live under a reserved `opmodel.dev/` prefix, one key per feature
+
+**Kind:** contract
+
+**Decision:** A kernel feature that must find a primitive by what it is for reads a primitive annotation, never a new core field. Core's specification reserves the `opmodel.dev/` annotation prefix for keys the kernel interprets. Each feature owns one key and its value vocabulary. The first key is `opmodel.dev/secret-source`, whose value is the source's short name, with `literal` reserved for the source that serves `#SecretLiteral`. Primitives already carry `metadata.annotations` as definition behaviour hints, so this needs no core schema change; the clarification that such a key is read by a kernel lookup, not by transformer matching, is a specification sentence.
+
+**Requirements:**
+
+- R1: A catalog marks a primitive for a kernel feature by an annotation under the reserved prefix, with no core schema change.
+- R2: A primitive may serve several kernel features at once, one key each.
+- R3: Annotations outside the reserved prefix are never interpreted by the kernel.
+
+**Alternatives considered:**
+
+- **A role field on primitives in core.** Rejected: a new core field, and one role per primitive.
+- **A single shared role key** (`opmodel.dev/role`). Rejected: one role per primitive, and every future feature would compete for one key's values.
+- **The kernel hardcoding a catalog contract FQN.** Rejected: the kernel would depend on one catalog's paths.
+- **A platform field naming the contract.** Rejected: one more thing every platform must configure, failing only at render when wrong.
+
+**Rationale:** This is the extension point that lets later kernel features find what they need without growing core, which is the property D18 asks of the secret capability.
+
+**Source:** User decision 2026-09-30 (primitive annotation, proposed by the user as a pattern for future features; feature-scoped key).
+
+---
+
+### D21: A source's settings default at the platform; the source decides what a deployer may override
+
+**Kind:** contract
+
+**Decision:** Settings a source needs that belong to the platform, such as which external store or which vault role, are set once per installed source by the platform. Each source's own schema decides which of them a deployer may override per secret. Core says nothing about settings.
+
+**Requirements:**
+
+- R1: A platform can set a source's settings once, and every secret using that source inherits them.
+- R2: A deployer can override a setting only where that source's schema allows it.
+
+**Alternatives considered:**
+
+- **Platform only.** Rejected: a deployer needing a second store would need the platform team to install a preset source.
+- **Deployer only.** Rejected: every values file would repeat store names and roles, and a platform change would mean editing every instance.
+
+**Rationale:** The knowledge of which settings exist, and which are safe to vary, is the source's, so the source decides; the platform owns the defaults because it owns the infrastructure they name.
+
+**Source:** User decision 2026-09-30. Whether platform defaults can be set by unifying into the enabled catalog's transformer is measured by OQ4.
+
+---
+
+### D22: catalog_opm ships the literal source as a new resource, beside the hand-authored secrets resource
+
+**Kind:** contract
+
+**Decision:** catalog_opm defines a new secret-source resource annotated `literal`, fulfilled by its own transformer that renders a plain Secret named exactly `target.name`, never prefixing or re-hashing it. The existing hand-authored secrets resource, for modules that compute whole Secret objects, is unchanged.
+
+**Requirements:**
+
+- R1: A platform that enables catalog_opm renders literal secrets with no further catalog.
+- R2: The rendered Secret carries exactly the name the kernel computed, so every reference to it resolves.
+- R3: Modules using the hand-authored secrets resource render unchanged.
+
+**Alternatives considered:**
+
+- **Reuse the hand-authored secrets resource.** Rejected: one contract would serve two naming rules and two input shapes.
+- **A separate plain-secrets catalog.** Rejected: every platform would need one more catalog before the most common case works.
+
+**Rationale:** The literal is the most common case, so it ships with the first-party catalog every platform already enables.
+
+**Source:** User decision 2026-09-30.
+
+---
+
+### D23: The synthesised secrets component uses a key no author can write
+
+**Kind:** contract
+
+**Decision:** Each component the kernel synthesises for a secret group is keyed outside the set of keys an author can declare, so it can never merge with an author component. Its identity name remains an ordinary name.
+
+**Requirements:**
+
+- R1: An author component with any valid key coexists with the synthesised secrets components of the same instance, and neither absorbs the other.
+
+**Alternatives considered:**
+
+- **A reserved ordinary key** such as `opm-secrets`, with authors refused it. Rejected: it takes a name from authors and needs a check on every entry path.
+- **A per-instance generated key.** Rejected: unstable across instances and module versions, which hurts inventory diffs and addressing.
+
+**Rationale:** Measured in the feasibility review: merging author and synthesised components by key unifies rather than conflicts, so a shared key silently merges two components. A key outside the author key space makes the collision unrepresentable. Whether every tool that addresses components accepts such a key is measured by OQ6.
+
+**Source:** User decision 2026-09-30; unification behaviour measured in the 2026-09-30 feasibility review.
+
+---
+
+### D24: The kernel reports every contract a render required, synthesised components included
+
+**Kind:** contract
+
+**Decision:** The render result lists every contract the render required, including those of components the kernel synthesised. Frontends read an instance's contract demand from there instead of walking the instance's own components.
+
+**Requirements:**
+
+- R1: An instance using a secret source is recorded as depending on that source's contract, so a guard that protects contracts in use refuses to remove it.
+
+**Alternatives considered:**
+
+- **The operator recomputes the demand itself.** Rejected: it duplicates kernel knowledge in a frontend, and the CLI would need it too.
+- **Accept the gap.** Rejected: removing a source would break every dependent instance at its next render.
+
+**Rationale:** A component that exists only inside the render is invisible to any frontend that reads the instance; the kernel is the one party that sees it.
+
+**Source:** User decision 2026-09-30; the blind spot measured in the 2026-09-30 feasibility review.
+
+---
+
+### D25: An authored instance package refuses literal secrets
+
+**Kind:** contract
+
+**Amends:** D16
+
+**Decision:** A literal secret value is accepted only from a values source the kernel assembles into the build itself: a `ModuleInstance` CR's values, or a values file given alongside an instance. An authored instance package, whose own files carry its values, refuses a literal at a marked path with an error naming the path and the two allowed alternatives: a reference, or the literal supplied through a values source. A package-only delivery path with no values channel therefore fulfils secrets by reference or by a named source only.
+
+What survives of D16: the render is assembled without the deployer's original values, never by overriding them. What changes against D16: an authored package is no longer an artifact that can carry supplied values, so R2's instance file no longer includes packages with literals.
+
+**Requirements:**
+
+- R1: An authored instance package carrying a literal at a marked path fails with an error naming that path and the allowed alternatives.
+- R2: The same literal supplied through a CR's values or a values file renders normally.
+
+**Alternatives considered:**
+
+- **Support literals in packages by evaluating the package, extracting its values and re-assembling.** Rejected: new internal machinery that bypasses the loader's own checks, carries metadata by hand, adds a build, and loses source positions for values written as expressions.
+- **Allow them as a documented exception.** Rejected: it breaks the no-plaintext-in-the-render guarantee on one path.
+
+**Rationale:** The kernel can keep plaintext out of the build only where it assembles the values itself. An authored package is committed to version control or published to a registry, so a literal in it is plaintext at rest there as well.
+
+**Source:** User decision 2026-09-30, holding after the cost was restated: a package-only operator path cannot supply literals at all.
+
+---
+
+### D26: Exported instances encrypt the literal values at marked paths
+
+**Kind:** contract
+
+**Depends:** 0014:D1
+
+**Amends:** D14, 0014:D3
+
+**Decision:** When an instance is exported for GitOps, the `value` field of every literal at a marked path is SOPS-encrypted in the exported `ModuleInstance`; everything else stays readable. Cluster-side decryption is the GitOps tool's. What survives of D14: SOPS stays at the file seams, never an arm, a backend or kernel code. What changes against D14 R4: the encrypted artifact is the exported instance, not rendered Secret manifests. What changes against 0014 D3: exported values are no longer written verbatim where a marked path holds a literal.
+
+**Requirements:**
+
+- R1: An exported instance carries no plaintext secret value, and every other field of it stays readable and diffable.
+- R2: The exported instance, once decrypted by the GitOps tool, renders exactly as the unexported one.
+
+**Alternatives considered:**
+
+- **Encrypt rendered Secret manifests.** Rejected: rendering happens in the cluster on the CR-export path, so the committed artifact is the instance, not its manifests.
+- **Leave export encryption out of this entry.** Rejected: the export path would commit literals to git until another entry took it up.
+
+**Rationale:** Discover already yields exactly the paths to encrypt. Flux's decryptor keys on the SOPS metadata, not on the object kind, so an encrypted `ModuleInstance` is decrypted before it reaches the API server.
+
+**Source:** User decision 2026-09-30; Flux decryption behaviour read from the kustomize-controller source during the 2026-09-30 feasibility review.
+
+---
+
+### D27: The CLI writes raw values to the instance it applies; plaintext at rest covers that path too
+
+**Kind:** contract
+
+**Amends:** D15
+
+**Decision:** When the CLI applies an instance to a cluster it writes the deployer's values as given, literals included, never the resolved references. The documentation that a literal in a `ModuleInstance` is plaintext at rest in etcd names the CLI apply path, including values the CLI decrypted from SOPS, and recommends a reference or a named source for production on both paths.
+
+**Requirements:**
+
+- R1: An instance applied by the CLI and then rendered by the operator produces the same output as the CLI's own render.
+- R2: The documentation of plaintext at rest names both the operator path and the CLI apply path.
+
+**Alternatives considered:**
+
+- **Refuse literals on apply.** Rejected: CLI and operator paths would accept different inputs, and a developer on a real cluster would have to pre-create every Secret.
+- **The CLI creates the Secrets itself and writes references.** Rejected: the operator would materialise nothing, the handoff's output identity would break, and the Secrets would sit outside the inventory.
+
+**Rationale:** The operator re-renders what the CLI applied; it can only reproduce the Secret if it receives the literal the CLI received.
+
+**Source:** User decision 2026-09-30.
+
+---
+
+### D28: Diagnostics never carry a value at a marked path
+
+**Kind:** contract
+
+**Amends:** D16
+
+**Decision:** Every diagnostic the kernel returns replaces any value at a marked path with a fixed placeholder, keeping the path and the reason. Every frontend inherits this. What changes against D16 R1: an error at a marked path names the path and the reason, not the value as written.
+
+**Requirements:**
+
+- R1: No validation or render error, event or status condition carries the value written at a marked path, including a malformed one.
+- R2: Such an error still names the path and why it failed.
+
+**Alternatives considered:**
+
+- **The operator redacts its own findings.** Rejected: every other frontend would need the same code, and CLI output in CI logs would still leak.
+- **Document the echo.** Rejected: the leak is on the most common mistake, a bare string where a secret is expected.
+
+**Rationale:** Measured in the feasibility review: that mistake produces a conflict error quoting the value, which the operator writes to Events, often readable by people who cannot read Secrets.
+
+**Source:** User decision 2026-09-30; the echo measured in the 2026-09-30 feasibility review.
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
