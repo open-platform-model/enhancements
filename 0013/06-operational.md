@@ -12,10 +12,11 @@ Four new diagnostics, all from the library kernel:
 - **Unknown `@opm` marker kind** (`opm/secret`). A warning listing the field path and the unrecognised position-0 value, the first defence against a mistyped marker. Surfaced in normal output, not behind a verbose flag.
 - **Field typed `#Secret` that discovery did not find** (`opm/secret`). A contradiction, and a hard error: it catches the mistyped-*argument* case the warning above misses.
 - **Group disagreement** (`opm/secret`). Two members of one group declaring different `type` or `immutable`, with both config paths named.
+- **Unfulfilled secret** (D34). Every declared path is checked for completeness on every render and every kernel validation, and reported at its values path, redacted. Plain `cue vet -c` catches it only when a component reads the path.
 
 Two more diagnostics come free from CUE and need no OPM code:
 
-- **Unfulfilled secret**: both `#Secret` arms carry required fields, so an unsupplied secret is non-concrete and `cue vet -c` names it by path.
+- **Malformed secret value**: two arms at once, a bare string, an unknown field or a wrong type fails plain `cue vet -c` through `#ModuleInstance`'s values check, whether or not a component reads it (D34).
 - **Secret interpolated into a string**: a struct-in-string error at plain `cue vet` against `debugValues`, at authoring time.
 
 Structured surface: `#SecretsResolution.unfulfilled` and `declarations` are part of the kernel's return, so the CLI and the operator report from the same data rather than re-deriving it.
@@ -30,12 +31,12 @@ Deliberately **not** introduced: any log line, metric label, or error message ca
 
 **Breaking.** Expected `semver: major`, to be confirmed at acceptance.
 
-- **`opmodel.dev/core@v1`**: `#Secret` is narrowed (its arms lose `$opm`, `$secretName`, `$dataKey`; `#SecretK8sRef` is replaced by `#SecretRef`), `#SecretKeyType` and `#SecretObjectType` are added, and `#SecretSchema`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` are removed. Tightening a published constraint and removing published definitions are both breaking. `#TransformerContext` is **unchanged**. Core ships on the `v1.0.0-alpha.N` prerelease line, so a `feat!:` advances the alpha counter rather than forcing `@v2`.
-- **`opmodel.dev/catalogs/opm@v1`**: stops redeclaring `#Secret` and imports core's; `#SecretSchema.data` narrows from `#Secret | string` to `string`. Breaking. Also on a `v1.x.x-alpha.x` prerelease line.
+- **`opmodel.dev/core@v2`**: `#Secret`'s arms lose `$opm`, `$secretName` and `$dataKey` and gain core's hidden tag; `#SecretK8sRef` is replaced by `#SecretRef`; `#SecretSourceInput`, `#SecretKeyType`, `#SecretObjectType` and `#SecretTypeRequiredKeys` are added; `#ModuleInstance` gains the hidden values check; `#SecretSchema`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` are removed. Wave 2 adds `#SecretSource` to `#Secret`, which is additive. Tightening a published constraint and removing published definitions are both breaking. `#TransformerContext` is **unchanged**. Core ships on the `v2.0.0-alpha.N` prerelease line, so a `feat!:` advances the alpha counter rather than forcing a new major.
+- **`opmodel.dev/catalogs/opm`**: already removed its legacy secret block and narrowed `#SecretSchema.data` to `string`, crossing to a new major (Deviations from Design in the README). What remains is additive: the `literal` secret source and its transformer (D22, D30), and an env-from-secret path reading `.ref` / `.key`.
 - **`library`**: the kernel's public surface gains `opm/secret`. Breaking for direct callers, which are `cli` and `opm-operator`, both in this workspace.
-- **`modules`**: every module using `res.#Secret`'s `$`-field form must migrate. That is exactly one: `metallb`.
+- **`modules`**: every module whose sensitive fields are interim plain strings migrates: `apprise`, `gotify`, `k8up`, `metallb` and `ntfy` (the ones carrying a `0013:` placeholder).
 
-**Instance files do not change for supplied secrets.** `{value: "…"}` is already the shape people write, and D10 keeps it. Only a *referenced* secret changes shape, from `{secretName, remoteKey}` to `{ref, key}`, and no module in the fleet uses that arm today.
+**Instance files change.** The fleet types its secrets as plain strings until core ships `#Secret`, so a supplied value moves from `password: "…"` to `password: {value: "…"}`; a reference is `{ref, key}`. `examples.cue` shows the migration on `gotify`.
 
 No compatibility window (D9). The two shapes cannot coexist because the `$`-fields and the narrowed arms are mutually exclusive on the same field. `cli` has no external users, so no deprecation is owed there.
 
@@ -66,9 +67,9 @@ Retained: `#ContentHash` and `#ImmutableName` (still used by the ConfigMap path)
 
 Straightforward at the artifact level, with one cluster-state caveat.
 
-Every affected repo publishes immutable versioned artifacts, so rolling back is pinning the previous version: `core` and `catalogs/opm` to their prior alpha, `library` to its prior tag, `modules/metallb` to its prior published version. Previously published module versions remain consumable because they pin the older `core` and catalog majors; nothing retroactively invalidates an already-published module.
+Every affected repo publishes immutable versioned artifacts, so rolling back is pinning the previous version: `core` and `catalogs/opm` to their prior alpha, `library` to its prior tag, each migrated module to its prior published version. Previously published module versions remain consumable because they pin the older `core` and catalog majors; nothing retroactively invalidates an already-published module.
 
-Instance files are unaffected in either direction for supplied secrets, since their shape does not change. That removes what would otherwise be the messiest part of a rollback.
+Instance files must roll back too: a migrated `{value: "…"}` returns to the plain string the prior module version expects.
 
 The caveat is **cluster state, which does not roll back with code**. The Secret object name changes under D6 (`metallb-speaker-memberlist` → `metallb-memberlist`). Rolling the code back means workloads look for the old name again, and the old object may have been pruned by the apply layer's inventory reconciliation. Rollback for an already-migrated instance therefore requires either keeping the old object until the migration is confirmed, or re-applying the rolled-back render and letting it recreate the object from the instance values, which still hold the data, unchanged.
 
@@ -80,9 +81,9 @@ Nothing in this design writes state that outlives a render other than the Secret
 
 The entry is delivered in two waves, so the secret system can be used before its extension surface is committed to. Each wave runs the repo order below.
 
-**Wave 1, literal and reference.** Carries D18 without the `#SecretSource` arm, D20, D22 to D25, D27, D28, D30 and D33 to D36, on the foundation of D2 to D17: core's `#Secret` is `#SecretLiteral | #SecretRef`; a literal resolves to catalog_opm's `literal` source.
+**Wave 1, literal and reference.** Carries D18 without the `#SecretSource` arm, the settings slot of D31's envelope, D20, D22 to D25, D27, D28, D30 and D33 to D36, on the foundation of D2 to D17: core's `#Secret` is `#SecretLiteral | #SecretRef`; a literal resolves to catalog_opm's `literal` source.
 
-**Wave 2, named sources.** Carries the `#SecretSource` arm of D18, D19, D21, D26, D29, D31, D32, and the part of D35 that refuses a named source with no provider. D26 also waits on enhancement 0014's export.
+**Wave 2, named sources.** Carries the `#SecretSource` arm of D18, D19, D21, D26, D29, D31's group agreement on source and settings, D32, and the part of D35 that refuses a named source with no provider. D26 also waits on enhancement 0014's export.
 
 Three constraints keep wave 2 purely additive:
 
@@ -94,11 +95,11 @@ Three constraints keep wave 2 purely additive:
 
 Strict order: each step consumes a published artifact from the one before.
 
-1. **`core`**: narrow `#Secret`; delete the dead machinery; correct `SPEC.md` §1; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v2.0.0-alpha.N`.
+1. **`core`**: add the tagged arms, `#SecretRef`, `#SecretSourceInput` and the `#ModuleInstance` values check; delete the dead machinery; update `SPEC.md` §1, §3.5 and the reserved annotation prefix; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v2.0.0-alpha.N`.
 2. **`library`**: implement `opm/secret` (Discover, Resolve), wire the phases, add the `.value` diagnostic. Consumes the new core alpha. Publishes a new library tag. The build shape is settled (D16, measured by experiment 03): raw values validate in the existing separate `Validate` evaluation, one component-graph build assembled from resolved values only, rewrite via decode → splice → encode (D17).
-3. **`catalog_opm`**: drop the duplicate and import core's `#Secret`; rewrite both consumption sites to read `.ref` / `.key`; strip the name computation from the secret transformer. Consumes the new core alpha. Publishes a new `v2.x.x-alpha.x`.
+3. **`catalog_opm`**: ship the `literal` secret-source resource and its transformer, which uses the target name verbatim (D22, D30); restore an env-from-secret path and read `.ref` / `.key` at both consumption sites. Consumes the new core alpha.
 4. **`cli`** and **`opm-operator`**: bump to the new library; port the `secrets-module` fixture; add the `opm module inspect` secrets section. These two can land in parallel.
-5. **`modules`**: migrate `metallb` onto the new core + catalog pins. **Migration step, not a code change:** the rendered Secret name changes, and the module's RBAC `resourceNames` scoping references the rendered object name. Both must change together, and the module must be re-rendered and diffed against the running cluster before apply. Instance values need no edit.
+5. **`modules`**: migrate the plain-string modules onto the new core + catalog pins, typing each sensitive field `#Secret` and wiring it by reference. Each instance's values change from a plain string to `{value: "…"}`. **Migration step, not only a code change:** rendered Secret names change, and `metallb`'s RBAC `resourceNames` scoping references the rendered object name. Both must change together, and each module must be re-rendered and diffed against the running cluster before apply.
 6. **`opmodel.dev`**: regenerate the schema reference; rewrite the secrets section of the authoring docs around the routing/fulfilment split.
 7. **`modules/DESIGN_PATTERNS.md`**: rewrite the `schemas.#Secret` pattern section (`:84-110`) and the summary-table row (`:630`).
 

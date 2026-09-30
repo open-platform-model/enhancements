@@ -4,16 +4,21 @@
 //
 //	#Secret ................ the FULFILMENT slot. Data. A real CUE type, so CUE
 //	                         type-checks it. Filled by the deployer, per
-//	                         environment. Two arms: the data, or where it lives.
+//	                         environment: the data, where it already lives, or
+//	                         (wave 2) which secret source produces it.
 //
 //	@opm(secret, …) ........ the ROUTING. Metadata. Inert. Written by the module
 //	                         author, identical in every environment, travelling
 //	                         inside the published module.
 //
-// Each carries what it is good at. The routing moved out of the value — which is
-// what kills the double-statement and the discovery pyramid — while the
-// disjunction stayed, because it was doing legitimate work that nothing else
-// can do: it is the only part of a secret CUE itself can check.
+// Secret METHODS are not core's business. A method is a secret source: a
+// #Resource a catalog defines, annotated opmodel.dev/secret-source, fulfilled
+// by the catalog's transformer, and fed through one core envelope,
+// #SecretSourceInput (D18, D19). Core adds the arms and the envelope once and
+// never grows with new methods.
+//
+// Delivery runs in two waves (06-operational.md). This file is the full target
+// and marks the wave-2 surface as such; everything unmarked ships in wave 1.
 //
 // One shape here is NOT a value in any artifact: #SecretMarker. A CUE field
 // attribute is metadata attached to a field, not a field of its own, so it
@@ -26,18 +31,25 @@
 //
 // Delta manifest against opmodel.dev/core@v2:
 //
-//	CHANGED   #Secret, #SecretLiteral
-//	NEW       #SecretRef (replaces #SecretK8sRef), #SecretKeyType,
-//	          #SecretObjectType (named; today an inline set inside #SecretSchema)
+//	CHANGED   #Secret, #SecretLiteral (each arm gains core's hidden tag, D33)
+//	CHANGED   #ModuleInstance: gains the hidden values check (D34); shown here
+//	          as #ModuleInstanceValuesCheck, the rest of it unchanged
+//	NEW       #SecretRef (replaces #SecretK8sRef), #SecretSourceInput,
+//	          #SecretKeyType, #SecretObjectType, #SecretTypeRequiredKeys
+//	NEW (w2)  #SecretSource, added to #Secret's disjunction in wave 2
 //	PARSED    #SecretMarker: the attribute grammar core documents and never evaluates
-//	RESTATED  #NameType, #ObjectNameType: copied verbatim from core, unchanged
-//	STAND-IN  #FQNType: a simplified local form of core's
-//	          #ContractFQNType | #ImplFQNType, only so this file compiles
+//	SPEC      the reserved opmodel.dev/ annotation prefix (D20); SPEC.md §1 and
+//	          §3.5 secret text (see spec.md); no schema change
+//	SPEC (w2) a catalog entry's #transformers may carry a source's settings
+//	          fill (D32); no schema change
+//	RESTATED  #NameType, #ObjectNameType, #ContractFQNType, #ContentHash:
+//	          copied verbatim from core, unchanged
 //	KERNEL    everything else: library behaviour contracts, not core schema
 //	REMOVED   listed in spec.md ## Removed definitions
 package schema
 
 import (
+	"encoding/json"
 	"list"
 	"regexp"
 	"strings"
@@ -59,9 +71,10 @@ import (
 // once instance and group together pass 62 runes.
 #ObjectNameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$" & strings.MinRunes(1) & strings.MaxRunes(253)
 
-// #FQNType: a primitive's exact match key, as enhancement 0010 D13 fixes it —
-// package path plus name plus the full SemVer of the build it came from.
-#FQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9-]+@.+$"
+// #ContractFQNType: a contract FQN, restated verbatim from core: package path,
+// name and apiVersion, what a module demands and what a deployer names a
+// secret source by (D29). A catalog release does not move it.
+#ContractFQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+((alpha|beta)[0-9]+)?$"
 
 // A path segment is spelled the way CUE's own path printer spells it: a bare
 // identifier (Unicode letters included, never a leading "_", which CUE prints
@@ -96,8 +109,9 @@ let _label = "(?:\(_ident)|\(_quoted))"
 #SecretKeyType: string & =~"^[-._a-zA-Z0-9]+$" & !~"^\\.$" & !~"^\\.\\." & strings.MaxRunes(253)
 
 // #SecretObjectType: the Kubernetes Secret `type` values OPM materialises.
-// Named here so the marker's `type=` argument and a backend catalog's
-// materialising transformer read one set. A group's members must agree on it.
+// Named here so the marker's `type=` argument and every secret source, through
+// #SecretSourceInput.target.type, read one set. A group's members must agree
+// on it.
 //
 // Narrower than the inline set in core's deleted #SecretSchema, by two types
 // OPM cannot create. kubernetes.io/service-account-token needs annotations the
@@ -131,42 +145,58 @@ let _label = "(?:\(_ident)|\(_quoted))"
 // #Secret: what a module author puts on a sensitive field, and what the
 // deployer fills.
 //
-// The two arms are not two kinds of secret. They are two statements about the
-// same secret:
+// The arms are not kinds of secret. They are statements about the same secret:
 //
-//	#SecretLiteral  says WHAT the data is     — the deployer has it in hand
-//	#SecretRef      says WHERE the data lives — the cluster already holds it
+//	#SecretLiteral  says WHAT the data is: the deployer has it in hand
+//	#SecretRef      says WHERE the data lives: the cluster already holds it
+//	#SecretSource   says WHICH source produces it, and from what (wave 2)
 //
-// For a literal, the kernel's whole job is to turn a *what* into a *where*:
-// decide which object will hold the data, name that object, and put the data
-// there. Once it has, the literal also has a location — so it can be restated
-// as a #SecretRef. That restatement is #ResolveInPlace, and it is why both arms
-// converge to one shape before anything renders.
+// For every arm but the reference, the kernel's job is to turn a *what* into a
+// *where*: decide which object will hold the data, name it, and have a source
+// produce it. Once it has, the value also has a location, so it can be restated
+// as a #SecretRef. That restatement is #ResolveInPlace, and it is why every arm
+// converges to one shape before anything renders.
 //
-// Both arms are structs, deliberately. A `string | #SecretRef` form would let
+// Every arm is a struct, deliberately. A `string | #SecretRef` form would let
 // the deployer write a bare scalar, but the value's KIND would then change
-// across resolution for the referenced arm, so a module would only type-check
-// with the kernel in the loop. Keeping the kind stable means a module vets
-// standalone, in either arm, with or without the kernel — and it means existing
-// instance files do not change at all.
+// across resolution, so a module would only type-check with the kernel in the
+// loop. Keeping the kind stable means a module vets standalone, in any arm.
+//
+// Wave 1 ships the two arms below. Wave 2 widens the disjunction to
+// `#SecretLiteral | #SecretRef | #SecretSource`; widening breaks no module and
+// no transformer, since modules type the field as #Secret and transformers only
+// ever see the rewritten #SecretRef.
 #Secret: #SecretLiteral | #SecretRef
 
-// #SecretLiteral: the deployer supplies the data. OPM materialises an object to
-// hold it. Note what is absent versus the shape this replaces: no $opm
-// discriminator, no $secretName, no $dataKey. Routing is not the value's job.
+// _opmSecret: core's hidden tag, carried by every arm (D33). A field is a
+// secret when the schema declares it and its resolved value carries this tag.
+// Hidden, so it never appears in JSON, in a decoded value, or in anything the
+// kernel exports; package-scoped, so only core can author it: a structure that
+// merely looks like a secret, or a tag written in another package, is never
+// one. The value names the core line, which tells this shape apart from the
+// earlier release's #Secret published under the same name.
+
+// #SecretLiteral: the deployer supplies the data. It is sugar for the platform's
+// literal source (D30): the kernel resolves it to the one contract annotated
+// `opmodel.dev/secret-source: literal`, which materialises a plain Secret. Note
+// what is absent versus the shape this replaces: no $opm discriminator, no
+// $secretName, no $dataKey. Routing is not the value's job.
 #SecretLiteral: {
-	value!: string
+	_opmSecret: "v2"
+	value!:     string
 }
 
 // #SecretRef: the data lives in an object that already exists. OPM materialises
 // nothing and wires a reference.
 //
-// This is also the shape the kernel WRITES for a resolved literal, which is the
-// whole trick — see #ResolveInPlace.
+// This is also the shape the kernel WRITES for every resolved value, which is
+// the whole trick: see #ResolveInPlace.
 #SecretRef: {
+	_opmSecret: "v2"
+
 	// Exact object name. When the deployer writes it, the module does not own
 	// the object and the name is never instance-prefixed. When the kernel writes
-	// it, this is the group plan's objectName. Typed as an object name, not a DNS
+	// it, this is the group plan's object name. Typed as an object name, not a DNS
 	// label: a pre-existing Secret may be named `tls.example.com`, and the
 	// kernel's own composed name can pass 63 runes.
 	ref!: #ObjectNameType
@@ -174,6 +204,93 @@ let _label = "(?:\(_ident)|\(_quoted))"
 	// The key to read inside that object. Need not equal the declared key: the
 	// module names its own slot, the cluster names its own.
 	key!: #SecretKeyType
+}
+
+// #SecretSource (WAVE 2): the deployer names a secret source and gives it what
+// it needs. Not part of #Secret until wave 2.
+#SecretSource: {
+	_opmSecret: "v2"
+
+	// The source's exact contract FQN, apiVersion included, the way a component
+	// names a resource (D29). Nothing resolves a short name or picks a version.
+	// A values file written in CUE can take it from the catalog's definition by
+	// import.
+	source!: #ContractFQNType
+
+	// How the group's one object is produced: a store, a role, a mount. Typed by
+	// the source's resource schema, which admits only the settings a deployer
+	// may set; the platform's settings fill the rest (D31, D32). Every
+	// non-reference member of a group must carry the same source and settings.
+	settings?: {...}
+
+	// This key's own data: a remote key, a ciphertext. Typed by the source's
+	// resource schema as one entry of #SecretSourceInput.entries.
+	spec?: {...}
+}
+
+// #SecretSourceInput: what the kernel hands every secret source, once per
+// group (D18, D31). Ships in wave 1 in this final shape, so the literal source
+// is written against the envelope wave 2 uses and nothing here grows later. A
+// source's resource schema is `#SecretSourceInput & {settings: <its settings>,
+// entries: [_]: <its entry schema>}`; a schema that does not accept this
+// envelope fails to vet in its own catalog.
+#SecretSourceInput: {
+	// The one Kubernetes Secret the source must end up producing, directly (a
+	// plain Secret) or through its own controller (an ExternalSecret, a
+	// SealedSecret). Every consumer's #SecretRef points at target.name.
+	target!: {
+		name!:     #ObjectNameType
+		type:      #SecretObjectType | *"Opaque"
+		immutable: bool | *false
+	}
+
+	// The group's settings, as the deployer wrote them. Empty for the literal
+	// source. Complete by construction: the source's schema holds only
+	// deployer-settable settings, each optional or defaulted (D31).
+	settings: {...}
+
+	// Data key -> that member's source data. For the literal source an entry is
+	// `{value: "…"}`; for a named source it is the member's spec.
+	entries!: [#SecretKeyType]: _
+
+	// A typed Secret must carry the keys the API server requires for its type,
+	// whichever source produces it.
+	for k in #SecretTypeRequiredKeys[target.type] {
+		entries: (k)!: _
+	}
+}
+
+// #SecretSourceAnnotation: the primitive annotation that marks a #Resource as
+// a secret source (D20, D29). The key sits under the `opmodel.dev/` prefix
+// core's specification reserves for keys the kernel interprets. Its value is a
+// role, not a name: `source` for a named source, `literal` for the one source
+// a platform may carry to serve #SecretLiteral (D30). The `source` role is used
+// from wave 2; wave 1 reads only `literal`.
+#SecretSourceAnnotation: {
+	key:   "opmodel.dev/secret-source"
+	value: "source" | "literal"
+}
+
+// ─── The instance's values check ────────────────────────────────────────────
+
+// #ModuleInstanceValuesCheck: the one field core's #ModuleInstance gains (D34),
+// shown on a minimal stand-in; the rest of #ModuleInstance is unchanged.
+//
+// The check unifies the values with the module's #config BESIDE `values`, never
+// into it, so the instance's exported values stay exactly what the deployer
+// wrote: no #config default is added. Plain `cue vet -c` then rejects a value
+// carrying two arms, a bare string at a secret path, an unknown field or a
+// wrong type, whether or not a component reads it. Two things it cannot do,
+// both left to the kernel: CUE never checks completeness under a hidden field,
+// so an unfulfilled secret no component reads passes plain vet; and a
+// hand-written instance that does not embed #ModuleInstance carries no check
+// at all. The kernel checks every declared secret path for completeness on
+// every entry path, independent of this field, and reports a failure here at
+// the matching `values` path, redacted.
+#ModuleInstanceValuesCheck: {
+	#module: #config: _
+	values:       _
+	_valuesCheck: #module.#config & values
 }
 
 // ─── The routing marker ─────────────────────────────────────────────────────
@@ -222,14 +339,16 @@ let _label = "(?:\(_ident)|\(_quoted))"
 // a struct that embeds #Secret, and is a discovery error anywhere else.
 #SecretMarker: {
 	// Position 0. Always "secret" for this enhancement; other values in this
-	// slot belong to other markers (e.g. "identity") and are not this
-	// enhancement's concern.
+	// slot belong to other markers and are not this enhancement's concern.
 	kind: "secret"
 
 	// Which Kubernetes Secret object this field's data lands in. Fields sharing a
 	// group land in one object; the default puts every secret of an instance that
-	// did not ask otherwise into one object per instance.
-	group: #NameType | *"secrets"
+	// did not ask otherwise into one object per instance. At most 51 runes, so
+	// the synthesised component's name `opm-secrets-<group>` stays a #NameType;
+	// discovery refuses a longer group from the module alone, in every
+	// environment, rather than at render in only some of them.
+	group: #NameType & strings.MaxRunes(51) | *"secrets"
 
 	// The key inside that object's data map. Defaults to the config path folded
 	// into the key charset (#DeriveKey). The fold is readable but lossy, so the
@@ -246,40 +365,45 @@ let _label = "(?:\(_ident)|\(_quoted))"
 	// must agree; the kernel rejects a group whose members disagree.
 	immutable: bool | *false
 
-	// Human-readable purpose, surfaced by `opm module inspect`. Inert.
+	// Human-readable purpose, surfaced by inspection tooling. Inert.
 	description?: string
 }
 
-// ─── Phase 1: Discover ──────────────────────────────────────────────────────
+// ─── Discover ───────────────────────────────────────────────────────────────
 
-// #SecretDecl: one marked field, as the kernel's discovery pass produces it.
+// #SecretDecl: one declared secret, as the kernel's discovery pass produces it.
 //
-// Discovery walks the module's `#config` schema — NOT the instance's values. A
-// CUE attribute belongs to the field that declares it and does not travel
-// through a reference or into the vertex supplying the value. Measured, not
-// assumed; see ../experiments/01-attribute-propagation.
+// The schema declares (D3, D33). Discovery walks the module's #config schema,
+// following disjunctions, embeddings, aliases, patterns and lists to core's
+// tagged arms; a field reached that way is a declaration, whether or not it
+// carries a marker (D13). Values declare nothing: a secret-shaped value at a
+// field the schema does not declare is ignored.
 //
-// Because discovery reads the schema, it works with no values present at all,
-// which is what lets tooling list a module's required secrets before anyone has
-// fulfilled them.
+// It walks twice. With no values present it lists every declaration it can
+// reach, for templates and inspection; a declaration under a condition on a
+// deployer value only appears once values select it. At render it walks the
+// schema with the values unified, so conditions resolve and "[_]" declarations
+// expand, and every declared path's resolved value must carry core's tag: a
+// plain default left unset, or the earlier core release's shape, is refused.
 #SecretDecl: {
 	// Where the field sits in #config. Unique across a module by construction.
 	// A field under a pattern constraint or inside a list element is declared
-	// once with a "[_]" segment and expands per key or element at resolution.
+	// once with a "[_]" segment and expands per key or element at render.
 	path!: #ConfigPathPatternType
 
-	// The parsed marker, with defaults applied.
+	// The parsed marker, with defaults applied. All defaults when the field is
+	// secret-typed but unmarked (D13).
 	marker!: #SecretMarker
 
 	// `let` captures the field from the enclosing scope. Passing `{path: path}`
 	// directly would make the inner `path` a self-reference to the field being
-	// declared in that struct literal — the same shadowing trap core documents
+	// declared in that struct literal, the same shadowing trap core documents
 	// around its own `let _d = data` helpers.
 	let _p = path
 
 	// Resolved key: marker.key when given, derived from the path otherwise. A
 	// "[_]" declaration has no concrete path yet, so without `key=` its key is
-	// derived per expanded path at resolution, not here.
+	// derived per expanded path at render, not here.
 	key?: #SecretKeyType
 	if marker.key != _|_ {
 		key: marker.key
@@ -303,19 +427,19 @@ let _label = "(?:\(_ident)|\(_quoted))"
 // Nor is it total. A path whose fold passes 253 runes (reachable through a long
 // deployer-added map key) or folds to nothing (an empty label) has no default
 // key. That is an error naming the path, at discovery for a fixed field and at
-// resolution for an expanded one, and `key=` is the remedy.
+// render for an expanded one, and `key=` is the remedy.
 #DeriveKey: {
 	path!: #ConfigPathType
 	let _bare = strings.Replace(strings.Replace(path, "\"", "", -1), "]", "", -1)
 	out: #SecretKeyType & regexp.ReplaceAll("[^-a-zA-Z0-9_]", _bare, "_")
 }
 
-// #GroupKeysUnique: no two members of one group share a data key. A
-// #SecretGroupPlan's data is a map, so a collision would silently keep one
-// secret and drop the other; here it is a unification conflict instead, and
-// the kernel reports it naming both paths. Applied to fixed declarations at
-// discovery and again to expanded "[_]" paths at resolution, since a
-// deployer-added map key can collide with a sibling.
+// #GroupKeysUnique: no two members of one group share a data key. A group's
+// entries are a map, so a collision would silently keep one secret and drop the
+// other; here it is a unification conflict instead, and the kernel reports it
+// naming both paths. Applied to fixed declarations at discovery and again to
+// expanded "[_]" paths at render, since a deployer-added map key can collide
+// with a sibling.
 #GroupKeysUnique: {
 	#members: [...{group: #NameType, key: #SecretKeyType, path: #ConfigPathType}]
 
@@ -323,36 +447,47 @@ let _label = "(?:\(_ident)|\(_quoted))"
 	out: {for m in #members {(m.group): (m.key): m.path}}
 }
 
-// ─── Phase 2: Resolve in place ──────────────────────────────────────────────
+// #GroupSourcesAgree (WAVE 2): every non-reference member of a group names the
+// same source with the same settings, since one object has one producer (D19,
+// D31). A literal member counts as naming the literal source with empty
+// settings (D30), and a member written with no settings block counts as
+// `settings: {}`. Members are compared as values, so field order and a
+// setting written out at its default do not count as a difference. A
+// disagreement is a unification conflict naming the group and both paths.
+#GroupSourcesAgree: {
+	#members: [...{group: #NameType, source: #ContractFQNType, settings: {...}, path: #ConfigPathType}]
 
-// #SecretGroupPlan: one Kubernetes Secret object the kernel will materialise.
-//
-// Only literals produce a plan. A #SecretRef the deployer wrote produces none —
-// the object is not ours to write.
+	// group -> first path -> second path -> whether the pair agrees, which must
+	// be true.
+	out: {
+		for i, m in #members for j, n in #members if j > i && m.group == n.group {
+			(m.group): "\(m.path)": "\(n.path)": (m.source == n.source && m.settings == n.settings) & true
+		}
+	}
+}
+
+// ─── Resolve in place ───────────────────────────────────────────────────────
+
+// #SecretGroupPlan: one group's object, as the kernel plans it. Only
+// non-reference members produce a plan: a #SecretRef the deployer wrote names
+// an object that is not ours to produce.
 #SecretGroupPlan: {
 	// The group name as declared (or defaulted) on the member fields.
-	group!: #NameType
+	group!: #NameType & strings.MaxRunes(51)
 
-	// The object's final name. Computed exactly once, here, by the kernel, and
-	// then written into every member's resolved #SecretRef.ref. There is only one
-	// string, and it is in the value — so an env reference and a volume reference
-	// to the same group cannot disagree. The three divergent name derivations in
-	// catalog_opm today become unrepresentable rather than merely fixed.
-	objectName!: #ObjectNameType
+	// The chosen source's exact contract FQN: the one annotated `literal` for
+	// literal members (D30), the named one for #SecretSource members (wave 2).
+	source!: #ContractFQNType
 
-	// Agreed across every member; the kernel rejects a group that disagrees.
-	type:      #SecretObjectType | *"Opaque"
-	immutable: bool | *false
+	// What the source receives. input.target.name is the object's final name,
+	// computed exactly once, by the kernel, and then written into every member's
+	// resolved #SecretRef.ref. There is only one string, and it is in the value,
+	// so an env reference and a volume reference to the same group cannot
+	// disagree. The divergent name derivations the catalog carried become
+	// unrepresentable rather than merely fixed.
+	input!: #SecretSourceInput
 
-	// key -> plaintext. Travels out of band to the materialising component and
-	// is never present in the component graph. A typed group must carry the
-	// keys its type requires.
-	data!: [#SecretKeyType]: string
-	for k in #SecretTypeRequiredKeys[type] {
-		data: (k)!: string
-	}
-
-	// Which config paths fed this group — diagnostics and provenance only.
+	// Which config paths fed this group: diagnostics and provenance only.
 	// Concrete paths, one per expanded member, and no two share a data key
 	// (#GroupKeysUnique).
 	members!: [...#ConfigPathType]
@@ -370,8 +505,9 @@ let _label = "(?:\(_ident)|\(_quoted))"
 }
 
 // #ContentHash: deterministic 10-character hex digest of a string map, over
-// sorted key=value pairs so it is stable under reordering. Same construction
-// core uses for ConfigMaps today; it moves to the kernel because after
+// sorted key=value pairs so it is stable under reordering. Restated verbatim
+// from core, which keeps it. What moves to the kernel is content-hash naming
+// of Secret objects (#InputHash, #ImmutableObjectName), because after
 // resolution no transformer can see the data.
 #ContentHash: {
 	data: [string]: string
@@ -383,28 +519,59 @@ let _label = "(?:\(_ident)|\(_quoted))"
 	out: hex.Encode(sha256.Sum256(strings.Join(_pairs, "\n"))[:5])
 }
 
+// #InputHash: the content hash of what a source receives, over each entry and
+// the settings in canonical JSON: object keys sorted at every level (RFC 8785),
+// so reordering a spec's or the settings' fields never renames the object or
+// makes two frontends disagree. The settings sit under the empty key, which no
+// entry can use. For the literal source this hashes the supplied values; for a
+// named source it hashes what the deployer wrote (a remote key, a ciphertext),
+// not the remote data, whose rotation stays the source's job. The model sorts
+// the top level of each entry and of the settings, which is all the examples
+// need; the kernel sorts every level.
+#InputHash: {
+	entries: [string]: _
+	settings: {...}
+
+	let _e = entries
+	let _s = settings
+	out: (#ContentHash & {data: {
+		for k, e in _e {(k): (#CanonicalJSON & {in: e}).out}
+		"": (#CanonicalJSON & {in: _s}).out
+	}}).out
+}
+
+// #CanonicalJSON: a struct as JSON with its top-level keys sorted. A model of
+// the kernel's canonical encoding, which sorts every level.
+#CanonicalJSON: {
+	in: {...}
+	let _i = in
+	out: json.Marshal({for k in list.SortStrings([for k, _ in _i {k}]) {(k): _i[k]}})
+}
+
 // #ImmutableObjectName: content-addressed object name. Computed BEFORE the
 // rewrite, so a member's resolved #SecretRef.ref already carries the suffix and
-// every consumer follows the object automatically when the data changes.
+// every consumer follows the object automatically when the input changes.
 #ImmutableObjectName: {
 	base!: #ObjectNameType
-	data: [string]: string
+	entries: [string]: _
+	settings: {...}
 
-	let _d = data
-	out: #ObjectNameType & "\(base)-\((#ContentHash & {data: _d}).out)"
+	let _e = entries
+	let _s = settings
+	out: #ObjectNameType & "\(base)-\((#InputHash & {entries: _e, settings: _s}).out)"
 }
 
 // #ResolveInPlace: the rewrite that is the heart of this design.
 //
-// Every marked path in the render-time values is replaced by a #SecretRef —
-// whichever arm the deployer wrote. A literal is replaced by a reference to the
-// object the kernel has just decided to create; a reference passes through as
-// itself. Afterwards nothing downstream can tell the two apart, and nothing
-// needs to: a transformer reads `.ref` and `.key` from one branch, with no
-// variant dispatch, no prefix test, and no side lookup.
+// Every declared path in the render-time values is replaced by a #SecretRef,
+// whichever arm the deployer wrote. A literal (or, in wave 2, a named source)
+// is replaced by a reference to the object the kernel has just planned; a
+// reference passes through as itself. Afterwards nothing downstream can tell
+// them apart, and nothing needs to: a transformer reads `.ref` and `.key` from
+// one branch, with no variant dispatch and no side lookup.
 //
-// The plaintext does not appear in the output. It leaves through
-// #SecretGroupPlan.data, which reaches only the materialising component.
+// The plaintext does not appear in the output. It leaves through the group
+// plan's input, which reaches only the synthesised component.
 #ResolveInPlace: {
 	// Every declared secret, keyed by config path.
 	#in: [#ConfigPathType]: #Secret
@@ -419,9 +586,9 @@ let _label = "(?:\(_ident)|\(_quoted))"
 // one instance. Named so the pass has one written-down result rather than
 // several loosely-related returns.
 #SecretsResolution: {
-	// Phase 1 — Discover: read from the module's #config, values not required.
-	// A "[_]" declaration expands against the values into the concrete paths
-	// the fields below are keyed by.
+	// Discover: read from the module's #config schema. A "[_]" declaration
+	// expands against the values into the concrete paths the fields below are
+	// keyed by.
 	declarations!: #SecretDeclList
 
 	// Fixed declarations already carry a key, so their collisions surface at
@@ -431,48 +598,63 @@ let _label = "(?:\(_ident)|\(_quoted))"
 		for d in declarations if d.key != _|_ && !strings.Contains(d.path, "[_]") {group: d.marker.group, key: d.key, path: d.path},
 	]}).out
 
-	// Phase 2 — Resolve: what each secret path becomes in the render-time values.
+	// Resolve: what each secret path becomes in the render-time values.
 	resolved!: [#ConfigPathType]: #SecretRef
 
-	// Phase 2 — Resolve: the objects OPM will write. Literals only.
+	// Resolve: the objects the platform's sources will produce, one per group
+	// with a non-reference member.
 	plans!: [...#SecretGroupPlan]
 
-	// Declared but not fulfilled. Non-empty is an error for a render and a report
-	// for `opm module inspect`. CUE also catches this on its own: both arms carry
-	// required fields, so an unsupplied secret is non-concrete and `cue vet -c`
-	// names it by path with no OPM tooling involved.
+	// Declared but not fulfilled. Non-empty fails every render and every kernel
+	// validation, whether or not a component reads the path (D34). Plain `cue
+	// vet -c` reports it only when a component reads the path; one no component
+	// reads passes, because CUE does not check completeness under a hidden field.
 	unfulfilled!: [...#ConfigPathType]
 }
 
 // ─── What the kernel synthesises ────────────────────────────────────────────
 
-// #SynthesizedSecretsComponent: the component the kernel builds to carry the
-// plans into the ordinary transformer pipeline.
-//
-// The resource FQN is an INPUT, supplied from the platform's materialized
-// catalogs. It is never a literal here and never a literal in core. That is the
-// direct lesson of enhancement 0010 OQ9: a catalog stamps its own version into
-// every FQN it publishes, core cannot know that version, and a hardcoded
-// constant went stale the moment the catalogs moved to the @v1 line — turning a
-// convenience into a hard render failure. Supplying the FQN from the platform is
-// 0010 OQ9's candidate (b), and it is natural here because the kernel is already
-// the party doing discovery and already holds the platform.
-#SynthesizedSecretsComponent: {
-	// Resolved from the platform's materialized catalogs at synthesis time.
-	#secretsResourceFQN!: #FQNType
+// #SynthesizedSecretComponent: the component the kernel builds for one group,
+// carrying the chosen source's contract into the ordinary transformer pipeline.
+// It enters the render build through the library's render glue, served from
+// memory, never through the instance's components, and is held to what an
+// authored component is (D35). Its contract is reported among the render's
+// required contracts (D24). It exists only inside the render build: its spec,
+// which carries the plaintext for the literal source, is never a regular
+// readable field of that build, and every diagnostic at its path is redacted
+// as at a declared path (D36). This model shows its shape, not something any
+// frontend exports.
+#SynthesizedSecretComponent: {
+	#plan!: #SecretGroupPlan
 
-	metadata: name: #NameType | *"secrets"
+	// The source resource's spec key, which core derives from the resource's own
+	// name (a resource named "literal-secret" exposes spec.literalSecret). Read
+	// from the contract the platform defines, never assumed.
+	#specKey!: string
 
-	#resources: (#secretsResourceFQN): _
+	// The components-map key: outside the keys an author can declare, so it can
+	// never merge with an author component (D23). A dot is not valid in a
+	// #NameType. Emitted as a quoted label, never a hidden identifier.
+	key: "opm.secrets.\(#plan.group)" & !~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
 
-	spec: secrets: [#NameType]: #MaterializedSecret
-}
+	component: {
+		// An ordinary identity name. The kernel refuses a render in which it
+		// equals an authored component's name, since only the keys are disjoint.
+		metadata: {
+			name: #NameType & "opm-secrets-\(#plan.group)"
 
-// #MaterializedSecret: the spec entry a secrets transformer consumes. Plain
-// data — discovery, grouping, and naming have all already happened.
-#MaterializedSecret: {
-	name!:     #ObjectNameType
-	type:      #SecretObjectType | *"Opaque"
-	immutable: bool | *false
-	data!: [#SecretKeyType]: string
+			// Stamped by the kernel: core stamps it only for components declared
+			// through #Module, and inventories record the component from it.
+			labels: "component.opmodel.dev/name": name
+		}
+
+		// The contract, taken from the platform's defined contracts by the plan's
+		// exact FQN.
+		#resources: (#plan.source): _
+
+		// The source's input. Validated for completeness before matching, as an
+		// authored component's spec is at acquisition, with a failure reported at
+		// the member's values path (D35).
+		spec: (#specKey): #plan.input
+	}
 }

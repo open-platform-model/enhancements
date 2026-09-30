@@ -7,13 +7,16 @@
 // and these stop unifying.
 //
 // Read order follows one secret's life:
-//   1. #ExampleConfig    — what the AUTHOR writes (routing, static)
-//   2. exDeclarations    — what discovery produces, with no values at all
-//   3. exValuesDev/Prod  — what the DEPLOYER writes (fulfilment, per-env)
-//   4. exPlans           — the objects the kernel decides to create
-//   5. exResolved        — the rewrite: both arms become #SecretRef
-//   6. exRenderedEnv/Vol — what a transformer emits, one branch for both arms
-//   7. exMetallbBefore/After — the one affected fleet module
+//   1. #ExampleConfig       what the AUTHOR writes (routing, static)
+//   2. exDeclarations       what discovery produces, with no values at all
+//   3. exValuesDev/Prod     what the DEPLOYER writes (fulfilment, per env),
+//                           and the instance's values check
+//   4. exPlans              the objects the kernel plans, one input per group
+//   5. exResolved           the rewrite: every arm becomes #SecretRef
+//   6. exRenderedEnv/Vol    what a transformer emits, one branch for every arm
+//   7. exSynthBasicAuth     the component the kernel synthesises
+//   8. exGotifyBefore/After migrating a fleet module
+//   9. wave 2               named sources, and why widening is additive
 package schema
 
 // ─── 1. The author surface ──────────────────────────────────────────────────
@@ -28,7 +31,7 @@ package schema
 	// The common case. Everything derived: group "secrets", key "db_password".
 	db: {
 		password: #Secret @opm(secret)
-		host:     string // unmarked sibling, untouched by any of this
+		host:     string  // unmarked sibling, untouched by any of this
 	}
 
 	// A group — both fields land in ONE object, which is what
@@ -47,11 +50,15 @@ package schema
 
 	// Depth is not a constraint: discovery is a Go recursion with no unrolled
 	// level limit. Twelve levels here purely to make that concrete.
-	deeply: nested: a: b: c: d: e: f: g: h: i: token: #Secret @opm(secret, group=deep)
+	deeply: nested: a: b: c: d: e: f: g: h: i: {
+		token: #Secret @opm(secret, group=deep)
+	}
 
 	// A pattern constraint propagates the mark to every key the deployer adds,
 	// so a module can offer an open-ended map of secrets without knowing names.
-	extraSecrets: [string]: #Secret @opm(secret, group=extra)
+	extraSecrets: {
+		[string]: #Secret @opm(secret, group=extra)
+	}
 }
 
 // ─── 2. Discovery output (values not required) ──────────────────────────────
@@ -85,7 +92,7 @@ _assertPatternKey: exDeclarations[6].key == _|_ & true
 // a list index becomes a segment, and `$` (legal in a CUE identifier, not in a
 // Secret key) folds to "_".
 _assertQuotedKey: (#DeriveKey & {path: "extraSecrets.\"api-token\""}).out & "extraSecrets_api-token"
-_assertIndexKey:  (#DeriveKey & {path: "users[0].password"}).out & "users_0_password"
+_assertIndexKey: (#DeriveKey & {path: "users[0].password"}).out & "users_0_password"
 _assertDollarKey: (#DeriveKey & {path: "$legacy.token"}).out & "_legacy_token"
 
 // The fold is lossy: a sibling field literally named `db_password` derives the
@@ -109,11 +116,11 @@ _assertKeysUnique: (#GroupKeysUnique & {#members: [
 // exValuesDev: everything supplied inline. Dev has no managed certificate.
 exValuesDev: [string]: #Secret
 exValuesDev: {
-	"db.password":   {value: "hunter2"}
+	"db.password": {value: "hunter2"}
 	"auth.username": {value: "admin"}
 	"auth.password": {value: "s3cr3t"}
-	"tls.cert":      {value: "-----BEGIN CERTIFICATE-----\nDEV\n-----END CERTIFICATE-----"}
-	"tls.key":       {value: "-----BEGIN PRIVATE KEY-----\nDEV\n-----END PRIVATE KEY-----"}
+	"tls.cert": {value: "-----BEGIN CERTIFICATE-----\nDEV\n-----END CERTIFICATE-----"}
+	"tls.key": {value: "-----BEGIN PRIVATE KEY-----\nDEV\n-----END PRIVATE KEY-----"}
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {value: "tok-123"}
 }
 
@@ -121,11 +128,11 @@ exValuesDev: {
 // manages. OPM will not create or own that object.
 exValuesProd: [string]: #Secret
 exValuesProd: {
-	"db.password":   {value: "hunter2"}
+	"db.password": {value: "hunter2"}
 	"auth.username": {value: "admin"}
 	"auth.password": {value: "s3cr3t"}
-	"tls.cert":      {ref: "wildcard-example-com", key: "tls.crt"}
-	"tls.key":       {ref: "wildcard-example-com", key: "tls.key"}
+	"tls.cert": {ref: "wildcard-example-com", key: "tls.crt"}
+	"tls.key": {ref: "wildcard-example-com", key: "tls.key"}
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {value: "tok-123"}
 
 	// A key the deployer added under the pattern map. Not an identifier, so
@@ -133,46 +140,98 @@ exValuesProd: {
 	"extraSecrets.\"api-token\"": {value: "tok-456"}
 }
 
-// ─── 4. Resolution — the objects the kernel decides to create ───────────────
+// The instance's values check (D34). The check sits beside `values`, so the
+// exported values are exactly what the deployer wrote: the #config default for
+// `replicas` is checked against, never added.
+exInstanceCheck: #ModuleInstanceValuesCheck & {
+	#module: #config: {
+		db: password: #Secret
+		replicas: int | *1
+	}
+	values: db: password: value: "hunter2"
+}
+
+_assertNoDefaultLeak: (exInstanceCheck.values.replicas == _|_) & true
+
+// Every arm carries core's hidden tag, which is how the kernel knows a
+// resolved value is a core secret (D33). Hidden, so it never reaches JSON.
+_assertLiteralTagged: (#SecretLiteral & {value: "x"})._opmSecret & "v2"
+
+// ─── 4. Resolution: the objects the kernel plans ────────────────────────────
+
+// The literal source's contract FQN. Illustrative: the kernel takes whatever
+// FQN the platform's one `literal`-annotated contract carries (D30), and never
+// assumes a catalog path.
+let _literalFQN = "opmodel.dev/catalogs/opm/resources/literal-secret@v1alpha1"
+
+// A sketch of the literal source's resource schema, as catalog_opm would
+// define it (D22): the core envelope, with no settings and one `value` per
+// entry. Every literal plan below must fit it.
+#ExampleLiteralSourceSpec: #SecretSourceInput & {
+	settings: close({})
+	entries: [_]: close({value!: string})
+}
 
 // exPlans: for instance "myapp" in the PROD values. The `tls` group produces no
-// plan — those two secrets are references, so the object is not ours to write.
+// plan: those two secrets are references, so the object is not ours to write.
 exPlans: [...#SecretGroupPlan] & [
 	{
-		group:      "secrets"
-		objectName: (#ObjectName & {instance: "myapp", group: "secrets"}).out
-		type:       "Opaque"
-		data: db_password: "hunter2"
+		group:  "secrets"
+		source: _literalFQN
+		input: {
+			target: name: (#ObjectName & {instance: "myapp", group: "secrets"}).out
+			settings: {}
+			entries: db_password: value: "hunter2"
+		}
 		members: ["db.password"]
 	},
 	{
-		group:      "basic-auth"
-		objectName: (#ObjectName & {instance: "myapp", group: "basic-auth"}).out
-		type:       "kubernetes.io/basic-auth"
-		data: {username: "admin", password: "s3cr3t"}
+		group:  "basic-auth"
+		source: _literalFQN
+		input: {
+			target: {
+				name: (#ObjectName & {instance: "myapp", group: "basic-auth"}).out
+				type: "kubernetes.io/basic-auth"
+			}
+			settings: {}
+			entries: {
+				username: value: "admin"
+				password: value: "s3cr3t"
+			}
+		}
 		members: ["auth.username", "auth.password"]
 	},
 	{
-		group:      "deep"
-		objectName: (#ObjectName & {instance: "myapp", group: "deep"}).out
-		type:       "Opaque"
-		data: deeply_nested_a_b_c_d_e_f_g_h_i_token: "tok-123"
+		group:  "deep"
+		source: _literalFQN
+		input: {
+			target: name: (#ObjectName & {instance: "myapp", group: "deep"}).out
+			settings: {}
+			entries: deeply_nested_a_b_c_d_e_f_g_h_i_token: value: "tok-123"
+		}
 		members: ["deeply.nested.a.b.c.d.e.f.g.h.i.token"]
 	},
 	{
-		group:      "extra"
-		objectName: (#ObjectName & {instance: "myapp", group: "extra"}).out
-		type:       "Opaque"
-		data: "extraSecrets_api-token": "tok-456"
+		group:  "extra"
+		source: _literalFQN
+		input: {
+			target: name: (#ObjectName & {instance: "myapp", group: "extra"}).out
+			settings: {}
+			entries: "extraSecrets_api-token": value: "tok-456"
+		}
 		members: ["extraSecrets.\"api-token\""]
 	},
 ]
 
-_assertObjectName: exPlans[1].objectName & "myapp-basic-auth"
+_assertObjectName: exPlans[1].input.target.name & "myapp-basic-auth"
+
+// Every literal plan fits the literal source's own schema.
+_assertLiteralPlansFit: [for p in exPlans {#ExampleLiteralSourceSpec & p.input}]
 
 // A composed name is an object name, not a DNS label. A 40-rune instance
 // with a 25-rune group is 66 runes: legal for a Secret, and over #NameType's
-// 63-rune cap, which is why objectName and #SecretRef.ref carry #ObjectNameType.
+// 63-rune cap, which is why the target name and #SecretRef.ref carry
+// #ObjectNameType.
 exLongObjectName: (#ObjectName & {
 	instance: "payments-reconciliation-service-eu-west1"
 	group:    "database-credentials-main"
@@ -180,23 +239,31 @@ exLongObjectName: (#ObjectName & {
 _assertLongNameOverLabelCap: len(exLongObjectName) & >63
 
 // An immutable group in the DEV values, where the TLS pair IS supplied. The
-// hash is computed before the rewrite, so members' `ref` already carries it and
-// every consumer follows the object when the certificate rotates.
+// hash is computed over the input before the rewrite, so members' `ref`
+// already carries it and every consumer follows the object when the
+// certificate rotates. A kubernetes.io/tls target must carry both tls.crt and
+// tls.key, which the envelope enforces.
 exImmutablePlan: #SecretGroupPlan & {
-	group:      "tls"
-	objectName: (#ImmutableObjectName & {base: "myapp-tls", data: exImmutablePlan.data}).out
-	type:       "kubernetes.io/tls"
-	immutable:  true
-	data: {
-		"tls.crt": "-----BEGIN CERTIFICATE-----\nDEV\n-----END CERTIFICATE-----"
-		"tls.key": "-----BEGIN PRIVATE KEY-----\nDEV\n-----END PRIVATE KEY-----"
+	group:  "tls"
+	source: _literalFQN
+	input: {
+		target: {
+			name: (#ImmutableObjectName & {base: "myapp-tls", entries: exImmutablePlan.input.entries, settings: exImmutablePlan.input.settings}).out
+			type:      "kubernetes.io/tls"
+			immutable: true
+		}
+		settings: {}
+		entries: {
+			"tls.crt": value: "-----BEGIN CERTIFICATE-----\nDEV\n-----END CERTIFICATE-----"
+			"tls.key": value: "-----BEGIN PRIVATE KEY-----\nDEV\n-----END PRIVATE KEY-----"
+		}
 	}
 	members: ["tls.cert", "tls.key"]
 }
 
-_assertImmutableName: exImmutablePlan.objectName & "myapp-tls-6bf0199259"
+_assertImmutableName: exImmutablePlan.input.target.name & "myapp-tls-c9261478b2"
 
-// ─── 5. Resolve in place — both arms converge ───────────────────────────────
+// ─── 5. Resolve in place: every arm converges ───────────────────────────────
 
 // exResolvedProd: the render-time values. Every marked path now holds a
 // #SecretRef, whichever arm the deployer wrote.
@@ -214,12 +281,16 @@ exResolvedProd: {
 
 	// was already a reference — passes through as itself, never prefixed
 	"tls.cert": {ref: "wildcard-example-com", key: "tls.crt"}
-	"tls.key":  {ref: "wildcard-example-com", key: "tls.key"}
+	"tls.key": {ref: "wildcard-example-com", key: "tls.key"}
 
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {ref: "myapp-deep", key: "deeply_nested_a_b_c_d_e_f_g_h_i_token"}
 
 	"extraSecrets.\"api-token\"": {ref: "myapp-extra", key: "extraSecrets_api-token"}
 }
+
+// The kernel writes tagged references, so a resolved value is still a core
+// secret at render (D33).
+_assertResolvedTagged: exResolvedProd["db.password"]._opmSecret & "v2"
 
 // No plaintext survives resolution: every resolved value unifies with
 // #SecretRef, and #SecretRef is a closed struct with no `value` field. Absence
@@ -233,7 +304,8 @@ _assertAllResolvedAreRefs: {
 
 // ─── 6. Consumption — what a transformer emits ──────────────────────────────
 
-// The author's wiring is unchanged from today: `from: #config.db.password`. By
+// The author wires the field into an env var or a volume (`from:
+// #config.db.password`, the env-from-secret path the catalog restores). By
 // render time that reference holds a #SecretRef, and the transformer reads two
 // fields. There is no variant dispatch, no prefix test, and no side lookup —
 // both examples below come out of the SAME transformer branch.
@@ -277,59 +349,148 @@ exRenderedVolume: {
 
 _assertVolumeAgreesWithEnv: exRenderedVolume.secret.secretName & exResolvedProd["auth.password"].ref
 
-// ─── 7. The one affected fleet module ───────────────────────────────────────
+// ─── 7. What the kernel synthesises ─────────────────────────────────────────
 
-// modules/metallb is the only module in the workspace fleet carrying a secret
-// today. Both halves of its current shape are shown so the migration is
-// concrete rather than described.
-
-// exMetallbBefore: today. The routing is stated TWICE — once as $-fields in
-// module.cue's #config, once as a hand-written spec.secrets map in
-// components.cue — and nothing checks that the two agree.
-exMetallbBefore: {
-	moduleCue: config: speaker: memberlistKey: {
-		"$opm":        "secret"
-		"$secretName": "memberlist"
-		"$dataKey":    "secretkey"
-	}
-	componentsCue: speaker: spec: secrets: memberlist: data: secretkey: moduleCue.config.speaker.memberlistKey
-	instanceValues: speaker: memberlistKey: value: "BASE64GOSSIPKEY"
+// exSynthBasicAuth: the component the kernel adds to the render for the
+// basic-auth group. Its key cannot be written by an author; its spec is the
+// plan's input under the literal source's spec key; its target name is the
+// very string both consumers above read.
+exSynthBasicAuth: #SynthesizedSecretComponent & {
+	#plan:    exPlans[1]
+	#specKey: "literalSecret"
 }
 
-// exMetallbAfter: the same module. The routing moves to the attribute, the
-// hand-written spec.secrets map in components.cue is deleted outright — and the
-// INSTANCE VALUES DO NOT CHANGE, because #SecretLiteral is the shape they
-// already use.
-exMetallbAfter: {
+_assertSynthKey:    exSynthBasicAuth.key & "opm.secrets.basic-auth"
+_assertSynthName:   exSynthBasicAuth.component.metadata.name & "opm-secrets-basic-auth"
+_assertSynthLabel:  exSynthBasicAuth.component.metadata.labels."component.opmodel.dev/name" & "opm-secrets-basic-auth"
+_assertSynthTarget: exSynthBasicAuth.component.spec.literalSecret.target.name & exResolvedProd["auth.username"].ref
+
+// ─── 8. Migrating a fleet module ────────────────────────────────────────────
+
+// modules/gotify today: while core had no usable #Secret, the fleet stripped
+// the legacy vocabulary and types its sensitive fields as plain strings, wired
+// into the workload as a plain env value. The plaintext therefore lands in the
+// rendered Deployment.
+exGotifyBefore: {
+	// A definition, since a schema is not a concrete value.
+	#moduleCue: config: defaultUser: password:          string
+	componentsCue: env: GOTIFY_DEFAULTUSER_PASS: value: instanceValues.defaultUser.password
+	instanceValues: defaultUser: password: "debug-admin-password"
+}
+
+// exGotifyAfter: the field becomes a #Secret, the env var reads the reference,
+// and the instance value moves into the literal arm. Instance files DO change
+// for this fleet: a bare string becomes `{value: …}`.
+exGotifyAfter: {
 	moduleCue: {
 		// Written in the module as:
-		//   memberlistKey: #Secret @opm(secret, group=memberlist, key=secretkey)
+		//   defaultUser: password: #Secret @opm(secret, group=admin, key=password)
 		declaration: #SecretDecl & {
-			path: "speaker.memberlistKey"
-			marker: {kind: "secret", group: "memberlist", key: "secretkey"}
+			path: "defaultUser.password"
+			marker: {kind: "secret", group: "admin", key: "password"}
 		}
 	}
 
-	// Byte-identical to exMetallbBefore.instanceValues.
-	instanceValues: speaker: memberlistKey: value: "BASE64GOSSIPKEY"
+	instanceValues: defaultUser: password: #Secret & {value: "debug-admin-password"}
 
 	plan: #SecretGroupPlan & {
-		group:      "memberlist"
-		objectName: (#ObjectName & {instance: "metallb", group: "memberlist"}).out
-		data: secretkey: "BASE64GOSSIPKEY"
-		members: ["speaker.memberlistKey"]
+		group:  "admin"
+		source: _literalFQN
+		input: {
+			target: name: (#ObjectName & {instance: "gotify", group: "admin"}).out
+			settings: {}
+			entries: password: value: instanceValues.defaultUser.password.value
+		}
+		members: ["defaultUser.password"]
 	}
 
-	resolved: "speaker.memberlistKey": #SecretRef & {
-		ref: plan.objectName
-		key: "secretkey"
+	resolved: "defaultUser.password": #SecretRef & {
+		ref: plan.input.target.name
+		key: "password"
+	}
+
+	// The rendered Deployment now carries a reference, not the password.
+	renderedEnv: GOTIFY_DEFAULTUSER_PASS: valueFrom: secretKeyRef: {
+		name: resolved["defaultUser.password"].ref
+		key:  resolved["defaultUser.password"].key
 	}
 }
 
-_assertMetallbValuesUnchanged: exMetallbAfter.instanceValues & exMetallbBefore.instanceValues
+_assertGotifyValueMoves:  exGotifyAfter.instanceValues.defaultUser.password.value & exGotifyBefore.instanceValues.defaultUser.password
+_assertGotifyNoPlaintext: exGotifyAfter.renderedEnv.GOTIFY_DEFAULTUSER_PASS.valueFrom.secretKeyRef.name & "gotify-admin"
 
-// The rendered object name DOES change (`metallb-speaker-memberlist` becomes
-// `metallb-memberlist`), so the RBAC resourceNames scoping in components.cue
-// must move with it — called out in ../06-operational.md as a migration step
-// rather than left to be discovered.
-_assertMetallbObject: exMetallbAfter.plan.objectName & "metallb-memberlist"
+// ─── 9. Wave 2: named sources ───────────────────────────────────────────────
+
+// #SecretWave2: #Secret as wave 2 widens it.
+#SecretWave2: #SecretLiteral | #SecretRef | #SecretSource
+
+// Widening is additive: every wave-1 value is still a valid wave-2 value.
+_assertWave1StillValid: {for p, v in exValuesProd {(p): #SecretWave2 & v}}
+
+// An external-store source, as a third-party catalog would define it: its own
+// settings (which store) and its own entry schema (where in the store).
+let _esoFQN = "example.com/catalogs/eso/resources/external-secret@v1alpha1"
+
+#ExampleExternalSourceSpec: #SecretSourceInput & {
+	// The deployer may name another store; the platform supplies the default
+	// through its catalog entry (D32), so the spec is complete without it.
+	settings: close({store?: string})
+	entries: [_]: close({key!: string, property?: string})
+}
+
+// exValuesProdWave2: the same module on the same platform, prod now reading
+// the basic-auth pair from an external store. dev keeps its literals.
+exValuesProdWave2: [string]: #SecretWave2
+exValuesProdWave2: {
+	for p, v in exValuesProd if p != "auth.username" && p != "auth.password" {(p): v}
+	"auth.username": {source: _esoFQN, settings: store: "vault-prod", spec: {key: "prod/auth", property: "username"}}
+	"auth.password": {source: _esoFQN, settings: store: "vault-prod", spec: {key: "prod/auth", property: "password"}}
+}
+
+// Both members of the group name the same source with the same settings.
+_assertGroupAgrees: (#GroupSourcesAgree & {#members: [
+	for p in ["auth.username", "auth.password"] {
+		group:  "basic-auth"
+		source: exValuesProdWave2[p].source
+		settings: [if exValuesProdWave2[p].settings != _|_ {exValuesProdWave2[p].settings}, {}][0]
+		path: p
+	},
+]}).out
+
+// The plan: one input, one settings block, one entry per member's spec. The
+// object name is the same as the literal plan's, so consumers do not change.
+exExternalPlan: #SecretGroupPlan & {
+	group:  "basic-auth"
+	source: _esoFQN
+	input: {
+		target: {
+			name: (#ObjectName & {instance: "myapp", group: "basic-auth"}).out
+			type: "kubernetes.io/basic-auth"
+		}
+		settings: exValuesProdWave2["auth.username"].settings
+		entries: {
+			username: exValuesProdWave2["auth.username"].spec
+			password: exValuesProdWave2["auth.password"].spec
+		}
+	}
+	members: ["auth.username", "auth.password"]
+}
+
+_assertExternalFits:     #ExampleExternalSourceSpec & exExternalPlan.input
+_assertExternalSameName: exExternalPlan.input.target.name & exPlans[1].input.target.name
+
+// A plan that relies on the platform's store fits the source's schema.
+_assertExternalPlatformDefault: #ExampleExternalSourceSpec & {
+	target: name: "myapp-basic-auth"
+	settings: {}
+	entries: username: key: "prod/auth"
+}
+
+// Reordering a named source's fields changes neither the group verdict nor the
+// immutable name.
+_assertOrderFreeAgreement: (#GroupSourcesAgree & {#members: [
+	{group: "g", source: _esoFQN, settings: {store: "s", role: "r"}, path: "a"},
+	{group: "g", source: _esoFQN, settings: {role: "r", store: "s"}, path: "b"},
+]}).out
+_assertOrderFreeHash: (#ImmutableObjectName & {base: "x", settings: {}, entries: k: {key: "prod/auth", property: "username"}}).out &
+	(#ImmutableObjectName & {base: "x", settings: {}, entries: k: {property: "username", key: "prod/auth"}}).out
