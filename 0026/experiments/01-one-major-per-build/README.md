@@ -8,7 +8,7 @@ A single build that holds two majors of one catalog whose contract keys are shar
 
 ## Setup
 
-Copied, unmodified, from `core/src/` at commit `cbe93e0` (release `2.0.0-alpha.12`, the published `opmodel.dev/core@v2` line): `types.cue`, `resource.cue`, `trait.cue`, `blueprint.cue`, `transformer.cue`, `catalog.cue`, `platform.cue`. These seven files are the whole closure the probe needs; the pin files, the module and instance definitions and the identity package were left out. `platform.cue` here is the shipped `#Platform`, which D3 renames `#ResolvedPlatform` with its shape unchanged, so it is the render-time value this entry generates.
+Copied, unmodified, from `core/src/` at commit `cbe93e0` (two commits after release `2.0.0-alpha.12`, on the published `opmodel.dev/core@v2` line; those two commits changed only comments in `resource.cue` and `trait.cue`): `types.cue`, `resource.cue`, `trait.cue`, `blueprint.cue`, `transformer.cue`, `catalog.cue`, `platform.cue`. These seven files are the whole closure the probe needs; the pin files, the module and instance definitions and the identity package were left out. `platform.cue` here is the shipped `#Platform`, which D3 renames `#ResolvedPlatform` with its shape unchanged, so it is the render-time value this entry generates.
 
 Added, all in `probe/` beside the copies:
 

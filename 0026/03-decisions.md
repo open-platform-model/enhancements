@@ -119,7 +119,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 - R2: The resolved platform for a render carries exactly one entry per catalog the build holds, at the version the build holds; an admitted lineage that no module imported and no registration supplied is absent.
 - R3: For a render given a platform, one authored platform value, with the same fields, serves as the operator's Platform CR spec and as the offline file the render starts from; a hand-written platform module is no longer an input.
 - R4: Platform-package generation happens once per distinct resolution, keyed by the resolved catalog set, the authored platform's generation and the accepted registrations, so renders with the same resolution share one generated package.
-- R5: A render given no platform holds every catalog it pins at the pinned version, carries no registrations, and meets none of D2's admission refusals; no authored or synthesized `#Platform` takes part in it.
+- R5: A render given no platform holds every catalog it pins at the pinned version, never two majors of one catalog (D9 R2; what happens to a module pinning two is OQ18), carries no registrations, and meets none of D2's admission refusals; no authored or synthesized `#Platform` takes part in it.
 
 **Alternatives considered:**
 
@@ -135,13 +135,15 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Revised:** 2026-09-29: today's offline form restated as an explicit platform directory; OQ8 resolved as a platform-less path, R1 and R3 narrowed to renders given a platform, R5 added.
 
+**Revised:** 2026-09-30: R5 bounded by D9 R2, so the platform-less resolved platform also holds one major per catalog.
+
 ---
 
 ### D4: An admission entry admits and bounds; it never loads a catalog
 
 **Kind:** policy
 
-**Decision:** Listing a catalog in the authored `#Platform` does not put it in any build. A catalog enters a render build in exactly two ways: a consumer module imports it, or an accepted registration (0015 D3) supplies it. A static catalog admitted by the platform and imported by no module is absent from that module's build. The platform's own module-less build, for readiness and inventory, imports each enabled static catalog at its floor, and never two majors of one catalog in one build (D9).
+**Decision:** Listing a catalog in the authored `#Platform` does not put it in any build. A catalog enters a render build in exactly two ways: a consumer module imports it, or an accepted registration (0015 D3) supplies it, and a registration supplies it only to a resolution holding the major of the declaring catalog the provider was built against (D9 R4). A static catalog admitted by the platform and imported by no module is absent from that module's build. The platform's own module-less build, for readiness and inventory, imports each enabled static catalog at its floor, and never two majors of one catalog in one build (D9).
 
 **Requirements:** none (policy; its observable consequences are homed elsewhere: an admitted-but-unimported catalog absent from the build is D3 R2, the module-less build at the floor is D2 R7)
 
@@ -153,7 +155,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Source:** User decision 2026-09-08 (discussion of admission versus load for provider catalogs).
 
-**Revised:** 2026-09-30: the module-less build holds one major of a catalog per build once several are admitted (D9).
+**Revised:** 2026-09-30: the module-less build holds one major of a catalog per build once several are admitted, and a registration supplies only resolutions holding its declaring major (D9).
 
 ---
 
@@ -223,7 +225,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Amends:** 0015:D8
 
-**Decision:** For every catalog the build holds, its committed requirement on each shared OPM-namespace path must be at most the version the build holds there, within the same major; a different major refuses unconditionally. With the consumer's pin deciding the held version (D1), the comparison 0015 D8 defines runs per render, against the consumer's pins, and a failure names the provider catalog, the consumer module, the path and both versions. It also runs at registration acceptance against the platform's static floors, so a provider that no admitted render could ever hold is refused where it can be named early. Acceptance-time success is necessary, not sufficient; the render-time check is the binding one.
+**Decision:** For every catalog the build holds, its committed requirement on each shared OPM-namespace path must be at most the version the build holds there, within the same major; a different major refuses unconditionally. With the consumer's pin deciding the held version (D1), the comparison 0015 D8 defines runs per render, against the consumer's pins, and a failure names the provider catalog, the consumer module, the path and both versions. It also runs at registration acceptance against the platform's static floors, on each shared path the floor of the admitted entry sharing the provider's major (D9), so a provider that no admitted render could ever hold is refused where it can be named early. Acceptance-time success is necessary, not sufficient; the render-time check is the binding one.
 
 **Requirements:**
 
@@ -240,7 +242,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Source:** User decision 2026-09-08; premise per 0015 D8.
 
-**Revised:** 2026-09-30: R2 names which floor is compared when several majors of one catalog are admitted (D9).
+**Revised:** 2026-09-30: the decision and R2 name which floor is compared when several majors of one catalog are admitted (D9).
 
 ---
 
@@ -292,7 +294,7 @@ A module whose own dependencies import two majors of one catalog is refused at r
 **Alternatives considered:**
 
 - **Put the catalog major into every contract key** (module-qualified keys, `opmodel.dev/catalogs/opm@v5/traits/backup@v1alpha1`). Measured end to end on 2026-09-30 through a patched core and a real kernel render: disjoint routing per major, one provider build serving two majors, and a module split across majors by component all worked. Rejected: every catalog major re-keys every contract it declares, unchanged ones included; the published opm@v4 needs a legacy flag to keep its keys, which is a third authored identity field; the publish gates change; and the user rejected changing contract IDs ("Instead of forcing @v5 into the contract, can't we utilize the already existing FQN or similar").
-- **Keep shared keys and make the major a matching scope**, identity being the pair of contract key and catalog major in the render buckets and the inventory. Measured end to end on 2026-09-30 through a patched real render, with no artifact republished. Rejected: it reshapes every consumer of the inventory, core pins, library types, CLI output and two operator CRD fields, in one lockstep release, and it promotes provenance (`catalogVersion`, 0010 D25) into matching, which 0019 D10 keeps out.
+- **Keep shared keys and make the major a matching scope**, identity being the pair of contract key and catalog major in the render buckets and the inventory. Measured end to end on 2026-09-30 through a patched real render, with no artifact republished. Rejected: it reshapes every consumer of the inventory, core pins, library types, CLI output and two operator CRD fields, in one lockstep release, and it promotes provenance (`catalogVersion`, 0010 D25) into matching, which 0010 D26 keeps out of the match comparison.
 - **Count providers and refuse conflicts across the whole platform, the shipped rule (0015 D2, 0015 D3).** Rejected for side-by-side majors: k8up@v2 built on opm@v4 and k8up@v3 built on opm@v5 each match only their own major's components, yet counted together they read as two providers of one contract and the platform is refused as over-subscribed (experiment 02).
 - **One major at a time, the shipped behaviour.** A second major can be on record only disabled; experiment 01 case D. Rejected: a catalog major upgrade is then all at once across the fleet, the fleet-wide move this entry exists to remove.
 

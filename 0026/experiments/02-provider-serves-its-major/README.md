@@ -8,7 +8,7 @@ A provider built against one major of its declaring catalog serves only that maj
 
 ## Setup
 
-Copied, unmodified, from `core/src/` at commit `cbe93e0` (release `2.0.0-alpha.12`): `types.cue`, `resource.cue`, `trait.cue`, `blueprint.cue`, `transformer.cue`, `catalog.cue`, `platform.cue`. `platform.cue` is the shipped `#Platform`, the render-time value D3 renames `#ResolvedPlatform`.
+Copied, unmodified, from `core/src/` at commit `cbe93e0` (two commits after release `2.0.0-alpha.12`, which changed only comments in `resource.cue` and `trait.cue`): `types.cue`, `resource.cue`, `trait.cue`, `blueprint.cue`, `transformer.cue`, `catalog.cue`, `platform.cue`. `platform.cue` is the shipped `#Platform`, the render-time value D3 renames `#ResolvedPlatform`.
 
 Added in `probe/`:
 
