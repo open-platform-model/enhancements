@@ -71,6 +71,27 @@ exResolved: #ResolvedPlatform & {
 	}
 }
 
+// Side-by-side majors (D9): two majors of one catalog are two admission
+// entries, because the key is the module path with its major. The shape
+// needs no change to admit them.
+exTwoMajors: #Platform & {
+	metadata: name: "cluster"
+	type: "kubernetes"
+	catalogs: {
+		"opmodel.dev/catalogs/opm@v4": floor: "4.2.0" // modules still migrating
+		"opmodel.dev/catalogs/opm@v5": floor: "5.0.0" // modules already moved
+	}
+}
+
+// A render of a module pinned to opm@v5 on that platform: its resolved
+// platform holds opm@v5 and no other major of the catalog (D9 R2), so the
+// fold never meets two definers of one contract key.
+exResolvedV5: #ResolvedPlatform & {
+	metadata: name: "cluster"
+	type: "kubernetes"
+	#registry: "opmodel.dev/catalogs/opm@v5": version: "5.0.0"
+}
+
 // Must-fail: floor is required (D2).
 //
 // exNoFloor: #CatalogAdmission & {path: "opmodel.dev/catalogs/opm@v4"}

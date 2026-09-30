@@ -81,7 +81,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 - R4: An entry without a ceiling admits every release of the path's major at or above the floor.
 - R5: With prereleases off, a pin carrying a prerelease suffix is refused even when its ordering falls inside the range, and a bound carrying a prerelease suffix is rejected at platform validation; with prereleases on, prerelease pins and bounds are admitted by ordering alone.
 - R6: An entry without a floor, or whose floor or ceiling carries a major other than the path's, is rejected at platform validation.
-- R7: The platform's own module-less build, for readiness and the contract inventory, holds each enabled static catalog at its floor.
+- R7: The platform's own module-less build, for readiness and the contract inventory, holds each enabled static catalog at its floor, and never holds two majors of one catalog in one build: a platform admitting several majors of one catalog is built once per admitted major of that catalog or otherwise partitioned so that each build holds one (D9 R3, OQ11).
 
 **Alternatives considered:**
 
@@ -96,6 +96,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Rationale:** Admission and version selection were one number doing two jobs. The platform does the first job and only the first. The floor earns its required status by being the reference version something else needs; the ceiling stays optional because the additive discipline, which 0015 D8 already leans on, is what makes an open upper bound tolerable, and a platform that wants to validate before admitting simply sets one. Prereleases are off by default because admitting them is a decision, and a range written in GA numbers should not admit anything a GA reader would not expect.
 
 **Source:** User decision 2026-09-08 (floor required for static catalogs, ceiling optional; "a new schema that allows for a catalog OCI url or ModulePath to be defined, and an optional floor and ceiling"); user decision 2026-09-19 (the names `#Platform` and `#CatalogAdmission`; the prerelease flag).
+
+**Revised:** 2026-09-30: R7 gains its one-major-per-build clause for side-by-side majors (D9). Holding every enabled static catalog at its floor in one build fails to evaluate once two majors of one catalog are admitted (experiments/01-one-major-per-build/, case A).
 
 ---
 
@@ -139,7 +141,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Kind:** policy
 
-**Decision:** Listing a catalog in the authored `#Platform` does not put it in any build. A catalog enters a render build in exactly two ways: a consumer module imports it, or an accepted registration (0015 D3) supplies it. A static catalog admitted by the platform and imported by no module is absent from that module's build. The platform's own module-less build, for readiness and inventory, imports each enabled static catalog at its floor.
+**Decision:** Listing a catalog in the authored `#Platform` does not put it in any build. A catalog enters a render build in exactly two ways: a consumer module imports it, or an accepted registration (0015 D3) supplies it. A static catalog admitted by the platform and imported by no module is absent from that module's build. The platform's own module-less build, for readiness and inventory, imports each enabled static catalog at its floor, and never two majors of one catalog in one build (D9).
 
 **Requirements:** none (policy; its observable consequences are homed elsewhere: an admitted-but-unimported catalog absent from the build is D3 R2, the module-less build at the floor is D2 R7)
 
@@ -150,6 +152,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Rationale:** Separating admission from loading is what allows the same entry shape to serve static and provider catalogs (D5): for a static catalog the entry admits and the module loads; for a provider catalog the registration admits and loads, and the entry, if present, only bounds.
 
 **Source:** User decision 2026-09-08 (discussion of admission versus load for provider catalogs).
+
+**Revised:** 2026-09-30: the module-less build holds one major of a catalog per build once several are admitted (D9).
 
 ---
 
@@ -224,7 +228,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Requirements:**
 
 - R1: For every catalog a build holds, its committed requirement on each shared OPM-namespace path is at most the version the build holds there within the same major, a different major refusing unconditionally; a render violating this is refused naming the provider catalog, the consumer module, the path and both versions.
-- R2: The same comparison runs at registration acceptance against the platform's static floors, and a provider no admitted render could hold is refused there naming the provider and the path.
+- R2: The same comparison runs at registration acceptance against the platform's static floors, taking on each shared path the floor of the admitted entry that shares the provider's major (D9), and a provider no admitted render could hold is refused there naming the provider and the path.
 - R3: A provider accepted at registration can still be refused at render when a consumer's pins do not hold the versions it requires; acceptance never exempts a render.
 
 **Alternatives considered:**
@@ -235,6 +239,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Rationale:** The premise 0015 D8 rests on is unchanged: within a GA major the only incompatibility is a version-ordering fact readable from committed files. What moves is the value on the right of the comparison.
 
 **Source:** User decision 2026-09-08; premise per 0015 D8.
+
+**Revised:** 2026-09-30: R2 names which floor is compared when several majors of one catalog are admitted (D9).
 
 ---
 
@@ -253,5 +259,45 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 **Rationale:** The entry changes which version's bytes reach the fold, and nothing about the fold. Stating that as scope keeps a reviewer from reading a version rule as a matching rule.
 
 **Source:** User decision 2026-09-08.
+
+---
+
+### D9: A platform may admit several majors of one catalog; each resolution holds exactly one major per catalog
+
+**Kind:** contract
+
+**Depends:** 0010:D1, 0010:D37, 0015:D2, 0015:D3, 0015:D8
+
+**Amends:** 0015:D2, 0015:D3
+
+**Decision:** A platform may admit several majors of one catalog side by side, so that a catalog major can be upgraded one module at a time. Admitting `opmodel.dev/catalogs/opm@v4` and `opmodel.dev/catalogs/opm@v5` is two `#CatalogAdmission` entries, because an entry is keyed by module path with its major (D2, 0010 D1). The major is settled per resolution, before the resolved platform is written: the module's own pin names the major, and the resolved platform holds that major and no other major of the same catalog (D1, D3). No build ever holds two majors of one catalog, so the two-majors conflict cannot arise inside a render, and contract keys, the render glue and matching stay exactly as they are (D8). Four things change around that rule:
+
+- **The module-less build is partitioned.** The platform's own build for readiness and the contract inventory never holds two majors of one catalog (D2 R7, revised); how it is split is OQ11.
+- **A provider joins only resolutions holding the major it was built against.** How resolution learns that major is OQ9.
+- **The one-provider count is taken per resolution.** 0010 D37's rule is unchanged in substance and is read on the resolved platform, the value 0010 called the platform. What changes against 0015 D2 is that the authored platform may carry two providers of one contract when they serve different majors of the declaring catalog. The count on each resolution is still exactly one.
+- **Registration acceptance judges per declaring major.** What survives of 0015 D3 is the refusal of a second provider of a contract; what changes is that the refusal compares providers serving the same major of the declaring catalog only. The shared-path comparison of 0015 D8, as amended by D7, is taken against the admitted entry of the provider's own major.
+
+A module whose own dependencies import two majors of one catalog is refused at resolution, so migration across a major is per module (OQ10 asks whether per component is also needed). The same rule holds on the platform-less path (OQ18).
+
+**Requirements:**
+
+- R1: An authored platform may admit several majors of one catalog as separate admission entries, and admitting or disabling one major never changes what a render of a module on another major holds.
+- R2: Each resolved platform holds at most one major of any catalog: a render of a module pinned to one major holds that major and no other major of the same catalog.
+- R3: The platform's module-less build for readiness and the contract inventory never holds two majors of one catalog in one build, and a platform admitting two majors of one catalog evaluates and reports readiness.
+- R4: A resolution includes a registered provider only when the provider was built against the major of its declaring catalog that the resolution holds; a provider built only against another major is absent from that resolution.
+- R5: The single-provider count of 0010 D37 is taken per resolution: two registered providers of one contract serving different majors of the declaring catalog are both accepted and never counted against each other, and two serving the same major are still refused.
+- R6: A module whose own dependency list imports two majors of one catalog is refused at resolution, naming the module, the catalog path and both majors.
+- R7: Registration acceptance refuses a contract conflict only between providers serving the same major of the declaring catalog, and compares a provider's shared-path requirements against the admitted entry of the provider's own major, refusing a major mismatch only when no admitted entry shares that major.
+
+**Alternatives considered:**
+
+- **Put the catalog major into every contract key** (module-qualified keys, `opmodel.dev/catalogs/opm@v5/traits/backup@v1alpha1`). Measured end to end on 2026-09-30 through a patched core and a real kernel render: disjoint routing per major, one provider build serving two majors, and a module split across majors by component all worked. Rejected: every catalog major re-keys every contract it declares, unchanged ones included; the published opm@v4 needs a legacy flag to keep its keys, which is a third authored identity field; the publish gates change; and the user rejected changing contract IDs ("Instead of forcing @v5 into the contract, can't we utilize the already existing FQN or similar").
+- **Keep shared keys and make the major a matching scope**, identity being the pair of contract key and catalog major in the render buckets and the inventory. Measured end to end on 2026-09-30 through a patched real render, with no artifact republished. Rejected: it reshapes every consumer of the inventory, core pins, library types, CLI output and two operator CRD fields, in one lockstep release, and it promotes provenance (`catalogVersion`, 0010 D25) into matching, which 0019 D10 keeps out.
+- **Count providers and refuse conflicts across the whole platform, the shipped rule (0015 D2, 0015 D3).** Rejected for side-by-side majors: k8up@v2 built on opm@v4 and k8up@v3 built on opm@v5 each match only their own major's components, yet counted together they read as two providers of one contract and the platform is refused as over-subscribed (experiment 02).
+- **One major at a time, the shipped behaviour.** A second major can be on record only disabled; experiment 01 case D. Rejected: a catalog major upgrade is then all at once across the fleet, the fleet-wide move this entry exists to remove.
+
+**Rationale:** 0026 already carries most of this. An admission entry is keyed by module path with its major, so two majors are two entries, and each render's resolved platform holds exactly the catalog versions the module pins, omitting admitted lineages it does not import. Settling the major before `#ResolvedPlatform` is written keeps the code impact small: the resolved platform, the fold, the glue and matching never meet two majors of one catalog, so none of them changes. What had to be added is everything that looks at more than one resolution: the module-less build, provider selection, the provider count and registration acceptance. Two measurements fix those requirements. With shared keys a build holding two majors fails to evaluate and, with that conflict sidestepped, both majors' transformers claim every component (experiment 01). A provider built on the old major is disqualified for new-major components at plain unification, so counting it against a new-major provider is a false over-subscription (experiment 02). Refusing a module that imports two majors keeps each resolution to one major without a matching change.
+
+**Source:** User decision 2026-09-30 ("The #Platform becomes a list of catalogs we 'subscribe' to. The #ResolvedPlatform is the exact catalog match that we did. #ResolvedPlatform is the one that is used in the rendering, that means we minimize the code impact by handling the matching of exact major before #ResolvedPlatform is written. So #ResolvedPlatform will never have this kind of conflict problem."; "Add it to 0026. For all open questions you found add them as open questions."); goal "so that we can update the catalogs". Measured 2026-09-30 with cue v0.17.1 against `core` 2.0.0-alpha.12: `experiments/01-one-major-per-build/`, `experiments/02-provider-serves-its-major/`. The two rejected alternatives were measured the same day in scratch copies of `core` and `library`, not retained.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.

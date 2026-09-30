@@ -25,7 +25,7 @@ per NEW or CHANGED construct in SPEC.md's four-part format.
 ### Constraints
 
 - `catalogs` MUST be keyed by the lineage's module path with its major, and the key MUST equal the entry's `path`; the binding is structural, so drift is a conflict naming the entry.
-- There MUST be exactly one entry per path.
+- There MUST be exactly one entry per path. Because the path carries the major, several majors of one catalog MAY be admitted side by side, one entry each.
 - A `#Platform` MUST NOT import a catalog or carry a `cue.mod` dependency on one. Loading is never the platform's act.
 - A module importing a catalog path with no enabled entry MUST be refused as not admitted.
 
@@ -87,6 +87,7 @@ Unchanged from SPEC.md § 3.4, under the new name; `kind` reads `"ResolvedPlatfo
 ### Constraints
 
 - Unchanged. In addition: a `#ResolvedPlatform` MUST carry exactly one entry per catalog the build holds, at the version the build holds it (the consumer's pin, or the registration's version for a provider catalog nobody pinned), and an admitted lineage nothing imported MUST be absent.
+- A `#ResolvedPlatform` MUST hold at most one major of any catalog. The major is settled per resolution before the value is generated, so the `#contracts` fold never meets two majors of one catalog declaring the same contract key, which it cannot evaluate.
 
 ### Rationale
 
