@@ -91,6 +91,8 @@ history:
     event: 'D12 Revised: core also publishes #SecretKeyType and #SecretObjectType. D2 Revised: Source repointed to the archived 0010 decision log and 0003. Marker immutable becomes immutable=<bool>, per D2 R1.'
   - date: "2026-09-30"
     event: 'Feasibility decisions D18-D28: secret methods become catalog-defined sources the deployer picks per value; kernel annotations; literals refused in authored packages. OQ3-OQ8 open for experiments.'
+  - date: "2026-09-30"
+    event: 'Experiments settle OQ3-OQ8 (research note): D29-D36 name sources by exact FQN, split settings, tag core arms, check values and synthesised components, widen redaction. OQ9 opened.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

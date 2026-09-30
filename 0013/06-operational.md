@@ -76,6 +76,20 @@ Nothing in this design writes state that outlives a render other than the Secret
 
 ## Cross-Repo Coordination
 
+### Two waves
+
+The entry is delivered in two waves, so the secret system can be used before its extension surface is committed to. Each wave runs the repo order below.
+
+**Wave 1, literal and reference.** Carries D18 without the `#SecretSource` arm, D20, D22 to D25, D27, D28, D30 and D33 to D36, on the foundation of D2 to D17: core's `#Secret` is `#SecretLiteral | #SecretRef`; a literal resolves to catalog_opm's `literal` source.
+
+**Wave 2, named sources.** Carries the `#SecretSource` arm of D18, D19, D21, D26, D29, D31, D32, and the part of D35 that refuses a named source with no provider. D26 also waits on enhancement 0014's export.
+
+Three constraints keep wave 2 purely additive:
+
+- **The literal goes through the source machinery in wave 1.** It resolves through the `literal` annotation, is carried by a synthesised component and is rendered by a catalog transformer. A wave-1 kernel that emits a plain Secret directly would have to be rewritten in wave 2.
+- **`#SecretSourceInput` ships in its final shape in wave 1,** `target`, `settings` and `entries`, so the literal source is written against the envelope wave 2 uses and core changes no shape later.
+- **Wave 2's only core change adds an arm to `#Secret`.** Widening the disjunction breaks no module and no transformer, since modules type the field as `#Secret` and transformers only see the rewritten reference.
+
 **Which repos must coordinate, and in what order?**
 
 Strict order: each step consumes a published artifact from the one before.

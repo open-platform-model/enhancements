@@ -741,4 +741,220 @@ What survives of D16: the render is assembled without the deployer's original va
 
 **Source:** User decision 2026-09-30; the echo measured in the 2026-09-30 feasibility review.
 
+---
+
+### D29: A secret source is named by its exact contract FQN; the annotation only marks what is a source
+
+**Kind:** contract
+
+**Amends:** D19, D20
+
+**Decision:** A deployer names a secret source by the exact FQN of its contract, apiVersion included, the way a component names a resource. A values file written in CUE may take it from the catalog's definition by import. Nothing resolves a short name and nothing picks a version. The `opmodel.dev/secret-source` annotation only marks a resource as a secret source: value `source` for a named source, `literal` for the one that serves `#SecretLiteral` (D30). The kernel refuses a `source` that is not a defined contract on the platform, or is one without the annotation, and lists the installed sources in that error.
+
+What survives of D19: sources coexist, the deployer chooses per value, and every consumer reads the reference form. What changes against D19: R3's refusal now names an FQN, and R4's ambiguity cannot arise, so its fallback is moot. What survives of D20: the reserved prefix and one key per feature. What changes: this key's value is a role, not a name.
+
+**Requirements:**
+
+- R1: A value names its source by the contract's full name, and the same value renders the same source on every platform that carries it.
+- R2: A value naming a contract the platform does not define, or one not marked as a secret source, fails with an error listing the platform's installed sources.
+- R3: A catalog adding a new apiVersion of a source changes nothing for a value that names the old one.
+
+**Alternatives considered:**
+
+- **Short names resolved through the annotation (D19 as written).** Replaced: measured to break every deployer the day a catalog carries two apiVersions of one source, and fixing it needed either an implicit "take the highest version" rule or a catalog naming discipline. Both are resolution OPM does nowhere else.
+- **Take the highest apiVersion of an ambiguous name.** Rejected: OPM's apiVersion ladder only orders diagnostics and never selects; this would be the first implicit version choice, and a catalog adding a version would silently change what existing instances render.
+- **One annotated apiVersion per source, enforced at catalog publish.** Rejected with short names as a whole: it keeps an implicit lookup and moves the discipline onto every catalog.
+
+**Rationale:** Everywhere else OPM binds exactly and explicitly; the short-name lookup was the one place it would not, and every defect found in it came from that. Verbosity in a JSON CR is the cost; CUE values files avoid it by import, and the template generator writes the names.
+
+**Source:** User decision 2026-09-30, after `research/2026-09-30-feasibility-experiments.md` (OQ7) measured the ambiguity on apiVersion graduation.
+
+---
+
+### D30: `#SecretLiteral` resolves to the one source marked `literal`; a platform with two is not routable
+
+**Kind:** contract
+
+**Amends:** D18, D22
+
+**Decision:** `{value}` resolves to the single defined contract annotated `opmodel.dev/secret-source: literal`. The kernel, not core's contract report, refuses a platform defining two such contracts as not routable, before any render; core never reads the annotation (D20). A platform defining none refuses a render that uses `{value}`, naming the missing literal source. A catalog annotates `literal` on exactly one apiVersion of its literal resource: graduating it moves the annotation in a catalog release and removes it from the older version, and the catalog's own vet enforces that. This is the one lookup by annotation that remains, and it has at most one answer by construction.
+
+What changes against D22: its R1 holds while no other enabled catalog carries a literal source. A third-party literal source cannot sit beside catalog_opm's; a different materialisation for supplied plaintext is a named source (D18), not a second literal.
+
+**Requirements:**
+
+- R1: A platform carrying two literal sources is refused as a platform, before any instance renders against it.
+- R2: A render using a literal value on a platform without a literal source fails naming the missing source.
+- R3: A catalog graduating its literal source leaves every platform that enables it routable.
+
+**Alternatives considered:**
+
+- **Refuse per render instead of per platform.** Rejected: every instance would fail separately for a fault that is the platform's.
+- **Pin the literal to a fixed catalog FQN in the kernel.** Rejected: the kernel would depend on one catalog's paths.
+
+**Rationale:** Keeping the sugar needs one implicit lookup; making its answer unique at the platform keeps it deterministic and puts the fault where it belongs.
+
+**Source:** User decision 2026-09-30.
+
+---
+
+### D31: A source's settings are their own field; a group agrees on source and settings
+
+**Kind:** contract
+
+**Amends:** D18, D19, D21
+
+**Decision:** `#SecretSource` is `{source!, settings?: {...}, spec?: {...}}` and `#SecretSourceInput` is `{target, settings, entries}`: settings describe how the group's one object is produced, entries carry each key's own data. All non-reference members of a group must carry the same `source` and the same `settings`; a literal member counts as naming the literal source (D30) with empty settings. The kernel hands the source one settings block per group. The source's resource schema types `settings` and holds only the settings a deployer may set, each optional or defaulted there; the source's transformer merges them over the platform's settings (D32). So the synthesised spec is complete without the platform's settings, and D35's completeness check applies to it unchanged.
+
+What survives of D18: core adds the arm and the envelope once and they never grow. What changes: both gain the `settings` slot now, open, so they need not grow later. What survives of D19 R5 and D21: group agreement, and the source deciding what a deployer may override. What changes: an override is written in `settings`, never inside an entry, and D21's "core says nothing about settings" no longer holds: core carries an open settings slot, which only the source types.
+
+**Requirements:**
+
+- R1: A group whose members name the same source with different settings fails, naming the group and each member path.
+- R2: A setting a source does not allow a deployer to set fails at the member that set it.
+- R3: Every object a source renders for a group receives one settings block, the deployer's allowed settings over the platform's defaults.
+
+**Alternatives considered:**
+
+- **Settings inside each entry, the source schema marking which fields are group-level.** Rejected: the kernel would have to read a per-source declaration to know what to compare.
+- **No deployer settings at all.** Rejected: a second store for one instance would need the platform to install a preset source.
+
+**Rationale:** Measured under the closed envelope: a per-secret override placed inside an entry cannot be told apart from data, so "same settings" could not be checked. A separate slot makes it a plain equality.
+
+**Source:** User decision 2026-09-30; the entry-level ambiguity measured in `research/2026-09-30-feasibility-experiments.md` (OQ4).
+
+---
+
+### D32: A platform fills a source's settings through its catalog entry, and the operator and CLI carry that fill
+
+**Kind:** contract
+
+**Amends:** D21
+
+**Decision:** A source catalog exports its transformer and its settings schema as named definitions. The transformer declares its settings as a closed definition, with every setting the platform must provide required. A platform fills it through the enabling catalog entry's transformers, keyed by a reference to the catalog's exported transformer definition and wrapped in the source's own settings schema. Core's specification states that a catalog entry's transformers may carry such a fill, which it currently calls a derived readout. The operator's platform subscription gains a field carrying a source's settings, named by that exported definition rather than by a pattern, and the CLI's platform generator emits it, so the fill is not limited to hand-authored platforms. The carrier's round trip is not yet measured. None of this is a core schema field.
+
+**Requirements:**
+
+- R1: A platform's settings for a source reach every object that source renders.
+- R2: A catalog version bump neither loses the platform's settings nor applies them to the wrong transformer.
+- R3: A misspelled or wrongly typed setting fails rather than falling back to a default, wherever the setting is required.
+- R4: A platform declared through the operator or generated by the CLI can carry a source's settings, not only one written by hand.
+
+**Alternatives considered:**
+
+- **Key the fill by the transformer's FQN.** Rejected: measured to be silently lost on a catalog version bump.
+- **Key it by a pattern on the transformer name.** Rejected: survives the bump, but a misspelled pattern is silently lost too.
+- **Leave the carrier for later.** Rejected: D21 would hold only for platforms written by hand.
+
+**Rationale:** The fill point needs nothing new from core or the kernel, measured through the real render. The failures found were all silent losses, so the chosen shape is the one that turns each into an error.
+
+**Source:** User decision 2026-09-30 (carrier in scope); mechanism and failure modes measured in `research/2026-09-30-feasibility-experiments.md` (OQ4).
+
+---
+
+### D33: Core tags each `#Secret` arm; discovery walks the schema for listing and the unified values for completeness
+
+**Kind:** contract
+
+**Amends:** D3, D13, D14, D18
+
+**Decision:** Each arm of core's `#Secret` carries a hidden tag only core can author. The schema declares secrets: a path is a secret when the `#config` schema, followed through disjunctions, embeddings, aliases, patterns and lists to core's tagged arms, declares it. Discovery walks that schema twice. Before values exist it lists every declaration it can reach, for templates and inspection. At render it walks the schema with the values unified, so conditions are resolved and patterns and lists expand to concrete paths. Every declared path's resolved value must carry the tag; one that does not, such as a plain default left unset or the earlier core release's secret shape, is refused naming its path. A tag arriving in values at a path the schema does not declare declares nothing.
+
+What survives of D3: the schema declares, values declare nothing, and no values are needed to list declarations. What changes: a declaration under a condition on a deployer value is invisible until values exist, so the no-values listing covers every declaration except those. What changes against D14 R2: the template holds every marked path the no-values walk reaches, with conditional ones added once values select them. What survives of D13: discovery keys on the type and fails closed. What changes: "typed `#Secret`" means "carries core's tag", not a reference to `#Secret`.
+
+**Requirements:**
+
+- R1: A secret-typed field is discovered in every form a module can declare it, including aliases, embedding, patterns, lists and conditional fields, at render.
+- R2: A structure that merely resembles a secret, or a tag written outside core, is never discovered as one.
+- R3: A declared secret whose resolved value is not a core secret, including the earlier core release's shape and a plain default left unset, fails the render naming its path.
+- R4: Every declaration not under a condition on a deployer value is listable from the module alone, with no values present.
+- R5: A secret shape supplied in values at a field the module does not declare as a secret declares nothing.
+
+**Alternatives considered:**
+
+- **Follow references to `#Secret`.** Rejected: measured to miss `let` aliases, and it cannot tell core releases apart, since both publish `#Secret` under one name.
+- **Match the arms' shape.** Rejected: measured to flag unrelated structs and open values.
+- **Walk the unified values only, a field being a secret when its value carries the tag.** Rejected: measured to let values written in CUE declare secrets in untyped fields, and to miss a declared secret whose unset default is a plain struct; templates and inspection also need a no-values listing.
+
+**Rationale:** The tag makes "typed `#Secret`" a mechanical, version-aware fact; the two walks cover the two moments discovery serves.
+
+**Source:** `research/2026-09-30-feasibility-experiments.md` (OQ8); user decision 2026-09-30.
+
+---
+
+### D34: A deployer's values are checked against `#config` on every path, without changing what the instance exports
+
+**Kind:** contract
+
+**Amends:** D3, D10, D28
+
+**Decision:** Core's `#ModuleInstance` carries a hidden check that unifies the values with the module's `#config` beside `values`, never into it, so plain `cue vet -c` rejects mixed arms, bare strings, unknown fields and wrong types whether or not a component reads them. The kernel additionally checks that every declared secret path holds a complete value, on every entry path and independent of that hidden check, because CUE does not check completeness under a hidden field and a hand-written instance may not carry the check at all. A general completeness check for every required config field is outside this entry. The kernel reports any failure under the hidden check at the corresponding `values` path, and redacts it there as a marked path.
+
+What survives of D10: CUE type-checks the deployer's choice of arm. What changes: completeness of an unread secret is the kernel's check, not plain `cue vet`. What changes against D3: D3 rejected an addressable unified-config field on `#ModuleInstance` as a breaking change that would expose plaintext at a new path. The check is hidden and never exported, it is additive, and in the render build it holds only resolved references because the original values are omitted (D16); the kernel's own check does not rely on it. What changes against D28: its redaction also covers the hidden check's paths.
+
+**Requirements:**
+
+- R1: Plain validation of an instance rejects a secret value carrying two arms, a bare string, an unknown field or a wrong type, whether or not a component reads it.
+- R2: An unfulfilled secret fails every render and every kernel validation, whether or not a component reads it.
+- R3: The instance's exported values are exactly what the deployer wrote: no module defaults are added.
+- R4: A failure of the hidden check at a secret path names the deployer's values path and carries no value.
+
+**Alternatives considered:**
+
+- **Bind `values` to `#config` directly.** Rejected: measured to fill module defaults into the exported values the CLI applies and hashes, and to reject valid instances when values arrive as a separate file.
+- **Gate a regular field on the check's completeness.** Rejected: measured to report an unfulfilled secret as a wrong artifact kind.
+
+**Rationale:** Measured: the hidden check changes no exported field and catches every malformed value early; only completeness needs the kernel.
+
+**Source:** `research/2026-09-30-feasibility-experiments.md` (OQ3).
+
+---
+
+### D35: A synthesised component is held to what an authored one is
+
+**Kind:** contract
+
+**Amends:** D19, D23
+
+**Decision:** The kernel validates each synthesised component's spec (its target and entries; settings are complete by construction, D31) for completeness before matching, as authored components are at acquisition, and reports a failure at the member's values path. It stamps the component-name label on each synthesised component, and refuses a render in which a synthesised component's name equals an authored one. Its key is emitted quoted. A synthesised component is never omitted by the skip-unprovided switch: a source with no provider refuses the render. The kernel also refuses an instance whose component keys differ from its module's, with an error naming the extra keys.
+
+**Requirements:**
+
+- R1: A source entry missing a required field fails at the deployer's values path, whether or not the source's transformer reads the field.
+- R2: Every object a synthesised component renders is recorded under that component in every inventory.
+- R3: A synthesised component's name never matches an authored component's name in one render.
+- R4: A secret whose source has no provider fails the render even when unprovided demands are otherwise skipped.
+- R5: An instance declaring a component its module does not declare fails with an error naming it.
+
+**Alternatives considered:**
+
+- **Rely on the transformer reading every required field.** Rejected: measured to render silently when it does not.
+- **Rely on closedness to refuse extra instance components.** Rejected: measured to refuse every pair with a misleading message.
+
+**Rationale:** Synthesised components enter after acquisition and so skip every gate authored components pass; each finding here is one of those gates, restored.
+
+**Source:** `research/2026-09-30-feasibility-experiments.md` (OQ5, OQ6, OQ7).
+
+---
+
+### D36: Redaction covers synthesised components, whose spec is never a readable field
+
+**Kind:** contract
+
+**Amends:** D28
+
+**Decision:** Diagnostics are redacted at synthesised-component paths as at marked paths, and the kernel never exposes a synthesised spec as a regular, readable field of the render build.
+
+**Requirements:**
+
+- R1: No error from a source's schema or transformer carries a value the deployer supplied, including a literal failing a source's own constraint.
+
+**Alternatives considered:**
+
+- **Redact only at the deployer's marked paths.** Rejected: measured to leak the plaintext when a literal source's constraint fails, at the synthesised path.
+
+**Rationale:** The plaintext travels into the synthesised component by design, so that path needs the same protection as the one it came from.
+
+**Source:** `research/2026-09-30-feasibility-experiments.md` (OQ5).
+
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
