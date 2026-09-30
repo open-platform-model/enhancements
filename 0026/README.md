@@ -20,6 +20,8 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The shared-path check runs twice (D7), and nothing else moves (D8).** It runs per render against the consumer's pins, and at acceptance against the platform's floors. Matching, how the transformer set is derived, who holds admission authority, and provider routing are all unchanged.
 
+**Several majors of one catalog can run side by side (D9).** A platform may admit `catalogs/opm@v4` and `catalogs/opm@v5` at once, so modules move to a new catalog major one at a time. The major is settled before the resolved platform is written: each render holds the one major its module pins, so no build ever meets two majors of one catalog and contract IDs and matching stay as they are. Around that rule, the platform's module-less readiness build is split so no build holds two majors, a provider joins only renders holding the major it was built against, and the one-provider rule is counted per render. A module importing two majors of one catalog is refused. Ten open questions (OQ9 to OQ18) cover how a provider's major is learned, readiness per major, draining a major, and delivery order.
+
 ## How it works
 
 Three inputs, all written by people and committed to git. The kernel reads them, checks them, and writes the one thing nobody authors: the resolved platform the render builds against.
@@ -66,13 +68,13 @@ The tidied closure is the module's full committed dependency list, the one the r
 
 1. [01-problem.md](01-problem.md): one platform pin both admits a catalog lineage and picks every instance's version at once, and the two jobs conflict as soon as two modules want different releases
 1. [02-design.md](02-design.md): a pure-data authored platform with ranges, module pins as the held version, a generated resolved platform, the same rule for provider catalogs, and a worked example
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D9
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ8
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ18
 
-Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the example instances whose unification is the test, and the specification delta.
+Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the example instances whose unification is the test, and the specification delta. [`experiments/`](experiments/) holds two runnable probes behind D9: why no build may hold two majors of one catalog, and why a provider serves only the major it was built against.
 
 ## Scope
 
@@ -84,10 +86,12 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the examp
 - The registration window: a floor and a ceiling on the registration contract, defaulting to its exact version, plus the optional admission entry that overrides it. The effective window and its source are reported in the registration's status (D5, D6).
 - The shared-path requirement check, per render against the consumer's pins and at acceptance against the floors (D7).
 - The platform-less path: a render given no platform generates its resolved platform from its own pins alone, holds every pinned catalog and runs no admission, and that generation moves from the CLI into the kernel (D3).
+- Side-by-side catalog majors: several majors of one catalog admitted at once, one major per catalog in every resolution, the module-less readiness build split so no build holds two majors, provider selection and the one-provider count per resolution, registration acceptance per declaring major, and the refusal of a module importing two majors of one catalog (D9).
 
 ### Out of scope
 
 - A change to matching, to the transformer set, or to which catalogs a platform admits. Admission stays with the authored platform and the access-gated registration.
+- Carrying the catalog major in contract IDs, or scoping matching by it. Side-by-side majors are delivered by settling the major before the resolved platform is written (D9).
 - Provider routing, classes and capability-based selection: successor material to the one-provider-per-contract rule of entry 0015 (0015:D2).
 - Floating an instance forward within a range without an owner's act. That waits on entry 0021's compatibility answers and belongs to a later entry.
 - Module-hosted transformers. The ruling that transformers never ship inside a module artifact stands (0015:D10).
