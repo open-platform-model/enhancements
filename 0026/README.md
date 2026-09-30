@@ -74,7 +74,7 @@ The tidied closure is the module's full committed dependency list, the one the r
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
 1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ18
 
-Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the example instances whose unification is the test, and the specification delta. [`experiments/`](experiments/) holds two runnable probes behind D9: why no build may hold two majors of one catalog, and why a provider serves only the major it was built against.
+Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta, the example instances whose unification is the test, and the specification delta. [`experiments/`](experiments/) holds nine runnable experiments behind D9: why no build may hold two majors of one catalog, why a provider serves only the major it was built against, the two rejected alternatives measured in core and through a real render, the shipped render with two majors, and the collision-tolerant fold OQ17 asks about.
 
 ## Scope
 

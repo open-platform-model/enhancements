@@ -1,0 +1,272 @@
+diff --git a/opm/errors/oversubscribed.go b/opm/errors/oversubscribed.go
+index cb89b4e..60e86ca 100644
+--- a/opm/errors/oversubscribed.go
++++ b/opm/errors/oversubscribed.go
+@@ -22,6 +22,8 @@ type OverSubscribedContract struct {
+ 	// Key is the provider-fulfilled contract key (a resource or trait FQN).
+ 	Key string
+ 
++	Scope string
++
+ 	// Catalogs are the registry keys whose transformers require Key: the
+ 	// catalog module paths (path@major) core binds each entry's embedded
+ 	// catalog identity to, exactly #contracts.providedBy[Key]. Sorted, so
+diff --git a/opm/internal/renderstage/render.cue.tmpl b/opm/internal/renderstage/render.cue.tmpl
+index cdfcd08..2e7f275 100644
+--- a/opm/internal/renderstage/render.cue.tmpl
++++ b/opm/internal/renderstage/render.cue.tmpl
+@@ -118,7 +118,7 @@ _components:   instance.components
+ 	// platform's derived #contracts.definedBy (enhancement 0015 D18).
+ 	// Diagnostic only: copied onto the unresolved rows, never consulted by
+ 	// a rung, so it changes no verdict.
+-	#definedBy: [string]: string
++	#definedBy: [string]: [string]: string
+ 	// Contract key -> registry keys whose transformers REQUIRE it with
+ 	// provider fulfilment: core's #contracts.providedBy, the count the
+ 	// single-provider guard reads. A demand whose provider-fulfilled key is
+@@ -133,20 +133,20 @@ _components:   instance.components
+ 	_bucketsResources: {
+ 		for tfqn, tf in #transformers {
+ 			if tf.requiredResources != _|_ {
+-				for fqn, _ in tf.requiredResources {(fqn): (tfqn): true}
++				for fqn, req in tf.requiredResources {(fqn): (req.metadata.catalog): (tfqn): true}
+ 			}
+ 			if tf.optionalResources != _|_ {
+-				for fqn, _ in tf.optionalResources {(fqn): (tfqn): true}
++				for fqn, req in tf.optionalResources {(fqn): (req.metadata.catalog): (tfqn): true}
+ 			}
+ 		}
+ 	}
+ 	_bucketsTraits: {
+ 		for tfqn, tf in #transformers {
+ 			if tf.requiredTraits != _|_ {
+-				for fqn, _ in tf.requiredTraits {(fqn): (tfqn): true}
++				for fqn, req in tf.requiredTraits {(fqn): (req.metadata.catalog): (tfqn): true}
+ 			}
+ 			if tf.optionalTraits != _|_ {
+-				for fqn, _ in tf.optionalTraits {(fqn): (tfqn): true}
++				for fqn, req in tf.optionalTraits {(fqn): (req.metadata.catalog): (tfqn): true}
+ 			}
+ 		}
+ 	}
+@@ -157,6 +157,12 @@ _components:   instance.components
+ 			(cid): {
+ 				_resFqns: [for fqn, _ in comp.#resources {fqn}]
+ 				_traitFqns: [if comp.#traits != _|_ for fqn, _ in comp.#traits {fqn}]
++				// SCOPED: each demand reaches only the bucket of the catalog
++				// major its own value was built against.
++				_resScope: {for fqn, r in comp.#resources {(fqn): r.metadata.catalog}}
++				_traitScope: {if comp.#traits != _|_ for fqn, t in comp.#traits {(fqn): t.metadata.catalog}}
++				_bRes: {for fqn, s in _resScope if _bucketsResources[fqn][s] != _|_ {(fqn): _bucketsResources[fqn][s]}}
++				_bTraits: {for fqn, s in _traitScope if _bucketsTraits[fqn][s] != _|_ {(fqn): _bucketsTraits[fqn][s]}}
+ 
+ 				// Rung 2, always-unify: plain `&` over every FQN present on
+ 				// both sides; "structurally agrees" is "not bottom", which
+@@ -210,11 +216,11 @@ _components:   instance.components
+ 				// Rung 1 walk: only transformers reachable through a
+ 				// demanded FQN's bucket are candidates.
+ 				_candidates: {
+-					for _, fqn in _resFqns if _bucketsResources[fqn] != _|_ {
+-						for tfqn, _ in _bucketsResources[fqn] {(tfqn): true}
++					for _, fqn in _resFqns if _bRes[fqn] != _|_ {
++						for tfqn, _ in _bRes[fqn] {(tfqn): true}
+ 					}
+-					for _, fqn in _traitFqns if _bucketsTraits[fqn] != _|_ {
+-						for tfqn, _ in _bucketsTraits[fqn] {(tfqn): true}
++					for _, fqn in _traitFqns if _bTraits[fqn] != _|_ {
++						for tfqn, _ in _bTraits[fqn] {(tfqn): true}
+ 					}
+ 				}
+ 
+@@ -232,14 +238,14 @@ _components:   instance.components
+ 					for _, fqn in _resFqns {
+ 						(fqn): {
+ 							satisfied: len([
+-								if _bucketsResources[fqn] != _|_
+-								for tfqn, _ in _bucketsResources[fqn]
++								if _bRes[fqn] != _|_
++								for tfqn, _ in _bRes[fqn]
+ 								if _unify[tfqn].ok
+ 								if _pred[tfqn].ok {tfqn},
+ 							]) > 0
+ 							disqualified: [
+-								if _bucketsResources[fqn] != _|_
+-								for tfqn, _ in _bucketsResources[fqn]
++								if _bRes[fqn] != _|_
++								for tfqn, _ in _bRes[fqn]
+ 								if !_unify[tfqn].ok {{
+ 									component:   cid
+ 									transformer: tfqn
+@@ -259,13 +265,15 @@ _components:   instance.components
+ 							kind:      "resource"
+ 							fqn:       _f
+ 							definedBy: *"" | string
+-							if #definedBy[_f] != _|_ {
+-								definedBy: #definedBy[_f]
++							if #definedBy[_f][_resScope[_f]] != _|_ {
++								definedBy: #definedBy[_f][_resScope[_f]]
+ 							}
+-							alternatives: (#alternatives & {universe: _bucketsResources, fqn: _f}).out
++							scope: _resScope[_f]
++							alternatives: (#alternatives & {universe: {for k, bs in _bucketsResources if bs[_resScope[_f]] != _|_ {(k): _}}, fqn: _f}).out
++							otherScopes: list.Sort([if _bucketsResources[_f] != _|_ for s, _ in _bucketsResources[_f] if s != _resScope[_f] {s}], list.Ascending)
+ 							disqualified: _resOutcome[_f].disqualified
+ 							unprovided: [
+-								if comp.#resources[_f].fulfilment == "provider" && #providers[_f] == _|_ {true},
++								if comp.#resources[_f].fulfilment == "provider" && #providers[_f][_resScope[_f]] == _|_ {true},
+ 								false,
+ 							][0]
+ 						}
+@@ -276,14 +284,14 @@ _components:   instance.components
+ 					for _, fqn in _traitFqns {
+ 						(fqn): {
+ 							satisfied: len([
+-								if _bucketsTraits[fqn] != _|_
+-								for tfqn, _ in _bucketsTraits[fqn]
++								if _bTraits[fqn] != _|_
++								for tfqn, _ in _bTraits[fqn]
+ 								if _unify[tfqn].ok
+ 								if _pred[tfqn].ok {tfqn},
+ 							]) > 0
+ 							disqualified: [
+-								if _bucketsTraits[fqn] != _|_
+-								for tfqn, _ in _bucketsTraits[fqn]
++								if _bTraits[fqn] != _|_
++								for tfqn, _ in _bTraits[fqn]
+ 								if !_unify[tfqn].ok {{
+ 									component:   cid
+ 									transformer: tfqn
+@@ -324,13 +332,15 @@ _components:   instance.components
+ 							kind:      "trait"
+ 							fqn:       _f
+ 							definedBy: *"" | string
+-							if #definedBy[_f] != _|_ {
+-								definedBy: #definedBy[_f]
++							if #definedBy[_f][_traitScope[_f]] != _|_ {
++								definedBy: #definedBy[_f][_traitScope[_f]]
+ 							}
+-							alternatives: (#alternatives & {universe: _bucketsTraits, fqn: _f}).out
++							scope: _traitScope[_f]
++							alternatives: (#alternatives & {universe: {for k, bs in _bucketsTraits if bs[_traitScope[_f]] != _|_ {(k): _}}, fqn: _f}).out
++							otherScopes: list.Sort([if _bucketsTraits[_f] != _|_ for s, _ in _bucketsTraits[_f] if s != _traitScope[_f] {s}], list.Ascending)
+ 							disqualified: _traitOutcome[_f].disqualified
+ 							unprovided: [
+-								if comp.#traits[_f].fulfilment == "provider" && #providers[_f] == _|_ {true},
++								if comp.#traits[_f].fulfilment == "provider" && #providers[_f][_traitScope[_f]] == _|_ {true},
+ 								false,
+ 							][0]
+ 						}
+@@ -418,6 +428,17 @@ _components:   instance.components
+ 		if v._candidates[tfqn] != _|_
+ 		if !u.ok {{component: cid, transformer: tfqn, conflicts: u.conflicts}},
+ 	]
++	// SCOPED: two matched transformers on one component whose predicates
++	// core reports comparable in one scope (a bridge, or a second
++	// implementation) would emit the same objects twice.
++	#comparable: [...]
++	_cmp: {for r in #comparable {"\(r.broader)|\(r.narrower)": r}}
++	doubleMatched: [
++		for cid, v in verdicts if !v.omitted
++		for a, _ in v.matched
++		for b, _ in v.matched
++		if _cmp["\(a)|\(b)"] != _|_ {{component: cid, broader: a, narrower: b, scope: _cmp["\(a)|\(b)"].scope}},
++	]
+ 	// Skipped rows are not in `unresolved`, and an omitted component is
+ 	// not in `unmatched`, so the switch reaches the gate through these two.
+ 	resolved: len(unresolved) == 0 && len(unmatched) == 0
+@@ -432,6 +453,7 @@ match: #Match & {
+ 	#definedBy:      platform.#contracts.definedBy
+ 	#providers:      platform.#contracts.providedBy
+ 	#skipUnprovided: _skipUnprovided
++	#comparable:     platform.#contracts.comparable
+ }
+ 
+ // ── Single-provider guard (0010 D32/D37), in-build since
+@@ -455,12 +477,12 @@ match: #Match & {
+ // platform before staging, and this is the fail-closed belt behind it.
+ guard: {
+ 	overSubscribed: list.Sort([
+-		for _k, _ps in platform.#contracts.providedBy
+-		if list.Contains(platform.#contracts.overSubscribed, _k) {{
+-			key:      _k
+-			catalogs: _ps
++		for _o in platform.#contracts.overSubscribed {{
++			key:      _o.contract
++			scope:    _o.scope
++			catalogs: platform.#contracts.providedBy[_o.contract][_o.scope]
+ 		}},
+-	], {x: _, y: _, less: x.key < y.key})
++	], {x: _, y: _, less: x.key+x.scope < y.key+y.scope})
+ }
+ 
+ // Each matched pair's #transform, unified with all three inputs whole:
+@@ -519,4 +541,4 @@ diagnostics: {
+ // omitted or an over-subscribed provider-fulfilled contract (core's
+ // #contracts.routable false) refuses the build here, while `diagnostics`
+ // stays readable and concrete beside it through the Go API.
+-gate: match.resolved & platform.#contracts.routable & true
++gate: match.resolved & platform.#contracts.routable & (len(match.doubleMatched) == 0) & true
+diff --git a/opm/platform/contracts.go b/opm/platform/contracts.go
+index c294d95..f4abdf7 100644
+--- a/opm/platform/contracts.go
++++ b/opm/platform/contracts.go
+@@ -25,6 +25,8 @@ type ComparablePredicates struct {
+ 	// Narrower is the implementation FQN of the contained transformer.
+ 	Narrower string `json:"narrower"`
+ 
++	Scope string `json:"scope"`
++
+ 	// Contracts lists the catalog-fulfilled contract FQNs both predicates
+ 	// require, the bucket the pair is undiscriminated within.
+ 	Contracts []string `json:"contracts"`
+@@ -51,14 +53,14 @@ type ContractInventory struct {
+ 	// DefinedBy maps each contract FQN an enabled catalog lists to the
+ 	// registry key (the catalog's module path) of the catalog listing it:
+ 	// the value every diagnostic prints beside the contract.
+-	DefinedBy map[string]string `json:"definedBy"`
++	DefinedBy map[string]map[string]string `json:"definedBy"`
+ 
+ 	// RequiredBy maps each defined contract FQN to the implementation FQNs
+ 	// of every enabled transformer whose requiredResources or
+ 	// requiredTraits name it, in the build's order. Required demands only
+ 	// (0010:D32: optional consumption is tolerance, not fulfilment); a
+ 	// defined contract nothing requires maps to an empty list.
+-	RequiredBy map[string][]string `json:"requiredBy"`
++	RequiredBy map[string]map[string][]string `json:"requiredBy"`
+ 
+ 	// ProvidedBy maps every provider-fulfilled contract FQN some enabled
+ 	// transformer requires (defined by an enabled catalog or not) to the
+@@ -68,20 +70,20 @@ type ContractInventory struct {
+ 	// Unfulfilled. It is the field a caller prints to name the supplying
+ 	// entries, including when DefinedBy and RequiredBy lack the key (the
+ 	// defining catalog is disabled or absent).
+-	ProvidedBy map[string][]string `json:"providedBy"`
++	ProvidedBy map[string]map[string][]string `json:"providedBy"`
+ 
+ 	// Unfulfilled lists the provider-fulfilled resources and traits an
+ 	// enabled catalog defines and no enabled registry entry provides (no
+ 	// ProvidedBy key). A report the operator surfaces as a non-gating
+ 	// condition (0015:D18), never a refusal.
+-	Unfulfilled []string `json:"unfulfilled"`
++	Unfulfilled []ScopedContract `json:"unfulfilled"`
+ 
+ 	// OverSubscribed lists the provider-fulfilled resources and traits
+ 	// required by transformers of two or more enabled registry entries
+ 	// (path plus major), whether or not an enabled catalog defines them:
+ 	// the ProvidedBy keys with two or more entries, and what the generation
+ 	// step refuses on (0010:D37). ProvidedBy names the entries.
+-	OverSubscribed []string `json:"overSubscribed"`
++	OverSubscribed []ScopedContract `json:"overSubscribed"`
+ 
+ 	// Comparable lists every pair of enabled transformers whose match
+ 	// predicates are comparable over at least one shared catalog-fulfilled
+@@ -166,3 +168,9 @@ func (p *Platform) name() string {
+ 	}
+ 	return p.Metadata.Name
+ }
++
++// ScopedContract is a contract FQN in the scope of one defining catalog major.
++type ScopedContract struct {
++	Contract string `json:"contract"`
++	Scope    string `json:"scope"`
++}

@@ -1,0 +1,262 @@
+diff --git a/src/blueprint.cue b/src/blueprint.cue
+index 49c5f11..ed6edce 100644
+--- a/src/blueprint.cue
++++ b/src/blueprint.cue
+@@ -14,6 +14,12 @@ import (
+ 		name!: #NameType // Example: "stateless-workload"
+ 		#definitionName: (#KebabToPascal & {"in": name}).out
+ 
++		// SCOPED-MATCHING PROBE: catalog is the defining catalog's module path,
++		// major included, DERIVED from modulePath (registryPath + kind + apiVersion)
++		// and the major of catalogVersion. Never authored. It is the scope a
++		// contract key is matched and counted in.
++		catalog: #ModulePathType & "\(strings.TrimSuffix(modulePath, "/blueprints/"+apiVersion))@v\(strings.Split(catalogVersion, ".")[0])"
++
+ 		// WHY never an arbitrary grouping: #CatalogMemberFQNGate compares this
+ 		// against kindPrefix.blueprints + "/" + apiVersion by EQUALITY, so a
+ 		// blueprint filed flat or under any other segment is refused at
+diff --git a/src/platform.cue b/src/platform.cue
+index 2de313c..57cb13c 100644
+--- a/src/platform.cue
++++ b/src/platform.cue
+@@ -59,70 +59,36 @@ import (
+ // derived and never authored; it reports and never refuses.
+ // See SPEC.md § 3.4.
+ #ContractInventory: {
+-	// Every contract every enabled entry's catalog lists, keyed by contract
+-	// FQN and carrying the member value as the catalog lists it (the
+-	// primitive itself, provenance stamped).
+-	defined: [#ContractFQNType]: #Resource | #Trait | #Blueprint
++	// SCOPED-MATCHING PROBE: every map is keyed contract FQN -> scope, where
++	// the scope is the DEFINING catalog's module path with its major (the
++	// primitive's derived metadata.catalog). Two majors of one catalog that
++	// list one FQN are two scopes, never one conflicting key.
++	defined: [#ContractFQNType]: [#ModulePathType]: #Resource | #Trait | #Blueprint
+ 
+-	// Contract FQN to the registry key (module path) of the catalog listing
+-	// it: the value every diagnostic prints beside the contract.
+-	definedBy: [#ContractFQNType]: #ModulePathType
++	// FQN -> scope -> registry key of the entry that lists it.
++	definedBy: [#ContractFQNType]: [#ModulePathType]: #ModulePathType
+ 
+-	// WHY requiredBy counts required demands only: 0010:D32.
++	// FQN -> scope -> ImplFQNs whose REQUIRED demand on FQN was built
++	// against that scope (the required value's own metadata.catalog).
++	requiredBy: [#ContractFQNType]: [#ModulePathType]: [...#ImplFQNType]
+ 
+-	// Contract FQN to the implementation FQNs of every enabled transformer
+-	// whose requiredResources or requiredTraits name it. Required demands
+-	// only, because optional consumption is tolerance, not fulfilment;
+-	// a defined contract nothing requires maps to an empty list.
+-	requiredBy: [#ContractFQNType]: [...#ImplFQNType]
++	unfulfilled: [...{contract: #ContractFQNType, scope: #ModulePathType}]
+ 
+-	// WHY unfulfilled: 0015:D18.
++	// FQN -> scope -> sorted registry keys of the entries whose transformers
++	// require FQN as built against that scope.
++	providedBy: [#ContractFQNType]: [#ModulePathType]: [...#ModulePathType]
+ 
+-	// Defined provider-fulfilled resources and traits with no providedBy
+-	// key. A report the operator surfaces as a non-gating condition; never
+-	// a refusal. Blueprints never appear, nor does a contract no enabled
+-	// catalog defines.
+-	unfulfilled: [...#ContractFQNType]
++	overSubscribed: [...{contract: #ContractFQNType, scope: #ModulePathType}]
+ 
+-	// WHY providedBy: 0010:D37, 0015:D2/D18. It is the one provider count:
+-	// the render build reads it instead of keeping its own, so the refusal
+-	// and the generation gate cannot disagree. Keyed by registry key, major
+-	// included, because the stamped transformer modulePath is major-free.
+-
+-	// Provider-fulfilled contract FQN to the sorted registry keys (path@vN)
+-	// of the enabled entries whose transformers require it, whether or not
+-	// an enabled entry defines it. Present exactly when some entry provides
+-	// it. See SPEC.md § 3.4.
+-	providedBy: [#ContractFQNType]: [...#ModulePathType]
+-
+-	// WHY overSubscribed: 0010:D37.
+-
+-	// Keys of providedBy with more than one registry entry, including a
+-	// contract no enabled entry defines. Two majors of one catalog are two
+-	// providers; two adapters in one entry are one. What the generation
+-	// step and the render build refuse on.
+-	overSubscribed: [...#ContractFQNType]
+-
+-	// Pairs of enabled transformers whose match predicates are comparable
+-	// over at least one shared catalog-fulfilled contract: `broader`
+-	// matches every component `narrower` matches. Provider-fulfilled
+-	// contracts are `overSubscribed`'s business, not this list's.
+ 	comparable: [...{
+ 		broader:  #ImplFQNType
+ 		narrower: #ImplFQNType
++		scope:    #ModulePathType
+ 		contracts: [...#ContractFQNType]
+ 	}]
+ 
+-	// True exactly when nothing is unfulfilled. A report, never a gate.
+-	fulfilled: bool & (len(unfulfilled) == 0)
+-
+-	// True exactly when nothing is over-subscribed. The gate the generation
+-	// step (operator, CLI) reads; `core` itself refuses nothing on it.
+-	routable: bool & (len(overSubscribed) == 0)
+-
+-	// True exactly when nothing is comparable. The second gate the
+-	// generation step (operator, CLI) reads; `core` itself refuses
+-	// nothing on it.
++	fulfilled:     bool & (len(unfulfilled) == 0)
++	routable:      bool & (len(overSubscribed) == 0)
+ 	discriminated: bool & (len(comparable) == 0)
+ }
+ 
+@@ -217,56 +183,49 @@ import (
+ 	#contracts: #ContractInventory & {
+ 		defined: {
+ 			for _, entry in #registry if entry.enable {
+-				for fqn, r in entry.#catalog.#resources {(fqn): r}
+-				for fqn, t in entry.#catalog.#traits {(fqn): t}
+-				for fqn, b in entry.#catalog.#blueprints {(fqn): b}
++				for fqn, r in entry.#catalog.#resources {(fqn): (r.metadata.catalog): r}
++				for fqn, t in entry.#catalog.#traits {(fqn): (t.metadata.catalog): t}
++				for fqn, b in entry.#catalog.#blueprints {(fqn): (b.metadata.catalog): b}
+ 			}
+ 		}
+ 		definedBy: {
+ 			for path, entry in #registry if entry.enable {
+-				for fqn, _ in entry.#catalog.#resources {(fqn): path}
+-				for fqn, _ in entry.#catalog.#traits {(fqn): path}
+-				for fqn, _ in entry.#catalog.#blueprints {(fqn): path}
++				for fqn, r in entry.#catalog.#resources {(fqn): (r.metadata.catalog): path}
++				for fqn, t in entry.#catalog.#traits {(fqn): (t.metadata.catalog): path}
++				for fqn, b in entry.#catalog.#blueprints {(fqn): (b.metadata.catalog): path}
+ 			}
+ 		}
+ 
+-		// The demand maps are optional on #ComponentTransformer, and an
+-		// unguarded `for` over an absent one fails the whole platform; the
+-		// presence guards are sound because a present map is concrete.
++		// Every required demand of every enabled transformer, as
++		// (fqn, scope, implFQN) triples; scope read off the required value.
++		_demands: {
++			for k, tf in #composedTransformers {
++				if tf.requiredResources != _|_ {for fqn, req in tf.requiredResources {"\(k)|\(fqn)": {f: fqn, s: req.metadata.catalog, i: k, p: req.fulfilment}}}
++				if tf.requiredTraits != _|_ {for fqn, req in tf.requiredTraits {"\(k)|\(fqn)": {f: fqn, s: req.metadata.catalog, i: k, p: req.fulfilment}}}
++			}
++		}
++		_reqSet: {for _, d in _demands {(d.f): (d.s): (d.i): true}}
+ 		requiredBy: {
+-			for fqn, _ in defined {
+-				(fqn): [
+-					for k, tf in #composedTransformers if tf.requiredResources != _|_ for req, _ in tf.requiredResources if req == fqn {k},
+-					for k, tf in #composedTransformers if tf.requiredTraits != _|_ for req, _ in tf.requiredTraits if req == fqn {k},
+-				]
++			for fqn, scopes in defined for scope, _ in scopes {
++				(fqn): (scope): list.Sort([if _reqSet[fqn][scope] != _|_ for k, _ in _reqSet[fqn][scope] {k}], list.Ascending)
+ 			}
+ 		}
+ 
+-		// Per provider-fulfilled contract some enabled transformer requires,
+-		// the set of registry keys whose transformers require it. Iterated
+-		// per entry, not over #composedTransformers, so the key stays
+-		// visible; the demand maps are presence-guarded as for requiredBy.
+ 		_providerSet: {
+ 			for rkey, entry in #registry if entry.enable
+ 			for _, tf in entry.#transformers {
+ 				if tf.requiredResources != _|_ {
+-					for fqn, req in tf.requiredResources if req.fulfilment == "provider" {(fqn): (rkey): true}
++					for fqn, req in tf.requiredResources if req.fulfilment == "provider" {(fqn): (req.metadata.catalog): (rkey): true}
+ 				}
+ 				if tf.requiredTraits != _|_ {
+-					for fqn, req in tf.requiredTraits if req.fulfilment == "provider" {(fqn): (rkey): true}
++					for fqn, req in tf.requiredTraits if req.fulfilment == "provider" {(fqn): (req.metadata.catalog): (rkey): true}
+ 				}
+ 			}
+ 		}
+-		providedBy: {for fqn, ps in _providerSet {(fqn): list.Sort([for k, _ in ps {k}], list.Ascending)}}
+-		unfulfilled: [for fqn, c in defined if c.kind != "Blueprint" if c.fulfilment == "provider" if providedBy[fqn] == _|_ {fqn}]
+-		overSubscribed: [for fqn, ps in providedBy if len(ps) > 1 {fqn}]
+-
+-		// WHY _predicates: 0010:D32.
++		providedBy: {for fqn, byScope in _providerSet {(fqn): {for scope, ps in byScope {(scope): list.Sort([for k, _ in ps {k}], list.Ascending)}}}}
++		unfulfilled: [for fqn, scopes in defined for scope, c in scopes if c.kind != "Blueprint" if c.fulfilment == "provider" if providedBy[fqn][scope] == _|_ {{contract: fqn, "scope": scope}}]
++		overSubscribed: [for fqn, byScope in providedBy for scope, ps in byScope if len(ps) > 1 {{contract: fqn, "scope": scope}}]
+ 
+-		// Each enabled transformer's match predicate as a canonical token set:
+-		// resource:, trait: and label:<key>=<value> tokens from the three REQUIRED
+-		// demand maps, each presence-guarded because all three are optional.
+-		// Optional demands never contribute.
+ 		_predicates: {
+ 			for fqn, tf in #composedTransformers {
+ 				(fqn): {
+@@ -277,14 +236,11 @@ import (
+ 			}
+ 		}
+ 
+-		// Keyed by the SORTED pair, so a pair found in two buckets collapses
+-		// to one row carrying both contracts whatever order each bucket
+-		// lists it in (measured: position-derived keys double-report a
+-		// reversed bucket). Subset is tested by union cardinality, which
+-		// needs no probing for absent fields and yields both directions.
++		// Compared only inside one (fqn, scope) bucket: a v4 transformer and
++		// its v5 twin never share a bucket, so they are never comparable.
+ 		_comparablePairs: {
+-			for cfqn, c in defined if c.kind != "Blueprint" if c.fulfilment == "catalog" {
+-				let _bucket = requiredBy[cfqn]
++			for cfqn, scopes in defined for scope, c in scopes if c.kind != "Blueprint" if c.fulfilment == "catalog" {
++				let _bucket = requiredBy[cfqn][scope]
+ 				for i, a in _bucket for j, b in _bucket if i < j {
+ 					let _pa = _predicates[a]
+ 					let _pb = _predicates[b]
+@@ -293,9 +249,10 @@ import (
+ 					let _bSubA = len(_union) == len(_pa)
+ 					if _aSubB || _bSubA {
+ 						let _pair = list.Sort([a, b], list.Ascending)
+-						(strings.Join(_pair, "|")): {
++						"\(scope)|\(strings.Join(_pair, "|"))": {
+ 							broader: [if _aSubB && _bSubA {_pair[0]}, if _aSubB {a}, b][0]
+ 							narrower: [if _aSubB && _bSubA {_pair[1]}, if _aSubB {b}, a][0]
++							"scope": scope
+ 							contracts: (cfqn): true
+ 						}
+ 					}
+@@ -305,6 +262,7 @@ import (
+ 		comparable: [for _, r in _comparablePairs {{
+ 			broader:  r.broader
+ 			narrower: r.narrower
++			scope:    r.scope
+ 			contracts: [for c, _ in r.contracts {c}]
+ 		}}]
+ 	}
+diff --git a/src/resource.cue b/src/resource.cue
+index 28d8bad..f08d711 100644
+--- a/src/resource.cue
++++ b/src/resource.cue
+@@ -13,6 +13,12 @@ import (
+ 		name!: #NameType // Example: "container"
+ 		#definitionName: (#KebabToPascal & {"in": name}).out
+ 
++		// SCOPED-MATCHING PROBE: catalog is the defining catalog's module path,
++		// major included, DERIVED from modulePath (registryPath + kind + apiVersion)
++		// and the major of catalogVersion. Never authored. It is the scope a
++		// contract key is matched and counted in.
++		catalog: #ModulePathType & "\(strings.TrimSuffix(modulePath, "/resources/"+apiVersion))@v\(strings.Split(catalogVersion, ".")[0])"
++
+ 		modulePath!: #PackagePathType // Example: "opmodel.dev/catalogs/opm/resources/v1beta1" (kind prefix + this resource's own apiVersion, 0010:D49)
+ 
+ 		// WHY a field rather than an interpolation: it is the one identity
+diff --git a/src/trait.cue b/src/trait.cue
+index 9542ad1..4e42627 100644
+--- a/src/trait.cue
++++ b/src/trait.cue
+@@ -12,6 +12,12 @@ import (
+ 		name!: #NameType // Example: "scaling"
+ 		#definitionName: (#KebabToPascal & {"in": name}).out
+ 
++		// SCOPED-MATCHING PROBE: catalog is the defining catalog's module path,
++		// major included, DERIVED from modulePath (registryPath + kind + apiVersion)
++		// and the major of catalogVersion. Never authored. It is the scope a
++		// contract key is matched and counted in.
++		catalog: #ModulePathType & "\(strings.TrimSuffix(modulePath, "/traits/"+apiVersion))@v\(strings.Split(catalogVersion, ".")[0])"
++
+ 		modulePath!: #PackagePathType // Example: "opmodel.dev/catalogs/opm/traits/v1beta1" (kind prefix + this trait's own apiVersion, 0010:D49)
+ 
+ 		// WHY apiVersion: 0010:D4.
