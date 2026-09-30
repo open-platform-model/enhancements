@@ -55,7 +55,7 @@ Two layers replace one file.
 
 ### Side-by-side catalog majors
 
-A catalog major upgrade today moves every module at once. Contract keys carry no catalog major (0010 D4), so two majors of one catalog declare the same keys, and a build holding both fails to evaluate (`experiments/01-one-major-per-build/`, case A). The only working shape is one major enabled at a time.
+A catalog major upgrade today moves every module at once. Contract keys carry no catalog major (0010 D4), so two majors of one catalog declare the same keys, and a build holding both cannot render: it failed to evaluate before core v2.0.0-alpha.13 (`experiments/01-one-major-per-build/`, case A), and since then the fold reports the shared keys as `collisions` and the platform is not routable (OQ17). The only working shape is one major enabled at a time.
 
 This entry already has most of what side-by-side majors need. An admission entry is keyed by module path with its major, so admitting `opmodel.dev/catalogs/opm@v4` and `opmodel.dev/catalogs/opm@v5` is two entries. A render's resolved platform holds only the catalogs its module pins. D9 makes the consequence a rule: **the major is settled per resolution, before `#ResolvedPlatform` is written, and a resolution holds one major per catalog.** A render of a module on opm@v5 holds opm@v5 alone, so the resolved platform, the fold, the render glue and matching never meet two majors of one catalog and none of them changes.
 
