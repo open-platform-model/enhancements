@@ -42,4 +42,4 @@ Core is additive; a previous library builds against the same core major. Publish
 - The operator's acceptance-side reading of an admission entry (D6, D7) needs the range-form CR, so the CRD shape lands with or before it.
 - Enhancement 0027 consumes this entry's range vocabulary; nothing here depends on 0027.
 - Side-by-side majors (D9) need the library's per-resolution generation holding one major per catalog, and the split module-less build, before either frontend admits a second major of a catalog; the operator's acceptance per declaring major lands with the operator's range-form CR.
-- Two fixes are independent of this entry and may land first: a core contract fold that reports colliding keys instead of failing to evaluate, and the operator's build-compatibility index keyed by the path with its major. Whether they land ahead of this entry is OQ17.
+- Two fixes independent of this entry landed ahead of it on 2026-09-30 (OQ17): the core contract fold reports colliding keys instead of failing to evaluate, and the operator's build-compatibility index is keyed by the path with its major. Nothing here waits on them further.

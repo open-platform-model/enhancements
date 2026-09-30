@@ -67,6 +67,8 @@ history:
     event: 'Side-by-side catalog majors: D9 added, one major per catalog in every resolution; D2 R7, D4 and D7 R2 revised; OQ9 to OQ18 opened; experiments 01 and 02 concluded.'
   - date: "2026-09-30"
     event: 'D9 amends 0010:D37: provider count per resolution, other-major providers not counted together. Evidence made reproducible: experiments 03 to 09 added, not-retained citations replaced.'
+  - date: "2026-09-30"
+    event: 'OQ17 answered: the collision-tolerant fold and the operator build-compatibility fix landed independent of this entry; the all-at-once major upgrade stands until D9 ships. Two fixed risks removed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
