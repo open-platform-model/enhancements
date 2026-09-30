@@ -55,9 +55,11 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 
 **Rationale:** Enhancement 0010's original identity design used `@opm(identity, owner=publish)` for tool-owned identity fields, and 0011's publish design preserved it on write, with the same shape: kind in position 0, key/value pairs after. Enhancement 0010 later dropped that identity marker, so the shape is followed for its own merits rather than as a binding precedent. Following it means one attribute name across OPM, one parse path in Go, and a reader who learns the convention once. Measured in experiment 01 that `Attribute.String(0)` cleanly separates `secret` from `identity` on a shared name, and that a field may carry `@opm(...)` alongside unrelated attributes without interference.
 
-**Source:** Design proposal 2026-07-27, following the precedent in `enhancements/0011/02-design.md` and `enhancements/0003/experiments/06-identity-supply-mechanisms/`.
+**Source:** Design proposal 2026-07-27, following the precedent in `enhancements/archive/0010/03-decisions.md` (the identity-marker alternative, adopted and then dropped) and `enhancements/archive/0003/experiments/06-identity-supply-mechanisms/`.
 
 **Revised:** 2026-09-29, Rationale only: the precedent was cited as a 0011 decision that concerns registry hosting; the marker came from 0010's original identity design, which later dropped it, and it is restated that way. The decision and its requirements are unchanged.
+
+**Revised:** 2026-09-30, Source only: it cited a 0011 design document that carries no `@opm` marker, and a 0003 path from before that entry was archived. It now points at 0010's decision log, where the identity marker was adopted and then dropped, and at the archived 0003 experiment that wrote it. No answer changed.
 
 ---
 
@@ -325,6 +327,8 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 **Rationale:** With routing gone the type is six lines and names nothing Kubernetes-specific: `{ref, key}` is "an object and a key inside it", which is as generic as `#NameType`. It has no `metadata`, no `fqn`, and no version, so it is a pure type rather than a primitive, which means core owning it does *not* repeat the layering error of enhancement 0010 OQ9, where core hardcoded a versioned catalog FQN. Every catalog and every module needs the same fulfilment contract; defining it once, upstream of all of them, is what stops the two copies diverging again.
 
 **Source:** Design discussion 2026-07-27; user decision the same day (`#SecretLiteral` naming, `{ref, key}` field names).
+
+**Revised:** 2026-09-30, core surface widened by two named types: core also publishes `#SecretKeyType`, which `#SecretRef.key` carries, and `#SecretObjectType`, the Secret `type` values OPM materialises, named so the marker's `type=` argument and backend catalogs read one set. Both are value types, not the Kubernetes Secret object shape, so R3 holds. The Decision, the requirements and the arm field names are unchanged.
 
 ---
 

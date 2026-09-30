@@ -41,8 +41,8 @@ package schema
 	// A key the consuming workload dictates, plus immutability so a cert
 	// rotation rolls the workloads that mount it.
 	tls: {
-		cert: #Secret @opm(secret, group=tls, key="tls.crt", type="kubernetes.io/tls", immutable)
-		key:  #Secret @opm(secret, group=tls, key="tls.key", type="kubernetes.io/tls", immutable, description="PEM private key for the ingress certificate")
+		cert: #Secret @opm(secret, group=tls, key="tls.crt", type="kubernetes.io/tls", immutable=true)
+		key:  #Secret @opm(secret, group=tls, key="tls.key", type="kubernetes.io/tls", immutable=true, description="PEM private key for the ingress certificate")
 	}
 
 	// Depth is not a constraint: discovery is a Go recursion with no unrolled
@@ -66,14 +66,38 @@ exDeclarations: #SecretDeclList & [
 	{path: "tls.cert", marker: {kind: "secret", group: "tls", key: "tls.crt", type: "kubernetes.io/tls", immutable: true}},
 	{path: "tls.key", marker: {kind: "secret", group: "tls", key: "tls.key", type: "kubernetes.io/tls", immutable: true}},
 	{path: "deeply.nested.a.b.c.d.e.f.g.h.i.token", marker: {kind: "secret", group: "deep"}},
+
+	// The pattern constraint, declared once with a "[_]" segment for "any
+	// key". It has no key yet: each deployer-added key derives its own at
+	// resolution.
+	{path: "extraSecrets[_]", marker: {kind: "secret", group: "extra"}},
 ]
 
 // Key derivation, pinned. `db.password` asked for nothing, so its key comes out
-// of the full path — which is why db.password and a hypothetical redis.password
-// cannot collide.
+// of the full path, which is why db.password and a hypothetical redis.password
+// land on different keys.
 _assertDerivedKey: exDeclarations[0].key & "db_password"
 _assertDeepKey:    exDeclarations[5].key & "deeply_nested_a_b_c_d_e_f_g_h_i_token"
 _assertGivenKey:   exDeclarations[3].key & "tls.crt"
+_assertPatternKey: exDeclarations[6].key == _|_ & true
+
+// The fold covers every path CUE can print: a quoted map key keeps its hyphen,
+// a list index becomes a segment, and `$` (legal in a CUE identifier, not in a
+// Secret key) folds to "_".
+_assertQuotedKey: (#DeriveKey & {path: "extraSecrets.\"api-token\""}).out & "extraSecrets_api-token"
+_assertIndexKey:  (#DeriveKey & {path: "users[0].password"}).out & "users_0_password"
+_assertDollarKey: (#DeriveKey & {path: "$legacy.token"}).out & "_legacy_token"
+
+// The fold is lossy: a sibling field literally named `db_password` derives the
+// same key as `db.password`. Pinned so nobody reintroduces a "collision-free"
+// claim; #GroupKeysUnique is what turns such a pair into an error.
+_assertFoldIsLossy: (#DeriveKey & {path: "db.password"}).out & (#DeriveKey & {path: "db_password"}).out
+
+// Every fixed declaration of #ExampleConfig owns its group key. Adding
+// `db_password: #Secret @opm(secret)` beside `db` would make this conflict.
+_assertKeysUnique: (#GroupKeysUnique & {#members: [
+	for d in exDeclarations if d.key != _|_ {group: d.marker.group, key: d.key, path: d.path},
+]}).out
 
 // ─── 3. Fulfilment — the deployer's half ────────────────────────────────────
 
@@ -103,6 +127,10 @@ exValuesProd: {
 	"tls.cert":      {ref: "wildcard-example-com", key: "tls.crt"}
 	"tls.key":       {ref: "wildcard-example-com", key: "tls.key"}
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {value: "tok-123"}
+
+	// A key the deployer added under the pattern map. Not an identifier, so
+	// its path carries the quoted label CUE prints for it.
+	"extraSecrets.\"api-token\"": {value: "tok-456"}
 }
 
 // ─── 4. Resolution — the objects the kernel decides to create ───────────────
@@ -131,9 +159,25 @@ exPlans: [...#SecretGroupPlan] & [
 		data: deeply_nested_a_b_c_d_e_f_g_h_i_token: "tok-123"
 		members: ["deeply.nested.a.b.c.d.e.f.g.h.i.token"]
 	},
+	{
+		group:      "extra"
+		objectName: (#ObjectName & {instance: "myapp", group: "extra"}).out
+		type:       "Opaque"
+		data: "extraSecrets_api-token": "tok-456"
+		members: ["extraSecrets.\"api-token\""]
+	},
 ]
 
 _assertObjectName: exPlans[1].objectName & "myapp-basic-auth"
+
+// A composed name is an object name, not a DNS label. A 40-rune instance
+// with a 25-rune group is 66 runes: legal for a Secret, and over #NameType's
+// 63-rune cap, which is why objectName and #SecretRef.ref carry #ObjectNameType.
+exLongObjectName: (#ObjectName & {
+	instance: "payments-reconciliation-service-eu-west1"
+	group:    "database-credentials-main"
+}).out
+_assertLongNameOverLabelCap: len(exLongObjectName) & >63
 
 // An immutable group in the DEV values, where the TLS pair IS supplied. The
 // hash is computed before the rewrite, so members' `ref` already carries it and
@@ -173,6 +217,8 @@ exResolvedProd: {
 	"tls.key":  {ref: "wildcard-example-com", key: "tls.key"}
 
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {ref: "myapp-deep", key: "deeply_nested_a_b_c_d_e_f_g_h_i_token"}
+
+	"extraSecrets.\"api-token\"": {ref: "myapp-extra", key: "extraSecrets_api-token"}
 }
 
 // No plaintext survives resolution: every resolved value unifies with
@@ -212,6 +258,10 @@ exRenderedEnvRef: {
 
 _assertLiteralRef: exRenderedEnvLiteral.valueFrom.secretKeyRef.name & "myapp-secrets"
 _assertForeignRef: exRenderedEnvRef.valueFrom.secretKeyRef.name & "wildcard-example-com"
+
+// A deployer may point at any Secret the API server admits, dotted names
+// included, which a DNS-label type would have refused.
+exDottedRef: #SecretRef & {ref: "tls.wildcard.example.com", key: "tls.crt"}
 
 // A volume mounting a whole group reads `.ref` and ignores `.key`. Because
 // there is only one string and it lives in the value, this cannot disagree with

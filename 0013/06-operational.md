@@ -30,7 +30,7 @@ Deliberately **not** introduced: any log line, metric label, or error message ca
 
 **Breaking.** Expected `semver: major`, to be confirmed at acceptance.
 
-- **`opmodel.dev/core@v1`**: `#Secret` is narrowed (its arms lose `$opm`, `$secretName`, `$dataKey`; `#SecretK8sRef` is replaced by `#SecretRef`), and `#SecretSchema`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` are removed. Tightening a published constraint and removing published definitions are both breaking. `#TransformerContext` is **unchanged**. Core ships on the `v1.0.0-alpha.N` prerelease line, so a `feat!:` advances the alpha counter rather than forcing `@v2`.
+- **`opmodel.dev/core@v1`**: `#Secret` is narrowed (its arms lose `$opm`, `$secretName`, `$dataKey`; `#SecretK8sRef` is replaced by `#SecretRef`), `#SecretKeyType` and `#SecretObjectType` are added, and `#SecretSchema`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` are removed. Tightening a published constraint and removing published definitions are both breaking. `#TransformerContext` is **unchanged**. Core ships on the `v1.0.0-alpha.N` prerelease line, so a `feat!:` advances the alpha counter rather than forcing `@v2`.
 - **`opmodel.dev/catalogs/opm@v1`**: stops redeclaring `#Secret` and imports core's; `#SecretSchema.data` narrows from `#Secret | string` to `string`. Breaking. Also on a `v1.x.x-alpha.x` prerelease line.
 - **`library`**: the kernel's public surface gains `opm/secret`. Breaking for direct callers, which are `cli` and `opm-operator`, both in this workspace.
 - **`modules`**: every module using `res.#Secret`'s `$`-field form must migrate. That is exactly one: `metallb`.

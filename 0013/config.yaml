@@ -32,7 +32,7 @@ affects:
   - opmodel.dev
 core_schema: true
 created: "2026-07-27"
-updated: "2026-09-29"
+updated: "2026-09-30"
 authors:
   - emil@jacero.se
 history:
@@ -85,6 +85,10 @@ history:
     event: 'Requirements added to every decision (none on D1, D4); Kind on D1-D17, additive.'
   - date: "2026-09-29"
     event: 'D2 Rationale: miscited 0011 decision restated as 0010 original identity design, no edge. D9: an Alternatives bullet names call sites by role, not line. Revised lines added; no answer changed.'
+  - date: "2026-09-30"
+    event: 'Schema delta corrected: object names typed #ObjectNameType, lossy key fold with per-group uniqueness, quoted and [_] config paths, strict marker parsing, #SecretKeyType and #SecretObjectType in core.'
+  - date: "2026-09-30"
+    event: 'D12 Revised: core also publishes #SecretKeyType and #SecretObjectType. D2 Revised: Source repointed to the archived 0010 decision log and 0003. Marker immutable becomes immutable=<bool>, per D2 R1.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

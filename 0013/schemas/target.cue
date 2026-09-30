@@ -17,15 +17,29 @@
 //
 // One shape here is NOT a value in any artifact: #SecretMarker. A CUE field
 // attribute is metadata attached to a field, not a field of its own, so it
-// cannot be typed by unification. #SecretMarker models the *parsed* form — what
-// the kernel produces after calling cue.Value.Attribute("opm") — so the
-// argument grammar has one written-down contract that the Go parser and the docs
-// both answer to. Authors never write #SecretMarker; they write the attribute,
-// and examples.cue shows that form on real fields.
+// cannot be typed by unification. #SecretMarker models the *parsed* form, what
+// the kernel produces from every `opm` attribute the field carries
+// (cue.Value.Attributes, not Attribute: the latter returns only the first), so
+// the argument grammar has one written-down contract that the Go parser and
+// the docs both answer to. Authors never write #SecretMarker; they write the
+// attribute, and examples.cue shows that form on real fields.
+//
+// Delta manifest against opmodel.dev/core@v2:
+//
+//	CHANGED   #Secret, #SecretLiteral
+//	NEW       #SecretRef (replaces #SecretK8sRef), #SecretKeyType,
+//	          #SecretObjectType (named; today an inline set inside #SecretSchema)
+//	PARSED    #SecretMarker: the attribute grammar core documents and never evaluates
+//	RESTATED  #NameType, #ObjectNameType: copied verbatim from core, unchanged
+//	STAND-IN  #FQNType: a simplified local form of core's
+//	          #ContractFQNType | #ImplFQNType, only so this file compiles
+//	KERNEL    everything else: library behaviour contracts, not core schema
+//	REMOVED   listed in spec.md ## Removed definitions
 package schema
 
 import (
 	"list"
+	"regexp"
 	"strings"
 	"crypto/sha256"
 	"encoding/hex"
@@ -33,33 +47,84 @@ import (
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-// #NameType: kebab-case DNS-safe name, as core declares it today.
-#NameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+// #NameType: RFC 1123 DNS label, restated verbatim from core. The 63-rune cap
+// is load-bearing here: it is why a composed object name cannot use this type.
+#NameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" & strings.MinRunes(1) & strings.MaxRunes(63)
+
+// #ObjectNameType: RFC 1123 DNS subdomain, restated verbatim from core
+// (0019:D20). What the API server admits for a Secret's metadata.name. Every
+// Secret object name in this contract carries it: a deployer-written ref may
+// name a dotted object, and a kernel-composed "{instance}-{group}" name runs
+// to 63 + 1 + 63 runes before an 11-rune hash suffix, so #NameType overflows
+// once instance and group together pass 62 runes.
+#ObjectNameType: string & =~"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$" & strings.MinRunes(1) & strings.MaxRunes(253)
 
 // #FQNType: a primitive's exact match key, as enhancement 0010 D13 fixes it —
 // package path plus name plus the full SemVer of the build it came from.
 #FQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9-]+@.+$"
 
-// #ConfigPathType: a dotted path into a module's #config. The join key of the
-// whole design: discovery produces it from the schema side, fulfilment is read
-// at it on the values side, and the kernel rewrites the value at it. List
-// indices appear as "[N]" segments.
-#ConfigPathType: string & =~#"^[a-zA-Z_$][a-zA-Z0-9_$]*(\[[0-9]+\])*(\.[a-zA-Z_$][a-zA-Z0-9_$]*(\[[0-9]+\])*)*$"#
+// A path segment is spelled the way CUE's own path printer spells it: a bare
+// identifier (Unicode letters included, never a leading "_", which CUE prints
+// quoted), or a double-quoted label for any key that is not one. A
+// deployer-added map key such as `api-token` therefore appears as
+// `extraSecrets."api-token"`, which is what cue.Path.String() emits. The string
+// is the printed join key; the kernel addresses values by selector, because a
+// few degenerate labels (`true`, an empty key) print in forms cue.ParsePath
+// refuses.
+let _ident = #"[\p{L}$][\p{L}\p{Nd}_$]*"#
+let _quoted = #""(?:[^"\\]|\\.)*""#
+let _label = "(?:\(_ident)|\(_quoted))"
 
-// #SecretKeyType: a key inside a Kubernetes Secret's data map. K8s permits
-// alphanumerics, '-', '_' and '.'.
-#SecretKeyType: string & =~"^[-._a-zA-Z0-9]+$"
+// #ConfigPathType: a concrete path into a module's #config. The join key of
+// the whole design: fulfilment is read at it on the values side, and the kernel
+// rewrites the value at it. List indices appear as "[N]" segments. Every path in
+// resolution output (resolved, unfulfilled, a plan's members) is concrete.
+#ConfigPathType: string & =~"^\(_label)(?:\\[[0-9]+\\])*(?:\\.\(_label)(?:\\[[0-9]+\\])*)*$"
 
-// #SecretObjectType: the Kubernetes Secret `type` field. Same closed set core
-// carries today; a group's members must agree on it.
+// #ConfigPathPatternType: a declaration path, which discovery reads from the
+// schema with no values present. It is a #ConfigPathType that may also carry
+// "[_]" segments: any key of a pattern-constrained map, or any element of a
+// list. "[_]" is how CUE prints the cue.AnyString and cue.AnyIndex selectors;
+// CUE's path printer puts a dot before it (`extra.[_]`), and the contract
+// writes it as a suffix like an index (`extra[_]`). A declaration holding "[_]"
+// expands to one concrete path per key or element once values exist.
+#ConfigPathPatternType: string & =~"^\(_label)(?:\\[(?:[0-9]+|_)\\])*(?:\\.\(_label)(?:\\[(?:[0-9]+|_)\\])*)*$"
+
+// #SecretKeyType: a key inside a Kubernetes Secret's data map. Kubernetes
+// admits alphanumerics, '-', '_' and '.', at most 253 runes, never "." and
+// never a key starting with "..". Core surface: it types #SecretRef.key.
+#SecretKeyType: string & =~"^[-._a-zA-Z0-9]+$" & !~"^\\.$" & !~"^\\.\\." & strings.MaxRunes(253)
+
+// #SecretObjectType: the Kubernetes Secret `type` values OPM materialises.
+// Named here so the marker's `type=` argument and a backend catalog's
+// materialising transformer read one set. A group's members must agree on it.
+//
+// Narrower than the inline set in core's deleted #SecretSchema, by two types
+// OPM cannot create. kubernetes.io/service-account-token needs annotations the
+// API server's token controller binds to a live ServiceAccount, which a
+// materialised object does not carry; bootstrap.kubernetes.io/token is only
+// read from kube-system. Either can still be consumed through a
+// deployer-written #SecretRef, which carries no type at all.
 #SecretObjectType: "Opaque" |
-	"kubernetes.io/service-account-token" |
 	"kubernetes.io/dockercfg" |
 	"kubernetes.io/dockerconfigjson" |
 	"kubernetes.io/basic-auth" |
 	"kubernetes.io/ssh-auth" |
-	"kubernetes.io/tls" |
-	"bootstrap.kubernetes.io/token"
+	"kubernetes.io/tls"
+
+// #SecretTypeRequiredKeys: the data keys the API server requires for each
+// typed Secret. The default #DeriveKey fold never produces them (a tls member
+// at `tls.cert` derives `tls_cert`, not `tls.crt`), so a typed group's members
+// set `key=`. basic-auth requires `username` or `password`, which a
+// required-key list cannot say; the kernel checks that one directly.
+#SecretTypeRequiredKeys: {
+	"Opaque": []
+	"kubernetes.io/dockercfg": [".dockercfg"]
+	"kubernetes.io/dockerconfigjson": [".dockerconfigjson"]
+	"kubernetes.io/basic-auth": []
+	"kubernetes.io/ssh-auth": ["ssh-privatekey"]
+	"kubernetes.io/tls": ["tls.crt", "tls.key"]
+}
 
 // ─── The fulfilment contract ────────────────────────────────────────────────
 
@@ -101,8 +166,10 @@ import (
 #SecretRef: {
 	// Exact object name. When the deployer writes it, the module does not own
 	// the object and the name is never instance-prefixed. When the kernel writes
-	// it, this is the group plan's objectName.
-	ref!: #NameType
+	// it, this is the group plan's objectName. Typed as an object name, not a DNS
+	// label: a pre-existing Secret may be named `tls.example.com`, and the
+	// kernel's own composed name can pass 63 runes.
+	ref!: #ObjectNameType
 
 	// The key to read inside that object. Need not equal the declared key: the
 	// module names its own slot, the cluster names its own.
@@ -115,17 +182,44 @@ import (
 //
 // Grammar, as written on a #config field:
 //
-//	@opm(secret [, group=<name>] [, key=<key>] [, type=<k8s-type>] [, description=<text>])
+//	@opm(secret [, group=<name>] [, key=<key>] [, type=<k8s-type>] [, immutable=<bool>] [, description=<text>])
 //
-// Position 0 is the marker kind, matching the `@opm(identity, owner=publish)`
-// form enhancement 0011 D5 already uses for tool-owned identity fields. One
-// `@opm` namespace, dispatched on position 0, keeps OPM to a single attribute
-// name across every marker it will ever want.
+// Position 0 is the marker kind. The position-0 form comes from enhancement
+// 0010's original identity design, `@opm(identity, owner=publish)`, which was
+// later dropped; `secret` is the first live `@opm` marker. One `@opm`
+// namespace, dispatched on position 0, keeps OPM to a single attribute name
+// across every marker it will ever want.
 //
 // Every argument past position 0 is optional and derivable. `@opm(secret)` is
 // the intended common case; the arguments exist for the minority of secrets that
 // must share one Kubernetes object (basic-auth pairs, TLS pairs,
 // dockerconfigjson) or must land under a key the consuming workload dictates.
+//
+// Parse rules. CUE's attribute syntax is lenient, so these are what make a typo
+// loud instead of silently routing a secret somewhere else:
+//
+//   - Every `opm` attribute on the field is read; an attribute whose position 0
+//     is another kind is skipped. A field carrying two `secret` markers that
+//     disagree (a definition and a use site can each contribute one) is a
+//     discovery error; identical markers collapse to one.
+//   - An argument name other than group, key, type, immutable or description
+//     is an error, and so is a repeated one. `grup=db` fails rather than
+//     falling back to the default group.
+//   - Every argument is `name=value` with a non-empty value, so a bare
+//     `immutable` or an empty `immutable=` is an error. `immutable` takes
+//     exactly `true` or `false`.
+//   - A value containing `,`, `)` or `"` must be written quoted, as
+//     `description="PEM key, rotated yearly"`. Unquoted, the comma would split
+//     it into a stray argument, which the unknown-argument rule then rejects.
+//
+// A list element has no FIELD-attribute slot: `[...#Secret @opm(secret)]` does
+// not parse. A `[...#Secret]` list is discovered by its element type with
+// default routing (D13). Routing for elements is written as a declaration
+// attribute inside an element struct that embeds #Secret,
+// `[...{#Secret, @opm(secret, group=tokens)}]`, which keeps the element's
+// shape #Secret. The kernel therefore reads `opm` attributes of both kinds
+// (cue.FieldAttr and cue.DeclAttr); a declaration attribute is honoured only on
+// a struct that embeds #Secret, and is a discovery error anywhere else.
 #SecretMarker: {
 	// Position 0. Always "secret" for this enhancement; other values in this
 	// slot belong to other markers (e.g. "identity") and are not this
@@ -137,9 +231,10 @@ import (
 	// did not ask otherwise into one object per instance.
 	group: #NameType | *"secrets"
 
-	// The key inside that object's data map. Defaults to the config path with
-	// separators folded to underscores (#DeriveKey), so db.password and
-	// redis.password cannot collide.
+	// The key inside that object's data map. Defaults to the config path folded
+	// into the key charset (#DeriveKey). The fold is readable but lossy, so the
+	// kernel rejects two members of one group that land on the same key
+	// (#GroupKeysUnique); `key=` is how an author resolves that.
 	key?: #SecretKeyType
 
 	// The Kubernetes Secret type. Every member of a group must agree; the kernel
@@ -169,7 +264,9 @@ import (
 // fulfilled them.
 #SecretDecl: {
 	// Where the field sits in #config. Unique across a module by construction.
-	path!: #ConfigPathType
+	// A field under a pattern constraint or inside a list element is declared
+	// once with a "[_]" segment and expands per key or element at resolution.
+	path!: #ConfigPathPatternType
 
 	// The parsed marker, with defaults applied.
 	marker!: #SecretMarker
@@ -180,27 +277,50 @@ import (
 	// around its own `let _d = data` helpers.
 	let _p = path
 
-	// Resolved key: marker.key when given, derived from the path otherwise.
-	key: #SecretKeyType
+	// Resolved key: marker.key when given, derived from the path otherwise. A
+	// "[_]" declaration has no concrete path yet, so without `key=` its key is
+	// derived per expanded path at resolution, not here.
+	key?: #SecretKeyType
 	if marker.key != _|_ {
 		key: marker.key
 	}
-	if marker.key == _|_ {
+	if marker.key == _|_ && !strings.Contains(_p, "[_]") {
 		key: (#DeriveKey & {path: _p}).out
 	}
 }
 
 #SecretDeclList: [...#SecretDecl]
 
-// #DeriveKey: default data key for a marked field — the config path with
-// separators folded to underscores. Collision-free because the path it comes
-// from is unique. List-index brackets are folded so the result stays inside
-// #SecretKeyType.
+// #DeriveKey: default data key for a concrete config path. Quotes and closing
+// brackets are dropped, and every rune outside [-a-zA-Z0-9_] becomes "_": so
+// `db.password` gives `db_password`, `list[0]` gives `list_0`,
+// `extraSecrets."api-token"` gives `extraSecrets_api-token`, and `$x` gives `_x`.
+//
+// The fold is readable, not injective: `db.password` and a sibling field named
+// `db_password` both give `db_password`. Uniqueness is therefore checked where
+// it matters, per group (#GroupKeysUnique), rather than claimed here.
+//
+// Nor is it total. A path whose fold passes 253 runes (reachable through a long
+// deployer-added map key) or folds to nothing (an empty label) has no default
+// key. That is an error naming the path, at discovery for a fixed field and at
+// resolution for an expanded one, and `key=` is the remedy.
 #DeriveKey: {
-	path!: string
-	out: #SecretKeyType & strings.Replace(
-		strings.Replace(strings.Replace(path, ".", "_", -1), "[", "_", -1),
-		"]", "", -1)
+	path!: #ConfigPathType
+	let _bare = strings.Replace(strings.Replace(path, "\"", "", -1), "]", "", -1)
+	out: #SecretKeyType & regexp.ReplaceAll("[^-a-zA-Z0-9_]", _bare, "_")
+}
+
+// #GroupKeysUnique: no two members of one group share a data key. A
+// #SecretGroupPlan's data is a map, so a collision would silently keep one
+// secret and drop the other; here it is a unification conflict instead, and
+// the kernel reports it naming both paths. Applied to fixed declarations at
+// discovery and again to expanded "[_]" paths at resolution, since a
+// deployer-added map key can collide with a sibling.
+#GroupKeysUnique: {
+	#members: [...{group: #NameType, key: #SecretKeyType, path: #ConfigPathType}]
+
+	// group -> key -> the one path allowed to own it.
+	out: {for m in #members {(m.group): (m.key): m.path}}
 }
 
 // ─── Phase 2: Resolve in place ──────────────────────────────────────────────
@@ -218,28 +338,35 @@ import (
 	// string, and it is in the value — so an env reference and a volume reference
 	// to the same group cannot disagree. The three divergent name derivations in
 	// catalog_opm today become unrepresentable rather than merely fixed.
-	objectName!: #NameType
+	objectName!: #ObjectNameType
 
 	// Agreed across every member; the kernel rejects a group that disagrees.
 	type:      #SecretObjectType | *"Opaque"
 	immutable: bool | *false
 
 	// key -> plaintext. Travels out of band to the materialising component and
-	// is never present in the component graph.
+	// is never present in the component graph. A typed group must carry the
+	// keys its type requires.
 	data!: [#SecretKeyType]: string
+	for k in #SecretTypeRequiredKeys[type] {
+		data: (k)!: string
+	}
 
 	// Which config paths fed this group — diagnostics and provenance only.
+	// Concrete paths, one per expanded member, and no two share a data key
+	// (#GroupKeysUnique).
 	members!: [...#ConfigPathType]
 }
 
 // #ObjectName: the ONE place an OPM-owned Secret object gets its name.
 // Instance-scoped rather than component-scoped: a Kubernetes Secret is a
 // namespaced object, so two components of one instance sharing a group must
-// reach the same object.
+// reach the same object. Composed from two DNS labels, so it is an object
+// name (up to 127 runes, 138 with an immutable suffix), never a #NameType.
 #ObjectName: {
 	instance!: #NameType
 	group!:    #NameType
-	out:       #NameType & "\(instance)-\(group)"
+	out:       #ObjectNameType & "\(instance)-\(group)"
 }
 
 // #ContentHash: deterministic 10-character hex digest of a string map, over
@@ -260,11 +387,11 @@ import (
 // rewrite, so a member's resolved #SecretRef.ref already carries the suffix and
 // every consumer follows the object automatically when the data changes.
 #ImmutableObjectName: {
-	base!: #NameType
+	base!: #ObjectNameType
 	data: [string]: string
 
 	let _d = data
-	out: #NameType & "\(base)-\((#ContentHash & {data: _d}).out)"
+	out: #ObjectNameType & "\(base)-\((#ContentHash & {data: _d}).out)"
 }
 
 // #ResolveInPlace: the rewrite that is the heart of this design.
@@ -293,7 +420,16 @@ import (
 // several loosely-related returns.
 #SecretsResolution: {
 	// Phase 1 — Discover: read from the module's #config, values not required.
+	// A "[_]" declaration expands against the values into the concrete paths
+	// the fields below are keyed by.
 	declarations!: #SecretDeclList
+
+	// Fixed declarations already carry a key, so their collisions surface at
+	// discovery, before any values exist. A "[_]" declaration is checked after
+	// expansion; one that sets `key=` collides as soon as it has two entries.
+	_fixedKeysUnique: (#GroupKeysUnique & {#members: [
+		for d in declarations if d.key != _|_ && !strings.Contains(d.path, "[_]") {group: d.marker.group, key: d.key, path: d.path},
+	]}).out
 
 	// Phase 2 — Resolve: what each secret path becomes in the render-time values.
 	resolved!: [#ConfigPathType]: #SecretRef
@@ -335,7 +471,7 @@ import (
 // #MaterializedSecret: the spec entry a secrets transformer consumes. Plain
 // data — discovery, grouping, and naming have all already happened.
 #MaterializedSecret: {
-	name!:     #NameType
+	name!:     #ObjectNameType
 	type:      #SecretObjectType | *"Opaque"
 	immutable: bool | *false
 	data!: [#SecretKeyType]: string

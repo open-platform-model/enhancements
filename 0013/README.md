@@ -19,7 +19,7 @@ values: db: password: {value: "hunter2"}                           // supplied
 values: db: password: {ref: "existing-db-creds", key: "password"}  // referenced
 ```
 
-**Two ways to supply a secret, and no more (D7, D12).** Give a literal, or point at a Secret that already exists. `#Secret` narrows to those two, six lines in core and nowhere else, deleting 455 dead lines there and a 240-line discovery walk; the catalog's 439 duplicated lines are already gone (D9).
+**Two ways to supply a secret, and no more (D7, D12).** Give a literal, or point at a Secret that already exists. `#Secret` narrows to those two, six lines in core and nowhere else, beside two named types for Secret keys and object types, deleting 455 dead lines there and a 240-line discovery walk; the catalog's 439 duplicated lines are already gone (D9).
 
 **The kernel finds marked fields from the schema, not the values (D3).** So it works with no values present, has no depth ceiling, and covers lists and pattern-constrained maps. It keys on type as well as marker and fails closed: a secret-typed field without the attribute gets default routing, a marked field of another type is an error (D13).
 
@@ -69,7 +69,7 @@ Pure-CUE definitions live in [`schemas/`](schemas/): the contract in [`target.cu
 **Core contract:**
 
 - The secret marker grammar and its parsed contract.
-- Narrowing `#Secret` to the two arms, and making core its only definition.
+- Narrowing `#Secret` to the two arms, and making core its only definition, together with the named key and object-type types its arms and marker use.
 
 **Kernel pass:**
 

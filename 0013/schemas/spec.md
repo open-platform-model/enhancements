@@ -83,16 +83,16 @@ It replaces `#SecretK8sRef`, which is deleted. The fields are renamed: `secretNa
 
 ```cue
 #SecretRef: {
-    ref!: #NameType       // exact object name
-    key!: #SecretKeyType  // key inside that object's data map
+    ref!: #ObjectNameType  // exact object name
+    key!: #SecretKeyType   // key inside that object's data map
 }
 ```
 
-`#SecretKeyType` constrains `key` to the Kubernetes Secret data-key charset (`[-._a-zA-Z0-9]+`); see [`target.cue`](target.cue).
+`#ObjectNameType` is core's existing RFC 1123 subdomain type (0019:D20). `#SecretKeyType` is new in core; see its section below.
 
 ### Constraints
 
-- `ref` is required and MUST be a valid `#NameType`. When the deployer writes it, the name is the pre-existing object's exact name and MUST NOT be instance-prefixed by OPM; when the kernel writes it, it is the group plan's computed object name (D5, D6).
+- `ref` is required and MUST be a valid `#ObjectNameType`: a Secret's `metadata.name` is a DNS subdomain, not a DNS label. When the deployer writes it, the name is the pre-existing object's exact name and MUST NOT be instance-prefixed by OPM; when the kernel writes it, it is the group plan's computed object name (D5, D6).
 - `key` is required and MUST match the Kubernetes Secret data-key charset. It need not equal the declared config key: the module names its own slot, the cluster names its own.
 - The struct is closed and MUST NOT carry a `value` field. Absence of plaintext after resolution is structural: a resolved secret cannot hold data, rather than the kernel having to remember to strip it (D11).
 - A deployer-written `#SecretRef` MUST pass through resolution unchanged (D11). Pinned in [`examples.cue`](examples.cue): the wildcard-certificate reference in `exResolvedProd` is byte-identical to what the deployer wrote.
@@ -100,6 +100,7 @@ It replaces `#SecretK8sRef`, which is deleted. The fields are renamed: `secretNa
 ### Rationale
 
 - **Why `ref`/`key` rather than keeping `secretName`/`remoteKey`.** `secretName` collides with the removed `$secretName` and reads as "the name of the secret" when it means "the name of the object holding it". Supplied secrets — the overwhelming majority — already migrate with zero instance-file change under D10; the referenced arm is rare enough that the clearer names win (D12).
+- **Why `ref` is an object name and not a `#NameType`.** Two writers fill it, and both overflow a DNS label. A deployer may reference a Secret named `tls.example.com`, which the API server admits and a label refuses. The kernel writes `{instance}-{group}`, two labels of up to 63 runes each, plus an 11-rune suffix when immutable: 138 runes at worst, against `#NameType`'s cap of 63. Under `#NameType` a legal 40-rune instance name with a 25-rune group would fail on the kernel's own output.
 - **Why the struct is closed with no `value`.** It converts three classes of leak — a transformer reading `.value`, a string interpolation, a value-embedded error message — from silent plaintext into loud unification errors or unrepresentable states. The rejected `#SecretBase` coexistence alternative, which kept `value` alongside `ref`/`key`, demoted this property to convention (D11).
 - **Why both arms converge on this shape.** One branch in every consumer: a transformer reads `.ref` and `.key` with no variant dispatch, replacing today's three discrimination techniques (`$opm` presence, `& #SecretLiteral != _|_`, structural sniffing) with none. And because the kernel writes the object name *into the value*, there is literally one string — the env-vs-volume name divergence live in the current catalog becomes unrepresentable (D11, D5).
 
@@ -111,14 +112,14 @@ It replaces `#SecretK8sRef`, which is deleted. The fields are renamed: `secretNa
 
 The routing half of a secret declaration: an inert CUE field attribute the module author writes on the declaring `#config` field. It states which Kubernetes Secret object the field's data lands in (`group`), under which key, with which object `type`, and whether the object is content-hash immutable — everything that is static, identical in every environment, and travels inside the published module. It never states where the data comes from; that is the type's job (D10).
 
-An attribute is metadata attached to a field, not a field of its own, so `#SecretMarker` is not a value in any artifact and core evaluates nothing of it. It models the *parsed* form — what the kernel produces from `cue.Value.Attribute("opm")` — so the argument grammar has one written-down contract that the Go parser and the docs both answer to. It is specified alongside `#Secret` because the two together are the declaration surface for a sensitive field.
+An attribute is metadata attached to a field, not a field of its own, so `#SecretMarker` is not a value in any artifact and core evaluates nothing of it. It models the *parsed* form, what the kernel produces from every `opm` attribute on the field, so the argument grammar has one written-down contract that the Go parser and the docs both answer to. The kernel reads all of them (`cue.Value.Attributes`); `cue.Value.Attribute("opm")` returns only the first, which would hide a `secret` marker behind any other `@opm` kind. It is specified alongside `#Secret` because the two together are the declaration surface for a sensitive field.
 
 ### Shape
 
 Grammar, as written on a `#config` field:
 
 ```cue
-@opm(secret [, group=<name>] [, key=<key>] [, type=<k8s-type>] [, immutable] [, description=<text>])
+@opm(secret [, group=<name>] [, key=<key>] [, type=<k8s-type>] [, immutable=<bool>] [, description=<text>])
 ```
 
 Parsed form (defaults applied):
@@ -127,7 +128,7 @@ Parsed form (defaults applied):
 #SecretMarker: {
     kind:      "secret"
     group:     #NameType | *"secrets"
-    key?:      #SecretKeyType          // default: config path, separators folded to "_"
+    key?:      #SecretKeyType          // default: config path folded into the key charset (#DeriveKey)
     type:      #SecretObjectType | *"Opaque"
     immutable: bool | *false
     description?: string
@@ -136,9 +137,12 @@ Parsed form (defaults applied):
 
 ### Constraints
 
-- The attribute name MUST be `opm`, with the marker kind in position 0 — the same one-namespace, position-0-dispatch form enhancement 0011 D5 already uses for `@opm(identity, owner=publish)` (D2).
+- The attribute name MUST be `opm`, with the marker kind in position 0 (D2). The form comes from enhancement 0010's original identity design, `@opm(identity, owner=publish)`, which was later dropped; `secret` is the first live `@opm` marker. An `opm` attribute whose position 0 is another kind MUST be skipped, not rejected.
 - The attribute MUST NOT influence CUE evaluation. It is metadata per the CUE language specification; the design depends on this inertness.
-- Every argument past position 0 MUST be optional and derivable; `@opm(secret)` is the intended common case. `group` defaults to `secrets`, `key` to the config path with separators folded to underscores (collision-free because the path is unique), `type` to `Opaque`, `immutable` to `false` (D2, and `#DeriveKey` in [`target.cue`](target.cue)).
+- Every argument past position 0 MUST be optional and derivable; `@opm(secret)` is the intended common case. `group` defaults to `secrets`, `key` to the config path folded into the key charset, `type` to `Opaque`, `immutable` to `false` (D2, and `#DeriveKey` in [`target.cue`](target.cue)). The fold is readable but not injective (`db.password` and a sibling `db_password` both give `db_password`), so two members of one group that land on the same key MUST be rejected, naming both paths (`#GroupKeysUnique`). Nor is it total: a path whose fold passes 253 runes, or folds to nothing, has no default key, and that MUST be an error naming the path. An author resolves either case with `key=`.
+- The parser MUST reject what it does not understand. An argument name other than `group`, `key`, `type`, `immutable` or `description` is an error (`grup=db` never falls back to the default group), and so is a repeated argument. Every argument is `name=value` with a non-empty value, so a bare `immutable` or an empty `immutable=` is an error; `immutable` takes exactly `true` or `false`. A value containing `,`, `)` or `"` MUST be quoted: unquoted, CUE splits it into a stray argument, which the unknown-argument rule then rejects.
+- A field carrying two `secret` markers that disagree is a discovery error; identical markers collapse to one. Unification can place a marker from a definition and one from a use site on the same field.
+- A list element has no field-attribute slot. A `[...#Secret]` list is discovered by its element type with default routing (D13). Element routing is written as a declaration attribute inside an element struct that embeds `#Secret`, `[...{#Secret, @opm(secret, group=tokens)}]`, which keeps the element's shape `#Secret`. The kernel reads `opm` field and declaration attributes both; a declaration attribute is honoured only on a struct embedding `#Secret` and is a discovery error anywhere else.
 - A `secret` marker MAY only appear on a field typed `#Secret`: a marked field of any other type is a discovery error. Conversely a `#Secret`-typed field with no marker MUST be treated exactly as if it carried a bare `@opm(secret)` (D13). The marker is pure routing override; it is never load-bearing for the security property.
 - All fields sharing a `group` MUST agree on `type` and on `immutable` — both are properties of the one object the group becomes; a group whose members disagree is rejected.
 - A marker MUST NOT name a backend. Materialisation is a platform choice resolved through catalog subscription, never an author-side argument (D8).
@@ -149,6 +153,54 @@ Parsed form (defaults applied):
 - **Why one `@opm` namespace with position-0 dispatch.** A dedicated `@secret(...)` starts a second OPM attribute namespace for the second marker OPM has ever wanted, and a third for the third. One namespace means one attribute name across OPM, one Go parse path, and a convention a reader learns once (D2).
 - **Why discovery keys on the type and fails closed.** Under marker-only discovery, forgetting the attribute would leave a `#Secret` field invisible to the kernel and its `{value: …}` literal would flow into the component graph — plaintext in the render, silently. Keying on the type makes "secret-typed but unhandled" structurally impossible; the inverse check catches a marker on a field the fulfilment contract cannot type-check (D13).
 - **Why no `provider=` argument.** The same published module must deploy to an ESO cluster and a plain one without republishing; the author does not know which they will hit. Backends extend through catalogs, the extension point OPM already has (D8).
+
+---
+
+## `#SecretKeyType` (NEW)
+
+### Definition
+
+The type of a key inside a Kubernetes Secret's `data` map. It enters core because `#SecretRef.key` carries it, and `#SecretRef` is core (D12).
+
+### Shape
+
+```cue
+#SecretKeyType: string & =~"^[-._a-zA-Z0-9]+$" & !~"^\\.$" & !~"^\\.\\." & strings.MaxRunes(253)
+```
+
+### Constraints
+
+- A key MUST match the charset Kubernetes admits for Secret data keys: alphanumerics, `-`, `_` and `.`.
+- A key MUST NOT exceed 253 runes, MUST NOT be `.`, and MUST NOT start with `..`, all of which the API server refuses.
+
+### Rationale
+
+- **Why in core rather than the kernel.** A core definition cannot reference a type that lives only in `library`. Deleting `#SecretK8sRef` removes the untyped `remoteKey: string` it replaces, so the constraint either moves into core with `#SecretRef` or the reference arm loses the check.
+
+---
+
+## `#SecretObjectType` (NEW; named from the inline set in removed `#SecretSchema`)
+
+### Definition
+
+The closed set of Kubernetes Secret `type` values OPM materialises. Core carries a wider set today, inline in `#SecretSchema.type`, which is deleted. This names the part of it OPM can actually create.
+
+### Shape
+
+```cue
+#SecretObjectType: "Opaque" | "kubernetes.io/dockercfg" | "kubernetes.io/dockerconfigjson" |
+    "kubernetes.io/basic-auth" | "kubernetes.io/ssh-auth" | "kubernetes.io/tls"
+```
+
+### Constraints
+
+- A marker's `type=` argument MUST be a member of this set. `kubernetes.io/service-account-token` and `bootstrap.kubernetes.io/token` are excluded: the first needs annotations bound to a live ServiceAccount, the second is only read from `kube-system`. Either can still be consumed through a deployer-written `#SecretRef`, which carries no type.
+- A typed group MUST carry the data keys its type requires: `tls.crt` and `tls.key` for `kubernetes.io/tls`, `ssh-privatekey` for `ssh-auth`, `.dockercfg` and `.dockerconfigjson` for the two registry types, and `username` or `password` for `basic-auth`. The default key fold never produces these, so a typed group's members set `key=`.
+- All members of one group MUST agree on it; the kernel rejects a group that disagrees.
+
+### Rationale
+
+- **Why name it in core.** Two parties read the set: the kernel, when it parses `type=`, and each backend catalog's materialising transformer (D8). If each keeps its own copy, a marker can pass the kernel and fail at the catalog. Naming it once, upstream of both, is the same reasoning that keeps `#Secret` in core (D12).
 
 ---
 
@@ -174,8 +226,11 @@ Why delete rather than deprecate: the old and new shapes cannot coexist cleanly 
 
 The remaining top-level definitions in [`target.cue`](target.cue) are modelling aids for the kernel pass — behaviour contracts the `library` implements in Go (`opm/secret/`), not proposed `opmodel.dev/core` schema. They are listed here so the spec delta's boundary is explicit:
 
-- **`#SecretDecl`, `#SecretDeclList`, `#DeriveKey`** — Discover's output and its default-key derivation; discovery reads the module's `#config` schema, not values (D3, D13).
+- **`#SecretDecl`, `#SecretDeclList`, `#DeriveKey`, `#GroupKeysUnique`**: Discover's output, its default-key derivation, and the per-group key-uniqueness check that makes the lossy derivation safe; discovery reads the module's `#config` schema, not values (D3, D13).
 - **`#SecretGroupPlan`, `#ObjectName`, `#ContentHash` (target.cue's kernel-side statement), `#ImmutableObjectName`** — group planning and the single naming authority `{instance}-{group}`, with the content-hash suffix computed before the rewrite (D5, D6).
 - **`#ResolveInPlace`, `#SecretsResolution`** — the rewrite's pre/postcondition and the pass's one named result; implemented as omission at build assembly, one component-graph build, decode → splice → encode (D11, D16, D17).
 - **`#SynthesizedSecretsComponent`, `#MaterializedSecret`** — the component the kernel synthesises to carry plans into the ordinary transformer pipeline, with `#secretsResourceFQN` as an input supplied by the platform's materialized catalogs, never a literal in core (D8, resolving enhancement 0010 OQ9 along its candidate (b)).
-- **`#NameType`, `#FQNType`, `#ConfigPathType`, `#SecretKeyType`, `#SecretObjectType`** — local restatements of core/workspace types plus two new string types (`#ConfigPathType`, `#SecretKeyType`) whose home is the kernel contract, referenced above only where they constrain `#SecretRef` fields.
+- **`#NameType`, `#ObjectNameType`**: verbatim restatements of existing core types, so the delta compiles standalone.
+- **`#FQNType`**: a simplified local stand-in for core's `#ContractFQNType | #ImplFQNType`, present only so the delta compiles.
+- **`#SecretTypeRequiredKeys`**: the data keys the API server requires per typed Secret, applied to every group plan.
+- **`#ConfigPathType`, `#ConfigPathPatternType`**: the kernel's join key. A concrete path in CUE's own printed syntax, with quoted labels for non-identifier map keys (`extraSecrets."api-token"`), and a declaration form that may carry `[_]` for any key of a pattern map or any list element.
