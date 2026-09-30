@@ -84,7 +84,7 @@ What changes is everything that looks at more than one resolution:
 
 **Migration is per module.** A module whose own dependencies import two majors of one catalog is refused at resolution, naming the module, the catalog and both majors (D9 R6), and the platform-less path follows the same rule (OQ18). Whether a module may instead move component by component is OQ10. A provider's own major upgrade stays an atomic swap (OQ14), a new major ships no bridge to the old one's contracts in this entry (OQ15), and draining a major before disabling it rests on the held-version record of D1 R3 (OQ16).
 
-**The alternatives measured and not taken.** Carrying the catalog major in every contract key works end to end but re-keys every contract on every catalog major and changes the publish gates. Keeping shared keys and scoping matching by the major also works but reshapes every consumer type and two operator CRD fields and puts provenance into matching. Both are recorded under D9.
+**The alternatives measured and not taken.** Carrying the catalog major in every contract key works end to end but re-keys every contract on every catalog major and changes the publish gates (experiments 03, 04 and 08). Keeping shared keys and scoping matching by the major also works but reshapes every consumer type and two operator CRD fields and puts provenance into matching (experiments 05 and 09). Both are recorded under D9.
 
 ## Schema / API Surface
 

@@ -65,6 +65,8 @@ history:
     event: 'OQ8 resolved-by-D3 as option B: a render given no platform stays platform-less, its resolved platform kernel-generated from its pins, no admission; D3 R1 and R3 narrowed, R5 added.'
   - date: "2026-09-30"
     event: 'Side-by-side catalog majors: D9 added, one major per catalog in every resolution; D2 R7, D4 and D7 R2 revised; OQ9 to OQ18 opened; experiments 01 and 02 concluded.'
+  - date: "2026-09-30"
+    event: 'D9 amends 0010:D37: provider count per resolution, other-major providers not counted together. Evidence made reproducible: experiments 03 to 09 added, not-retained citations replaced.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

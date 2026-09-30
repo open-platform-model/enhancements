@@ -16,7 +16,7 @@ Added in `probe/`:
 - `providers.cue`: two provider catalogs, `opmodel.dev/catalogs/k8up@v2` built against opm@v4 and `opmodel.dev/catalogs/k8up@v3` built against opm@v5. Each ships one transformer whose `requiredTraits` carries the backup trait as the major it was built against publishes it, stamped with that major's `catalogVersion` by `#Catalog`. The file also holds the same-major match, `bothProvidersOneBuild` (the declaring catalog plus both providers, the count taken across every provider) and one resolution per declaring major (`resolutionV4`, `resolutionV5`).
 - `case_cross.cue`: the v4-built provider's requirement unified with a v5 component's backup value. Guarded by `@if(cross)`.
 
-Rung 2 of the render match is plain unification of the component's value with the transformer's requirement, with no provenance carve-out (0019 D10), so unifying the two values here is the check the render glue makes. The same disqualification was measured the same day through a real library render with a two-major platform and one provider per major, where the other-major provider was unify-disqualified and the platform was refused as over-subscribed; that scratch run is not retained, and this probe reproduces both facts in CUE alone.
+Rung 2 of the render match is plain unification of the component's value with the transformer's requirement, with no provenance carve-out (0019 D10), so unifying the two values here is the check the render glue makes. The same two facts show through a real library render with a two-major platform and one provider per major: the other-major provider is unify-disqualified and the platform is refused as over-subscribed (experiment 07, case `mplat_bprov_both`). This probe reproduces both in CUE alone.
 
 ## Run
 
