@@ -78,6 +78,7 @@ depends_on:
 amends:
   - "0019"
   - "0015"
+  - "0010"
 # Lifecycle relationships. These accept four-digit ids ("0042") and legacy
 # three-digit refs ("legacy:003") that point at frozen library/enhancements/
 # predecessors.

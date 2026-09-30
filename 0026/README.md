@@ -109,7 +109,7 @@ deliberate divergences from the design need to be documented.
 | -------- | ------- |
 | `enhancements/0019/` | The single-build render pipeline this entry is baselined on: embedded catalogs (D5), the operator-generated platform package (D6), and the promotion rule whose catalog-path source this entry changes (D13) |
 | `enhancements/0015/` | The provider half this entry extends with a window and an optional platform override: the registration resource (D3), its derived claim (D11), the shared-path comparison (D8) and the contract inventory (D1) |
-| `enhancements/0010/` | Identity is the module path with its major (D1); the committed platform module is the resolution (D14); evolution inside a major is additive (D27) |
+| `enhancements/0010/` | Identity is the module path with its major (D1); the committed platform module is the resolution (D14); evolution inside a major is additive (D27); the single-provider rule D9 amends to count per resolution (D37) |
 | `enhancements/0021/` | The module compatibility surface, and the concrete case of a patch release orphaning a claim; it gates any future in-range floating |
 | `enhancements/0008/` | CUE-native CRD schemas: the route from the authored platform to the Platform custom resource definition |
 | `enhancements/0027/` | Self-service kinds, the consumer of this entry's range vocabulary for an offering's update policy |
