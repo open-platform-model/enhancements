@@ -38,11 +38,14 @@ cue vet -c=false -t owner .         # L5: opm@v6 listing opm@v5's key
 cue vet -c=false -t legacy .        # L4: two legacy majors enabled together
 ```
 
-Migration cost against core's own pins, on a core checkout (any clone of `github.com/open-platform-model/core`):
+The control on the shipped key type and the migration cost against core's own pins, on a core checkout (any clone of `github.com/open-platform-model/core`):
 
 ```bash
 git clone https://github.com/open-platform-model/core.git /tmp/core-03 && cd /tmp/core-03
 git checkout cbe93e0aa003b8cd5bbc34420f021ec62694c079
+# Control, before the patch: the shipped key type on a qualified key
+printf 'package core\n_ctl: #ContractFQNType & "opmodel.dev/catalogs/opm@v5/traits/backup@v1alpha1"\n' > src/zz_ctl.cue
+(cd src && cue vet -c=false . 2>&1 | grep '^_ctl'); rm src/zz_ctl.cue
 git apply <this experiment>/core.patch
 cd src && cue vet -c=false . 2>&1 | grep -oE '^_pin[A-Za-z0-9]+' | sort -u
 ```
@@ -59,6 +62,6 @@ Measured 2026-09-30, cue v0.17.1. Keys below drop the `opmodel.dev/catalogs/` pr
 - **L5, opm@v6 listing opm@v5's key: refused** by the ownership assertion (`_ownsKeys."opmodel.dev/catalogs/opm@v5/resources/container@v1beta1": conflicting values false and true`).
 - **Keys and gate.** The widened type accepts the legacy and the qualified key and refuses `opm@v5/backup@v1alpha1` (no kind), `opm@v5@v6/...` and `opm@5.0.0/...`; `#ImplFQNType` still refuses a qualified transformer key. `#ContractRef` on the qualified backup key gives declaring module opm@v5, lineage `opm` and `lineageKey` equal to the legacy key. The gate accepts a qualified key under an opm@v5 identity and a legacy key under an opm@v4 identity with `ContractScope: "registry"`, and refuses a legacy key under opm@v5, a qualified key under legacy opm@v4, and an opm@v4-qualified key under opm@v5. `#ModulePathType` accepts `opmodel.dev/catalogs/opm/v4@v0`, which is why the qualified form uses `@vN` rather than a `/vN/` segment (experiment 04 measures that spelling).
 - **Core's own pins.** With the patch applied to a core checkout, exactly five pins fail: `_pinContractProviderOnlyCatalog`, `_pinGateBlueprint`, `_pinGateResource`, `_pinGateResourceGA` and `_pinGateTrait`. Every other pin holding a legacy key still evaluates, so the type widening is additive.
-- **Control.** The shipped `#ContractFQNType` refuses the qualified key (`invalid value "opmodel.dev/catalogs/opm@v5/traits/backup@v1alpha1" (out of bound ...)`), so the type change is required; experiment 08 shows the same refusal through a real render.
+- **Control.** The shipped `#ContractFQNType` refuses the qualified key (`invalid value "opmodel.dev/catalogs/opm@v5/traits/backup@v1alpha1" (out of bound ...)`, from the control step on the core checkout under Run), so the type change is required; experiment 08 shows the same refusal through a real render.
 
 **Hypothesis held.** With module-qualified keys the shipped fold, provider count and comparability report separate two majors with no logic change, one provider build serves both majors, and a provider's own major upgrade stays over-subscribed. The cost is the widened key type, a third authored identity field for legacy majors, a changed publish gate and an ownership assertion, and two legacy majors still fail together. Linked from D9's alternatives, OQ9 and OQ14.
