@@ -289,7 +289,7 @@ A rule becomes a machine check only after review has caught the same problem twi
 
 **Kind:** policy
 
-**Decision:** A figure on the site is an Astro component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the site's import alias for components. Every figure speaks one visual language: one colour per role (module author, deployer, platform team) with Kubernetes objects neutral, one shape per kind of thing, arrows labelled with verbs, and a top-to-bottom flow that stays readable at phone width. It uses only the site theme's colour tokens, so it follows the site's light/dark switch. Each figure states one point in a caption, and carries the same text as its accessible label, so nothing is only in the picture.
+**Decision:** A figure on the site is a figure component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the engine's figure shortcode. Every figure speaks one visual language: one colour per role (module author, deployer, platform team) with Kubernetes objects neutral, one shape per kind of thing, arrows labelled with verbs, and a top-to-bottom flow that stays readable at phone width. It uses only the site theme's colour tokens, so it follows the site's light/dark switch. Each figure states one point in a caption, and carries the same text as its accessible label, so nothing is only in the picture.
 
 **Requirements:** none (a design posture checked in review)
 
@@ -297,7 +297,7 @@ A rule becomes a machine check only after review has caught the same problem twi
 
 - **D2 code blocks, rendered by `astro-d2`.** Prototyped 2026-09-29 with the Start here overview's first figure, and rejected. Its dark mode is a `prefers-color-scheme` media query baked into the SVG, so a reader who sets the site to dark on a light OS sees a light diagram on a dark page. Its dark theme clashes with the site palette, and its text shrank to about 6 px at phone width. Editing a figure as text in the page did not outweigh these.
 - **Mermaid.** Not prototyped. Rejected: a generic look and little control over layout. GitHub rendering it in previews was its main advantage.
-- **Image files next to the page.** Rejected: an SVG in an `img` element cannot use the site's colour tokens, and the site build copies only Markdown and MDX files from the source repositories.
+- **Image files next to the page.** Rejected: an SVG in an `img` element cannot use the site's colour tokens, and the site build copies only Markdown files from the source repositories.
 
 **Rationale:** The documentation leans on figures because OPM's model is easier to see than to read. With many figures, consistency matters more than any single one: a reader who learns that orange means the platform team on one page reads the next figure without a legend. Hand-built SVG costs more per figure, and a change needs an SVG edit rather than a text edit, but it was the only option measured that follows the site's theme switch and stays readable on a phone.
 
