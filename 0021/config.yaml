@@ -65,6 +65,8 @@ history:
     event: 'D10: release tags immutable in releasing org repos (modules excluded); roll-forward, lazy release/ branches, docs pinned by tag or SHA, app-only tag creation, staged immutable releases'
   - date: "2026-10-01"
     event: 'D10: version-line rule R9 (main never releases X.Y.* once release/vX.Y exists); release-branch automation phased to before GA; branch releases never move latest'
+  - date: "2026-10-01"
+    event: 'D10 R10-R12 (no cut before proven automation, release/* PR checks, no stranded cut); D8 R10 makes the branch automation a GA exit criterion; R9 per component'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

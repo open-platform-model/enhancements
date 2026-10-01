@@ -30,7 +30,7 @@ Gathered 2026-10-01. A snapshot, not canon: what GitHub, release-please and gore
 ## Registries
 
 - **GHCR has no tag-immutability control (verified in documentation, not by a push).** "Working with the Container registry" names none, and OCI tags are mutable pointers. Enhancement 0011 D10 recorded the same gap on 2026-08-02.
-- **Packages need a classic token (verified).** "About permissions for GitHub Packages" supports only a personal access token (classic), so a fine-grained token without administration rights cannot reach GHCR.
+- **Package token types: documented, contradicted by measurement.** "About permissions for GitHub Packages" says only a personal access token (classic) works, so a fine-grained token cannot reach GHCR. In this organization the workflow `GITHUB_TOKEN` and an OAuth token carrying the packages scopes both push to and delete from GHCR, so the documented restriction is narrower in practice.
 
 ## Sources
 
