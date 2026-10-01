@@ -21,7 +21,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-08-18"
-updated: "2026-09-30"
+updated: "2026-10-01"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -78,6 +78,8 @@ history:
     event: 'D7: a section index may open with an authored overview above its generated list, written where the section is owned; the Start here overview is authored in opm.'
   - date: "2026-09-29"
     event: 'D14 added: figures are hand-built inline SVG components with one visual language; D2 was prototyped and rejected.'
+  - date: "2026-10-01"
+    event: 'D3 amended: the page of absences carries direction notes in a Direction section after its table, one per absence an enhancement covers, each saying whether it covers the absence fully or in part.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

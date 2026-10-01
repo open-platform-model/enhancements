@@ -57,7 +57,7 @@ Generation reads evaluated CUE, not source text. The catalog's `metadata.descrip
 
 **Decision:** The documentation states what OPM does today. A page enumerates the systems OPM does not have, naming them plainly: no lifecycle hooks, no workflows, no rollback, no handoff of an instance between the CLI and the operator, no export to GitOps manifests, no provider classes, no model of the platform itself.
 
-Future work appears only in a direction note: a marked block on an explanation page that names the work, states its status in the present tense and links its enhancement when one exists. A direction note gives no date. No tutorial, how-to guide or reference page carries one, so the page of absences never forecasts. Outside a direction note, draft enhancements are not described as forthcoming features.
+Future work appears only in a direction note: a marked block that names the work, states its status in the present tense, says whether the work covers the absence fully or in part, and links its enhancement when one exists. A direction note gives no date and makes no promise. It sits on an explanation page, or on the page of absences in a Direction section after its table, one note per absence an enhancement's design covers, with the row linking its note. No tutorial, how-to guide or other reference page carries one. The table of absences states each absence flatly and never forecasts; the Direction section is the only place that page names an enhancement. Outside a direction note, draft enhancements are not described as forthcoming features.
 
 **Requirements:** none (documentation stance; the page's content list is authored guidance, not a behaviour a consumer relies on)
 
@@ -66,11 +66,12 @@ Future work appears only in a direction note: a marked block on an explanation p
 - **Silence.** Rejected: nine of seventeen enhancements are draft, several of them describing systems a reader would reasonably assume exist (enhancement 0009 defines an entire execution half of the kernel). Silence converts each into a question that reaches the maintainers individually.
 - **A roadmap page instead.** Rejected as answering a different question. A roadmap says what may come; this page says what is absent today, which is what someone evaluating the tool needs before committing to it.
 - **No future work anywhere in the documentation.** Previously adopted in this entry. Rejected: some explanations need to say where the model is heading, such as why OPM is named a platform model while it models applications today.
+- **No direction note on the page of absences.** Previously adopted in this entry. Rejected: a reader who finds an absence there cannot tell a deliberate omission from designed work. Notes kept below the table leave every row a present-tense fact while answering that question in one place.
 - **Future work at the writer's discretion.** Rejected: it produces what KCP's pages show, forecasts such as "in the future" mixed into present-tense prose, with no way for a reader to tell what exists.
 
 **Rationale:** The cost of stating an absence is one page. The cost of leaving it implicit is paid repeatedly by every reader who assumes presence, and once by whoever discovers the absence after building on the assumption. A direction note keeps the vision visible without letting it pass for a feature: it is marked, it carries a status, and it never sits on a page a reader follows to get something done.
 
-**Source:** User decisions 2026-08-18, 2026-09-25 (the handoff between the CLI and the operator is removed indefinitely, so the page names no handoff at all) and 2026-09-26 (future work allowed in a marked direction note). Evidence: [research/kcp-voice.md](research/kcp-voice.md), trait 11.
+**Source:** User decisions 2026-08-18, 2026-09-25 (the handoff between the CLI and the operator is removed indefinitely, so the page names no handoff at all) 2026-09-26 (future work allowed in a marked direction note) and 2026-10-01 (the page of absences carries direction notes below its table, linking each enhancement, and keeps its row on moving an instance between the CLI and the operator). Evidence: [research/kcp-voice.md](research/kcp-voice.md), trait 11.
 
 ### D4: The deletion and prune hazard is documented now, independent of enhancement 0012
 

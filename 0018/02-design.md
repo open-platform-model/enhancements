@@ -23,7 +23,7 @@ Eight sections organised by what a reader is holding when they arrive, one decla
 
 - Publishing `core/SPEC.md`. It stays contributor-facing (D2).
 - Documenting secrets. The current vocabulary has a known expiry and enhancement 0013 owns its replacement, including the documentation (D5).
-- Documenting draft systems as features. Lifecycle hooks, workflows, provider classes, export, rollback, a handoff between the CLI and the operator and a model of the platform itself do not exist. An explanation page may describe future work only in a direction note that states its status (D3).
+- Documenting draft systems as features. Lifecycle hooks, workflows, provider classes, export, rollback, a handoff between the CLI and the operator and a model of the platform itself do not exist. An explanation page, or the Direction section of the page of absences, may describe future work only in a direction note that states its status (D3).
 - A migration guide from the v0 line. The v0 fleet is frozen on its own branch and its consumers are internal.
 - Site theming, search, or the choice of site generator. Presentation, not architecture.
 
@@ -218,7 +218,7 @@ Three layers, each with its own source and home:
 | Site build | Every page declares a title, a one-line description and one type; defined terms are linked on first use | Every build |
 | Prose linter | Promises outside a direction note, decision numbers, banned words; sentence length once OQ12 sets a ceiling | The owning repository's pull request |
 | Walk script | A tutorial runs end to end | The owning repository's CI, once the tutorial exists |
-| Review | Everything else: a direction note only on an explanation page, with a present-tense status and its enhancement linked; one path per tutorial, no teaching in a how-to guide, an explanation answers a why, the Kubernetes comparison is accurate, "we" only in tutorials, no opinion in reference | Pull request review |
+| Review | Everything else: a direction note only on an explanation page or in the Direction section of the page of absences, with a present-tense status and its enhancement linked; one path per tutorial, no teaching in a how-to guide, an explanation answers a why, the Kubernetes comparison is accurate, "we" only in tutorials, no opinion in reference | Pull request review |
 
 The tooling stays deliberately small. A rule moves from review to a machine check only after review has caught the same problem twice. On 2026-09-25 this entry drafted a heavier design, a CUE rule register and a CUE vocabulary with generated word lists, and withdrew it the same day as more tooling than the problem needs (D12, D13).
 
