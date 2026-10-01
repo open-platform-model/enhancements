@@ -24,7 +24,7 @@ affects:
 # false → schemas/ MUST NOT exist; non-core compilable CUE lives in contracts/.
 core_schema: false
 created: "2026-08-24"
-updated: "2026-09-30"
+updated: "2026-10-01"
 authors:
   - emil@jacero.se
 # Append-only timeline of design milestones. Landings go to delivery.yaml.
@@ -61,6 +61,12 @@ history:
     event: 'D9 split from D8: the CLI ceiling compares MAJOR.MINOR, amending 0006:D24; D8 exit criteria reordered (operator GA before CLI GA), opm added to affects'
   - date: "2026-09-30"
     event: 'D3 refresh: verbatim policy blocks re-copied from their sources after the beta cutover, stale source paths fixed; core, catalog and tooling headers retyped to the beta line (D7)'
+  - date: "2026-10-01"
+    event: 'D10: release tags immutable in releasing org repos (modules excluded); roll-forward, lazy release/ branches, docs pinned by tag or SHA, app-only tag creation, staged immutable releases'
+  - date: "2026-10-01"
+    event: 'D10: version-line rule R9 (main never releases X.Y.* once release/vX.Y exists); release-branch automation phased to before GA; branch releases never move latest'
+  - date: "2026-10-01"
+    event: 'D10 R10-R12 (no cut before proven automation, release/* PR checks, no stranded cut); D8 R10 makes the branch automation a GA exit criterion; R9 per component'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
