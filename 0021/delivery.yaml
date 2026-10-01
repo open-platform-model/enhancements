@@ -1,0 +1,15 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-10-01"
+    summary: >-
+      core release guard: the publish job refuses a version GHCR already holds, and task publish targets only a local registry (D10 R2, R3 for core)
+    change: { kind: openspec, repo: core, change: guard-release-immutability }
+  - date: "2026-10-01"
+    summary: >-
+      opm-operator draft-first release: assets attach to the draft and it is published last, and the image push refuses to re-point a version tag (D10 R1, R3, R8 for the operator)
+    change: { kind: openspec, repo: opm-operator, change: adopt-draft-first-release }
+  - date: "2026-10-01"
+    summary: >-
+      cli draft-first release: release-please drafts the release, goreleaser fills and publishes it, recovery refuses a published one (D10 R1, R8 for the cli)
+    change: { kind: openspec, repo: cli, change: adopt-draft-first-release }
