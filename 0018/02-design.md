@@ -34,7 +34,7 @@ The organising question is what the reader has in their hands, not what type of 
 ```
 reader arrives with...            section                      page types in the initial inventory
 ------------------------------------------------------------------------------------------------
-nothing, evaluating           1. Start here                tutorial, explanation, reference
+nothing, evaluating           1. Start here                tutorial, how-to, explanation, reference
 a question about why          2. Concepts                  explanation
 a blank module file           3. Authoring modules         tutorial, how-to
 a cluster                     4. Deploying and operating   tutorial, how-to, explanation
@@ -103,8 +103,10 @@ flowchart LR
     opm["opm"] --> start
     opm --> authoring
     catalog["catalog"] --> authoring
-    cli["cli"] --> authoring
-    operator["opm-operator"] --> operating
+    cli["cli"] --> start
+    cli --> authoring
+    operator["opm-operator"] --> start
+    operator --> operating
     library["library"] --> diagnostics
     subgraph site ["One site, assembled by section"]
         start["Start here"]
@@ -136,6 +138,8 @@ This is the inventory the design is sized against. Every page in it exists as an
 | Start here | What OPM is | explanation | opm |
 | Start here | OPM for Kubernetes users | reference | opm |
 | Start here | Quickstart | tutorial | opm |
+| Start here | Installation: Install the CLI | how-to | cli |
+| Start here | Installation: Install the operator | how-to | opm-operator |
 | Start here | What OPM does not do (D3) | reference | opm |
 | Concepts | The application model and the platform model | explanation | core |
 | Concepts | Modules and instances | explanation | core |
@@ -154,7 +158,6 @@ This is the inventory the design is sized against. Every page in it exists as an
 | Authoring modules | Use a raw Kubernetes resource (D6) | how-to | catalog |
 | Authoring modules | Publish a module | how-to | cli |
 | Deploying and operating | Deploy a module with the CLI | tutorial | opm |
-| Deploying and operating | Install the operator | how-to | opm-operator |
 | Deploying and operating | Delete an instance safely (D4) | how-to | opm-operator |
 | Deploying and operating | Deletion and pruning (D4) | explanation | opm-operator |
 | Extending OPM | Write a resource | how-to | catalog |
