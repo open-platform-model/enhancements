@@ -26,6 +26,8 @@ Nothing is removed. The versioning paragraphs in `core/CLAUDE.md`, `catalog_opm/
 
 The policy page and the `CLAUDE.md` pointers revert as documentation. A module gate, if landed, is removed from the publish path without affecting any published artifact; a version refused by the gate was never published, and a version that was published stays published. There is no data-plane state. Modules that bumped a major under the policy keep their new module path; a major cannot be un-cut, and that is U5's ordinary cost rather than a rollback hazard.
 
+D10's rulesets can be switched off by an organization owner, an audited edit. Immutable releases cannot be rolled back: a release created while the setting was on stays immutable after it is turned off, which is why the CLI and the operator join only after their release flow is proven.
+
 ## Cross-Repo Coordination
 
 **Which repos must coordinate, and what constrains the order?**
@@ -34,4 +36,5 @@ The policy page and the `CLAUDE.md` pointers revert as documentation. A module g
 - OQ1..OQ4 must be resolved before a module gate is built, because the gate compares against the surface those questions complete, and a gate built against D2 alone would enforce half the rule.
 - The generalized comparison in `library` must exist before `cli` can refuse on it, in the same producer-consumer order the catalog gate followed.
 - OQ7's answer changes how `catalog_opm` releases are cut and must be published before the next catalog release that ships a new contract level or a tombstone, or that release decides the rule by precedent.
+- D10's tag ruleset can be enabled before any repository changes, because no release flow moves or deletes a tag. Immutable releases for the CLI and the operator must wait until each has shipped one release created as a draft, with every asset attached before publication; enabling them earlier fails that repository's next release.
 - The operator's CRD policy (OQ9) constrains any future second CRD version and nothing that exists; it has no ordering dependency on the other repos.

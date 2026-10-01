@@ -18,6 +18,8 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **A beta line promises a path to GA, and GA has written exit criteria (D7, D8, D9).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered. The CLI's ceiling on operator versions compares MAJOR.MINOR only, which amends 0006:D24's full-version rule (D9, the OQ14 skew answer). A beta release line is not a `v1beta1` contract level; the two are independent.
 
+**Release tags never move (D10).** In the organization repositories that release (core, the kernel library, the catalogs, the CLI and the operator), no git tag is moved, deleted or re-created, and a bad release is fixed by the next version. The reason is the documentation site, which pins its sources per version: released docs come from the tag, and a later fix lands on a `docs/vX.Y` branch pinned by commit SHA. Version-named registry tags are never overwritten. Organization rulesets with no bypass enforce it. The module fleet is excluded for now.
+
 ## How it works
 
 ```mermaid
@@ -44,7 +46,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 
 1. [01-problem.md](01-problem.md): what each artifact class promises today, measured per repo, and the four gaps between them
 1. [02-design.md](02-design.md): the policy as a matrix of classes against questions, plus the enforcement ladder
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D6
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D10
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
@@ -74,6 +76,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
 - The `-beta.N` release line as a pre-stable form with its own promise (D7), the criteria a beta line meets before GA (D8), and the MAJOR.MINOR ceiling on operator versions (D9).
+- Immutable release tags in the releasing organization repositories, with roll-forward recovery, never-overwritten registry version tags and SHA-pinned `docs/vX.Y` branches (D10). The module fleet is excluded for now.
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
 - The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
 - The module compatibility surface (D2) and the questions that complete it (OQ1 to OQ4).
@@ -100,7 +103,8 @@ None at this stage.
 | `core/docs/publishing.md` | The tag scheme and the branch-build ranking rule this policy inherits |
 | Enhancement 0006 (D24) | The CLI-not-older-than-the-cluster skew rule and its operator-version ceiling, which D9 narrows to `MAJOR.MINOR` |
 | Enhancement 0010 (D4, D27, D34, D35, D41, D45) | Contract keys (D4), additive-only levels (D27), the ladder (D34), publish-side enforcement (D35), instance identity surviving a major (D41, D45) |
-| Enhancement 0011 (D9, D15, D23) | The catalog compatibility gate (D9), authored not predicted versions (D15), predecessor selection by backward scan (D23) |
+| Enhancement 0011 (D9, D10, D15, D23) | The catalog compatibility gate (D9), registry tag immutability as a requirement (D10), authored not predicted versions and the already-published refusal (D15), predecessor selection by backward scan (D23) |
+| [research/immutable-tags.md](research/immutable-tags.md) | The GitHub ruleset, immutable-release and release-tool facts D10 rests on |
 | Enhancement 0020 | Contract promotion and retirement on the ladder, cited while it is a draft rather than copied |
 | [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) | The precedence and prerelease rules every version carrier follows |
 | [Go modules: v2 and beyond](https://go.dev/blog/v2-go-modules) | Prior art for major-in-path, which CUE modules adopt |

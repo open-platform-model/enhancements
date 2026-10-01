@@ -94,7 +94,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U5", "D7", "D8"]
+		cites: ["U1", "U3", "U5", "U8", "D7", "D8", "D10"]
 		open: ["OQ6", "OQ13"] // OQ6: gate on definition subsumption; OQ13: major cascade
 	}
 	catalog: {
@@ -108,7 +108,7 @@ policies: {
 			"opmodel.dev/catalogs/k8s@v1": "beta-line"
 		}
 		enforcement: "gate"
-		cites: ["0010 D4", "0010 D44", "0011 D9", "0011 D15", "0011 D23", "D7", "D8"]
+		cites: ["0010 D4", "0010 D44", "0011 D9", "0011 D15", "0011 D23", "U8", "D7", "D8", "D10"]
 		open: ["OQ7"] // OQ7: how a contract-level event moves the build number
 	}
 	contract: {
@@ -147,7 +147,7 @@ policies: {
 		bump: inherits: "cli"
 		prestable:   "inherited"
 		enforcement: "gate" // opm module publish at release
-		cites: ["D4"]
+		cites: ["D4", "D10"]
 		open: []
 	}
 	kernel: {
@@ -156,7 +156,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6", "D7", "D8"]
+		cites: ["U1", "U3", "U6", "U8", "D7", "D8", "D10"]
 		open: ["OQ10", "OQ14", "OQ16"] // OQ14: one train; OQ16: what replaces the migration ledger
 	}
 	cli: {
@@ -165,7 +165,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
+		cites: ["U1", "U3", "U6", "U8", "D7", "D8", "D9", "D10"]
 		open: ["OQ8", "OQ14"]
 	}
 	operator: {
@@ -174,7 +174,7 @@ policies: {
 		bump: stableBump
 		prestable:   "beta-line" // D7
 		enforcement: "claim"
-		cites: ["U1", "U3", "U6", "D7", "D8", "D9"]
+		cites: ["U1", "U3", "U6", "U8", "D7", "D8", "D9", "D10"]
 		open: ["OQ9", "OQ14"]
 	}
 	documentation: {
@@ -183,7 +183,7 @@ policies: {
 		bump: cite: "OQ15"
 		prestable:   "open"
 		enforcement: "open"
-		cites: ["D4"]
+		cites: ["D4", "D10"]
 		open: ["OQ14", "OQ15"]
 	}
 	crd: {

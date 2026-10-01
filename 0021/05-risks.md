@@ -10,6 +10,9 @@ Risks describe what could go wrong; Drawbacks describe what definitely costs som
 - **Bypassed publishes.** `cue mod publish` keeps working (0010 D11), so a module published without the CLI carries no verified promise, exactly as 0010 D35 accepts for catalogs. **Mitigation:** inherited exposure, stated in the policy in the same words 0010 D35 uses; the policy is honest that a gate binds the tool's users and the convention binds everyone.
 - **The policy page drifts from the entries it cites.** D3 makes the citations normative and the page a paraphrase; a paraphrase can go stale when an entry is compacted. **Mitigation:** the page cites decision numbers, which are immutable; a compaction that changes a rule's substance is by definition a new decision, which is a visible event to re-read the page against.
 
+- **An immutable release burns a version on a mistake (D10).** Once immutable releases are on, a release published at the wrong commit or with a broken asset can never be repaired in place, and its tag name cannot be reused even after the release is deleted. **Mitigation:** recovery is roll-forward by design, so the cost is one version number; the CLI and the operator join only after a draft-first release has shown that every asset lands before publication.
+- **The tag rule is only as strong as the bypass list (D10).** A ruleset edited to add a bypass actor, or to switch enforcement off, silently weakens the guarantee, and git ref events are not in the audit log on this plan. **Mitigation:** only organization owners can edit an organization ruleset and the edit is audited; a scheduled read-only check records each tag's commit and asserts the ruleset is active with an empty bypass list.
+
 ## Drawbacks
 
 - **Module majors become more frequent.** A break that ships as a minor today will ship as a major tomorrow, with a new module path and an import edit for every instance. This is the point, and it is still a cost the fleet pays.

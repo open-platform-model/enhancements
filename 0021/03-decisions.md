@@ -228,4 +228,45 @@ During beta every release of both binaries shares one `MAJOR.MINOR`, so the ceil
 
 **Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends.
 
+### D10: Release tags are immutable
+
+**Kind:** contract
+
+**Depends:** 0011:D10, 0011:D15
+
+**Decision:** Release tags are immutable. No git tag is ever moved, deleted or re-created, by anyone. A wrong or broken release is fixed by releasing the next version. A Go module's next version retracts the bad one; a CUE module or other OCI artifact publishes the next version. On a beta line that is the next `-beta.N` (D7); after GA it is the next patch.
+
+**Scope.** The rule binds the OPM organization repositories that release: core, the kernel library, the catalogs, the CLI and the operator. The module fleet repository is excluded for now and keeps its current practice until a later decision brings it in. The docs-branch rule below also covers `opm`, which holds documentation sources and cuts no release. Repositories outside the organization are not covered.
+
+**Registry tags.** A version-named registry tag (`vX.Y.Z`, prereleases included) always names the bytes first pushed under it. Floating and build tags stay mutable by design: `latest`, `pr-N`, `sha-*`, the `-0.dev.*` branch builds and the `-e2e.g*` fixture tags. GHCR offers no tag-immutability control, so until a registry conforming to 0011 D10 hosts the artifacts, every first-party release path refuses a version it has already pushed. 0011 D15's refusal of an already-published version is that guarantee for the CLI's publish commands; the other release paths owe the same.
+
+**Documentation.** The documentation site pins its sources per site version, which is why the rule exists. A released version's docs come from that version's release tag. When they need a fix after release, a `docs/vX.Y` branch is created from the tag, at most once per `MAJOR.MINOR`, and the fix lands there. The site's version list pins that branch's commit by full SHA, bumped by commit; today that list is `site/versions.conf` in the `opmodel.dev` repository. A `docs/*` branch only moves forward and is never deleted.
+
+**Enforcement.** The platform carries the guarantee, not convention. An organization tag ruleset covers every tag of the in-scope repositories and refuses update, deletion and non-fast-forward. Its bypass list is empty, so no role, team, app or owner is exempt in any mode. Tag creation is not restricted. A second organization ruleset refuses deletion and non-fast-forward on `docs/*` branches in the same repositories plus `opm`, also with an empty bypass list. GitHub immutable releases are switched on in stages: core, the kernel library and the catalogs first. The CLI and the operator follow once their release flow creates the release as a draft, attaches every asset to the draft and publishes last, shown by one real release, because an immutable release refuses assets added after publication.
+
+**Requirements:**
+
+- R1: In every in-scope repository, a tag keeps the commit it was first pushed with: no tag is moved, deleted or re-created after it exists.
+- R2: A wrong or broken release is corrected only by a later release with a higher version; for a Go module that later release retracts the bad version.
+- R3: A version-named registry tag pushed by an in-scope repository's release always resolves to the content first pushed under it; only floating and build tags (`latest`, `pr-N`, `sha-*`, `-0.dev.*`, `-e2e.g*`) are ever re-pointed.
+- R4: Every source ref the documentation site's version list names for a released version is either that version's release tag or a full commit SHA on a `docs/vX.Y` branch created from that tag; no released version is pinned to a moving branch name.
+- R5: In every in-scope repository and in `opm`, a `docs/*` branch is never deleted and never force-pushed.
+- R6: Every in-scope repository is covered by an active organization tag ruleset that refuses update and deletion of any tag and whose bypass list is empty; the `docs/*` branch rule of R5 is likewise an organization ruleset with an empty bypass list.
+- R7: GitHub immutable releases are enabled for core, the kernel library and the catalogs; they are enabled for the CLI and the operator once each has shipped a release that was created as a draft, received every asset while a draft, and was published last.
+- R8: No release is published, and no artifact pushed, for a tag that points at a commit other than the one the release was cut from.
+
+**Alternatives considered:**
+
+- **Allow a tag to be moved to repair a botched release.** The habit the rule ends. Rejected: the documentation site pins refs per version, the Go module proxy and checksum database cache the first content of a version, and an instance pins a module version expecting fixed bytes (0011 D10). A moved tag changes what a pinned consumer resolves without telling it, and a deleted tag breaks every build that names it.
+- **Protect only release-shaped tag patterns.** Rejected: GitHub tag patterns match with path semantics, so a `*` stops at `/` and misses component tags that contain a slash. No tag in these repositories is meant to move, so the rule covers all of them.
+- **Let organization admins bypass the ruleset, as the mention-guard ruleset does.** Rejected: bypass is granted per ruleset, not per rule, and an admin token used by tooling or agents would carry it. Break-glass is an owner editing the ruleset in the browser, which the audit log records.
+- **Turn on immutable releases for every in-scope repository at once.** Rejected: the CLI and the operator attach assets after their release is published, and an immutable release refuses that, so their next release would fail. The lock is also irreversible for releases created while it is on, which is why it follows a proven draft-first release rather than preceding it.
+- **A long-lived docs branch cut at every release.** Rejected: most versions never need a docs fix, and the release tag is already a fixed ref. The branch is created only when a fix needs a place to land.
+- **Bring the module fleet in now.** Deferred by the owner: the fleet stays on its current practice for the moment.
+- **Rule by convention and agent guidance only.** Rejected: written guidance binds whoever reads it, while a platform ruleset binds every actor, bots and release apps included.
+
+**Rationale:** The documentation system pins sources per site version, and that pin is only worth having if a released version's refs never move. The same holds for every other consumer that pins a version: Go module sums, OCI pins and the beta counter of D7 all assume one version names one content. Making releases roll forward costs a version number per mistake and nothing else; D7 already advances `-beta.N` on every release, and D8's GA cut follows the same rule, so a wrong GA is followed by a patch. The platform rules are chosen because they bind every actor: an empty bypass list leaves only an audited owner edit, and an immutable release cannot be re-pointed even by the owner.
+
+**Source:** User decision 2026-10-01 (the rule, its scope with the module fleet excluded for now, and the reason: the documentation site). Platform facts verified 2026-10-01 against GitHub's ruleset, immutable-release and package documentation and the release-please and goreleaser sources: [research/immutable-tags.md](research/immutable-tags.md).
+
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.

@@ -17,6 +17,7 @@ Verbatim blocks keep their source's typography and voice; nothing inside a quote
 - **U5: A major is an import rewrite, and each class names what survives it.** For modules, `registryPath` survives so instance identity survives (0010 D41, D45, copied under modules). For contracts, the key changes and both levels may ship together (0010 D27). For the core schema, every consumer edits its imports.
 - **U6: Enforcement is publish-side where the surface is mechanically comparable, convention where it is not, and a check command is always an aid.** Copied under the catalog contract class (0010 D35).
 - **U7: No consumer window; producer-side seasoning where retirement exists.** 0010 D34 rejected consumer windows (copied under contracts); 0020 D6..D10 constrain the producer and are cited.
+- **U8: Release tags are immutable (D10).** In the OPM organization repositories that release (core, the kernel library, the catalogs, the CLI, the operator), no git tag is ever moved, deleted or re-created, by anyone. A wrong or broken release is fixed by releasing the next version: a Go module retracts the bad one in the new version, a CUE module or OCI artifact publishes the next one. A version-named registry tag always names the bytes first pushed under it; `latest`, `pr-N`, `sha-*`, `-0.dev.*` and `-e2e.g*` tags stay mutable. An organization ruleset with an empty bypass list enforces the git half. The module fleet is excluded for now.
 
 The stable bump table every SemVer carrier uses:
 
