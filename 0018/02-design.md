@@ -138,8 +138,8 @@ This is the inventory the design is sized against. Every page in it exists as an
 | Start here | What OPM is | explanation | opm |
 | Start here | OPM for Kubernetes users | reference | opm |
 | Start here | Quickstart | tutorial | opm |
-| Start here | Installation: Install the CLI | how-to | cli |
-| Start here | Installation: Install the operator | how-to | opm-operator |
+| Start here | Install the CLI | how-to | cli |
+| Start here | Install the operator | how-to | opm-operator |
 | Start here | What OPM does not do (D3) | reference | opm |
 | Concepts | The application model and the platform model | explanation | core |
 | Concepts | Modules and instances | explanation | core |
