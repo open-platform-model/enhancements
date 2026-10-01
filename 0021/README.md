@@ -18,7 +18,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **A beta line promises a path to GA, and GA has written exit criteria (D7, D8, D9).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered. The CLI's ceiling on operator versions compares MAJOR.MINOR only, which amends 0006:D24's full-version rule (D9, the OQ14 skew answer). A beta release line is not a `v1beta1` contract level; the two are independent.
 
-**Release tags never move (D10).** In the organization repositories that release (core, the kernel library, the catalogs, the CLI and the operator), no git tag is moved, deleted or re-created, and a bad release is fixed by the next version. The reason is the documentation site, which pins its sources per version: released docs come from the tag, and a later fix lands on a `docs/vX.Y` branch pinned by commit SHA. Version-named registry tags are never overwritten. Organization rulesets with no bypass enforce it. The module fleet is excluded for now.
+**Release tags never move (D10).** In the organization repositories that release (core, the kernel library, `catalog_opm`, the CLI and the operator), no git tag is moved, deleted or re-created, and a bad release is fixed by the next version. The reason is the documentation site, which pins every source by tag or full SHA. A released minor that needs a fix, code or docs, gets a lazy `release/<tag-prefix>vX.Y` branch cut by an automated action, changed only by pull request and never deleted; during beta, fixes go forward on `main`. Version-named registry tags are never re-pointed. Organization rulesets enforce it, only the release app creates tags, and immutable releases reach the CLI and the operator after their draft-first flow ships. The module fleet is excluded for now.
 
 ## How it works
 
@@ -76,7 +76,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
 - The `-beta.N` release line as a pre-stable form with its own promise (D7), the criteria a beta line meets before GA (D8), and the MAJOR.MINOR ceiling on operator versions (D9).
-- Immutable release tags in the releasing organization repositories, with roll-forward recovery, never-overwritten registry version tags and SHA-pinned `docs/vX.Y` branches (D10). The module fleet is excluded for now.
+- Immutable release tags in the releasing organization repositories, with roll-forward recovery, never re-pointed registry version tags, lazy `release/<tag-prefix>vX.Y` maintenance branches and docs pinned by tag or SHA (D10). The module fleet is excluded for now.
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
 - The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
 - The module compatibility surface (D2) and the questions that complete it (OQ1 to OQ4).

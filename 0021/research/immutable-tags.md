@@ -9,8 +9,10 @@ Gathered 2026-10-01. A snapshot, not canon: what GitHub, release-please and gore
 - **Admins get no implicit bypass (verified).** A ruleset with an empty bypass list reports `current_user_can_bypass: "never"` for a repository-admin token in this organization; `mention-guard` reports `always` only because it lists `OrganizationAdmin`.
 - **`GITHUB_TOKEN` is not a bypass actor type (inferred).** It does not appear in the actor list, so it cannot be granted bypass.
 - **Tag patterns use path semantics (verified).** "Creating rulesets for a repository": patterns match with `File::FNM_PATHNAME`, so `*` does not match `/`; the recursive form is `qa/**/*`. The REST API accepts `~ALL` for every ref.
-- **`non_fast_forward` alone does not stop a forward move (verified by reasoning over the rule definitions).** Re-pointing a tag to a descendant commit is a fast-forward; the `update` rule is what refuses it, and `deletion` covers removal.
-- **Git ref events are not auditable on Team (verified).** The audit log records ruleset create, update and destroy, and immutable-release setting changes; git events need Enterprise Cloud and keep seven days. A tag move leaves no trace on this plan, so detection needs its own ledger.
+- **`non_fast_forward` alone does not stop a forward move (inferred from the rule definitions).** Re-pointing a tag to a descendant commit is a fast-forward; the `update` rule is what refuses it, and `deletion` covers removal.
+- **Git ref events are not auditable on Team (inferred).** The audit log records ruleset create, update and destroy, and immutable-release setting changes; git events are documented for Enterprise Cloud with seven days' retention. Assume a tag move leaves no trace on this plan, so detection needs its own ledger.
+- **Tag creation can be limited to one app (inferred from the documented rules).** A `creation` rule refuses new matching refs, and a bypass actor of type `Integration` exempts one GitHub App, so a tag ruleset with that rule and the release app as its only bypass leaves the app the sole creator. To prove in the sandbox before relying on it.
+- **A read-level token does not see a ruleset's bypass list (verified).** An anonymous read of an organization ruleset through a repository returns no `bypass_actors` or `current_user_can_bypass` field; an owner token does. A check that defaults the missing field to an empty list passes silently.
 
 ## GitHub immutable releases
 
@@ -22,7 +24,7 @@ Gathered 2026-10-01. A snapshot, not canon: what GitHub, release-please and gore
 ## Release tooling
 
 - **release-please can create the tag before a draft release (verified).** `force-tag-creation` shipped in release-please 17.2.0 (2026-01-20, PR 2627) and is documented in `docs/manifest-releaser.md`. At 17.3.0 it creates `refs/tags/<tag>` before creating the release. release-please-action 4.4.1 bundles 17.3.0 and 5.0.0 bundles 17.6.0.
-- **The tag creation ignores an existing tag (verified in source).** The ref creation swallows the "already exists" error, and the release then attaches to that existing tag whatever commit it points at. A stale tag at the wrong commit is adopted silently, which is what D10 R8 guards against.
+- **The tag creation ignores an existing tag (verified in source).** The ref creation swallows the "already exists" error, and the release then attaches to that existing tag whatever commit it points at. A stale tag at the wrong commit is adopted silently; D10 R7 removes that case by letting only the release app create tags.
 - **goreleaser publishes a draft it finds (verified).** goreleaser.com, release customization: `use_existing_draft` exists since 2.5, releases start as drafts while artifacts upload, and since 2.18 preflight aborts when the tag is already published as an immutable release.
 
 ## Registries
