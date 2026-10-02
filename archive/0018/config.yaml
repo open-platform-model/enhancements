@@ -5,9 +5,8 @@ title: Documentation Architecture
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Organise the docs by what a reader is holding when they arrive, with diagnostics as a top-level
-  entry point for anyone who came from an error message.
-status: draft
+  Organise the docs by what a reader is holding when they arrive, with diagnostics as a top-level entry point for anyone who came from an error message.
+status: rejected
 category: misc
 # Every repo that ships code/schema/content changes driven by this enhancement.
 # Validated against the workspace directory map in /CLAUDE.md; see schema.cue #Repo.
@@ -21,7 +20,7 @@ affects:
   - opm-operator
 core_schema: false
 created: "2026-08-18"
-updated: "2026-10-01"
+updated: "2026-10-02"
 authors:
   - emil
 # Append-only timeline of milestones.
@@ -82,6 +81,8 @@ history:
     event: 'D3 amended: the page of absences carries direction notes in a Direction section after its table, one per absence an enhancement covers, each saying whether it covers the absence fully or in part.'
   - date: "2026-10-01"
     event: 'D8: Start here gains Install the CLI, which lives in cli, and Install the operator, which moves there from Deploying and operating in opm-operator.'
+  - date: "2026-10-02"
+    event: 'Rejected: not on merit. The docs work continues without an enhancement; the rules moved to the workspace STYLE.md and VOICE.md.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -96,3 +97,4 @@ supersedes: []
 # and gets no back-link. See `task archive:list` for prior art.
 revives: []
 superseded_by: null
+rejected_reason: 'Not rejected on merit. The documentation work continues without an enhancement: its page rules live in the workspace STYLE.md (Site Pages) and its voice in VOICE.md, and the owning repos implement them directly.'
