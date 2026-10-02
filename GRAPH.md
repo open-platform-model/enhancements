@@ -35,7 +35,7 @@ graph LR
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
   Cruntime -->|2| Cschema
-  Cruntime -->|2| Cdistribution
+  Cruntime -->|3| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
   Cdistribution -->|2| Cruntime
@@ -120,6 +120,7 @@ graph TD
   N0026["0026 · schema"]:::stub
 
   N0012 -->|depends on| N0006
+  N0012 -->|depends on| N0010
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006
   N0021 -->|depends on| N0006
@@ -158,6 +159,7 @@ graph TD
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
   N0006["0006 · runtime"]:::stub
+  N0012["0012 · runtime"]:::stub
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
   N0019["0019 · runtime"]:::stub
@@ -165,6 +167,7 @@ graph TD
   N0026["0026 · schema"]:::stub
   N0027["0027 · runtime"]:::stub
 
+  N0012 -->|depends on| N0010
   N0017 -->|depends on| N0010
   N0020 -->|depends on| N0010
   N0020 -->|depends on| N0011
