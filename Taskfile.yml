@@ -3577,6 +3577,10 @@ tasks:
               printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../../%s/#g\n'      "$x" "$x" >> "$WORK/arch.sed" ;;
           esac
         done
+        # The repo-root browse files sit one level further up once an entry
+        # is archived; the pointer line in every README links them.
+        printf 's#\\]\\((\\.\\./)+(INDEX|GRAPH)\\.md#](../\\2.md#g\n'    >> "$WORK/live.sed"
+        printf 's#\\]\\((\\.\\./)+(INDEX|GRAPH)\\.md#](../../\\2.md#g\n' >> "$WORK/arch.sed"
         changed=()
         for f in [0-9][0-9][0-9][0-9]/*.md archive/[0-9][0-9][0-9][0-9]/*.md; do
           [ -f "$f" ] || continue

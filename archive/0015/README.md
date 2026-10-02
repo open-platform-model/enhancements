@@ -4,7 +4,7 @@
 
 A Catalog ships two things: contracts, the Resources, Traits and Blueprints a Module can use, and transformers, the code that builds Kubernetes objects from them. A Catalog can define a contract it does not implement, like backup. Today that gap is invisible until a render fails. This entry lists contracts in the Catalog, and installing a provider registers its transformers.
 
-All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
