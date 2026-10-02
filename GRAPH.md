@@ -34,7 +34,7 @@ graph LR
 
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
-  Cruntime -->|3| Cschema
+  Cruntime -->|2| Cschema
   Cruntime -->|3| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
@@ -73,7 +73,6 @@ graph TD
   N0027["0027 · runtime"]:::stub
 
   N0009 -->|depends on| N0025
-  N0012 -->|depends on| N0009
   N0013 -->|depends on| N0014
   N0017 -->|depends on| N0010
   N0018 -->|depends on| N0013
@@ -86,6 +85,7 @@ graph TD
   N0026 -->|depends on| N0019
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0025
+  N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
   N0026 -.->|amends 1/37| N0010
   N0026 -.->|amends 4/18| N0015
@@ -123,7 +123,6 @@ graph TD
   N0026["0026 · schema"]:::stub
 
   N0012 -->|depends on| N0006
-  N0012 -->|depends on| N0009
   N0012 -->|depends on| N0010
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006
@@ -137,6 +136,7 @@ graph TD
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0021
   N0027 -->|depends on| N0025
+  N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
   N0021 -.->|amends 1/40| N0006
   N0026 -.->|amends 3/26| N0019
