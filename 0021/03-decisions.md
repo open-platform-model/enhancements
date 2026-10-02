@@ -142,7 +142,7 @@ The sweep also surfaced cross-actor wire contracts: the operator version-skew ce
 
 **Rationale:** This is the only option that needs no schema and no kernel change: the catalog already hoists shared bodies into helpers, 0010 D49 already files levels in their own directories, and the transformer's build-keyed FQN (0010 D44) means registering one more transformer costs nothing in the key space. The normalizer is kept as a backup rather than the rule because under aliasing the common case has identical shapes, and a projection that exists for no reason is a second place for the shape to drift.
 
-**Source:** User decision 2026-08-25, choosing between three options laid out the same day; the match rule is `core/src/transformer.cue` (AND over exact keys), the body-sharing precedent is `catalog_opm/opm/transformers/*_helpers.cue`.
+**Source:** User decision 2026-08-25, choosing between three options laid out the same day; the match rule is `core/src/transformer.cue` (AND over exact keys), the body-sharing precedent is `catalog_opm/src/transformers/*_helpers.cue`.
 
 ### D7: A `-beta.N` release line is pre-stable on the path to GA, and breaks only as a declared, migrated change
 
