@@ -9,18 +9,18 @@ Eleven open questions and six documentation checks gate promotion; every `Blocki
 **Open Questions**
 
 - OQ1 (how far past the render line the kernel goes) and OQ2 (whether the kernel takes a cluster client) are resolved by decisions. Every slice's shape depends on them, so neither may be deferred.
-- OQ3 (delete or retain the neutral `core.Resource` / `Identity` contract) is resolved. Answered 2026-09-01: the contract was deleted pre-GA (0012:OQ3).
+- 0012:OQ3 (delete or retain the neutral `core.Resource` / `Identity` contract) is resolved. Answered 2026-09-01: the contract was deleted pre-GA.
 - OQ4 (`ownerReferences`) is resolved. It is half this entry's stated scope; deferring it means the entry did not answer what it was opened for.
 - OQ5 (`spec.prune` default), OQ6 (holds on CLI-owned instances), OQ7 (stale-set base relation), and OQ8 (apply-time collision guard) are each resolved or explicitly deferred with a named destination. "Deferred" is acceptable here in a way it is not for OQ1–OQ4, but an unowned deferral is what produced 0006's OQ15 and OQ16 and is not acceptable again.
 - OQ9 (relationship to 0008) and OQ10 (relationship to 0009) carry an agreed position recorded in both entries, not only in this one. A unilateral answer here is not a resolution.
-- OQ11 (label stamping) is resolved. Resolved by 0012:D6 on 2026-10-02: stamping stays in CUE.
+- 0012:OQ11 (label stamping) is resolved by 0012:D6 (2026-10-02): stamping stays in CUE.
 
 **Documentation and schema checks**
 
 Schema and metadata:
 
 - `contracts/contracts.cue` compiles (`cue vet ./...` from `schemas/`) and captures the deletion policy, the verdict enums, the inventory wire shape, the label vocabulary, and the ownerRef eligibility predicate end-to-end, with every `// OQN:` marker either removed or pointing at a still-open question that graduation explicitly allows.
-- `config.yaml.semver` is set. It stays unset while the entry is a draft; the owner sets the magnitude at promotion.
+- At promotion the owner sets `config.yaml.semver`; it stays unset while the entry is a draft.
 - `config.yaml.affects` is final and lists every repo shipping code.
 
 Prose completeness:
