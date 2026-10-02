@@ -3335,8 +3335,9 @@ tasks:
       The supersession counterpart of `task reject` — the other terminal
       state, under the same rule: a terminal entry is ALWAYS archived. Sets
       status: superseded and superseded_by, appends a history event, banners
-      the README when no hand-written banner exists yet, and moves the entry
-      to archive/NNNN/.
+      the README when no hand-written banner exists yet, moves the entry
+      to archive/NNNN/, and retargets relative cross-entry links repo-wide
+      (scripts/relink.sh).
 
       Refuses unless the successor already lists this id in its
       `supersedes` — both halves of the link exist before the move. Only an
@@ -3418,17 +3419,18 @@ tasks:
         fi
 
         printf "${GREEN}superseded${RESET} %s → archive/%s (by %s)\n" "$ID" "$ID" "$BY"
+        ./scripts/relink.sh
         echo
         echo "Next steps:"
-        echo "  1. Fix relative links in archive/$ID/*.md (../NNNN/ → ../../NNNN/ for live entries)"
-        echo "  2. Stub the entry via the enhancement-compaction skill (task compact:plan ID=$ID)"
-        echo "  3. task vet && task index && task graph"
+        echo "  1. Stub the entry via the enhancement-compaction skill (task compact:plan ID=$ID)"
+        echo "  2. task vet && task index && task graph"
 
   reject:
     desc: Kill an idea — archive it with a reason (ID=NNNN REASON="...")
     summary: |
       Moves the entry to archive/NNNN/, sets status: rejected, records the
-      reason, banners the README, and appends a history event.
+      reason, banners the README, appends a history event, and retargets
+      relative cross-entry links repo-wide (scripts/relink.sh).
 
       The kill path is deliberately ONE command and the archived entry gets
       REDUCED validation — schema and the reason, none of the prose gates. A
@@ -3472,7 +3474,10 @@ tasks:
         git mv "$ID" "archive/$ID" 2>/dev/null || mv "$ID" "archive/$ID"
 
         cfg="archive/$ID/config.yaml"
-        R="$REASON" EV="Rejected: $REASON" yq -i '
+        # The reason lives in rejected_reason and the README banner; the
+        # history event only marks the move, so a long reason cannot break
+        # the event's 200-rune cap.
+        R="$REASON" EV="Rejected and archived; the reason is in rejected_reason." yq -i '
           .status = "rejected" |
           .rejected_reason = strenv(R) |
           .updated = "'"$TODAY"'" |
@@ -3488,10 +3493,10 @@ tasks:
 
         printf "${GREEN}rejected${RESET} %s → archive/%s\n" "$ID" "$ID"
         echo "  reason: $REASON"
+        ./scripts/relink.sh
         echo
         echo "Next steps:"
-        echo "  1. task vet          # archived entries get reduced validation"
-        echo "  2. task index        # the archive table is generated"
+        echo "  1. task vet && task index && task graph   # archived entries get reduced validation"
 
   close:
     desc: Close a delivered design — archive it as `delivered` (ID=NNNN; refuses unless task delivery derives implemented)
@@ -3592,51 +3597,8 @@ tasks:
           mv -f "$readme.tmp" "$readme"
         fi
 
-        # Retarget relative cross-entry links repo-wide. From a live entry a
-        # link is `](../NNNN/` when NNNN is live and `](../archive/NNNN/` when
-        # it is archived; from an archived entry `](../../NNNN/` and
-        # `](../NNNN/` respectively. Every top-level *.md in every entry is
-        # normalised to the correct form, whatever form it has now.
-        WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
-        : > "$WORK/live.sed"; : > "$WORK/arch.sed"
-        for d in [0-9][0-9][0-9][0-9]/ archive/[0-9][0-9][0-9][0-9]/; do
-          [ -d "$d" ] || continue
-          x=$(basename "$d")
-          case "$d" in
-            archive/*)
-              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../archive/%s/#g\n' "$x" "$x" >> "$WORK/live.sed"
-              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../%s/#g\n'         "$x" "$x" >> "$WORK/arch.sed" ;;
-            *)
-              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../%s/#g\n'         "$x" "$x" >> "$WORK/live.sed"
-              printf 's#\\]\\((\\.\\./)+(archive/)?%s/#](../../%s/#g\n'      "$x" "$x" >> "$WORK/arch.sed" ;;
-          esac
-        done
-        # The repo-root browse files sit one level further up once an entry
-        # is archived; the pointer line in every README links them.
-        printf 's#\\]\\((\\.\\./)+(INDEX|GRAPH)\\.md#](../\\2.md#g\n'    >> "$WORK/live.sed"
-        printf 's#\\]\\((\\.\\./)+(INDEX|GRAPH)\\.md#](../../\\2.md#g\n' >> "$WORK/arch.sed"
-        changed=()
-        for f in [0-9][0-9][0-9][0-9]/*.md archive/[0-9][0-9][0-9][0-9]/*.md; do
-          [ -f "$f" ] || continue
-          case "$f" in archive/*) script="$WORK/arch.sed" ;; *) script="$WORK/live.sed" ;; esac
-          sed -E -f "$script" "$f" > "$WORK/out.md"
-          if ! cmp -s "$f" "$WORK/out.md"; then cp "$WORK/out.md" "$f"; changed+=("$f"); fi
-        done
-
         printf "${GREEN}delivered${RESET} %s → archive/%s (delivered %s, %s landings)\n" "$ID" "$ID" "$delivered_on" "$landings"
-        if [ "${#changed[@]}" -gt 0 ]; then
-          echo "  relative links retargeted in ${#changed[@]} file(s):"
-          printf '    %s\n' "${changed[@]}"
-          for f in "${changed[@]}"; do
-            case "$f" in
-              archive/*) ;;
-              *) e=${f%%/*}
-                 if [ -f ".gates/$e.yaml" ]; then
-                   printf "  ${YELLOW}note${RESET} %s has a walked gate verdict; the link edit moved its hash, re-walk before promote\n" "$e"
-                 fi ;;
-            esac
-          done | sort -u
-        fi
+        ./scripts/relink.sh
         echo
         echo "Next steps:"
         echo "  1. task vet && task index && task graph"
