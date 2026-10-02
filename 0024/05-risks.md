@@ -21,4 +21,3 @@
 - **Make `library`'s schematest the conformance suite.** It already asserts against the published core with exact messages. **Why not:** it pins one core and one CUE per Go module, is the kernel's test suite, and reports schema drift as Go fixture failures one repo away from the cause.
 - **A canary per incident** (the `cueregression` pattern). **Why not:** it detects only shapes someone was already burned by, in Go, and does not accumulate into a record.
 - **Rely on the demo cluster.** Apply the rendered fleet to `opm-kind-demo` per release. **Why not:** it tests admission, not schema behaviour, cannot see refusal text, and finds a rename by replacing an object.
-- **Type the raw family's inputs against upstream instead of checking outputs.** **Why not:** it changes the raw module's dependency rule and still says nothing about what a transformer emits.

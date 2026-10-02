@@ -1,6 +1,6 @@
 # 0024: CUE Testing and Conformance
 
-OPM's behaviour is mostly CUE evaluation. It is verified unevenly: one catalog family carries 163 hidden assertions and types every object against upstream Kubernetes, the other carries none, and the core schema has no committed test at all. Nobody can say whether a new CUE toolchain changed what an unchanged input produces. This entry adds two layers of verification.
+OPM's behaviour is mostly CUE evaluation. It is verified unevenly: the catalog carries 163 hidden assertions and types every object against upstream Kubernetes, and the core schema has no committed test at all. Nobody can say whether a new CUE toolchain changed what an unchanged input produces. This entry adds two layers of verification.
 
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
@@ -12,7 +12,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Outcomes are recorded per version cell, and unexplained drift fails (D3).** A version cell is one combination of CUE toolchain, core, catalog and upstream Kubernetes versions. A difference a release note explains is re-recorded and reviewed; one with nothing explaining it fails.
 
-**The pure-CUE renderer is what gets measured (D4, D5).** The suite renders through it rather than the Go kernel. Rendered objects are checked against the upstream Kubernetes CUE definitions in the suite, not in the catalog, so the raw passthrough family never takes the dependency its own rules forbid.
+**The pure-CUE renderer is what gets measured (D4, D5).** The suite renders through it rather than the Go kernel. Rendered objects are checked against the upstream Kubernetes CUE definitions in the suite as well as in the catalog, which lets the same check run across upstream snapshots.
 
 **It gives an existing gate an owner.** Entry [0019](../archive/0019/) leaned on a gate saying no default-named golden output may change by a byte (0019:D15). This suite is where that gate and the default-name flip beside it (0019:D16) live.
 
@@ -53,10 +53,10 @@ This entry changes no `opmodel.dev/core` definition, so it carries no `schemas/`
 
 ### In scope
 
-- The verification of CUE-evaluated artifacts: the core schema, both catalog families, and the module fleet's CUE, as observed through `cue` evaluation and the pure-CUE render oracle.
+- The verification of CUE-evaluated artifacts: the core schema, the catalog, and the module fleet's CUE, as observed through `cue` evaluation and the pure-CUE render oracle.
 - In-package assertions for definitions: what a definition accepts, what it rejects, and what it derives.
 - An external conformance suite whose recorded outcome per case, the rendered output or the diagnostic of a refusal, is the contract, replayed across a version matrix.
-- Conformance of rendered Kubernetes objects to the upstream definitions, for both catalog families, plus a mechanical account of which upstream API versions the raw family represents.
+- Conformance of rendered Kubernetes objects to the upstream definitions, across upstream snapshots.
 - The byte-identity gate that 0019:D15 relies on, given an owner.
 
 ### Out of scope
@@ -77,7 +77,6 @@ None at this stage.
 | `enhancements/0019` | Pure-CUE unification is the render oracle (D1); the sweep's byte-identity gate (D15) and the default-name flip (D16) are the first consumers of this suite |
 | `enhancements/0021` | The versioning policy, which says what a release may change; this entry is how a release's actual change is observed |
 | `core/CLAUDE.md`, `core/openspec/config.yaml` | The schema repo's rules: pure CUE, no Go, and a specification co-update |
-| `catalog_opm/CLAUDE.md` | Two families, the raw one depending on `core` alone, with its contract version mirroring upstream at adoption (0010:D48) |
 | `library/testdata/parity/oracle/render.cue` | The pure-CUE renderer the suite's render cases use |
 | `library/opm/internal/cueregression/closedness_test.go` | A hand-built instance of cross-version drift detection, the shape this entry generalises |
 | https://registry.cue.works/source/cue.dev/x/k8s.io@v0.7.0 | The upstream Kubernetes CUE definitions that catalog output is checked against |
