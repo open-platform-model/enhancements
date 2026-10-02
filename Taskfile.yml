@@ -43,6 +43,8 @@ tasks:
           task questions:open ID=0001            — TSV of unresolved Open Questions (for the OQ-walk skill)
           task graph                             — regenerate GRAPH.md
           task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
+          task links                             — fail on a broken relative link in a published file
+          task fresh                             — fail when INDEX.md or GRAPH.md is stale
           task delivery [ID=0001]                — derived delivery state (from each entry's delivery.yaml log)
           task delivery:log ...                  — append a landed change to an entry's delivery log
           task delivery:reconcile                — archived OpenSpec changes that declared an entry but were never logged
@@ -1984,6 +1986,38 @@ tasks:
           echo "  7. Close idea issue #$ISSUE with a link to $NEW_DIR/:"
           echo "     gh issue close $ISSUE --comment \"Promoted to enhancement $NEW_ID.\""
         fi
+
+  links:
+    desc: Fail on a broken relative link in a published file (entry docs, INDEX.md, GRAPH.md)
+    summary: |
+      opmodel.dev publishes each entry's README.md and split documents, live
+      and archived, plus INDEX.md and GRAPH.md. scripts/check-links.sh
+      resolves every relative Markdown link in them (outside code) and
+      prints `file:line: target` for each one whose target does not exist.
+    cmds:
+      - ./scripts/check-links.sh
+
+  fresh:
+    desc: Fail when INDEX.md or GRAPH.md is stale (regenerates both in place, prints the diff)
+    summary: |
+      Runs `task index` and `task graph`, then compares both files against
+      the git index. A difference means a config.yaml, decision log or
+      delivery log changed without a regeneration: the regenerated files are
+      left in the working tree, so committing them is the fix.
+    preconditions:
+      - sh: command -v git >/dev/null 2>&1
+        msg: "git is required"
+    cmds:
+      - task: index
+      - task: graph
+      - |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if ! git --no-pager diff --exit-code -- INDEX.md GRAPH.md; then
+          echo "INDEX.md / GRAPH.md are stale: commit the regenerated files above" >&2
+          exit 1
+        fi
+        echo "ok   INDEX.md and GRAPH.md are fresh"
 
   index:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
