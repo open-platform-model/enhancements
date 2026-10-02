@@ -105,7 +105,7 @@ graph TD
 
   N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::delivered
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
-  N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
+  N0012["0012: Kubernetes as a First-Class Library Tier"]:::draft
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft

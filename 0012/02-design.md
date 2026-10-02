@@ -1,4 +1,4 @@
-# Design: Kubernetes as a First-Class Kernel Platform
+# Design: Kubernetes as a First-Class Library Tier
 
 Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document describes the shape.
 

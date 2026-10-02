@@ -1,4 +1,4 @@
-# Graduation Criteria: Kubernetes as a First-Class Kernel Platform
+# Graduation Criteria: Kubernetes as a First-Class Library Tier
 
 These are design acceptance criteria, not implementation milestones. Delivery is logged in this entry's `delivery.yaml` and read back with `task delivery`; the entry's documents store nothing about it.
 

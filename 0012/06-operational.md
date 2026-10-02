@@ -1,4 +1,4 @@
-# Operational Concerns: Kubernetes as a First-Class Kernel Platform
+# Operational Concerns: Kubernetes as a First-Class Library Tier
 
 The OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answered.
 

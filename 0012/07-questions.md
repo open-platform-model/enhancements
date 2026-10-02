@@ -1,4 +1,4 @@
-# Open Questions: Kubernetes as a First-Class Kernel Platform
+# Open Questions: Kubernetes as a First-Class Library Tier
 
 ## Open Questions
 

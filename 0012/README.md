@@ -1,4 +1,4 @@
-# Enhancement 0012: Kubernetes as a First-Class Kernel Platform
+# Enhancement 0012: Kubernetes as a First-Class Library Tier
 
 The OPM kernel renders and then stops. Both frontends, the operator and the CLI, embed it and each decides what happens to a rendered object in a cluster. So the same Kubernetes decisions exist twice, and the two copies have already drifted in ways that decide whether a resource gets deleted. This entry moves those decisions into one library tier, `opm/k8s`, that sits beside the kernel and that every Kubernetes frontend must use.
 

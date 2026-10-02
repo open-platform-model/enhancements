@@ -1,4 +1,4 @@
-# Risks, Drawbacks, Alternatives: Kubernetes as a First-Class Kernel Platform
+# Risks, Drawbacks, Alternatives: Kubernetes as a First-Class Library Tier
 
 Risks describe what could go wrong; Drawbacks describe what definitely costs something; Alternatives describe the high-level paths not taken. Per-decision alternatives live in [`03-decisions.md`](03-decisions.md).
 

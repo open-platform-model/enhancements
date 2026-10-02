@@ -1,4 +1,4 @@
-// Target schema for enhancement 0012 (Kubernetes as a First-Class Kernel Platform).
+// Target schema for enhancement 0012 (Kubernetes as a First-Class Library Tier).
 //
 // This file states the CONTRACT that every implementor of the kernel must
 // satisfy when it acts on Kubernetes resources: the ownership vocabulary, the

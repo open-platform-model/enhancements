@@ -1,4 +1,4 @@
-# Design Decisions: Kubernetes as a First-Class Kernel Platform
+# Design Decisions: Kubernetes as a First-Class Library Tier
 
 This document records every significant design choice with its reasoning and the alternatives that were ruled out.
 
