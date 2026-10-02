@@ -2,7 +2,7 @@
 
 ## Current State
 
-Today's `#Platform`, defined in [`core/platform.cue`](../../core/platform.cue), is a registry of fully-imported `#Module` values. Each registry entry embeds a concrete Module; the platform's projections (`#knownResources`, `#knownTraits`, `#composedTransformers`, `#matchers`) are computed by walking every enabled entry's `#defines` block:
+Today's `#Platform`, defined in [`core/platform.cue`](https://github.com/open-platform-model/core/blob/ab44811d231b7522d48af8b6549731ebf01b7aac/platform.cue), is a registry of fully-imported `#Module` values. Each registry entry embeds a concrete Module; the platform's projections (`#knownResources`, `#knownTraits`, `#composedTransformers`, `#matchers`) are computed by walking every enabled entry's `#defines` block:
 
 ```cue
 // core/platform.cue today
@@ -31,7 +31,7 @@ Today's `#Platform`, defined in [`core/platform.cue`](../../core/platform.cue), 
 }
 ```
 
-A platform fixture is wired up by importing a Module via CUE and assigning it to `#registry.<id>.#module`. The default Kubernetes fixture at [`library/modules/opm_platform/platform.cue`](../../library/modules/opm_platform/platform.cue) does exactly this:
+A platform fixture is wired up by importing a Module via CUE and assigning it to `#registry.<id>.#module`. The default Kubernetes fixture at [`library/modules/opm_platform/platform.cue`](https://github.com/open-platform-model/library/blob/0721c490f0b8636f29a0f3eca9d57791fee77eaa/modules/opm_platform/platform.cue) does exactly this:
 
 ```cue
 import opm_package "opmodel.dev/catalogs/opm"
@@ -40,7 +40,7 @@ import opm_package "opmodel.dev/catalogs/opm"
 
 (The same fixture still imports `opmodel.dev/core/v1alpha2@v1` rather than the published `opmodel.dev/core@v0`. The core repo split is mid-flight, and the library rewire is a sibling task that this enhancement depends on landing first or in parallel.)
 
-`#Module` plays two roles today with no separation between them: catalog authors and application authors share one type. Each catalog Module is a `#Module` value whose primitives are published through `#defines.{resources,traits,transformers}`, a struct keyed by `#FQNType` declared on [`core/module.cue`](../../core/module.cue):
+`#Module` plays two roles today with no separation between them: catalog authors and application authors share one type. Each catalog Module is a `#Module` value whose primitives are published through `#defines.{resources,traits,transformers}`, a struct keyed by `#FQNType` declared on [`core/module.cue`](https://github.com/open-platform-model/core/blob/ab44811d231b7522d48af8b6549731ebf01b7aac/module.cue):
 
 ```cue
 #Module: {
@@ -56,7 +56,7 @@ import opm_package "opmodel.dev/catalogs/opm"
 }
 ```
 
-Primitive FQNs are MAJOR-only. The regex in [`core/types.cue`](../../core/types.cue) pins the version suffix at `@v[0-9]+$`:
+Primitive FQNs are MAJOR-only. The regex in [`core/types.cue`](https://github.com/open-platform-model/core/blob/ab44811d231b7522d48af8b6549731ebf01b7aac/types.cue) pins the version suffix at `@v[0-9]+$`:
 
 ```cue
 #FQNType: =~"^[a-z0-9.-]+(/[a-z0-9.-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+$"
@@ -74,11 +74,11 @@ The core schema itself ships **inside** the library binary today: `library/apis/
 
 This is the same root pain as the registry side: the kernel collapses *core-schema version* into the binary itself instead of treating it as a runtime input.
 
-Components today have no schema-level home for release identity or per-component computed names. `#Component` in [`core/component.cue`](../../core/component.cue) carries `metadata.{name, labels, annotations}` and the three definition slots (`#resources`, `#traits`, `#blueprints`); it computes a flattened `spec` from those slots and stops there. Per-component values like `resourceName`, the cluster-DNS suffix, or the predictable `<component>.<namespace>.svc.cluster.local` form are not anywhere on the `#Component`.
+Components today have no schema-level home for release identity or per-component computed names. `#Component` in [`core/component.cue`](https://github.com/open-platform-model/core/blob/ab44811d231b7522d48af8b6549731ebf01b7aac/component.cue) carries `metadata.{name, labels, annotations}` and the three definition slots (`#resources`, `#traits`, `#blueprints`); it computes a flattened `spec` from those slots and stops there. Per-component values like `resourceName`, the cluster-DNS suffix, or the predictable `<component>.<namespace>.svc.cluster.local` form are not anywhere on the `#Component`.
 
 Transformers that need them (a `deployment-transformer` emitting a `Service`, for example) reach into `#TransformerContext.#componentMetadata.name` and re-derive each one inline. Identical derivation logic lives in every transformer that needs the same name; identical mistakes propagate the same way.
 
-`#ModuleRelease`, in [`core/module_release.cue`](../../core/module_release.cue), unifies the user's `values` into `#module.#config` and assembles `components` for rendering. It does not compute a runtime context channel and does not inject anything analogous to `#ctx` into the module:
+`#ModuleRelease`, in [`core/module_release.cue`](https://github.com/open-platform-model/core/blob/ab44811d231b7522d48af8b6549731ebf01b7aac/module_release.cue), unifies the user's `values` into `#module.#config` and assembles `components` for rendering. It does not compute a runtime context channel and does not inject anything analogous to `#ctx` into the module:
 
 ```cue
 let unifiedModule = #module & {#config: values}

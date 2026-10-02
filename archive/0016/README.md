@@ -4,7 +4,7 @@
 
 Deploying an OPM module means hand-writing a small CUE package: a module file with the right pins, an instance file wiring it to core, and a values file. Nothing generates it today, so people copy and edit an example until it validates. This entry adds a command that fetches the module and writes all three. The result builds untouched.
 
-All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 

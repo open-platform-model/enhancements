@@ -1,0 +1,74 @@
+# The gates opmodel.dev relies on before it publishes this repo: every entry
+# passes the hard gate, every relative link in a published file resolves, and
+# INDEX.md / GRAPH.md match what their generators write. Each step is the
+# Taskfile target a contributor runs locally.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # cue.mod language version in every entry module is v0.17.0; v0.17.1 is the
+  # binary the other OPM repos pin.
+  CUE_VERSION: 'v0.17.1'
+  TASK_VERSION: '3.52.0'
+  YQ_VERSION: 'v4.53.3'
+  # sha256 of yq_linux_amd64 for YQ_VERSION, from the release's checksums file.
+  YQ_SHA256: 'fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4'
+
+jobs:
+  check:
+    name: Vet, links and freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup CUE
+        uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c # v2.0.0
+        with:
+          version: ${{ env.CUE_VERSION }}
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Install yq
+        # The runner image ships a yq, but not a pinned one.
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/yq" \
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          echo "${YQ_SHA256}  $RUNNER_TEMP/bin/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/yq"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Tool versions
+        run: |
+          task --version
+          cue version
+          yq --version
+
+      - name: Vet every entry
+        # Entry schemas/ and contracts/ modules resolve opmodel.dev/core from
+        # GHCR anonymously; the Taskfile sets the registry mapping.
+        run: task vet
+
+      - name: Check links in published files
+        run: task links
+
+      - name: Check INDEX.md and GRAPH.md are fresh
+        run: task fresh
