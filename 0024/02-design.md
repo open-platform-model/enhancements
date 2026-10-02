@@ -7,8 +7,7 @@ Trade-off reasoning lives in `03-decisions.md`.
 - Every definition-level behaviour worth stating has an executable statement beside the definition: what it accepts, what it rejects, what it derives. Rejection is a first-class assertion, in pure CUE, with no Go.
 - An unchanged input has a recorded outcome per version cell (CUE toolchain, core, catalog, upstream Kubernetes definitions), and that outcome includes the text of a refusal, not only the fact of one.
 - A release of `cue`, `core` or a catalog that changes any recorded outcome is visible as a diff a reviewer reads, before a consumer or a cluster finds it.
-- Rendered Kubernetes objects from both catalog families are checked against the upstream `cue.dev/x/k8s.io` definitions for their declared `apiVersion` and `kind`, without the raw family taking the dependency its rules forbid.
-- The set of upstream API group versions the raw family represents, and the set it does not, is a mechanical report rather than a belief.
+- Rendered Kubernetes objects are checked against the upstream `cue.dev/x/k8s.io` definitions for their declared `apiVersion` and `kind`, across `k8s.io` snapshots.
 - The suite runs with nothing but `cue` binaries and published artifacts pulled from GHCR under the registry policy; no checkout of a product repo is a precondition.
 
 ## Non-Goals
@@ -16,7 +15,7 @@ Trade-off reasoning lives in `03-decisions.md`.
 - Testing the kernel's Go behaviour, the CLI, or the operator. The pure-CUE oracle is the renderer here; whether the kernel also joins the version axis is an open question, not a goal.
 - Admission or runtime validity of rendered objects beyond upstream type conformance.
 - A single golden per case across all versions. Behaviour legitimately changes between releases; the suite records per cell and objects to *unexplained* change.
-- Migrating the abstraction family's existing in-module assertions anywhere; they are the in-package layer already.
+- Migrating the catalog's existing in-module assertions anywhere; they are the in-package layer already.
 - A general test framework for CUE. The suite is OPM's conformance record, built from CUE's own conventions (see Research in `03-decisions.md`), not a reusable product.
 
 ## High-Level Approach
@@ -49,10 +48,9 @@ Two modes: *verify* (diff against the record, fail on difference) and *record* (
                                                                               └─ nothing explains it     → FAIL
 ```
 
-**Catalog conformance** is three case kinds inside layer 2:
+**Catalog conformance** is two case kinds inside layer 2:
 
-- **Output conforms to upstream.** Render a fixture through every transformer, then unify each output object with the upstream definition selected by the object's own `apiVersion` and `kind`. For the abstraction family this repeats what the module already does at vet time; for the raw family it is the first time the passthrough claim is checked, and it is done in the suite precisely so the raw module keeps its core-only dependency.
-- **Coverage.** For every raw member, its `(group, version, kind)` exists in `k8s.io` at the pinned snapshot; a member for an API upstream removed is a defect. The inverse, upstream kinds with no member, is a report (whether it ever gates is an open question).
+- **Output conforms to upstream.** Render a fixture through every transformer, then unify each output object with the upstream definition selected by the object's own `apiVersion` and `kind`. This repeats what the module already does at vet time, and the suite does it at every snapshot in the matrix.
 - **Upstream version axis.** The conformance cases replayed across `k8s.io` snapshots, so a field upstream drops or tightens appears as drift on exactly the transformer that emits it.
 
 ## Schema / API Surface
@@ -61,9 +59,9 @@ No `opmodel.dev/core` change. The suite's own conventions (case shape, record ke
 
 ## Affected Surfaces
 
-- **The conformance suite (new, location per OQ5).** Owns the corpus, the version matrix, the per-cell records, the `verify` and `record` modes, and the upstream-conformance and coverage checks. Consumes published `core`, catalog and `k8s.io` artifacts from GHCR and the CUE Central Registry, and `cue` binaries by version.
+- **The conformance suite (new, location per OQ5).** Owns the corpus, the version matrix, the per-cell records, the `verify` and `record` modes, and the upstream-conformance checks. Consumes published `core`, catalog and `k8s.io` artifacts from GHCR and the CUE Central Registry, and `cue` binaries by version.
 - **`core`.** Gains in-package assertions for its definitions, run by its existing check task; no published definition changes. What a published module contains (whether test files ship inside it) is OQ8.
-- **`catalog_opm`.** The abstraction family keeps its in-module assertions. The raw family gains upstream conformance and coverage checks, run outside the module. A catalog release gains the byte-identity gate 0019 D15 names, run against the suite's record.
+- **`catalog_opm`.** The catalog keeps its in-module assertions. A catalog release gains the byte-identity gate 0019 D15 names, run against the suite's record.
 - **`library`.** Provides the pure-CUE oracle the suite renders with; nothing in the kernel changes. Its schematest fixtures remain the place where message-exact assertions against the *published* core live for the kernel's own purposes.
 - **`enhancements`.** The `#Area` enum gains the suite's repo when it is created; `examples.cue`'s "commented-out must-fail" convention can adopt the layer-1 negative idiom.
 
@@ -72,11 +70,10 @@ No `opmodel.dev/core` change. The suite's own conventions (case shape, record ke
 **Before:**
 
 - 0019 D16's seven behaviours are a table in a design document, verified once by hand.
-- The raw family's conformance is a sentence in `CLAUDE.md`.
 - A `cue` bump is tested by rendering the fleet and looking.
 
 **After:**
 
 - The seven behaviours are assertions in `core`, and seven cases in the suite with their diagnostics recorded per cell.
-- Every raw member's output is unified with its upstream definition at each `k8s.io` snapshot in the matrix.
+- Every transformer's output is unified with its upstream definition at each `k8s.io` snapshot in the matrix.
 - A `cue` bump is a matrix column whose diff is empty or explained.

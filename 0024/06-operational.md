@@ -7,7 +7,7 @@
 Two new signals:
 
 - **In-package**: a failing hidden assertion surfaces in a CUE repo's own check (`cue vet` output at the assertion's path, the same surface every other vet failure uses).
-- **Conformance**: a per-cell drift report (the diff between a recorded outcome and the observed one, keyed by case and version cell), plus a coverage report for the raw catalog family (members with no upstream definition; upstream kinds with no member).
+- **Conformance**: a per-cell drift report (the diff between a recorded outcome and the observed one, keyed by case and version cell).
 
 Where the drift report is surfaced (the suite's own CI, a product repo's release check, or both) is OQ9. No new error kinds in any product repo.
 
@@ -34,6 +34,6 @@ The suite is outside every product repo; removing it from a release check restor
 **Which repos must coordinate, and what constrains the order?**
 
 - The conformance suite can only render with the pure-CUE oracle after that oracle is consumable from outside `library` (today it is published from a test fixture into an in-memory registry; a published or vendored form of the glue is the artefact the suite consumes).
-- The raw family's upstream conformance check (D4) needs a pinned `cue.dev/x/k8s.io` snapshot to compare against; the abstraction family's pin (v0.10.0 today) is the natural first choice, and the axis question (OQ2) decides how further snapshots are named.
+- The upstream conformance check (D4) needs a pinned `cue.dev/x/k8s.io` snapshot to compare against; the catalog's pin (v0.10.0 today) is the natural first choice, and the axis question (OQ2) decides how further snapshots are named.
 - 0019's D15 sweep gate ("no default-named golden changes by a byte") consumes a recorded cell for the catalog at the release before the sweep; the record must exist before the sweep's release can be gated on it. 0019's D16 flip is the suite's first schema-refusal corpus and needs no coordination beyond the published core tag.
 - If the suite becomes a new repo (OQ5), this repo's `#Area` enum and the workspace routing table gain a row in the same change that creates it, so its later deliveries can be logged here.

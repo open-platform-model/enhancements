@@ -17,10 +17,9 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 - An assertion on a value that references an unresolved disjunction (`_ok: metadata.resourceName & #NameType` where `resourceName` is `*default | #NameType`) is inert: it unifies the disjunction, not the chosen branch. A comparison (`==`) forces resolution. Evidence attached to 0019 D16's chosen spelling.
 - A failed disjunct's error is discarded with the disjunct; the diagnostic of a validated default is the surviving constraint, never the string. The `try` experiment (v0.16.0 preview) intercepts only optional-reference misses, not validation errors (measured: the `else` never runs).
 
-### The catalog families and upstream definitions (measured 2026-08-25)
+### The catalog and upstream definitions (measured 2026-08-25)
 
 - `catalog_opm/opm` depends on `cue.dev/x/k8s.io@v0` v0.10.0 (`default: true`), re-exports its groups under `schemas/kubernetes/`, unifies every transformer `output:` with the upstream definition, and carries 163 `_test*` hidden assertions.
-- `catalog_opm/k8s` depends on `core` alone by rule, types inputs as open wrappers, outputs against nothing, and carries no assertion.
 - `cue.dev/x/k8s.io` v0.7.0 and v0.10.0 differ in one group version (`scheduling/v1alpha1` → `v1alpha2`); the module records no Kubernetes release number anywhere found. The Central Registry lists `v0.0.0`, `v0.3.0` through `v0.8.0`, and `v0.10.0`.
 
 ---
@@ -88,22 +87,20 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 **Kind:** contract
 
-**Decision:** Every object a catalog transformer renders satisfies the `cue.dev/x/k8s.io` definition selected by the object's own `apiVersion` and `kind`, for both catalog families. For the raw passthrough family this conformance is verified by the conformance suite, which imports the upstream definitions; the raw module itself keeps its core-only dependency. Every raw member's `(group, version, kind)` exists in the upstream snapshot the suite pins. The abstraction family's in-module unification with upstream definitions remains its in-package layer and is additionally exercised by the suite.
+**Decision:** Every object a catalog transformer renders satisfies the `cue.dev/x/k8s.io` definition selected by the object's own `apiVersion` and `kind`. The catalog's in-module unification with upstream definitions remains its in-package layer and is additionally exercised by the suite, which verifies the same conformance across `k8s.io` snapshots.
 
 **Requirements:**
 
-- R1: Every object a catalog transformer renders satisfies the upstream Kubernetes definition selected by the object's own `apiVersion` and `kind`, for both catalog families.
-- R2: The raw passthrough family's conformance is verified outside its module, and the raw module keeps its core-only dependency.
-- R3: Every raw member's group, version and kind exists in the upstream snapshot the suite pins; a member for an API upstream has removed fails.
-- R4: The abstraction family's in-module unification with upstream definitions is also exercised by the suite.
+- R1: Every object a catalog transformer renders satisfies the upstream Kubernetes definition selected by the object's own `apiVersion` and `kind`.
+- R2: Removed (catalog retired 2026-10-02). The number stays so citations resolve.
+- R3: Removed (catalog retired 2026-10-02). The number stays so citations resolve.
+- R4: The catalog's in-module unification with upstream definitions is also exercised by the suite.
 
 **Alternatives considered:**
 
-- **Give the raw family the `k8s.io` dependency and type its outputs in-module.** Rejected: the core-only rule is deliberate in `catalog_opm/CLAUDE.md` (the raw family's wrappers are hand-written and dependency-free), and the suite can check conformance without changing that.
-- **Type the raw family's open wrappers against upstream instead of its outputs.** Rejected as insufficient: the wrappers are inputs, and a passthrough's promise is about what comes out; input typing is a later, separate choice for the catalog.
-- **Treat conformance as the abstraction family's concern only.** Rejected: the raw family is the one whose entire promise is upstream fidelity and the one with no check.
+- **Check conformance in-module only.** Rejected by D1: an in-package layer pins one core, one catalog and one `k8s.io`, so it cannot compare snapshots.
 
-**Rationale:** "Native Kubernetes APIs passed through as-is" is a claim about upstream conformance; the upstream CUE definitions exist, are versioned, and are already consumed by the sibling module. Checking outside the module honours both the claim and the dependency rule.
+**Rationale:** Every rendered object is a Kubernetes object, and the upstream CUE definitions exist, are versioned, and are already consumed by the catalog module. Checking in the suite adds the one thing the module cannot do: the same check across `k8s.io` snapshots.
 
 **Source:** User decision 2026-08-25: "use the upstream k8s CUE manifests as the way to ensure we are conformant."
 

@@ -26,9 +26,7 @@ The policy is a matrix. Rows are artifact classes; columns are the five question
                     carrier            surface                       bump rules        pre-stable          enforcement
                     ---------------    --------------------------    --------------    ----------------    -------------
 core schema         CUE module semver  published definitions         stable table      beta line (D7)      claim
-catalog build       CUE module semver  member set + transformers     OQ7               per path: opm       gate (0011 D9)
-                                                                                       stable, k8s beta
-                                                                                       line (D7)
+catalog build       CUE module semver  member set + transformers     OQ7               stable line (D7)    gate (0011 D9)
 catalog contract    apiVersion ladder  the contract's shape          0010 D27 / D34    alpha rung (D5)     gate + match + aid
 transformer         the build's        required/optional + render    the build's       the build's         convention (D6)
 module              CUE module semver  #config (D2) [+ OQ1]          stable table      0.x / alpha (OQ4)   open (OQ5)

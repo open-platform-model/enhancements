@@ -33,7 +33,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: false
 created: "2026-08-25"
-updated: "2026-09-29"
+updated: "2026-10-02"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -59,6 +59,8 @@ history:
     event: 'Requirements added to every decision (none on D1, D3, D5, D6), additive.'
   - date: "2026-09-29"
     event: 'The 0010 mention in the problem statement now cites the entry, not a decision: context, not a premise of any decision. No answer, number, Source or Kind changed.'
+  - date: "2026-10-02"
+    event: 'The raw Kubernetes catalog is retired: the raw family dropped as a target from the problem, design and D4 (R2 and R3 tombstoned), and OQ3 retired. No other answer, number, Source or Kind changed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

@@ -101,12 +101,9 @@ policies: {
 		carrier: "cue-module-semver"
 		surface: ["the member set at each level, and the transformers keyed by the build"]
 		bump: stableBump
-		// Two module paths at two stages: opm is a stable line, k8s is on
-		// its beta line toward 1.0.0 (D7, D8).
-		prestable: lines: {
-			"opmodel.dev/catalogs/opm@v4": "stable"
-			"opmodel.dev/catalogs/k8s@v1": "beta-line"
-		}
+		// opmodel.dev/catalogs/opm@v4 is the one first-party catalog and a
+		// stable line (D7).
+		prestable: "stable"
 		enforcement: "gate"
 		cites: ["0010 D4", "0010 D44", "0011 D9", "0011 D15", "0011 D23", "D7", "D8", "D10"]
 		open: ["OQ7"] // OQ7: how a contract-level event moves the build number
