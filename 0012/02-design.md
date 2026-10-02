@@ -4,16 +4,16 @@ Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document
 
 ## Design Goals
 
-**One shared kernel**
+**One shared Kubernetes tier**
 
-- **One implementation of every Kubernetes decision OPM makes.** Whether a stale entry is deleted, whether a live object may be deleted, what order deletes happen in, what a stale set is: each has exactly one definition, in the kernel, and every implementor executes it.
-- **A new platform capability lands once.** Adding a safety check, a deletion policy, or an ownership rule is a kernel change that both the operator and the CLI inherit by upgrading. The current cost (two implementations in two repos plus a hand-maintained parity comment) is the thing being removed.
-- **Deletion has one defined meaning.** Given an instance, its inventory, and its policy, what happens on delete is computed by the kernel and is identical across implementors, including the refusals and the reasons for them.
+- **One implementation of every Kubernetes decision OPM makes.** Whether a stale entry is deleted, whether a live object may be deleted, what order deletes happen in, what a stale set is: each has exactly one definition, in the library's Kubernetes tier, and every implementor executes it.
+- **A new platform capability lands once.** Adding a safety check, a deletion policy, or an ownership rule is a library change that both the operator and the CLI inherit by upgrading. The current cost (two implementations in two repos plus a hand-maintained parity comment) is the thing being removed.
+- **Deletion has one defined meaning.** Given an instance, its inventory, and its policy, what happens on delete is computed by the library and is identical across implementors, including the refusals and the reasons for them.
 - **Divergence becomes a compile error, not a review comment.** A frontend that skips a guard should fail to build or fail a shared conformance test, not silently behave differently. This is what distinguishes this entry from 0006's OQ15/OQ16, which were the documented-convention approach and did not close.
 
-**Kernel discipline**
+**Library discipline**
 
-- **The kernel stays deterministic and side-effect-free where it decides.** Planning what to do is pure and testable without a cluster; doing it is a separate, explicitly-invoked step.
+- **The library stays deterministic and side-effect-free where it decides.** Planning what to do is pure and testable without a cluster; doing it is a separate, explicitly-invoked step.
 - **The frontends keep what is genuinely theirs.** Credentials, impersonation, controller-runtime machinery, Flux, status conditions, events, output formatting, and command surface stay where they are.
 
 ## Non-Goals
@@ -22,7 +22,7 @@ Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document
 
 - **Merging the two frontends.** The operator stays a controller and the CLI stays one-shot. This entry moves decisions, not architectures.
 - **Making the library a Kubernetes client library.** It does not grow kubeconfig handling, credential resolution, impersonation, informers, work queues, or a scheme registry.
-- **Adopting Flux SSA into the kernel.** `fluxcd/pkg/ssa` is the operator's staged-apply engine and must not become a CLI dependency. See the apply/delete asymmetry below.
+- **Adopting Flux SSA into the library.** `fluxcd/pkg/ssa` is the operator's staged-apply engine and must not become a CLI dependency. See the apply/delete asymmetry below.
 - **Owning the reconcile loop.** Watches, requeues, backoff, conditions, and events remain the operator's.
 - **Changing the render half.** `Kernel.Render` is untouched; this is additive below the render line.
 
@@ -33,7 +33,7 @@ Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md). This document
 
 ## High-Level Approach
 
-Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped happens above it, twice. The question this entry answers is **how far past that line the kernel goes**. It is useful to name the rungs, because the answer is not "all the way" and the reason is specific.
+Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped happens above it, twice. The question this entry answers is **how far past that line the kernel goes**. It is useful to name the rungs, because the answer is not "all the way" and the reason is specific. The ladder predates 0012:D3, which places this code in the library's `opm/k8s` tier beside the kernel package; read "kernel" on the rungs as that tier.
 
 ```
  ┌─────────────────────────────────────────────────────────────────────┐
@@ -56,9 +56,9 @@ Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped 
 
 **Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the whole library: the kernel ships no loop that drives a plan to completion, and it names an action rather than performing one. What it supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
 
-That shape is what OQ1 was looking for. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
+That shape is the first half of OQ1's answer; 0012:D4 gives the second, the apply/delete asymmetry below. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
 
-Apply and delete remain asymmetric in how much of the sequence the kernel owns:
+Apply and delete remain asymmetric in how much of the sequence the library owns (0012:D4):
 
 ```
    DELETE                                    APPLY
@@ -66,35 +66,38 @@ Apply and delete remain asymmetric in how much of the sequence the kernel owns:
    order -> get -> guard -> delete           operator: fluxcd/pkg/ssa
                                                        (staged, readiness waits,
    No framework opinion.                                CRD/Namespace first)
-   The kernel owns the whole
+   The tier owns the whole
    sequence and names each action;           cli:      its own SSA engine
    the caller performs it.
                                              A framework opinion, and a heavy
                                              dependency the CLI must never inherit.
 
-                                             The kernel owns the per-object
-                                             verdict only; the engine stays.
+                                             The tier owns the per-object
+                                             verdict and order; engine stays.
 ```
 
-So the proposed boundary is: **share every decision; share the sequence only where it carries no framework opinion; never share the doing.** Deletion qualifies for the sequence. Apply does not. The kernel computes apply verdicts (including the collision guard the operator lacks) and each frontend applies with its own engine.
+So the boundary, fixed by 0012:D4, is: **share every decision; share the sequence only where it carries no framework opinion; never share the doing.** Deletion qualifies for the sequence. Apply does not. The library computes apply verdicts (including the collision guard the operator lacks) and the apply order, and each frontend applies with its own engine.
 
-That boundary is not a compromise around this entry's scope; it lands exactly on it. Deletion, ownership, and the finalizer protocol (0010's OQ10, corrected in `01-problem.md`) are the part of the pipeline with no framework opinion, and therefore the part the kernel can own outright.
+That boundary is not a compromise around this entry's scope; it lands exactly on it. Deletion, ownership, and the finalizer protocol (0010's OQ10, corrected in `01-problem.md`) are the part of the pipeline with no framework opinion, and therefore the part the library can own outright.
 
 ### What "first-class Kubernetes platform" means concretely
 
-The kernel gains a Kubernetes tier that is not an adapter bolted onto a neutral core, but the platform the kernel is written for. Three consequences follow, and each is a real decision rather than a detail:
+The library gains a Kubernetes tier that is not an adapter bolted onto a neutral core, but the platform the library is written for (0012:D2). It sits beside the kernel package, not inside it and not in the opt-in helper tier (0012:D3). Four consequences follow, and each is a real decision rather than a detail:
 
-1. **The kernel's terminal output becomes a Kubernetes object,** not a CUE value an adapter wraps. `cli/pkg/core` and `opm-operator/pkg/core` are deleted rather than aliased.
-2. **`k8s.io/apimachinery` enters the library's dependency set,** and becomes a floor for every embedder by MVS, exactly as the CUE SDK already does. Nothing heavier: no `client-go`, no `controller-runtime`, no Flux. Whether the neutral `core.Resource`/`Identity` contract is deleted or retained-and-implemented is OQ3; the dependency arrives either way.
-3. **The library's constitution needs amending, narrowly.** Principle I (kernel neutrality) is about *runtime* neutrality: no globals, no `os.Exit`, no hidden env, I/O at the edges with caller-supplied config. A Kubernetes tier does not violate any of it, and the registry loader already performs OCI network I/O under exactly those terms. What does need changing is Principle III's package list, Principle IV's "`opm/` packages MUST NOT import command, controller, or runtime-specific concerns", and the platform-neutrality promise in `opm/core/resource.go`'s doc comment. That is an ADR in `library/` plus a `CONSTITUTION.md` edit, not a rewrite.
+1. **The library's terminal output for Kubernetes is a Kubernetes object.** The tier converts the kernel's compiled output into objects, and `cli/pkg/core` and `opm-operator/pkg/core` are deleted rather than aliased. The kernel's own output stays what it is, so the kernel stays "CUE in, verdicts out".
+2. **`k8s.io/apimachinery` enters the library's Go module, for the tier only.** The tier ships in the same module as the kernel, so the two share one version line and the dependency is a floor for every embedder by MVS, exactly as the CUE SDK already is. The kernel imports none of it. Nothing heavier enters at all: no `client-go`, no `controller-runtime`, no Flux. The neutral `core.Resource`/`Identity` contract is already deleted (OQ3).
+3. **The tier is fenced from day one.** Nothing else in the library imports it, and it imports only the kernel's public output types and `apimachinery`. The fence is checked mechanically on every library change, the same way the helper tier is fenced today, and it is in place before the first tier package exists.
+4. **The library's constitution needs amending, narrowly.** Principle I (kernel neutrality) is about *runtime* neutrality: no globals, no `os.Exit`, no hidden env, I/O at the edges with caller-supplied config. A Kubernetes tier does not violate any of it, and it performs no I/O at all. What does need changing is Principle III's package list and Principle IV's "`opm/` packages MUST NOT import command, controller, or runtime-specific concerns". Library ADR-011 records the tier and its bound.
+
+**The tier is not optional for a Kubernetes frontend.** A frontend that adopts a tier package deletes its own copy in the same release, with no alias, and its own checks refuse a copy being reintroduced. That is what separates the tier from the opt-in helper tier, and from the package 0006:D31 reverted because nothing forced its use.
 
 ### The deletion protocol
 
-Deletion becomes a kernel-owned state machine over inputs the kernel already understands, producing a plan the caller executes and a verdict the caller obeys:
+Deletion becomes a state machine owned by the Kubernetes tier, over inputs the library already understands, producing a plan the caller executes and a verdict the caller obeys:
 
 ```
-   inputs                          kernel                        caller
-   ──────                          ──────                        ──────
+   inputs                          opm/k8s                       caller
+   ──────                          ───────                       ──────
    inventory entries
    instance identity (UUID)   ┌──────────────────┐
    deletion policy            │  deletion plan   │──▶ ordered []PlannedAction
@@ -103,32 +106,35 @@ Deletion becomes a kernel-owned state machine over inputs the kernel already und
                                        │
                                        ▼                        performs each
                               ┌──────────────────┐              action itself,
-                              │   hold verdict   │──▶ verdict   asking the kernel
+                              │   hold verdict   │──▶ verdict   asking the tier
                               └──────────────────┘              for the next one
                                 Release | Hold(reason)
 ```
 
-Everything the operator's `handleDeletion` branches on today becomes a case in `MayReleaseHold`: prune disabled, empty inventory, partial failure, the force-orphan annotation. The operator keeps the finalizer patch (a `client.Patch`, which needs its client) and keeps the impersonation setup (credentials). It stops owning the decision of *when* the hold may be released.
+Everything the operator's `handleDeletion` branches on today becomes a case in the tier's hold verdict: prune disabled, empty inventory, partial failure, the force-orphan annotation. The operator keeps the finalizer patch (a `client.Patch`, which needs its client) and keeps the impersonation setup (credentials). It stops owning the decision of *when* the hold may be released.
 
 The CLI runs the same protocol for its own delete, and the question of whether CLI-owned CRs should carry a hold at all becomes answerable separately (as OQ6), because "what would clean up" now has one definition rather than being an operator-private code path.
 
 ### `ownerReferences`
 
-The analysis in [`01-problem.md`](01-problem.md) §6 points at one conclusion, recorded as OQ4 rather than as a decision because it is this entry's to make rather than one already made: **ownerReferences are the wrong mechanism for OPM's output**. The decisive reason is not the cluster-scope limitation 0010's OQ10 leads with, but the contradiction with `spec.prune`. A reference that garbage-collects regardless of policy cannot be an additive fast path under a policy whose default is "do not collect". The candidate this design carries forward is 0010's OQ10 candidate (a): inventory, labels, and a hold. Making the mechanism kernel-owned means "OPM cleans up its own resources" is one implementation rather than one-and-a-half.
+The analysis in [`01-problem.md`](01-problem.md) §6 points at one conclusion, recorded as OQ4 rather than as a decision because it is this entry's to make rather than one already made: **ownerReferences are the wrong mechanism for OPM's output**. The decisive reason is not the cluster-scope limitation 0010's OQ10 leads with, but the contradiction with `spec.prune`. A reference that garbage-collects regardless of policy cannot be an additive fast path under a policy whose default is "do not collect". The candidate this design carries forward is 0010's OQ10 candidate (a): inventory, labels, and a hold. Making the mechanism library-owned means "OPM cleans up its own resources" is one implementation rather than one-and-a-half.
 
 ## Schema / API Surface
 
 The full target shape lives in [`contracts/contracts.cue`](contracts/contracts.cue) and compiles. It is CUE rather than Go because the surface that matters here is the *contract* both Go implementations must satisfy: the inventory wire shape, the label vocabulary, the deletion policy, the verdict enums, the ownerRef eligibility predicate. That contract is already anchored in CUE and the CRD schema rather than in either frontend's structs.
 
-The Go package layout it implies, subject to OQ1 and OQ2:
+The Go package layout it implies is indicative; 0012:D3 fixes the tier and its fence, and the implementing changes settle the split:
 
 | Package | Owns | Depends on |
 | --- | --- | --- |
-| `opm/k8s/labels` | the label and annotation vocabulary, `IsOPMManagedBy`, runtime-name values | none |
-| `opm/k8s/object` | the terminal Kubernetes object; replaces both `pkg/core` copies; resource-order weights | `apimachinery` |
-| `opm/k8s/inventory` | `Entry`, one `ComputeStaleSet`, one `ComputeDigest`, one `RenderDigest` | `apimachinery` |
+| `opm/k8s/labels` | the label and annotation vocabulary, `IsOPMManagedBy`, runtime-name values; reads labels, never stamps them (0012:D6) | none |
+| `opm/k8s/object` | compiled-output-to-object conversion; replaces both `pkg/core` copies; the one kind-class order table (0012:D5); Kubernetes apply identity, moved from the helper tier | kernel output types, `apimachinery` |
+| `opm/k8s/inventory` | `Entry`, one `ComputeStaleSet`, one `ComputeDigest`, one `RenderDigest` that excludes the managed-by value (0012:D6) | `apimachinery` |
 | `opm/k8s/ownership` | `SafetyExcluded`, `CanDelete`, `CanApply`, `EligibleForOwnerRef` | `apimachinery` |
 | `opm/k8s/lifecycle` | hold name, `DeletionPlan`, `MayReleaseHold`, the plan transition and its serialisable state | `apimachinery` |
+| `opm/k8s/health` | readiness evaluation | `apimachinery` |
+
+Every package in the table imports only the kernel's public output types and `apimachinery`, and nothing outside `opm/k8s` imports any of them (0012:D3).
 
 There is no executor package. Library ADR-008 forbids a loop that drives a plan to completion anywhere in the library, the opt-in tier included, so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
 
@@ -136,30 +142,30 @@ There is no executor package. Library ADR-008 forbids a loop that drives a plan 
 
 ### library
 
-- `opm/core/resource.go`, `opm/core/compiled.go`: the neutral `Resource`/`Identity` contract; deleted or retained-and-implemented per OQ3.
-- `opm/kernel`: `RenderResult` gains the Kubernetes-shaped output.
-- `opm/k8s/**`: new tier, per the table above.
-- `opm/helper/`: nothing new. ADR-008 leaves no plan-walking helper to write.
-- `go.mod`: `k8s.io/apimachinery` added.
-- `CONSTITUTION.md` + `adr/`: Principle III/IV amendment and the ADR recording it.
+- `opm/core/resource.go`: the neutral `Resource`/`Identity` contract, already deleted (OQ3).
+- `opm/kernel`: unchanged in its imports. It names no Kubernetes type; the tier reads its public output types.
+- `opm/k8s/**`: new tier beside the kernel, per the table above, fenced from the rest of the library (0012:D3).
+- `opm/helper/`: nothing new. ADR-008 leaves no plan-walking helper to write. Kubernetes apply identity (`objectset`) moves out into the tier with the first tier package.
+- `go.mod`: `k8s.io/apimachinery` added to the same module, imported by the tier only.
+- `CONSTITUTION.md` + `adr/`: Principle III/IV amendment and ADR-011 recording the tier, its fence and its bound.
 - `MIGRATIONS.md`: required if OQ3 lands as a deletion.
 
 ### opm-operator
 
-- `pkg/core/{labels,resource,convert,compiled_adapter}.go`, `pkg/resourceorder/`: deleted; kernel types used directly.
-- `internal/inventory/**`: deleted; kernel inventory used directly.
-- `internal/apply/prune.go`: collapses into the kernel plan plus a local loop that performs the actions it names.
-- `internal/apply/apply.go`: keeps Flux SSA; gains the kernel's apply verdicts (this is 0006 OQ16's fix).
+- `pkg/core/{labels,resource,convert,compiled_adapter}.go`: deleted; tier types used directly. The operator's `pkg/resourceorder/` is already gone (deleted 2026-09-13).
+- `internal/inventory/**`: deleted; tier inventory used directly.
+- `internal/apply/prune.go`: collapses into the tier plan plus a local loop that performs the actions it names.
+- `internal/apply/apply.go`: keeps Flux SSA; gains the tier's apply verdicts and order (this is 0006 OQ16's fix).
 - `internal/reconcile/moduleinstance.go`: `handleDeletion` keeps the patches and impersonation, delegates the branching to `MayReleaseHold`.
-- `internal/render/module.go`: `buildInventoryEntries` becomes a kernel call.
+- `internal/render/module.go`: `buildInventoryEntries` becomes a tier call.
 
 ### cli
 
-- `pkg/core/**`, `pkg/inventory/**`, `pkg/resourceorder/**`: deleted; kernel types used directly.
-- `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the kernel plan plus a local loop that performs the actions it names, gaining the CRD exclusion and the delete-time ownership guard.
+- `pkg/core/**`, `pkg/inventory/**`, `pkg/resourceorder/**`: deleted; tier types used directly.
+- `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the tier plan plus a local loop that performs the actions it names, gaining the CRD exclusion and the delete-time ownership guard.
 - `internal/inventory/stale.go`: `ApplyComponentRenameSafetyCheck` deleted if OQ7 standardises on the component-blind comparator, which makes the post-filter unnecessary by construction.
-- `internal/kubernetes/delete.go`: the instance-delete walk becomes the kernel plan.
-- `internal/cmd/instance/delete.go`: unchanged in shape; the outcomes it reports become kernel-computed.
+- `internal/kubernetes/delete.go`: the instance-delete walk becomes the tier plan.
+- `internal/cmd/instance/delete.go`: unchanged in shape; the outcomes it reports become tier-computed.
 
 ## Before / After
 
@@ -181,7 +187,7 @@ stale entry: CustomResourceDefinition/backups.example.com
 stale entry: CustomResourceDefinition/backups.example.com
 
   operator ─┐
-            ├──▶ kernel deletion plan      ──▶  Skip{reason: SafetyExcluded}
+            ├──▶ opm/k8s deletion plan     ──▶  Skip{reason: SafetyExcluded}
   cli      ─┘                                    (one implementation, one reason string,
                                                   one test asserting it)
 ```
