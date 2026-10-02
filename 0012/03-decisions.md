@@ -126,13 +126,13 @@ Five properties bind the tier:
 
 **Kind:** contract
 
-**Decision:** For deletion, the library owns the whole sequence: the plan, each transition naming the next action, and the verdict on releasing the hold. For apply, the library owns the per-object verdict, which permits or refuses the object with a reason, and the order objects are applied in. It does not own the apply engine. The operator keeps its Flux staged server-side apply and the CLI keeps its own server-side apply, each consulting the verdict and the order. Both halves follow library ADR-008: the library names actions and never performs them.
+**Decision:** For deletion, the library owns the whole sequence: the plan, each transition naming the next action, and the verdict on releasing the hold. For apply, the library owns the per-object verdict, which permits or refuses the object with a reason, and the order objects are applied in. It does not own the apply engine. The operator keeps its Flux staged server-side apply and the CLI keeps its own server-side apply, each consulting the verdict and the order. Each frontend submits objects in the library's order. An engine's own staging, such as Flux's, may refine that order, for example by sorting within a stage, and never contradicts it. Both halves follow library ADR-008: the library names actions and never performs them.
 
 **Requirements:**
 
 - R1: A frontend deletes an object only when the deletion transition names that deletion as the next action, and releases an instance's hold only on a release verdict.
 - R2: Before a frontend applies an object, the library's verdict for that object has permitted it; a refused object is not applied and the reason is reported.
-- R3: Both frontends apply an instance's objects in the order the library gives.
+- R3: Each frontend submits an instance's objects in the order the library gives. An engine's own staging may refine that order and never contradicts it.
 - R4: The CLI's build contains no Flux or `controller-runtime` package as a consequence of this entry.
 
 **Alternatives considered:**
@@ -143,7 +143,7 @@ Five properties bind the tier:
 
 **Rationale:** The asymmetry follows where the framework opinion is. Deletion is order, fetch, guard and delete, with no opinion to inherit, so the library can own every step and the frontend only performs them. Apply carries Flux's staging opinion in the operator, which the CLI must not inherit. Sharing the verdict and the order still closes the divergence that matters: the apply-time collision guard the operator lacks becomes one verdict both frontends consult.
 
-**Source:** Owner decision 2026-10-02, answering the open half of OQ1. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier).
+**Source:** Owner decision 2026-10-02, answering the open half of 0012:OQ1 and part of 0012:OQ8. The refinement rule for engine staging is the owner's answer of the same day. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier).
 
 ---
 
@@ -151,13 +151,13 @@ Five properties bind the tier:
 
 **Kind:** contract
 
-**Decision:** Object ordering has two layers with two homes. Kind-class order is a fact about Kubernetes: a CustomResourceDefinition before the resources of its kind, a Namespace before the objects in it, and the like. It has one definition, a single weight table in the Kubernetes tier's object package, which both frontends use for apply and delete. Module-declared order (hooks, `dependsOn`, phases) is data the CUE build emits and the library decodes, per library ADR-008's fourth rule.
+**Decision:** Object ordering has two layers with two homes. Kind-class order is a fact about Kubernetes: a CustomResourceDefinition before the resources of its kind, a Namespace before the objects in it, and the like. It has one definition, a single weight table in the Kubernetes tier's object package, which both frontends use for apply and delete. Module-declared order (hooks, `dependsOn`, phases) is data the CUE build emits and the library decodes, per library ADR-008 rule 4.
 
-That rule says the kernel derives no ordering of its own. It is read as: the kernel derives no module-specific ordering. Kind-class order is a property of the Kubernetes API, not something the kernel derives from a module, so a kind-class table in the tier does not breach it.
+That rule says the kernel derives no ordering of its own. It is read as: the kernel derives no module-specific ordering. Kind-class order is a property of the Kubernetes API. The kernel does not derive it from a module, so a kind-class table in the tier does not breach rule 4.
 
 **Requirements:**
 
-- R1: The CLI and the operator order the same set of objects by kind class identically, for apply and for delete.
+- R1: The CLI and the operator order the same set of objects by kind class identically, for apply and for delete. For apply, this is the order each frontend submits. An engine's own staging may refine it within a stage and never contradicts it.
 - R2: A change to kind-class order is made once, in the library, and reaches both frontends through a library version bump.
 - R3: Any ordering a module declares reaches the frontend as data from the module's CUE build; the library adds no module-specific ordering of its own.
 
@@ -166,9 +166,9 @@ That rule says the kernel derives no ordering of its own. It is read as: the ker
 - **Kind-class order as CUE data off the build too.** Not chosen: it would make every module, or core, restate a fact about the Kubernetes API that does not vary by module.
 - **Each frontend keeps its own kind-class order.** Not chosen: the operator deleted its weight table on 2026-09-13 and orders through Flux, and the CLI lost weight-ordered apply when its render path changed and nothing failed. A rule with two homes has already drifted once.
 
-**Rationale:** The two layers have different sources of truth. One is the Kubernetes API, which is the same for every module and belongs with the other Kubernetes facts in the tier. The other is what a module author declares, which can only come from the module. Keeping them apart lets ADR-008's fourth rule keep its point, that the library invents no ordering a module did not ask for.
+**Rationale:** The two layers have different sources of truth. One is the Kubernetes API, which is the same for every module and belongs with the other Kubernetes facts in the tier. The other is what a module author declares, which can only come from the module. Keeping them apart lets ADR-008 rule 4 keep its point, that the library invents no ordering a module did not ask for.
 
-**Source:** Owner decision 2026-10-02. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier), which also states the clarified reading of ADR-008's fourth rule. The single remaining weight table is read from `cli/pkg/resourceorder` on 2026-10-02.
+**Source:** Owner decision 2026-10-02. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier), which also states the clarified reading of ADR-008 rule 4. The single remaining weight table is read from `cli/pkg/resourceorder` on 2026-10-02.
 
 ---
 
@@ -178,9 +178,9 @@ That rule says the kernel derives no ordering of its own. It is read as: the ker
 
 **Depends:** 0010:D9
 
-**Decision:** OPM's labels are stamped on rendered objects by the CUE build at render, as core's transformer contract does today, with the runtime name filled into core's `#runtimeName` by whichever frontend renders. Go code reads the labels and never stamps them. The render digest has one definition in the Kubernetes tier, and it excludes the value of the runtime-name label (`app.kubernetes.io/managed-by`), so the CLI and the operator digest the same render to the same bytes even though each stamps its own name. This is what lets 0012:D1's first requirement hold for digests.
+**Decision:** OPM's labels are stamped on rendered objects by the CUE build at render, as core's transformer contract does today, with the runtime name filled into core's `#runtimeName` by whichever frontend renders. Go code reads the labels and never stamps them. The render digest has one definition in the Kubernetes tier. It excludes the value of the runtime-name label (`app.kubernetes.io/managed-by`). So the CLI and the operator digest the same render to the same bytes, though each stamps its own name. This is what lets 0012:D1's first requirement hold for digests.
 
-This agrees with 0010:D9 as revised: the module version label is declared by the schema and verified, not stamped, by the kernel. Nothing in either entry moves stamping out of CUE.
+This agrees with 0010:D9 as revised. The schema declares the module version label, and the kernel verifies it. Nothing in either entry moves stamping out of CUE.
 
 **Requirements:**
 
@@ -194,8 +194,8 @@ This agrees with 0010:D9 as revised: the module version label is declared by the
 - **Keep the managed-by value in the digest.** Not chosen: the two runtimes stamp different values, so the digests of one render can never agree, and the byte-for-byte parity the CLI's digest comment claims holds only for the algorithm, never for the value.
 - **Each frontend digests its own way.** Not chosen: that is the hand-synced duplication 0012:D1 removes.
 
-**Rationale:** Stamping belongs where the label set is composed, and that is CUE. The digest's job is to say whether two renders produced the same objects, and which runtime rendered them is not part of that answer. Excluding exactly one label value keeps every other change visible.
+**Rationale:** Stamping belongs where the label set is composed, and that is CUE. The digest's job is to say whether two renders produced the same objects, and which runtime rendered them is not part of that answer. Excluding exactly one label value keeps every other change visible. It is also what lets 0006:D7's handoff check hold. The CLI records `status.lastAppliedRenderDigest` so a later ownership transfer has a value to verify against, and today that comparison cannot match, because each runtime stamps its own name.
 
-**Source:** Owner decision 2026-10-02, answering OQ11. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). Read on 2026-10-02: `cli/internal/inventory/digest.go` hashes each object's full JSON, managed-by label included, and `core/src/platform_and_match_pins.cue` shows the runtime filling `#runtimeName`. 0010:D9 is read from `archive/0010/03-decisions.md`.
+**Source:** Owner decision 2026-10-02, answering 0012:OQ11. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). Read on 2026-10-02: `cli/internal/inventory/digest.go` hashes each object's full JSON, managed-by label included, and `core/src/platform_and_match_pins.cue` shows the runtime filling `#runtimeName`. 0010:D9 is read from `archive/0010/03-decisions.md`.
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
