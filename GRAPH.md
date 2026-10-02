@@ -30,7 +30,7 @@ graph LR
   Cruntime["runtime (4 live entries, 2 closed)"]:::category
   Cdistribution["distribution (4 live entries, 4 closed)"]:::category
   Ctooling["tooling (4 entries)"]:::category
-  Cmisc["misc (1 entry)"]:::category
+  Cmisc["misc (0 live entries, 1 closed)"]:::category
 
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
@@ -211,22 +211,7 @@ graph TD
 
 ## misc
 
-```mermaid
-graph TD
-  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
-  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
-  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
-  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
-  classDef delivered   fill:#dcfce7,stroke:#15803d,color:#14532d
-  classDef legacy      fill:#fafafa,stroke:#9ca3af,color:#6b7280,stroke-dasharray:3 3
-  classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
-  classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
-
-  N0018["0018: Documentation Architecture"]:::draft
-  N0013["0013 · schema"]:::stub
-
-  N0018 -->|depends on| N0013
-```
+No live entries.
 
 ## Legend
 

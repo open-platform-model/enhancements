@@ -1,8 +1,10 @@
+> **Rejected (2026-10-02).** Not rejected on merit. The documentation work continues without an enhancement: its page rules live in the workspace STYLE.md (Site Pages) and its voice in VOICE.md, and the owning repos implement them directly.
+
 # Enhancement 0018: Documentation Architecture
 
 OPM has no usable public documentation, and not for want of writing. The biggest body of prose describes a version of OPM that no longer exists. What is current sits where nobody looks: a command-line readme, a contributor spec, and examples buried in catalog code. This entry says what the docs are and what keeps them from drifting again.
 
-All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
