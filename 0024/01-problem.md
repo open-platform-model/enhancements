@@ -8,7 +8,7 @@ Almost everything OPM promises is the result of CUE evaluation: the core schema 
                        positive     negative     diagnostic    instance     cross-version
                        (accepts)    (rejects)    text          wiring       (cue / core)
  core/src              none         none         none          none         none
- catalog_opm/opm       163 _test*   none         none          hand-built   none
+ catalog_opm/src       163 _test*   none         none          hand-built   none
  modules               cue vet      none         none          n/a          none
  enhancements/schemas  examples.cue commented    none          hand-built   none
                                     out
@@ -16,7 +16,7 @@ Almost everything OPM promises is the result of CUE evaluation: the core schema 
 ```
 
 - `core` ships `task check` (format, vet, index freshness, SPEC inventory). None of those evaluates a single fixture against a definition. The seven behaviours of the 0019 D16 default flip (accepts, overrides, refuses an overlong name with the string in the diagnostic, accepts at the 63-rune bound) were verified by pasting cases into a scratch copy of the package and reading `cue vet` output by eye; nothing of that survives in the repo.
-- `catalog_opm/opm` carries 163 `_test*` hidden fields across its transformers, each unifying a transformer's `#transform` with a fixture and pinning fields of the output, and every `output:` is unified with the upstream definition from `cue.dev/x/k8s.io` (`output: k8sappsv1.#Deployment & {…}`). This is real verification, positive-only, and invisible to anyone outside the module.
+- `catalog_opm/src` carries 163 `_test*` hidden fields across its transformers, each unifying a transformer's `#transform` with a fixture and pinning fields of the output, and every `output:` is unified with the upstream definition from `cue.dev/x/k8s.io` (`output: k8sappsv1.#Deployment & {…}`). This is real verification, positive-only, and invisible to anyone outside the module.
 - `enhancements/NNNN/schemas/examples.cue` pins derived values with hidden assertions and states in its header that must-fail cases are "commented out with the exact error text observed on cue v0.17.1, so a reader can re-run them by hand".
 - `library` has the only harness that can assert a rejection, a diagnostic's text, or a value's behaviour across CUE versions, all in Go: `schematest` fixtures against the published core, the parity harness against the pure-CUE oracle, and the `cueregression` canary, which exists because a CUE toolchain bump silently changed closedness behaviour and the catalog only renders today because an authoring rule keeps it off the trigger.
 

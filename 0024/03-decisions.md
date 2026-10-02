@@ -19,7 +19,7 @@ Decisions are numbered sequentially and recorded as they are made; numbers are p
 
 ### The catalog and upstream definitions (measured 2026-08-25)
 
-- `catalog_opm/opm` depends on `cue.dev/x/k8s.io@v0` v0.10.0 (`default: true`), re-exports its groups under `schemas/kubernetes/`, unifies every transformer `output:` with the upstream definition, and carries 163 `_test*` hidden assertions.
+- `catalog_opm/src` depends on `cue.dev/x/k8s.io@v0` v0.10.0 (`default: true`), re-exports its groups under `schemas/kubernetes/`, unifies every transformer `output:` with the upstream definition, and carries 163 `_test*` hidden assertions.
 - `cue.dev/x/k8s.io` v0.7.0 and v0.10.0 differ in one group version (`scheduling/v1alpha1` → `v1alpha2`); the module records no Kubernetes release number anywhere found. The Central Registry lists `v0.0.0`, `v0.3.0` through `v0.8.0`, and `v0.10.0`.
 
 ---
