@@ -54,9 +54,9 @@ Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped 
 
 **Rung 2 alone is what 0006 already reverted.** A package of pure helpers that nothing forces a frontend to call is precisely what D31 called "actively misleading… that nothing actually imports". The design goal "divergence becomes a compile error" is not met at Rung 2: a frontend can import the plan and then not follow it, which is exactly how the CLI came to lack a CRD exclusion the operator has.
 
-**Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the whole library: the kernel ships no loop that drives a plan to completion, and it names an action rather than performing one. What it supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
+**Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the kernel. Rule 1 says the kernel plans and the caller runs, and rule 3 says the kernel names an action and never performs one. Rule 3 leaves an opt-in executor under `opm/helper/` open, and none ships in `opm/k8s` or the kernel (0012:D3). What it supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
 
-That shape is the first half of OQ1's answer; 0012:D4 gives the second, the apply/delete asymmetry below. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
+That shape is the first half of 0012:OQ1's answer; 0012:D4 gives the second, the apply/delete asymmetry below. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
 
 Apply and delete remain asymmetric in how much of the sequence the library owns (0012:D4):
 
@@ -78,15 +78,15 @@ Apply and delete remain asymmetric in how much of the sequence the library owns 
 
 So the boundary, fixed by 0012:D4, is: **share every decision; share the sequence only where it carries no framework opinion; never share the doing.** Deletion qualifies for the sequence. Apply does not. The library computes apply verdicts (including the collision guard the operator lacks) and the apply order, and each frontend applies with its own engine.
 
-That boundary is not a compromise around this entry's scope; it lands exactly on it. Deletion, ownership, and the finalizer protocol (0010's OQ10, corrected in `01-problem.md`) are the part of the pipeline with no framework opinion, and therefore the part the library can own outright.
+That boundary is not a compromise around this entry's scope; it lands exactly on it. Deletion, ownership, and the finalizer protocol (0010:OQ10, corrected in `01-problem.md`) are the part of the pipeline with no framework opinion, and therefore the part the library can own outright.
 
 ### What "first-class Kubernetes platform" means concretely
 
-The library gains a Kubernetes tier that is not an adapter bolted onto a neutral core, but the platform the library is written for (0012:D2). It sits beside the kernel package, not inside it and not in the opt-in helper tier (0012:D3). Four consequences follow, and each is a real decision rather than a detail:
+The library gains a Kubernetes tier. Kubernetes is the platform the library is written for (0012:D2), so the tier is no adapter over a neutral core. It sits beside the kernel package, outside both the kernel and the opt-in helper tier (0012:D3). Four consequences follow, and each is a real decision rather than a detail:
 
 1. **The library's terminal output for Kubernetes is a Kubernetes object.** The tier converts the kernel's compiled output into objects, and `cli/pkg/core` and `opm-operator/pkg/core` are deleted rather than aliased. The kernel's own output stays what it is, so the kernel stays "CUE in, verdicts out".
 2. **`k8s.io/apimachinery` enters the library's Go module, for the tier only.** The tier ships in the same module as the kernel, so the two share one version line and the dependency is a floor for every embedder by MVS, exactly as the CUE SDK already is. The kernel imports none of it. Nothing heavier enters at all: no `client-go`, no `controller-runtime`, no Flux. The neutral `core.Resource`/`Identity` contract is already deleted (OQ3).
-3. **The tier is fenced from day one.** Nothing else in the library imports it, and it imports only the kernel's public output types and `apimachinery`. The fence is checked mechanically on every library change, the same way the helper tier is fenced today, and it is in place before the first tier package exists.
+3. **The tier is fenced from day one.** Nothing else in the library imports it. Its outward bound is a denylist. Beyond the standard library and the CUE SDK that the kernel's output types carry, it imports only the kernel's exported packages and `apimachinery`. It never imports `client-go`, `controller-runtime`, Flux, a cluster client, `opm/internal` or `opm/helper`. The fence is checked mechanically on every library change, the same way the helper tier is fenced today, and it is in place before the first tier package exists.
 4. **The library's constitution needs amending, narrowly.** Principle I (kernel neutrality) is about *runtime* neutrality: no globals, no `os.Exit`, no hidden env, I/O at the edges with caller-supplied config. A Kubernetes tier does not violate any of it, and it performs no I/O at all. What does need changing is Principle III's package list and Principle IV's "`opm/` packages MUST NOT import command, controller, or runtime-specific concerns". Library ADR-011 records the tier and its bound.
 
 **The tier is not optional for a Kubernetes frontend.** A frontend that adopts a tier package deletes its own copy in the same release, with no alias, and its own checks refuse a copy being reintroduced. That is what separates the tier from the opt-in helper tier, and from the package 0006:D31 reverted because nothing forced its use.
@@ -117,7 +117,7 @@ The CLI runs the same protocol for its own delete, and the question of whether C
 
 ### `ownerReferences`
 
-The analysis in [`01-problem.md`](01-problem.md) §6 points at one conclusion, recorded as OQ4 rather than as a decision because it is this entry's to make rather than one already made: **ownerReferences are the wrong mechanism for OPM's output**. The decisive reason is not the cluster-scope limitation 0010's OQ10 leads with, but the contradiction with `spec.prune`. A reference that garbage-collects regardless of policy cannot be an additive fast path under a policy whose default is "do not collect". The candidate this design carries forward is 0010's OQ10 candidate (a): inventory, labels, and a hold. Making the mechanism library-owned means "OPM cleans up its own resources" is one implementation rather than one-and-a-half.
+The analysis in [`01-problem.md`](01-problem.md) §6 points at one conclusion, recorded as 0012:OQ4 rather than as a decision because it is this entry's to make rather than one already made: **ownerReferences are the wrong mechanism for OPM's output**. The decisive reason is not the cluster-scope limitation 0010's OQ10 leads with, but the contradiction with `spec.prune`. A reference that garbage-collects regardless of policy cannot be an additive fast path under a policy whose default is "do not collect". The candidate this design carries forward is 0010's OQ10 candidate (a): inventory, labels, and a hold. Making the mechanism library-owned means "OPM cleans up its own resources" is one implementation rather than one-and-a-half.
 
 ## Schema / API Surface
 
@@ -134,28 +134,28 @@ The Go package layout it implies is indicative; 0012:D3 fixes the tier and its f
 | `opm/k8s/lifecycle` | hold name, `DeletionPlan`, `MayReleaseHold`, the plan transition and its serialisable state | `apimachinery` |
 | `opm/k8s/health` | readiness evaluation | `apimachinery` |
 
-Every package in the table imports only the kernel's public output types and `apimachinery`, and nothing outside `opm/k8s` imports any of them (0012:D3).
+Beyond the standard library and the CUE SDK, every package in the table imports only the kernel's exported packages and `apimachinery`, and nothing outside `opm/k8s` imports any of them (0012:D3).
 
-There is no executor package. Library ADR-008 forbids a loop that drives a plan to completion anywhere in the library, the opt-in tier included, so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
+There is no executor package. No loop that drives a plan to completion ships in `opm/k8s` or the kernel (0012:D3, library ADR-008 rules 1 to 3), so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
 
 ## Integration Points
 
 ### library
 
-- `opm/core/resource.go`: the neutral `Resource`/`Identity` contract, already deleted (OQ3).
+- `opm/core/resource.go`: the neutral `Resource`/`Identity` contract, already deleted (0012:OQ3).
 - `opm/kernel`: unchanged in its imports. It names no Kubernetes type; the tier reads its public output types.
 - `opm/k8s/**`: new tier beside the kernel, per the table above, fenced from the rest of the library (0012:D3).
-- `opm/helper/`: nothing new. ADR-008 leaves no plan-walking helper to write. Kubernetes apply identity (`objectset`) moves out into the tier with the first tier package.
+- `opm/helper/`: nothing new. This entry adds no plan-walking helper. Kubernetes apply identity (`objectset`) moves out into the tier with the first tier package.
 - `go.mod`: `k8s.io/apimachinery` added to the same module, imported by the tier only.
 - `CONSTITUTION.md` + `adr/`: Principle III/IV amendment and ADR-011 recording the tier, its fence and its bound.
-- `MIGRATIONS.md`: required if OQ3 lands as a deletion.
+- `MIGRATIONS.md`: records the `apimachinery` floor the tier adds, next to the CUE floor.
 
 ### opm-operator
 
 - `pkg/core/{labels,resource,convert,compiled_adapter}.go`: deleted; tier types used directly. The operator's `pkg/resourceorder/` is already gone (deleted 2026-09-13).
 - `internal/inventory/**`: deleted; tier inventory used directly.
 - `internal/apply/prune.go`: collapses into the tier plan plus a local loop that performs the actions it names.
-- `internal/apply/apply.go`: keeps Flux SSA; gains the tier's apply verdicts and order (this is 0006 OQ16's fix).
+- `internal/apply/apply.go`: keeps Flux SSA; gains the tier's apply verdicts and order (this is 0006:OQ16's fix).
 - `internal/reconcile/moduleinstance.go`: `handleDeletion` keeps the patches and impersonation, delegates the branching to `MayReleaseHold`.
 - `internal/render/module.go`: `buildInventoryEntries` becomes a tier call.
 

@@ -119,8 +119,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `library/opm/helper/doc.go` | The helper tier's opt-in definition and import fence, the reason the tier is not there (0012:D3) |
 | `library/adr/008-kernel-plans-caller-runs.md` | The kernel plans, the caller runs: the rules 0012:D3 and 0012:D4 apply to the tier |
 | `library/adr/011-kubernetes-tier-beside-the-kernel.md` | The library's record of 0012:D3 to 0012:D6, landing with the library change record-kubernetes-tier |
-| `library/opm/core/resource.go` | The platform-neutral contract with no implementation |
-| `library/opm/core/compiled.go` | The kernel's current terminal output |
+| `library/.golangci.yml` | The import rules that fence the tier and the kernel (0012:D3) |
 | `library/opm/kernel` | Where the Kubernetes-shaped render result comes out today |
 | `library/go.mod` | The version floor every embedder inherits |
 | `library/MIGRATIONS.md` | The repo's per-breaking-change migration contract |
@@ -128,7 +127,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `opm-operator/internal/apply/prune.go` | The delete-time ownership guard the CLI lacks |
 | `opm-operator/internal/apply/apply.go` | The Flux staged apply that is kept, and why |
 | `opm-operator/internal/inventory/` | Entry construction, stale set and digest: what the tier replaces |
-| `opm-operator/pkg/core/`, `opm-operator/pkg/resourceorder/` | The operator half of the byte-identical duplication |
+| `opm-operator/pkg/core/` | The operator half of the byte-identical duplication |
 | `opm-operator/internal/render/module.go` | Inventory-entry construction, which becomes a tier call |
 | `opm-operator/api/v1alpha1/moduleinstance_types.go` | Where prune, owner and the inventory status fields are declared |
 | `cli/internal/inventory/stale.go` | The narrow exclusion list that lets the CLI delete more |
@@ -141,7 +140,7 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `core/src/transformer.cue` | Where labels are composed and the runtime name is filled |
 | `core/src/module_instance.cue` | The instance UUID the ownership guard compares |
 | `catalog_opm/src/resources/crd.cue`, `role.cue` | Cluster-scoped renderables a namespaced owner cannot cover |
-| `enhancements/0006/03-decisions.md` | The decision superseded and the two questions absorbed |
-| `enhancements/0010/03-decisions.md` | The question that surfaced this entry, corrected in `01-problem.md` |
+| `enhancements/archive/0006/03-decisions.md` | The decision superseded and the two questions absorbed |
+| `enhancements/archive/0010/03-decisions.md` | The question that surfaced this entry, corrected in `01-problem.md` |
 | `enhancements/0008/` | CRD types from CUE, entangled on where the type vocabulary lives |
 | `enhancements/0009/` | The kernel's execution half, tangled up at the planner boundary |
