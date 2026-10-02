@@ -87,13 +87,15 @@ The narrower reading also matters for what this decision is *not*: it does not l
 
 **Kind:** contract
 
+**Depends:** 0009:D4
+
 **Decision:** The Kubernetes runtime decisions 0012:D1 lists (inventory entry construction, the stale set, digests, prune and ownership guards at apply and delete time, deletion ordering and the deletion hold protocol) live in a new library tier, `opm/k8s`, together with conversion of the kernel's compiled output to Kubernetes objects, the label vocabulary, kind-class apply order and readiness evaluation. The tier sits beside the kernel: it is not inside the kernel package and not under the opt-in `opm/helper` tier. Its package split is settled by the implementing changes; the indicative packages are labels, object, inventory, ownership, lifecycle and health.
 
 Five properties bind the tier:
 
 1. **Fence.** No library package outside `opm/k8s` imports it: not the kernel, module, platform, catalog, schema or errors packages, nothing internal, and nothing under `opm/helper`. The kernel imports no `k8s.io` package at all. The tier's outward bound is a denylist. Beyond the standard library and the CUE SDK that the kernel's output types carry, the tier imports only the kernel's exported packages and `k8s.io/apimachinery`. It never imports `client-go`, `controller-runtime`, any Flux package, any cluster client, `opm/internal` or `opm/helper`. The fence is checked mechanically on every library change, and the check exists before the first package does.
 2. **Obligation.** The tier is not opt-in for a frontend that targets Kubernetes. A frontend that adopts a package deletes its own copy of that package's decisions in the same release, with no alias left behind, and from then on its own checks refuse a reintroduced copy. Deletion is a step protocol, so a frontend makes progress only by asking the tier for the next action and cannot route around a guard.
-3. **No cluster I/O and no loop, anywhere in the library.** The tier names actions and the frontend performs them with its own client, as library ADR-008 rules 1 to 3 require. ADR-008 rule 1 keeps any loop that drives a plan to completion out of the whole library. No executor backend, the code that performs a named action, ships in the library either: ADR-008 rule 3 allowed opt-in backends under `opm/helper/`, and an in-place amendment to ADR-008 citing library ADR-011 retires that allowance (open-platform-model/library#159). Each frontend writes its own short loop and performs every action with its own client.
+3. **No plan-driving loop and no cluster action, anywhere in the library.** The tier names actions and the frontend performs them with its own client, as library ADR-008 rules 1 to 3 require. ADR-008 rule 1 keeps any loop that drives a plan to completion out of the whole library. No code that performs a planned action against a cluster ships in any tier either. ADR-008 rule 3 allowed opt-in executor backends under `opm/helper/`; an in-place amendment to ADR-008 citing library ADR-011 narrows that allowance rather than retiring it (open-platform-model/library#159). It keeps the backends that do not act on a cluster, the wasm, container, HTTP and `cue.eval` hosts 0009:D4 places there, and excludes any backend that acts on a cluster. Each frontend writes its own short loop and performs every cluster action with its own client.
 4. **Same Go module.** The tier is versioned and released with the kernel in the library's one Go module. It has no nested module of its own.
 5. **Kubernetes apply identity moves in.** The duplicate rendered-identity check that lives in the helper tier today is Kubernetes-specific and moves into the tier with its first package.
 
@@ -108,7 +110,7 @@ Five properties bind the tier:
 - R5: `opm/k8s` is released under the same module version as the kernel; an embedder pins one library version for both.
 - R6: From the release in which a Kubernetes frontend adopts an `opm/k8s` package, that frontend carries no implementation of its own of the decisions the package makes and no alias to it, and its checks refuse a reintroduced copy.
 - R7: The duplicate rendered-identity check is served by `opm/k8s` and no longer by the helper tier.
-- R8: No library package, in any tier, contains a loop that drives a plan to completion or code that performs an action against a cluster.
+- R8: No library package, in any tier, contains a loop that drives a plan to completion or code that performs a planned action against a cluster.
 
 **Alternatives considered:**
 
@@ -119,7 +121,7 @@ Five properties bind the tier:
 
 **Rationale:** The kernel and the Kubernetes tier have different reasons to change and different dependency budgets. Putting them side by side in one module gets the single version line 0012:D1 relies on while keeping the kernel's import graph free of Kubernetes. Making the tier mandatory rather than opt-in is what separates it from the package 0006:D31 removed. The fence follows the precedent the library already runs for the helper tier, where an import linter refuses a kernel package importing anything under it on every PR.
 
-**Source:** Owner decision 2026-10-02, choosing `opm/k8s` over both the kernel and the helper tier, and a second owner decision the same day that nothing in the library touches the cluster, which retires ADR-008 rule 3's helper-backend allowance. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). The helper tier's opt-in definition and its import fence are read from `library/opm/helper/doc.go`.
+**Source:** Owner decision 2026-10-02, choosing `opm/k8s` over both the kernel and the helper tier, and a second owner decision the same day that no code in the library performs a planned action against a cluster, which narrows ADR-008 rule 3's helper-backend allowance to backends that do not act on a cluster and leaves 0009:D4 standing. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). The helper tier's opt-in definition and its import fence are read from `library/opm/helper/doc.go`.
 
 ---
 
@@ -140,7 +142,7 @@ Five properties bind the tier:
 
 - **The library owns the apply sequence too, through one shared engine.** Not chosen: the operator's engine is `fluxcd/pkg/ssa`, and forcing it on the CLI pulls `controller-runtime` into it. 0006:D13's static analysis is why that edge is refused.
 - **The library owns verdicts only, for delete as well as apply.** Not chosen: a plan a frontend can decline to follow is how the CLI came to lack the CRD exclusion the operator has. Deletion carries no framework opinion, so nothing stops the library owning its sequence.
-- **An apply executor in the opt-in helper tier.** Not chosen: it would be a third apply engine beside the two that exist, and anything in the helper tier may be skipped. ADR-008 rule 3 no longer allows an executor backend there (0012:D3).
+- **An apply executor in the opt-in helper tier.** Not chosen: it would be a third apply engine beside the two that exist, and anything in the helper tier may be skipped. ADR-008 rule 3, as narrowed, allows only backends that do not act on a cluster there (0012:D3), and an apply executor acts on one.
 
 **Rationale:** The asymmetry follows where the framework opinion is. Deletion is order, fetch, guard and delete, with no opinion to inherit, so the library can own every step and the frontend only performs them. Apply carries Flux's staging opinion in the operator, which the CLI must not inherit. Sharing the verdict and the order still closes the divergence that matters: the apply-time collision guard the operator lacks becomes one verdict both frontends consult.
 

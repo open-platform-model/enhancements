@@ -34,7 +34,7 @@ graph LR
 
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
-  Cruntime -->|2| Cschema
+  Cruntime -->|3| Cschema
   Cruntime -->|3| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
@@ -65,6 +65,7 @@ graph TD
   N0025["0025: Self-Describing Modules"]:::draft
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
   N0010["0010 · distribution"]:::stub
+  N0012["0012 · runtime"]:::stub
   N0014["0014 · runtime"]:::stub
   N0018["0018 · misc"]:::stub
   N0019["0019 · runtime"]:::stub
@@ -72,6 +73,7 @@ graph TD
   N0027["0027 · runtime"]:::stub
 
   N0009 -->|depends on| N0025
+  N0012 -->|depends on| N0009
   N0013 -->|depends on| N0014
   N0017 -->|depends on| N0010
   N0018 -->|depends on| N0013
@@ -110,6 +112,7 @@ graph TD
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
   N0008["0008 · tooling"]:::stub
+  N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
@@ -120,6 +123,7 @@ graph TD
   N0026["0026 · schema"]:::stub
 
   N0012 -->|depends on| N0006
+  N0012 -->|depends on| N0009
   N0012 -->|depends on| N0010
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006

@@ -54,7 +54,7 @@ Today the kernel stops at `[]*kernel.Compiled` and everything Kubernetes-shaped 
 
 **Rung 2 alone is what 0006 already reverted.** A package of pure helpers that nothing forces a frontend to call is precisely what D31 called "actively misleading… that nothing actually imports". The design goal "divergence becomes a compile error" is not met at Rung 2: a frontend can import the plan and then not follow it, which is exactly how the CLI came to lack a CRD exclusion the operator has.
 
-**Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the whole library. Rule 1 says the kernel plans and the caller runs, and that the library ships no loop that drives a plan to completion. Rule 3 says the kernel names an action and never performs one. Its allowance for opt-in executor backends under `opm/helper/` is retired by an in-place amendment citing library ADR-011, so no code in the library touches a cluster (0012:D3). What the library supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
+**Rung 3 is where behaviour is actually unified, and library ADR-008 fixes its shape.** An earlier draft of this entry put a plan-walking loop in the kernel, executing against a caller-supplied object client. ADR-008 rules that out for the whole library. Rule 1 says the kernel plans and the caller runs, and that the library ships no loop that drives a plan to completion. Rule 3 says the kernel names an action and never performs one. An in-place amendment citing library ADR-011 narrows its allowance for opt-in executor backends under `opm/helper/` to backends that do not act on a cluster, the wasm, container, HTTP and `cue.eval` hosts 0009:D4 places there, so no code in the library performs a planned action against a cluster (0012:D3). What the library supplies instead is a transition. The caller asks for the next action, performs it, and hands back the result; the state is a serialisable value the caller owns, so a controller can carry it across reconciles and a one-shot frontend can hold it in memory.
 
 That shape is the first half of 0012:OQ1's answer; 0012:D4 gives the second, the apply/delete asymmetry below. A frontend cannot decline to follow the decisions, because calling the transition is the only way to make progress, and it inherits no framework opinion, because it performs every action itself.
 
@@ -136,7 +136,7 @@ The Go package layout it implies is indicative; 0012:D3 fixes the tier and its f
 
 Beyond the standard library and the CUE SDK, every package in the table imports only the kernel's exported packages and `apimachinery`, and nothing outside `opm/k8s` imports any of them (0012:D3).
 
-There is no executor package. No loop that drives a plan to completion and no executor backend ships anywhere in the library (0012:D3, library ADR-008 rules 1 to 3), so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
+There is no executor package. No loop that drives a plan to completion ships anywhere in the library, and no code that performs a planned action against a cluster ships in any tier (0012:D3, library ADR-008 rules 1 to 3), so nothing here touches a cluster: `opm/k8s/lifecycle` names the next action and the frontend performs it with the client it already holds. The loop that remains in each frontend is a few lines and contains no decision; if a decision ever appears in one, the boundary is drawn wrong.
 
 ## Integration Points
 
@@ -145,7 +145,7 @@ There is no executor package. No loop that drives a plan to completion and no ex
 - `opm/core/resource.go`: the neutral `Resource`/`Identity` contract, already deleted (0012:OQ3).
 - `opm/kernel`: unchanged in its imports. It names no Kubernetes type; the tier reads its public output types.
 - `opm/k8s/**`: new tier beside the kernel, per the table above, fenced from the rest of the library (0012:D3).
-- `opm/helper/`: nothing new. This entry adds no plan-walking helper and no executor backend, and ADR-008 no longer allows either there. Kubernetes apply identity (`objectset`) moves out into the tier with the first tier package.
+- `opm/helper/`: nothing new. This entry adds no plan-walking helper and no executor backend. ADR-008 allows no loop there, and as narrowed allows only backends that do not act on a cluster, such as 0009:D4's hosts. Kubernetes apply identity (`objectset`) moves out into the tier with the first tier package.
 - `go.mod`: `k8s.io/apimachinery` added to the same module, imported by the tier only.
 - `CONSTITUTION.md` + `adr/`: Principle III/IV amendment and ADR-011 recording the tier, its fence and its bound.
 - `MIGRATIONS.md`: records the `apimachinery` floor the tier adds, next to the CUE floor.
