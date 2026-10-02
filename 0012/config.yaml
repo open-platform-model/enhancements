@@ -62,7 +62,7 @@ history:
   - date: "2026-09-29"
     event: 'Mechanism smells cleared in 02-design.md: the deletion-protocol and Before/After diagrams name kernel operations instead of function tokens. No decision changed.'
   - date: "2026-10-02"
-    event: 'D3-D6 added (owner decision): opm/k8s tier beside the kernel, fenced, same module, mandatory (amends D2); apply/delete asymmetry; two-layer ordering; CUE label stamping. OQ1 and OQ11 answered.'
+    event: 'D3-D6 added (owner decision): fenced opm/k8s tier, apply/delete asymmetry, two-layer ordering, CUE label stamping. D1 and D2 revised in place. OQ1, OQ11 answered; OQ8 partial.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

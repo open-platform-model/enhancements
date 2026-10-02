@@ -4,7 +4,7 @@ This document records every significant design choice with its reasoning and the
 
 ## Summary
 
-Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are made. **Numbers are permanent**: never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now: a reversal is recorded as its own `DN` while the design is in motion, then woven into the decision it changes at the next compaction pass: the merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
+Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are made. **Numbers are permanent**: never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now. While this entry is `draft`, a decision is revised in place and gains a dated `**Revised:**` line, so the log never holds two conflicting decisions. From `accepted`, a change is its own `DN` with an `**Amends:**` or `**Supersedes:**` line. The next compaction pass weaves it into the decision it changes. The merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
 
 Each decision uses the same four-field shape: Decision, Alternatives considered, Rationale, Source.
 
@@ -14,7 +14,7 @@ This entry is `draft`. Only decisions actually taken are recorded below; everyth
 
 ## Decisions
 
-### D1: The Kubernetes runtime surface homes in the library kernel (supersedes 0006 D31's placement conclusion, not its analysis)
+### D1: The Kubernetes runtime surface homes in the library's Kubernetes tier (supersedes only 0006:D31's placement conclusion)
 
 **Kind:** contract
 
@@ -54,28 +54,32 @@ What D31 got right and this decision preserves is that none of this logic is *cr
 
 **Source:** User decision 2026-07-27, from an explore-mode session investigating enhancement 0010's OQ10. Evidence gathered in the same session and recorded in [`01-problem.md`](01-problem.md); every file reference verified against the working tree that day.
 
+**Revised:** 2026-10-02: the title names the library's Kubernetes tier (0012:D3) where it named the kernel. The decision text and its requirements are unchanged.
+
 ---
 
-### D2: The kernel is written for Kubernetes; no portability abstraction is maintained on its behalf
+### D2: The library is written for Kubernetes; no portability abstraction is maintained on its behalf
 
 **Kind:** policy
 
-**Decision:** Kubernetes is the kernel's platform, not one of several the kernel abstracts over. New kernel surface is written directly against Kubernetes concepts: GVK, namespace, labels, ownerReferences, finalizers, propagation policy. There is no intervening neutral vocabulary, and no generalisation work is undertaken to keep a non-Kubernetes backend viable. `k8s.io/apimachinery` becomes a library dependency and therefore, by MVS, a floor for every embedder.
+**Decision:** Kubernetes is the library's one platform. The library abstracts over no other. Its Kubernetes surface lives in the library's Kubernetes tier (0012:D3) and is written directly against Kubernetes concepts: GVK, namespace, labels, ownerReferences, finalizers, propagation policy. There is no intervening neutral vocabulary, and no generalisation work is undertaken to keep a non-Kubernetes backend viable. `k8s.io/apimachinery` becomes a library dependency, imported by that tier only, and therefore, by MVS, a floor for every embedder.
 
-The dependency is bounded to `apimachinery`. `client-go`, `controller-runtime`, and Flux are explicitly excluded: the first because the kernel does not resolve credentials, the second and third because they are the operator's framework and must not become the CLI's.
+The dependency is bounded to `apimachinery`. `client-go`, `controller-runtime`, and Flux are explicitly excluded. The first is excluded because the library does not resolve credentials. The second and third are the operator's framework and must not become the CLI's.
 
 **Requirements:** none (vocabulary and dependency posture; every behaviour it enables is stated under D1)
 
 **Alternatives considered:**
 
-- **Retain the neutral `core.Resource` / `Identity` contract and add Kubernetes as an implementation of it.** Not chosen. It is the smaller change and would satisfy D1 on its own, but it preserves an abstraction with exactly one implementation and no named consumer. It also forces every new Kubernetes concept (propagation policy, finalizers, ownerReferences, subresources) through a vocabulary that cannot express it. Whether the neutral contract is deleted outright or left in place unused is a narrower question about semver blast radius, deferred to OQ3.
-- **Keep the kernel platform-neutral and put the Kubernetes tier in a fourth module.** Rejected: it reproduces D31's coordination cost that D1 just established is no longer necessary to pay, and it splits the kernel's version line for no consumer's benefit.
+- **Retain the neutral `core.Resource` / `Identity` contract and add Kubernetes as an implementation of it.** Not chosen. It is the smaller change and would satisfy D1 on its own, but it preserves an abstraction with exactly one implementation and no named consumer. It also forces every new Kubernetes concept (propagation policy, finalizers, ownerReferences, subresources) through a vocabulary that cannot express it. Whether the neutral contract was deleted outright or left in place unused was a narrower question about semver blast radius. 0012:OQ3 answered it on 2026-09-01: the contract was deleted.
+- **Keep the library platform-neutral and put the Kubernetes tier in a fourth module.** Rejected: it reproduces D31's coordination cost that D1 just established is no longer necessary to pay, and it splits the kernel's version line for no consumer's benefit.
 
-**Rationale:** The neutral contract is not currently earning its cost. `library/opm/core/resource.go` names docker-compose, Nomad, Terraform, and Crossplane as the platforms it exists to serve. None exists, and none is scheduled. The abstraction's only effect today is to stop Kubernetes logic from living in the kernel, which is the direct cause of the duplication D1 addresses. Generalising in advance of a second platform is the speculative-abstraction failure, and paying for it with a real correctness defect in the one platform that does exist is a bad trade.
+**Rationale:** The neutral contract is not currently earning its cost. `library/opm/core/resource.go` names docker-compose, Nomad, Terraform, and Crossplane as the platforms it exists to serve. None exists, and none is scheduled. The abstraction's only effect today is to stop Kubernetes logic from living in the library, which is the direct cause of the duplication D1 addresses. Generalising in advance of a second platform is the speculative-abstraction failure, and paying for it with a real correctness defect in the one platform that does exist is a bad trade.
 
-The narrower reading also matters for what this decision is *not*: it does not license controller concerns into `opm/`. The kernel gains Kubernetes vocabulary, not a runtime. Principle I's substance is unaffected: determinism, no globals, no hidden environment, I/O at the edges with caller-supplied configuration. The existing OCI registry loader is the precedent for edge I/O under exactly those terms.
+The narrower reading also matters for what this decision is *not*: it does not license controller concerns into `opm/`. The library gains Kubernetes vocabulary in its Kubernetes tier and gains no runtime. Principle I's substance is unaffected: determinism, no globals, no hidden environment, I/O at the edges with caller-supplied configuration. The existing OCI registry loader is the precedent for edge I/O under exactly those terms.
 
 **Source:** User decision 2026-07-27, restated after an initial recommendation to keep the neutral contract and add Kubernetes as a tier beneath it. The user's framing: the kernel should be written for Kubernetes "so we don't have to think about portability and generalization".
+
+**Revised:** 2026-10-02: "kernel" now reads as the library's Kubernetes tier (0012:D3). The kernel package itself imports no Kubernetes package. The platform, the dependency bound and the absence of a portability layer are unchanged. The first alternative records 0012:OQ3's 2026-09-01 answer.
 
 ---
 
@@ -83,33 +87,31 @@ The narrower reading also matters for what this decision is *not*: it does not l
 
 **Kind:** contract
 
-**Amends:** D2
-
 **Decision:** The Kubernetes runtime decisions 0012:D1 lists (inventory entry construction, the stale set, digests, prune and ownership guards at apply and delete time, deletion ordering and the deletion hold protocol) live in a new library tier, `opm/k8s`, together with conversion of the kernel's compiled output to Kubernetes objects, the label vocabulary, kind-class apply order and readiness evaluation. The tier sits beside the kernel: it is not inside the kernel package and not under the opt-in `opm/helper` tier. Its package split is settled by the implementing changes; the indicative packages are labels, object, inventory, ownership, lifecycle and health.
 
 Five properties bind the tier:
 
-1. **Fence.** No library package outside `opm/k8s` imports it: not the kernel, module, platform, schema or errors packages, nothing internal, and nothing under `opm/helper`. The tier imports only the kernel's public output types and `k8s.io/apimachinery`, never `client-go`, `controller-runtime`, any Flux package or any cluster client. The kernel imports no `k8s.io` package at all. The fence is checked mechanically on every library change, and the check exists before the first package does.
+1. **Fence.** No library package outside `opm/k8s` imports it: not the kernel, module, platform, catalog, schema or errors packages, nothing internal, and nothing under `opm/helper`. The kernel imports no `k8s.io` package at all. The tier's outward bound is a denylist. Beyond the standard library and the CUE SDK that the kernel's output types carry, the tier imports only the kernel's exported packages and `k8s.io/apimachinery`. It never imports `client-go`, `controller-runtime`, any Flux package, any cluster client, `opm/internal` or `opm/helper`. The fence is checked mechanically on every library change, and the check exists before the first package does.
 2. **Obligation.** The tier is not opt-in for a frontend that targets Kubernetes. A frontend that adopts a package deletes its own copy of that package's decisions in the same release, with no alias left behind, and from then on its own checks refuse a reintroduced copy. Deletion is a step protocol, so a frontend makes progress only by asking the tier for the next action and cannot route around a guard.
-3. **No cluster I/O and no loop.** The tier names actions and the frontend performs them with its own client, as library ADR-008's first and third rules require. No executor ships in the library.
+3. **No cluster I/O and no loop.** The tier names actions and the frontend performs them with its own client, as library ADR-008 rules 1 to 3 require. No executor ships in `opm/k8s` or in the kernel. An executor here is a loop that drives a plan to completion. ADR-008 rule 3's allowance for an opt-in executor under `opm/helper/` stays open.
 4. **Same Go module.** The tier is versioned and released with the kernel in the library's one Go module, not in a nested module.
 5. **Kubernetes apply identity moves in.** The duplicate rendered-identity check that lives in the helper tier today is Kubernetes-specific and moves into the tier with its first package.
 
-What stands of 0012:D1: the decisions still live in the library and still have one implementation each; this decision says where in the library. What survives of 0012:D2: Kubernetes is the platform, written against directly, with no portability abstraction and the same dependency bound. What changes against 0012:D2: "the kernel targets Kubernetes" and "`k8s.io/apimachinery` becomes a kernel dependency" now mean the `opm/k8s` tier. The kernel itself stays "CUE in, verdicts out" and imports no `apimachinery`. Because the tier shares the library module, `apimachinery` still enters the library's `go.mod` and is still an MVS floor for every embedder.
+0012:D1 says the decisions live in the library with one implementation each, and this decision says where in the library. The kernel itself stays "CUE in, verdicts out". Because the tier shares the library module, `apimachinery` still enters the library's `go.mod` and is still an MVS floor for every embedder.
 
 **Requirements:**
 
 - R1: Every Kubernetes runtime decision the library makes is reachable from one tier, `opm/k8s`, which is neither the kernel package nor part of the opt-in helper tier.
 - R2: A program that imports the kernel and not `opm/k8s` compiles no `k8s.io` package.
-- R3: The transitive imports of `opm/k8s` contain no `client-go`, `controller-runtime` or Flux package, and the tier opens no connection to a cluster.
+- R3: Beyond the standard library and the CUE SDK that the kernel's output types carry, `opm/k8s` imports only the kernel's exported packages and `k8s.io/apimachinery`. It imports no `opm/internal` or `opm/helper` package. Its transitive imports contain no `client-go`, `controller-runtime`, Flux package or cluster client, and it opens no connection to a cluster.
 - R4: A library change that imports `opm/k8s` from outside it, imports a forbidden dependency into it, or imports a `k8s.io` package into the kernel fails the library's own checks.
 - R5: `opm/k8s` is released under the same module version as the kernel; an embedder pins one library version for both.
-- R6: From the release in which a Kubernetes frontend adopts an `opm/k8s` package, that frontend carries no implementation of its own of the decisions the package makes and no alias to it, and its checks refuse one being added back.
+- R6: From the release in which a Kubernetes frontend adopts an `opm/k8s` package, that frontend carries no implementation of its own of the decisions the package makes and no alias to it, and its checks refuse a reintroduced copy.
 - R7: The duplicate rendered-identity check is served by `opm/k8s` and no longer by the helper tier.
 
 **Alternatives considered:**
 
-- **Inside the kernel package**, as 0012:D2's wording implied. Not chosen: the kernel would import `apimachinery`, and ADR-005, ADR-007 and ADR-008 reason about a kernel that takes CUE in and gives verdicts out. Keeping the kernel free of Kubernetes types keeps that reasoning intact at no cost, since nothing in the kernel needs them.
+- **Inside the kernel package**, as 0012:D1's title and 0012:D2's wording read before their 2026-10-02 revision. Not chosen: the kernel would import `apimachinery`, and ADR-005, ADR-007 and ADR-008 reason about a kernel that takes CUE in and gives verdicts out. Keeping the kernel free of Kubernetes types keeps that reasoning intact at no cost, since nothing in the kernel needs them.
 - **Under the opt-in `opm/helper` tier.** Not chosen: the helper tier is opt-in by definition, and a frontend may skip it. A safety guard a frontend may skip is the shape 0006:D31 reverted, because nothing forced its use.
 - **A nested Go module for the tier.** Not chosen: it adds a hop to the release cascade and allows version skew between the kernel and the tier. Both first-party frontends already depend on `apimachinery`, so the MVS floor the shared module imposes costs them nothing. Revisit only if a non-Kubernetes embedder appears.
 - **A fence added once the first package lands.** Not chosen: a package written before its fence can acquire a forbidden import that the fence then has to argue away.
