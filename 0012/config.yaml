@@ -68,7 +68,7 @@ history:
   - date: "2026-10-02"
     event: 'Owner decision: D3 property 3 and R8 ban only code that performs a planned action against a cluster; ADR-008 rule 3 keeps executor backends that perform no planned action against a cluster.'
   - date: "2026-10-02"
-    event: 'Owner decision: 0012:D3 amends 0009:D4 (was a Depends edge); OQ10 puts 0009 k8s get/apply Ops and the Job-rendering container variant in the frontend. OQ2 marked amended.'
+    event: 'Owner decision: 0012:D3 amends 0009:D4; OQ10 puts 0009 k8s get/apply Ops and the Job-rendering container variant in the frontend. OQ2 marked amended.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

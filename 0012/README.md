@@ -84,7 +84,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 **Tier bounds**
 
-- The dependency and constitutional bounds: `k8s.io/apimachinery` enters the library's module for the `opm/k8s` tier only, the kernel imports none of it, and `client-go`, `controller-runtime` and Flux enter nowhere. The fence is checked mechanically before the first tier package exists. The library constitution's package list and runtime-concerns clause are amended, with library ADR-011 recording the tier and its bound.
+- The dependency and constitutional bounds: `k8s.io/apimachinery` enters the library's module for the `opm/k8s` tier only, the kernel imports none of it, and `client-go`, `controller-runtime` and Flux enter nowhere. The library's lint enforces the fence's named denials before the first tier package exists. The library constitution's package list and runtime-concerns clause are amended, with library ADR-011 recording the tier and its bound.
 
 ### Out of scope
 
