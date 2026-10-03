@@ -260,7 +260,7 @@ A ModulePackage gets a persisted instance identity in an additive status field, 
 **Alternatives considered:**
 
 - **Run the guard only on an instance's first apply.** Not chosen: an instance's object set grows across releases, and an object added in a later release can collide with a foreign one as surely as on the first apply.
-- **A command-wide force flag.** Not chosen: it overrides every object at once, including ones the user did not mean to take. The CLI's refusal text points at a `--force` that does not override this refusal today (read 2026-10-03; the text is removed by the cli change protect-crds-and-namespaces-in-prune-and-delete).
+- **A command-wide force flag.** Not chosen: it overrides every object at once, including ones the user did not mean to take. The CLI's refusal text points at a `--force` that does not override this refusal today (read from the CLI on 2026-10-03; the text is removed by the cli change protect-crds-and-namespaces-in-prune-and-delete).
 - **No override at all.** Not chosen: a user bringing an existing object under OPM would have to delete it first, which is the outage the guard exists to prevent.
 
 **Rationale:** The guard protects objects OPM did not create, and the risk exists on every apply that adds objects, not only the first. A per-object annotation on the live object makes adoption a deliberate act on exactly the object being taken, and it leaves a record on the object itself. The ModulePackage identity closes the one owner kind the identity comparison could not see.
