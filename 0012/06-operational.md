@@ -22,7 +22,7 @@ The conformance test required at graduation is itself an observability artefact:
 
 `library`: this entry breaks no library source. 0012:OQ3 is answered: the neutral `core.Resource` / `Identity` contract was deleted pre-GA on 2026-09-01 and recorded as a changelog entry. What this entry still adds is the `opm/k8s` tier. `library` gains an `apimachinery` dependency in its one Go module (0012:D3), imported by the `opm/k8s` tier only. That breaks no source. It is an MVS floor for every embedder, including one that never imports the tier, and it belongs in `MIGRATIONS.md` next to the CUE floor. `config.yaml.semver` stays unset until promotion, when the owner sets the magnitude.
 
-`opm-operator` and `cli`: internal-only changes at the Go level. Both delete packages under `pkg/`, so anything importing them breaks; the CLI has no external Go consumers, and the operator's `pkg/` surface has no known external importer. Neither CRD changes shape, so no cluster-level compatibility question arises unless OQ5 flips `spec.prune`'s default, which is a behavioural break at the operational level even though the schema is unchanged, and is called out separately in [`05-risks.md`](05-risks.md).
+`opm-operator` and `cli`: internal-only changes at the Go level. Both delete packages under `pkg/`, so anything importing them breaks; the CLI has no external Go consumers, and the operator's `pkg/` surface has no known external importer. Neither CRD's spec changes shape, and the one CRD change is additive: `ModulePackage` gains a status field holding its instance identity (0012:D8). So no cluster-level compatibility question arises unless OQ5 flips `spec.prune`'s default, which is a behavioural break at the operational level even though the schema is unchanged, and is called out separately in [`05-risks.md`](05-risks.md).
 
 `library`'s `migration-guard` contract applies: every breaking commit needs a `Migration: <slug>` trailer and a matching `MIGRATIONS.md` entry, or CI blocks the PR.
 
@@ -42,7 +42,7 @@ Removed outright, in the same release that lands the replacement (no deprecation
 | `opm-operator/internal/inventory/` | `library/opm/k8s/inventory` |
 | `opm-operator/internal/apply/prune.go` | `library/opm/k8s/lifecycle` + a local loop performing the actions it names |
 | `cli/internal/inventory.ComputeRenderDigest` and its parity comment | `library/opm/k8s/inventory.RenderDigest` |
-| `cli/internal/inventory.ApplyComponentRenameSafetyCheck` | nothing: unnecessary by construction if OQ7 lands component-blind |
+| `cli/internal/inventory.ApplyComponentRenameSafetyCheck` | nothing: unnecessary by construction, since the stale set is component-blind (0012:D7) |
 
 
 The alias-then-delete pattern is explicitly not used. A compatibility alias in `cli/pkg/inventory` pointing at the tier would leave two import paths for one type and reproduce, in miniature, the ambiguity this entry exists to remove.
@@ -53,12 +53,17 @@ The alias-then-delete pattern is explicitly not used. A compatibility alias in `
 
 Code rollback is clean at the Go level and awkward at the coordination level. Each repo's change is a revert, but the frontends pin a published `library` version, so rolling back the tier means either yanking a release or pinning both frontends back: the cost 0006:D31 named, now paid deliberately.
 
-The important asymmetry is that **almost nothing here changes persisted state**. The `InventoryEntry` wire shape written to `status.inventory.entries[]` is unchanged, the labels on live resources are unchanged, the finalizer string is unchanged, and the CRDs are unchanged. A cluster reconciled by the new code is readable by the old code and vice versa. That holds for every part of this entry except the render digest, below, and two open questions that are open precisely because they are the parts that do not roll back:
+The important asymmetry is that **little here changes persisted state**. The `InventoryEntry` wire shape written to `status.inventory.entries[]` is unchanged, the labels OPM stamps on live resources are unchanged, and the finalizer string is unchanged. The `ModuleInstance` CRD is unchanged, and the `ModulePackage` CRD only gains an additive status field (0012:D8). A cluster reconciled by the new code is readable by the old code and vice versa. That holds for every part of this entry except the two stored digests and the adopt annotation, below, and two open questions that are open precisely because they are the parts that do not roll back:
 
 - **OQ4**, if it stamps `ownerReferences`. Those persist on live objects; reverting the code does not remove them, and the objects stay garbage-collectable by their owner. A rollback would need a sweep to strip them.
 - **OQ5**, if it flips `spec.prune`'s default. Anything already deleted under the new default is gone.
 
-The render digest is the one stored value that changes, and it changes harmlessly for the objects. The operator records `lastAppliedRenderDigest` and `lastAttemptedRenderDigest` in status, and 0012:D6's digest excludes the managed-by label value where today's digest includes it, so the recorded digest changes once on upgrade with no change to the objects, and again on rollback. 0006:D7's handoff check compares a stored digest, so a handoff across that boundary sees a digest change with no object change behind it.
+Two stored digests change, both harmlessly for the objects:
+
+- **The render digest.** The operator records `lastAppliedRenderDigest` and `lastAttemptedRenderDigest` in status, and 0012:D6's digest excludes the managed-by label value where today's digest includes it, so the recorded digest changes once on upgrade with no change to the objects, and again on rollback. 0006:D7's handoff check compares a stored digest, so a handoff across that boundary sees a digest change with no object change behind it.
+- **The inventory digest.** 0012:D7 hashes a canonical field-by-field encoding of the entries instead of their JSON form, so each frontend's stored inventory digest changes once, in the release that first records the new value, and again on rollback. That release carries a migration note naming the change, so a user comparing digests across the upgrade is not surprised by a change with no inventory change behind it.
+
+The ModulePackage instance identity (0012:D8) is additive: old code ignores the status field, and new code fills it on the first reconcile of a package created before it existed. The adopt annotation (0012:D8) is set by users on live objects. Old code ignores it, so a rollback keeps the objects and loses only the override: an object adopted but not yet recorded in an inventory is refused again under old code exactly as it was before adoption.
 
 OQ6's resolution, if it adds a hold to CLI-owned CRs, persists as a finalizer string on those CRs (recoverable), but a rollback leaves CRs holding a finalizer no running code releases, which is the wedge `opm operator uninstall` already guards against elsewhere. Any resolution should carry a release path.
 

@@ -131,22 +131,29 @@ Five properties bind the tier:
 
 **Decision:** For deletion, the library owns the whole sequence: the plan, each transition naming the next action, and the verdict on releasing the hold. For apply, the library owns the per-object verdict, which permits or refuses the object with a reason, and the order objects are applied in. It does not own the apply engine. The operator keeps its Flux staged server-side apply and the CLI keeps its own server-side apply, each consulting the verdict and the order. Each frontend submits objects in the library's order. An engine's own staging, such as Flux's, may refine that order, for example by sorting within a stage, and never contradicts it. Both halves follow library ADR-008: the library names actions and never performs them.
 
+The deletion protocol is this entry's, not 0009's. This entry defines the deletion plan, its state, the transition and the hold verdict, and both frontends' delete paths use them. The state is a serialisable value the caller holds, so the operator carries it across reconciles and the CLI holds it in memory for one command. The protocol carries no hook semantics: it deletes, skips and releases the hold, and runs no step a module declares around a deletion.
+
 **Requirements:**
 
 - R1: A frontend deletes an object only when the deletion transition names that deletion as the next action, and releases an instance's hold only on a release verdict.
 - R2: Before a frontend applies an object, the library's verdict for that object has permitted it; a refused object is not applied and the reason is reported.
 - R3: Each frontend submits an instance's objects in the order the library gives. An engine's own staging may refine that order and never contradicts it.
 - R4: The CLI's build contains no Flux or `controller-runtime` package as a consequence of this entry.
+- R5: A deletion state written out and read back advances identically to one held in memory, and advancing the same plan and state twice names the same next action.
+- R6: A deletion plan's actions are only deletions and skips of objects in the instance's inventory, plus the hold verdict; no step a module declares runs as part of it.
 
 **Alternatives considered:**
 
 - **The library owns the apply sequence too, through one shared engine.** Not chosen: the operator's engine is `fluxcd/pkg/ssa`, and forcing it on the CLI pulls `controller-runtime` into it. 0006:D13's static analysis is why that edge is refused.
 - **The library owns verdicts only, for delete as well as apply.** Not chosen: a plan a frontend can decline to follow is how the CLI came to lack the CRD exclusion the operator has. Deletion carries no framework opinion, so nothing stops the library owning its sequence.
+- **The deletion plan and state owned by 0009's execution half,** as one plan-and-state convention for every flow the kernel plans. Not chosen: 0009 is parked until hooks are wanted, and deletion is needed now by both frontends. Deletion carries no hook semantics, so it needs none of 0009's vocabulary.
 - **An apply executor in the opt-in helper tier.** Not chosen: it would be a third apply engine beside the two that exist, and anything in the helper tier may be skipped. ADR-008 rule 3, as amended, allows there only executor backends that perform no planned action against a cluster (0012:D3), and an apply executor performs one.
 
 **Rationale:** The asymmetry follows where the framework opinion is. Deletion is order, fetch, guard and delete, with no opinion to inherit, so the library can own every step and the frontend only performs them. Apply carries Flux's staging opinion in the operator, which the CLI must not inherit. Sharing the verdict and the order still closes the divergence that matters: the apply-time collision guard the operator lacks becomes one verdict both frontends consult.
 
-**Source:** Owner decision 2026-10-02, answering the open half of 0012:OQ1 and part of 0012:OQ8. The refinement rule for engine staging is the owner's answer of the same day. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier).
+**Source:** Owner decision 2026-10-02, answering the open half of 0012:OQ1 and part of 0012:OQ8. The refinement rule for engine staging is the owner's answer of the same day. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). Owner decision 2026-10-03 on the deletion protocol: "Deletion protocol only, in opm/k8s/lifecycle, owned by 0012 (DeletionPlan, serialisable State, Advance, MayReleaseHold), used by both frontends' delete paths; closes the ownership half of 0012:OQ10. No hook semantics."
+
+**Revised:** 2026-10-03: the deletion protocol is this entry's rather than 0009's, its state is serialisable and caller-held, and it carries no hook semantics (R5, R6). Answers the ownership half of 0012:OQ10.
 
 ---
 
@@ -205,5 +212,59 @@ This agrees with 0010:D9 as revised. The schema declares the module version labe
 **Rationale:** Stamping belongs where the label set is composed, and that is CUE. The digest's job is to say whether two renders produced the same objects, and which runtime rendered them is not part of that answer. Excluding exactly one label value keeps every other change visible. It is also what lets 0006:D7's handoff check hold. The CLI records `status.lastAppliedRenderDigest` so a later ownership transfer has a value to verify against, and today that comparison cannot match, because each runtime stamps its own name.
 
 **Source:** Owner decision 2026-10-02, answering 0012:OQ11. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier). Read on 2026-10-02: `cli/internal/inventory/digest.go` hashes each object's full JSON, managed-by label included, and `core/src/platform_and_match_pins.cue` shows the runtime filling `#runtimeName`. 0010:D9 is read from `archive/0010/03-decisions.md`.
+
+---
+
+### D7: The stale set is component-blind, and the inventory digest hashes a canonical field encoding
+
+**Kind:** contract
+
+**Decision:** The tier has one stale-set relation, and it is component-blind. An inventory entry is the same object as a rendered one when their group, kind, namespace and name agree, whichever component rendered it and at whichever API version. An object that moves from one component to another is therefore never stale, so the CLI's separate component-rename filter is unnecessary by construction and goes. Behaviour does not change: the filter existed only to rescue those objects.
+
+The inventory digest has one definition in the tier. It hashes a canonical encoding of each entry, defined field by field, and not the JSON either frontend writes. A frontend may change how it serialises an entry without changing the digest. Both frontends' stored inventory digest changes once, when each first records the new digest, and the release that does so says so in a migration note.
+
+**Requirements:**
+
+- R1: An object whose group, kind, namespace and name appear in the current render is never in the stale set, whichever component rendered it before or now and at whichever API version.
+- R2: The inventory digest depends only on the entries' field values. It does not depend on the order of the entries or on how either frontend serialises an entry, so a change to an entry's serialised form that keeps every field value leaves the digest unchanged.
+- R3: Two inventories that differ in their set of entries, or in any field of an entry, produce different inventory digests.
+- R4: The release of each frontend that first records the new inventory digest ships a migration note naming the one-time change of the stored digest.
+
+**Alternatives considered:**
+
+- **Component-aware identity, as the CLI's stale set compares today.** Not chosen: it marks a component rename as stale and then needs a second filter to rescue the object. The operator's component-blind relation gets the same outcome with one rule.
+- **Keep hashing each frontend's JSON form of the entries.** Not chosen: the digest would then change whenever a frontend changes a serialisation detail, and the two frontends agree only while their encoders happen to agree. A canonical encoding makes agreement a property of the definition.
+- **Keep the old digest values through a compatibility path.** Not chosen: the stored digest is compared only against a digest the same tier computes, so a one-time change with a migration note costs less than carrying two encodings.
+
+**Rationale:** The stale set decides what gets deleted, so it should have one rule, and the rule that needs no rescue filter is the simpler one. The inventory digest is a stored value two frontends must compute identically. Defining its encoding field by field keeps it stable against changes that are not about the inventory at all.
+
+**Source:** Owner decision 2026-10-03: "Inventory digest hashes a NEW canonical field-by-field encoding (independent of JSON tags); both frontends change their stored digest once, with a migration note. Close 0012:OQ7 as component-blind (no behaviour change; drop the CLI rename filter)." Read on 2026-10-03: the operator's inventory digest sorts the entries and hashes their JSON form (`opm-operator/internal/inventory/digest.go`), the operator's component-blind relation compares group, kind, namespace and name (`opm-operator/internal/inventory/entry.go`), and the CLI's rename filter rescues entries a component-aware relation marked stale (`cli/internal/inventory/stale.go`).
+
+---
+
+### D8: The apply guard runs on every apply for objects outside the instance's inventory, and a per-object adopt annotation is its only override
+
+**Kind:** contract
+
+**Decision:** The apply-time ownership guard, 0012:D4's per-object apply verdict, runs on every apply, not only on an instance's first. It checks every object that is not already in the instance's recorded inventory. An existing live object outside that inventory, which OPM does not manage or which carries another instance's identity, is refused with a reason. The one override is per object: the user sets an adopt annotation on the existing live object, naming the adopting instance's identity, and the guard then permits that object. The implementing change fixes the annotation key (indicatively `opmodel.dev/adopt`), and from then on the key is part of this contract. No command-wide flag overrides the guard.
+
+A ModulePackage gets a persisted instance identity in an additive status field, so the guard compares identities for objects a ModulePackage owns exactly as it does for a ModuleInstance. This settles the two sub-questions 0012:OQ8 inherited from 0006.
+
+**Requirements:**
+
+- R1: An existing live object that is not in the instance's recorded inventory, and that OPM does not manage or that carries another instance's identity, is refused on every apply with a reason, unless it carries the adopt annotation naming this instance's identity. Creating an object that does not exist is never refused by this guard.
+- R2: An object carrying the adopt annotation that names this instance's identity is applied and recorded in the instance's inventory. An annotation naming another instance's identity overrides nothing.
+- R3: Neither frontend offers another override of this refusal, and no refusal message names one.
+- R4: A ModulePackage carries its instance identity in its status across reconciles, and the guard protects objects it owns as it protects a ModuleInstance's. A ModulePackage created before the field existed gains it with no change to its spec.
+
+**Alternatives considered:**
+
+- **Run the guard only on an instance's first apply.** Not chosen: an instance's object set grows across releases, and an object added in a later release can collide with a foreign one as surely as on the first apply.
+- **A command-wide force flag.** Not chosen: it overrides every object at once, including ones the user did not mean to take. The CLI's refusal text points at a `--force` that does not override this refusal today (read 2026-10-03; the text is removed by the cli change protect-crds-and-namespaces-in-prune-and-delete).
+- **No override at all.** Not chosen: a user bringing an existing object under OPM would have to delete it first, which is the outage the guard exists to prevent.
+
+**Rationale:** The guard protects objects OPM did not create, and the risk exists on every apply that adds objects, not only the first. A per-object annotation on the live object makes adoption a deliberate act on exactly the object being taken, and it leaves a record on the object itself. The ModulePackage identity closes the one owner kind the identity comparison could not see.
+
+**Source:** Owner decision 2026-10-03: "Apply guard runs on every apply for objects not already in the instance inventory. Override = per-object adopt annotation on the existing object (e.g. `opmodel.dev/adopt: <instance-uuid>`); remove the broken --force text. ModulePackage gets a persisted UUID in an additive status field so the UUID guard applies. Settles the rest of 0012:OQ8." The CLI refusal text is read from `cli/internal/inventory/stale.go` on 2026-10-03.
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.

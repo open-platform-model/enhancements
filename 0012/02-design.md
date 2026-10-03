@@ -163,7 +163,7 @@ There is no executor package. No loop that drives a plan to completion ships any
 
 - `pkg/core/**`, `pkg/inventory/**`, `pkg/resourceorder/**`: deleted; tier types used directly.
 - `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the tier plan plus a local loop that performs the actions it names, gaining the CRD exclusion and the delete-time ownership guard.
-- `internal/inventory/stale.go`: `ApplyComponentRenameSafetyCheck` deleted if OQ7 standardises on the component-blind comparator, which makes the post-filter unnecessary by construction.
+- `internal/inventory/stale.go`: `ApplyComponentRenameSafetyCheck` deleted, because 0012:D7 standardises on the component-blind comparator, which makes the post-filter unnecessary by construction.
 - `internal/kubernetes/delete.go`: the instance-delete walk becomes the tier plan.
 - `internal/cmd/instance/delete.go`: unchanged in shape; the outcomes it reports become tier-computed.
 
