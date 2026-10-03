@@ -10,7 +10,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Share every decision; share the steps only where they carry no framework opinion (0012:D4).** Deletion qualifies: ordering, fetching, guarding and deleting are plain Kubernetes steps. Apply does not, so the library gives the per-object verdict and the order, and each frontend keeps its own engine.
 
-**Order has two layers, and labels stay in CUE (0012:D5, 0012:D6).** Kind-class order, such as a CRD before its resources, is a Kubernetes fact with one table in the tier. Order a module declares arrives as data from its CUE build. Labels are stamped by the CUE render, and the shared render digest ignores the one label whose value differs between the two frontends.
+**Order is kind-class order, and labels stay in CUE (0012:D5, 0012:D6).** Kind-class order, such as a CRD before its resources, is a Kubernetes fact with one table in the tier. No ordering inside a module is planned: Kubernetes' eventual consistency settles the rest, and order between modules belongs to a future Bundle definition. Labels are stamped by the CUE render, and the shared render digest ignores the one label whose value differs between the two frontends.
 
 **The duplication is measured, not assumed.** As of 2026-09-14 the two repos' object-conversion code is byte-identical, their label and resource helpers differ only in comments, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. The operator deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the operator orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
 

@@ -150,28 +150,33 @@ Five properties bind the tier:
 
 ---
 
-### D5: Ordering has two layers: kind-class order in the Kubernetes tier, module-declared order as data off the build
+### D5: Ordering is kind-class order in the Kubernetes tier; no module-internal ordering is planned, and cross-module order belongs to a future Bundle
 
 **Kind:** contract
 
-**Decision:** Object ordering has two layers with two homes. Kind-class order is a fact about Kubernetes: a CustomResourceDefinition before the resources of its kind, a Namespace before the objects in it, and the like. It has one definition, a single weight table in the Kubernetes tier's object package, which both frontends use for apply and delete. Module-declared order (hooks, `dependsOn`, phases) is data the CUE build emits and the library decodes, per library ADR-008 rule 4.
+**Decision:** The one object order the library supplies is kind-class order, a fact about Kubernetes: a CustomResourceDefinition before the resources of its kind, a Namespace before the objects in it, and the like. It has one definition, a single weight table in the Kubernetes tier's object package, which both frontends use for apply and delete.
 
-That rule says the kernel derives no ordering of its own. It is read as: the kernel derives no module-specific ordering. Kind-class order is a property of the Kubernetes API. The kernel does not derive it from a module, so a kind-class table in the tier does not breach rule 4.
+No module-internal ordering is planned. A module does not order its own components or resources. The library applies every object in kind-class order, and Kubernetes' eventual consistency settles the rest, such as a workload that waits for its configuration or a controller that retries until its CRD is served. If module-internal ordering is ever needed, it comes off the CUE build as data the library decodes, per library ADR-008 rule 4, and never as ordering the library derives. Ordering across modules belongs to a future Bundle definition: a bundle of modules whose order is the order the bundle defines them in. This entry does not design it.
+
+ADR-008 rule 4 says the kernel derives no ordering of its own. It is read as: the kernel derives no module-specific ordering. Kind-class order is a property of the Kubernetes API. The kernel does not derive it from a module, so a kind-class table in the tier does not breach rule 4.
 
 **Requirements:**
 
 - R1: The CLI and the operator order the same set of objects by kind class identically, for apply and for delete. For apply, this is the order each frontend submits. An engine's own staging may refine it within a stage and never contradicts it.
 - R2: A change to kind-class order is made once, in the library, and reaches both frontends through a library version bump.
-- R3: Any ordering a module declares reaches the frontend as data from the module's CUE build; the library adds no module-specific ordering of its own.
+- R3: For the same set of objects, the library's apply and delete order is the same whichever module rendered them.
 
 **Alternatives considered:**
 
+- **Module-declared order (hooks, `dependsOn`, phases) as a second ordering layer off the build** (previously adopted, 2026-10-02). Not chosen on revision: the owner never intended ordering within a module. Kind-class order plus eventual consistency is the intended model, and a module-declared layer would be a second order no module asked for. The build stays the only place such ordering could come from if it is ever needed.
 - **Kind-class order as CUE data off the build too.** Not chosen: it would make every module, or core, restate a fact about the Kubernetes API that does not vary by module.
 - **Each frontend keeps its own kind-class order.** Not chosen: the operator deleted its weight table on 2026-09-13 and orders through Flux, and the CLI lost weight-ordered apply when its render path changed and nothing failed. A rule with two homes has already drifted once.
 
-**Rationale:** The two layers have different sources of truth. One is the Kubernetes API, which is the same for every module and belongs with the other Kubernetes facts in the tier. The other is what a module author declares, which can only come from the module. Keeping them apart lets ADR-008 rule 4 keep its point, that the library invents no ordering a module did not ask for.
+**Rationale:** Kind-class order comes from the Kubernetes API, which is the same for every module, so it belongs with the other Kubernetes facts in the tier. Order inside a module is not something OPM promises: Kubernetes converges objects applied in any order, and a promise of in-module order would need a vocabulary, a planner and a test surface for a need nobody has shown. Order between modules is a real need, and it has a natural home in a Bundle, where the author already lists the modules in sequence. Keeping both out of the library lets ADR-008 rule 4 keep its point, that the library invents no ordering a module did not ask for.
 
-**Source:** Owner decision 2026-10-02. Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier), which also states the clarified reading of ADR-008 rule 4. The single remaining weight table is read from `cli/pkg/resourceorder` on 2026-10-02.
+**Source:** Owner decision 2026-10-02 (kind-class order in the tier). Owner decision 2026-10-03, in the owner's words: "I never intended for dependsOn or ordering within a module, however that could change if deemed necessary. The plan was to eventually create a Bundle definition. A bundle of modules, and in this case build in ordering. But that implementation would likely just use the order you define the modules. This could also be done for component in the module but my intentions were always to let the kernel apply all resources in the order it wants and let k8s eventual consistency handle the rest." Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier), which also states the clarified reading of ADR-008 rule 4. The single remaining weight table is read from `cli/pkg/resourceorder` on 2026-10-02.
+
+**Revised:** 2026-10-03: module-declared order is no longer a planned second layer. No module-internal ordering is planned, cross-module order belongs to a future Bundle definition, and R3 now states the observable consequence.
 
 ---
 
