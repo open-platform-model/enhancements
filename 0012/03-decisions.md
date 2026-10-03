@@ -248,7 +248,7 @@ The inventory digest has one definition in the tier. It hashes a canonical encod
 
 **Kind:** contract
 
-**Decision:** The apply-time ownership guard, 0012:D4's per-object apply verdict, runs on every apply, not only on an instance's first. It checks every object that is not already in the instance's recorded inventory. An existing live object outside that inventory, which OPM does not manage or which carries another instance's identity, is refused with a reason. The one override is per object: the user sets an adopt annotation on the existing live object, naming the adopting instance's identity, and the guard then permits that object. The implementing change fixes the annotation key (indicatively `opmodel.dev/adopt`), and from then on the key is part of this contract. No command-wide flag overrides the guard. The adopt annotation overrides only these two ownership refusals. The verdict's other refusal, for an object being deleted (0012:D1 R7), covers every object, inside the inventory or not, and nothing overrides it.
+**Decision:** The apply-time ownership guard, 0012:D4's per-object apply verdict, runs on every apply, not only on an instance's first. It checks every object that is not already in the instance's recorded inventory. An existing live object outside that inventory, which OPM does not manage or which carries another instance's identity, is refused with a reason. The one override is per object: the user sets an adopt annotation on the existing live object, naming the adopting instance's identity, and the guard then permits that object. The implementing change fixes the annotation key (indicatively `opmodel.dev/adopt`), and from then on the key is part of this contract. No command-wide flag overrides the guard. The adopt annotation overrides only these two ownership refusals. The verdict's other refusal, for an object being deleted (0012:D1:R7), covers every object, inside the inventory or not, and nothing overrides it.
 
 A ModulePackage gets a persisted instance identity in an additive status field, so the guard compares identities for objects a ModulePackage owns exactly as it does for a ModuleInstance. This settles the two sub-questions 0012:OQ8 inherited from 0006.
 
@@ -256,9 +256,9 @@ A ModulePackage gets a persisted instance identity in an additive status field, 
 
 - R1: An existing live object that is not in the instance's recorded inventory, and that OPM does not manage or that carries another instance's identity, is refused on every apply with a reason, unless it carries the adopt annotation naming this instance's identity. Creating an object that does not exist is never refused by this guard.
 - R2: An object carrying the adopt annotation that names this instance's identity passes the ownership refusals and, unless it is being deleted, is applied and recorded in the instance's inventory. An annotation naming another instance's identity overrides nothing.
-- R5: An existing object that is being deleted is refused on every apply, whether or not it is in the instance's recorded inventory, and the adopt annotation does not override that refusal.
-- R3: Neither frontend offers another override of this refusal, and no refusal message names one.
+- R3: Neither frontend offers another override of the ownership refusals, and no refusal message names one.
 - R4: A ModulePackage carries its instance identity in its status across reconciles, and the guard protects objects it owns as it protects a ModuleInstance's. A ModulePackage created before the field existed gains it with no change to its spec.
+- R5: An existing object that is being deleted is refused on every apply, whether or not it is in the instance's recorded inventory, and the adopt annotation does not override that refusal.
 
 **Alternatives considered:**
 

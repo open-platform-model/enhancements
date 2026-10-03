@@ -100,7 +100,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 - The CRD Go types. Whether the library becomes their home is entangled with entry [0008](../0008/) and is an open question here, not a deliverable.
 - Identity. Fully-qualified names, module paths, instance-UUID derivation and the identity migration belong to [0010](../archive/0010/). This entry consumes whatever identity 0010 landed and compares label values without parsing them.
-- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution boundary convention, tracked as an open question rather than absorbed.
+- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution boundary convention, deferred to 0009 (0012:OQ10), whose 0009:OQ7 carries the remaining `#Op`-vocabulary half.
 
 **Not touched by this entry**
 
