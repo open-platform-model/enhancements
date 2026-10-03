@@ -24,7 +24,7 @@ affects:
 # false → schemas/ MUST NOT exist; non-core compilable CUE lives in contracts/.
 core_schema: false
 created: "2026-08-24"
-updated: "2026-10-02"
+updated: "2026-10-03"
 authors:
   - emil@jacero.se
 # Append-only timeline of design milestones. Landings go to delivery.yaml.
@@ -69,6 +69,8 @@ history:
     event: 'D10 R10-R12 (no cut before proven automation, release/* PR checks, no stranded cut); D8 R10 makes the branch automation a GA exit criterion; R9 per component'
   - date: "2026-10-02"
     event: 'The raw Kubernetes catalog is retired: dropped from D7, D8 (R5 tombstoned, R9 reworded), D10, class 2 and the policy index. No other answer, number, Source or Kind changed.'
+  - date: "2026-10-03"
+    event: 'D8 R11-R14 (owner decision): kernel library GA needs plain-data render output, typed fetch and resolution errors, docs and specs that match the code, and three betas without a break.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

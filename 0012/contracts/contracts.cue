@@ -112,16 +112,17 @@ import "strings"
 	}
 }
 
-// OQ7: which relation is the stale-set base? Component-blind (#K8sIdentity,
-// the operator's K8sIdentityEqual) means a component rename never produces a
-// stale entry at all. Component-aware (the CLI's IdentityEqual) produces one
-// and then removes it again with a separate post-filter. The kernel ships one.
-#StaleSetBaseRelation: "k8s-identity" | "component-aware"
+// The stale-set base relation is component-blind (0012:D7, resolving OQ7):
+// #K8sIdentity, the operator's K8sIdentityEqual, so a component rename never
+// produces a stale entry at all. The component-aware relation (the CLI's
+// IdentityEqual), which produced one and removed it again with a separate
+// post-filter, is not shipped.
+#StaleSetBaseRelation: "k8s-identity"
 
 #StaleSet: {
 	previous: [...#InventoryEntry]
 	current: [...#InventoryEntry]
-	relation: #StaleSetBaseRelation // OQ7
+	relation: #StaleSetBaseRelation
 
 	// Entries in `previous` with no counterpart in `current` under `relation`.
 	// Membership is computed in Go; this states what the set MEANS.
@@ -229,11 +230,20 @@ import "strings"
 // Flux SSA staging must not become a CLI dependency). This is 0006 OQ16's
 // missing operator guard, expressed once.
 //
-// OQ8: whether this lands in this entry, and whether it evaluates on every
-// reconcile that grows the entry set or only on an instance's first.
+// It lands in this entry and evaluates on every apply (0012:D8, resolving
+// OQ8). An object that does not exist is never refused.
+//
+// The refusal reasons: "foreign-object" when the object exists outside the
+// instance's recorded inventory and its managedBy is not in #OPMManagedBy;
+// "other-instance" when it exists outside that inventory, is OPM-managed and
+// carries another instance's identity; "terminating" when it exists with a
+// deletionTimestamp, whether or not it is in the inventory.
+//
+// The one override is a per-object adopt annotation on the live object naming
+// this instance's identity. It lifts only the two ownership refusals
+// ("foreign-object", "other-instance"); it never lifts "terminating".
 
-#ApplyRefusalReason: "foreign-object" | // exists, managedBy is not in #OPMManagedBy
-	"terminating" // exists with a deletionTimestamp
+#ApplyRefusalReason: "foreign-object" | "other-instance" | "terminating"
 
 #ApplyVerdict: {
 	entry: #InventoryEntry

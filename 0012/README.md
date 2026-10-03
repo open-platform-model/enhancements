@@ -10,7 +10,9 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Share every decision; share the steps only where they carry no framework opinion (0012:D4).** Deletion qualifies: ordering, fetching, guarding and deleting are plain Kubernetes steps. Apply does not, so the library gives the per-object verdict and the order, and each frontend keeps its own engine.
 
-**Order has two layers, and labels stay in CUE (0012:D5, 0012:D6).** Kind-class order, such as a CRD before its resources, is a Kubernetes fact with one table in the tier. Order a module declares arrives as data from its CUE build. Labels are stamped by the CUE render, and the shared render digest ignores the one label whose value differs between the two frontends.
+**Order is kind-class order, and labels stay in CUE (0012:D5, 0012:D6).** Kind-class order, such as a CRD before its resources, is a Kubernetes fact with one table in the tier. No ordering inside a module is planned: Kubernetes' eventual consistency settles the rest, and order between modules belongs to a future Bundle definition. Labels are stamped by the CUE render, and the shared render digest ignores the one label whose value differs between the two frontends.
+
+**The inventory and the apply guard are pinned down (0012:D7, 0012:D8).** The stale set is component-blind, and the inventory digest hashes a canonical encoding rather than either frontend's JSON. The apply guard checks every object outside the instance's inventory on every apply, and a per-object adopt annotation is its only override. The deletion protocol is this entry's and runs no hooks (0012:D4).
 
 **The duplication is measured, not assumed.** As of 2026-09-14 the two repos' object-conversion code is byte-identical, their label and resource helpers differ only in comments, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. The operator deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the operator orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
 
@@ -58,7 +60,7 @@ Deletion becomes a protocol owned by the library's Kubernetes tier, over four in
 
 1. [01-problem.md](01-problem.md): the verified duplication, the measured divergence, and the deletion gaps 0010's question did not identify
 1. [02-design.md](02-design.md): a fenced Kubernetes tier beside the kernel, and the rule that shares every decision but only framework-free execution
-1. [03-decisions.md](03-decisions.md): the decision log, 0012:D1 to 0012:D6
+1. [03-decisions.md](03-decisions.md): the decision log, 0012:D1 to 0012:D8
 1. [04-graduation.md](04-graduation.md): what must hold before draft becomes accepted
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
@@ -98,7 +100,7 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 - The CRD Go types. Whether the library becomes their home is entangled with entry [0008](../0008/) and is an open question here, not a deliverable.
 - Identity. Fully-qualified names, module paths, instance-UUID derivation and the identity migration belong to [0010](../archive/0010/). This entry consumes whatever identity 0010 landed and compares label values without parsing them.
-- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution boundary convention, tracked as an open question rather than absorbed.
+- The kernel's execution half, the operational primitives and their flow package, which belong to [0009](../0009/). The two overlap on the planner-and-execution boundary convention, deferred to 0009 (0012:OQ10), whose 0009:OQ7 carries the remaining `#Op`-vocabulary half.
 
 **Not touched by this entry**
 

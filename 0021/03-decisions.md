@@ -194,15 +194,21 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 - R8: The CLI's module templates and the quickstart are republished against the GA versions, and the documentation site drops its beta label.
 - R9: GA releases are cut in dependency order: core; then the kernel library; then the operator; then the CLI, embedding the GA operator. No GA release pins a prerelease dependency; a CI tool pin is not a dependency.
 - R10: Before a line of a repository that D10 covers reaches GA, that repository can cut a release branch as D10 R10 requires: the cut action, release workflows that run on `release/**` and pull-request checks on `release/**` are in place there and proven in the sandbox repository.
+- R11: Before the kernel library reaches GA, no value its render operation returns to a caller is a live CUE value; rendered output reaches the caller as plain data. The acquired instance, platform and module packages and the configuration schema may still expose CUE values, under the library's rule that their holder bounds their lifetime (library ADR-007).
+- R12: Before the kernel library reaches GA, a caller can tell each fetch or resolution failure it returns by type, without matching on message text: whether the failure is transient, and which kind of fetch or resolution failed.
+- R13: Before the kernel library reaches GA, its main specs pass strict validation, and every exported identifier and behaviour its README, ADRs and specs name exists as described.
+- R14: The kernel library reaches GA only after three consecutive beta releases of its line, none of which carries a breaking change.
 
 **Alternatives considered:**
 
 - **Hold the beta cut until 0013 lands.** Rejected by the owner in favour of an announced beta-period break under D7, with delivery moved to the GA criteria (R1).
 - **An exit checklist tracked as progress in this entry.** Rejected: an entry stores rules, not progress. The criteria are requirements, and whether they hold is read from the artifacts.
 
-**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R9 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one. R10 exists because after GA a released minor is fixed only on its release branch (D10): a GA line that cannot cut one has no patch path once `main` moves past it. The operator goes GA before the CLI because the CLI embeds a pinned operator and the operator depends on no CLI; under D9's `MAJOR.MINOR` ceiling a GA operator is not refused by a beta CLI of the same `MAJOR.MINOR`.
+**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R11 to R14 are the kernel library's API-quality bar: GA freezes its exported API, so what an embedder holds, how it tells failures apart and whether the documents describe the code must be settled before the freeze, and three quiet betas are the evidence that the API has stopped moving. R9 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one. R10 exists because after GA a released minor is fixed only on its release branch (D10): a GA line that cannot cut one has no patch path once `main` moves past it. The operator goes GA before the CLI because the CLI embeds a pinned operator and the operator depends on no CLI; under D9's `MAJOR.MINOR` ceiling a GA operator is not refused by a beta CLI of the same `MAJOR.MINOR`.
 
-**Source:** User decision 2026-09-30 (GA exit criteria).
+**Source:** User decision 2026-09-30 (GA exit criteria). Owner decision 2026-10-03 (R11 to R14): "Add library API-quality R-lines to 0021:D8 (no cue.Value in public output; typed fetch/resolution errors; docs and specs match code; 3 consecutive library betas without a breaking change)." The same day the owner narrowed the first line: "'no cue.Value in public output' narrowed to Render output only; Instance/Platform/Module .Package and ConfigSchema() keep cue.Value under ADR-007's rule."
+
+**Revised:** 2026-10-03: R11 to R14 added, the kernel library's API-quality criteria for GA.
 
 ### D9: The CLI's ceiling on operator versions compares `MAJOR.MINOR` only
 

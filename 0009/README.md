@@ -2,6 +2,8 @@
 
 The OPM kernel, the engine that turns a Module into Kubernetes objects, only renders. A Module cannot say what should happen around a deployment: an upgrade hook, a data migration, an on-demand job. Those end up in side scripts nobody governs. This entry adds a second half to the kernel that produces an ordered plan of steps instead of resources.
 
+> **Parked (2026-10-03).** The owner parked this entry until hooks are wanted. Its in-module step ordering conflicts with the owner's intent that nothing orders within a module (OQ7), and the deletion protocol it once shared a planner convention with belongs to entry 0012.
+
 All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
@@ -14,7 +16,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Dispatch is by CUE attribute (D5).** It is inert metadata that evaluation ignores and the Go SDK reads. It names a protocol, which picks a backend, and where to fetch the executable, which comes from a catalog rather than being compiled in and travels the same rails transformers do (D6).
 
-**Nine fixed lifecycle phases (D7), and cancellation belongs here (D9).** Before, during and after for install, upgrade and uninstall; an absent phase does nothing. One step per call means a caller cancels by not calling again. The HTTP Op returns the raw response (D8).
+**Nine fixed lifecycle phases (D7), and cancellation inside a stage belongs here (D9).** Before, during and after for install, upgrade and uninstall; an absent phase does nothing. One step per call means a caller cancels by not calling again. The HTTP Op returns the raw response (D8).
 
 ## How it works
 
@@ -57,7 +59,7 @@ The core-schema delta lives under [`schemas/`](schemas/) as compilable CUE with 
 - The execution half of the kernel: a pure planner and a one-step-per-call advance (D3), with the opt-in backend layer, its registry and its fail-fast behaviour.
 - The initial Op vocabulary, `exec`, full-CRUD `http`, `wait`, `cue.eval` and Kubernetes get and apply, as catalog definitions.
 - Frontend wiring: the CLI and operator each composing their own backend set, the operator driving lifecycle phases from its reconcile loop.
-- The kernel's cancellation path, designed and wired here and untouched by any other change until it lands (D9). It also introduces the injection point surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
+- The kernel's cancellation path inside a stage, designed and wired here and untouched by any other change until it lands (D9). Checks of the caller's context at a kernel verb's entry and between its stages may land standalone before it. It also introduces the injection point surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
 
 ### Out of scope
 
