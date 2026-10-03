@@ -178,7 +178,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Source:** User decision 2026-06-29.
 
-### D9: The execution half owns the kernel's cancellation path and introduces its own injection surface
+### D9: The execution half owns cancellation inside a stage and introduces its own injection surface
 
 **Kind:** scope
 
@@ -200,7 +200,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Revised:** 2026-09-14, cancellation between steps becomes a property of D3's shape rather than a mechanism to design; what is left to design is cancellation inside one advance.
 
-**Revised:** 2026-10-03, by owner decision ("Amend 0009:D9 to allow entry/between-stage ctx checks standalone"): context checks at a kernel verb's entry and between its stages may land standalone ahead of this entry; cancellation inside a stage stays this entry's.
+**Revised:** 2026-10-03, by owner decision ("Amend 0009:D9 to allow entry/between-stage ctx checks standalone"): context checks at a kernel verb's entry and between its stages may land standalone ahead of this entry; cancellation inside a stage stays this entry's. The heading is retitled to match.
 
 ### D10: `#Lifecycle` and `#Workflow` attach at module root as module traits on an aspect
 

@@ -73,6 +73,8 @@ history:
     event: 'Requirements added to every decision (none on D9); Kind changed to contract on D6 (body states observable behaviour), additive.'
   - date: "2026-10-03"
     event: 'Parked by owner until hooks are wanted. D9 revised: entry and between-stage context checks may land standalone. OQ7 opened: in-module step ordering conflicts with the owner intent.'
+  - date: "2026-10-03"
+    event: 'Owner decision: OQ7 also carries the #Op-vocabulary half of 0012:OQ10, deferred here. D9 retitled to match its revised scope.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
