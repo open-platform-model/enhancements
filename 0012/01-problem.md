@@ -1,4 +1,4 @@
-# Problem Statement: Kubernetes as a First-Class Kernel Platform
+# Problem Statement: Kubernetes as a First-Class Library Tier
 
 Every fact in this document was verified against the working tree on 2026-07-27. File paths and line numbers refer to that state.
 

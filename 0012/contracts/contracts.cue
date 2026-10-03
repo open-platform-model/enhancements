@@ -1,4 +1,4 @@
-// Target schema for enhancement 0012 (Kubernetes as a First-Class Kernel Platform).
+// Target schema for enhancement 0012 (Kubernetes as a First-Class Library Tier).
 //
 // This file states the CONTRACT that every implementor of the kernel must
 // satisfy when it acts on Kubernetes resources: the ownership vocabulary, the
@@ -12,6 +12,9 @@
 // Ordering, I/O, and the plan walk itself are deliberately absent — those are
 // Go's, and modelling them here would be fiction.
 //
+// Where this file says "the kernel", read the library's opm/k8s tier, which
+// sits beside the kernel package rather than inside it (0012:D3).
+//
 // Unresolved fields carry `// OQN:` markers pointing at ../03-decisions.md.
 package schema
 
@@ -21,7 +24,8 @@ import "strings"
 //
 // Today this exists three times: composed in core/src/transformer.cue, and read
 // back by opm-operator/pkg/core/labels.go and cli/pkg/core/labels.go (identical
-// but for three comment lines). The kernel owns one definition of it.
+// but for three comment lines). The library's opm/k8s tier owns the one Go
+// definition that reads it; stamping stays in core CUE (0012:D6).
 
 #LabelKey: =~"^[a-zA-Z0-9]([-._a-zA-Z0-9]*)?(/[a-zA-Z0-9]([-._a-zA-Z0-9]*)?)?$"
 

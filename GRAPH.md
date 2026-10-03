@@ -35,7 +35,7 @@ graph LR
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
   Cruntime -->|2| Cschema
-  Cruntime -->|2| Cdistribution
+  Cruntime -->|3| Cdistribution
   Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
   Cdistribution -->|2| Cruntime
@@ -65,6 +65,7 @@ graph TD
   N0025["0025: Self-Describing Modules"]:::draft
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
   N0010["0010 · distribution"]:::stub
+  N0012["0012 · runtime"]:::stub
   N0014["0014 · runtime"]:::stub
   N0018["0018 · misc"]:::stub
   N0019["0019 · runtime"]:::stub
@@ -84,6 +85,7 @@ graph TD
   N0026 -->|depends on| N0019
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0025
+  N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
   N0026 -.->|amends 1/37| N0010
   N0026 -.->|amends 4/18| N0015
@@ -105,11 +107,12 @@ graph TD
 
   N0006["0006: CLI CR Inventory, Library Kernel Adoption, and Op…"]:::delivered
   N0007["0007: Manifest Passthrough: Side-Channel Raw and Kustom…"]:::draft
-  N0012["0012: Kubernetes as a First-Class Kernel Platform"]:::draft
+  N0012["0012: Kubernetes as a First-Class Library Tier"]:::draft
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
   N0008["0008 · tooling"]:::stub
+  N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
@@ -120,6 +123,7 @@ graph TD
   N0026["0026 · schema"]:::stub
 
   N0012 -->|depends on| N0006
+  N0012 -->|depends on| N0010
   N0013 -->|depends on| N0014
   N0014 -->|depends on| N0006
   N0021 -->|depends on| N0006
@@ -132,6 +136,7 @@ graph TD
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0021
   N0027 -->|depends on| N0025
+  N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
   N0021 -.->|amends 1/40| N0006
   N0026 -.->|amends 3/26| N0019
@@ -158,6 +163,7 @@ graph TD
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
   N0006["0006 · runtime"]:::stub
+  N0012["0012 · runtime"]:::stub
   N0015["0015 · schema"]:::stub
   N0017["0017 · schema"]:::stub
   N0019["0019 · runtime"]:::stub
@@ -165,6 +171,7 @@ graph TD
   N0026["0026 · schema"]:::stub
   N0027["0027 · runtime"]:::stub
 
+  N0012 -->|depends on| N0010
   N0017 -->|depends on| N0010
   N0020 -->|depends on| N0010
   N0020 -->|depends on| N0011

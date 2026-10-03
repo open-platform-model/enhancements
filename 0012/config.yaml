@@ -3,16 +3,17 @@
 
 id: "0012"
 slug: kubernetes-first-class-kernel-platform
-title: Kubernetes as a First-Class Kernel Platform
+title: Kubernetes as a First-Class Library Tier
 # One line: the capability OPM will have and does not have today, or the
 # rework of one it has. The `feature` admission gate (gates.cue) made durable;
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
-  Move the Kubernetes runtime code into the kernel, so deleting, ownership checks and resource
-  ordering have one implementation instead of one per frontend.
+  Move the Kubernetes runtime code into one library tier beside the kernel, so deleting, ownership
+  checks and resource ordering have one implementation instead of one per frontend.
 status: draft
-# Primary owner: the kernel. The deletion protocol, the ownership vocabulary,
-# and the K8s object model all land in library/opm/; the frontends adopt.
+# Primary owner: the library. The deletion protocol, the ownership vocabulary,
+# and the K8s object model all land in its opm/k8s tier, beside the kernel
+# (0012:D3); the frontends adopt.
 category: runtime
 # Every repo that ships code changes driven by this enhancement.
 affects:
@@ -21,7 +22,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-27"
-updated: "2026-09-29"
+updated: "2026-10-02"
 authors:
   - emil@jacero.se
 history:
@@ -60,6 +61,14 @@ history:
     event: 'Requirements added to every decision (none on D2), additive.'
   - date: "2026-09-29"
     event: 'Mechanism smells cleared in 02-design.md: the deletion-protocol and Before/After diagrams name kernel operations instead of function tokens. No decision changed.'
+  - date: "2026-10-02"
+    event: 'D3-D6 added (owner decision): fenced opm/k8s tier, apply/delete asymmetry, two-layer ordering, CUE label stamping. D1 and D2 revised in place. OQ1, OQ11 answered; OQ8 partial.'
+  - date: "2026-10-02"
+    event: 'Owner decisions: retitled from "...First-Class Kernel Platform", slug kept; no loop and no cluster action (D3 R8); semver unset until promotion.'
+  - date: "2026-10-02"
+    event: 'Owner decision: D3 property 3 and R8 ban only code that performs a planned action against a cluster; ADR-008 rule 3 keeps executor backends that perform no planned action against a cluster.'
+  - date: "2026-10-02"
+    event: 'Owner decision: 0012:D3 amends 0009:D4; OQ10 puts 0009 k8s get/apply Ops and the Job-rendering container variant in the frontend. OQ2 marked amended.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -68,6 +77,11 @@ history:
 # both directions and refuses a cycle.
 depends_on:
   - "0006"
+  - "0010"
+# Entries whose decisions this entry's decisions amend or supersede
+# (qualified **Amends:** / **Supersedes:** tokens in 03-decisions.md).
+amends:
+  - "0009"
 # NOT a supersession of 0006 as an entry — 0006 is implemented and stands.
 # This entry supersedes exactly one of its decisions (D31), recorded in
 # 03-decisions.md rather than via this field.

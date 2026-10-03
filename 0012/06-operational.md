@@ -1,4 +1,4 @@
-# Operational Concerns: Kubernetes as a First-Class Kernel Platform
+# Operational Concerns: Kubernetes as a First-Class Library Tier
 
 The OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answered.
 
@@ -8,9 +8,9 @@ The OPM Production Readiness Review (PRR-lite). Five fixed prompts, each answere
 
 The main observability gain is that a skipped delete acquires a *reason* that is the same string in both tools. Today the operator logs `"Skipping prune: live resource is not OPM-managed"` with structured keys while the CLI logs nothing at all for the same condition, because it does not check it. After this entry, every `PlannedAction` carries a typed skip reason: safety-excluded, not-OPM-managed, owner-UUID-mismatch, already-absent. The frontends render it in their own idiom.
 
-New typed errors join `opm/errors/` alongside the existing `MatchError` and `MaterializeError` families: a deletion-plan error naming the entry and the reason, and an ownership-verdict error for the apply-side guard. Both are structured so the operator can map them to conditions and events (`status.PruneFailedReason` already exists) and the CLI to exit codes, without either parsing strings.
+New typed errors join the library's error vocabulary alongside the existing `MatchError` and `MaterializeError` families: a deletion-plan error naming the entry and the reason, and an ownership-verdict error for the apply-side guard. Both are structured so the operator can map them to conditions and events (`status.PruneFailedReason` already exists) and the CLI to exit codes, without either parsing strings.
 
-What does **not** change: the operator keeps owning conditions, events, and `opmmetrics`; the CLI keeps owning its logger and output formatting. The kernel emits no output. Principle I is unaffected, and any logging it needs arrives from the caller via `context.Context` as it already does elsewhere.
+What does **not** change: the operator keeps owning conditions, events, and `opmmetrics`; the CLI keeps owning its logger and output formatting. The library emits no output. Principle I is unaffected, and any logging it needs arrives from the caller via `context.Context` as it already does elsewhere.
 
 The conformance test required at graduation is itself an observability artefact: it is the thing that will fail loudly if a frontend drifts, which is the signal 0006's OQ15/OQ16 lacked.
 
@@ -18,9 +18,9 @@ The conformance test required at graduation is itself an observability artefact:
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-`opmodel.dev/core`: no impact expected. This entry adds no CUE schema surface of its own; `contracts/contracts.cue` describes the contract both Go implementations satisfy, and where it overlaps `core` (the label vocabulary, the inventory wire shape) it restates what is already there. OQ11 could change this if label stamping moves; that would be coordinated with 0010, which is already moving one label from schema to kernel.
+`opmodel.dev/core`: no impact expected. This entry adds no CUE schema surface of its own; `contracts/contracts.cue` describes the contract both Go implementations satisfy, and where it overlaps `core` (the label vocabulary, the inventory wire shape) it restates what is already there. Label stamping stays in CUE (0012:D6, answering 0012:OQ11), consistent with 0010 keeping the module version label in the schema, so no core change follows from this entry.
 
-`library`: **breaking**, magnitude set by OQ3. Deleting the neutral `core.Resource` / `Identity` contract is a major bump; retaining it and adding `opm/k8s/` alongside is a minor one that still breaks nothing. Either way `library` gains an `apimachinery` dependency, which is not a source break but is an MVS floor for every embedder and belongs in `MIGRATIONS.md` next to the CUE floor. `config.yaml.semver` stays unset until OQ3 resolves, which is why OQ3 is a promotion blocker.
+`library`: this entry breaks no library source. 0012:OQ3 is answered: the neutral `core.Resource` / `Identity` contract was deleted pre-GA on 2026-09-01 and recorded as a changelog entry. What this entry still adds is the `opm/k8s` tier. `library` gains an `apimachinery` dependency in its one Go module (0012:D3), imported by the `opm/k8s` tier only. That breaks no source. It is an MVS floor for every embedder, including one that never imports the tier, and it belongs in `MIGRATIONS.md` next to the CUE floor. `config.yaml.semver` stays unset until promotion, when the owner sets the magnitude.
 
 `opm-operator` and `cli`: internal-only changes at the Go level. Both delete packages under `pkg/`, so anything importing them breaks; the CLI has no external Go consumers, and the operator's `pkg/` surface has no known external importer. Neither CRD changes shape, so no cluster-level compatibility question arises unless OQ5 flips `spec.prune`'s default, which is a behavioural break at the operational level even though the schema is unchanged, and is called out separately in [`05-risks.md`](05-risks.md).
 
@@ -36,27 +36,29 @@ Removed outright, in the same release that lands the replacement (no deprecation
 | --- | --- |
 | `cli/pkg/core/{labels,resource,convert}.go` | `library/opm/k8s/{labels,object}` |
 | `opm-operator/pkg/core/{labels,resource,convert,compiled_adapter}.go` | `library/opm/k8s/{labels,object}` |
-| `cli/pkg/resourceorder/`, `opm-operator/pkg/resourceorder/` | `library/opm/k8s/object` |
+| `cli/pkg/resourceorder/` (the operator deleted its copy on 2026-09-13) | `library/opm/k8s/object`, the one kind-class order table (0012:D5) |
+| `library/opm/helper/objectset` (moved, not removed) | `library/opm/k8s/object`, with the first tier package (0012:D3) |
 | `cli/pkg/inventory/`, `cli/internal/inventory/{digest,stale}.go` | `library/opm/k8s/inventory` + `library/opm/k8s/ownership` |
 | `opm-operator/internal/inventory/` | `library/opm/k8s/inventory` |
 | `opm-operator/internal/apply/prune.go` | `library/opm/k8s/lifecycle` + a local loop performing the actions it names |
 | `cli/internal/inventory.ComputeRenderDigest` and its parity comment | `library/opm/k8s/inventory.RenderDigest` |
 | `cli/internal/inventory.ApplyComponentRenameSafetyCheck` | nothing: unnecessary by construction if OQ7 lands component-blind |
 
-`library/opm/core/{resource,compiled}.go` is on this list only if OQ3 resolves toward deletion.
 
-The alias-then-delete pattern is explicitly not used. A compatibility alias in `cli/pkg/inventory` pointing at the kernel would leave two import paths for one type and reproduce, in miniature, the ambiguity this entry exists to remove.
+The alias-then-delete pattern is explicitly not used. A compatibility alias in `cli/pkg/inventory` pointing at the tier would leave two import paths for one type and reproduce, in miniature, the ambiguity this entry exists to remove.
 
 ## Rollback
 
 **If this lands and proves bad, what's the rollback story?**
 
-Code rollback is clean at the Go level and awkward at the coordination level. Each repo's change is a revert, but the frontends pin a published `library` version, so rolling back the kernel means either yanking a release or pinning both frontends back: the cost D31 named, now paid deliberately rather than avoided.
+Code rollback is clean at the Go level and awkward at the coordination level. Each repo's change is a revert, but the frontends pin a published `library` version, so rolling back the tier means either yanking a release or pinning both frontends back: the cost 0006:D31 named, now paid deliberately.
 
-The important asymmetry is that **nothing here changes persisted state**. The `InventoryEntry` wire shape written to `status.inventory.entries[]` is unchanged, the labels on live resources are unchanged, the finalizer string is unchanged, and the CRDs are unchanged. A cluster reconciled by the new code is readable by the old code and vice versa. That holds for every part of this entry *except* two, both of which are open questions precisely because they are the parts that do not roll back:
+The important asymmetry is that **almost nothing here changes persisted state**. The `InventoryEntry` wire shape written to `status.inventory.entries[]` is unchanged, the labels on live resources are unchanged, the finalizer string is unchanged, and the CRDs are unchanged. A cluster reconciled by the new code is readable by the old code and vice versa. That holds for every part of this entry except the render digest, below, and two open questions that are open precisely because they are the parts that do not roll back:
 
 - **OQ4**, if it stamps `ownerReferences`. Those persist on live objects; reverting the code does not remove them, and the objects stay garbage-collectable by their owner. A rollback would need a sweep to strip them.
 - **OQ5**, if it flips `spec.prune`'s default. Anything already deleted under the new default is gone.
+
+The render digest is the one stored value that changes, and it changes harmlessly for the objects. The operator records `lastAppliedRenderDigest` and `lastAttemptedRenderDigest` in status, and 0012:D6's digest excludes the managed-by label value where today's digest includes it, so the recorded digest changes once on upgrade with no change to the objects, and again on rollback. 0006:D7's handoff check compares a stored digest, so a handoff across that boundary sees a digest change with no object change behind it.
 
 OQ6's resolution, if it adds a hold to CLI-owned CRs, persists as a finalizer string on those CRs (recoverable), but a rollback leaves CRs holding a finalizer no running code releases, which is the wedge `opm operator uninstall` already guards against elsewhere. Any resolution should carry a release path.
 
@@ -70,9 +72,9 @@ OQ6's resolution, if it adds a hold to CLI-owned CRs, persists as a finalizer st
         └────published tag────▶  cli
 ```
 
-`library` first, always: the kernel package plus its conformance test ship and are published before either frontend can adopt. The two frontends are then independent of each other and may land in either order. That property is worth protecting: it is what lets the riskier operator migration proceed without blocking the CLI's CRD-exclusion fix, the most urgent single item in this entry.
+`library` first, always: the tier's fence and library ADR-011 land before any tier package (0012:D3), then each tier package plus its conformance test ships and is published before either frontend can adopt it. The two frontends are then independent of each other and may land in either order. That property is worth protecting: it is what lets the riskier operator migration proceed without blocking the CLI's CRD-exclusion fix, the most urgent single item in this entry.
 
-Within `library`, slice so that no published version contains an unimported package: D31's "actively misleading" critique applies to intermediate states too. The kernel package and the test that enforces it belong in the same release.
+Within `library`, slice so that no published version contains an unimported package: 0006:D31's "actively misleading" critique applies to intermediate states too. Each tier package and the test that enforces it belong in the same release. A frontend that adopts a package deletes its own copy in that same release and adds a check refusing it back (0012:D3).
 
 Sequencing against other entries:
 
@@ -80,4 +82,4 @@ Sequencing against other entries:
 - **0008** is entangled through OQ9 and should be resolved jointly before either entry is promoted, not after.
 - **0009** is entangled through OQ10. Both entries introduce a kernel planner with a caller-supplied execution seam; agreeing one convention costs almost nothing now and a rewrite later.
 
-No CUE module publish is required unless OQ11 moves label stamping, in which case `core` publishes first and the ordering becomes `core → library → {operator, cli}`.
+No CUE module publish is required: 0012:OQ11 is answered by 0012:D6, which keeps label stamping in CUE where it already is.
