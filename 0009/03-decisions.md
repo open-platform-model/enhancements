@@ -182,14 +182,15 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Kind:** scope
 
-**Decision:** The cancellation path (a caller's context reaching phase boundaries and registry I/O) is this entry's to design and deliver; until this entry lands it stays as it is, and no other change threads or wires it. Under the one-step-per-call shape (D3) a caller cancels between steps by not calling again, so what remains to design is cancellation inside a single advance, which reaches a registry fetch and nothing else. The three dependency-injection slots the kernel accepted (logger, tracer, clock) are removed now as write-only surface, in a library change this entry does not carry. This entry introduces the injection surface the planner actually needs together with its first reader, in whatever shape that reader dictates, not as a restoration of the removed symbols.
+**Decision:** The cancellation path (a caller's context reaching phase boundaries and registry I/O) is this entry's to design and deliver, with one exception. A check of the caller's context at a kernel verb's entry and between its stages may land standalone, ahead of this entry, because it threads nothing into a stage and needs no consumer with a cancellation story. Cancellation inside a stage stays this entry's, and no other change threads or wires it. Under the one-step-per-call shape (D3) a caller cancels between steps by not calling again, so what remains to design is cancellation inside a single advance, which reaches a registry fetch and nothing else. The three dependency-injection slots the kernel accepted (logger, tracer, clock) are removed now as write-only surface, in a library change this entry does not carry. This entry introduces the injection surface the planner actually needs together with its first reader, in whatever shape that reader dictates, not as a restoration of the removed symbols.
 
 **Requirements:** none (bounds ownership of cancellation and of the planner's injection surface to this entry; what cancellation inside one advance observably does is OQ6 and lands under D3 and D4)
 
 **Alternatives considered:**
 
 - Keep the three slots reserved for this entry, accepted and unread, until the execution half lands (previously adopted, 2026-08-30). Reversed on revision: the kernel carried a write-only option surface whose only effect was to suggest an observability story that did not exist, and the tracer slot alone kept an external tracing dependency direct; the churn argument undervalued the cost of a misleading public surface with one workspace-internal consumer to migrate.
-- Thread cancellation through the kernel as a standalone library change ahead of this entry. Rejected: a cancellation path needs a consumer with a cancellation story, and the execution half is the first one; designing it beside the executor port keeps one model across both halves.
+- Thread cancellation into the kernel's stages as a standalone library change ahead of this entry. Rejected: cancellation inside a stage needs a consumer with a cancellation story, and the execution half is the first one; designing it beside the executor port keeps one model across both halves. A check at a verb's entry and between its stages is not this alternative: it reaches no stage, so it may land standalone.
+- Keep every part of the cancellation path, entry and between-stage checks included, for this entry (previously adopted, 2026-08-30). Narrowed on revision by owner decision: those checks reach no stage and need no consumer design, so holding them back for this entry bought nothing.
 
 **Rationale:** Measured in the library kernel review: the kernel discards the caller's context on most entry points, and the context never reaches a registry fetch because CUE's loader substitutes its own before loading; the logger, tracer and clock slots had no reader since they were added. The planner is the first kernel surface that needs cancellation, logs and spans. A lifecycle phase waits on conditions and registry pulls, and step-level spans are where an operator reads progress, so the execution half is where an injection surface first earns its existence, shaped by its first reader rather than reserved ahead of it. A clock is no longer among them: under D3 the caller holds the loop and therefore the waiting. See OQ6 for the measured limit on how far cancellation can reach.
 
@@ -198,6 +199,8 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Revised:** 2026-09-01, reserved-slots half reversed by user decision: slots removed now, re-introduced by this entry with their first reader; cancellation half unchanged.
 
 **Revised:** 2026-09-14, cancellation between steps becomes a property of D3's shape rather than a mechanism to design; what is left to design is cancellation inside one advance.
+
+**Revised:** 2026-10-03, by owner decision ("Amend 0009:D9 to allow entry/between-stage ctx checks standalone"): context checks at a kernel verb's entry and between its stages may land standalone ahead of this entry; cancellation inside a stage stays this entry's.
 
 ### D10: `#Lifecycle` and `#Workflow` attach at module root as module traits on an aspect
 
