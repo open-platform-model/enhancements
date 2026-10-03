@@ -230,16 +230,18 @@ import "strings"
 // Flux SSA staging must not become a CLI dependency). This is 0006 OQ16's
 // missing operator guard, expressed once.
 //
-// It lands in this entry and evaluates on every apply, for every object not
-// already in the instance's recorded inventory (0012:D8, resolving OQ8). An
-// object that does not exist is never refused. The one override is a
-// per-object adopt annotation on the live object naming this instance's
-// identity; an object carrying it is applied and recorded.
+// It lands in this entry and evaluates on every apply (0012:D8, resolving
+// OQ8). An object that does not exist is never refused.
 //
-// The refusal reasons: "foreign-object" when the object exists and its
-// managedBy is not in #OPMManagedBy; "other-instance" when it exists, is
-// OPM-managed and carries another instance's identity; "terminating" when it
-// exists with a deletionTimestamp.
+// The refusal reasons: "foreign-object" when the object exists outside the
+// instance's recorded inventory and its managedBy is not in #OPMManagedBy;
+// "other-instance" when it exists outside that inventory, is OPM-managed and
+// carries another instance's identity; "terminating" when it exists with a
+// deletionTimestamp, whether or not it is in the inventory.
+//
+// The one override is a per-object adopt annotation on the live object naming
+// this instance's identity. It lifts only the two ownership refusals
+// ("foreign-object", "other-instance"); it never lifts "terminating".
 
 #ApplyRefusalReason: "foreign-object" | "other-instance" | "terminating"
 

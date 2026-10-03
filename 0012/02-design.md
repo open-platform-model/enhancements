@@ -155,7 +155,9 @@ There is no executor package. No loop that drives a plan to completion ships any
 - `pkg/core/{labels,resource,convert,compiled_adapter}.go`: deleted; tier types used directly. The operator's `pkg/resourceorder/` is already gone (deleted 2026-09-13).
 - `internal/inventory/**`: deleted; tier inventory used directly.
 - `internal/apply/prune.go`: collapses into the tier plan plus a local loop that performs the actions it names.
-- `internal/apply/apply.go`: keeps Flux SSA; gains the tier's apply verdicts and order (this is 0006:OQ16's fix).
+- `internal/apply/apply.go`: keeps Flux SSA; gains the tier's apply verdicts and order (this is 0006:OQ16's fix). The verdict is consulted on every apply, with the adopt annotation as the only override (0012:D8).
+- `api/v1alpha1/modulepackage_types.go`: the ModulePackage status gains the instance identity, as an additive field (0012:D8).
+- `internal/reconcile/modulepackage.go`: fills the ModulePackage instance identity on reconcile and applies through the same verdict as a ModuleInstance (0012:D8).
 - `internal/reconcile/moduleinstance.go`: `handleDeletion` keeps the patches and impersonation, delegates the branching to `MayReleaseHold`.
 - `internal/render/module.go`: `buildInventoryEntries` becomes a tier call.
 
@@ -163,6 +165,7 @@ There is no executor package. No loop that drives a plan to completion ships any
 
 - `pkg/core/**`, `pkg/inventory/**`, `pkg/resourceorder/**`: deleted; tier types used directly.
 - `internal/inventory/{digest,stale}.go`: `ComputeRenderDigest` and the parity comment deleted; `PruneStaleResources` collapses into the tier plan plus a local loop that performs the actions it names, gaining the CRD exclusion and the delete-time ownership guard.
+- `internal/inventory/stale.go`: `PreApplyExistenceCheck`, the first-apply refusal, becomes the tier's apply verdict, consulted on every apply with the adopt annotation as the only override (0012:D8).
 - `internal/inventory/stale.go`: `ApplyComponentRenameSafetyCheck` deleted, because 0012:D7 standardises on the component-blind comparator, which makes the post-filter unnecessary by construction.
 - `internal/kubernetes/delete.go`: the instance-delete walk becomes the tier plan.
 - `internal/cmd/instance/delete.go`: unchanged in shape; the outcomes it reports become tier-computed.

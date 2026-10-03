@@ -32,7 +32,7 @@ This supersedes the placement conclusion of enhancement 0006 D31 ("`library/opm/
 - R4: A live object whose manager label is not an OPM runtime identity, or whose instance identity differs from the deleting instance's, is skipped by both frontends with the reason named.
 - R5: Whether an instance's deletion hold may be released is decided from its policy and the plan's outcome, identically for whichever frontend asks, with the reason named.
 - R6: Deletions happen in a defined order that is the same on both frontends.
-- R7: Before applying, each object receives a verdict that refuses an existing object not managed by OPM or one being deleted, and the verdict is the same on both frontends.
+- R7: Before applying, each object receives a verdict, and the verdict is the same on both frontends. It refuses an existing object that is being deleted, whether or not it is in the instance's inventory. It refuses an existing object outside the instance's recorded inventory that OPM does not manage or that carries another instance's identity, unless the adopt annotation of 0012:D8 names this instance.
 
 **Alternatives considered:**
 
@@ -55,6 +55,8 @@ What D31 got right and this decision preserves is that none of this logic is *cr
 **Source:** User decision 2026-07-27, from an explore-mode session investigating enhancement 0010's OQ10. Evidence gathered in the same session and recorded in [`01-problem.md`](01-problem.md); every file reference verified against the working tree that day.
 
 **Revised:** 2026-10-02: the title names the library's Kubernetes tier (0012:D3) where it named the kernel. The decision text and its requirements are unchanged.
+
+**Revised:** 2026-10-03: R7 names the two ownership refusals, their scope (objects outside the recorded inventory) and their one override, the adopt annotation, to match 0012:D8. The refusal of an object being deleted is unchanged and covers every object.
 
 ---
 
@@ -183,7 +185,7 @@ ADR-008 rule 4 says the kernel derives no ordering of its own. It is read as: th
 
 **Source:** Owner decision 2026-10-02 (kind-class order in the tier). Owner decision 2026-10-03, in the owner's words: "I never intended for dependsOn or ordering within a module, however that could change if deemed necessary. The plan was to eventually create a Bundle definition. A bundle of modules, and in this case build in ordering. But that implementation would likely just use the order you define the modules. This could also be done for component in the module but my intentions were always to let the kernel apply all resources in the order it wants and let k8s eventual consistency handle the rest." Recorded in library ADR-011 (`adr/011-kubernetes-tier-beside-the-kernel.md`, landing in the library change record-kubernetes-tier), which also states the clarified reading of ADR-008 rule 4. The single remaining weight table is read from `cli/pkg/resourceorder` on 2026-10-02.
 
-**Revised:** 2026-10-03: module-declared order is no longer a planned second layer. No module-internal ordering is planned, cross-module order belongs to a future Bundle definition, and R3 now states the observable consequence.
+**Revised:** 2026-10-03: module-declared order is no longer a planned second layer. No module-internal ordering is planned, cross-module order belongs to a future Bundle definition, and R3 is narrowed to its "the library adds no module-specific ordering" half, stated as the observable consequence.
 
 ---
 
@@ -246,14 +248,15 @@ The inventory digest has one definition in the tier. It hashes a canonical encod
 
 **Kind:** contract
 
-**Decision:** The apply-time ownership guard, 0012:D4's per-object apply verdict, runs on every apply, not only on an instance's first. It checks every object that is not already in the instance's recorded inventory. An existing live object outside that inventory, which OPM does not manage or which carries another instance's identity, is refused with a reason. The one override is per object: the user sets an adopt annotation on the existing live object, naming the adopting instance's identity, and the guard then permits that object. The implementing change fixes the annotation key (indicatively `opmodel.dev/adopt`), and from then on the key is part of this contract. No command-wide flag overrides the guard.
+**Decision:** The apply-time ownership guard, 0012:D4's per-object apply verdict, runs on every apply, not only on an instance's first. It checks every object that is not already in the instance's recorded inventory. An existing live object outside that inventory, which OPM does not manage or which carries another instance's identity, is refused with a reason. The one override is per object: the user sets an adopt annotation on the existing live object, naming the adopting instance's identity, and the guard then permits that object. The implementing change fixes the annotation key (indicatively `opmodel.dev/adopt`), and from then on the key is part of this contract. No command-wide flag overrides the guard. The adopt annotation overrides only these two ownership refusals. The verdict's other refusal, for an object being deleted (0012:D1 R7), covers every object, inside the inventory or not, and nothing overrides it.
 
 A ModulePackage gets a persisted instance identity in an additive status field, so the guard compares identities for objects a ModulePackage owns exactly as it does for a ModuleInstance. This settles the two sub-questions 0012:OQ8 inherited from 0006.
 
 **Requirements:**
 
 - R1: An existing live object that is not in the instance's recorded inventory, and that OPM does not manage or that carries another instance's identity, is refused on every apply with a reason, unless it carries the adopt annotation naming this instance's identity. Creating an object that does not exist is never refused by this guard.
-- R2: An object carrying the adopt annotation that names this instance's identity is applied and recorded in the instance's inventory. An annotation naming another instance's identity overrides nothing.
+- R2: An object carrying the adopt annotation that names this instance's identity passes the ownership refusals and, unless it is being deleted, is applied and recorded in the instance's inventory. An annotation naming another instance's identity overrides nothing.
+- R5: An existing object that is being deleted is refused on every apply, whether or not it is in the instance's recorded inventory, and the adopt annotation does not override that refusal.
 - R3: Neither frontend offers another override of this refusal, and no refusal message names one.
 - R4: A ModulePackage carries its instance identity in its status across reconciles, and the guard protects objects it owns as it protects a ModuleInstance's. A ModulePackage created before the field existed gains it with no change to its spec.
 

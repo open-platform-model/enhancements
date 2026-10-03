@@ -12,7 +12,8 @@ Eleven open questions and six documentation checks gate promotion; every `Blocki
 - 0012:OQ3 (delete or retain the neutral `core.Resource` / `Identity` contract) is resolved. Answered 2026-09-01: the contract was deleted pre-GA.
 - OQ4 (`ownerReferences`) is resolved. It is half this entry's stated scope; deferring it means the entry did not answer what it was opened for.
 - OQ5 (`spec.prune` default), OQ6 (holds on CLI-owned instances), OQ7 (stale-set base relation), and OQ8 (apply-time collision guard) are each resolved or explicitly deferred with a named destination. "Deferred" is acceptable here in a way it is not for OQ1–OQ4, but an unowned deferral is what produced 0006's OQ15 and OQ16 and is not acceptable again.
-- OQ9 (relationship to 0008) and OQ10 (relationship to 0009) carry an agreed position recorded in both entries, not only in this one. A unilateral answer here is not a resolution.
+- OQ9 (relationship to 0008) carries an agreed position recorded in both entries, not only in this one. A unilateral answer here is not a resolution.
+- OQ10 (relationship to 0009) is closed as deferred-to-0009 (owner decision 2026-10-03). Its ownership half is answered by 0012:D4, and its remaining half, whether 0009's k8s get/apply `#Op` vocabulary is expressed as this entry's action set, is carried in 0009:OQ7, so the position is recorded in both entries.
 - 0012:OQ11 (label stamping) is resolved by 0012:D6 (2026-10-02): stamping stays in CUE.
 
 **Documentation and schema checks**
