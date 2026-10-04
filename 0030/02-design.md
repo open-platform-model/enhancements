@@ -58,7 +58,7 @@ V1 adds no CUE and changes no OPM schema. Its contract surface is the read API, 
 - **An instance document carries both axes.** A `reconcile` block (state, reason, message, since) and a `health` block (state, per-state counts, `partial`, `evaluatedAt`, `live`), never one merged status.
 - **Graph documents.** Nodes with stable ids that never embed a UID, an access state (`ok`, `forbidden`, `notReadable`) and an optional collapsed summary; edges with a kind and the source they came from.
 - **One change stream per client.** Server-sent events carrying the same document shapes as the GETs (snapshot, upsert, delete), plus Kubernetes events and log lines as topics on the same stream, resumable or answered with an explicit resync.
-- **Problem documents.** Errors are RFC 9457 problem documents with a closed but extensible `code` set: unauthenticated, forbidden, not readable by the portal, not found, not in inventory, bad request, too many streams, upstream unavailable.
+- **Problem documents.** Errors are RFC 9457 problem documents with a closed but extensible `code` set: unauthenticated, forbidden, not readable by the portal, not found, bad request, too many streams, upstream unavailable.
 
 ## Affected Surfaces
 
