@@ -1,0 +1,317 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: platforms.opmodel.dev
+spec:
+  group: opmodel.dev
+  names:
+    kind: Platform
+    listKind: PlatformList
+    plural: platforms
+    shortNames:
+    - plat
+    singular: platform
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].reason
+      name: Reason
+      type: string
+    - jsonPath: .status.operatorVersion
+      name: Operator
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Platform declares the catalogs the operator renders against: the operator
+          generates a platform CUE module from it, and renders ModuleInstances and
+          ModulePackages against that module.
+
+          It is a cluster-scoped singleton (the only permitted name is "cluster")
+          whose spec projects the core #Platform author surface.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of Platform
+            properties:
+              registry:
+                additionalProperties:
+                  description: |-
+                    Subscription is a single catalog registry subscription. It becomes one
+                    #registry entry of the generated platform module, carrying the catalog by
+                    import.
+                  properties:
+                    enable:
+                      description: |-
+                        Enable toggles the subscription. A pointer so that an omitted value
+                        defers to the schema default (true) rather than serializing as an
+                        explicit false. A disabled subscription is still pinned and imported by
+                        the generated module, with enable set to false on its entry.
+                      type: boolean
+                    version:
+                      description: |-
+                        Version names exactly one published catalog build as a bare SemVer
+                        string (e.g. "2.0.0-alpha.3") — the platform module IS the resolution
+                        (0010:D14); there is no range or allow/deny vocabulary. The
+                        version's major must agree with the subscription key's `@vN` suffix.
+                        The operator uses it twice: as the generated cue.mod pin and as the
+                        entry's stamped expected version, which unifies with the imported
+                        catalog's own version so wrong bytes fail the build naming the entry
+                        (0019:D13).
+                        CRD-required is safe against the stored pre-reshape singleton: API
+                        server validation ratcheting keeps status-subresource patches working
+                        against a stored object lacking the field (measured in
+                        test/integration/crdvalidation).
+                      minLength: 1
+                      type: string
+                  required:
+                  - version
+                  type: object
+                description: |-
+                  Registry is the set of catalog subscriptions keyed by major-suffixed
+                  catalog CUE module path (e.g. "opmodel.dev/catalogs/opm@v2"), projecting
+                  core #Platform.#registry. The key's major must agree with the major of
+                  the subscribed version (0010:D14).
+                type: object
+              skewPolicy:
+                description: |-
+                  SkewPolicy is the operator's response to catalog version skew: a
+                  module whose cue.mod requires a newer build of an OPM-namespace path
+                  (core or a catalog) than the platform pins (0019:D7/D18).
+                  "Warn" (the default when unset) renders against the platform's build
+                  and reports the skew as a RenderWarning event on the workload; "Refuse"
+                  refuses the render before evaluation and the workload reports
+                  Ready=False with reason SkewRefused, naming the path and both versions.
+                  The policy is not part of the generated platform module; it is recorded
+                  beside it, so changing the field alone bumps the generation, regenerates
+                  and re-enqueues the workloads.
+                enum:
+                - Warn
+                - Refuse
+                type: string
+              type:
+                description: |-
+                  Type is the informational discriminator for the platform (core
+                  #Platform.type). It is required and shown in the Type column of
+                  kubectl get. The operator passes it on to the generated platform
+                  module, and nothing in OPM acts on its value.
+                minLength: 1
+                type: string
+            required:
+            - type
+            type: object
+          status:
+            description: status defines the observed state of Platform
+            properties:
+              conditions:
+                description: |-
+                  conditions represent the current state of the Platform resource. The
+                  PlatformReconciler summarizes module generation on the Ready condition:
+                  Ready=True (reason Generated) when the generated platform module built
+                  and its contract inventory was accepted, Ready=False with reason
+                  BuildFailed (a pinned build does not exist, a key disagrees with its
+                  imported catalog, the module did not build, or its contract inventory
+                  could not be read; the message names the dependency, the entry or the
+                  field), GenerateFailed (the module could not be written to the
+                  operator's disk), ContractCollisions (the module built, but more than
+                  one enabled registry entry defines a contract key, as two majors of one
+                  catalog sharing keys do; the message names each key and the defining
+                  entries), OverSubscribedContracts (the module built, but a
+                  provider-fulfilled contract is provided by more than one enabled
+                  registry entry, counted per entry so two majors of one catalog are
+                  two, and whether or not its defining catalog is enabled; the platform
+                  cannot route it, and the message names each contract, its defining
+                  catalog when one is enabled and the providing registry entries) or
+                  ComparablePredicates (the module built, but two enabled transformers
+                  have comparable match predicates over a shared catalog-fulfilled
+                  contract, so both would render every component the narrower matches;
+                  the message names each pair and the contracts it shares). When several
+                  refusals hold, the reason is the first of ContractCollisions,
+                  OverSubscribedContracts and ComparablePredicates, and the message
+                  carries every finding. A refused module is not recorded: the last good
+                  package keeps serving renders.
+
+                  The ContractsFulfilled condition is a separate, non-gating report on
+                  the package renders are consuming, written whenever one is recorded:
+                  False with reason UnfulfilledContracts when the package defines
+                  provider-fulfilled contracts nothing on the platform implements (the
+                  message names each and its defining catalog), True with reason
+                  ContractsFulfilled when every defined contract has a provider, and True
+                  with reason NoContractsDefined when the enabled catalogs list no
+                  contract at all, so nothing was verified. It never moves Ready.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedGeneration:
+                format: int64
+                type: integer
+              operatorVersion:
+                description: |-
+                  operatorVersion is the version of the operator that last patched this
+                  Platform's status, stamped on every reconcile regardless of outcome
+                  (0006:D24). The CLI reads it as the version-skew ceiling;
+                  absence means no operator has reconciled the Platform (solo cluster).
+                type: string
+              packageIdentity:
+                description: |-
+                  packageIdentity identifies the generated platform package by the two
+                  inputs it is a function of (0015:D13): this CR's
+                  generation and the sorted set of active claims' catalog coordinates.
+                  The same inputs always produce the same value and any change to either
+                  produces a different one.
+
+                  This, not status.active on a TransformerRegistration, is the
+                  authoritative answer to what a render is building against. The claim
+                  reconciler writes the verdict on the claim and this reconciler folds
+                  the verdict into the package, so the two are eventually consistent: an
+                  observer can see a claim active for a moment before a package
+                  containing its catalog exists. Generation is level-computed, so the
+                  next regeneration catches up; until it lands, an active claim is a
+                  promise about the next package, not a statement about the current one.
+                type: string
+              registry:
+                description: |-
+                  registry is the resolved union of the registry the platform is
+                  running: the subscriptions spec.registry authored plus the catalogs
+                  active TransformerRegistrations contributed, each entry recording
+                  which. It makes the effective set enumerable from the Platform rather
+                  than only by listing every claim, and it is rewritten on every
+                  generation, so it follows the active set in both directions.
+                items:
+                  description: |-
+                    ResolvedRegistryEntry is one catalog of the registry the platform is
+                    actually running, resolved from both of its sources. A catalog is one
+                    registry key, so an authored subscription and a claim naming the same
+                    catalog resolve to a single entry sourced Subscription: the admin's pin
+                    and enable decision is the deliberate one.
+                  properties:
+                    catalog:
+                      description: catalog is the major-suffixed CUE module path of
+                        the catalog.
+                      minLength: 1
+                      type: string
+                    enabled:
+                      description: |-
+                        enabled reports whether the catalog's transformers register. A
+                        disabled subscription is still pinned and imported by the generated
+                        module, so it belongs in the resolved registry, but it contributes no
+                        transformer; reading the list without this field would overstate what
+                        the platform runs. Every catalog an active claim contributed is
+                        enabled.
+                      type: boolean
+                    source:
+                      description: |-
+                        source records which of the two transformer paths put the catalog
+                        here, so an operator can tell an authored subscription from one a
+                        provider registered.
+                      enum:
+                      - Subscription
+                      - Registration
+                      type: string
+                    version:
+                      description: |-
+                        version is the bare SemVer build the generated platform module pins
+                        the catalog at.
+                      minLength: 1
+                      type: string
+                  required:
+                  - catalog
+                  - source
+                  - version
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - catalog
+                x-kubernetes-list-type: map
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: Platform is a cluster singleton; the only permitted name is 'cluster'
+          rule: self.metadata.name == 'cluster'
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,344 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: moduleinstances.opmodel.dev
+spec:
+  group: opmodel.dev
+  names:
+    kind: ModuleInstance
+    listKind: ModuleInstanceList
+    plural: moduleinstances
+    shortNames:
+    - mi
+    singular: moduleinstance
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .spec.module.path
+      name: Module
+      type: string
+    - jsonPath: .spec.module.version
+      name: Version
+      type: string
+    - jsonPath: .status.nextRetryAt
+      name: Retry
+      priority: 1
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ModuleInstance asks the operator to render one CUE module at a pinned
+          version with the given values and apply the result.
+
+          The module is resolved from an OCI registry by spec.module.path and
+          spec.module.version. When spec.owner is "cli", the OPM CLI manages the
+          instance and the operator leaves it alone: it renders, applies and prunes
+          nothing, adds no finalizer, and records only a ManagedExternally
+          acknowledgement.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of ModuleInstance
+            properties:
+              module:
+                description: Module identifies the CUE module to evaluate from the
+                  OCI registry.
+                properties:
+                  path:
+                    description: |-
+                      Path is the CUE module import path.
+                      Example: "opmodel.dev/modules/cert_manager@v0"
+                    minLength: 1
+                    type: string
+                  version:
+                    description: |-
+                      Version is the pinned module version to resolve from the registry.
+                      Example: "v0.2.1"
+                    minLength: 1
+                    type: string
+                required:
+                - path
+                - version
+                type: object
+              owner:
+                description: |-
+                  Owner identifies which actor manages this instance. An absent or
+                  "operator" value means operator-managed: the controller reconciles
+                  normally. The API server rejects any other value, including an explicit
+                  empty string. Only an explicit "cli" makes the operator skip the instance
+                  (no render/apply/prune, no finalizer) and record a single
+                  ManagedExternally acknowledgement. There is no CRD default; the
+                  reconciler carries the operator-managed default semantics.
+                enum:
+                - cli
+                - operator
+                type: string
+              prune:
+                description: |-
+                  Prune controls whether the operator deletes what an instance no longer
+                  renders. When true, the operator deletes stale resources on reconcile
+                  and every applied object when the ModuleInstance is deleted. When false
+                  or absent, it leaves them in place: deleting the ModuleInstance leaves
+                  its applied objects running. Namespaces and CustomResourceDefinitions
+                  are never deleted.
+                type: boolean
+              rollout:
+                description: RolloutSpec configures apply behavior for a release.
+                properties:
+                  forceConflicts:
+                    description: ForceConflicts enables SSA force ownership when desired.
+                    type: boolean
+                  strategy:
+                    description: Strategy controls how apply operations are performed.
+                    enum:
+                    - Apply
+                    type: string
+                type: object
+              serviceAccountName:
+                type: string
+              suspend:
+                type: boolean
+              values:
+                description: Values contains arbitrary release input values.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            required:
+            - module
+            type: object
+          status:
+            description: status defines the observed state of ModuleInstance
+            properties:
+              conditions:
+                description: conditions represent the current state of the ModuleInstance
+                  resource.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              failureCounters:
+                description: FailureCounters tracks bounded reconcile failure counts
+                  by action.
+                properties:
+                  apply:
+                    format: int64
+                    type: integer
+                  drift:
+                    format: int64
+                    type: integer
+                  prune:
+                    format: int64
+                    type: integer
+                  reconcile:
+                    format: int64
+                    type: integer
+                type: object
+              history:
+                items:
+                  description: HistoryEntry captures a compact reconcile history record.
+                  properties:
+                    action:
+                      type: string
+                    configDigest:
+                      type: string
+                    finishedAt:
+                      format: date-time
+                      type: string
+                    inventoryCount:
+                      format: int64
+                      type: integer
+                    inventoryDigest:
+                      type: string
+                    message:
+                      type: string
+                    phase:
+                      type: string
+                    renderDigest:
+                      type: string
+                    sequence:
+                      format: int64
+                      type: integer
+                    sourceDigest:
+                      type: string
+                    startedAt:
+                      format: date-time
+                      type: string
+                  type: object
+                type: array
+              instanceUUID:
+                description: |-
+                  InstanceUUID is the globally-unique identity of the rendered ModuleInstance,
+                  read from the `module-instance.opmodel.dev/uuid` label on rendered resources.
+                  Populated on the first successful render; consumed by the prune ownership
+                  guard (including the deletion path where a fresh render is not available).
+                type: string
+              inventory:
+                description: Inventory stores the current set of owned resources.
+                properties:
+                  count:
+                    format: int64
+                    type: integer
+                  digest:
+                    type: string
+                  entries:
+                    items:
+                      description: InventoryEntry identifies one owned Kubernetes
+                        resource.
+                      properties:
+                        component:
+                          type: string
+                        group:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        v:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      type: object
+                    type: array
+                  revision:
+                    format: int64
+                    type: integer
+                type: object
+              lastAppliedAt:
+                format: date-time
+                type: string
+              lastAppliedConfigDigest:
+                type: string
+              lastAppliedRenderDigest:
+                type: string
+              lastAppliedSourceDigest:
+                type: string
+              lastAttemptedAction:
+                type: string
+              lastAttemptedAt:
+                format: date-time
+                type: string
+              lastAttemptedConfigDigest:
+                type: string
+              lastAttemptedDuration:
+                type: string
+              lastAttemptedRenderDigest:
+                type: string
+              lastAttemptedSourceDigest:
+                type: string
+              nextRetryAt:
+                description: |-
+                  NextRetryAt indicates when the controller will next attempt reconciliation
+                  after a transient or stalled failure. Nil when the resource is healthy or no-op.
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              requiredContracts:
+                description: |-
+                  RequiredContracts lists every contract FQN this instance's components
+                  declare, sorted and deduplicated, as the last successful render
+                  reported them. It is the instance side of the removal guard
+                  (0015:D3/D16): a TransformerRegistration counts its
+                  dependents by intersecting this with its own spec.provides, so a
+                  provider cannot be deleted, or shrink its provides, out from under
+                  the instances still demanding what it serves.
+
+                  Derived, never authored. The contracts are read off the synthesized
+                  instance's components, which is the same keyspace the render's
+                  matching compares, so nothing a module author writes into spec can
+                  raise or lower the count. A reconcile that does not render — a failed
+                  render, a suspended instance, a CLI-owned one — leaves the previous
+                  value: a stale entry over-reports demand and blocks a deletion that
+                  could have proceeded, which is the safe direction for a guard.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: atomic
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
