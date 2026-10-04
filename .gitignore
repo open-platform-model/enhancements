@@ -6,3 +6,10 @@
 # README.md ## How it works, plus any Mermaid or ASCII inside 01-problem.md /
 # 02-design.md / 05-risks.md, per .claude/skills/enhancement-diagrams/SKILL.md.
 [0-9][0-9][0-9][0-9]/diagrams/
+
+# docs bundle preview (task docs:bundle) and the pinned opm-docs binary
+/out/
+/.bin/
+
+# Claude Code worktrees: other checkouts of this repo
+.claude/worktrees/

@@ -72,3 +72,8 @@ jobs:
 
       - name: Check INDEX.md and GRAPH.md are fresh
         run: task fresh
+
+      # Offline: .opm-docs-version and every docs-kit publish.yml ref name the
+      # same release. The bundle build itself is Docs / check (docs.yml).
+      - name: Verify the docs-kit pins agree
+        run: task docs:pins:check
