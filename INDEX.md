@@ -21,6 +21,7 @@
 | [0025](./0025/) | schema | core, library | draft | not-started | Self-Describing Modules | Let a module state facts about itself as a whole, as named bundles of catalog-published traits that the kernel matches and renders the way it already does components. |
 | [0026](./0026/) | schema | core, library, cli, opm-operator, catalog | draft | not-started | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
 | [0027](./0027/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create, so a consumer supplies values and never names a module or a version. |
+| [0030](./0030/) | runtime | opm-portal, opm-operator, opmodel.dev | draft | not-started | OPM Portal V1 | A read-only web portal and versioned read API that show what OPM runs in a cluster, from the Platform down to Pods, with applied state and workload health kept apart. |
 | [0031](./0031/) | distribution | core, library, cli, opm-operator, catalog, modules, opmodel.dev, opm-portal | draft | not-started | Module Presentation Contract | Let any UI list and present a module, and a platform's offering of it, from what the author and the platform declare, with no kind-specific code. |
 
 ## Archived (delivered / rejected / superseded)
