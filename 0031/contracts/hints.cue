@@ -15,14 +15,24 @@ package contracts
 // The version a hint targets when it states no `v=`.
 #DefaultVocabularyVersion: 1
 
+// Meta keys: allowed on every hint at every vocabulary version, outside the
+// vocabulary itself, so they are never "unknown" and never counted as one
+// of a version's keys. `v` names the vocabulary version the hint targets
+// (D4); a gate that does not know that version warns and judges no keys.
+metaKeys: [string]: #Key
+metaKeys: v: {form: "int", appliesTo: ["any"], min: 1}
+
 // The value forms a key may take. A flag is written bare (`advanced`),
 // never `advanced=true`: experiment 01 measured that the two spellings read
 // differently through CUE's attribute accessors.
 #ValueForm: "flag" | "string" | "int" | "enum" | "fieldName"
 
-// The field shapes a key may sit on, named after the consumer schema a
-// served kind would carry.
-#FieldShape: "any" | "string" | "number" | "quantity" | "optionalOrDefaulted" | "structUnion"
+// The field shapes a key may sit on and a widget is allowed for, named
+// after the consumer schema a served kind would carry. One list for both
+// `appliesTo` and `widgetsFor`. `any` matches every shape;
+// `optionalOrDefaulted` is a presence condition, not a type, and is used
+// only in `appliesTo`. `quantity` is an int-or-string field.
+#FieldShape: "any" | "optionalOrDefaulted" | "string" | "stringEnum" | "integer" | "number" | "boolean" | "quantity" | "object" | "map" | "preserveUnknown" | "structUnion"
 
 #Key: {
 	form!: #ValueForm
@@ -34,8 +44,8 @@ package contracts
 	values?: [...string]
 }
 
-// Vocabulary version 1: nine keys. A key absent here is unknown at
-// version 1 and refused on a module's own field.
+// Vocabulary version 1: nine keys. A key absent here and from metaKeys is
+// unknown at version 1 and refused on a module's own field.
 vocabulary: v1: [string]: #Key
 vocabulary: v1: {
 	title: {form: "string", appliesTo: ["any"], maxRunes: 64}
@@ -48,7 +58,7 @@ vocabulary: v1: {
 	}
 	advanced: {form: "flag", appliesTo: ["optionalOrDefaulted"]}
 	hidden: {form: "flag", appliesTo: ["optionalOrDefaulted"]}
-	placeholder: {form: "string", appliesTo: ["string", "number", "quantity"], maxRunes: 64}
+	placeholder: {form: "string", appliesTo: ["string", "integer", "number", "quantity"], maxRunes: 64}
 	// Name sources only: the UI suggests names the user can list. Choices
 	// that are values come from the field's own disjunction, never from
 	// this key.
@@ -75,14 +85,14 @@ notKeys: {
 
 // The widget a field shape allows. The gate refuses a widget outside its
 // shape's list on a module's own field.
-widgetsFor: [string]: [...string]
+widgetsFor: close({[#FieldShape]: [...or(vocabulary.v1.widget.values)]})
 widgetsFor: {
 	string: ["text", "textarea", "url", "hostname", "code", "select"]
 	stringEnum: ["select"]
 	integer: ["number"]
 	number: ["number"]
 	boolean: ["toggle"]
-	intOrString: ["quantity", "text", "duration"]
+	quantity: ["quantity", "text", "duration"]
 	object: ["image"]
 	map: ["keyvalue"]
 	preserveUnknown: ["code"]
@@ -103,6 +113,7 @@ gateRefusals: [
 ]
 
 // Assertions: compilation is the test.
-_assertKeyCount:    len(vocabulary.v1) & 9
+_assertKeyCount: len(vocabulary.v1) & 9
+_assertMetaDisjoint: [for k, _ in metaKeys if vocabulary.v1[k] != _|_ {k}] & []
 _assertWidgetCount: len(vocabulary.v1.widget.values) & 12
 _assertFlagsBare: [for k, v in vocabulary.v1 if v.form == "flag" {k}] & ["advanced", "hidden"]
