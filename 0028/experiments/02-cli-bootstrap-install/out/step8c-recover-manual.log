@@ -1,0 +1,38 @@
+12:21:43 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:21:45 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:21:45 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+12:21:45 WARN skipping operator-version ceiling check: CLI version is not a released semver version=dev
+12:21:45 INFO m:opm-operator: applying 19 resources
+12:21:45 INFO m:opm-operator: r:CustomResourceDefinition/moduleinstances.opmodel.dev  ~ configured
+12:21:45 INFO m:opm-operator: r:CustomResourceDefinition/modulepackages.opmodel.dev  ~ configured
+12:21:45 INFO m:opm-operator: r:CustomResourceDefinition/platforms.opmodel.dev  ~ configured
+12:21:45 INFO m:opm-operator: r:CustomResourceDefinition/transformerregistrations.opmodel.dev  ~ configured
+12:21:45 INFO m:opm-operator: r:Namespace/opm-operator-system                   ~ configured
+12:21:45 INFO m:opm-operator: waiting for 4 CustomResourceDefinition(s) to be established
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-manager-role           + created
+12:21:45 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-manager-role    ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-auth-role      ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-metrics-auth-role  ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-reader         ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-admin-role  ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-editor-role  ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-viewer-role  ~ configured
+12:21:45 INFO m:opm-operator: r:ClusterRole/opm-operator-transformerregistration-admin-role  ~ configured
+12:21:45 INFO m:opm-operator: r:ServiceAccount/opm-operator-system/opm-operator-controller-manager  + created
+12:21:45 INFO m:opm-operator: r:Role/opm-operator-system/opm-operator-leader-election-role  ~ configured
+12:21:45 INFO m:opm-operator: r:RoleBinding/opm-operator-system/opm-operator-leader-election-role  ~ configured
+12:21:45 INFO m:opm-operator: r:Service/opm-operator-system/opm-operator-controller-manager-metrics-service  + created
+12:21:45 INFO m:opm-operator: r:Deployment/opm-operator-system/opm-operator-controller-manager  + created
+12:21:45 INFO m:opm-operator: applied 19 resources successfully (4 created, 15 configured)
+✔ Instance applied
+12:21:45 INFO m:opm-operator: waiting for 19 resource(s) to become healthy timeout=2m0s
+✔ Instance healthy

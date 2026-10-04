@@ -1,0 +1,4 @@
+run1 TIMING old-install rc=0 total=28.7s
+run1 module TIMING render+crds=2.5s instance-apply=26.1s total=28.6s
+run2 TIMING old-install rc=0 total=30.7s
+run2 module TIMING render+crds=2.3s instance-apply=27.9s total=30.2s

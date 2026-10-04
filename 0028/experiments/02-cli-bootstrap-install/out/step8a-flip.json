@@ -1,0 +1,28 @@
+{
+  "gen": 2,
+  "fin": [
+    "opmodel.dev/cleanup"
+  ],
+  "cond": [
+    {
+      "type": "Reconciling",
+      "status": "True",
+      "reason": "Progressing",
+      "message": "Reconciliation in progress"
+    },
+    {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ApplyFailed",
+      "message": "failed to apply resources: CustomResourceDefinition/moduleinstances.opmodel.dev dry-run failed (Forbidden): customresourcedefinitions.apiextensions.k8s.io \"moduleinstances.opmodel.dev\" is forbidden: User \"system:serviceaccount:opm-operator-system:opm-operator-controller-manager\" cannot patch resource \"customresourcedefinitions\" in API group \"apiextensions.k8s.io\" at the cluster scope"
+    },
+    {
+      "type": "ModuleResolved",
+      "status": "True",
+      "reason": "ModuleResolved",
+      "message": "module resolved: testing.opmodel.dev/modules/experiments/opm-operator-bootstrap/opm_operator@v0@v0.2.0"
+    }
+  ],
+  "rev": null,
+  "digest": "sha256:084ca8dc1616bcc2c1ef73ac13c4b4524f1e0ae98b632af0593c9a27754d6f84"
+}

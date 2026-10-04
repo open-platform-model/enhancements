@@ -1,0 +1,3 @@
+{"n":"platforms.opmodel.dev","mb":"opm-cli","managers":["opm-controller","opm-cli","kube-apiserver"]}
+{"n":"opm-operator-metrics-reader","mb":"opm-cli","managers":["opm-controller","opm-cli"]}
+{"n":"opm-operator-controller-manager","mb":"opm-cli","managers":["opm-cli","kube-controller-manager"]}

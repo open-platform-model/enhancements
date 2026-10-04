@@ -1,0 +1,16 @@
+12:17:37 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:17:40 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:17:40 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+12:17:40 WARN skipping operator-version ceiling check: CLI version is not a released semver version=dev
+12:17:40 INFO m:opm-operator: instance is operator-managed — editing its spec and waiting for the operator owner=operator
+12:17:40 INFO m:opm-operator: waiting for the operator to reconcile generation=2
+✔ Instance updated — operator reconciled True (ReconciliationSucceeded): Reconciliation succeeded
