@@ -1,0 +1,57 @@
+# Phases 7 and 8: opm-controller sets series on a repeat inside the event recorder's window (Platform Generated, count 2).
+# The first event came from the released v1.0.0-beta.5 controller (phase 7), the second from the phase 8 rebuild.
+# Other repeats in the capture (ApplyFailed on cert-manager, phases 1 to 6) were separate events with no series.
+- action: Generate
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: '2026-10-04T14:20:38.926246Z'
+  kind: Event
+  metadata:
+    creationTimestamp: '2026-10-04T14:20:38Z'
+    name: cluster.18db5975b7011d6d
+    namespace: default
+    resourceVersion: '1038'
+    uid: f2f7889c-5c03-4744-9439-23336567219c
+  note: Platform module generated and built for generation 1
+  reason: Generated
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: Platform
+    name: cluster
+    resourceVersion: '648'
+    uid: 2ec1a229-bbc5-4a60-9849-6a48881be907
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-6ccf555f49-pfrbp
+  series:
+    count: 2
+    lastObservedTime: '2026-10-04T14:20:42.690256Z'
+  type: Normal
+- action: Generate
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: '2026-10-04T14:29:29.157788Z'
+  kind: Event
+  metadata:
+    creationTimestamp: '2026-10-04T14:29:29Z'
+    name: cluster.18db59f12b4469b2
+    namespace: default
+    resourceVersion: '2195'
+    uid: 8886a0ad-1f40-4ac6-9c02-427141d8130a
+  note: Platform module generated and built for generation 1
+  reason: Generated
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: Platform
+    name: cluster
+    resourceVersion: '1860'
+    uid: 2ec1a229-bbc5-4a60-9849-6a48881be907
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-6ccf555f49-m9tp4
+  series:
+    count: 2
+    lastObservedTime: '2026-10-04T14:29:33.133132Z'
+  type: Normal
