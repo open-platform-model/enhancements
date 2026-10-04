@@ -19,12 +19,15 @@ Two NEW constructs, both publish gates, pre-drafting the core/SPEC.md §5 co-upd
     identity!: {ModulePath!: #ModulePathType, Version!: #VersionType}
     core!:     {major!: =~"^v[0-9]+$", version!: #VersionType}
     catalogs!: [#ModulePathType]: #VersionType
+    listing?:  _   // reserved; shape owned by entry 0031
+    ...            // open tail
 }
 ```
 
 ### Constraints
 
-- Every field is REQUIRED and every value MUST be concrete; the block MUST contain no references, definitions or defaults (CUE data mode).
+- `kind`, `identity`, `core` and `catalogs` are REQUIRED. Every value MUST be concrete; the block MUST contain no references, definitions or defaults (CUE data mode).
+- The block is OPEN: a key this definition does not name MUST pass it, so an older core's gate accepts a block written for a newer shape. `listing` is reserved for entry 0031, which defines and validates it; this definition admits any value there. A tool MAY warn on a key its own core does not know (a misspelled optional key otherwise passes silently).
 - `identity.ModulePath` MUST be byte-identical to the module file's `module:` field; `identity.Version` MUST equal the identity package's `Version`. Both are asserted by `#ModuleFileCustomGate`, never here.
 - `core.version` MUST equal the `deps` pin of `opmodel.dev/core@<core.major>`, without its `v` prefix.
 - `catalogs` MUST contain every `opmodel.dev/catalogs/*` dependency at its pin and MUST NOT name a path that is not a dependency. Catalog dependencies outside that prefix: unresolved (OQ1).
@@ -36,6 +39,7 @@ Two NEW constructs, both publish gates, pre-drafting the core/SPEC.md §5 co-upd
 - **Why a block in the module file rather than a new artifact format.** CUE fetches the module file as its own OCI blob (226 bytes for cert_manager v2.0.1 against a 230 KB zip), reserves `custom` for third-party data, carries it through every `cue mod` rewrite and ships it verbatim. Nothing CUE-side changes; nothing OPM-specific fetches.
 - **Why values the file already states are repeated.** A reader should not have to know how `deps` keys are spelled or where the identity version lives. The repetition is safe only because the gate asserts it at publish (0022 D2, D4).
 - **Why no toolchain fields.** Publish never writes the tree (0011 D2), so the tree cannot know who publishes it; push-time provenance is carried in OCI manifest annotations (0022 D6).
+- **Why the block ends open.** The `@v0` suffix stays put when a key is added (0022:D1), so an older reader, the gate included, must let a newer key through. A closed block refused a listing card and every future key (0022 experiment 07). The cost, a typo in an optional key passing silently, is a lint's job, not the gate's.
 - **Why the key carries `@v0`.** CUE's schema also defines a `#Strict` variant whose key regex requires the suffix; nothing enforces it today, and a published convention is permanent (0022 D1).
 
 ## `#ModuleFileCustomGate` (NEW, SPEC.md §5.5)

@@ -13,3 +13,5 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 | 03 | gate-error-text | D4 | Draft |
 | 04 | annotations-roundtrip | D6 | Draft |
 | 05 | probe-cost | D7 | Draft |
+| 06 | module-file-card-roundtrip | D1, OQ5 | Concluded |
+| 07 | open-tail | D1, D2 | Concluded |

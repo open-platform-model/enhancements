@@ -1,0 +1,20 @@
+[
+ {
+  "name": "literal",
+  "values": {
+   "pw": {
+    "value": "hunter2"
+   }
+  }
+ },
+ {
+  "name": "both",
+  "values": {
+   "pw": {
+    "value": "hunter2",
+    "ref": "a",
+    "key": "b"
+   }
+  }
+ }
+]

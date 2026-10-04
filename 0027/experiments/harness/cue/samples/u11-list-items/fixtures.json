@@ -1,0 +1,27 @@
+[
+ {
+  "name": "ok",
+  "values": {
+   "volumes": [
+    {
+     "type": "pvc",
+     "claim": "c"
+    },
+    {
+     "type": "emptyDir"
+    }
+   ]
+  }
+ },
+ {
+  "name": "mixed",
+  "values": {
+   "volumes": [
+    {
+     "type": "emptyDir",
+     "claim": "c"
+    }
+   ]
+  }
+ }
+]

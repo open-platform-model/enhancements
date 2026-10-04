@@ -36,14 +36,13 @@ graph LR
   Cschema -->|3| Cdistribution
   Cruntime -->|2| Cschema
   Cruntime -->|3| Cdistribution
-  Cruntime -->|1| Ctooling
   Cdistribution -->|1| Cschema
   Cdistribution -->|2| Cruntime
   Ctooling -->|1| Cruntime
   Cmisc -->|1| Cschema
 ```
 
-Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ runtime, schema ↔ distribution, schema ↔ tooling, runtime ↔ distribution, runtime ↔ tooling, distribution ↔ tooling.
+Mutually dependent categories (informational; the entry-level `depends_on` graph stays acyclic, `task vet` enforces it): schema ↔ runtime, schema ↔ distribution, runtime ↔ distribution.
 
 ## schema
 
@@ -111,7 +110,6 @@ graph TD
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
-  N0008["0008 · tooling"]:::stub
   N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
@@ -131,7 +129,6 @@ graph TD
   N0024 -->|depends on| N0019
   N0025 -->|depends on| N0019
   N0026 -->|depends on| N0019
-  N0027 -->|depends on| N0008
   N0027 -->|depends on| N0010
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0021
@@ -210,10 +207,8 @@ graph TD
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0024["0024: CUE Testing and Conformance"]:::draft
   N0019["0019 · runtime"]:::stub
-  N0027["0027 · runtime"]:::stub
 
   N0024 -->|depends on| N0019
-  N0027 -->|depends on| N0008
 ```
 
 ## misc

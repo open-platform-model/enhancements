@@ -35,7 +35,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-08-24"
-updated: "2026-09-24"
+updated: "2026-10-04"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -61,6 +61,8 @@ history:
     event: 'Plain-language pass: lede and summary cut to plain English, jargon replaced. No answer, number, scope item, banner or citation changed. Under the 2026-09-19 plain-language carve-out.'
   - date: "2026-09-24"
     event: 'Requirements added to every decision (none on D3, D6); Kind changed to contract on D5, D7, D8 (body states observable behaviour), additive.'
+  - date: "2026-10-04"
+    event: 'Block opened in place: open tail plus listing reserved for 0031 (D2:R7), D1:R5 now values-intact, D5:R5 keeps unowned keys, OQ6 asks for an unknown-kind rule (blocking). Experiments 06-07.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

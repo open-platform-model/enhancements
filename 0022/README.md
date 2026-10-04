@@ -51,9 +51,9 @@ Two channels, split by when a fact is known. Facts an author commits go in the b
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ5
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ6
 
-Compilable CUE lives in [`schemas/target.cue`](schemas/target.cue), the block shape and its publish gate as a core delta, and in [`contracts/contracts.cue`](contracts/contracts.cue), the annotation key set and the reader's fallback order. [`experiments/`](experiments/) holds five measurements: the tidy round trip, publish and fetch staying verbatim, the gate's error text, annotations surviving a round trip, and the cost of probing.
+Compilable CUE lives in [`schemas/target.cue`](schemas/target.cue), the block shape and its publish gate as a core delta, and in [`contracts/contracts.cue`](contracts/contracts.cue), the annotation key set and the reader's fallback order. [`experiments/`](experiments/) holds seven measurements: the tidy round trip, publish and fetch staying verbatim, the gate's error text, annotations surviving a round trip, the cost of probing, a listing card surviving tidy and publish across the fleet, and the open tail that lets a later entry's key through.
 
 ## Scope
 

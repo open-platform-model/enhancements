@@ -1,0 +1,32 @@
+[
+ {
+  "name": "absent",
+  "values": {}
+ },
+ {
+  "name": "none",
+  "values": {
+   "backup": {
+    "kind": "none"
+   }
+  }
+ },
+ {
+  "name": "s3",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "none-with-bucket",
+  "values": {
+   "backup": {
+    "kind": "none",
+    "bucket": "b"
+   }
+  }
+ }
+]

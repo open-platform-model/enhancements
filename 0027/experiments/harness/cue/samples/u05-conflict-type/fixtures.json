@@ -1,0 +1,29 @@
+[
+ {
+  "name": "a",
+  "values": {
+   "vol": {
+    "kind": "a",
+    "size": 3
+   }
+  }
+ },
+ {
+  "name": "b",
+  "values": {
+   "vol": {
+    "kind": "b",
+    "size": "3Gi"
+   }
+  }
+ },
+ {
+  "name": "a-string",
+  "values": {
+   "vol": {
+    "kind": "a",
+    "size": "3Gi"
+   }
+  }
+ }
+]

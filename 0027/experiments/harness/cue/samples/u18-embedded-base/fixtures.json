@@ -1,0 +1,39 @@
+[
+ {
+  "name": "a",
+  "values": {
+   "x": {
+    "kind": "a",
+    "name": "n"
+   }
+  }
+ },
+ {
+  "name": "b",
+  "values": {
+   "x": {
+    "kind": "b",
+    "name": "n",
+    "n": 1
+   }
+  }
+ },
+ {
+  "name": "a-with-n",
+  "values": {
+   "x": {
+    "kind": "a",
+    "name": "n",
+    "n": 1
+   }
+  }
+ },
+ {
+  "name": "a-no-name",
+  "values": {
+   "x": {
+    "kind": "a"
+   }
+  }
+ }
+]

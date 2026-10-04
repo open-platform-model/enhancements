@@ -1,0 +1,30 @@
+[
+ {
+  "name": "v1",
+  "values": {
+   "cfg": {
+    "version": 1,
+    "a": "x"
+   }
+  }
+ },
+ {
+  "name": "v2",
+  "values": {
+   "cfg": {
+    "version": 2,
+    "b": "x"
+   }
+  }
+ },
+ {
+  "name": "v1-with-b",
+  "values": {
+   "cfg": {
+    "version": 1,
+    "a": "x",
+    "b": "y"
+   }
+  }
+ }
+]
