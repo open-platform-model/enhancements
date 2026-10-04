@@ -1,0 +1,62 @@
+11:50:42 WARN cluster Platform not used (no Platform CR in the cluster) — rendering against the instance's own deps
+11:50:42 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module /home/emil/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
+11:50:43 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:43 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev condition met
+11:50:44 WARN cluster Platform not used (no Platform CR in the cluster) — rendering against the instance's own deps
+11:50:44 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module /home/emil/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
+11:50:45 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+11:50:45 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+11:50:45 WARN skipping operator-version ceiling check: CLI version is not a released semver version=dev
+11:50:45 INFO m:opm-operator: applying 19 resources
+11:50:45 INFO m:opm-operator: r:CustomResourceDefinition/moduleinstances.opmodel.dev  = unchanged
+11:50:45 INFO m:opm-operator: r:CustomResourceDefinition/modulepackages.opmodel.dev  = unchanged
+11:50:45 INFO m:opm-operator: r:CustomResourceDefinition/platforms.opmodel.dev  = unchanged
+11:50:45 INFO m:opm-operator: r:CustomResourceDefinition/transformerregistrations.opmodel.dev  = unchanged
+11:50:45 INFO m:opm-operator: r:Namespace/opm-operator-system                   + created
+11:50:45 INFO m:opm-operator: waiting for 4 CustomResourceDefinition(s) to be established
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-manager-role           + created
+11:50:45 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-manager-role    + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-auth-role      + created
+11:50:45 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-metrics-auth-role  + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-reader         + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-admin-role  + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-editor-role  + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-viewer-role  + created
+11:50:45 INFO m:opm-operator: r:ClusterRole/opm-operator-transformerregistration-admin-role  + created
+11:50:45 INFO m:opm-operator: r:ServiceAccount/opm-operator-system/opm-operator-controller-manager  + created
+11:50:45 INFO m:opm-operator: r:Role/opm-operator-system/opm-operator-leader-election-role  + created
+11:50:45 INFO m:opm-operator: r:RoleBinding/opm-operator-system/opm-operator-leader-election-role  + created
+11:50:45 INFO m:opm-operator: r:Service/opm-operator-system/opm-operator-controller-manager-metrics-service  + created
+11:50:45 INFO m:opm-operator: r:Deployment/opm-operator-system/opm-operator-controller-manager  + created
+11:50:45 INFO m:opm-operator: applied 19 resources successfully (15 created, 4 unchanged)
+✔ Instance applied
+11:50:45 INFO m:opm-operator: waiting for 19 resource(s) to become healthy timeout=5m0s
+instance "opm-operator" was applied but is not healthy: timed out after 5m0s waiting for Deployment/opm-operator-controller-manager in opm-operator-system to become ready
+The resources are in place. Inspect them with:
+  opm instance status opm-operator -n opm-operator-system

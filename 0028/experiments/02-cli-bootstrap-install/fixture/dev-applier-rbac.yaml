@@ -1,0 +1,62 @@
+# Copied verbatim from cli/hack/kind-operator-rbac.yaml (cli ae60f007).
+# DEV-CLUSTER ONLY — extra RBAC for the opm-operator in kind-opm-dev.
+# Applied by: task cluster:operator
+# NOT applied by: opm operator install. An operator installed with the CLI
+# command alone is complete for every purpose except the operator-owned e2e
+# tests, whose applies fail with `cannot patch resource "services"` until this
+# file is applied; the tests probe for the grant up front and name this remedy.
+#
+# Why this is needed: the shipped opm-operator-manager-role grants the operator
+# NO permissions on workload resources. By design it applies an instance's
+# resources by *impersonating* a per-instance ServiceAccount named in
+# ModuleInstance.spec.serviceAccountName (see the operator's own podinfo
+# fixture, which ships a `podinfo-applier` SA + Role + RoleBinding). Without
+# that field set, the operator falls back to its own ServiceAccount and every
+# apply fails with "cannot patch resource ... in the namespace".
+#
+# The CLI does not write spec.serviceAccountName — it is an operator-only field
+# outside the CLI-owned spec — so a CLI-applied instance handed to the operator
+# has no applier identity to impersonate. For a local dev cluster the
+# least-friction resolution is to give the operator's own ServiceAccount the
+# verbs it needs directly.
+#
+# This is deliberately NOT cluster-admin: it is scoped to the workload kinds the
+# test fixtures render, so it stays obvious what the operator is being trusted
+# with. Do not copy this into a real cluster — there, either set
+# spec.serviceAccountName per instance or grant a considered role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opm-operator-dev-applier
+  labels:
+    app.kubernetes.io/name: opm-operator
+    app.kubernetes.io/part-of: opm-dev-cluster
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets", "persistentvolumeclaims", "serviceaccounts"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opm-operator-dev-applier
+  labels:
+    app.kubernetes.io/name: opm-operator
+    app.kubernetes.io/part-of: opm-dev-cluster
+subjects:
+  - kind: ServiceAccount
+    name: opm-operator-controller-manager
+    namespace: opm-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opm-operator-dev-applier

@@ -1,0 +1,190 @@
+apiVersion: opmodel.dev/v1alpha1
+kind: ModuleInstance
+metadata:
+  creationTimestamp: "2026-10-04T09:50:45Z"
+  generation: 2
+  labels:
+    app.kubernetes.io/managed-by: opm-cli
+    module-instance.opmodel.dev/name: opm-operator
+    module-instance.opmodel.dev/namespace: opm-operator-system
+  managedFields:
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/managed-by: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/namespace: {}
+      f:spec:
+        f:module:
+          f:path: {}
+          f:version: {}
+        f:owner: {}
+        f:values:
+          f:registry: {}
+    manager: opm-cli
+    operation: Apply
+    time: "2026-10-04T10:04:34Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:instanceUUID: {}
+        f:inventory:
+          f:count: {}
+          f:digest: {}
+          f:entries: {}
+          f:revision: {}
+        f:lastAppliedAt: {}
+        f:lastAppliedConfigDigest: {}
+        f:lastAppliedRenderDigest: {}
+        f:lastAppliedSourceDigest: {}
+    manager: opm-cli
+    operation: Apply
+    subresource: status
+    time: "2026-10-04T10:04:34Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:conditions:
+          .: {}
+          k:{"type":"Ready"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+    manager: manager
+    operation: Update
+    subresource: status
+    time: "2026-10-04T10:04:36Z"
+  name: opm-operator
+  namespace: opm-operator-system
+  resourceVersion: "1958"
+  uid: 9efe8ca1-4535-47f8-aa71-b9beb7e8bad0
+spec:
+  module:
+    path: testing.opmodel.dev/modules/experiments/opm-operator-bootstrap/opm_operator@v0
+    version: v0.1.0
+  owner: cli
+  values:
+    registry: testing.opmodel.dev=opm-registry:5000+insecure,opmodel.dev=172.18.0.1:5055/open-platform-model+insecure,172.18.0.1:5056+insecure
+status:
+  conditions:
+  - lastTransitionTime: "2026-10-04T10:04:36Z"
+    message: ModuleInstance is managed externally by the CLI
+    observedGeneration: 2
+    reason: ManagedExternally
+    status: Unknown
+    type: Ready
+  instanceUUID: eef56773-0784-55e2-8441-cd2328027ac0
+  inventory:
+    count: 19
+    digest: sha256:a5df5cef2e44056576ca38dca4d5a9fba8bef694764e8b80e043c3e55e78bd30
+    entries:
+    - component: namespace
+      kind: Namespace
+      name: opm-operator-system
+      v: v1
+    - component: crds
+      group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: moduleinstances.opmodel.dev
+      v: v1
+    - component: crds
+      group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: modulepackages.opmodel.dev
+      v: v1
+    - component: crds
+      group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: platforms.opmodel.dev
+      v: v1
+    - component: crds
+      group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: transformerregistrations.opmodel.dev
+      v: v1
+    - component: controller-manager
+      kind: ServiceAccount
+      name: opm-operator-controller-manager
+      namespace: opm-operator-system
+      v: v1
+    - component: controller-manager
+      group: apps
+      kind: Deployment
+      name: opm-operator-controller-manager
+      namespace: opm-operator-system
+      v: v1
+    - component: controller-manager
+      kind: Service
+      name: opm-operator-controller-manager-metrics-service
+      namespace: opm-operator-system
+      v: v1
+    - component: manager-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-manager-role
+      v: v1
+    - component: manager-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: opm-operator-manager-role
+      v: v1
+    - component: metrics-auth-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-metrics-auth-role
+      v: v1
+    - component: metrics-auth-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: opm-operator-metrics-auth-role
+      v: v1
+    - component: leader-election
+      group: rbac.authorization.k8s.io
+      kind: Role
+      name: opm-operator-leader-election-role
+      namespace: opm-operator-system
+      v: v1
+    - component: leader-election
+      group: rbac.authorization.k8s.io
+      kind: RoleBinding
+      name: opm-operator-leader-election-role
+      namespace: opm-operator-system
+      v: v1
+    - component: unbound-cluster-roles
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-metrics-reader
+      v: v1
+    - component: unbound-cluster-roles
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-moduleinstance-admin-role
+      v: v1
+    - component: unbound-cluster-roles
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-moduleinstance-editor-role
+      v: v1
+    - component: unbound-cluster-roles
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-moduleinstance-viewer-role
+      v: v1
+    - component: unbound-cluster-roles
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: opm-operator-transformerregistration-admin-role
+      v: v1
+    revision: 2
+  lastAppliedAt: "2026-10-04T10:04:34Z"
+  lastAppliedConfigDigest: sha256:a44dd82db2fa9869eb040a3e62f7534e50668cd12dd1a022794dd9329a9bd7be
+  lastAppliedRenderDigest: sha256:d96f19fba8f4bdfbfc97be6b6a4b51efe142c9dda39cc1f7f97f4a49d122cc66
+  lastAppliedSourceDigest: sha256:4c2d582f0b2bb2747f83ae3782c56d32d56710e8e48228124af2d289f308e2be

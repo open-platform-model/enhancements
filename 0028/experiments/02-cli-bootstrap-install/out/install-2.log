@@ -1,0 +1,11 @@
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev condition met
+✔ Instance up to date
+✔ Instance healthy
+TIMING render+crds=2.1s instance-apply=1.7s total=3.8s

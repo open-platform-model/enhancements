@@ -1,0 +1,20 @@
+Namespace		opm-operator-system	9fc2db7c-58ee-4e69-98a2-209309160bd4	566	-	opm-cli
+CustomResourceDefinition.apiextensions.k8s.io		moduleinstances.opmodel.dev	40488c09-245e-4231-b20b-c8ad828f02f9	525	1	kube-apiserver,opm-cli
+CustomResourceDefinition.apiextensions.k8s.io		modulepackages.opmodel.dev	e8d87594-23a7-44a5-9ec5-358a6d70695d	528	1	kube-apiserver,opm-cli
+CustomResourceDefinition.apiextensions.k8s.io		platforms.opmodel.dev	e7ea12ab-3389-4878-acc5-4417f9b6992a	531	1	kube-apiserver,opm-cli
+CustomResourceDefinition.apiextensions.k8s.io		transformerregistrations.opmodel.dev	a86fd331-273c-44eb-b518-dd34beded27a	533	1	kube-apiserver,opm-cli
+ServiceAccount	opm-operator-system	opm-operator-controller-manager	429748ad-ed4d-4ff7-a76d-40564447402b	578	-	opm-cli
+Deployment.apps	opm-operator-system	opm-operator-controller-manager	e58ebf80-b8a6-473f-a6e5-f2dec6b7391a	1998	2	kube-controller-manager,opm-cli
+Service	opm-operator-system	opm-operator-controller-manager-metrics-service	2656b210-5497-4a8d-ac7d-0c6ada79f7c4	582	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-manager-role	e1bb9208-e8fa-4acd-8918-758d2774585a	569	-	opm-cli
+ClusterRoleBinding.rbac.authorization.k8s.io		opm-operator-manager-role	aadfba2b-9e6b-44cf-a973-cbc2d8fcd320	570	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-metrics-auth-role	96687fa3-8e55-4c58-a90b-d3d53c09b12d	571	-	opm-cli
+ClusterRoleBinding.rbac.authorization.k8s.io		opm-operator-metrics-auth-role	41cdcb82-2d4f-41f0-a2ab-3ed017ff71b0	572	-	opm-cli
+Role.rbac.authorization.k8s.io	opm-operator-system	opm-operator-leader-election-role	39e5769a-cf1b-4ee4-b906-836cb54bcbb1	579	-	opm-cli
+RoleBinding.rbac.authorization.k8s.io	opm-operator-system	opm-operator-leader-election-role	ed9c063c-1530-4e04-94de-3f5cbd154c3c	580	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-metrics-reader	d5d6f594-589d-4904-85ea-6d6e89e39ee2	573	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-moduleinstance-admin-role	8f96812c-e538-4776-8559-fa585cf97c13	574	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-moduleinstance-editor-role	13ae4c50-d6c5-46af-9bd0-077cfcbb1ce7	575	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-moduleinstance-viewer-role	e0e0367d-a8bc-4279-844d-a62545755aaa	576	-	opm-cli
+ClusterRole.rbac.authorization.k8s.io		opm-operator-transformerregistration-admin-role	4d9e37ac-3a12-4d42-98a3-7de71a959dc1	577	-	opm-cli
+ModuleInstance	opm-operator-system	opm-operator	9efe8ca1-4535-47f8-aa71-b9beb7e8bad0	1958	2	manager,opm-cli
