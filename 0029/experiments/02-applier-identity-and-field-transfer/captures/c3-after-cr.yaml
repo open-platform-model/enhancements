@@ -1,0 +1,213 @@
+apiVersion: opmodel.dev/v1alpha1
+kind: ModuleInstance
+metadata:
+  creationTimestamp: "2026-10-04T09:56:10Z"
+  finalizers:
+  - opmodel.dev/cleanup
+  generation: 2
+  labels:
+    app.kubernetes.io/managed-by: opm-cli
+    module-instance.opmodel.dev/name: multi
+    module-instance.opmodel.dev/namespace: c3
+  managedFields:
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:instanceUUID: {}
+        f:inventory:
+          f:count: {}
+          f:entries: {}
+        f:lastAppliedConfigDigest: {}
+        f:lastAppliedSourceDigest: {}
+    manager: opm-cli
+    operation: Apply
+    subresource: status
+    time: "2026-10-04T09:56:10Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/managed-by: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/namespace: {}
+      f:spec:
+        f:module:
+          f:path: {}
+          f:version: {}
+        f:owner: {}
+        f:prune: {}
+        f:serviceAccountName: {}
+        f:values:
+          f:extra: {}
+          f:image:
+            .: {}
+            f:digest: {}
+            f:repository: {}
+            f:tag: {}
+          f:message: {}
+          f:readerName: {}
+          f:replicas: {}
+    manager: opm-cli
+    operation: Apply
+    time: "2026-10-04T10:01:57Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:finalizers:
+          .: {}
+          v:"opmodel.dev/cleanup": {}
+    manager: exp-0029-02-manager
+    operation: Update
+    time: "2026-10-04T10:01:57Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:conditions:
+          .: {}
+          k:{"type":"ModuleResolved"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+          k:{"type":"Ready"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+        f:failureCounters:
+          .: {}
+          f:drift: {}
+        f:history: {}
+        f:inventory:
+          f:digest: {}
+          f:revision: {}
+        f:lastAppliedAt: {}
+        f:lastAppliedRenderDigest: {}
+        f:lastAttemptedAction: {}
+        f:lastAttemptedAt: {}
+        f:lastAttemptedConfigDigest: {}
+        f:lastAttemptedDuration: {}
+        f:lastAttemptedRenderDigest: {}
+        f:lastAttemptedSourceDigest: {}
+        f:observedGeneration: {}
+        f:requiredContracts: {}
+    manager: exp-0029-02-manager
+    operation: Update
+    subresource: status
+    time: "2026-10-04T10:01:58Z"
+  name: multi
+  namespace: c3
+  resourceVersion: "2643"
+  uid: 7044ff04-03ed-4552-8373-9b9a9968f490
+spec:
+  module:
+    path: testing.opmodel.dev/modules/experiments/handoff-id/multi@v0
+    version: v0.0.2
+  owner: operator
+  prune: true
+  serviceAccountName: applier
+  values:
+    extra: true
+    image:
+      digest: ""
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.7.1
+    message: hello from multi
+    readerName: multi-reader-c3
+    replicas: 1
+status:
+  conditions:
+  - lastTransitionTime: "2026-10-04T10:01:58Z"
+    message: Reconciliation succeeded
+    observedGeneration: 2
+    reason: ReconciliationSucceeded
+    status: "True"
+    type: Ready
+  - lastTransitionTime: "2026-10-04T10:01:58Z"
+    message: 'module resolved: testing.opmodel.dev/modules/experiments/handoff-id/multi@v0@v0.0.2'
+    observedGeneration: 2
+    reason: ModuleResolved
+    status: "True"
+    type: ModuleResolved
+  failureCounters:
+    drift: 1
+  history:
+  - action: reconcile
+    configDigest: sha256:98f6f79136f660113aed1e647e95e5f3634c9fb0ad7fdbc66d9b459b61c369a7
+    finishedAt: "2026-10-04T10:01:58Z"
+    inventoryCount: 6
+    inventoryDigest: sha256:0f3821e993607ef678d2192f878dbf132d3d278a8865bb77af5a2c3d79e76c83
+    phase: complete
+    renderDigest: sha256:d0d3d1bf7691160e5dee7b0f55edf8c531a73ea8a17792727721cb25e7c6d82d
+    sequence: 1
+    sourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+    startedAt: "2026-10-04T10:01:58Z"
+  instanceUUID: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+  inventory:
+    count: 6
+    digest: sha256:0f3821e993607ef678d2192f878dbf132d3d278a8865bb77af5a2c3d79e76c83
+    entries:
+    - component: web
+      group: apps
+      kind: Deployment
+      name: multi-web
+      namespace: c3
+      v: v1
+    - component: web
+      kind: Service
+      name: multi-web
+      namespace: c3
+      v: v1
+    - component: reader-sa
+      kind: ServiceAccount
+      name: multi-reader-c3
+      namespace: c3
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: multi-reader-c3
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: multi-reader-c3
+      v: v1
+    - component: extra
+      kind: ConfigMap
+      name: multi-extra-extra
+      namespace: c3
+      v: v1
+    revision: 2
+  lastAppliedAt: "2026-10-04T10:01:58Z"
+  lastAppliedConfigDigest: sha256:98f6f79136f660113aed1e647e95e5f3634c9fb0ad7fdbc66d9b459b61c369a7
+  lastAppliedRenderDigest: sha256:d0d3d1bf7691160e5dee7b0f55edf8c531a73ea8a17792727721cb25e7c6d82d
+  lastAppliedSourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+  lastAttemptedAction: reconcile
+  lastAttemptedAt: "2026-10-04T10:01:58Z"
+  lastAttemptedConfigDigest: sha256:98f6f79136f660113aed1e647e95e5f3634c9fb0ad7fdbc66d9b459b61c369a7
+  lastAttemptedDuration: 671.291827ms
+  lastAttemptedRenderDigest: sha256:d0d3d1bf7691160e5dee7b0f55edf8c531a73ea8a17792727721cb25e7c6d82d
+  lastAttemptedSourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+  observedGeneration: 2
+  requiredContracts:
+  - opmodel.dev/catalogs/opm/resources/config-maps@v1beta1
+  - opmodel.dev/catalogs/opm/resources/container@v1beta1
+  - opmodel.dev/catalogs/opm/resources/role@v1beta1
+  - opmodel.dev/catalogs/opm/resources/service-account@v1beta1
+  - opmodel.dev/catalogs/opm/traits/expose@v1beta1
+  - opmodel.dev/catalogs/opm/traits/init-containers@v1beta1
+  - opmodel.dev/catalogs/opm/traits/restart-policy@v1beta1
+  - opmodel.dev/catalogs/opm/traits/scaling@v1beta1
+  - opmodel.dev/catalogs/opm/traits/sidecar-containers@v1beta1
+  - opmodel.dev/catalogs/opm/traits/update-strategy@v1beta1

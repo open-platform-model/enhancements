@@ -1,0 +1,24 @@
+ClusterRole -/multi-reader-c3
+  managers before=['opm-cli/Apply'] after=['opm-cli/Apply', 'opm-controller/Apply']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"
+ClusterRoleBinding -/multi-reader-c3
+  managers before=['opm-cli/Apply'] after=['opm-cli/Apply', 'opm-controller/Apply']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"
+ConfigMap c3/kube-root-ca.crt
+  managers before=['kube-controller-manager/Update'] after=['kube-controller-manager/Update']
+ConfigMap c3/multi-extra-extra
+  managers before=['opm-cli/Apply'] after=['opm-cli/Apply', 'opm-controller/Apply']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"
+Deployment c3/multi-web
+  managers before=['opm-cli/Apply', 'kube-controller-manager/Update/status'] after=['opm-cli/Apply', 'opm-controller/Apply', 'kube-controller-manager/Update/status']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"
+Service c3/multi-web
+  managers before=['opm-cli/Apply'] after=['opm-cli/Apply', 'opm-controller/Apply']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"
+ServiceAccount c3/applier
+  managers before=['kubectl-client-side-apply/Update'] after=['kubectl-client-side-apply/Update']
+ServiceAccount c3/default
+  managers before=[] after=[]
+ServiceAccount c3/multi-reader-c3
+  managers before=['opm-cli/Apply'] after=['opm-cli/Apply', 'opm-controller/Apply']
+  .metadata.labels.app.kubernetes.io/managed-by: "opm-cli" -> "opm-controller"

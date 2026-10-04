@@ -1,0 +1,6 @@
+ClusterRoleBinding -/multi-reader-c3 uid=26c0cb4e-244e-4951-9fa4-b435d5577ea4 rv=2633 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply]
+ClusterRole -/multi-reader-c3 uid=e9be013f-bd15-4f18-a47a-8f4402caf2e5 rv=2632 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply]
+ConfigMap c3/multi-extra-extra uid=6fa5e82b-b707-4124-8c6b-430624f7efe7 rv=2635 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply]
+Deployment c3/multi-web uid=52801ca6-6786-4d7d-92b3-f453cfc789a7 rv=2639 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply,kube-controller-manager/Update/status]
+ServiceAccount c3/multi-reader-c3 uid=fd2b9370-7a7c-4e8b-8e07-942a1c5f286b rv=2634 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply]
+Service c3/multi-web uid=e9dcf7f3-b46a-4a71-a57b-c23d2f600557 rv=2636 managed-by=opm-controller uuid=3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2 managers=[opm-cli/Apply,opm-controller/Apply]

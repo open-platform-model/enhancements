@@ -1,0 +1,643 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: web
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: web
+      component.opmodel.dev/name: web
+      core.opmodel.dev/workload-type: stateless
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: apps/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:core.opmodel.dev/workload-type: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:spec:
+          f:replicas: {}
+          f:selector: {}
+          f:strategy:
+            f:type: {}
+          f:template:
+            f:metadata:
+              f:labels:
+                f:app.kubernetes.io/name: {}
+                f:component.opmodel.dev/name: {}
+                f:core.opmodel.dev/workload-type: {}
+                f:module-instance.opmodel.dev/name: {}
+            f:spec:
+              f:containers:
+                k:{"name":"podinfo"}:
+                  .: {}
+                  f:image: {}
+                  f:imagePullPolicy: {}
+                  f:name: {}
+                  f:ports:
+                    k:{"containerPort":9898,"protocol":"TCP"}:
+                      .: {}
+                      f:containerPort: {}
+                      f:name: {}
+                      f:protocol: {}
+                  f:readinessProbe:
+                    f:httpGet:
+                      f:path: {}
+                      f:port: {}
+              f:restartPolicy: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: apps/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:core.opmodel.dev/workload-type: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:spec:
+          f:replicas: {}
+          f:selector: {}
+          f:strategy:
+            f:type: {}
+          f:template:
+            f:metadata:
+              f:labels:
+                f:app.kubernetes.io/name: {}
+                f:component.opmodel.dev/name: {}
+                f:core.opmodel.dev/workload-type: {}
+                f:module-instance.opmodel.dev/name: {}
+            f:spec:
+              f:containers:
+                k:{"name":"podinfo"}:
+                  .: {}
+                  f:image: {}
+                  f:imagePullPolicy: {}
+                  f:name: {}
+                  f:ports:
+                    k:{"containerPort":9898,"protocol":"TCP"}:
+                      .: {}
+                      f:containerPort: {}
+                      f:name: {}
+                      f:protocol: {}
+                  f:readinessProbe:
+                    f:httpGet:
+                      f:path: {}
+                      f:port: {}
+              f:restartPolicy: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    - apiVersion: apps/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:deployment.kubernetes.io/revision: {}
+        f:status:
+          f:availableReplicas: {}
+          f:conditions:
+            .: {}
+            k:{"type":"Available"}:
+              .: {}
+              f:lastTransitionTime: {}
+              f:lastUpdateTime: {}
+              f:message: {}
+              f:reason: {}
+              f:status: {}
+              f:type: {}
+            k:{"type":"Progressing"}:
+              .: {}
+              f:lastTransitionTime: {}
+              f:lastUpdateTime: {}
+              f:message: {}
+              f:reason: {}
+              f:status: {}
+              f:type: {}
+          f:observedGeneration: {}
+          f:readyReplicas: {}
+          f:replicas: {}
+          f:updatedReplicas: {}
+      manager: kube-controller-manager
+      operation: Update
+      subresource: status
+      time: "2026-10-04T09:56:11Z"
+    name: multi-web
+    namespace: c3
+    resourceVersion: "2639"
+    uid: 52801ca6-6786-4d7d-92b3-f453cfc789a7
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: web
+        component.opmodel.dev/name: web
+        core.opmodel.dev/workload-type: stateless
+        module-instance.opmodel.dev/name: multi
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: web
+          component.opmodel.dev/name: web
+          core.opmodel.dev/workload-type: stateless
+          module-instance.opmodel.dev/name: multi
+      spec:
+        containers:
+        - image: ghcr.io/stefanprodan/podinfo:6.7.1
+          imagePullPolicy: IfNotPresent
+          name: podinfo
+          ports:
+          - containerPort: 9898
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: 9898
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-10-04T09:56:11Z"
+      lastUpdateTime: "2026-10-04T09:56:11Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-10-04T09:56:10Z"
+      lastUpdateTime: "2026-10-04T09:56:11Z"
+      message: ReplicaSet "multi-web-7db5d6b64d" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    labels:
+      app.kubernetes.io/instance: web
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: web
+      component.opmodel.dev/name: web
+      core.opmodel.dev/workload-type: stateless
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:core.opmodel.dev/workload-type: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:spec:
+          f:ports:
+            k:{"port":9898,"protocol":"TCP"}:
+              .: {}
+              f:name: {}
+              f:port: {}
+              f:protocol: {}
+              f:targetPort: {}
+          f:selector: {}
+          f:type: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:core.opmodel.dev/workload-type: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:spec:
+          f:ports:
+            k:{"port":9898,"protocol":"TCP"}:
+              .: {}
+              f:name: {}
+              f:port: {}
+              f:protocol: {}
+              f:targetPort: {}
+          f:selector: {}
+          f:type: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    name: multi-web
+    namespace: c3
+    resourceVersion: "2636"
+    uid: e9dcf7f3-b46a-4a71-a57b-c23d2f600557
+  spec:
+    clusterIP: 10.96.191.165
+    clusterIPs:
+    - 10.96.191.165
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      port: 9898
+      protocol: TCP
+      targetPort: 9898
+    selector:
+      app.kubernetes.io/name: web
+      component.opmodel.dev/name: web
+      core.opmodel.dev/workload-type: stateless
+      module-instance.opmodel.dev/name: multi
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIDBTCCAe2gAwIBAgIIHQENYfYBU08wDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE
+      AxMKa3ViZXJuZXRlczAeFw0yNjEwMDQwOTM0MTRaFw0zNjEwMDEwOTM5MTRaMBUx
+      EzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+      AoIBAQDSKAJLZJTbZ+N9jPj/ogSTM4s8B+bep9qFKRfOoqUBj3HhVT/datTeRwyT
+      4k/lisheb71+2MzK3jdjidN1aXH3B9TGuRd1+SH4kqYAkgjr6/zBrQJvwTKf+FXM
+      j5TPfXbFeNny3OmwKQU6UqblN2VqT+9/vgcKAs+ZauMcxzS4DXVVH65+oTAxorYu
+      W4d3wilOjsKuHu+gpijcG3Dpg6cwir8IXYmjQOkj4OfYu8OKyxZCRnf/xyLnzQM7
+      67i16UsLbSxtwg8amj0Dt5QVjj/lgBaMKSFkn4vL6BxqqJsY/uFxy8FJi6qka2PJ
+      Gk1NGu6bEwVs/7KWDB7JZFRvJ7kzAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP
+      BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTtSRNdEjubjLeQX11S6B9WXWEsBzAV
+      BgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQAcq5uE7KUX
+      x76CzLLepS1B1qHGFCeoF9NObuLzNYQGwEvMHDU/I+WlyjQ5rFNk0c7OvmeuUdP7
+      fC/s4Y65JedOqos/78Pd8dGkbEClWRjKyPbvHACxClqFGAvF8MhTzj4CE3DCBy3d
+      Js/7bRZJg3X0IHsBYJIbEBP6KOZV9TtQ1tooXOFDErBTehUdYUKVMLXkHbmsIGuC
+      Jc5Eq3FXnsFPqG/Z5iuSJEG/AI8fqs0ZJFITEzLUNm+qMf1E6KRDuBCvT5duuSuJ
+      NCKUH3XwVFXUyk1cP9n8q+rSABCFP1+zd+djXcRH3JZN6MDDW1VyQfWlICzfvQpd
+      BXjlA6/X2mRc
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:data:
+          .: {}
+          f:ca.crt: {}
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubernetes.io/description: {}
+      manager: kube-controller-manager
+      operation: Update
+      time: "2026-10-04T09:56:10Z"
+    name: kube-root-ca.crt
+    namespace: c3
+    resourceVersion: "2028"
+    uid: 7f8596e7-0e37-40ae-9f91-d764a5a18a47
+- apiVersion: v1
+  data:
+    message: hello from multi
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    labels:
+      app.kubernetes.io/instance: extra
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: extra
+      component.opmodel.dev/name: extra
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:data:
+          f:message: {}
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:data:
+          f:message: {}
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    name: multi-extra-extra
+    namespace: c3
+    resourceVersion: "2635"
+    uid: 6fa5e82b-b707-4124-8c6b-430624f7efe7
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"ServiceAccount","metadata":{"annotations":{},"name":"applier","namespace":"c3"}}
+    creationTimestamp: "2026-10-04T10:01:45Z"
+    managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2026-10-04T10:01:45Z"
+    name: applier
+    namespace: c3
+    resourceVersion: "2610"
+    uid: 988cfc2c-e0cb-4d08-8220-0e4a32ba49c9
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    name: default
+    namespace: c3
+    resourceVersion: "2029"
+    uid: 83ebe58e-13ac-4fe4-9157-ab0d644aec57
+- apiVersion: v1
+  automountServiceAccountToken: false
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    labels:
+      app.kubernetes.io/instance: reader-sa
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: reader-sa
+      component.opmodel.dev/name: reader-sa
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:automountServiceAccountToken: {}
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:automountServiceAccountToken: {}
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    name: multi-reader-c3
+    namespace: c3
+    resourceVersion: "2634"
+    uid: fd2b9370-7a7c-4e8b-8e07-942a1c5f286b
+kind: List
+metadata:
+  resourceVersion: ""
+---
+apiVersion: v1
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    labels:
+      app.kubernetes.io/instance: reader-rbac
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: reader-rbac
+      component.opmodel.dev/name: reader-rbac
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: rbac.authorization.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:rules: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: rbac.authorization.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:rules: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    name: multi-reader-c3
+    resourceVersion: "2632"
+    uid: e9be013f-bd15-4f18-a47a-8f4402caf2e5
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: "2026-10-04T09:56:10Z"
+    labels:
+      app.kubernetes.io/instance: reader-rbac
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: reader-rbac
+      component.opmodel.dev/name: reader-rbac
+      module-instance.opmodel.dev/name: multi
+      module-instance.opmodel.dev/uuid: 3f0f4c8d-9e79-5b1e-bba1-cc1a25f881e2
+      module.opmodel.dev/name: multi
+      module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+      module.opmodel.dev/version: 0.0.2
+    managedFields:
+    - apiVersion: rbac.authorization.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:roleRef: {}
+        f:subjects: {}
+      manager: opm-cli
+      operation: Apply
+      time: "2026-10-04T09:56:10Z"
+    - apiVersion: rbac.authorization.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:labels:
+            f:app.kubernetes.io/instance: {}
+            f:app.kubernetes.io/managed-by: {}
+            f:app.kubernetes.io/name: {}
+            f:component.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/name: {}
+            f:module-instance.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/name: {}
+            f:module.opmodel.dev/uuid: {}
+            f:module.opmodel.dev/version: {}
+        f:roleRef: {}
+        f:subjects: {}
+      manager: opm-controller
+      operation: Apply
+      time: "2026-10-04T10:01:58Z"
+    name: multi-reader-c3
+    resourceVersion: "2633"
+    uid: 26c0cb4e-244e-4951-9fa4-b435d5577ea4
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: multi-reader-c3
+  subjects:
+  - kind: ServiceAccount
+    name: multi-reader-c3
+    namespace: c3
+kind: List
+metadata:
+  resourceVersion: ""

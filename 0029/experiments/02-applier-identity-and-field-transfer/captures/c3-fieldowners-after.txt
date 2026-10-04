@@ -1,0 +1,12 @@
+Deployment c3/multi-web: opm-cli=25 opm-controller=26 co-owned=25
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by
+Service c3/multi-web: opm-cli=15 opm-controller=16 co-owned=15
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by
+ConfigMap c3/multi-extra-extra: opm-cli=9 opm-controller=10 co-owned=9
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by
+ServiceAccount c3/multi-reader-c3: opm-cli=9 opm-controller=10 co-owned=9
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by
+ClusterRole -/multi-reader-c3: opm-cli=9 opm-controller=10 co-owned=9
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by
+ClusterRoleBinding -/multi-reader-c3: opm-cli=10 opm-controller=11 co-owned=10
+   only opm-controller: /f:metadata/f:labels/f:app.kubernetes.io/managed-by

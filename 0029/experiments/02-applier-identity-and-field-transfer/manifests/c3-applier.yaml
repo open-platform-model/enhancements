@@ -1,5 +1,5 @@
-# Case 2: a named applier ServiceAccount with a NAMESPACE-scoped Role that
-# covers every namespaced kind the fixture renders, and nothing cluster-scoped.
+# Case 3: a named applier ServiceAccount with sufficient rights. Namespaced half
+# (same Role as case 2, for c3):
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: applier, namespace: c3}
