@@ -41,8 +41,10 @@ import "strings"
 // (0011 D25) but a template is what a scaffolder looks for and an instance
 // initializer refuses, so it names itself (D3).
 //
-// OQ6: whether an `index` kind joins this set, for the published listing
-// index entry 0031 proposes, is open and owned by 0031; it is not added here.
+// OQ6 (open, blocks acceptance): the rule for a kind a reader or gate does
+// not know is this entry's to decide, and may change this closed set. Whether
+// an `index` kind joins it, for the listing index entry 0031 proposes, is
+// 0031's question; it is not added here.
 #ArtifactKind: "module" | "catalog" | "template"
 
 // #ModuleFileCustom: the block an artifact carries at
