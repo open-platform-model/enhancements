@@ -1,0 +1,221 @@
+left  = source/install.yaml (19 objects)
+right = out/rendered-variant.yaml (19 objects)
+
+## objects only in left (by kind/namespace/name)
+## objects only in right
+
+## differences in matched objects
+
+### ClusterRole//opm-operator-manager-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-metrics-auth-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-metrics-reader
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-moduleinstance-admin-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "unbound-cluster-roles"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-moduleinstance-editor-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "unbound-cluster-roles"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-moduleinstance-viewer-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "unbound-cluster-roles"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRole//opm-operator-transformerregistration-admin-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "unbound-cluster-roles"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "unbound-cluster-roles"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRoleBinding//opm-operator-manager-rolebinding
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ClusterRoleBinding//opm-operator-metrics-auth-rolebinding
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### CustomResourceDefinition//moduleinstances.opmodel.dev
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "crds"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "crds"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "crds"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### CustomResourceDefinition//modulepackages.opmodel.dev
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "crds"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "crds"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "crds"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### CustomResourceDefinition//platforms.opmodel.dev
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "crds"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "crds"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "crds"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### CustomResourceDefinition//transformerregistrations.opmodel.dev
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "crds"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "<absent>" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "<absent>" -> "crds"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "crds"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### Deployment/opm-operator-system/opm-operator-controller-manager
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.control-plane: "controller-manager" -> "<absent>"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### Namespace//opm-operator-system
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "namespace"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "namespace"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "namespace"
+  meta  .metadata.labels.control-plane: "controller-manager" -> "<absent>"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### Role/opm-operator-system/opm-operator-leader-election-role
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### RoleBinding/opm-operator-system/opm-operator-leader-election-rolebinding
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### Service/opm-operator-system/opm-operator-controller-manager-metrics-service
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.control-plane: "controller-manager" -> "<absent>"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+### ServiceAccount/opm-operator-system/opm-operator-controller-manager
+  meta  .metadata.labels.app.kubernetes.io/instance: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.app.kubernetes.io/managed-by: "kustomize" -> "opm-cli"
+  meta  .metadata.labels.app.kubernetes.io/name: "opm-operator" -> "exact-objects"
+  meta  .metadata.labels.component.opmodel.dev/name: "<absent>" -> "exact-objects"
+  meta  .metadata.labels.module-instance.opmodel.dev/name: "<absent>" -> "opm-operator"
+  meta  .metadata.labels.module-instance.opmodel.dev/uuid: "<absent>" -> "ce194df5-bc2a-5fb2-934f-31579bffa2f0"
+  meta  .metadata.labels.module.opmodel.dev/name: "<absent>" -> "opm_operator"
+  meta  .metadata.labels.module.opmodel.dev/uuid: "<absent>" -> "3cef2240-cae8-5dcb-a070-0f406a8e88ce"
+  meta  .metadata.labels.module.opmodel.dev/version: "<absent>" -> "0.1.0"
+
+0 matched objects identical (labels and annotations included)
