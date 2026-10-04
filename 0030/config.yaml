@@ -51,7 +51,7 @@ history:
   - date: "2026-10-04"
     event: D1-D11 and OQ1-OQ19 drafted from the portal design, corrected by a live cluster capture (experiments 01, 02).
   - date: "2026-10-04"
-    event: 'D1, D5, D6 and D11 revised per owner decision: the only allowed creates are non-persisted reviews (SubjectAccessReview in-cluster; self reviews locally); D5:R6-R7, D6:R9 added.'
+    event: 'D1, D5, D6 and D11 revised per owner decision (only non-persisted review APIs may be created), split per mode by this entry (SubjectAccessReview in-cluster; self reviews locally); D5:R6-R7, D6:R9 added.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
