@@ -85,7 +85,7 @@ notKeys: {
 
 // The widget a field shape allows. The gate refuses a widget outside its
 // shape's list on a module's own field.
-widgetsFor: close({[#FieldShape]: [...or(vocabulary.v1.widget.values)]})
+widgetsFor: close({[#FieldShape & !="any" & !="optionalOrDefaulted"]:[...or(vocabulary.v1.widget.values)]})
 widgetsFor: {
 	string: ["text", "textarea", "url", "hostname", "code", "select"]
 	stringEnum: ["select"]
