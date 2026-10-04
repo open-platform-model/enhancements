@@ -33,6 +33,8 @@ metadata: {
 	// readerName names the ServiceAccount and the cluster-scoped ClusterRole and
 	// ClusterRoleBinding, so instances in several namespaces do not collide.
 	readerName: string | *"multi-reader"
+	// note adds an optional ConfigMap data key (v0.0.3).
+	note: string | *""
 }
 
 debugValues: {
@@ -41,4 +43,5 @@ debugValues: {
 	extra:    true
 	message:  "hello from multi"
 	readerName: "multi-reader"
+	note:       ""
 }

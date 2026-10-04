@@ -57,7 +57,11 @@ import (
 		extra: {
 			res.#ConfigMaps
 			metadata: name: "extra"
-			spec: configMaps: "extra": data: message: #config.message
+			spec: configMaps: "extra": data: {
+				message: #config.message
+				// note is present only when set: the field-removal probe for case 3c.
+				if #config.note != "" {note: #config.note}
+			}
 		}
 	}
 }

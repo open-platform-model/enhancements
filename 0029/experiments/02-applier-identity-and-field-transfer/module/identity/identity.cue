@@ -4,4 +4,4 @@ package identity
 
 ModulePath: "testing.opmodel.dev/modules/experiments/handoff-id/multi@v0"
 
-Version: "0.0.2"
+Version: "0.0.3"
