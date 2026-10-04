@@ -49,7 +49,7 @@ Each decision carries a `**Kind:**` line (`contract` | `policy` | `scope`) and t
 
 - R1: Where a definition names an API group and kind, the served kind's schema is the bound module's `#config` and nothing else; no schema is authored on the definition.
 - R2: An instance of a served kind whose values violate that schema is refused at admission, before it is stored.
-- R3: A definition naming a kind whose bound module's `#config` does not encode as a structural schema is refused at acceptance, naming the module and the reason. The refused shapes, and every served-kind narrowing an accepted open-question answer allows, are listed.
+- R3: A definition naming a kind whose bound module's `#config` does not encode as a structural schema is refused at acceptance, naming the module and the reason. R3 itself holds the list of refused shapes and of every served-kind narrowing an accepted open-question answer allows; the narrowing list is empty until such an answer is accepted. A narrowing decided after this entry is accepted arrives as a new decision with **Amends:** D2, not as an edit to R3.
 - R4: A module never bound as a served kind is unaffected: its publication and its renders do not change under the structural requirement.
 
 **Alternatives considered:**

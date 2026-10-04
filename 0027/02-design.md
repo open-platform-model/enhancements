@@ -7,7 +7,7 @@ This entry rests on entry 0025, which gives a module one named place to state fa
 ## Design Goals
 
 - **The platform binds the module; the consumer never names a module path or version.** The module coordinate has exactly one home per cluster per offering, and the fleet upgrade is one edit there.
-- **The consumer-facing schema is the module's `#config`, and nothing else.** No second schema is authored by hand; drift between what the module accepts and what the consumer is offered is structurally impossible.
+- **The consumer-facing schema is the module's `#config`, and nothing else.** No second schema is authored by hand; any gap from `#config` is either one of the narrowings D2 allows or OQ22's to close.
 - **One render path.** An instance of an offering is a `#ModuleInstance` and renders exactly as one authored by hand would. Nothing is composed twice.
 - **The projection is pure and offline-computable.** Kernel, CLI and operator derive the same `#ModuleInstance` from the same two inputs, so a render can be reproduced with no cluster.
 - **Validation and authorisation move to the API server where a kind exists.** Admission refuses a bad instance before it is stored; RBAC distinguishes offerings by kind.

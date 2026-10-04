@@ -2,7 +2,7 @@
 
 Measurements behind the served-schema decision (D2) and the candidate answers to its open questions (OQ18 to OQ22). This file is the hand-maintained index. Per-experiment status lives in each `NN-*/README.md`'s `Status:` line.
 
-All five ran on 2026-10-04. Experiment 01 carries its own encoder-comparison program. Experiments 02 to 05 are views on one run of the shared harness in [`harness/`](harness/), kept once rather than copied four times. This is a deliberate exception to the rule that an experiment touches nothing outside its own directory: experiments 01 to 05 run in, and write their output to, `harness/`.
+All five ran on 2026-10-04. Experiment 01 carries its own encoder-comparison program. Experiments 02 to 05 are views on one run of the shared harness in [`harness/`](harness/), kept once rather than copied four times. This is a deliberate exception to the rule that an experiment touches nothing outside its own directory: experiments 02 to 05, and step 2 of experiment 01, run in and write to `harness/`.
 
 The harness:
 
