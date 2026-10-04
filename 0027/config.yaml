@@ -38,7 +38,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-09-20"
-updated: "2026-09-29"
+updated: "2026-10-04"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -56,6 +56,8 @@ history:
     event: 'Requirements added to every decision (none on D4, D8, D10); Kind changed to contract on D11 (body states observable behaviour), additive.'
   - date: "2026-09-29"
     event: 'Measured evidence added to D2: a legal #config (int | string field) encodes to a schema Kubernetes rejects as non-structural; the control passes. Additive, no decision body changed.'
+  - date: "2026-10-04"
+    event: 'D2 revised in place: Depends on 0008 dropped, fleet encoder measurement added. OQ17-OQ29 added for portal and order questions; experiments 01-05 record candidates.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -63,7 +65,6 @@ history:
 # resolves to a decision heading; legacy:NNN has none). `task vet` enforces
 # both directions and refuses a cycle.
 depends_on:
-  - "0008"
   - "0010"
   - "0015"
   - "0021"

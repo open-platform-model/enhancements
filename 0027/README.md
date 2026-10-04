@@ -61,7 +61,9 @@ Read it top to bottom as "who decides". The module author may say what the modul
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, and the composition-layer alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12 and OQ16
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12 and OQ16 to OQ29
+
+[`experiments/`](experiments/) holds five measurements behind the served schema: the stock encoder against the real fleet, offline against live validation, and the secret, union and required-field encodings.
 
 Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta carrying the definition shape, the instance shape and the conversion, with entry 0025's module and aspect shapes mirrored so the delta vets on its own.
 
@@ -107,7 +109,7 @@ None at this stage. Update when implementation lands.
 | -------- | ------- |
 | `enhancements/0025/` | The aspect map this entry's offering declaration attaches to (0025:D11), the module-trait shape it is published as (0025:D12), and the fulfilment answer it waits on (0025 OQ13) |
 | `enhancements/0015/` | The cluster-scoped registration pattern this entry's authoring shape reuses (0015:D3, 0015:D9) and what regeneration does on rebinding (0015:D13) |
-| `enhancements/0008/` | The CUE-to-CRD encoder in structural mode (0008:D3) that the kind layer's schema generation relies on |
+| `enhancements/0008/` | The CUE-to-CRD encoder core's own CRDs use (0008:D3); measured as unable to serve real module `#config` values, so the served schema (D2) does not rest on it |
 | `enhancements/0010/` | Identity: majors are the only artifact distinction (0010:D1), and instance identity survives a major bump (0010:D41), which is what makes rebinding safe |
 | `enhancements/0021/` | The module's configuration schema as what a version promises (0021:D2), the premise under a served version equal to the module major |
 | `enhancements/0009/` | The execution half, whose open question on a meta-controller toolkit names the idea this controller is the first instance of |
