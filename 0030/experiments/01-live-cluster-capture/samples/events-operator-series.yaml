@@ -1,6 +1,6 @@
-# Phases 7 and 8: opm-controller sets series on a repeat inside the event recorder's window (Platform Generated, count 2).
+# Phases 7 and 8: the only opm-controller events with series (Platform Generated, count 2), each a repeat about the same Platform version.
 # The first event came from the released v1.0.0-beta.5 controller (phase 7), the second from the phase 8 rebuild.
-# Other repeats in the capture (ApplyFailed on cert-manager, phases 1 to 6) were separate events with no series.
+# Repeats about a changed object version (ApplyFailed on cert-manager, phases 1 to 6, regarding.resourceVersion 1090 to 1221) were separate events with no series.
 - action: Generate
   apiVersion: events.k8s.io/v1
   deprecatedFirstTimestamp: null

@@ -236,7 +236,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: the operator sets `series` only on a repeat inside its event recorder's window and emits later repeats as separate events, and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time, whichever way each repeat was recorded. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
+**Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: the event recorder folds a repeat into `series` only when it regards the same object version, so repeats after the object's status changed arrive as separate events, and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time, whichever way each repeat was recorded. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
 
 **Requirements:**
 
@@ -248,7 +248,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Alternatives considered:**
 
-- **Rely on event `series` for collapsing** (previously assumed in the design). The capture showed the operator sets `series` only on an in-window repeat (a Platform `Generated` event with `count: 2`) while cert-manager's four `ApplyFailed` repeats were four separate events, and kubelet events have `eventTime: null` (observation 4).
+- **Rely on event `series` for collapsing** (previously assumed in the design). In the capture the only operator events with `series` were two Platform `Generated` repeats (`count: 2`), each regarding an unchanged Platform; cert-manager's four `ApplyFailed` repeats, identical but for the regarded object's `resourceVersion`, were four separate events, and kubelet events have `eventTime: null` (observation 4).
 - **Look for Platform events in the Platform's namespace.** It has none; the capture found them in `default` (observation 5).
 - **Persist events in the portal.** Makes the portal stateful and a second record of history; whether anyone should persist them is OQ9.
 
