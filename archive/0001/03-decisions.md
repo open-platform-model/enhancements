@@ -84,7 +84,13 @@ Module authors never set `#release` directly; the parent pattern constraint prop
 
 ### D5: `#FQNType` regex accepts SemVer 2.0; MAJOR-only retired from primitive metadata
 
-**Decision:** `#FQNType` regex is `^[a-z0-9.-]+(/[a-z0-9.-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$`. Primitive `metadata.version` switches from `#MajorVersionType` to `#VersionType`. `#MajorVersionType` is retired from primitive metadata (survives elsewhere: `#BundleFQNType` still uses it).
+**Decision:** `#FQNType` regex is:
+
+```text
+^[a-z0-9.-]+(/[a-z0-9.-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$
+```
+
+Primitive `metadata.version` switches from `#MajorVersionType` to `#VersionType`. `#MajorVersionType` is retired from primitive metadata (survives elsewhere: `#BundleFQNType` still uses it).
 
 **Alternatives considered:**
 
