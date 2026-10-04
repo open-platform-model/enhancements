@@ -1,0 +1,22 @@
+12:09:19 INFO installing opm-operator
+12:09:19 INFO r:CustomResourceDefinition/moduleinstances.opmodel.dev  + created
+12:09:19 INFO r:CustomResourceDefinition/modulepackages.opmodel.dev  + created
+12:09:19 INFO r:CustomResourceDefinition/platforms.opmodel.dev  + created
+12:09:19 INFO r:CustomResourceDefinition/transformerregistrations.opmodel.dev  + created
+12:09:19 INFO r:Namespace/opm-operator-system                   + created
+12:09:19 INFO r:ClusterRole/opm-operator-manager-role           + created
+12:09:19 INFO r:ClusterRole/opm-operator-metrics-auth-role      + created
+12:09:19 INFO r:ClusterRole/opm-operator-metrics-reader         + created
+12:09:19 INFO r:ClusterRole/opm-operator-moduleinstance-admin-role  + created
+12:09:19 INFO r:ClusterRole/opm-operator-moduleinstance-editor-role  + created
+12:09:19 INFO r:ClusterRole/opm-operator-moduleinstance-viewer-role  + created
+12:09:19 INFO r:ClusterRole/opm-operator-transformerregistration-admin-role  + created
+12:09:19 INFO r:ClusterRoleBinding/opm-operator-manager-rolebinding  + created
+12:09:19 INFO r:ClusterRoleBinding/opm-operator-metrics-auth-rolebinding  + created
+12:09:19 INFO r:ServiceAccount/opm-operator-system/opm-operator-controller-manager  + created
+12:09:19 INFO r:Role/opm-operator-system/opm-operator-leader-election-role  + created
+12:09:19 INFO r:RoleBinding/opm-operator-system/opm-operator-leader-election-rolebinding  + created
+12:09:19 INFO r:Service/opm-operator-system/opm-operator-controller-manager-metrics-service  + created
+12:09:19 INFO r:Deployment/opm-operator-system/opm-operator-controller-manager  + created
+✔ opm-operator v1.0.0-beta.5 installed (embedded, 19 resource(s) applied)
+12:09:31 INFO seeded cluster Platform subscribed to opmodel.dev/catalogs/opm@v4 4.5.2

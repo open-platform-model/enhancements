@@ -1,0 +1,34 @@
+12:09:43 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:09:44 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:44 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev condition met
+12:09:45 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:09:46 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:09:46 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+12:09:46 WARN skipping operator-version ceiling check: CLI version is not a released semver version=dev
+pre-apply existence check failed: resource Namespace/opm-operator-system in namespace "" already exists and is not managed by OPM — remove or rename it, or change the module to render a different name

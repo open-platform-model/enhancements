@@ -1,0 +1,8 @@
+Namespace	opm-operator-system	0675e962-0af5-4c8c-b4f0-8283976f2161	496	{"app.kubernetes.io/managed-by":"kustomize","app.kubernetes.io/name":"opm-operator","control-plane":"controller-manager","kubernetes.io/metadata.name":"opm-operator-system"}	opm-cli
+CustomResourceDefinition	platforms.opmodel.dev	d4152ad8-961e-4a84-91ab-1b28db9be4db	494	null	kube-apiserver,opm-cli
+ClusterRole	opm-operator-manager-role	5168a552-0615-4494-a365-df9ede84b38a	500	null	opm-cli
+ClusterRoleBinding	opm-operator-manager-rolebinding	d7686f9d-1844-436f-864a-6cd044e9b01d	507	{"app.kubernetes.io/managed-by":"kustomize","app.kubernetes.io/name":"opm-operator"}	opm-cli
+ClusterRoleBinding	opm-operator-metrics-auth-rolebinding	32dfef8c-ddc0-4855-b2a4-a8b88e4724db	508	null	opm-cli
+RoleBinding	opm-operator-leader-election-rolebinding	cdb03bc0-0a1e-4e16-b6d2-075c8d55c401	511	{"app.kubernetes.io/managed-by":"kustomize","app.kubernetes.io/name":"opm-operator"}	opm-cli
+Deployment	opm-operator-controller-manager	19f3fcf5-786f-4401-bb4a-7759d0ff7e20	606	{"app.kubernetes.io/managed-by":"kustomize","app.kubernetes.io/name":"opm-operator","control-plane":"controller-manager"}	exp-env-fix,kube-controller-manager,opm-cli
+ServiceAccount	opm-operator-controller-manager	7c3a0235-fb3a-42c3-bb94-1764b4bcd3e6	509	{"app.kubernetes.io/managed-by":"kustomize","app.kubernetes.io/name":"opm-operator"}	opm-cli

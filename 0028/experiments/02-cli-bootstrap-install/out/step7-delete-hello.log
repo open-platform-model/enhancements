@@ -1,0 +1,1 @@
+the opm operator is not ready (Deployment/opm-operator-controller-manager in opm-operator-system) — instance "hello" is operator-managed, and deleting its ModuleInstance now would wedge it in Terminating on the opmodel.dev/cleanup finalizer with its workloads orphaned; install or repair it with 'opm operator install', then retry

@@ -1,0 +1,23 @@
+12:07:30 INFO m:opm-operator: deleting resources in namespace "opm-operator-system"
+12:07:30 INFO m:opm-operator: r:Deployment/opm-operator-system/opm-operator-controller-manager  - deleted
+12:07:30 INFO m:opm-operator: r:Service/opm-operator-system/opm-operator-controller-manager-metrics-service  - deleted
+12:07:30 INFO m:opm-operator: r:ServiceAccount/opm-operator-system/opm-operator-controller-manager  - deleted
+12:07:30 INFO m:opm-operator: r:Role/opm-operator-system/opm-operator-leader-election-role  - deleted
+12:07:30 INFO m:opm-operator: r:RoleBinding/opm-operator-system/opm-operator-leader-election-role  - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-manager-role           - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-manager-role    - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-auth-role      - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-metrics-auth-role  - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-reader         - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-admin-role  - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-editor-role  - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-viewer-role  - deleted
+12:07:30 INFO m:opm-operator: r:ClusterRole/opm-operator-transformerregistration-admin-role  - deleted
+12:07:30 WARN m:opm-operator: r:Namespace/opm-operator-system                   ! left behind reason="CRDs and Namespaces are never deleted"
+12:07:30 WARN m:opm-operator: r:CustomResourceDefinition/moduleinstances.opmodel.dev  ! left behind reason="CRDs and Namespaces are never deleted"
+12:07:30 WARN m:opm-operator: r:CustomResourceDefinition/modulepackages.opmodel.dev  ! left behind reason="CRDs and Namespaces are never deleted"
+12:07:30 WARN m:opm-operator: r:CustomResourceDefinition/platforms.opmodel.dev  ! left behind reason="CRDs and Namespaces are never deleted"
+12:07:30 WARN m:opm-operator: r:CustomResourceDefinition/transformerregistrations.opmodel.dev  ! left behind reason="CRDs and Namespaces are never deleted"
+✔ Instance deleted — 5 resource(s) left behind
+
+Remove them with 'kubectl delete' once nothing else needs them.

@@ -1,0 +1,58 @@
+12:10:21 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:10:23 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:23 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/moduleinstances.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev condition met
+customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev condition met
+12:10:24 INFO platform: cluster Platform CR cluster (effective registry, package gen-1, generated module /home/emil/.opm/cache/platforms/64fdf33fc12a0b6faa57369c4b3f08bfeaf1438fea55243762c4935cea4b59b4)
+12:10:25 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/deployment-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/pvc-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/hpa-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/service-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ manager-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
+12:10:25 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
+12:10:25 WARN skipping operator-version ceiling check: CLI version is not a released semver version=dev
+12:10:25 INFO m:opm-operator: applying 19 resources
+12:10:25 INFO m:opm-operator: r:CustomResourceDefinition/moduleinstances.opmodel.dev  = unchanged
+12:10:25 INFO m:opm-operator: r:CustomResourceDefinition/modulepackages.opmodel.dev  = unchanged
+12:10:25 INFO m:opm-operator: r:CustomResourceDefinition/platforms.opmodel.dev  = unchanged
+12:10:25 INFO m:opm-operator: r:CustomResourceDefinition/transformerregistrations.opmodel.dev  = unchanged
+12:10:25 INFO m:opm-operator: r:Namespace/opm-operator-system                   ~ configured
+12:10:25 INFO m:opm-operator: waiting for 4 CustomResourceDefinition(s) to be established
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-manager-role           ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-manager-role    + created
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-auth-role      ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRoleBinding/opm-operator-metrics-auth-role  + created
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-metrics-reader         ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-admin-role  ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-editor-role  ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-moduleinstance-viewer-role  ~ configured
+12:10:25 INFO m:opm-operator: r:ClusterRole/opm-operator-transformerregistration-admin-role  ~ configured
+12:10:25 INFO m:opm-operator: r:ServiceAccount/opm-operator-system/opm-operator-controller-manager  ~ configured
+12:10:25 INFO m:opm-operator: r:Role/opm-operator-system/opm-operator-leader-election-role  ~ configured
+12:10:25 INFO m:opm-operator: r:RoleBinding/opm-operator-system/opm-operator-leader-election-role  + created
+12:10:25 INFO m:opm-operator: r:Service/opm-operator-system/opm-operator-controller-manager-metrics-service  ~ configured
+12:10:25 WARN m:opm-operator: applying Deployment/opm-operator-controller-manager: Deployment.apps "opm-operator-controller-manager" is invalid: spec.selector: Invalid value: {"matchLabels":{"app.kubernetes.io/name":"controller-manager","component.opmodel.dev/name":"controller-manager","control-plane":"controller-manager","core.opmodel.dev/workload-type":"stateless","module-instance.opmodel.dev/name":"opm-operator"}}: field is immutable
+12:10:25 WARN m:opm-operator: 1 resource(s) had errors
+12:10:25 ERRO m:opm-operator: Deployment/opm-operator-controller-manager in opm-operator-system: Deployment.apps "opm-operator-controller-manager" is invalid: spec.selector: Invalid value: {"matchLabels":{"app.kubernetes.io/name":"controller-manager","component.opmodel.dev/name":"controller-manager","control-plane":"controller-manager","core.opmodel.dev/workload-type":"stateless","module-instance.opmodel.dev/name":"opm-operator"}}: field is immutable
+12:10:25 INFO m:opm-operator: applied 18 resources successfully (3 created, 11 configured, 4 unchanged)
+12:10:25 WARN m:opm-operator: apply had errors — skipping pruning and inventory write

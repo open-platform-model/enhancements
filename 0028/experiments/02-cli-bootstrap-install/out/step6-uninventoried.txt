@@ -1,0 +1,3 @@
+UNINVENTORIED ClusterRoleBinding/opm-operator-manager-rolebinding
+UNINVENTORIED ClusterRoleBinding/opm-operator-metrics-auth-rolebinding
+UNINVENTORIED RoleBinding/opm-operator-leader-election-rolebinding
