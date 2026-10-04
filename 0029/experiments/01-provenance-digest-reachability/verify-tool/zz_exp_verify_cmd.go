@@ -23,6 +23,7 @@ func NewExpVerifyCmd(cfg *config.GlobalConfig) *cobra.Command {
 	var kf cmdutil.K8sFlags
 	var namespace string
 	var fresh bool
+	var runtimeName string
 	c := &cobra.Command{
 		Use:    "exp-verify NAME",
 		Hidden: true,
@@ -57,6 +58,8 @@ func NewExpVerifyCmd(cfg *config.GlobalConfig) *cobra.Command {
 			} else {
 				fmt.Printf("        CUE_CACHE_DIR=%s (as inherited)\n", os.Getenv("CUE_CACHE_DIR"))
 			}
+			render.RuntimeName = runtimeName
+			fmt.Printf("        runtime name=%s\n", runtimeName)
 			start := time.Now()
 			d, err := render.ExpVerificationDigest(ctx, cfg, k8sCfg, platform.ClusterPlatformGetterFor(client.Dynamic),
 				rec.ModulePath, rec.ModuleVersion, rec.Name, rec.Namespace, rec.SpecValues)
@@ -72,6 +75,7 @@ func NewExpVerifyCmd(cfg *config.GlobalConfig) *cobra.Command {
 	}
 	kf.AddTo(c)
 	c.Flags().StringVarP(&namespace, "namespace", "n", "", "namespace")
+	c.Flags().StringVar(&runtimeName, "runtime-name", "opm-cli", "kernel RuntimeName; opm-controller predicts the operator's render digest")
 	c.Flags().BoolVar(&fresh, "fresh-cache", false, "isolate CUE_CACHE_DIR like the old gate 4")
 	return c
 }

@@ -12,5 +12,7 @@ cp "$here/zz_exp_verify_render.go" "$out/clicopy/internal/workflow/render/"
 cp "$here/zz_exp_verify_cmd.go" "$out/clicopy/internal/cmd/instance/"
 sed -i 's|\tc.AddCommand(NewInstanceListCmd(cfg))|\tc.AddCommand(NewInstanceListCmd(cfg))\n\tc.AddCommand(NewExpVerifyCmd(cfg))|' \
   "$out/clicopy/internal/cmd/instance/instance.go"
+# --runtime-name needs RuntimeName assignable in the copy.
+sed -i 's|^const RuntimeName = "opm-cli"|var RuntimeName = "opm-cli"|' "$out/clicopy/internal/workflow/render/env.go"
 go build -C "$out/clicopy" -o "$out/opmx" ./cmd/opm
 echo "built $out/opmx"
