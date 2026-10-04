@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**V1 only reads (D1).** It creates, edits and deletes nothing. Writes arrive with a separate marketplace entry.
+**V1 only reads (D1).** It creates, edits and deletes no stored object; the only requests it creates are access reviews the API server never stores. Writes arrive with a separate marketplace entry.
 
 **The read API is the product (D2).** A versioned JSON and event-stream API at `/api/v1alpha1` serves portal-shaped documents. The web UI renders only from that API, so adapters see what the UI sees.
 

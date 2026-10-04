@@ -7,13 +7,13 @@ A new service, `opm-portal`, reads what the opm-operator and the API server alre
 - **One place shows what OPM runs.** From the Platform's catalogs and registrations down to each instance's components, objects and Pods, with events and logs beside them.
 - **Status never lies by omission.** Applied state (what the operator did) and workload health (what is running) are always shown apart, and a broken rollout shows as broken within seconds, not after a ten-minute deadline.
 - **The read API is the product.** Anything the UI shows, a script, an adapter or another UI can read through a versioned, documented API under the same identity.
-- **A person sees what their RBAC allows, and nothing else.** Locally that is the kubeconfig's identity. In-cluster it is the signed-in user, checked before every read, failing closed.
+- **A person sees what their RBAC allows, and nothing else.** Locally that is the kubeconfig's identity, and each read is checked first with a SelfSubjectAccessReview. In-cluster it is the signed-in user, checked with a SubjectAccessReview before every read, failing closed.
 - **No new source of truth.** Every fact comes from a Kubernetes object the operator or the API server wrote. The portal does not render modules, store state, or invent edges.
 - **Secrets stay unread.** The portal never reads Secret data and does not show instance values in V1.
 
 ## Non-Goals
 
-- **Writes of any kind.** No create, edit, delete, scale, restart or order. Writes arrive with the module marketplace, which builds on the self-service kinds of entry 0027 and gets its own entry.
+- **Writes of any kind.** No create, edit or delete of a stored object, and no scale, restart or order. The only creates are access reviews the API server evaluates and never stores: the self reviews of 0030:D5:R6 locally and the SubjectAccessReview of 0030:D6:R9 in-cluster. Writes arrive with the module marketplace, which builds on the self-service kinds of entry 0027 and gets its own entry.
 - **A general Kubernetes dashboard.** Objects are reachable only through an OPM inventory. Pods outside an inventory, arbitrary namespaces and cluster browsing are out.
 - **Contract demand and transformer provenance.** Which provider contract an instance demands, and which transformer produced an object, need operator status the operator does not write yet. They move to a follow-up once it does.
 - **Persisted history.** No event store, no metrics backend. The portal is stateless apart from sessions.
@@ -41,7 +41,7 @@ A new service, `opm-portal`, reads what the opm-operator and the API server alre
  TransformerRegistration, inventory objects, Pods, events
 ```
 
-**Two milestones, one design.** Milestone 1 is a binary on the user's machine, bound to loopback, reading with the user's kubeconfig. The user's RBAC is the whole boundary, and there is no login code. Milestone 2 runs the same binary in-cluster: users sign in with OIDC, every read is authorized by a SubjectAccessReview for that user, and the portal then reads with its own narrow, read-only ServiceAccount.
+**Two milestones, one design.** Milestone 1 is a binary on the user's machine, bound to loopback, reading with the user's kubeconfig. The user's RBAC is the whole boundary, and there is no login code. Each read is checked first with a SelfSubjectAccessReview, so a node the user may not read shows as locked before it is read. Milestone 2 runs the same binary in-cluster: users sign in with OIDC, every read is authorized by a SubjectAccessReview for that user, and the portal then reads with its own narrow, read-only ServiceAccount.
 
 **The portal keeps a watched view.** The four OPM kinds are watched. Inventory objects are watched per kind, selected by the OPM instance label, from the moment an inventory names that kind. Pods and ReplicaSets below an instance are watched only while someone has that instance open. Events and logs are read on demand. Where the reading identity can only `get` a kind, the portal polls it and says how old the answer is. The live capture made this tier mandatory: serving one instance's graph with request-time reads took 7.4 to 9.4 s (measured, [experiment 01](experiments/01-live-cluster-capture/), observation 12).
 
