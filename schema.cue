@@ -21,7 +21,7 @@ import (
 // library entries are addressed via #CrossRefStr's `legacy:NNN` form so a
 // new enhancement can point at a frozen library predecessor without claiming
 // it as a workspace-root id.
-#IDStr:  =~"^[0-9]{4}$"
+#IDStr:       =~"^[0-9]{4}$"
 #LegacyIDStr: =~"^legacy:[0-9]{3}$"
 #CrossRefStr: #IDStr | #LegacyIDStr
 
@@ -65,7 +65,7 @@ import (
 // `cross-cutting` for half the entries, which is a field admitting it has
 // nothing to say).
 #Repo: "core" | "library" | "catalog" | "cli" | "opm-operator" | "opmodel.dev" |
-	"orca" | "modules" | "opm"
+	"orca" | "modules" | "opm" | "opm-portal"
 
 // Controlled vocabulary of work types. `category` names the ONE dominant
 // type of work an enhancement is: the contract itself (schema), how a
@@ -137,7 +137,7 @@ import (
 	category!: #Category
 	// At least one repo, no repeats. Membership in the vocabulary is the
 	// whole check; `core_schema` adds the `core ∈ affects` rule below.
-	affects!:  [_, ...#Repo] & list.UniqueItems()
+	affects!: [_, ...#Repo] & list.UniqueItems()
 
 	// Declares whether this enhancement adds or changes definitions in the
 	// opmodel.dev/core schema. `affects` is deliberately not the trigger —
@@ -150,11 +150,11 @@ import (
 	// enforced by `task vet` in bash — the same schema/graph split used
 	// for the cross-ref checks.
 	core_schema!: bool
-	created!: #DateStr
+	created!:     #DateStr
 	// ISO 8601 strings sort lexicographically — `>=created` enforces monotonic time.
-	updated!:       #DateStr & >=created
-	authors!:       [_, ...string]
-	history!:       [...#HistoryEvent]
+	updated!: #DateStr & >=created
+	authors!: [_, ...string]
+	history!: [...#HistoryEvent]
 	// Entries whose DECISIONS this entry's decisions depend on. Directed,
 	// and never a vibe: an edge exists iff a decision depends on a decision.
 	// MMMM belongs here iff a live `### DN:` block in 03-decisions.md
@@ -164,7 +164,7 @@ import (
 	// MMMM/03-decisions.md, and the frozen library predecessors have no
 	// decision log in this shape, so `legacy:NNN` cannot be a target. Cite
 	// a legacy entry in prose, or in supersedes/revives.
-	depends_on!:    [...#IDStr] & list.UniqueItems()
+	depends_on!: [...#IDStr] & list.UniqueItems()
 	// Entries whose DECISIONS this entry's decisions change. Directed and
 	// decision-backed like depends_on: MMMM belongs here iff a live `### DN:`
 	// block in 03-decisions.md carries the qualified token `MMMM:DN` (see
@@ -179,8 +179,8 @@ import (
 	// a stored back-link goes stale the day the amender is rejected and
 	// cannot say whether the change has landed. Optional: absent means the
 	// entry changes nothing another entry decided, which is most entries.
-	amends?:        [...#IDStr] & list.UniqueItems()
-	supersedes!:    [...#CrossRefStr]
+	amends?: [...#IDStr] & list.UniqueItems()
+	supersedes!: [...#CrossRefStr]
 	superseded_by!: null | #CrossRefStr
 
 	// Archived ids this entry re-opens. A rejected idea legitimately
@@ -218,7 +218,6 @@ import (
 		rejected_reason!: string & strings.MinRunes(1)
 	}
 }
-
 
 // ─── Delivery log ───────────────────────────────────────────────────────────
 //

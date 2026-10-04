@@ -74,7 +74,7 @@ task new SLUG=platform-context TITLE="Platform Context" \
 | `SUMMARY` | One line: the capability OPM will have and does not have today |
 | `NOT` | One line: what this entry is explicitly not |
 | `CATEGORY` | The one dominant type of work: `schema`, `runtime`, `distribution`, `tooling` or `misc` |
-| `AFFECTS` | Comma-separated repos that ship changes: `core`, `library`, `catalog`, `cli`, `opm-operator`, `opmodel.dev`, `modules` |
+| `AFFECTS` | Comma-separated repos that ship changes: `core`, `library`, `catalog`, `cli`, `opm-operator`, `opmodel.dev`, `modules`, `opm`, `opm-portal` |
 
 Add `CORE_SCHEMA=true` when the entry changes the core CUE schema. That scaffolds `schemas/`. Add `ISSUE=<n>` when the entry grew out of an idea issue.
 
@@ -221,5 +221,6 @@ The `affects` values map to workspace repos:
 | `opmodel.dev` | `opmodel.dev/` | The public docs site |
 | `modules` | `modules/` | Workspace OPM module definitions |
 | `opm` | `opm/` | The meta repo: authored documentation prose, internal specs, benchmarks |
+| `opm-portal` | `opm-portal/` | The web portal: a versioned read API with an HTMX UI over OPM modules and instances |
 
 Delivery crosses several of these. `06-operational.md` in each entry states what must land before what.
