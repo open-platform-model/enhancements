@@ -1,7 +1,9 @@
-# The gates opmodel.dev relies on before it publishes this repo: every entry
-# passes the hard gate, every relative link in a published file resolves, and
-# INDEX.md / GRAPH.md match what their generators write. Each step is the
-# Taskfile target a contributor runs locally.
+# The repo's own gates: every entry passes the hard gate, every relative link
+# in a published file resolves, and INDEX.md / GRAPH.md match what their
+# generators write. Each step is the Taskfile target a contributor runs
+# locally. The docs bundle opmodel.dev pulls has its own lint gate
+# (docs.yml, Docs / check); docs.yml's edge job publishes each push to main
+# whether or not this workflow passed.
 name: CI
 
 on:
