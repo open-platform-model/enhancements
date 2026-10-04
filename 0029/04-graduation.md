@@ -1,41 +1,13 @@
 # Graduation Criteria: Gated Ownership Transfer from CLI to Operator
 
-These are design acceptance criteria, not implementation milestones:
-delivery is logged in this entry's `delivery.yaml` and read back with
-`task delivery`. The entry's documents store nothing about delivery
-progress.
-
-Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
-resolve) live in `gates.cue` and `task vet`, not here. What belongs here
-is what is true of THIS design and no other.
+These are design acceptance criteria, not implementation milestones. Delivery is logged in this entry's `delivery.yaml` and read back with `task delivery`. Repo-wide checks (semver set, placeholders gone, cross-refs resolve) live in `gates.cue` and `task vet`.
 
 ## draft → accepted
 
-Seven gates must all hold before promoting this design from draft to
-accepted:
-
-- {Goals and Non-Goals in `02-design.md` are final and reviewed.}
-- {Every **contract-level** Open Question is resolved
-  (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`); every
-  implementation-level question left open is explicitly
-  `deferred-to-implementation` with the context a future implementer
-  needs. No question is merely unanswered.}
-- {Every decision in `03-decisions.md` carries a valid `**Kind:**`
-  (contract | policy | scope) and passes the admission test: mechanism
-  decisions have been moved out or left to the implementing slices.}
-- {Every `contract` decision lists at least one `- Rn:` requirement; every
-  `policy` or `scope` decision carries `**Requirements:** none` with a reason.}
-- {No document in the entry prescribes mechanism: no filename, identifier
-  spelling, directory layout, or code structure is stated as instruction.
-  Paths cited as evidence are fine; paths cited as the address of an edit
-  are not.}
-- {If `core_schema: true`: `schemas/` compiles (`cue vet ./...` passes),
-  `examples.cue` carries concrete instances that actually exercise every
-  new or changed definition, and `spec.md` drafts the core SPEC.md delta
-  (four-part format), `task vet` enforces file presence at `accepted`.
-  If `core_schema: false`: no `schemas/` exists; any `contracts/` compiles.}
-- {`depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final
-  and resolve; every `depends_on` id is carried by a `**Depends:**` line in
-  a live decision.}
-- {`semver` in `config.yaml` is set (major / minor / none).}
-- {No `{Capitalised}` placeholder strings remain in any markdown file.}
+- Both experiments are concluded, and their outcomes are cited from the decisions they constrain: experiment 01 from D2, D4 and D6; experiment 02 from D2 and D3.
+- OQ1 to OQ4 are resolved. Each either confirms its decision's requirements as drafted or revises them in place with the measured reason folded into *Alternatives considered*.
+- D3's access review is shown, by experiment 02, to refuse every inventory the operator then fails to apply, or the decision names the cases it cannot catch and how the transfer reports them.
+- OQ7 has an answer or is deferred with its context: how the CLI and the operator recognise the instance 0028:D4 keeps CLI-owned, so D2 gate 4 and D5 R2 can be met even when a marker on the record was removed.
+- The 0014 coordination edit (D7) is drafted, so 0014 no longer cites the removed command at the moment this entry is accepted.
+- Every requirement can be observed from outside one repo: by the user running the transfer, by an administrator reading the instance's status, or by a reader of the Platform's status.
+- `config.yaml.semver` records the CRD-visible change: an additive report on the Platform's status and a new stalled reason on instances.
