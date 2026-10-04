@@ -36,7 +36,7 @@ cert-manager   cert-manager   False
 
 kubectl get moduleinstance cert-manager -n cert-manager -o yaml
   ... 14.6 KB: 42 inventory entries (once it applies), 15 required contracts,
-  five history entries all repeating the same Forbidden message,
+  four history entries all repeating the same Forbidden message,
   failureCounters {apply: 4, drift: 4, reconcile: 4}
 ```
 

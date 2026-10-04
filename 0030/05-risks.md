@@ -14,7 +14,7 @@ Risks describe what could go wrong. Drawbacks describe what definitely costs som
 
 - **Health is wrong in a way the capture did not cover.** The Pod waiting-reason rule fixes image pulls and crash loops, but other failures (a stuck volume attach, a pending Pod with no node) may also stay InProgress for long. **Mitigation:** health never claims more than kstatus plus the stated rule; unknown and progressing are shown as such, not as healthy, and the rule list is a requirement that can grow by amendment.
 - **Users read "Applied" as "healthy".** **Mitigation:** D3 shows both axes everywhere and never uses the word healthy for Ready; an explanation page ships with the docs.
-- **Operator status is stale or wrong.** The drift counter climbs on healthy instances (opm-operator issue 209), the recorded contracts are not demand (observation 2), and status history keeps only five entries. **Mitigation:** D3:R7 ignores counters; D4:R3 draws no requires edges; OQ9 and OQ18 carry the gaps.
+- **Operator status is stale or wrong.** The drift counter climbs on healthy instances (opm-operator issue 209), the recorded contracts are not demand (observation 2), and status history keeps at most ten entries, so a run of failed retries pushes older entries out. **Mitigation:** D3:R7 ignores counters; D4:R3 draws no requires edges; OQ9 and OQ18 carry the gaps.
 
 **Then: operational.**
 

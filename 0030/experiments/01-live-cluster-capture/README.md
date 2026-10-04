@@ -72,4 +72,4 @@ Sizes: the cert-manager ModuleInstance is 14.6 KB (status 12.6 KB, inventory 6.3
 
 Not captured: a working ModulePackage (needs Flux and a pushed artifact), and an accepted, active registration on a released operator: phase 8 ran an unreleased build, because no released operator carries library v1.0.0-beta.4 yet.
 
-**Hypothesis held, with corrections.** The operator's status, inventory and labels carry enough for applied state, the instance graph and a feed without any render, but health needs a Pod-level rule (3), contract demand is not recorded (2), events need deduplication (4, 5), and the cache tier is mandatory (12). These corrections are folded into D3, D4, D8, D9 and D10 of the decision log.
+**Hypothesis held, with corrections.** The operator's status, inventory and labels carry enough for applied state, the instance graph and a feed without any render, but health needs a Pod-level rule (3), contract demand is not recorded (2), events need deduplication (4, 5), and the cache tier is mandatory (12). These corrections are folded into D3, D4, D8 and D9 of the decision log.
