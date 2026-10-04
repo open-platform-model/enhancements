@@ -72,7 +72,7 @@ history:
   - date: "2026-10-03"
     event: 'D8 R11-R14 (owner decision): kernel library GA needs plain-data render output, typed fetch and resolution errors, docs and specs that match the code, and three betas without a break.'
   - date: "2026-10-04"
-    event: 'Owner decision: D11, operator installed from a registry module on its own v0 train (amends 0006:D5, 0006:D32, 0006:D35); D4 module class; D9 R3-R4 install checks the target'
+    event: 'Owner decision: D11, operator installed from a registry module on its own v0 train (amends six 0006 decisions); D4 module class; D8 R9 GA order; D9 R3-R4 install checks target'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

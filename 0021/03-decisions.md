@@ -93,7 +93,7 @@ The operator module, `opmodel.dev/modules/opm_operator`, falls in the module cla
 
 **Alternatives considered:**
 
-- **Every class the sweep found.** Fourteen artifact classes plus eight wire contracts. Rejected by the author as scope: the fixtures and the CLI's Go packages have no consumer a promise could reach, and the install manifest is the operator release seen from the CLI's side.
+- **Every class the sweep found.** Fourteen artifact classes plus eight wire contracts. Rejected by the author as scope: the fixtures and the CLI's Go packages have no consumer a promise could reach.
 - **The install manifest as an artifact of the operator release (previously adopted).** The out-of-scope list excused the manifest because the CLI embedded the one each operator release produced, so it was the operator release seen from the CLI's side. Not kept by the owner on 2026-10-04: the operator now ships as a module on its own train, and the manifest is that module's render, so its compatibility is the module's `#config`, not the operator binary's version.
 - **Drop the catalog build as a class, since the contract class carries the promise.** Considered and kept. A `#Platform` subscription pins a build as a scalar and never a contract, and every transformer key embeds the build version, so the build is the unit a platform actually depends on. The contract class says what a member promises; the build class says which members and transformers ship together. What the build class lacks is the rule for how a contract-level event moves its number, which is OQ7.
 
@@ -197,7 +197,7 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 - R6: After GA, the GitHub "latest" release of the core, kernel library, CLI and operator repositories, the operator image's `latest` tag, and Go's latest-version query for the kernel library and the CLI each resolve the GA release; no `0.x` release or prerelease is advertised as latest.
 - R7: After a line reaches GA, no first-party pin written from then on names a prerelease of that line.
 - R8: The CLI's module templates and the quickstart are republished against the GA versions, and the documentation site drops its beta label.
-- R9: GA releases are cut in dependency order: core; then the kernel library; then the operator; then the CLI, embedding the GA operator. No GA release pins a prerelease dependency; a CI tool pin is not a dependency.
+- R9: GA releases are cut in dependency order: core; then the kernel library; then the operator; then the operator module's first `v1` release, deploying the GA operator (D11); then the CLI, pinning that module. No GA release pins a prerelease dependency, and a `v0` operator module counts as one; a CI tool pin is not a dependency.
 - R10: Before a line of a repository that D10 covers reaches GA, that repository can cut a release branch as D10 R10 requires: the cut action, release workflows that run on `release/**` and pull-request checks on `release/**` are in place there and proven in the sandbox repository.
 - R11: Before the kernel library reaches GA, no value its render operation returns to a caller is a live CUE value; rendered output reaches the caller as plain data. The acquired instance, platform and module packages and the configuration schema may still expose CUE values, under the library's rule that their holder bounds their lifetime (library ADR-007).
 - R12: Before the kernel library reaches GA, a caller can tell each fetch or resolution failure it returns by type, without matching on message text: whether the failure is transient, and which kind of fetch or resolution failed.
@@ -209,11 +209,13 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 - **Hold the beta cut until 0013 lands.** Rejected by the owner in favour of an announced beta-period break under D7, with delivery moved to the GA criteria (R1).
 - **An exit checklist tracked as progress in this entry.** Rejected: an entry stores rules, not progress. The criteria are requirements, and whether they hold is read from the artifacts.
 
-**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R11 to R14 are the kernel library's API-quality bar: GA freezes its exported API, so what an embedder holds, how it tells failures apart and whether the documents describe the code must be settled before the freeze, and three quiet betas are the evidence that the API has stopped moving. R9 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one. R10 exists because after GA a released minor is fixed only on its release branch (D10): a GA line that cannot cut one has no patch path once `main` moves past it. The operator goes GA before the CLI because the CLI embeds a pinned operator and the operator depends on no CLI; under D9's `MAJOR.MINOR` ceiling a GA operator is not refused by a beta CLI of the same `MAJOR.MINOR`.
+**Rationale:** GA is the point where the stable table starts to bind, so it is cut only once the known breaks are delivered and the artifacts a consumer resolves by default point at it. Each requirement names something a consumer can check from outside the repos. R11 to R14 are the kernel library's API-quality bar: GA freezes its exported API, so what an embedder holds, how it tells failures apart and whether the documents describe the code must be settled before the freeze, and three quiet betas are the evidence that the API has stopped moving. R9 exists because a GA release that pins a prerelease dependency carries the dependency's beta promise, not the stable one. R10 exists because after GA a released minor is fixed only on its release branch (D10): a GA line that cannot cut one has no patch path once `main` moves past it. The operator goes GA before the CLI because the CLI pins the operator module that deploys it and the operator depends on no CLI; under D9's `MAJOR.MINOR` ceiling a GA operator is not refused by a beta CLI of the same `MAJOR.MINOR`.
 
 **Source:** User decision 2026-09-30 (GA exit criteria). Owner decision 2026-10-03 (R11 to R14): "Add library API-quality R-lines to 0021:D8 (no cue.Value in public output; typed fetch/resolution errors; docs and specs match code; 3 consecutive library betas without a breaking change)." The same day the owner narrowed the first line: "'no cue.Value in public output' narrowed to Render output only; Instance/Platform/Module .Package and ConfigSchema() keep cue.Value under ADR-007's rule."
 
 **Revised:** 2026-10-03: R11 to R14 added, the kernel library's API-quality criteria for GA.
+
+**Revised:** 2026-10-04: R9 orders the operator module's first `v1` release between the operator and the CLI, which pins that module instead of embedding the operator.
 
 ### D9: The CLI's ceiling on operator versions compares `MAJOR.MINOR` only
 
@@ -243,7 +245,7 @@ The ceiling guards the commands that drive the running operator. Installing the 
 
 **Rationale:** The ceiling exists to stop a CLI driving an operator that expects more than it can write. A `MAJOR.MINOR` step is where that can happen under the shared-`MAJOR.MINOR` position; a patch or a beta counter is not. Where a beta counter does carry such a change, R2 keeps the operator from shipping it before a CLI that can drive it. R3 and R4 move the check for install from the operator being replaced to the operator being installed, which the module makes readable before anything is applied.
 
-**Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends. R3 and R4: Owner decision 2026-10-04 (the operator's own instance is CLI-owned forever and install deploys the operator module from a registry); the CLI change install-operator-from-module plans the check.
+**Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends. R3 and R4: Owner decision 2026-10-04 (the operator's own instance is CLI-owned forever and install deploys the operator module from a registry).
 
 **Revised:** 2026-10-04: R3 and R4 added; the ceiling does not refuse install, and install checks the operator version of the module it installs.
 
@@ -314,28 +316,30 @@ GitHub immutable releases are switched on in stages: core, the kernel library an
 
 **Kind:** contract
 
-**Depends:** 0006:D3, 0006:D5, 0006:D32, 0006:D35
+**Depends:** 0006:D3, 0006:D5, 0006:D11, 0006:D12, 0006:D22, 0006:D32, 0006:D34, 0006:D35
 
-**Amends:** 0006:D5, 0006:D32, 0006:D35
+**Amends:** 0006:D3, 0006:D5, 0006:D11, 0006:D32, 0006:D34, 0006:D35
 
-**Decision:** The operator is installed from an OPM module, `opmodel.dev/modules/opm_operator`, published from the operator's own repository. `opm operator install` resolves a version of that module from a registry, renders it, and applies the result as a CLI-owned ModuleInstance, which the operator skips under 0006:D3. No operator manifest is built into the CLI. A cluster without a route to the default registry installs through a mirror the user names.
+**Decision:** The operator is installed from an OPM module, `opmodel.dev/modules/opm_operator`, published from the operator's own repository. `opm operator install` resolves a version of that module from a registry, renders it, and applies the result as a CLI-owned ModuleInstance. The operator never reconciles the instance that deploys it, whatever that instance's owner field says, so re-running the CLI is always the recovery path. No operator manifest is built into the CLI. A cluster without a route to the default registry installs the module through a mirror the user names; the operator image the module names is pulled by the cluster's nodes, so an air-gapped cluster also needs a node-level image mirror.
 
-The module is versioned on its own train, independent of the operator binary and the CLI. Its path major is `v0` until the operator reaches GA, which keeps it pre-stable under U3; it moves to `v1` no earlier than the operator's GA. One module version deploys exactly one operator version and names that operator's image by version tag and content digest. Each CLI release pins one default module version and records the operator version that module deploys, and the two agree.
+The module is versioned on its own train, independent of the operator binary and the CLI. Its path major is `v0` until the operator reaches GA, which keeps it pre-stable under U3; it moves to `v1` no earlier than the operator's GA. This settles the pre-stable form for the operator module only; OQ4, the pre-stable form for modules in general, stays open for the module fleet. The module's releases share the operator's repository but never take its "latest" mark, which D8 R6 keeps for the operator's own releases. One module version deploys exactly one operator version and names that operator's image by version tag and content digest. Each CLI release pins one default module version and records the operator version that module deploys, and the two agree.
 
-This amends three delivered decisions of entry 0006. What survives: the `opm operator` command group and its `--crds-only` form, which still applies only the CRDs, taken from the same render the full install applies (0006:D32, 0006:D35); every install write is a server-side apply as the `opm-cli` field manager, and the CLI never deletes CRDs (0006:D5); install still seeds the cluster Platform with a create that leaves an existing Platform untouched, and the Platform is not an object of the module; install still waits until the CRDs are served and the operator has rolled out (0006:D35). What changes: the CLI embeds no install artifact and no pinned manifest with a refresh task (0006:D5, 0006:D35); install needs a registry, and the offline path the embedded manifest served is a registry mirror; selecting another operator means selecting another module version, resolved from the registry rather than downloaded as a release asset (0006:D35).
-
-The mechanism is planned in the operator changes add-operator-module and release-operator-module and the CLI changes install-operator-from-module and migrate-manifest-installed-operator.
+This amends six delivered decisions of entry 0006. What survives: the `opm operator` command group and its CRDs-only form, which still applies only the CRDs, taken from the same render the full install applies (0006:D32, 0006:D35); every install write is a server-side apply as the `opm-cli` field manager, and the CLI never deletes CRDs (0006:D5); where install seeds the cluster Platform, it still does so with a create that leaves an existing Platform untouched (0006:D12, 0006:D22), and the Platform is not an object of the module; install still waits until the CRDs are served and the operator has rolled out (0006:D35). What changes: the CLI embeds no install artifact and no pinned manifest with a refresh task (0006:D5, 0006:D35); install needs a registry, and the offline path the embedded manifest served is a registry mirror; selecting another operator means selecting another module version, resolved from the registry rather than downloaded as a release asset (0006:D35). Three more change for the operator's own instance alone. The operator skips that instance whatever its owner field says, where 0006:D3 skipped only a CLI-owned one. Install renders the module against the module's own pins and never against the cluster Platform, where 0006:D11 has a cluster render read the Platform. Uninstall deletes what the instance's recorded inventory holds, rather than a list the CLI carries; it still keeps the CRDs and the Namespace and still refuses while instances carry the operator's cleanup finalizer (0006:D34).
 
 **Requirements:**
 
 - R1: `opm operator install` installs the operator from a version of the operator module resolved from a registry, and the CLI carries no operator manifest of its own.
 - R2: Pointed at a registry mirror that serves the operator module and its dependencies, install produces the same objects it produces from the default registry.
 - R3: The operator module's version moves on its own train: an operator or CLI release does not by itself move it, and a module release that changes only the module deploys the same operator as the one before it.
-- R4: The operator module's path major is `v0` until the operator reaches GA and is not `v1` before it.
+- R4: The operator module's path major stays `v0` until the operator reaches GA.
 - R5: Each operator module version deploys exactly one operator version and names its image by version tag and content digest.
-- R6: Each CLI release names one default operator module version and the operator version that module deploys, and a release where that module does not deploy that operator version is refused.
-- R7: The `--crds-only` form applies only the CRDs of the same render the full install applies, and every object either form writes is applied with the `opm-cli` field manager.
-- R8: Install leaves an existing cluster Platform untouched, creates one when none exists, and never records the Platform in the operator's instance.
+- R6: Each CLI release names one default operator module version and the operator version that module deploys, and no CLI release is published whose named module does not deploy the operator version it names.
+- R7: The CRDs-only form applies only the CRDs of the same render the full install applies, and every object either form writes is applied with the `opm-cli` field manager.
+- R8: Install never overwrites an existing cluster Platform and never records the Platform in the operator's instance.
+- R9: The operator applies, prunes and finalizes nothing for the instance that deploys it, whatever that instance's owner field says.
+- R10: For a given module version and values, install applies the same objects whether or not the cluster holds a Platform and whatever that Platform says.
+- R11: Uninstalling the operator deletes the objects in the operator instance's recorded inventory except the CRDs and the Namespace, then the instance's record. It still refuses while any instance carries the operator's cleanup finalizer, unless the user asks for those finalizers to be removed.
+- R12: No operator module release is marked as the GitHub "latest" release of the operator's repository.
 
 **Alternatives considered:**
 
