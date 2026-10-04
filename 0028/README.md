@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**Each operator release publishes the operator as a module (D1).** The module has the release's version and points at the release's image by its version tag. One release produces one number for the CLI to pin.
+**Each operator release publishes the operator as a module (D1).** The module has the release's version and points at the release's image by its version tag. One release produces one number for the CLI to pin, and both install paths check content digests, since a registry tag can be overwritten.
 
 **The module is the one source of the install shape (D2).** Its CRDs and permissions are generated from the controller's own code, and a mismatch stops the release. It keeps the names, Deployment selector and pod security of today's manifest. The kubectl install manifest is rendered from the module, so the two cannot differ.
 
@@ -14,7 +14,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The operator never manages itself (D4).** Its instance stays CLI-owned, and re-running install is the upgrade and the repair. Entry 0029's ownership transfer refuses this instance.
 
-**Settings are instance values and survive upgrades (D5).** Image, registry mapping, applier account, resources, replicas and extra arguments are recorded on the instance and reused by every reinstall.
+**Settings are instance values and survive upgrades (D5).** Image repository, registry mapping, applier account, resources, replicas and extra arguments are recorded on the instance and reused by every reinstall.
 
 **Existing clusters migrate in place (D8, D9).** The first module install adopts the running operator without recreating it. Uninstall deletes what the instance recorded, never the CRDs or the Namespace, and no CLI command deletes the operator's instance while instances still wait on its cleanup (0006:D34).
 
@@ -51,7 +51,7 @@ The operator release is the only producer: it builds the image and publishes the
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ13
 
 [`experiments/`](experiments/) holds the two concluded experiments the design rests on: the catalog renders the whole install shape, but only manifest-shaped workload and RBAC objects keep its names, selector and pod security (01); the two-step install, reinstall and upgrade work on a real cluster, and a self-owned operator wedges on its own deletion (02).
 
@@ -85,7 +85,8 @@ None at this stage. Update this section when implementation lands and any delibe
 | -------- | ------- |
 | [Enhancement 0006](../archive/0006/README.md) (D3, D5, D12, D19, D22, D23, D32, D34, D35) | The owner marker, the install command and its embedded manifest, Platform seeding, the user role and uninstall, which this entry amends or keeps |
 | [Enhancement 0012](../0012/README.md) (D1, D8) | The apply guard and its adopt annotation the migration passes through, and the rule that no frontend deletes a CRD or Namespace |
-| [Enhancement 0021](../0021/README.md) (D2, D4, D9, D10) | The module compatibility surface, the artifact classes this entry amends, the version ceiling and immutable registry tags |
+| [Enhancement 0011](../archive/0011/README.md) (D10) | Registry tag immutability, which GHCR does not provide, hence the digest anchor of D1 |
+| [Enhancement 0021](../0021/README.md) (D2, D4, D9, D10) | The module compatibility surface, the artifact classes and the version ceiling this entry amends, and immutable release tags |
 | [Enhancement 0029](../0029/README.md) | The gated ownership transfer that refuses the operator's own instance |
 | `opm-operator/docs/site/start/install-the-operator.md` | The install guide, including the warning that reinstall drops added flags |
 | `opm-operator/.github/workflows/release.yml` | The release jobs the module publish joins |

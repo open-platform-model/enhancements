@@ -7,7 +7,7 @@ The operator becomes an ordinary OPM module, published by its own release, and `
 - **One artifact per release.** An operator release produces the image and one module of the same version; the install manifest is a render of that module and cannot differ from it (D1, D2).
 - **Install is a module apply.** `opm operator install` leaves the operator recorded as one CLI-owned ModuleInstance whose inventory lists every object the release installed (D3).
 - **Tuning survives upgrades.** Every setting a platform team changes on the operator is a value of its instance, and re-running install keeps it (D5).
-- **The CLI pins one number.** The CLI's operator pin is a module version; selecting another version needs only a registry, which a mirror can serve (D3).
+- **The CLI pins one number.** The CLI's operator pin is a module version, anchored by the content digests its release published; selecting another version needs only a registry, which a mirror can serve (D1, D3).
 - **Install stays the recovery path.** Nothing about installing, upgrading or repairing the operator depends on the operator running (D4).
 - **Existing clusters migrate in place.** The first module install over a manifest-installed operator recreates nothing (D8).
 
@@ -22,11 +22,11 @@ The operator becomes an ordinary OPM module, published by its own release, and `
 
 ## High-Level Approach
 
-The operator release gains one step: after the image is built, it publishes the operator module at the release's version, with the image's version tag as its default, and renders the module at its defaults into the install manifest it already publishes. The module's CRDs and controller RBAC come from what the controller's code declares, and a mismatch refuses the release.
+The operator release gains one step: after the image is built, it publishes the operator module at the release's version, with the image's version tag as its default, and renders the module at its defaults, with the image's digest set, into the install manifest it already publishes. The module's CRDs and controller RBAC come from what the controller's code declares, and a mismatch refuses the release.
 
 The module renders the CRDs and the Namespace through the first-party catalog, and writes the controller's Deployment, Service, ServiceAccount and RBAC in the shape of the earlier manifest, so the names, the Deployment's selector and the pod's security posture stay what running clusters already have (D2).
 
-The CLI drops its embedded manifest. Install resolves the operator module from the registry and renders it, runs every check that could refuse the instance, applies the CRD subset and waits for it to be served, then applies the module as a CLI-owned instance, and reports success once the cluster Platform is Ready from the new release. The CLI-owned marker means the operator never touches the instance that runs it. CLI commands that need the operator find it through that instance. Upgrade is install with another version, uninstall deletes the instance, and both keep the guarantees 0006:D34 gave the manifest: CRDs and the Namespace are never deleted, and no delete of the operator's instance goes ahead while instances still carry the operator's cleanup finalizer (D3, D9).
+The CLI drops its embedded manifest. Install resolves the operator module from the registry, checks its default version against the content the release published, renders it, runs every check that could refuse the install, applies the CRD subset and waits for it to be served, then applies the module as a CLI-owned instance, and reports success once the cluster Platform is Ready from the new release. The CLI-owned marker means the operator never touches the instance that runs it. CLI commands that need the operator find it through that instance, or, on a cluster with no record, by the fixed names every install path keeps. Upgrade is install with another version, uninstall deletes the instance, and both keep the guarantees 0006:D34 gave the manifest: CRDs and the Namespace are never deleted, and no delete of the operator's instance goes ahead while instances still carry the operator's cleanup finalizer (D3, D9).
 
 The [README](README.md#how-it-works) draws this flow.
 
@@ -43,7 +43,7 @@ The entry changes no core definition and adds no contract CUE. The new consumer-
 
 | Value | What it tunes |
 | --- | --- |
-| Image | repository, tag (default: the release's own) and an optional digest |
+| Image repository | where the operator image is pulled from, for a mirror; the tag and digest are always the release's own (D5:R6) |
 | Registry mapping | where the operator resolves modules from |
 | Default service account | the identity the operator applies instances as |
 | Resources | the controller container's requests and limits |
@@ -63,9 +63,10 @@ core, catalog_opm --pins--> operator module <--publishes-- opm-operator release
 ```
 
 - **opm-operator.** Each release publishes the module `opmodel.dev/modules/opm_operator` at the release version (D1). The install manifest the release publishes becomes the module's render at defaults (D2:R4), with the earlier manifest's names, selector and pod security (D2:R5, R7, R8). The release refuses a module whose CRDs or controller RBAC differ from the controller's declarations (D2:R3). The operator's `#config` is now a versioned surface: narrowing it is a breaking release (D2:R6). The operator repository becomes a downstream of core and the catalog (D7).
-- **cli.** `opm operator install` installs the module as a CLI-owned instance in two steps (D3), refusing before it changes anything (D3:R12) and waiting for the new operator to reconcile (D3:R10). Selecting another version takes a module version, resolved through the CLI's registry mapping, instead of a release tag fetched from GitHub. The CRDs-only form renders the same module and applies only its CRDs (D3:R7). Re-running install keeps recorded values (D5:R2). The readiness check behind the CLI's delete guard finds the operator through its instance (D3:R13). Uninstall deletes the operator's instance and refuses as 0006:D34 did, and the generic instance delete keeps that refusal for the operator's instance (D9). The first install over a manifest-installed operator adopts its objects (D8). Install needs a module registry, where the embedded manifest did not.
+- **cli.** `opm operator install` installs the module as a CLI-owned instance in two steps (D3), refusing before it changes anything (D3:R12), refusing a default module version whose content differs from the release's (D1:R7), and waiting for the new operator to reconcile (D3:R10). The operator-version ceiling no longer refuses install (D3:R16). Selecting another version takes a module version, resolved through the CLI's registry mapping, instead of a release tag fetched from GitHub. The CRDs-only form renders the same module and applies only its CRDs (D3:R7). Re-running install keeps recorded values (D5:R2). The readiness check behind the CLI's delete guard finds the operator through its instance, or by its fixed names where no record exists (D3:R13, R15). Uninstall deletes the operator's instance and refuses as 0006:D34 did, and the generic instance delete keeps that refusal for the operator's instance (D9). The first install over a manifest-installed operator adopts its objects (D8). Install needs a module registry, where the embedded manifest did not.
 - **opm.** The install and quickstart pages describe install as a module apply, the registry or mirror it needs, and how tuning is set as values instead of Deployment patches.
-- **Workspace release rules.** The operator's tier and pin classes name core and the catalog as upstreams of the operator module (D7).
+- **Workspace release rules.** The operator's tier and pin classes name core and the catalog as upstreams of the operator module, and the CLI's tier row, its shipped pin, G1 and G4 key on the operator module version instead of the embedded manifest (D7).
+- **opmodel.dev.** The documentation site's version resolver reads the operator version from the CLI's pinned module version instead of the removed manifest constant (D7).
 
 ## Before / After
 

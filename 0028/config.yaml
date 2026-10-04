@@ -27,6 +27,7 @@ affects:
   - opm-operator
   - cli
   - opm
+  - opmodel.dev
 # Does this enhancement add or change opmodel.dev/core definitions?
 # true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
 #         affects MUST include "core".
@@ -50,6 +51,8 @@ history:
     event: Drafted
   - date: "2026-10-04"
     event: 'Experiments 01 and 02 folded in: D2 keeps manifest names, selector, pod security; D3, D8, D9 gain requirements; OQ1, OQ2 resolved; OQ12 added.'
+  - date: "2026-10-04"
+    event: 'Review applied: D1 digest anchor; D3 check order, no-record locator, 0021:D9 amended; D4 a contract; D5 image repository only; D9:R6; OQ6 blocking; OQ13 added.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -58,6 +61,7 @@ history:
 # both directions and refuses a cycle.
 depends_on:
   - "0006"
+  - "0011"
   - "0012"
   - "0021"
 # Entries whose DECISIONS this entry's decisions change. Directed and

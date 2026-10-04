@@ -280,4 +280,4 @@ The module path costs about 2.5 s of render with a warm CUE cache and is otherwi
   - The CLI has no path to take an instance back from the operator. 0029 should say whether one exists (reverse handoff) or whether the only exit is a manual finalizer strip.
 - The air-gapped mirror story works with a plain pull-through cache for the operator's `--registry`. The image needs its own containerd mirror.
 
-The cluster `opm-dogfood` and both mirror containers were deleted at the end; `kind get clusters` shows only `opm-dev`, which was never touched. This experiment is not yet linked from `02-design.md` or `03-decisions.md`, and has no row in `experiments/README.md`. Those paths are outside this agent's scope (supervisor follow-up).
+The cluster `opm-dogfood` and both mirror containers were deleted at the end; `kind get clusters` shows only `opm-dev`, which was never touched. This experiment is linked from `02-design.md` and `03-decisions.md` and has a row in `experiments/README.md` (linked after it concluded, 2026-10-04).
