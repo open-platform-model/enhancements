@@ -12,7 +12,7 @@ metadata:
     module-instance.opmodel.dev/uuid: eef56773-0784-55e2-8441-cd2328027ac0
     module.opmodel.dev/name: opm_operator
     module.opmodel.dev/uuid: aa5aac7c-cfe3-5ce6-83d1-0a35179a0e24
-    module.opmodel.dev/version: 0.1.0
+    module.opmodel.dev/version: 0.2.0
   name: moduleinstances.opmodel.dev
 spec:
   group: opmodel.dev
@@ -361,7 +361,7 @@ metadata:
     module-instance.opmodel.dev/uuid: eef56773-0784-55e2-8441-cd2328027ac0
     module.opmodel.dev/name: opm_operator
     module.opmodel.dev/uuid: aa5aac7c-cfe3-5ce6-83d1-0a35179a0e24
-    module.opmodel.dev/version: 0.1.0
+    module.opmodel.dev/version: 0.2.0
   name: modulepackages.opmodel.dev
 spec:
   group: opmodel.dev
@@ -740,7 +740,7 @@ metadata:
     module-instance.opmodel.dev/uuid: eef56773-0784-55e2-8441-cd2328027ac0
     module.opmodel.dev/name: opm_operator
     module.opmodel.dev/uuid: aa5aac7c-cfe3-5ce6-83d1-0a35179a0e24
-    module.opmodel.dev/version: 0.1.0
+    module.opmodel.dev/version: 0.2.0
   name: platforms.opmodel.dev
 spec:
   group: opmodel.dev
@@ -1065,7 +1065,7 @@ metadata:
     module-instance.opmodel.dev/uuid: eef56773-0784-55e2-8441-cd2328027ac0
     module.opmodel.dev/name: opm_operator
     module.opmodel.dev/uuid: aa5aac7c-cfe3-5ce6-83d1-0a35179a0e24
-    module.opmodel.dev/version: 0.1.0
+    module.opmodel.dev/version: 0.2.0
   name: transformerregistrations.opmodel.dev
 spec:
   group: opmodel.dev
