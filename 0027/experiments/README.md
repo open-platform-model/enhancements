@@ -1,8 +1,10 @@
 # Experiments: Self-Service Kinds from Published Modules
 
-Measurements behind the served-schema decision (D2) and the candidate answers to its open questions (OQ18 to OQ21). This file is the hand-maintained index. Per-experiment status lives in each `NN-*/README.md`'s `Status:` line.
+Measurements behind the served-schema decision (D2) and the candidate answers to its open questions (OQ18 to OQ22). This file is the hand-maintained index. Per-experiment status lives in each `NN-*/README.md`'s `Status:` line.
 
-All five ran on 2026-10-04. Experiment 01 carries its own encoder-comparison program. Experiments 02 to 05 are views on one run of the shared harness in [`harness/`](harness/), kept once rather than copied four times:
+All five ran on 2026-10-04. Experiment 01 carries its own encoder-comparison program. Experiments 02 to 05 are views on one run of the shared harness in [`harness/`](harness/), kept once rather than copied four times. This is a deliberate exception to the rule that an experiment touches nothing outside its own directory: experiments 01 to 05 run in, and write their output to, `harness/`.
+
+The harness:
 
 - `main.go` encodes every sample (or, with `-corpus`, every fleet module) with each encoder, wraps the schema in a CRD, validates it offline, and with `-live` applies it to a throwaway cluster and dry-runs every fixture. CUE is the ground truth for each fixture.
 - `cand.go` is the candidate encoder (CEL mode `cand-cel`, `oneOf`/`not` mode `cand-oneof`); `walker.go` is experiment 01's walker, unchanged.
@@ -16,4 +18,4 @@ The fleet runs read the workspace's `opm-modules/` and `modules/` checkouts, so 
 | 02 | validator-agreement | D2, OQ18 | Concluded |
 | 03 | secret-encoding | OQ19 | Concluded |
 | 04 | struct-unions | OQ20 | Concluded |
-| 05 | required-and-computed | D2, OQ21 | Concluded |
+| 05 | required-and-computed | D2, OQ21, OQ22 | Concluded |

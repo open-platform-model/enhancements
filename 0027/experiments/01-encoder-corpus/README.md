@@ -47,9 +47,9 @@ FLEET="$WS/opm-modules/*/module.cue,$WS/modules/*/module.cue"
 
 ## Outcome
 
-- `encoding/openapi` with `ExpandReferences` fails to generate on 19 of 20 on v0.17.1 and v0.18.0-alpha.2: `unsupported op for number &`, from the `int & >0 & <=65535 | *N` port pattern.
+- `encoding/openapi` with `ExpandReferences` fails to generate on 19 of 20 on v0.17.1 and v0.18.0-alpha.2: `unsupported op for number &`, from the `int & >0 & <=65535 | *N` port pattern. On v0.17.1 the twentieth, `nvidia_device_plugin`, generates but fails the structural validator with 4 errors, so no module gets a usable schema (re-run of step 2 against the fleet's current checkouts; not re-checked against the released versions or v0.18.0-alpha.2).
 - Without expansion it fails 19 of 20 on a different bug: `#Image`'s `if digest != ""` comprehension (`required field missing: digest`).
-- The unreleased master fix generates 20 of 20. Even after the harness rewrites `additionalProperties: {}` to preserve unknown fields, its output fails the structural validator on 19 of 20, every failure on cpu and memory: `number | string & =~...` becomes typeless `oneOf` branches. An earlier run that also rewrote those fields to int-or-string left 4 of 20 failing server dry-run; that second rewrite was not kept, so only the 19 of 20 reproduces here.
+- The unreleased master fix generates 20 of 20. Even after the harness rewrites `additionalProperties: {}` to preserve unknown fields, its output fails the structural validator on 19 of 20, every failure on cpu and memory: `number | string & =~...` becomes typeless `oneOf` branches. An earlier ad hoc run with an int-or-string rewrite of those fields was not kept and is not reproduced here, so its count is not reported.
 - `jsonschema.Generate` never emits `default`.
 - The walker's CRDs were accepted by server dry-run for 20 of 20, identically on all three CUE versions.
 - The walker as written also emits `x-opm-*` keys and marks computed fields required. Both are defects for a served kind: see experiments 02 and 05.
