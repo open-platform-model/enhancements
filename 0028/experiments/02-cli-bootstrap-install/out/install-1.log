@@ -1,5 +1,5 @@
 11:50:42 WARN cluster Platform not used (no Platform CR in the cluster) — rendering against the instance's own deps
-11:50:42 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module /home/emil/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
+11:50:42 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module ~/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
 11:50:43 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
 11:50:43 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
 11:50:43 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
@@ -20,7 +20,7 @@ customresourcedefinition.apiextensions.k8s.io/modulepackages.opmodel.dev conditi
 customresourcedefinition.apiextensions.k8s.io/platforms.opmodel.dev condition met
 customresourcedefinition.apiextensions.k8s.io/transformerregistrations.opmodel.dev condition met
 11:50:44 WARN cluster Platform not used (no Platform CR in the cluster) — rendering against the instance's own deps
-11:50:44 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module /home/emil/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
+11:50:44 INFO platform: instance deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module ~/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
 11:50:45 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
 11:50:45 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
 11:50:45 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2

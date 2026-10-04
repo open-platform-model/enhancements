@@ -62,8 +62,8 @@ This doubles as a small proof of the owner's "air-gapped users point --registry 
 
 ```bash
 cd 0028/experiments/02-cli-bootstrap-install
-S=/var/home/emil/.cache/claude-tmp/claude-1000/-var-home-emil-dev-open-platform-model/04e7f2a4-4c96-4d07-ab32-440633d5661f/scratchpad
-go build -C /var/home/emil/dev/open-platform-model/cli -o $S/exp-0028-02-opm ./cmd/opm
+S=$SCRATCH
+go build -C $WORKSPACE/cli -o $S/exp-0028-02-opm ./cmd/opm
 source hack/env.sh          # OPM, CTX=kind-opm-dogfood, OPM_REGISTRY/CUE_REGISTRY, $K
 
 # Publish 0.1.0 (git show cd4cca7:…/module) and 0.2.0 (current tree)

@@ -1,5 +1,5 @@
 11:46:30 INFO Building synthetic instance "opm-operator" for module "opm_operator"
-11:46:30 INFO platform: module deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module /home/emil/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
+11:46:30 INFO platform: module deps (opmodel.dev/catalogs/opm@v4 v4.5.2; generated module ~/.opm/cache/platforms/aa6f722000d800613978c970ba2975bbb792d38893bd767b5ce79a6773e629b0)
 11:46:32 INFO m:opm-operator: ▸ namespace ← opmodel.dev/catalogs/opm/transformers/namespace-transformer@4.5.2
 11:46:32 INFO m:opm-operator: ▸ crds ← opmodel.dev/catalogs/opm/transformers/crd-transformer@4.5.2
 11:46:32 INFO m:opm-operator: ▸ controller-manager ← opmodel.dev/catalogs/opm/transformers/serviceaccount-resource-transformer@4.5.2
@@ -11,7 +11,7 @@
 11:46:32 INFO m:opm-operator: ▸ metrics-auth-rbac ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
 11:46:32 INFO m:opm-operator: ▸ leader-election ← opmodel.dev/catalogs/opm/transformers/role-transformer@4.5.2
 11:46:32 INFO m:opm-operator: ▸ unbound-cluster-roles ← opmodel.dev/catalogs/opm/transformers/objects-transformer@4.5.2
-	Command being timed: "/var/home/emil/.cache/claude-tmp/claude-1000/-var-home-emil-dev-open-platform-model/04e7f2a4-4c96-4d07-ab32-440633d5661f/scratchpad/exp-0028-01-opm module build . --name opm-operator -n opm-operator-system"
+	Command being timed: "$SCRATCH/exp-0028-01-opm module build . --name opm-operator -n opm-operator-system"
 	User time (seconds): 2.63
 	System time (seconds): 0.25
 	Percent of CPU this job got: 141%

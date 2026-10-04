@@ -78,8 +78,8 @@ Workarounds in the authoring, each also recorded as a finding:
 
 ```bash
 cd 0028/experiments/01-operator-module-render
-S=/var/home/emil/.cache/claude-tmp/claude-1000/-var-home-emil-dev-open-platform-model/04e7f2a4-4c96-4d07-ab32-440633d5661f/scratchpad
-go build -C /var/home/emil/dev/open-platform-model/cli -o $S/exp-0028-01-opm ./cmd/opm
+S=$SCRATCH
+go build -C $WORKSPACE/cli -o $S/exp-0028-01-opm ./cmd/opm
 
 # Generate, drift-check, render (KUBECONFIG=/nonexistent), compare, knobs,
 # and the published-module arm
@@ -88,7 +88,7 @@ OPM=$S/exp-0028-01-opm PUBLISHED=1 hack/run.sh
 OPM=$S/exp-0028-01-opm hack/variant.sh
 
 # Drift check against the live operator tree, then against a mutated copy
-SRC=/var/home/emil/dev/open-platform-model/opm-operator/config CRD_SUBDIR=crd/bases hack/drift-check.sh
+SRC=$WORKSPACE/opm-operator/config CRD_SUBDIR=crd/bases hack/drift-check.sh
 SRC=<copy of source/ with "- list" added to the serviceaccounts rule and "plats" to platforms shortNames> hack/drift-check.sh   # exits 1
 
 # Instance path, no cluster
