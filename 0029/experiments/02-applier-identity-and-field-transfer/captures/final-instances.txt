@@ -1,0 +1,6 @@
+NS    OWNER      SA        READY                     REV
+c2    operator   applier   ImpersonationFailed       1
+c3    operator   applier   ReconciliationSucceeded   3
+c4    operator   applier   ReconciliationSucceeded   3
+c5    operator   applier   ReconciliationSucceeded   4
+c6    operator   applier   ReconciliationSucceeded   2

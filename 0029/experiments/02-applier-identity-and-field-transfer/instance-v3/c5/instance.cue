@@ -24,5 +24,5 @@ values: {
 	extra:    true
 	message:  "hello from multi"
 	readerName: "multi-reader-c5"
-	note:       *"set by the cli" | string
+	note:       "set by the cli"
 }

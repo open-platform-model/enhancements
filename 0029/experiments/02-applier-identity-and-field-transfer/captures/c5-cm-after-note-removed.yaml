@@ -1,0 +1,61 @@
+apiVersion: v1
+data:
+  message: hello from multi
+  note: set by the cli
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-10-04T10:07:39Z"
+  labels:
+    app.kubernetes.io/instance: extra
+    app.kubernetes.io/managed-by: opm-controller
+    app.kubernetes.io/name: extra
+    component.opmodel.dev/name: extra
+    module-instance.opmodel.dev/name: multi
+    module-instance.opmodel.dev/uuid: caf12b9c-05b7-5217-b282-362cdaa9240b
+    module.opmodel.dev/name: multi
+    module.opmodel.dev/uuid: 876bf29e-7377-50e3-8a69-a3223ca890a4
+    module.opmodel.dev/version: 0.0.3
+  managedFields:
+  - apiVersion: v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:data:
+        f:message: {}
+        f:note: {}
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/instance: {}
+          f:app.kubernetes.io/name: {}
+          f:component.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/uuid: {}
+          f:module.opmodel.dev/name: {}
+          f:module.opmodel.dev/uuid: {}
+          f:module.opmodel.dev/version: {}
+    manager: opm-cli
+    operation: Apply
+    time: "2026-10-04T10:07:39Z"
+  - apiVersion: v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:data:
+        f:message: {}
+        f:note: {}
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/instance: {}
+          f:app.kubernetes.io/managed-by: {}
+          f:app.kubernetes.io/name: {}
+          f:component.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/uuid: {}
+          f:module.opmodel.dev/name: {}
+          f:module.opmodel.dev/uuid: {}
+          f:module.opmodel.dev/version: {}
+    manager: opm-controller
+    operation: Apply
+    time: "2026-10-04T10:07:50Z"
+  name: multi-extra-extra
+  namespace: c5
+  resourceVersion: "3227"
+  uid: 94f4256f-2edb-4464-a83b-f29f21f46dc7
