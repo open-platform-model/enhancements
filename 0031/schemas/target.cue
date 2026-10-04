@@ -7,7 +7,7 @@
 //     data only, because CUE reads the module file in data mode. Carries
 //     its own schemaVersion, independent of the block's @v0 suffix.
 //   - #ListingAssetPath, #ListingLabel, #ListingKeyword: NEW. The scalar
-//     types the card uses (D2, D3).
+//     types the card uses (D2).
 //   - #ListingSizeCap: NEW. 8192, the cap on the canonical JSON encoding
 //     of a card (D2).
 //   - #ListingGate: NEW. The card half of the publish gate: the card
@@ -16,8 +16,10 @@
 //     the block that duplicates nothing (D2).
 //   - #ListingThumbnail: NEW. The optional derived icon an index entry may
 //     carry (D7).
-//   - #ListingIndex, #ListingIndexEntry: NEW. The data an index module
-//     holds (D7).
+//   - #ListingIndex, #ListingIndexEntry, #ListingIndexCard: NEW. The data
+//     an index module holds (D7). An entry's card is checked against
+//     #Listing when its schemaVersion is one this core knows, and copied
+//     unjudged when it is newer (D2:R5).
 //   - #OfferingPresentation: NEW. The platform's presentation block that
 //     the 0027 definition carries as `presentation` (D6). Core has no
 //     definition shape yet; 0027's core delta embeds this one.
@@ -50,7 +52,8 @@ import (
 #VersionType:    string & =~"^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
 // #ListingAssetPath: a zip-relative path under the module's top-level
-// assets/ directory. Never a URL and never a data URI (D3).
+// assets/ directory. Never a URL and never a data URI (D2).
+// OQ17: what may sit at the path (formats, caps, SVG rules).
 #ListingAssetPath: string & =~"^assets/[A-Za-z0-9._/-]+$" & !~"\\.\\." & strings.MaxRunes(128)
 
 // #ListingLabel: one lowercase kebab-case word group, used for the
@@ -132,7 +135,8 @@ import (
 	listing!: #Listing
 
 	// The size line. It is a separate check from the field caps, so a
-	// refusal names the size, not a field.
+	// refusal names the size, not a field. The caps count runes and the
+	// line counts bytes, so it can refuse a card within every field cap.
 	size: len(json.Marshal(listing)) & <=#ListingSizeCap
 }
 
@@ -150,9 +154,18 @@ import (
 	digest!: string & =~"^sha256:[0-9a-f]{64}$"
 
 	// A copy of the member's card at that digest, never edited.
-	listing!: #Listing
+	listing!: #ListingIndexCard
 
 	thumbnail?: #ListingThumbnail
+}
+
+// #ListingIndexCard: a member's card as an index carries it. A card at a
+// schemaVersion this core knows validates against #Listing; a newer one is
+// copied unjudged, so an index built or vetted under an older core does not
+// refuse a member that adopted a newer card (D2:R5).
+#ListingIndexCard: #Listing | {
+	schemaVersion!: int & >1
+	...
 }
 
 // #ListingIndex: the data an index module's package holds.
@@ -168,8 +181,8 @@ import (
 // #OfferingConfigPath: a dotted path into the bound module's #config.
 #OfferingConfigPath: string & =~"^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
 
-// #OfferingIcon: a platform icon as a data URI. Checked by the same SVG
-// rules as an author asset.
+// #OfferingIcon: a platform icon as a data URI.
+// OQ17: checked by the same SVG rules as an author asset, once settled.
 #OfferingIcon: string & =~"^data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/]+=*$" & strings.MaxRunes(32768)
 
 // #OfferingPresentation: the platform's presentation of one offering. Every

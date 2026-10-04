@@ -47,7 +47,7 @@ The full surface, with every cap, is `target.cue`.
 
 - Every value MUST be concrete. CUE reads the module file in data mode, and tidy canonicalises it (keys sorted, comments dropped), so no meaning MAY depend on key order or comments.
 - `schemaVersion`, `title`, `summary` and `category` MUST be present.
-- An image MUST be named by a path under `assets/` in the module zip. A URL, a data URI or image bytes MUST NOT appear in a card.
+- An image MUST be named by a path under `assets/` in the module zip. A URL, a data URI or image bytes MUST NOT appear in a card. What may sit at that path is 0031:OQ17.
 - `locales` MUST NOT be present. The name is reserved for localisation.
 - A reader MUST ignore a card it does not understand, and MUST show the fields it knows of a card whose `schemaVersion` is newer than it knows. A reader MUST NOT refuse a module for its card.
 - A module without a card MUST be valid exactly as it is without this construct.
@@ -81,12 +81,12 @@ The card half of the publish gate. Publish unifies a module's card with `#Listin
 - Publish MUST refuse a module whose card fails `#Listing`, naming the field.
 - Publish MUST refuse a module whose card's canonical JSON encoding exceeds 8192 bytes, naming the size.
 - Publish MUST NOT edit the card.
-- The field caps MUST be set so that a card at every cap passes the size line. `examples.cue` pins that card at 7099 bytes.
+- The size line MAY refuse a card that passes every field cap: the caps count runes and the line counts bytes. `examples.cue` pins an ASCII card at every cap at 7099 bytes and records a CJK card at every cap refused at 13641.
 
 ### Rationale
 
 - **Why validated and not asserted.** 0022's gate asserts values the module file already implies. A card implies nothing, so the only honest check is validation.
-- **Why a separate size line.** The field caps alone measured 8486 bytes at every cap with 512-rune links. Lowering links to 256 runes brings that under the cap, and the line keeps a later card version from outgrowing it unnoticed.
+- **Why a separate size line.** The field caps alone measured 8486 bytes at every cap with 512-rune links. Lowering links to 256 runes brings an ASCII card under the cap, but rune caps never bound bytes, so the line is the card's only byte bound.
 - **Why a cap at all.** Every consumer of a module re-fetches the module file on every dependency resolve.
 
 ## `#ListingIndex` and `#ListingIndexEntry` (NEW)
@@ -106,7 +106,7 @@ The data an index module holds: a CUE module whose package lists, per member mod
 #ListingIndexEntry: {
 	version!:   #VersionType
 	digest!:    string             // sha256:<64 hex>
-	listing!:   #Listing
+	listing!:   #ListingIndexCard  // #Listing, or a newer card unjudged
 	thumbnail?: #ListingThumbnail  // data URI, <= 16 KiB
 }
 ```
@@ -115,6 +115,7 @@ The data an index module holds: a CUE module whose package lists, per member mod
 
 - An entry's `listing` MUST equal the card in the member's module file at `digest`, and `digest` MUST be the member's manifest digest at `version`.
 - An index MUST NOT carry data its members do not: it is a snapshot, never an edit point.
+- An entry's card MUST validate against `#Listing` when its `schemaVersion` is one the core knows, and MUST be copied unjudged when it is newer, so an index built under an older core never refuses a member for adopting a newer card.
 - `thumbnail` MUST be derived from the member's `icon` asset, never authored.
 - A reader MUST treat an index as a hint. It MUST check each member's tags for a newer version on the same major, and MUST mark an entry it cannot fetch (for example on a partial mirror) instead of failing the whole index.
 
@@ -155,7 +156,7 @@ The platform's presentation of one offering, carried by the platform-owned defin
 - A definition MUST be refused at acceptance when a preset's values, unified with the definition's bound values through the 0027 projection, would be refused, naming the preset.
 - `fields` MUST change layout only. It MUST NOT change a widget or any validation, and `hidden` or `advanced` MUST NOT be set on a required field.
 - A `hidden` offering MUST NOT be listed by any marketplace, and its kind MUST keep serving.
-- `icon` MUST pass the same SVG rules as an author's asset.
+- `icon` MUST pass the same SVG rules as an author's asset, once 0031:OQ17 settles them.
 
 ### Rationale
 

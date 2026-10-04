@@ -1,8 +1,8 @@
 // Concrete example instances for the target.cue delta: the test.
 //
 // A jellyfin-shaped card (the shape experiment 02 wrote into twenty real
-// modules) passes the card gate; a card with every field at its cap pins the
-// size claim of D2; an index of two members and a platform presentation
+// modules) passes the card gate; an ASCII card with every field at its cap
+// pins the size of D2's worked figure; an index of two members and a platform presentation
 // block exercise the remaining definitions. Refusals cannot be expressed as
 // passing unifications; they are listed at the bottom with the error CUE
 // gives for each.
@@ -39,8 +39,9 @@ jellyfinGate: #ListingGate & {listing: jellyfinCard}
 _assertRealCardSmall: jellyfinGate.size & <600
 
 // A card with every field at its cap. Unicode-free ASCII, so runes equal
-// bytes. It must pass the field caps AND the size line: the caps are chosen
-// so that no card that passes them fails the size line.
+// bytes, and it passes the size line. The caps count runes, not bytes, so
+// this does not hold for every card within the caps: see the CJK refusal
+// recorded at the bottom.
 _s: {
 	#n:  int
 	out: strings.Repeat("a", #n)
@@ -76,7 +77,7 @@ maxCard: #Listing & {
 
 maxGate: #ListingGate & {listing: maxCard}
 
-// Pinned: a card at every cap encodes to this many bytes, under 8192.
+// Pinned: an ASCII card at every cap encodes to this many bytes, under 8192.
 _assertMaxCardSize: maxGate.size & 7099
 _assertMaxCardFits: len(json.Marshal(maxCard)) & <=#ListingSizeCap
 
@@ -104,6 +105,16 @@ fleetIndex: #ListingIndex & {
 	}
 }
 _assertIndexSize: len(fleetIndex.entries) & 2
+
+// A member that adopted a newer card version: an index copies it unjudged.
+_futureMemberIndex: #ListingIndex & {
+	schemaVersion: 1
+	entries: "example.com/modules/next@v1": {
+		version: "2.0.0"
+		digest:  "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+		listing: {schemaVersion: 2, title: "Next", summary: "A card from a newer core", category: "media", tagline: "new in v2"}
+	}
+}
 
 // A platform's presentation of a jellyfin offering.
 jellyfinPresentation: #OfferingPresentation & {
@@ -140,8 +151,14 @@ jellyfinPresentation: #OfferingPresentation & {
 //     -> schemaVersion: field is required but not present
 //   #Listing & {..., links: [{kind: "homepage", url: "https://" + 300 characters}]}
 //     -> links.0.url: invalid value (does not satisfy strings.MaxRunes(256))
-//   #ListingGate & {listing: <a card over 8192 bytes>}
-//     -> unreachable through #Listing's caps today (maxCard above is 7099
-//        bytes). The line exists so a later card version that adds fields
-//        cannot outgrow the cap unnoticed. Measured on a 9000-byte struct:
-//        size: invalid value 9008 (out of bound <=8192)
+//   #ListingGate & {listing: maxCard with every text field at its cap in CJK}
+//     (title 64, summary 160, four captions of 120, eight link URLs of 256
+//     and five maintainers with names of 64 and URLs of 256 runes, vendor
+//     64; every field within its cap)
+//     -> size: invalid value 13641 (out of bound <=8192)
+//     The caps count runes and the size line counts bytes, so the line can
+//     refuse a card that passes every field cap.
+//   #ListingIndex & {..., entries: "...": {..., listing: {schemaVersion: 1, title: "x", summary: "y", category: "Media"}}}
+//     -> listing: 2 errors in empty disjunction: category: invalid value
+//        "Media" (out of bound =~"^[a-z0-9][a-z0-9-]*$"); schemaVersion:
+//        invalid value 1 (out of bound >1). A v1 member card is still judged.
