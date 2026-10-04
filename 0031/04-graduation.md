@@ -1,41 +1,16 @@
 # Graduation Criteria: Module Presentation Contract
 
-These are design acceptance criteria, not implementation milestones:
-delivery is logged in this entry's `delivery.yaml` and read back with
-`task delivery`. The entry's documents store nothing about delivery
-progress.
+These are design acceptance criteria, not implementation milestones: delivery is logged in this entry's `delivery.yaml` and read back with `task delivery`. The entry's documents store nothing about delivery progress.
 
-Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
-resolve) live in `gates.cue` and `task vet`, not here. What belongs here
-is what is true of THIS design and no other.
+Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs resolve) live in `gates.cue` and `task vet`, not here. What belongs here is what is true of this design and no other.
 
 ## draft → accepted
 
-Seven gates must all hold before promoting this design from draft to
-accepted:
-
-- {Goals and Non-Goals in `02-design.md` are final and reviewed.}
-- {Every **contract-level** Open Question is resolved
-  (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`); every
-  implementation-level question left open is explicitly
-  `deferred-to-implementation` with the context a future implementer
-  needs. No question is merely unanswered.}
-- {Every decision in `03-decisions.md` carries a valid `**Kind:**`
-  (contract | policy | scope) and passes the admission test: mechanism
-  decisions have been moved out or left to the implementing slices.}
-- {Every `contract` decision lists at least one `- Rn:` requirement; every
-  `policy` or `scope` decision carries `**Requirements:** none` with a reason.}
-- {No document in the entry prescribes mechanism: no filename, identifier
-  spelling, directory layout, or code structure is stated as instruction.
-  Paths cited as evidence are fine; paths cited as the address of an edit
-  are not.}
-- {If `core_schema: true`: `schemas/` compiles (`cue vet ./...` passes),
-  `examples.cue` carries concrete instances that actually exercise every
-  new or changed definition, and `spec.md` drafts the core SPEC.md delta
-  (four-part format), `task vet` enforces file presence at `accepted`.
-  If `core_schema: false`: no `schemas/` exists; any `contracts/` compiles.}
-- {`depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final
-  and resolve; every `depends_on` id is carried by a `**Depends:**` line in
-  a live decision.}
-- {`semver` in `config.yaml` is set (major / minor / none).}
-- {No `{Capitalised}` placeholder strings remain in any markdown file.}
+- **Its substrate is accepted.** Entry 0022 is accepted with its block admitting keys it does not define (the open tail), so a core that predates the card passes a module that carries one. Entry 0027 is accepted with its served-schema questions answered (0027:OQ18 to 0027:OQ22) and the presentation block admitted on the definition (0027:OQ17).
+- **The acceptance-blocking questions are answered.** OQ1 (tenant read path), OQ2 (category type), OQ3 (status-carried data), OQ8 (index artifact kind), OQ9 (conditional fields), OQ10 (where hints travel), OQ11 (schema and form agreement), OQ12 (secret paths) and OQ13 (bound fields and secret bindings) are resolved into decisions or moved to 0027 with a citation.
+- **The card caps agree with the size line.** `schemas/examples.cue` pins a card with every field at its cap under 8192 bytes, so no card that passes the field caps fails the size line.
+- **The hint vocabulary compiles and is closed.** `contracts/hints.cue` lists every key, every refused attribute form, and every name deliberately left out, and every refusal in 0031:D4:R3 maps to an entry there.
+- **The index publish path exists in the design.** 0031:D7:R1 names a check that runs instead of the module gates; OQ8's answer says which artifact kind carries it.
+- **Every contract decision is observable from outside one repo.** Each `Rn` names something an author, a platform operator or a reader can see hold or fail, with no Go symbol, flag or file path.
+- **No document prescribes mechanism.** Paths in the entry are evidence (where something was measured or is emitted), never the address of an edit.
+- **`semver` is set.** The card, index and presentation definitions are additive to core; the amendment of 0013:D2 changes what a reader may do with a field's attributes.
