@@ -1,0 +1,140 @@
+apiVersion: opmodel.dev/v1alpha1
+kind: ModuleInstance
+metadata:
+  creationTimestamp: "2026-10-04T09:56:09Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/managed-by: opm-cli
+    module-instance.opmodel.dev/name: multi
+    module-instance.opmodel.dev/namespace: c1
+  managedFields:
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/managed-by: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/namespace: {}
+      f:spec:
+        f:module:
+          f:path: {}
+          f:version: {}
+        f:owner: {}
+        f:values:
+          f:extra: {}
+          f:image:
+            .: {}
+            f:digest: {}
+            f:repository: {}
+            f:tag: {}
+          f:message: {}
+          f:readerName: {}
+          f:replicas: {}
+    manager: opm-cli
+    operation: Apply
+    time: "2026-10-04T09:56:09Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:instanceUUID: {}
+        f:inventory:
+          f:count: {}
+          f:digest: {}
+          f:entries: {}
+          f:revision: {}
+        f:lastAppliedAt: {}
+        f:lastAppliedConfigDigest: {}
+        f:lastAppliedRenderDigest: {}
+        f:lastAppliedSourceDigest: {}
+    manager: opm-cli
+    operation: Apply
+    subresource: status
+    time: "2026-10-04T09:56:09Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        .: {}
+        f:conditions:
+          .: {}
+          k:{"type":"Ready"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+    manager: exp-0029-02-manager
+    operation: Update
+    subresource: status
+    time: "2026-10-04T09:56:09Z"
+  name: multi
+  namespace: c1
+  resourceVersion: "1976"
+  uid: 240842cc-7485-412a-9a82-5c9f924052cb
+spec:
+  module:
+    path: testing.opmodel.dev/modules/experiments/handoff-id/multi@v0
+    version: v0.0.2
+  owner: cli
+  values:
+    extra: true
+    image:
+      digest: ""
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.7.1
+    message: hello from multi
+    readerName: multi-reader-c1
+    replicas: 1
+status:
+  conditions:
+  - lastTransitionTime: "2026-10-04T09:56:09Z"
+    message: ModuleInstance is managed externally by the CLI
+    observedGeneration: 1
+    reason: ManagedExternally
+    status: Unknown
+    type: Ready
+  instanceUUID: 858b30d2-4739-5e1d-a28a-3e8576907ce1
+  inventory:
+    count: 6
+    digest: sha256:8b00a5a626e1cad21f4af0105db7b1e2fa871d0986f3cc3ba5a88900aa9e6608
+    entries:
+    - component: web
+      group: apps
+      kind: Deployment
+      name: multi-web
+      namespace: c1
+      v: v1
+    - component: web
+      kind: Service
+      name: multi-web
+      namespace: c1
+      v: v1
+    - component: reader-sa
+      kind: ServiceAccount
+      name: multi-reader-c1
+      namespace: c1
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: multi-reader-c1
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: multi-reader-c1
+      v: v1
+    - component: extra
+      kind: ConfigMap
+      name: multi-extra-extra
+      namespace: c1
+      v: v1
+    revision: 1
+  lastAppliedAt: "2026-10-04T09:56:09Z"
+  lastAppliedConfigDigest: sha256:9aeb500887f399de6bf00f6c6caf1a8d9b15cf36974a5db1c0338949687c4432
+  lastAppliedRenderDigest: sha256:a6c0a721f8cb4c61ef247513d44ab5d7d04d6a9900aebd94c225fd8c152259bb
+  lastAppliedSourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86

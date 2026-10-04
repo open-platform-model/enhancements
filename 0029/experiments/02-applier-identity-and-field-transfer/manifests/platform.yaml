@@ -1,0 +1,22 @@
+# Cluster Platform singleton for the local kind dev cluster.
+# Applied by: task cluster:operator
+#
+# The subscription pins here MIRROR hack/platform/cue.mod/module.cue on
+# purpose. Apply renders against the cluster Platform (0006:D21), while the
+# operator turns this same document into a platform module; tests that render
+# offline pass hack/platform/ with --platform. If the pins drifted, the two
+# could resolve different catalog builds and produce renders that were never
+# meant to match.
+apiVersion: opmodel.dev/v1alpha1
+kind: Platform
+metadata:
+  # Platform is a cluster singleton; the operator ignores any other name
+  # (platform_controller.go: platformSingletonName = "cluster").
+  name: cluster
+spec:
+  type: kubernetes
+  registry:
+    # Scalar subscription (0010): exactly one published catalog build per
+    # entry, named by bare SemVer under the major-suffixed module path.
+    opmodel.dev/catalogs/opm@v4:
+      version: "4.4.4"

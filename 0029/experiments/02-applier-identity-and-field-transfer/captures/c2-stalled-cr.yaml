@@ -1,0 +1,238 @@
+apiVersion: opmodel.dev/v1alpha1
+kind: ModuleInstance
+metadata:
+  creationTimestamp: "2026-10-04T09:56:10Z"
+  finalizers:
+  - opmodel.dev/cleanup
+  generation: 2
+  labels:
+    app.kubernetes.io/managed-by: opm-cli
+    module-instance.opmodel.dev/name: multi
+    module-instance.opmodel.dev/namespace: c2
+  managedFields:
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:instanceUUID: {}
+        f:inventory:
+          f:count: {}
+          f:digest: {}
+          f:entries: {}
+          f:revision: {}
+        f:lastAppliedAt: {}
+        f:lastAppliedConfigDigest: {}
+        f:lastAppliedRenderDigest: {}
+        f:lastAppliedSourceDigest: {}
+    manager: opm-cli
+    operation: Apply
+    subresource: status
+    time: "2026-10-04T09:56:10Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:app.kubernetes.io/managed-by: {}
+          f:module-instance.opmodel.dev/name: {}
+          f:module-instance.opmodel.dev/namespace: {}
+      f:spec:
+        f:module:
+          f:path: {}
+          f:version: {}
+        f:owner: {}
+        f:serviceAccountName: {}
+        f:values:
+          f:extra: {}
+          f:image:
+            .: {}
+            f:digest: {}
+            f:repository: {}
+            f:tag: {}
+          f:message: {}
+          f:readerName: {}
+          f:replicas: {}
+    manager: opm-cli
+    operation: Apply
+    time: "2026-10-04T09:59:16Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:finalizers:
+          .: {}
+          v:"opmodel.dev/cleanup": {}
+    manager: exp-0029-02-manager
+    operation: Update
+    time: "2026-10-04T09:59:17Z"
+  - apiVersion: opmodel.dev/v1alpha1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:status:
+        f:conditions:
+          .: {}
+          k:{"type":"ModuleResolved"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+          k:{"type":"Ready"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+          k:{"type":"Stalled"}:
+            .: {}
+            f:lastTransitionTime: {}
+            f:message: {}
+            f:observedGeneration: {}
+            f:reason: {}
+            f:status: {}
+            f:type: {}
+        f:failureCounters:
+          .: {}
+          f:apply: {}
+          f:drift: {}
+          f:reconcile: {}
+        f:history: {}
+        f:lastAttemptedAction: {}
+        f:lastAttemptedAt: {}
+        f:lastAttemptedConfigDigest: {}
+        f:lastAttemptedDuration: {}
+        f:lastAttemptedRenderDigest: {}
+        f:lastAttemptedSourceDigest: {}
+        f:nextRetryAt: {}
+        f:observedGeneration: {}
+        f:requiredContracts: {}
+    manager: exp-0029-02-manager
+    operation: Update
+    subresource: status
+    time: "2026-10-04T09:59:18Z"
+  name: multi
+  namespace: c2
+  resourceVersion: "2404"
+  uid: 4730be3b-ba3a-4ba5-aeee-823620c3b4fb
+spec:
+  module:
+    path: testing.opmodel.dev/modules/experiments/handoff-id/multi@v0
+    version: v0.0.2
+  owner: operator
+  serviceAccountName: applier
+  values:
+    extra: true
+    image:
+      digest: ""
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.7.1
+    message: hello from multi
+    readerName: multi-reader-c2
+    replicas: 1
+status:
+  conditions:
+  - lastTransitionTime: "2026-10-04T09:59:18Z"
+    message: 'failed to apply resources: ClusterRole/multi-reader-c2 dry-run failed
+      (Forbidden): clusterroles.rbac.authorization.k8s.io "multi-reader-c2" is forbidden:
+      User "system:serviceaccount:c2:applier" cannot patch resource "clusterroles"
+      in API group "rbac.authorization.k8s.io" at the cluster scope'
+    observedGeneration: 2
+    reason: ImpersonationFailed
+    status: "True"
+    type: Stalled
+  - lastTransitionTime: "2026-10-04T09:59:18Z"
+    message: 'failed to apply resources: ClusterRole/multi-reader-c2 dry-run failed
+      (Forbidden): clusterroles.rbac.authorization.k8s.io "multi-reader-c2" is forbidden:
+      User "system:serviceaccount:c2:applier" cannot patch resource "clusterroles"
+      in API group "rbac.authorization.k8s.io" at the cluster scope'
+    observedGeneration: 2
+    reason: ImpersonationFailed
+    status: "False"
+    type: Ready
+  - lastTransitionTime: "2026-10-04T09:59:18Z"
+    message: 'module resolved: testing.opmodel.dev/modules/experiments/handoff-id/multi@v0@v0.0.2'
+    observedGeneration: 2
+    reason: ModuleResolved
+    status: "True"
+    type: ModuleResolved
+  failureCounters:
+    apply: 1
+    drift: 1
+    reconcile: 1
+  history:
+  - action: reconcile
+    configDigest: sha256:3f0646236105b0017597947efa449b6174739a54c9e45748a30ecf714870d6f7
+    finishedAt: "2026-10-04T09:59:18Z"
+    inventoryDigest: sha256:f48da7676e29c02f49f316f6d82882f0662ace199580c01d97e4d4c75cb48b76
+    message: 'failed to apply resources: ClusterRole/multi-reader-c2 dry-run failed
+      (Forbidden): clusterroles.rbac.authorization.k8s.io "multi-reader-c2" is forbidden:
+      User "system:serviceaccount:c2:applier" cannot patch resource "clusterroles"
+      in API group "rbac.authorization.k8s.io" at the cluster scope'
+    renderDigest: sha256:bed33436a7f4d117e7efa9aca71bf28f25bc300f1fc33ee278af7a83f9923cca
+    sequence: 1
+    sourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+    startedAt: "2026-10-04T09:59:18Z"
+  instanceUUID: 7e19b67a-39c0-5d50-88bd-b5bb9afd1651
+  inventory:
+    count: 6
+    digest: sha256:831badc5a0e9750c644bb549e26bd65f56a71a91a8e6a4af75f852588bb79e84
+    entries:
+    - component: web
+      group: apps
+      kind: Deployment
+      name: multi-web
+      namespace: c2
+      v: v1
+    - component: web
+      kind: Service
+      name: multi-web
+      namespace: c2
+      v: v1
+    - component: reader-sa
+      kind: ServiceAccount
+      name: multi-reader-c2
+      namespace: c2
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: multi-reader-c2
+      v: v1
+    - component: reader-rbac
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: multi-reader-c2
+      v: v1
+    - component: extra
+      kind: ConfigMap
+      name: multi-extra-extra
+      namespace: c2
+      v: v1
+    revision: 1
+  lastAppliedAt: "2026-10-04T09:56:10Z"
+  lastAppliedConfigDigest: sha256:3f0646236105b0017597947efa449b6174739a54c9e45748a30ecf714870d6f7
+  lastAppliedRenderDigest: sha256:5d2a83d9c526c0472850264540ac71650e6dabc9fd563d523823b9ef99aed923
+  lastAppliedSourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+  lastAttemptedAction: reconcile
+  lastAttemptedAt: "2026-10-04T09:59:18Z"
+  lastAttemptedConfigDigest: sha256:3f0646236105b0017597947efa449b6174739a54c9e45748a30ecf714870d6f7
+  lastAttemptedDuration: 353.695287ms
+  lastAttemptedRenderDigest: sha256:bed33436a7f4d117e7efa9aca71bf28f25bc300f1fc33ee278af7a83f9923cca
+  lastAttemptedSourceDigest: sha256:6108683de7896040fb11e011eeecb246de6fffa4f70ac15b08d06c8268548b86
+  nextRetryAt: "2026-10-04T10:29:18Z"
+  observedGeneration: 2
+  requiredContracts:
+  - opmodel.dev/catalogs/opm/resources/config-maps@v1beta1
+  - opmodel.dev/catalogs/opm/resources/container@v1beta1
+  - opmodel.dev/catalogs/opm/resources/role@v1beta1
+  - opmodel.dev/catalogs/opm/resources/service-account@v1beta1
+  - opmodel.dev/catalogs/opm/traits/expose@v1beta1
+  - opmodel.dev/catalogs/opm/traits/init-containers@v1beta1
+  - opmodel.dev/catalogs/opm/traits/restart-policy@v1beta1
+  - opmodel.dev/catalogs/opm/traits/scaling@v1beta1
+  - opmodel.dev/catalogs/opm/traits/sidecar-containers@v1beta1
+  - opmodel.dev/catalogs/opm/traits/update-strategy@v1beta1

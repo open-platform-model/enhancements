@@ -1,0 +1,42 @@
+# Case 2: a named applier ServiceAccount with a NAMESPACE-scoped Role that
+# covers every namespaced kind the fixture renders, and nothing cluster-scoped.
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: applier, namespace: c3}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: applier, namespace: c3}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "serviceaccounts"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: applier, namespace: c3}
+subjects: [{kind: ServiceAccount, name: applier, namespace: c3}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: applier}
+---
+# Cluster half: every verb on the RBAC kinds the fixture renders, PLUS the
+# rights the rendered ClusterRole grants (get/list nodes), so RBAC escalation
+# prevention is satisfied without escalate/bind.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: c3-applier-cluster}
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: c3-applier-cluster}
+subjects: [{kind: ServiceAccount, name: applier, namespace: c3}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: c3-applier-cluster}

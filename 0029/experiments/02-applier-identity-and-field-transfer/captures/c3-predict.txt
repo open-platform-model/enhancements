@@ -1,0 +1,14 @@
+effective applier: system:serviceaccount:c3:applier  [source: argument (SA the flip will set, or --default-service-account)]
+  Deployment c3/multi-web: get=yes create=yes patch=yes delete=yes
+  Service c3/multi-web: get=yes create=yes patch=yes delete=yes
+  ServiceAccount c3/multi-reader-c3: get=yes create=yes patch=yes delete=yes
+  ClusterRole multi-reader-c3: get=yes create=yes patch=yes delete=yes
+      escalate=no
+      escalation check (ClusterRole multi-reader-c3): get nodes -> yes
+      escalation check (ClusterRole multi-reader-c3): list nodes -> yes
+  ClusterRoleBinding multi-reader-c3: get=yes create=yes patch=yes delete=yes
+      bind ClusterRole/multi-reader-c3=no
+      escalation check (ClusterRole multi-reader-c3): get nodes -> yes
+      escalation check (ClusterRole multi-reader-c3): list nodes -> yes
+  ConfigMap c3/multi-extra-extra: get=yes create=yes patch=yes delete=yes
+PREDICT OK: the effective applier holds every needed verb

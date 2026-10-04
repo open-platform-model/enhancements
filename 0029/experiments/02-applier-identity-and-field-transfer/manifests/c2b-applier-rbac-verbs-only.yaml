@@ -1,0 +1,16 @@
+# Case 2b: give c2/applier every VERB on ClusterRoles and ClusterRoleBindings,
+# but not the rights those objects grant (get/list nodes), nor escalate/bind.
+# A verb-only SubjectAccessReview says "yes"; RBAC escalation prevention says no.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: c2-applier-rbac-verbs}
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: c2-applier-rbac-verbs}
+subjects: [{kind: ServiceAccount, name: applier, namespace: c2}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: c2-applier-rbac-verbs}
