@@ -1,0 +1,66 @@
+# Design Decisions: The Operator Ships as an OPM Module
+
+## Summary
+
+Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they
+are made. **Numbers are permanent**, never reused, never renumbered, because
+other repos cite them from commit messages and OpenSpec changes.
+
+**Decision text states what is true now.** How that stays true depends on the entry's `status`:
+
+- While the entry is **`draft`**, decisions are living text: a changed choice is an **in-place edit** to the existing `DN`, and the log never contains two conflicting decisions. If the replaced position was backed by real evidence (an experiment outcome, an explicit user decision), fold it into *Alternatives considered* (marked as previously adopted) before overwriting; a mere sketch may be replaced outright. A decision retracted outright keeps its number as a one-line tombstone (`### DN: (retracted, YYYY-MM-DD)`).
+- Once **`accepted`**, decision bodies are **protected**. A change lands as a *new* `DN` with `**Amends:**` / `**Supersedes:**` relation fields; existing bodies are edited only through the `enhancement-compaction` skill, which weaves stacked reversals into the decisions they reverse (lower number survives, vacated number keeps a tombstone), at latest in the mandatory pass immediately before the `implemented` flip.
+- **`implemented`** entries are frozen; **`superseded`** entries are stubbed via compaction.
+
+Either way the log stays safe to read linearly: a reader who stops halfway should never come away believing something a later entry already killed.
+
+Each decision carries a `**Kind:**` line plus the body fields: Decision, Requirements (numbered `Rn` items cited as `NNNN:DN:Rn`; `none` with a reason on a `policy` or `scope` decision), Alternatives considered, Rationale, Source. The Source field is specific: `"User decision YYYY-MM-DD"`, a URL, or a file path, so the provenance of a choice never gets lost. A decision revised in place or by a merge keeps its original `Source:` and gains a `Revised: YYYY-MM-DD` line. *Alternatives considered* always survives revision and compaction: it is what stops a rejected option being re-litigated later.
+
+A decision that rests on another entry's decision also carries a `**Depends:** MMMM:DN` line (tokens only, comma-separated) directly after `Kind`, and `config.yaml.depends_on` lists exactly the entries those lines name; `task vet` enforces both directions and refuses a cycle. The test for whether the line is owed: *if that other decision were reversed, would this one need an `Amends:`?* If yes, it depends. A citation for precedent, contrast, or a delegated enforcement site is prose, not a dependency.
+
+A decision that **changes** another entry's decision says so on the same relation fields it uses locally, with the token qualified: `**Amends:** 0019:D13` when that decision survives narrowed, `**Supersedes:** 0019:D13` when it is dead. `config.yaml.amends` lists exactly the entries those tokens name; `task vet` enforces both directions, requires a live heading, refuses a superseded or rejected target (amend the successor), refuses a cycle, and refuses one decision both depending on and superseding the same token. The amended entry is never edited, closed or not: `task show ID=0019` derives "amended by" from lines like these, so the reverse can never go stale and can say whether the change has landed. Depends is *I rest on it*; Amends is *I change it*; a decision may carry both for the same token when it narrows what it rests on.
+
+**The Kind gate.** A decision belongs in this log only if it passes the admission test: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Three kinds pass it:
+
+- `contract`: changes what a consumer can observe or rely on: a schema shape, a command's semantics, a compatibility or refusal rule, a naming guarantee.
+- `policy`: a posture OPM commits to ("publish never invents a version").
+- `scope`: a boundary decision: what this entry defers, what a successor owns, what a supersession keeps.
+
+A *mechanism* decision is how a repo achieves the contract: algorithm choice, code placement, internal wiring. It fails the admission test and belongs in the implementing slice's OpenSpec change in the target repo, decided when the code in front of the implementer is current. Measured evidence that *constrains* a contract (an experiment proving a primitive cannot express a rule) stays here, attached to the contract decision it constrains. The winning implementation design does not carry it.
+
+**Prescriptive versus evidential.** The line that keeps mechanism out in practice: an entry never tells a repo *how to name a file, spell an identifier, lay out a directory, or structure its code*.
+
+- Naming a path to **prove** something, or to say where something is emitted today, is evidence, and is wanted.
+- The test: would deleting the named path change what an implementer is **obliged** to do, or only what a reader can **verify**? Obliged means prescription; it does not belong here. Verify means provenance; it stays.
+- A decision may state that a name is part of the published contract (for example, a member name that reaches a key, or a command's flag) because that is what a consumer observes. It may not state what the file holding it is called.
+
+---
+
+## Decisions
+
+### D1: {Decision Title}
+
+**Kind:** {contract | policy | scope}
+
+**Depends:** {MMMM:DN, only when this decision rests on another entry's decision; delete the line otherwise}
+
+**Amends:** {DN or MMMM:DN, only when this decision narrows an existing decision; use **Supersedes:** when it replaces one; delete the line otherwise}
+
+**Decision:** {What was decided. State it as a fact, not a question.}
+
+**Requirements:**
+
+- R1: {One observable statement a repo change can claim; scenarios stay in the repo change}
+
+**Alternatives considered:**
+
+- {Alternative A and why it was not chosen}
+- {Alternative B and why it was not chosen}
+
+**Rationale:** {Why this decision was made. Reference design goals,
+constraints, prior art, or user input.}
+
+**Source:** {Where the decision originated: user decision with date,
+design discussion, external reference, or prior art.}
+
+Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.
