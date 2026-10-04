@@ -197,7 +197,7 @@ graph TD
   N0031 -->|depends on| N0027
   N0021 -.->|amends 7/40| N0006
   N0026 -.->|amends 1/37| N0010
-  N0031 -.->|amends 2/25| N0011
+  N0031 -.->|amends 1/25| N0011
   N0031 -.->|amends 1/36| N0013
 ```
 
