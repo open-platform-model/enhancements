@@ -1,0 +1,49 @@
+name: Docs
+
+# The enhancements section bundle (docs-kit.cue): every entry, live and
+# archived, plus INDEX.md and GRAPH.md, built, signed and published by
+# docs-kit's reusable publish.yml (docs-kit docs/contracts.md C5, C21).
+# opmodel.dev pulls it from ghcr.io/open-platform-model/docs/enhancements as
+# its Enhancements section.
+#
+#   pull_request       check: build and lint, publish nothing
+#   push to main       edge: publish the commit as the edge build
+#
+# A section is built from main only: it has no release and no docs revision
+# (C21), so this workflow has no release or revision mode and no dispatch.
+#
+# publish.yml is pinned by docs-kit release tag, never a SHA: the signing
+# certificate names it at that ref, and the site trusts only docs-kit's v*
+# tags (C5, C9). It runs the opm-docs release named in .opm-docs-version; the
+# two pins move together in one PR (task docs:pins:check, run by ci.yml,
+# refuses a mismatch). publish.yml declares no permissions, so each job
+# grants exactly what its mode needs.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      packages: read
+    uses: open-platform-model/docs-kit/.github/workflows/publish.yml@v0.6.0
+    with:
+      project: enhancements
+      mode: check
+
+  edge:
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: open-platform-model/docs-kit/.github/workflows/publish.yml@v0.6.0
+    with:
+      project: enhancements
+      mode: edge

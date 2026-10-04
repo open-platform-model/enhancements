@@ -171,6 +171,9 @@ NNNN/                       One per enhancement (id-only directory name)
 archive/NNNN/               Terminal entries (delivered, rejected, superseded) — id kept forever, reduced validation
 gates.cue                   Admission rubric — the six questions an entry must answer
 .github/ISSUE_TEMPLATE/     idea.yml, the idea issue form (what the feature gate redirects to; `task ideas` lists open ones)
+docs-kit.cue                The enhancements section bundle opmodel.dev shows at /enhancements/ (docs-kit)
+.opm-docs-version           The docs-kit release that builds the bundle (with every publish.yml ref)
+.tasks/opm-docs.sh          Installs the pinned opm-docs release; checks the two docs-kit pins agree
 scripts/                    delivery.sh (derives delivery state from each entry's delivery.yaml), depends.sh (depends_on / amends edge rules, derived amended-by), entry_hash.sh (gate binding)
 AGENTS.md                   This file — orientation
 README.md                   How to read enhancements
@@ -211,7 +214,15 @@ All tasks runnable from `enhancements/` directly (`cd enhancements && task <name
 | `task close ID=NNNN` | Close a finished design: refuses unless `task delivery` derives `implemented`; sets `delivered`, replaces any progress banner with a delivered one, retargets cross-entry links repo-wide (naming live files it touched, since that moves their gate hash), moves to `archive/NNNN/`. |
 | `task archive:list` / `archive:data` | Archived entries (rejected with reasons, superseded with successors) — the `prior-art` gate's input. |
 | `task index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
+| `task docs:bundle` | Build the enhancements section bundle of the work tree into `out/enhancements/` (a local preview of edge). |
+| `task docs:bundle:check` | Check the docs-kit pins agree, then build and lint the section bundle without writing `out/`. |
+| `task docs:pins:check` | Refuse a docs-kit `publish.yml` ref that names another release than `.opm-docs-version` (offline; run by CI). |
+| `task tools:opm-docs` | Install or reuse `.bin/opm-docs`, the checksum-verified docs-kit release `.opm-docs-version` names. |
 | `task graph` | Regenerate `GRAPH.md`: a category rollup plus one Mermaid diagram per `category`, foreign entries as stubs, closed entries only where a live edge reaches them. Run after any `category` / `depends_on` / `amends` / `supersedes` / `revives` edit or a `task close`. |
+
+### Docs bundle
+
+`docs-kit.cue` declares one section bundle, `enhancements`: every entry, live and archived (an archived entry keeps its `/enhancements/NNNN/` URL), plus `INDEX.md` and `GRAPH.md`, published to `ghcr.io/open-platform-model/docs/enhancements` by docs-kit's `publish.yml` (docs-kit C21). `docs.yml` checks every pull request (`Docs / check`) and publishes each push to `main` as `edge`. A section has no release and no docs revision, so there is nothing to dispatch: what `main` holds is what the site shows after its next build. Preview with `task docs:bundle` (pages in `out/enhancements/content/`) or `opm-docs serve`. The build rewrites relative links, untagged fences and HTML comments by itself, but never relaxes the page-dialect lint or its markup check: a page they refuse fails `Docs / check`, and the fix goes in the entry's source. **Standing rule for such mechanical fixes:** a docs-bundle fix may touch any entry, frozen ones included, without a carve-out; it keeps the rendered meaning identical (the markup may change; no claim, number or decision does); it re-hashes `.gates/NNNN.yaml` only when the recorded hash matched the entry before the fix, so a stale verdict never becomes current; and its PR notes that the recorded verdicts stand. `.opm-docs-version` and every `publish.yml@` ref name the same docs-kit release and move in one PR (`task docs:pins:check`, run by CI).
 
 ### Workflow phases
 

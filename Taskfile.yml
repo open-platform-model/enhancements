@@ -45,6 +45,7 @@ tasks:
           task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
           task links                             — fail on a broken relative link in a published file
           task fresh                             — fail when INDEX.md or GRAPH.md is stale
+          task docs:bundle:check                 — build and lint the enhancements docs bundle (opm-docs)
           task delivery [ID=0001]                — derived delivery state (from each entry's delivery.yaml log)
           task delivery:log ...                  — append a landed change to an entry's delivery log
           task delivery:reconcile                — archived OpenSpec changes that declared an entry but were never logged
@@ -2018,6 +2019,39 @@ tasks:
           exit 1
         fi
         echo "ok   INDEX.md and GRAPH.md are fresh"
+
+  ## Docs bundle
+  #
+  # docs-kit.cue declares one section bundle, enhancements: every entry, live
+  # and archived, plus INDEX.md and GRAPH.md, as opmodel.dev's Enhancements
+  # section (docs-kit docs/contracts.md C21). CI builds, signs and publishes
+  # it through docs-kit's publish.yml (docs.yml). These tasks run the same
+  # opm-docs release locally. The release is pinned in .opm-docs-version and
+  # in every publish.yml ref, and docs:bundle:check refuses the two
+  # disagreeing.
+
+  tools:opm-docs:
+    desc: Install or reuse .bin/opm-docs, the checksum-verified docs-kit release named by .opm-docs-version
+    cmds:
+      - bash .tasks/opm-docs.sh install
+
+  docs:bundle:
+    desc: Build the enhancements section bundle of the work tree into out/enhancements/ (a local preview of edge)
+    deps: [tools:opm-docs]
+    cmds:
+      - .bin/opm-docs build --project enhancements --out out
+
+  docs:pins:check:
+    desc: Refuse a docs-kit publish.yml ref under .github/workflows/ that names another release than .opm-docs-version (offline)
+    cmds:
+      - bash .tasks/opm-docs.sh pin-check
+
+  docs:bundle:check:
+    desc: Check the docs-kit pins agree, then build and lint the enhancements section bundle into a temporary directory
+    deps: [tools:opm-docs]
+    cmds:
+      - task: docs:pins:check
+      - .bin/opm-docs check --project enhancements
 
   index:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
