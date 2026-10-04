@@ -1,3 +1,0 @@
-before: cm labels {"managed-by":"opm-cli","uuid":"4fc5d258-8ad8-55b6-b1a1-89c8504b05ea"} instanceUUID=4fc5d258-8ad8-55b6-b1a1-89c8504b05ea
-flip+drop generation=2
-after: cm=Error from server (NotFound): configmaps "multi-extra-extra" not found entries=["Deployment","Service","ServiceAccount","ClusterRole","ClusterRoleBinding"]

@@ -1,7 +1,0 @@
-1. verified snapshot: generation=1 message="hello from multi"
-✔ Instance applied
-2. concurrent CLI apply: generation=2 message="changed concurrently" configmap=changed concurrently
-3a. GUARD: generation moved 1 -> 2; a guarded handoff refuses here and leaves owner=cli
-3b. UNGUARDED flip from the stale snapshot:
-   generation=3
-   after operator reconcile: spec message=hello from multi configmap=hello from multi revision=3

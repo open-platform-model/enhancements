@@ -1,6 +1,0 @@
-ClusterRoleBinding -/multi-reader-c1 uid=1d708955-c1df-4e4e-ba23-aaca8c81cbde rv=1961 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply]
-ClusterRole -/multi-reader-c1 uid=d1d3e856-ffdd-4e4a-b05c-2e922d115caf rv=1960 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply]
-ConfigMap c1/multi-extra-extra uid=f56fc8bf-23f8-422f-895d-de9596b5b788 rv=1963 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply]
-Deployment c1/multi-web uid=7e61e4a0-b2da-4e78-86f0-daaeaf32d955 rv=2025 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply,kube-controller-manager/Update/status]
-ServiceAccount c1/multi-reader-c1 uid=3b6f2d58-6524-4573-a52b-5f43950a4794 rv=1962 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply]
-Service c1/multi-web uid=09cd6af2-e463-4666-b224-01c2cc2e2909 rv=1965 managed-by=opm-cli uuid=858b30d2-4739-5e1d-a28a-3e8576907ce1 managers=[opm-cli/Apply]
