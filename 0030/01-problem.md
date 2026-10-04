@@ -9,7 +9,7 @@ The opm-operator writes everything a viewer would need into the Kubernetes API, 
 - **Platform** (cluster-scoped singleton `cluster`): the catalogs it subscribes to, the resolved registry, and conditions such as `ContractsFulfilled`.
 - **ModuleInstance**: one deployed module. Its status carries conditions (`Ready`, `Reconciling`, `Stalled`), an inventory of every object the render applied (group, kind, namespace, name, component), the contracts the render used, a short history of reconcile attempts, digests of the last apply, and failure counters.
 - **ModulePackage**: a pre-rendered module delivered from a Flux source, with a similar status.
-- **TransformerRegistration** (cluster-scoped): a provider's claim to implement contracts, with acceptance and activation verdicts as conditions.
+- **TransformerRegistration** (cluster-scoped): a provider's claim to implement contracts, with acceptance and activation verdicts in `status.accepted` and `status.active` and refusal and blocked-removal reasons in its conditions.
 
 Rendered objects carry the labels `module-instance.opmodel.dev/name` and `.../uuid`, but no ownerReference back to their instance, so the instance-to-object relation exists only in the inventory. Events are recorded through events.k8s.io/v1 by the controller `opm-controller`.
 
@@ -52,7 +52,7 @@ To learn that podinfo is broken, the developer must know to skip the instance, s
 
 ## User Stories
 
-- As a **platform team operator**, I want to see the Platform's catalogs, the providers that registered and whether each registration was accepted, so that I can tell what this cluster offers. Today: three kinds, read separately, with verdicts encoded in condition reasons.
+- As a **platform team operator**, I want to see the Platform's catalogs, the providers that registered and whether each registration was accepted, so that I can tell what this cluster offers. Today: three kinds, read separately, with verdicts in status fields and the reasons for them in condition reasons.
 - As an **application developer**, I want to open my instance and see its components, their objects and their Pods with honest health and recent events, so that I find a broken rollout in seconds. Today: `Ready=True` hides the break and the instance-to-object relation is only in the inventory.
 - As a **tool author** (Headlamp plugin, Backstage adapter, an MCP server), I want a stable, documented read API over OPM state, so that I can build on it without re-deriving the joins. Today: the only interface is raw custom-resource status, which is `v1alpha1` and portal-unaware.
 

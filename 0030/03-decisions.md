@@ -125,7 +125,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** One source per edge kind makes every edge explainable and every disagreement visible. Drawing an edge the data does not support is worse than drawing none, because a platform team would act on it.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 2, 8, 9 and 13, with the refused, accepted and active, and removal-blocked registration samples of phases 7 to 9; [experiment 02](experiments/02-live-graph-spike/). Registration verdicts as 0015:D3 defines the registration resource and its conditions.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 2, 8, 9 and 13, with the refused, accepted and active, and removal-blocked registration samples of phases 7 to 9; [experiment 02](experiments/02-live-graph-spike/). Registration verdicts as 0015:D3 defines the registration resource and its status fields and conditions.
 
 ---
 
@@ -159,7 +159,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb, and it keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount.
+**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer, naming the portal's configured audience. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb, and it keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount.
 
 **Requirements:**
 
