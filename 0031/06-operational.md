@@ -6,7 +6,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-- **Publish refusals** for an invalid card (naming the field), a card over the size line (naming the size), a missing or oversized asset (naming the path), a scripted SVG (naming the element), and a malformed hint on the module's own field (naming the field and the finding).
+- **Publish refusals** for an invalid card (naming the field), a card over the size line (naming the size), and a malformed hint on the module's own field (naming the field and the finding). If OQ17 lands as its candidate, also a missing or oversized asset (naming the path) and a scripted SVG (naming the element).
 - **Publish warnings** for a hint finding on an inherited field, a hint whose vocabulary version is newer than the CLI knows, and a block key the CLI's core does not know.
 - **Definition acceptance refusals** for a preset the projection refuses (naming the preset) and a per-field override that is not layout (naming the path).
 - **Index publish refusals** for an entry whose card or digest disagrees with its member.

@@ -37,6 +37,6 @@ The harness lived in a scratch directory and is not kept here.
 
 **Secrets are found by tag, never by shape.** Looking up core's hidden secret tag reported scalar, map, list and nested secret paths with no values present, and reported neither a tag-less look-alike nor the old shape.
 
-**No plaintext echo.** None of the 451 API-server refusals contained a literal secret value. The API server echoes a value only on a pattern or enum failure, and a type error prints only the type name. Evidence for 0031:OQ12.
+**No plaintext echo.** None of the 451 fixture dry-runs, accepted or refused, echoed a literal secret value. The API server echoes a value only on a pattern or enum failure, and a type error prints only the type name. Evidence for 0031:OQ12.
 
 Hypothesis held: presentation cannot ride inside the served CRD, and a check that must agree with CUE has to run through CUE.

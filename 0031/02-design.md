@@ -40,7 +40,7 @@ Three authored layers and one derived listing (D1):
 **Merge order for anything a user sees:** the platform's presentation wins field by field, then the author's card and hints, then what a reader derives from the schema (a label from a field name, a widget from a type).
 
 1. **The author card (D2)** is an optional struct at key `listing` in 0022's module-file block. It is concrete data with its own `schemaVersion`, field caps, and a separate 8 KiB size line. Publish validates it and never edits it.
-2. **Images (D3)** are files under `assets/` in the module zip, named by path from the card. The manifest keeps two layers. Publish refuses scripted SVG, and every OPM UI renders module images so that none can run.
+2. **Images** are named by the card with a path under `assets/` in the module zip. What may sit there, the caps, the SVG refusal and inert rendering are open (OQ17); its candidate keeps the manifest at two layers.
 3. **Field hints (D4)** are `@opm(ui, key=value, ...)` attributes on `#config` fields, from a closed vocabulary of nine keys at version 1 (`contracts/hints.cue`). A field may carry several `@opm` attributes, and readers dispatch on position 0 of every one, which amends 0013:D2.
 4. **Help text (D5)** is the field's doc comment: the module author's first, then the catalog type's, and core's never. Hints a catalog type carries reach every field typed by it, because readers follow the field's references to the type.
 5. **Platform curation (D6)** is `presentation` on the 0027 definition: display name, summary, description, category, tags, icon, weight, featured, hidden, presets and per-field layout. It overrides the author field by field and is inert.
@@ -74,7 +74,7 @@ A hint on a field reads like this:
 
 - **core.** Ships `#Listing`, `#ListingGate`, `#ListingIndex` and `#OfferingPresentation`. A module carrying a card is accepted by a core that predates the card schema, through 0022's open block tail.
 - **library.** A reader of a field's hints considers every `@opm` attribute on it and dispatches on position 0, and follows a field's references to collect the hints and doc comments of the catalog type it is typed by. It reports where each comment and hint came from (the module or a dependency), so no consumer has to guess from file paths.
-- **cli.** Publish and vet refuse an invalid card, a card over the size line, a missing or oversized asset, a scripted SVG, and a malformed hint on the module's own fields; they warn on an inherited hint finding. The CLI builds and publishes an index for a publisher who asks for one.
+- **cli.** Publish and vet refuse an invalid card, a card over the size line, and a malformed hint on the module's own fields; they warn on an inherited hint finding. If OQ17 lands as its candidate, they also refuse a missing or oversized asset and a scripted SVG. The CLI builds and publishes an index for a publisher who asks for one.
 - **opm-operator.** Accepts `presentation` on the 0027 definition, refuses a definition whose preset its projection refuses, and never re-renders an instance for a presentation change.
 - **catalog.** Catalog types may carry default hints (for example a whole-field `image` widget on the image type) that every module field typed by them inherits.
 - **modules.** The first-party fleet gains cards, icons and hints, and publishes the first-party index at its reserved path.
@@ -88,7 +88,7 @@ After
   module file:  custom."opmodel.dev@v0".listing
                   {schemaVersion: 1, title: "Jellyfin", summary: "Free software media server ...",
                    category: "media", icon: "assets/icon.svg", links: [...]}
-  zip:          assets/icon.svg (refused at publish if scripted)
+  zip:          assets/icon.svg (its rules are OQ17)
   #config:      storage ... @opm(ui, title="Library size", group="Storage", order=1, widget=quantity)
   index module: opmodel.dev/modules/index  -> one fetch lists every first-party card
   Acme's definition:

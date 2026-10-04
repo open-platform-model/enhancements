@@ -42,7 +42,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Kind:** scope
 
-**Decision:** Presentation is three authored layers and one derived listing. The module author writes the card (in the module-file block) with its images (in the zip), and field hints with help text (on `#config`). The platform team writes curation (on the 0027 definition). The publisher's release pipeline derives the index from the cards. No layer is a 0025 aspect or module trait, and `#Module` gains no field.
+**Decision:** Presentation is three authored layers and one derived listing. The module author writes the card (in the module-file block) and field hints with help text (on `#config`). Where the card's images live is OQ17. The platform team writes curation (on the 0027 definition). The publisher's release pipeline derives the index from the cards. No layer is a 0025 aspect or module trait, and `#Module` gains no field.
 
 **Requirements:** none (scope: the layers' contents and rules are D2 to D7)
 
@@ -50,7 +50,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 - **Typed presentation fields on `#Module.metadata`.** Rejected: reading them needs the zip and CUE evaluation, so a list view pays for every module, and every new field is a core release.
 - **A 0025 aspect or the 0027 `offering` trait carrying the card.** Rejected for the same reason: an aspect is module content, read only after acquisition and evaluation. The `offering` trait stays the declaration 0027:D5 compares, which presentation is outside.
-- **OCI manifest annotations as the card.** Rejected: OPM publishes through CUE's module registry client, which writes none; CUE tooling never reads them; no gate can validate them, and they are outside the module's content-addressed bytes.
+- **OCI manifest annotations as the card.** Rejected: CUE tooling never reads them, no gate can validate them, and they are outside the module's content-addressed bytes. 0022:D6 keeps them for push-time provenance only.
 - **A listing referrer per module.** Rejected as the source of truth: GHCR has no native referrers API, a referrer per module still lists nothing, and 0022:D1 already rejected a sidecar for drift. It may later sit beside the index as an accelerator.
 - **One hand-authored UI schema beside `#config`.** Rejected: a second schema drifts from the one it describes, which is the problem 0027:D2 refuses a hand-authored CRD schema for.
 
@@ -62,15 +62,15 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Kind:** contract
 
-**Depends:** 0022:D1
+**Depends:** 0022:D1, 0022:D2
 
-**Decision:** A module's author card is an optional struct at key `listing` inside its module-file block, `custom."opmodel.dev@v0"` in `cue.mod/module.cue`. It carries its own `schemaVersion` (1 here), independent of the block's `@v0` suffix. Its fields and caps are `#Listing` in `schemas/target.cue`: required `title`, `summary` and `category`; optional `keywords`, `icon`, `screenshots`, `readme`, `links` (each URL at most 256 runes), `maintainers`, `vendor`, `license` and `deprecated`; `locales` reserved. The card is author-supplied, so the publish gate validates it rather than asserting it against another source, and never edits it. Beside the field caps, a separate size line refuses a card whose canonical JSON encoding exceeds 8 KiB. The caps are set so that a card at every cap passes the size line.
+**Decision:** A module's author card is an optional struct at key `listing` inside its module-file block, `custom."opmodel.dev@v0"` in `cue.mod/module.cue`. It carries its own `schemaVersion` (1 here), independent of the block's `@v0` suffix. Its fields and caps are `#Listing` in `schemas/target.cue`: required `title`, `summary` and `category`; optional `keywords`, `icon`, `screenshots`, `readme`, `links` (each URL at most 256 runes), `maintainers`, `vendor`, `license` and `deprecated`; `locales` reserved. The card names its icon and screenshots by a zip-relative path under `assets/`, never by URL or data URI; what may sit at that path is OQ17. The card is author-supplied, so the publish gate validates it rather than asserting it against another source, and never edits it. Beside the field caps, a separate size line refuses a card whose canonical JSON encoding exceeds 8 KiB. The caps count runes and the size line counts bytes, so the size line can refuse a card that passes every field cap: an ASCII card at every cap is 7,099 bytes and passes, while a card at every cap in CJK text is 13,641 bytes and is refused.
 
 **Requirements:**
 
 - R1: A module's card is readable from its module file alone, with no zip download and no CUE evaluation.
 - R2: A card missing `schemaVersion`, `title`, `summary` or `category`, or exceeding any field cap, is refused at publish, naming the field.
-- R3: A card whose canonical JSON encoding exceeds 8192 bytes is refused at publish, naming the size; a card with every field at its cap is not.
+- R3: A card whose canonical JSON encoding exceeds 8192 bytes is refused at publish, naming the size, even when every field is within its cap.
 - R4: A card carrying `locales`, image bytes, a data URI or an image URL is refused at publish.
 - R5: A reader that does not know `listing` ignores it, and a reader shows the fields it knows of a card whose `schemaVersion` is newer than it knows; no reader refuses a module for its card.
 - R6: A module without a card publishes exactly as it would without this entry.
@@ -78,38 +78,20 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Alternatives considered:**
 
-- **Link URLs capped at 512 runes with the 8 KiB cap as the only total check** (the first draft). Measured: a card at every cap was 8,486 bytes, over its own cap, so the caps contradicted each other. Lowering the URL cap to 256 and the maintainer list to five brings a card at every cap to 7,099 bytes (`schemas/examples.cue`), and the size line stays as a separate check so a later card version cannot outgrow the cap unnoticed.
+- **Link URLs capped at 512 runes with the 8 KiB cap as the only total check** (the first draft). Measured: a card at every cap was 8,486 bytes, over its own cap, so the caps contradicted each other. Lowering the URL cap to 256 and the maintainer list to five brings an ASCII card at every cap to 7,099 bytes (`schemas/examples.cue`). The caps still do not bound the bytes: they count runes, and a multi-byte character or a JSON escape encodes to more than one byte, so the size line stays the check that bounds the card.
 - **A larger cap, or none.** Rejected: every consumer re-fetches the module file on every dependency resolve, and a 1 MiB block measured as publishable shows nothing else would stop it.
 - **Versioning the card with the block's `@v0` suffix.** Rejected: a breaking card change would force the whole block to a new key that 0022's own readers must then learn.
+- **Image URLs in the card.** Rejected: a URL breaks on an air-gapped or sovereign platform and can change after release, while a path inside the immutable zip cannot.
+- **Data URIs in the card.** Rejected: the module file is fetched on every dependency resolve, so image bytes there are paid by every consumer.
 - **Asserting the card against `#Module.metadata.description`.** Not decided here: OQ14 holds it.
 
 **Rationale:** The module file is the one part of a published module that is small, fetched without the zip and readable without CUE, which is exactly what a list view needs. 0022 opened it for OPM's block and anticipated later readers and keys; the card is the first author-supplied, non-derived key in it, so it is validated where 0022's keys are asserted. Measured on 20 real modules: the card survived tidy value-intact 20/20 and vetted 20/20 at 471 to 585 bytes.
 
-**Source:** User decision 2026-10-04 (author card in the 0022 module-file block). `experiments/02-listing-card/` (E4a, E4b). The block is admitted by older gates only through 0022's open tail, a revision of 0022 made in place while it is draft.
+**Source:** User decision 2026-10-04 (author card in the 0022 module-file block). `experiments/02-listing-card/` (E4a, E4b). The CJK figure is a CUE evaluation of `#ListingGate` with cue v0.17.1 (`schemas/examples.cue`, recorded refusals). The block is admitted by older gates only through 0022's open tail, a revision of 0022 made in place while it is draft.
 
-### D3: Card images are files under `assets/` in the module zip
+### D3: (retracted, 2026-10-04)
 
-**Kind:** contract
-
-**Decision:** A card names its icon and screenshots by zip-relative path under a top-level `assets/` directory of the module zip. Publishing a module with a card adds no layer, annotation or referrer: the manifest keeps its two layers. An icon is SVG or PNG and at most 64 KiB; a screenshot is PNG, JPEG or WebP, at most 512 KiB, and at most four per card. Publish refuses an SVG that can run script or load anything: a script, an event attribute, a reference that is not a same-document fragment, a style that imports or loads a URL, an embedded document, or an external entity. Every OPM UI renders a module-supplied image so that nothing in it executes in the page.
-
-**Requirements:**
-
-- R1: Publishing a module with a card adds no layer, annotation or referrer to its manifest.
-- R2: A card path that names no file in the zip, a file of the wrong format, or a file over its cap is refused at publish, naming the path.
-- R3: An SVG asset that carries script, an event attribute, an external reference, a URL-loading style or an embedded document is refused at publish, naming the element.
-- R4: Every OPM UI renders a module-supplied image so that no image content executes in the page.
-
-**Alternatives considered:**
-
-- **Image URLs in the card.** Rejected: a URL breaks on an air-gapped or sovereign platform and can change after release, while a path inside the immutable zip cannot.
-- **Data URIs in the card.** Rejected: the module file is fetched on every dependency resolve, so image bytes there are paid by every consumer.
-- **A third OCI layer or an image referrer.** Rejected: CUE's client refuses a module manifest that does not have exactly two layers, and GHCR has no native referrers API.
-- **Sanitising SVG at render only.** Rejected as the only defence: a reader that skips the step runs the script. Refusal at publish and inert rendering are each a layer a bad actor must defeat.
-
-**Rationale:** The zip is the one carrier that costs nothing in the OCI shape and works on every registry and mirror. The cost is that the zip is downloaded whole on every render fetch, so the caps are small: the worst case adds about 2.1 MiB to a module version. Measured: an `assets/icon.svg` ships inside the published zip unchanged.
-
-**Source:** User decision 2026-10-04 (card images as files in the zip, two-layer manifest kept, scripted SVG refused, inert rendering). `experiments/02-listing-card/` (E4a). Carriage measured in the portal design research 2026-10-04 with cue v0.17.1, Zot v2.1.21 and `registry:2` 2.8.3: the zip includes `.png` and `.svg` files unfiltered up to 500 MiB, and GHCR returns 404 on the referrers endpoint.
+Where card images live, their caps and the SVG and rendering rules are outside the four layers the owner approved; the candidate is OQ17.
 
 ### D4: Field hints are `@opm(ui, ...)` attributes from a closed, versioned vocabulary; a field may carry several `@opm` attributes
 
@@ -140,7 +122,7 @@ The gate's refusal scope keeps a newer vocabulary from breaking an older gate. O
 - **Hints as vendor keywords inside the served CRD schema** (`x-opm-ui`, as several surveyed portals do). Rejected: measured, the Kubernetes API server's strict decoding refuses a CRD carrying `x-opm-ui`, and lenient decoding drops it silently; and a binding-only definition has no CRD at all. Where hints travel instead is OQ10.
 - **A UI-only `visibleWhen` condition.** Rejected: the form and the API server would disagree about what is valid. A conditional field is a discriminated union in `#config`, rendered as OQ9 decides.
 - **A required `v=` on every hint.** Rejected: noise on every hinted field for a version that rarely changes. An absent `v` is unambiguous while version 1 is the first, and a module targeting a later vocabulary states `v`, which is what lets an older gate warn instead of refuse.
-- **Reading only the first `@opm` attribute, as the single-attribute accessor does.** Measured wrong: it returns only the first, so a hint written before the secret marker hides the secret.
+- **Reading only the first `@opm` attribute, as the single-attribute accessor does.** Measured wrong: it returns only the first, so with a hint written before the secret marker such a reader silently drops the secret's routing overrides (group, key, type) and the marker-type check of 0013:D13:R2. Discovery itself survives, because it keys on core's hidden tag, never on the marker (0013:D13, 0013:D33).
 
 **Rationale:** A hint sits next to the field it describes, in the namespace OPM already uses, and survives every path a module travels. Refusing on the module's own fields catches a typo that would otherwise silently do nothing; warning on inherited ones keeps a catalog released against a newer vocabulary from making every dependent module unpublishable under an older CLI.
 
@@ -179,7 +161,7 @@ A catalog type may carry default hints for every field typed by it: as a declara
 
 **Depends:** 0027:D1, 0027:D6
 
-**Decision:** The platform-owned definition of entry 0027 may carry `presentation`, shaped as `#OfferingPresentation`: display name, summary, description, category, tags, icon (a data URI checked by D3's SVG rules), weight, featured, hidden, presets, and per-field layout overrides keyed by config path. Every field is optional. A set field replaces the author's value in every UI; an unset one falls through to the author's card and hints. Per-field overrides change layout only (title, group, order, advanced, hidden), never a widget or a validation, and `advanced` or `hidden` only on optional or defaulted fields. A preset is checked at acceptance through the definition's own projection (0027:D6) with its bound values. Changing presentation re-renders no instance, rebinds nothing and changes no served schema. Disagreement between presentation and the module's card or hints is the point of the block and is never reported. Presentation is outside the offering declaration that 0027:D5 compares.
+**Decision:** The platform-owned definition of entry 0027 may carry `presentation`, shaped as `#OfferingPresentation`: display name, summary, description, category, tags, icon (a data URI checked by the SVG rules OQ17 settles), weight, featured, hidden, presets, and per-field layout overrides keyed by config path. Every field is optional. A set field replaces the author's value in every UI; an unset one falls through to the author's card and hints. Per-field overrides change layout only (title, group, order, advanced, hidden), never a widget or a validation, and `advanced` or `hidden` only on optional or defaulted fields. A preset is checked at acceptance through the definition's own projection (0027:D6) with its bound values. Changing presentation re-renders no instance, rebinds nothing and changes no served schema. Disagreement between presentation and the module's card or hints is the point of the block and is never reported. Presentation is outside the offering declaration that 0027:D5 compares.
 
 Whether 0027 admits the field by revising 0027:D1 in place or after acceptance is 0027:OQ17.
 
@@ -207,11 +189,11 @@ Whether 0027 admits the field by revising 0027:D1 in place or after acceptance i
 
 **Kind:** contract
 
-**Amends:** 0011:D13, 0011:D14
+**Amends:** 0011:D13
 
-**Decision:** An index is a CUE module whose package holds data that validates against `#ListingIndex`: per member module path with major, the newest version on that major, its manifest digest, a verbatim copy of its card, and an optional thumbnail derived from its icon. The publisher's own release pipeline builds and publishes it. It is a snapshot, never an edit point. `opmodel.dev/modules/index` is reserved for the first-party index, by curation, as 0011:D25 reserved `index` inside the templates segment. Third-party and community indexes live at any path their publisher chooses; nothing outside first-party space is refused for using the name, and a reader reads such an index only when configured with its path. An index is a hint, not the truth: a reader checks each member's tags for a newer release on the same major.
+**Decision:** An index is a CUE module whose package holds data that validates against `#ListingIndex`: per member module path with major, the newest version on that major, its manifest digest, a verbatim copy of its card, and an optional thumbnail derived from its icon. The publisher's own release pipeline builds and publishes it. It is a snapshot, never an edit point. A member card whose `schemaVersion` the index's core knows is validated as a card; a newer one is copied unjudged, so an index never refuses a member for adopting a newer card (the index side of D2:R5). `opmodel.dev/modules/index` is reserved for the first-party index, by curation, as 0011:D25 reserved `index` inside the templates segment. Third-party and community indexes live at any path their publisher chooses; nothing outside first-party space is refused for using the name, and a reader reads such an index only when configured with its path. An index is a hint, not the truth: a reader checks each member's tags for a newer release on the same major.
 
-What survives of 0011:D13 and 0011:D14: OPM imposes no namespace on third parties, and first-party space keeps its segments. What changes: first-party modules space gains one reserved name. 0011:D5's surviving holding, that OPM's registry hosts rather than indexes foreign hosts, is untouched: an index is one more hosted module, and resolution still goes through the registry configuration.
+What survives of 0011:D13: OPM imposes no namespace on third parties, and first-party modules stay at `opmodel.dev/modules/<name>`. What changes: that modules space gains one reserved name, `index`, which is never a module. 0011:D5's surviving holding, that OPM's registry hosts rather than indexes foreign hosts, is untouched: an index is one more hosted module, and resolution still goes through the registry configuration.
 
 **Requirements:**
 
@@ -221,6 +203,7 @@ What survives of 0011:D13 and 0011:D14: OPM imposes no namespace on third partie
 - R4: An index is mirrored by the same copy that mirrors its members, with no registry extension, and a reader marks an entry its mirror lacks instead of failing.
 - R5: A reader detects a member release newer than its index entry without the index being republished.
 - R6: A reader reads an index outside first-party space only when it is configured with that index's path.
+- R7: An index whose core predates a member's card version publishes with that card copied unjudged, and is not refused for it.
 
 **Alternatives considered:**
 

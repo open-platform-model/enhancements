@@ -8,7 +8,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Three authored layers and one derived list (D1).** The module author, the platform team and the publisher's release pipeline each own one layer. `#Module` gains no field.
 
-**The author card lives in the module file (D2, D3).** It is a small struct in the OPM metadata block of `cue.mod/module.cue` that entry 0022 adds (0022:D1). It holds a title, summary, category, icon path and links, at most 8 KiB. Images are files inside the module zip, and scripted SVG is refused at publish.
+**The author card lives in the module file (D2).** It is a small struct in the OPM metadata block of `cue.mod/module.cue` that entry 0022 adds (0022:D1). It holds a title, summary, category, icon path and links, at most 8 KiB. It names images by a path in the module zip; what may sit there, and how a UI renders it, is open (OQ17).
 
 **Form hints and help text sit on the configuration fields (D4, D5).** A hint is an `@opm(ui, ...)` attribute from a closed vocabulary, beside the secret marker of entry 0013 (0013:D2). Help text is the author's doc comment, never core's.
 
@@ -51,14 +51,14 @@ Each layer has one owner and one reader that can afford it: the card is in the s
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
 1. [07-questions.md](07-questions.md): the open-questions register
 
-`schemas/` holds the core delta (the card, its gate, the index and the platform's presentation block) with examples that pin a card at every cap under 8 KiB; `contracts/` holds the hint vocabulary as data; `experiments/` records the measurements on the 20-module fleet behind D2 to D7.
+`schemas/` holds the core delta (the card, its gate, the index and the platform's presentation block) with examples that pin an ASCII card at every cap under 8 KiB; `contracts/` holds the hint vocabulary as data; `experiments/` records the measurements on the 20-module fleet behind D2 to D7.
 
 ## Scope
 
 ### In scope
 
 - **Author card:** its fields, caps, size line, version, and the publish check.
-- **Assets:** where images live, their caps, the SVG refusal and inert rendering.
+- **Assets:** where images live, their caps, the SVG refusal and inert rendering, as an open question (OQ17).
 - **Field hints:** the `@opm(ui, ...)` vocabulary, its versioning and the gate's refusal scope.
 - **Help text:** which doc comment a reader shows, and how a catalog type's hints reach a field.
 - **Platform presentation:** the block on the 0027 definition and its merge and inertness rules.
@@ -82,7 +82,7 @@ deliberate divergences from the design need to be documented.
 | [../0022/](../0022/) | The module-file block the card lives in (0022:D1), and the gate it rides beside |
 | [../0027/](../0027/) | The platform-owned definition that carries `presentation` (0027:D1) and the projection presets are checked through (0027:D6) |
 | [../0013/](../0013/) | The `@opm` attribute namespace (0013:D2), which D4 amends, and the tagged `#Secret` type no hint may replace |
-| [../archive/0011/](../archive/0011/) | The namespace decisions D7 amends (0011:D13, 0011:D14) and the `index` reservation precedent (0011:D25) |
+| [../archive/0011/](../archive/0011/) | The namespace decision D7 amends (0011:D13) and the `index` reservation precedent (0011:D25) |
 | [../0021/](../0021/) | The change classes OQ4 cites for presentation-only releases (0021:D2) |
 | [../0023/](../0023/) | The referrer and signing work a signature badge (OQ6) and a listing referrer would wait on |
 | [../0025/](../0025/) | The aspect mechanism D1 deliberately does not use, and 0025:OQ13 under 0027 |
