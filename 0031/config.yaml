@@ -57,6 +57,8 @@ history:
     event: Draft decisions D1 to D7 for the four layers the owner approved; OQ1 to OQ17 opened; experiments 01 to 04 concluded.
   - date: "2026-10-04"
     event: D3 (card images in the zip) retracted as outside the four approved layers; its candidate moved to OQ17, now acceptance-blocking.
+  - date: "2026-10-04"
+    event: OQ18 opened (field caps in runes or bytes); OQ17 narrowed to what card images may be, the assets/ path rule staying in D2.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and

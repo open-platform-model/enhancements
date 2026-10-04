@@ -58,7 +58,7 @@ Each layer has one owner and one reader that can afford it: the card is in the s
 ### In scope
 
 - **Author card:** its fields, caps, size line, version, and the publish check.
-- **Assets:** where images live, their caps, the SVG refusal and inert rendering, as an open question (OQ17).
+- **Assets:** the `assets/` path rule (D2); what may sit there, their caps, the SVG refusal and inert rendering, as an open question (OQ17).
 - **Field hints:** the `@opm(ui, ...)` vocabulary, its versioning and the gate's refusal scope.
 - **Help text:** which doc comment a reader shows, and how a catalog type's hints reach a field.
 - **Platform presentation:** the block on the 0027 definition and its merge and inertness rules.

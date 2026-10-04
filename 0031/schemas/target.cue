@@ -143,6 +143,7 @@ import (
 // #ListingThumbnail: the icon an index builder derives from a member's
 // asset, as a data URI. Never authored.
 // OQ15: whether the builder rasterises SVG icons to PNG.
+// OQ17: an SVG thumbnail is bound by the same SVG and rendering rules.
 #ListingThumbnail: string & =~"^data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/]+=*$" & strings.MaxRunes(16384)
 
 // #ListingIndexEntry: one member module on one major, at the newest version

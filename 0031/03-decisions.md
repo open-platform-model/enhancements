@@ -42,7 +42,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Kind:** scope
 
-**Decision:** Presentation is three authored layers and one derived listing. The module author writes the card (in the module-file block) and field hints with help text (on `#config`). Where the card's images live is OQ17. The platform team writes curation (on the 0027 definition). The publisher's release pipeline derives the index from the cards. No layer is a 0025 aspect or module trait, and `#Module` gains no field.
+**Decision:** Presentation is three authored layers and one derived listing. The module author writes the card (in the module-file block) and field hints with help text (on `#config`). What may sit at the card's `assets/` paths is OQ17. The platform team writes curation (on the 0027 definition). The publisher's release pipeline derives the index from the cards. No layer is a 0025 aspect or module trait, and `#Module` gains no field.
 
 **Requirements:** none (scope: the layers' contents and rules are D2 to D7)
 
@@ -64,7 +64,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Depends:** 0022:D1, 0022:D2
 
-**Decision:** A module's author card is an optional struct at key `listing` inside its module-file block, `custom."opmodel.dev@v0"` in `cue.mod/module.cue`. It carries its own `schemaVersion` (1 here), independent of the block's `@v0` suffix. Its fields and caps are `#Listing` in `schemas/target.cue`: required `title`, `summary` and `category`; optional `keywords`, `icon`, `screenshots`, `readme`, `links` (each URL at most 256 runes), `maintainers`, `vendor`, `license` and `deprecated`; `locales` reserved. The card names its icon and screenshots by a zip-relative path under `assets/`, never by URL or data URI; what may sit at that path is OQ17. The card is author-supplied, so the publish gate validates it rather than asserting it against another source, and never edits it. Beside the field caps, a separate size line refuses a card whose canonical JSON encoding exceeds 8 KiB. The caps count runes and the size line counts bytes, so the size line can refuse a card that passes every field cap: an ASCII card at every cap is 7,099 bytes and passes, while a card at every cap in CJK text is 13,641 bytes and is refused.
+**Decision:** A module's author card is an optional struct at key `listing` inside its module-file block, `custom."opmodel.dev@v0"` in `cue.mod/module.cue`. It carries its own `schemaVersion` (1 here), independent of the block's `@v0` suffix. Its fields and caps are `#Listing` in `schemas/target.cue`: required `title`, `summary` and `category`; optional `keywords`, `icon`, `screenshots`, `readme`, `links` (each URL at most 256 runes), `maintainers`, `vendor`, `license` and `deprecated`; `locales` reserved. The card names its icon and screenshots by a zip-relative path under `assets/`, never by URL or data URI; what may sit at that path is OQ17. The card is author-supplied, so the publish gate validates it rather than asserting it against another source, and never edits it. Beside the field caps, a separate size line refuses a card whose canonical JSON encoding exceeds 8 KiB. The caps count runes and the size line counts bytes, so the size line can refuse a card that passes every field cap: an ASCII card at every cap is 7,099 bytes and passes, while a card at every cap in CJK text is 13,641 bytes and is refused. Whether the caps should count bytes instead is OQ18.
 
 **Requirements:**
 
@@ -83,6 +83,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 - **Versioning the card with the block's `@v0` suffix.** Rejected: a breaking card change would force the whole block to a new key that 0022's own readers must then learn.
 - **Image URLs in the card.** Rejected: a URL breaks on an air-gapped or sovereign platform and can change after release, while a path inside the immutable zip cannot.
 - **Data URIs in the card.** Rejected: the module file is fetched on every dependency resolve, so image bytes there are paid by every consumer.
+- **A third manifest layer or an image referrer.** Rejected: CUE's client refuses a module manifest that does not have exactly two layers, and GHCR returns 404 on the referrers endpoint. Files under `assets/` in the zip add no layer, annotation or referrer (`experiments/02-listing-card/`, E4a).
 - **Asserting the card against `#Module.metadata.description`.** Not decided here: OQ14 holds it.
 
 **Rationale:** The module file is the one part of a published module that is small, fetched without the zip and readable without CUE, which is exactly what a list view needs. 0022 opened it for OPM's block and anticipated later readers and keys; the card is the first author-supplied, non-derived key in it, so it is validated where 0022's keys are asserted. Measured on 20 real modules: the card survived tidy value-intact 20/20 and vetted 20/20 at 471 to 585 bytes.
@@ -91,7 +92,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 ### D3: (retracted, 2026-10-04)
 
-Where card images live, their caps and the SVG and rendering rules are outside the four layers the owner approved; the candidate is OQ17.
+What may sit at a card's asset paths (formats, caps, SVG rules, inert rendering) is outside the four approved layers; the candidate is OQ17.
 
 ### D4: Field hints are `@opm(ui, ...)` attributes from a closed, versioned vocabulary; a field may carry several `@opm` attributes
 

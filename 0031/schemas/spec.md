@@ -81,7 +81,7 @@ The card half of the publish gate. Publish unifies a module's card with `#Listin
 - Publish MUST refuse a module whose card fails `#Listing`, naming the field.
 - Publish MUST refuse a module whose card's canonical JSON encoding exceeds 8192 bytes, naming the size.
 - Publish MUST NOT edit the card.
-- The size line MAY refuse a card that passes every field cap: the caps count runes and the line counts bytes. `examples.cue` pins an ASCII card at every cap at 7099 bytes and records a CJK card at every cap refused at 13641.
+- The size line MAY refuse a card that passes every field cap: the caps count runes and the line counts bytes. `examples.cue` pins an ASCII card at every cap at 7099 bytes and records a CJK card at every cap refused at 13641. Whether the caps count bytes instead is 0031:OQ18.
 
 ### Rationale
 
