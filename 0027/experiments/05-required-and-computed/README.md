@@ -15,7 +15,14 @@ A served schema that marks a field required only when the consumer must supply i
 
 ## Run
 
-Harness not committed (see the index).
+From [`../harness/`](../harness/), with the environment of experiment 02:
+
+```bash
+go run . -only r01 -out out-r01 -live -kubeconfig /path/to/x1a-kubeconfig
+go run . -corpus -fleet "$FLEET" -out out-corpus -live -kubeconfig /path/to/x1a-kubeconfig
+```
+
+The required-versus-defaulted sample is `cue/samples/r01-required`; the corpus run dry-runs each module's own `debugValues` against every encoder's CRD.
 
 ## Outcome
 

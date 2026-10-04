@@ -1,0 +1,1 @@
+{"kind":"module","identity":{"ModulePath":"jacero.se/modules/sonarr@v1","Version":"1.0.2"},"core":{"major":"v2","version":"2.0.0-beta.1"},"catalogs":{"opmodel.dev/catalogs/opm@v4":"4.4.4"},"listing":{"schemaVersion":1,"title":"Sonarr","summary":"x","category":"Media Apps","icon":"https://evil.example/i.svg","locales":{}}}

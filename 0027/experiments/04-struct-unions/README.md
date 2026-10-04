@@ -15,7 +15,14 @@ Struct disjunctions in `#config` split into shapes a structural schema can serve
 
 ## Run
 
-Harness not committed (see the index).
+From [`../harness/`](../harness/), with the environment of experiment 02:
+
+```bash
+go run . -only u -out out-unions -live -kubeconfig /path/to/x1a-kubeconfig
+go run . -corpus -fleet "$FLEET" -out out-corpus
+```
+
+The union samples are `cue/samples/u*`; the two-arm-unions-in-lists cost probes (`zcost-unionlist-*`) run with experiment 03's `-only zcost`. The second command is the 20-module corpus check (refusals per module are in `results.json`).
 
 ## Outcome
 

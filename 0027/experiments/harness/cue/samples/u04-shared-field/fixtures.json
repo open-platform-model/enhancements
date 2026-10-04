@@ -1,0 +1,31 @@
+[
+ {
+  "name": "s3",
+  "values": {
+   "store": {
+    "kind": "s3",
+    "endpoint": "e",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "minio",
+  "values": {
+   "store": {
+    "kind": "minio",
+    "endpoint": "e"
+   }
+  }
+ },
+ {
+  "name": "minio-with-bucket",
+  "values": {
+   "store": {
+    "kind": "minio",
+    "endpoint": "e",
+    "bucket": "b"
+   }
+  }
+ }
+]

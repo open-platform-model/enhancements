@@ -1,0 +1,69 @@
+[
+ {
+  "name": "ok",
+  "values": {
+   "extra": {
+    "a": {
+     "value": "x"
+    },
+    "b": {
+     "ref": "s",
+     "key": "k"
+    }
+   },
+   "certs": [
+    {
+     "ref": "c",
+     "key": "tls.crt"
+    }
+   ],
+   "db": {
+    "password": {
+     "value": "p"
+    }
+   }
+  }
+ },
+ {
+  "name": "bad-map-entry",
+  "values": {
+   "extra": {
+    "a": {
+     "value": "x",
+     "ref": "s",
+     "key": "k"
+    }
+   },
+   "certs": [],
+   "db": {
+    "password": {
+     "value": "p"
+    }
+   }
+  }
+ },
+ {
+  "name": "bad-list-entry",
+  "values": {
+   "extra": {},
+   "certs": [
+    {
+     "ref": "c"
+    }
+   ],
+   "db": {
+    "password": {
+     "value": "p"
+    }
+   }
+  }
+ },
+ {
+  "name": "nested-missing",
+  "values": {
+   "extra": {},
+   "certs": [],
+   "db": {}
+  }
+ }
+]

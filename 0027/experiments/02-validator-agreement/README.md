@@ -15,7 +15,21 @@ Validating a generated CRD offline with the Kubernetes apiextensions library giv
 
 ## Run
 
-Harness not committed (see the index). Totals: 403 CRDs and 451 fixture dry-runs on the samples, plus 80 corpus CRDs and 80 corpus dry-runs.
+From [`../harness/`](../harness/):
+
+```bash
+export WS=/path/to/workspace   # the checkout holding opm-modules/ and modules/
+export CUE_REGISTRY=opmodel.dev=ghcr.io/open-platform-model,registry.cue.works
+FLEET="$WS/opm-modules/*/module.cue,$WS/modules/*/module.cue"
+```
+
+```bash
+go run . -out out                                    # offline: every sample, every encoder
+go run . -out out -live -kubeconfig /path/to/x1a-kubeconfig
+go run . -corpus -fleet "$FLEET" -out out-corpus -live -kubeconfig /path/to/x1a-kubeconfig
+```
+
+Each run writes `results.json` (per encoder and sample: offline structural verdict, CRD validation, live verdict, and every fixture's CUE and API verdicts) and prints one summary line per pair. The offline run needs no cluster; the live runs need a throwaway kind cluster (kindest/node v1.34.3) whose kubeconfig path contains `x1a`. Totals in the recorded run: 403 CRDs and 451 fixture dry-runs on the samples, plus 80 corpus CRDs and 80 corpus dry-runs.
 
 ## Outcome
 

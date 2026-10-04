@@ -1,0 +1,29 @@
+[
+ {
+  "name": "s3",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "mixed",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "bucket": "b",
+    "server": "s"
+   }
+  }
+ },
+ {
+  "name": "nfs-missing",
+  "values": {
+   "backup": {
+    "kind": "nfs"
+   }
+  }
+ }
+]

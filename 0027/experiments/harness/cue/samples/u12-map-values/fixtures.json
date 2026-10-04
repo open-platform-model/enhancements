@@ -1,0 +1,29 @@
+[
+ {
+  "name": "ok",
+  "values": {
+   "stores": {
+    "a": {
+     "kind": "s3",
+     "bucket": "b"
+    },
+    "n": {
+     "kind": "nfs",
+     "server": "s"
+    }
+   }
+  }
+ },
+ {
+  "name": "mixed",
+  "values": {
+   "stores": {
+    "a": {
+     "kind": "s3",
+     "bucket": "b",
+     "server": "s"
+    }
+   }
+  }
+ }
+]

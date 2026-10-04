@@ -1,0 +1,36 @@
+[
+ {
+  "name": "on",
+  "values": {
+   "tls": {
+    "enabled": true,
+    "secretName": "s"
+   }
+  }
+ },
+ {
+  "name": "off",
+  "values": {
+   "tls": {
+    "enabled": false
+   }
+  }
+ },
+ {
+  "name": "off-with-name",
+  "values": {
+   "tls": {
+    "enabled": false,
+    "secretName": "s"
+   }
+  }
+ },
+ {
+  "name": "on-missing",
+  "values": {
+   "tls": {
+    "enabled": true
+   }
+  }
+ }
+]

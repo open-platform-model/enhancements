@@ -19,7 +19,14 @@ A `#Secret` field in `#config` can be served in a structural schema that refuses
 
 ## Run
 
-Harness not committed (see the index). Each candidate is emitted for each sample, validated as in experiment 02, and every fixture is dry-run against the served CRD.
+From [`../harness/`](../harness/), with the environment of experiment 02:
+
+```bash
+go run . -only sec -out out-sec -live -kubeconfig /path/to/x1a-kubeconfig
+go run . -only zcost -out out-cost -live -kubeconfig /path/to/x1a-kubeconfig
+```
+
+`cand-cel` is candidate A, `cand-oneof` candidate B, `walker` is D. The secret samples are `cue/samples/sec-*`; the cost probes are `cue/samples/zcost-*`. Dropping `-live` gives the offline CRD verdicts only.
 
 ## Outcome
 

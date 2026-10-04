@@ -1,0 +1,69 @@
+[
+ {
+  "name": "s3",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "nfs",
+  "values": {
+   "backup": {
+    "kind": "nfs",
+    "server": "srv",
+    "path": "/x"
+   }
+  }
+ },
+ {
+  "name": "s3-no-kind",
+  "values": {
+   "backup": {
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "mixed",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "bucket": "b",
+    "server": "srv"
+   }
+  }
+ },
+ {
+  "name": "s3-missing-bucket",
+  "values": {
+   "backup": {
+    "kind": "s3"
+   }
+  }
+ },
+ {
+  "name": "unknown-kind",
+  "values": {
+   "backup": {
+    "kind": "gcs",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "wrong-arm-field",
+  "values": {
+   "backup": {
+    "kind": "nfs",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "missing",
+  "values": {}
+ }
+]

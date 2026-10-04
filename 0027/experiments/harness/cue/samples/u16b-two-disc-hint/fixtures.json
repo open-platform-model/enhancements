@@ -1,0 +1,31 @@
+[
+ {
+  "name": "s3",
+  "values": {
+   "x": {
+    "kind": "s3",
+    "class": "object",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "s3-kind-only",
+  "values": {
+   "x": {
+    "kind": "s3",
+    "bucket": "b"
+   }
+  }
+ },
+ {
+  "name": "clash",
+  "values": {
+   "x": {
+    "kind": "s3",
+    "class": "file",
+    "bucket": "b"
+   }
+  }
+ }
+]

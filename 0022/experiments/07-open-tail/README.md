@@ -10,12 +10,16 @@ Status: Concluded
 
 - A verbatim copy of `#ModuleFileCustom` as drafted (four required fields, closed).
 - Three variants: an older core with only `...` as the block shape; the drafted shape plus `listing?: #Listing` (the measured card schema) and `...`; and the drafted shape unchanged.
-- Inputs: a valid listing card, an unknown future key, a card with a bad category, a card with an `https://` icon, a card with a `locales` key the card schema forbids, and a misspelled optional key (`listng`).
+- Inputs: a block with no card, a valid listing card, a card plus an unknown future key, one card carrying a bad category, an `https://` icon and a `locales` key the card schema forbids, and a misspelled optional key (`listng`).
 - cue v0.17.1, as in experiment 06.
 
 ## Run
 
-Ran 2026-10-04 as a throwaway harness outside this repo (not committed). Each input was unified with each variant and the verdict and error text recorded.
+```bash
+bash run.sh
+```
+
+`schema/closed`, `schema/oldopen` and `schema/open` are the three variants; `schema/cases/*.json` the inputs (`card`, `card-future`, `bad-card` carrying the bad category, the `https://` icon and `locales` at once, `typo`, and `no-card`). The script vets every case against every variant and prints the verdict with each error's first line.
 
 ## Outcome
 

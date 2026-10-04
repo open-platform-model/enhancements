@@ -1,0 +1,22 @@
+[
+ {
+  "name": "str",
+  "values": {
+   "image": "nginx:1"
+  }
+ },
+ {
+  "name": "obj",
+  "values": {
+   "image": {
+    "repository": "nginx"
+   }
+  }
+ },
+ {
+  "name": "int",
+  "values": {
+   "image": 3
+  }
+ }
+]
