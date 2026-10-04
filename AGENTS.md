@@ -91,7 +91,7 @@ can reword them.
 
 ## Purpose
 
-This repo holds OPM enhancement proposals. Each entry under `NNNN/` is a design package: intent (problem, design, decisions), evidence (research, experiments), and schema changes — plus graduation gates, risks, and operational constraints. The repo is the source of truth for design intent across every OPM repo (core, library, catalog, cli, opm-operator, opmodel.dev, orca, modules). Each entry also carries its own delivery record: `NNNN/delivery.yaml` is an append-only log of landed changes, and `task delivery` derives the delivery state from it.
+This repo holds OPM enhancement proposals. Each entry under `NNNN/` is a design package: intent (problem, design, decisions), evidence (research, experiments), and schema changes — plus graduation gates, risks, and operational constraints. The repo is the source of truth for design intent across every OPM repo (core, library, catalog, cli, opm-operator, opmodel.dev, opm, opm-portal, orca, modules). Each entry also carries its own delivery record: `NNNN/delivery.yaml` is an append-only log of landed changes, and `task delivery` derives the delivery state from it.
 
 ## Repository Rules
 
