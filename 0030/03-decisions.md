@@ -199,7 +199,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R1: A caller without read access to a kind in a namespace receives the same refusal for an existing and a non-existing object of that kind.
 - R2: A list contains only items the caller may read, and a caller with no access receives an empty list with no count or name of hidden items.
 - R3: Objects inside a readable response that the caller cannot read are marked forbidden, and objects the portal itself cannot read are marked not readable; neither fails the response.
-- R4: A request for an object no OPM inventory reaches, including an events request about such an object, is refused with the same `forbidden` problem document as any other refusal; there is no distinct not-in-inventory code, so a caller cannot learn whether such an object exists.
+- R4: A request for an object no OPM inventory reaches, including an events request about such an object, is refused with the same `forbidden` problem document a forbidden read gets (R1); there is no distinct not-in-inventory code, so a caller cannot learn whether such an object exists.
 
 **Alternatives considered:**
 

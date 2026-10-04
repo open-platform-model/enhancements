@@ -43,7 +43,7 @@ Everything the portal knows enters at the watched view, from what the operator a
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`, and the evidence delivery must show
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ19
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ20
 
 [`experiments/`](experiments/) holds a live cluster capture (trimmed, secret-free samples of every OPM kind in healthy, failed and broken states) and a prototype graph run against the same cluster. [`research/`](research/) holds the prior-art and access-model findings.
 
