@@ -23,21 +23,19 @@ let SA = "\(P)-controller-manager"
 	}
 
 	// CRDs — catalog path: resources/v1beta1 #CRDs, fed from the cue-imported
-	// controller-gen output. Every field the source carries is passed through
-	// (versions verbatim: #CRDVersionSchema is closed, so an unknown field in
-	// a future controller-gen output refuses at render rather than vanishing).
+	// controller-gen output. The whole imported spec is embedded, not picked
+	// field by field: #CRDSchema is closed, so a spec field the catalog cannot
+	// carry (spec.conversion, spec.preserveUnknownFields) refuses at render
+	// instead of being dropped silently.
 	crds: {
 		res.#CRDs
 		spec: crds: {
 			for crdName, raw in #crdSource {
 				(crdName): {
+					raw.spec
 					if raw.metadata.annotations != _|_ {
 						annotations: raw.metadata.annotations
 					}
-					group:    raw.spec.group
-					names:    raw.spec.names
-					scope:    raw.spec.scope
-					versions: raw.spec.versions
 				}
 			}
 		}
