@@ -1,0 +1,8 @@
+patch at 2026-10-04T13:46:57.408Z
+13:46:57 MI=2/1 Ready=True:ReconciliationSucceeded ModuleResolved=True:ModuleResolved lastApplied=2026-10-04T13:41:11Z DEP=1/1 upd=2 avail=2 unavail= Available=True:MinimumReplicasAvailable Progressing=True:NewReplicaSetAvailable  PODS= 2 Running,
+13:46:59 MI=2/2 Ready=True:ReconciliationSucceeded ModuleResolved=True:ModuleResolved lastApplied=2026-10-04T13:46:57Z DEP=2/2 upd=1 avail=2 unavail=1 Available=True:MinimumReplicasAvailable Progressing=True:ReplicaSetUpdated  PODS= 1 ErrImagePull, 2 Running,
+...
+13:46:59 MI=2/2 Ready=True:ReconciliationSucceeded ModuleResolved=True:ModuleResolved lastApplied=2026-10-04T13:46:57Z DEP=2/2 upd=1 avail=2 unavail=1 Available=True:MinimumReplicasAvailable Progressing=True:ReplicaSetUpdated  PODS= 1 ErrImagePull, 2 Running,
+13:47:14 MI=2/2 Ready=True:ReconciliationSucceeded ModuleResolved=True:ModuleResolved lastApplied=2026-10-04T13:46:57Z DEP=2/2 upd=1 avail=2 unavail=1 Available=True:MinimumReplicasAvailable Progressing=True:ReplicaSetUpdated  PODS= 1 ImagePullBackOff, 2 Running,
+13:47:59 MI=2/2 Ready=True:ReconciliationSucceeded ModuleResolved=True:ModuleResolved lastApplied=2026-10-04T13:46:57Z DEP=2/2 upd=1 avail=2 unavail=1 Available=True:MinimumReplicasAvailable Progressing=True:ReplicaSetUpdated  PODS= 1 ErrImagePull, 2 Running,
+deadline reached 2026-10-04T13:57:10Z reason=ProgressDeadlineExceeded

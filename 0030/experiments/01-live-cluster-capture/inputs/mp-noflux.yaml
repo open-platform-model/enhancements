@@ -1,0 +1,18 @@
+# ModulePackage with no Flux installed: exercises the source-missing state only.
+apiVersion: v1
+kind: Namespace
+metadata: {name: pkg}
+---
+apiVersion: opmodel.dev/v1alpha1
+kind: ModulePackage
+metadata:
+  name: podinfo
+  namespace: pkg
+spec:
+  sourceRef:
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: OCIRepository
+    name: podinfo-release
+  path: "."
+  interval: 1m
+  prune: true
