@@ -113,7 +113,11 @@ let SA = "\(P)-controller-manager"
 
 			gracefulShutdown: terminationGracePeriodSeconds: 10
 
-			podMetadata: annotations: "kubectl.kubernetes.io/default-container": "manager"
+			podMetadata: annotations: {
+				"kubectl.kubernetes.io/default-container": "manager"
+				// 0.2.0: visible pod-template change for the upgrade probe.
+				"experiments.opmodel.dev/module-version": "0.2.0"
+			}
 
 			// automountToken is optional in the schema but the SA helper reads
 			// it unguarded, so it must be set (true == the API default).

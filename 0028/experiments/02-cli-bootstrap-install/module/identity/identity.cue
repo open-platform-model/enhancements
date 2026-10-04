@@ -8,4 +8,4 @@ package identity
 ModulePath: "testing.opmodel.dev/modules/experiments/opm-operator-bootstrap/opm_operator@v0"
 
 // Version is the module's bare SemVer; its major must agree with ModulePath's.
-Version: "0.1.0"
+Version: "0.2.0"

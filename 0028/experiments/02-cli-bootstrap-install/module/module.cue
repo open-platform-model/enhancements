@@ -68,7 +68,7 @@ metadata: {
 	// cpu as a number of cores: the schema admits the string "2" but the
 	// catalog's #NormalizeCPU only converts "<n>m" strings (finding).
 	resources: res.#ResourceRequirementsSchema | *{
-		requests: {cpu: "100m", memory: "256Mi"}
+		requests: {cpu: "100m", memory: "320Mi"} // 0.2.0: was 256Mi (upgrade probe)
 		limits: {cpu: 2, memory: "4Gi"}
 	}
 }
