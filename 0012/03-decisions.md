@@ -32,7 +32,7 @@ This supersedes the placement conclusion of enhancement 0006 D31 ("`library/opm/
 - R4: A live object whose manager label is not an OPM runtime identity, or whose instance identity differs from the deleting instance's, is skipped by both frontends with the reason named. The one exception is the operator install's deletion of proven earlier-manifest objects (0012:D8:R7).
 - R5: Whether an instance's deletion hold may be released is decided from its policy and the plan's outcome, identically for whichever frontend asks, with the reason named.
 - R6: Deletions happen in a defined order that is the same on both frontends.
-- R7: Before applying, each object receives a verdict, and the verdict is the same on both frontends. It refuses an existing object that is being deleted, whether or not it is in the instance's inventory. It refuses an existing object outside the instance's recorded inventory that OPM does not manage or that carries another instance's identity, unless the adopt annotation of 0012:D8 names this instance.
+- R7: Before applying, each object receives a verdict, and the verdict is the same on both frontends. It refuses an existing object that is being deleted, whether or not it is in the instance's inventory. It refuses an existing object outside the instance's recorded inventory that OPM does not manage or that carries another instance's identity, unless the adopt annotation of 0012:D8 names this instance, or the object is one the operator install admits under 0012:D8:R6.
 
 **Alternatives considered:**
 
