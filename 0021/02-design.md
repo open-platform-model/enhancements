@@ -84,7 +84,7 @@ Two things the table does not settle, and both are the entry's blocking question
 
 ### The tooling train (OQ14)
 
-The kernel library has two consumers, the CLI and the operator, and both are first-party. The CLI embeds an operator install manifest at a pinned version and refuses to apply when the operator is newer than itself. Three release trains for three binaries whose only compatibility relationships are with each other is where the sweep found the most unverified claims: a migration ledger asserting a gate that does not exist, a skew ceiling that is one-directional, a pinned manifest nothing checks. One train removes the relationships instead of gating them:
+The kernel library has two consumers, the CLI and the operator, and both are first-party. The CLI installs the operator from a pinned version of the operator module, which names the operator it deploys, and refuses to apply when the operator is newer than itself. Three release trains for three binaries whose only compatibility relationships are with each other is where the sweep found the most unverified claims: a migration ledger asserting a gate that does not exist, a skew ceiling that is one-directional, a pinned manifest nothing checks. One train removes the relationships instead of gating them:
 
 ```
 today                                       one train

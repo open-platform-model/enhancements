@@ -22,7 +22,7 @@ affects:
   - cli
 core_schema: false
 created: "2026-07-27"
-updated: "2026-10-03"
+updated: "2026-10-04"
 authors:
   - emil@jacero.se
 history:
@@ -73,6 +73,8 @@ history:
     event: 'D5 revised in place (owner decision): no module-internal ordering is planned; cross-module order belongs to a future Bundle definition (definition order).'
   - date: "2026-10-03"
     event: 'Owner decisions: D7 (component-blind stale set, canonical inventory digest), D8 (apply guard on every apply, adopt annotation); D4 revised for deletion. OQ7, OQ8 resolved; OQ10 deferred to 0009.'
+  - date: "2026-10-04"
+    event: 'Owner decision: D8 R6-R7, operator install admits and may delete only objects proven from an earlier operator manifest; D1 R4, D4 R1 except those deletions.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
