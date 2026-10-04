@@ -248,7 +248,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Alternatives considered:**
 
-- **Rely on event `series` for collapsing** (previously assumed in the design). In the capture the only operator events with `series` were two Platform `Generated` repeats (`count: 2`), each regarding an unchanged Platform; cert-manager's four `ApplyFailed` repeats, identical but for the regarded object's `resourceVersion`, were four separate events, and kubelet events have `eventTime: null` (observation 4).
+- **Rely on event `series` for collapsing** (previously assumed in the design). In the capture the only operator events with `series` were three repeats (`count: 2`), two Platform `Generated` and one ModuleInstance `NoOp`, each regarding an unchanged object version and all from the unreleased library beta.4 rebuild, none from the released beta.5 controller; cert-manager's four `ApplyFailed` repeats, identical but for the regarded object's `resourceVersion`, were four separate events, and kubelet events have `eventTime: null` (observation 4).
 - **Look for Platform events in the Platform's namespace.** It has none; the capture found them in `default` (observation 5).
 - **Persist events in the portal.** Makes the portal stateful and a second record of history; whether anyone should persist them is OQ9.
 
