@@ -8,13 +8,15 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The transfer command returns, forward only (D1).** `opm instance handoff` moves a CLI-owned instance to the operator, never back, as entry 0006 decided (0006:D16).
 
-**Twelve gates must pass before anything is written (D2).** They include a module the operator can fetch, a re-render that reproduces the recorded fingerprint of what was applied, and an unchanged record. Success means the operator reconciled with the same set of resources and pruned nothing (0006:D40).
+**Twelve gates must pass before anything is written (D2).** They include a named applier, a re-render from the registry that reproduces the recorded fingerprint of what was applied, and a write that fails if the record changed. Success means the operator reconciled with the same resources, pruned nothing, and recorded the same render fingerprint.
 
-**The user names who applies (D3).** The transfer requires a service account and a prune choice, and asks the cluster whether that account can apply every recorded resource.
+**The user names who applies (D3).** The transfer requires a service account and a prune choice. It asks the cluster whether that account can apply every resource, including the extra rights Kubernetes demands for roles and bindings.
 
-**The operator says where it fetches modules (D4).** It reports its registry mapping on the cluster Platform, the cluster-wide settings object it owns, so the CLI checks reachability with the operator's mapping.
+**The operator proves it can fetch the module (D4).** Before adopting, it renders the instance itself and refuses unless the result matches what the CLI verified. The CLI cannot check this from its side, so the refusal comes after the owner field changed (OQ8 asks the owner about that).
 
-**The operator refuses unsafe adoptions (D5, D6).** It will not adopt a locally rendered instance or the instance that runs the operator, so a hand edit cannot bypass the gates. Every render not wholly from a registry is marked local.
+**The operator refuses unsafe adoptions (D5, D6).** It will not adopt a locally rendered instance or the instance that runs the operator. Every render not wholly from a registry is marked local.
+
+**The operator ends up the only manager (D8).** After success the CLI gives up its ownership of every field, so later module versions can remove fields.
 
 **Export reuses these gates (D7).** Entry 0014 depends on them.
 
@@ -31,28 +33,28 @@ lands, which is exactly the drift the implementation axis was removed to stop.
 flowchart LR
     user["User names applier account and prune choice"] --> gates
     record["Instance record: coordinate, values, digest, inventory"] --> gates
-    report["Operator's registry mapping on the Platform status"] --> gates
     registry["Registry"] --> gates
     gates["CLI gate chain, cheapest first"] -->|"any refusal"| untouched["Record untouched, reason and remedy shown"]
-    gates -->|"all pass"| write["One write: owner operator, applier, prune"]
-    write --> backstop["Operator backstop: local or self instance?"]
+    gates -->|"all pass"| write["One conditional write: owner operator, applier, prune, expected digest"]
+    write --> backstop["Operator: local, self, or render differs?"]
     backstop -->|"yes"| stalled["Stalled with reason, no finalizer"]
     backstop -->|"no"| adopt["Operator adopts: same resources, nothing pruned"]
+    adopt --> release["CLI releases its field ownership"]
 ```
 
-The CLI does the expensive proof: it reads the record, asks the cluster about the named account, and re-renders the module through the operator's own registry mapping. Only when every gate passes does it write once. The operator's backstop runs on every adoption, including one a person made by editing the owner field by hand, which is why it refuses on its own.
+The CLI proves what it can from its side: it reads the record, asks the cluster about the named account, and re-renders the module from the registry. Only when every gate passes does it write once. The operator then proves what only it can: that its own fetch and render reproduce the verified result. Its checks run on every adoption, including one a person made by editing the owner field by hand.
 
 ## Documents
 
 1. [01-problem.md](01-problem.md): why the old transfer was removed, and what a hand flip of the owner field does today
 1. [02-design.md](02-design.md): the gate chain, the operator backstop, and the before/after for one locally developed module
-1. [03-decisions.md](03-decisions.md): the decision log, D1 to D7
+1. [03-decisions.md](03-decisions.md): the decision log, D1 to D8
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ7
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ11
 
-[`experiments/`](experiments/) holds two runnable checks: whether local renders are marked and remote fetches predicted correctly, and whether an access review predicts the operator's apply and what field ownership looks like after the flip.
+[`experiments/`](experiments/) holds two concluded runnable checks. Experiment 01 found which local renders go unmarked, that a warm cache passes a republished tag, and that the CLI cannot predict the operator's fetch but can predict its render fingerprint. Experiment 02 found that an access review predicts the operator's apply once role escalation is modelled, and that the CLI keeps owning every field after a flip.
 
 ## Scope
 
@@ -61,8 +63,9 @@ The CLI does the expensive proof: it reads the record, asks the cluster about th
 - A forward-only CLI command that transfers a CLI-owned instance to the operator.
 - The gate set every transfer runs, including applier identity and operator-side reachability.
 - Recording the applier account and prune choice on the instance at transfer.
-- The operator reporting its module registry mapping on the cluster Platform.
+- The operator checking its own render against the verified one before it adopts.
 - The operator refusing to adopt a locally rendered instance or its own instance.
+- The CLI giving up its field ownership after a successful transfer.
 - Marking every non-registry render as local.
 
 ### Out of scope
@@ -70,6 +73,7 @@ The CLI does the expensive proof: it reads the record, asks the cluster about th
 - Not a reverse transfer from operator to CLI, and not the GitOps export of entry 0014.
 - Transferring the operator's own instance, which entry 0028 keeps CLI-owned forever.
 - Registry credentials for the operator; transfers verify what an anonymous fetch reaches.
+- Pinning module content after the transfer (an open question, not a decision).
 - Creating the applier account or its RBAC (an open question, not a decision).
 
 ## Deviations from Design

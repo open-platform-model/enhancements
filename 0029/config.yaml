@@ -50,6 +50,8 @@ history:
     event: Drafted
   - date: "2026-10-04"
     event: 'D1 to D7 drafted from owner decisions: forward-only transfer, twelve gates, named applier, operator mapping report, operator backstop, wider local marker. OQ1 to OQ4 wait on the two experiments.'
+  - date: "2026-10-04"
+    event: 'Experiments 01 and 02 concluded and folded in: D4 rewritten to an operator-side render check, D2 and D3 sharpened, D8 added; OQ1 to OQ5 resolved, OQ8 blocks on the owner.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
