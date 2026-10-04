@@ -35,21 +35,21 @@ import (
 	"reader-sa": {
 		res.#ServiceAccount
 		metadata: name: "reader-sa"
-		spec: serviceAccount: {name: "multi-reader", automountToken: false}
+		spec: serviceAccount: {name: #config.readerName, automountToken: false}
 	}
 
 	"reader-rbac": {
 		res.#Role
 		metadata: name: "reader-rbac"
 		spec: role: {
-			name:  "multi-reader"
+			name:  #config.readerName
 			scope: "cluster"
 			rules: [{
 				apiGroups: [""]
 				resources: ["nodes"]
 				verbs: ["get", "list"]
 			}]
-			subjects: [{name: "multi-reader", automountToken: false}]
+			subjects: [{name: #config.readerName, automountToken: false}]
 		}
 	}
 

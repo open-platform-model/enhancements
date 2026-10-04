@@ -30,6 +30,9 @@ metadata: {
 	// extra gates the ConfigMap component; flipping it to false is the prune probe.
 	extra:   bool | *true
 	message: string | *"hello from multi"
+	// readerName names the ServiceAccount and the cluster-scoped ClusterRole and
+	// ClusterRoleBinding, so instances in several namespaces do not collide.
+	readerName: string | *"multi-reader"
 }
 
 debugValues: {
@@ -37,4 +40,5 @@ debugValues: {
 	replicas: 1
 	extra:    true
 	message:  "hello from multi"
+	readerName: "multi-reader"
 }
