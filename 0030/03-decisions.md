@@ -53,7 +53,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 **Alternatives considered:**
 
 - **HTMX pages with no public API** (the API added later). Fastest V1, but every adapter later re-derives the joins, and the UI's needs would shape an API retrofitted after the fact. Rejected by the owner.
-- **A JavaScript single-page app over the JSON API.** Makes the browser the consumer, at the cost of a client build and client templates; it also conflicts with the strict content security policy V1 holds. Not chosen.
+- **A JavaScript single-page app over the JSON API.** Makes the browser the consumer, at the cost of a client build and client templates. Not chosen.
 - **UI and API as two presenters over a shared service layer.** Simpler, but the API then has no consumer in V1 except tests, so nothing keeps it complete. Not chosen.
 - **Version `v1` from day one.** Everything upstream is `opmodel.dev/v1alpha1` and may still change; promising more stability than the source has would make the portal absorb every upstream break.
 
@@ -67,7 +67,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Depends:** 0015:D14
+**Depends:** 0015:D14, 0015:D18
 
 **Decision:** Every instance and package shows two values side by side. **Applied** state comes from the operator's conditions: `Ready=True` is shown as "Applied" and never as healthy, because the operator's Ready means every apply succeeded, with no wait on workload health. **Health** is the portal's own computation from live objects: each object's status by the standard Kubernetes status rules (kstatus), plus one Pod rule, rolled up worst-of through components to the instance, with unreadable objects excluded and the result marked partial. The Pod rule exists because the live capture showed an image-pull failure stays invisible to both the operator and kstatus for the whole progress deadline: a container waiting with `ErrImagePull`, `ImagePullBackOff`, `CrashLoopBackOff`, `CreateContainerConfigError` or `InvalidImageName` marks the Pod's owning workload Degraded. A CLI-owned instance shows its applied state as managed externally, in a neutral style, and its health is still computed from the inventory the CLI wrote. The operator's failure counters and drift flag are diagnostics, never health.
 
@@ -75,7 +75,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 - R1: An instance's applied state and its workload health are shown as two separate values; neither is derived from the other, and a `Ready=True` instance is never labelled healthy.
 - R2: A Pod whose container waits with an image-pull, crash-loop, container-config or invalid-image reason marks its owning workload, and so its component and instance, Degraded, even while the workload's own conditions report it available.
-- R3: In the scripted image break (a Deployment's image set to a tag that does not exist), the instance's health is Degraded within seconds of the new Pod reporting its waiting reason, while its applied state stays Applied.
+- R3: In the scripted image break (the instance's image value set to a tag that does not exist, so the operator applies a Deployment whose new Pod cannot pull while the old replicas keep serving), the instance's health is Degraded within seconds of the new Pod reporting its waiting reason, while its applied state stays Applied.
 - R4: An object the portal or the user cannot read is excluded from the roll-up and the result says it is partial; a Secret is never read and does not make a result partial.
 - R5: An object whose health is refreshed by polling rather than by a watch shows when it was last evaluated, and the instance's health says it is not live.
 - R6: A CLI-owned instance shows its applied state as managed externally, without an error style, and shows workload health computed from its inventory.
@@ -93,7 +93,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** The portal's main promise is that a broken rollout looks broken. Ready is correct for what it says, apply success, so the portal keeps it and labels it honestly, and computes health itself from the objects that actually show the failure.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 3, 6, 11 and 12, and the CLI-owned instance addendum. 0015:D14 as revised (readiness means apply success, no health wait). User decision 2026-10-04 to capture a CLI-owned instance on the throwaway cluster.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 3, 6, 11 and 12, and the CLI-owned instance addendum. 0015:D14 as revised (readiness means apply success, no health wait); 0015:D18 (an unfulfilled contract is reported, never refused), which R8 follows. User decision 2026-10-04 to capture a CLI-owned instance on the throwaway cluster.
 
 ---
 
@@ -103,27 +103,29 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Depends:** 0015:D3
 
-**Decision:** The portal never renders a module. Every node and edge comes from a field a Kubernetes object already carries, and each edge kind has exactly one source: subscriptions from the Platform's resolved registry; registration-to-catalog from the registry entries a registration contributed; registration-to-instance from the registration's provider reference, cross-checked against the provider's inventory; instance-to-module from the instance spec; component and object edges from the inventory; runtime children from ownerReferences walked below inventory workloads; package-to-package from the package's dependencies. **V1 draws no "requires" edge from an instance to a provider contract.** The live capture showed the instance's recorded contracts are every contract its render used, most of them fulfilled by the catalog itself, not the provider contracts it demands; V1 lists them on the instance as text, and requires edges wait for the operator to record provider demand. Registrations show acceptance and activation as separate states, read from the conditions the operator writes. Configuration-only components are grouped into one expandable node by default.
+**Decision:** The portal never renders a module. Every node and edge comes from a field a Kubernetes object already carries, and each edge kind has exactly one source: subscriptions from the Platform's resolved registry; registration-to-catalog from the registry entries a registration contributed; registration-to-instance from the registration's provider reference, cross-checked against the provider's inventory; instance-to-module from the instance spec; component and object edges from the inventory; runtime children from ownerReferences walked below inventory workloads; package-to-package from the package's dependencies. **V1 draws no "requires" edge from an instance to a provider contract.** The live capture showed the instance's recorded contracts are every contract its render used, most of them fulfilled by the catalog itself, not the provider contracts it demands; V1 lists them on the instance as text, and requires edges wait for the operator to record provider demand. Registrations show acceptance and activation as separate states, read from the registration's `status.accepted` and `status.active` fields, never inferred from the `Stalled` and `Ready` conditions: the same condition pair marks both a refused claim and an accepted, active claim whose removal is blocked by dependents. A blocked removal is shown as its own state, not as a refusal. Configuration-only components are grouped into one expandable node by default.
 
 **Requirements:**
 
 - R1: Every node and edge in a portal graph is traceable to a field of a Kubernetes object; no graph is produced by rendering a module.
 - R2: Where two sources for the same relation disagree (a registration's provider reference and the provider's inventory), the graph shows the disagreement instead of picking one.
 - R3: V1 shows no edge from an instance to a contract; the contracts an instance's render used are listed on the instance as plain text, labelled as the render's contracts, not its provider demand.
-- R4: A registration shows whether it was accepted and whether it is active as two separate states; a refused registration shows its refusal reason and message.
+- R4: A registration shows whether it was accepted and whether it is active as two separate states, taken from its `status.accepted` and `status.active`; a refused registration shows its refusal reason and message.
 - R5: Components that own no workload are grouped into one expandable node by default.
 - R6: Graph node identifiers are stable across portal restarts and do not change when the underlying object is deleted and recreated.
+- R7: A registration that is being deleted while instances still demand its contracts is shown as removal blocked, naming the reason and message, and keeps showing as accepted and active; it is never shown as refused.
 
 **Alternatives considered:**
 
 - **Requires edges from `status.requiredContracts`** (previously adopted in the design). The capture refuted it: cert-manager lists 15 contracts and podinfo 7, nearly all catalog-fulfilled, so the edges would claim every instance depends on every core resource. Waiting for an operator field that records provider demand (per-entry fulfilment or a provider-contract list, OQ18) is the honest path.
 - **Re-render modules in the portal** to recover transformer provenance and demand. A render costs tens of megabytes per module, needs registry access and a platform module on disk, and would create a second render path that can disagree with the operator's.
 - **Draw instance-to-object edges from labels.** The uuid label is on every inventory object but not on Pods or ReplicaSets, and labels are a cross-check, not the record; the inventory is.
+- **Read acceptance from the conditions** (previously in this decision). `Stalled=True` plus `Ready=False` marks a refusal, but phase 9 of the capture showed the same pair, reason `DependentsRemain`, on a claim that stayed accepted and active while its removal was blocked; reading the pair as refusal would mislabel it.
 - **Show every component as its own node.** cert-manager's graph had 86 nodes and 85 edges, 20 of them components, most holding one RBAC or configuration object (measured, observation 13); unreadable without grouping.
 
 **Rationale:** One source per edge kind makes every edge explainable and every disagreement visible. Drawing an edge the data does not support is worse than drawing none, because a platform team would act on it.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 2, 8, 9 and 13; [experiment 02](experiments/02-live-graph-spike/). Registration verdicts as 0015:D3 defines the registration resource and its conditions.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 2, 8, 9 and 13, with the refused, accepted and active, and removal-blocked registration samples of phases 7 to 9; [experiment 02](experiments/02-live-graph-spike/). Registration verdicts as 0015:D3 defines the registration resource and its conditions.
 
 ---
 
@@ -168,6 +170,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R5: A bearer-token client sees exactly what the same user sees in the browser.
 - R6: Unless the deployment declares that the API server trusts the portal's issuer, the portal refuses to start with an empty username or groups prefix.
 - R7: The portal records, per authenticated person, each read it authorized and each it denied.
+- R8: A bearer token is accepted only when it is signed by the configured issuer and names the configured audience; any other token is refused with no Kubernetes call made on its behalf.
 
 **Alternatives considered:**
 
@@ -209,13 +212,14 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** The portal never reads a Secret's data, in any mode, so it can never serve one. In V1 it shows no instance's `spec.values`: users supply plain values that unification marks as secrets only inside the module's schema, and modules still take plain-string passwords, so no marker in the stored values identifies what to hide. The `kubectl.kubernetes.io/last-applied-configuration` annotation is stripped from every object the portal serves, because a client-side apply copies the full values into it.
+**Decision:** The portal never reads a Secret's data, in any mode, so it can never serve one. In V1 it shows no instance's `spec.values`: users supply plain values that unification marks as secrets only inside the module's schema, and modules still take plain-string passwords, so no marker in the stored values identifies what to hide. The `kubectl.kubernetes.io/last-applied-configuration` annotation is stripped from every object the portal serves, because a client-side apply copies the full values into it. Hiding `spec.values` does not hide what the values became: a value a module renders into a non-Secret object (a ConfigMap entry, a container's environment) is shown in that object's YAML view to any user whose RBAC lets them read it, exactly as `kubectl` would show it. Keeping a value out of reach means rendering it into a Secret.
 
 **Requirements:**
 
 - R1: The portal reads no Secret's data in any mode, and its in-cluster role grants no access to Secrets.
 - R2: No API document, YAML view or page in V1 contains an instance's or package's `spec.values`.
 - R3: No object the portal serves carries the `kubectl.kubernetes.io/last-applied-configuration` annotation.
+- R4: The portal's documentation states that values rendered into non-Secret objects are visible to anyone who may read those objects, in the portal as in `kubectl`.
 
 **Alternatives considered:**
 
@@ -232,19 +236,19 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: operator events never carry `series` and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
+**Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: the operator sets `series` only on a repeat inside its event recorder's window and emits later repeats as separate events, and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time, whichever way each repeat was recorded. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
 
 **Requirements:**
 
 - R1: Every status value the portal shows comes from conditions or status history; none is inferred from an event.
 - R2: The events feed is labelled as recent activity that expires.
-- R3: Repeated events about the same object with the same reason and message appear once, with a count and the latest occurrence time, for both operator and kubelet events.
+- R3: Repeated events about the same object with the same reason and message appear once, with a count and the latest occurrence time, for both operator and kubelet events, and whether each repeat was recorded as a separate event, in an event's `series`, or in its deprecated count.
 - R4: Events about the Platform and about each TransformerRegistration appear on that object's page.
 - R5: The instance page states that render warnings are kept only as events and that older ones are gone.
 
 **Alternatives considered:**
 
-- **Rely on event `series` for collapsing** (previously assumed in the design). The capture showed the operator never sets `series` and emits no periodic NoOp events, and kubelet events have `eventTime: null` (observation 4).
+- **Rely on event `series` for collapsing** (previously assumed in the design). The capture showed the operator sets `series` only on an in-window repeat (a Platform `Generated` event with `count: 2`) while cert-manager's four `ApplyFailed` repeats were four separate events, and kubelet events have `eventTime: null` (observation 4).
 - **Look for Platform events in the Platform's namespace.** It has none; the capture found them in `default` (observation 5).
 - **Persist events in the portal.** Makes the portal stateful and a second record of history; whether anyone should persist them is OQ9.
 
@@ -258,7 +262,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** Pod logs can be streamed only for a Pod reachable from an instance's or package's inventory through workload ownership (Deployment to ReplicaSet to Pod, StatefulSet or DaemonSet to Pod, CronJob to Job to Pod). The user's `pods/log` access is checked before a stream starts and again on reconnect. The portal bounds each stream itself: an oversize line is truncated with a marker, lines beyond a per-stream rate are dropped and counted, and an oversize initial tail skips ahead to live output with a marker. It never uses the Kubernetes byte limit, which ends a followed stream outright.
+**Decision:** Pod logs can be streamed only for a Pod reachable from an instance's or package's inventory through workload ownership: Deployment to ReplicaSet to Pod, StatefulSet or DaemonSet to Pod, Job to Pod, and CronJob to Job to Pod. The user's `pods/log` access is checked before a stream starts and again on reconnect. The portal bounds each stream itself: an oversize line is truncated with a marker, lines beyond a per-stream rate are dropped and counted, and an oversize initial tail skips ahead to live output with a marker. It never uses the Kubernetes byte limit, which ends a followed stream outright.
 
 **Requirements:**
 
@@ -274,7 +278,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** Keeping logs inside the OPM view keeps the role narrow. Bounding in the portal protects the browser and the portal without cutting off the live tail a developer is watching.
 
-**Source:** Portal V1 architecture, logs section. Workload ownership chains measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observation 8.
+**Source:** Portal V1 architecture, logs section. The Deployment to ReplicaSet to Pod chain was measured on a live cluster ([experiment 01](experiments/01-live-cluster-capture/), observation 8); the capture held no StatefulSet, DaemonSet, Job or CronJob, so those chains are design, read from the Kubernetes controllers' ownerReference behaviour.
 
 ---
 
@@ -282,12 +286,12 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, and on every non-Secret kind the pinned OPM catalog's transformers can render; `create` on SubjectAccessReviews; and `get` on `pods/log`. It grants no write verb, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations; whether they aggregate into the built-in `view` role is OQ6.
+**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, on every non-Secret kind the pinned OPM catalog's transformers can render, and on the runtime children those workloads own (Pods, `apps` ReplicaSets, and `batch` Jobs a CronJob creates), which D3's Pod rule, D4's runtime children and D10's reach check all read; `create` on SubjectAccessReviews; and `get` on `pods/log`. It grants no write verb, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations; whether they aggregate into the built-in `view` role is OQ6.
 
 **Requirements:**
 
 - R1: The in-cluster portal's role contains no write verb, no impersonate verb and no access to Secrets.
-- R2: Every non-Secret kind the pinned OPM catalog can render is readable by the portal's role, and a catalog that adds a kind the role does not cover is caught before the portal releases.
+- R2: Every non-Secret kind the pinned OPM catalog can render, and every runtime child kind below those workloads (Pods, ReplicaSets, Jobs), is readable by the portal's role, and a catalog that adds a kind the role does not cover is caught before the portal releases.
 - R3: An inventory object of a kind the portal's role does not cover is shown as not readable, with the reason, never omitted.
 - R4: A cluster administrator can grant a non-admin read access to Platforms, ModulePackages and TransformerRegistrations using a role the operator ships.
 - R5: A user without read access to the Platform sees that it is hidden by their access, not an empty Platform.
