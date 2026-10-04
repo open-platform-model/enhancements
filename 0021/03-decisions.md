@@ -83,20 +83,25 @@ Whether the rendered output's stateful identity forms a second surface is OQ1; w
 
 **Kind:** scope
 
-**Decision:** The policy covers nine classes: the core schema; the catalog build; the catalog contract; the transformer; the module; the CLI template; the tooling train of kernel library, CLI and operator; the CRDs; and the documentation site. Each has its own file under `policy/` and a row in `contracts/policy.cue`. Out of scope, by the author's selection from the workspace sweep of 2026-08-24: the test fixture fleets under `testing.opmodel.dev` (three publish mechanisms, no consumer outside CI); the CLI's importable Go packages (no stated consumer); the operator install manifest as a class of its own (it is an artifact of the operator release); and platforms (consumers, not artifacts, until something publishes one; OQ11).
+**Decision:** The policy covers nine classes: the core schema; the catalog build; the catalog contract; the transformer; the module; the CLI template; the tooling train of kernel library, CLI and operator; the CRDs; and the documentation site. Each has its own file under `policy/` and a row in `contracts/policy.cue`. Out of scope, by the author's selection from the workspace sweep of 2026-08-24: the test fixture fleets under `testing.opmodel.dev` (three publish mechanisms, no consumer outside CI); the CLI's importable Go packages (no stated consumer); the operator install manifest as a class of its own (it is a render of the operator module, not an artifact of its own); and platforms (consumers, not artifacts, until something publishes one; OQ11).
 
 The sweep also surfaced cross-actor wire contracts: the operator version-skew ceiling, the CRD constants the CLI mirrors, the inventory digest, the label vocabulary, and the catalog-version coupling between platform and modules. These are compatibility contracts without a version of their own. They are named under the CRD class as its shared surface and gated by parity, not by a bump rule.
 
-**Requirements:** none (names the nine classes in and the four artifact kinds out)
+The operator module, `opmodel.dev/modules/opm_operator`, falls in the module class: its `#config` schema is its compatibility surface under D2, and it is versioned on its own train (D11), not on the tooling train's. The install manifest is no class and no artifact of the operator release: whatever the operator is installed from is a render of that module.
+
+**Requirements:** none (names the nine classes in and the four artifact kinds out; the operator module's bump rule is D2's)
 
 **Alternatives considered:**
 
 - **Every class the sweep found.** Fourteen artifact classes plus eight wire contracts. Rejected by the author as scope: the fixtures and the CLI's Go packages have no consumer a promise could reach, and the install manifest is the operator release seen from the CLI's side.
+- **The install manifest as an artifact of the operator release (previously adopted).** The out-of-scope list excused the manifest because the CLI embedded the one each operator release produced, so it was the operator release seen from the CLI's side. Not kept by the owner on 2026-10-04: the operator now ships as a module on its own train, and the manifest is that module's render, so its compatibility is the module's `#config`, not the operator binary's version.
 - **Drop the catalog build as a class, since the contract class carries the promise.** Considered and kept. A `#Platform` subscription pins a build as a scalar and never a contract, and every transformer key embeds the build version, so the build is the unit a platform actually depends on. The contract class says what a member promises; the build class says which members and transformers ship together. What the build class lacks is the rule for how a contract-level event moves its number, which is OQ7.
 
 **Rationale:** The sweep is the evidence; the selection is the author's. Naming what is out and why keeps the omissions deliberate rather than silent, which is D1's own requirement.
 
-**Source:** User decision 2026-08-25, selecting from the 2026-08-24 workspace sweep.
+**Source:** User decision 2026-08-25, selecting from the 2026-08-24 workspace sweep. The operator module in the module class and the manifest as its render: Owner decision 2026-10-04 (the operator ships its own OPM module from its repository on its own version train, and `opm operator install` deploys it from a registry).
+
+**Revised:** 2026-10-04: the operator module placed in the module class; the install manifest is its render, no longer an artifact of the operator release.
 
 ### D5: An alpha contract is encouraged, not required, to bump its alpha number on a break
 
@@ -222,18 +227,25 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 During beta every release of both binaries shares one `MAJOR.MINOR`, so the ceiling refuses nothing; R2 carries the guarantee the ceiling cannot.
 
+The ceiling guards the commands that drive the running operator. Installing the operator does not drive it, it replaces it, so `opm operator install` is not refused by the ceiling on the operator the cluster runs. Install applies the same `MAJOR.MINOR` rule to the operator it is about to install instead: the operator module names the operator version it deploys (D11), and install refuses a module whose operator is above the CLI's `MAJOR.MINOR`.
+
 **Requirements:**
 
 - R1: The CLI refuses an operator only when the operator's `MAJOR.MINOR` is above the CLI's own; patch and prerelease differences are never refused.
 - R2: No operator release needs a CLI newer than the newest released CLI: a change the released CLI cannot drive ships in an operator release only after a CLI release that drives it.
+- R3: Installing the operator is not refused because the operator running in the cluster is above the CLI's `MAJOR.MINOR`.
+- R4: Installing the operator refuses, before any object changes, a module whose operator `MAJOR.MINOR` is above the CLI's own, and names upgrading the CLI as the fix.
 
 **Alternatives considered:**
 
 - **Keep the ceiling on full SemVer, the delivered rule (0006 D24), and enforce release order by hand.** The ceiling refuses an operator whose version, prerelease counter included, is above the CLI's. With counters restarting at `beta.1`, two operator releases before one CLI release refuse every apply. Rejected: the OQ14 position already says the two share `MAJOR.MINOR` and release patches independently, and a gate that contradicts the position turns every operator docs release into an outage risk.
+- **Let the ceiling refuse install as it refuses every other command.** Not chosen: install is the one recovery path for the operator, and the operator's own instance stays CLI-owned so that install never depends on the operator it replaces. A ceiling that refused install would leave a CLI below the running operator no way to repair or replace it, while installing an operator above the CLI would leave none of the CLI's apply commands able to drive the result; checking the target instead of the running operator closes the second hole without opening the first.
 
-**Rationale:** The ceiling exists to stop a CLI driving an operator that expects more than it can write. A `MAJOR.MINOR` step is where that can happen under the shared-`MAJOR.MINOR` position; a patch or a beta counter is not. Where a beta counter does carry such a change, R2 keeps the operator from shipping it before a CLI that can drive it.
+**Rationale:** The ceiling exists to stop a CLI driving an operator that expects more than it can write. A `MAJOR.MINOR` step is where that can happen under the shared-`MAJOR.MINOR` position; a patch or a beta counter is not. Where a beta counter does carry such a change, R2 keeps the operator from shipping it before a CLI that can drive it. R3 and R4 move the check for install from the operator being replaced to the operator being installed, which the module makes readable before anything is applied.
 
-**Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends.
+**Source:** User decision 2026-09-30 (the ceiling compares MAJOR.MINOR as the OQ14 answer); 0006 D24 is the delivered full-SemVer rule it amends. R3 and R4: Owner decision 2026-10-04 (the operator's own instance is CLI-owned forever and install deploys the operator module from a registry); the CLI change install-operator-from-module plans the check.
+
+**Revised:** 2026-10-04: R3 and R4 added; the ceiling does not refuse install, and install checks the operator version of the module it installs.
 
 ### D10: Release tags are immutable
 
@@ -297,5 +309,43 @@ GitHub immutable releases are switched on in stages: core, the kernel library an
 **Rationale:** The documentation system pins sources per site version, and that pin is only worth having if a named ref never moves. The same holds for every other consumer that pins a version: Go module sums, OCI pins and the beta counter of D7 all assume one version names one content. Making releases roll forward costs a version number per mistake and nothing else; D7 already advances `-beta.N` on every release, and D8's GA cut follows the same rule, so a wrong GA is followed by a patch. Lazy release branches give a released minor a fix path without a branch per release, and patch-only versioning on them keeps the minor sequence owned by `main`. The platform rules are chosen because they bind every actor: an empty bypass list leaves only an audited owner edit, restricting creation to the release app removes the stale-tag case, and an immutable release cannot be re-pointed even by the owner.
 
 **Source:** User decisions 2026-10-01: the rule, its scope with the module fleet excluded for now, and the reason (the documentation site); the same day's revision replacing `docs/vX.Y` branches with lazy `release/<tag-prefix>vX.Y` branches, restricting tag creation to the release app and staging immutable releases; the same day's second revision adding the version-line rule (R9) and ordering the release-branch automation before any cut and before GA (R10, D8 R10). Platform facts verified 2026-10-01 against GitHub's ruleset, immutable-release and package documentation and the release-please and goreleaser sources: [research/immutable-tags.md](research/immutable-tags.md).
+
+### D11: The operator's install artifact is a registry module on its own version train
+
+**Kind:** contract
+
+**Depends:** 0006:D3, 0006:D5, 0006:D32, 0006:D35
+
+**Amends:** 0006:D5, 0006:D32, 0006:D35
+
+**Decision:** The operator is installed from an OPM module, `opmodel.dev/modules/opm_operator`, published from the operator's own repository. `opm operator install` resolves a version of that module from a registry, renders it, and applies the result as a CLI-owned ModuleInstance, which the operator skips under 0006:D3. No operator manifest is built into the CLI. A cluster without a route to the default registry installs through a mirror the user names.
+
+The module is versioned on its own train, independent of the operator binary and the CLI. Its path major is `v0` until the operator reaches GA, which keeps it pre-stable under U3; it moves to `v1` no earlier than the operator's GA. One module version deploys exactly one operator version and names that operator's image by version tag and content digest. Each CLI release pins one default module version and records the operator version that module deploys, and the two agree.
+
+This amends three delivered decisions of entry 0006. What survives: the `opm operator` command group and its `--crds-only` form, which still applies only the CRDs, taken from the same render the full install applies (0006:D32, 0006:D35); every install write is a server-side apply as the `opm-cli` field manager, and the CLI never deletes CRDs (0006:D5); install still seeds the cluster Platform with a create that leaves an existing Platform untouched, and the Platform is not an object of the module; install still waits until the CRDs are served and the operator has rolled out (0006:D35). What changes: the CLI embeds no install artifact and no pinned manifest with a refresh task (0006:D5, 0006:D35); install needs a registry, and the offline path the embedded manifest served is a registry mirror; selecting another operator means selecting another module version, resolved from the registry rather than downloaded as a release asset (0006:D35).
+
+The mechanism is planned in the operator changes add-operator-module and release-operator-module and the CLI changes install-operator-from-module and migrate-manifest-installed-operator.
+
+**Requirements:**
+
+- R1: `opm operator install` installs the operator from a version of the operator module resolved from a registry, and the CLI carries no operator manifest of its own.
+- R2: Pointed at a registry mirror that serves the operator module and its dependencies, install produces the same objects it produces from the default registry.
+- R3: The operator module's version moves on its own train: an operator or CLI release does not by itself move it, and a module release that changes only the module deploys the same operator as the one before it.
+- R4: The operator module's path major is `v0` until the operator reaches GA and is not `v1` before it.
+- R5: Each operator module version deploys exactly one operator version and names its image by version tag and content digest.
+- R6: Each CLI release names one default operator module version and the operator version that module deploys, and a release where that module does not deploy that operator version is refused.
+- R7: The `--crds-only` form applies only the CRDs of the same render the full install applies, and every object either form writes is applied with the `opm-cli` field manager.
+- R8: Install leaves an existing cluster Platform untouched, creates one when none exists, and never records the Platform in the operator's instance.
+
+**Alternatives considered:**
+
+- **Keep the embedded manifest, the delivered rule (0006:D5, 0006:D35).** The CLI embeds one pinned operator release's manifest, refreshed by a task, with a download of another release as the fallback. Not kept by the owner: OPM's own controller would be the one first-party workload not deployed as an OPM module, and the manifest carries no tuning surface a reinstall could preserve.
+- **Embed the module in the CLI instead of pulling it.** Not chosen by the owner: it brings back a second copy of the operator per CLI release. A registry mirror serves the air-gapped case without one.
+- **Version the module with the operator release.** Not chosen by the owner: the image digest does not exist when the release's source is committed, every core or catalog pin adoption by the module would force an operator release with no binary change, and a new optional `#config` field would drag the shared CLI and operator `MAJOR.MINOR` (D9) and the documentation site's version with it.
+- **A `1.0.0-beta.N` line like the operator's.** Not chosen: the version would look coupled to the operator's line when it is not, and D7 names the prerelease lines, so adding one would amend it. A `0.x` major is already a pre-stable form under U3.
+
+**Rationale:** Deploying the operator as an instance of its own module makes OPM's controller exercise the same module, render and inventory path every other workload uses, and gives the operator a tuning surface in `#config` that a reinstall renders again instead of resetting. A separate train lets the module name an image that already exists, by digest, and lets module-only changes ship without an operator release. The registry is the one source of the artifact; air gap is a mirror, as for every other module.
+
+**Source:** Owner decision 2026-10-04: the operator ships its own OPM module, published from the operator repository on its own version train; `opm operator install` deploys a CLI-owned ModuleInstance of it pulled from a registry, with no embedded manifest and a mirror for air gap; the CLI pins a module version and records the operator version it deploys.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.
