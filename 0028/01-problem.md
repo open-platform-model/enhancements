@@ -43,7 +43,7 @@ The team followed the guide. Step 5 is the documented upgrade path, and the guid
 
 - As a **platform team operator**, I want the operator's registry mapping and applier identity to survive an upgrade so that upgrading OPM does not break every instance. Today: re-running install resets them and the guide says so.
 - As a **platform team operator on an air-gapped cluster**, I want to install any operator version from my registry mirror so that I am not tied to the version my CLI was built with. Today: another version is fetched from GitHub release assets.
-- As an **OPM maintainer**, I want the operator's install to be an ordinary module so that the install shape has one published source, the CLI pins one module version, and the module path and the catalog's workload abstractions are exercised by OPM itself on every install. Today: the release produces a manifest the CLI copies, and the copy is synchronised by hand.
+- As an **OPM maintainer**, I want the operator's install to be an ordinary module so that the install shape has one published source, the CLI pins one module version and the operator version it deploys, and the module path and the catalog's workload abstractions are exercised by OPM itself on every install. Today: the release produces a manifest the CLI copies, and the copy is synchronised by hand.
 
 ## Why Existing Workarounds Fail
 

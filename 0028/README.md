@@ -6,7 +6,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 ## Summary
 
-**The operator module is its own release unit (D1).** It is released from the operator's repository on a version train of its own, starting at `v0`, with tags no operator release can take. Each module version names one operator image by tag and digest, and the CLI pins a module version with its content digest, which fixes the operator version too.
+**The operator module is its own release unit (D1).** It is released from the operator's repository on a version train of its own, starting at `v0`, with tags no operator release can take. Each module version names one operator image by tag and digest, and the CLI pins a module version with the content digests of the module and its dependencies, and records the operator version that module deploys beside it.
 
 **The module is the one source of the install shape, rendered through the catalog (D2, D12).** Its CRDs and permissions are generated from the controller's own code, and a mismatch stops the release. The controller's workload, service account and RBAC come from the first-party catalog, which first gains a seccomp profile and roles with no subjects. Every name the CLI reads stays the same; the bindings take catalog names and the Deployment's selector changes once. The kubectl install manifest is rendered from the module, so the two cannot differ.
 
@@ -42,7 +42,7 @@ flowchart LR
     kc["kubectl apply"] --> man
 ```
 
-The operator release builds the image; a module release that follows it names that image by digest and publishes the module, and the kubectl manifest is a render of that module. The CLI pins a module version, pulls the module, installs its CRDs first because the instance record needs them, then records everything else as one CLI-owned instance. The operator skips CLI-owned instances, so it never changes the objects that run it.
+The operator release builds the image; a module release that follows it names that image by digest and publishes the module, and the kubectl manifest is a render of that module. The CLI pins a module version and the operator version it deploys, pulls the module, installs its CRDs first because the instance record needs them, then records everything else as one CLI-owned instance. The operator skips CLI-owned instances, so it never changes the objects that run it.
 
 ## Documents
 

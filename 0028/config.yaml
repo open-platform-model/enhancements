@@ -57,6 +57,8 @@ history:
     event: 'Review applied: D1 digest anchor; D3 check order, no-record locator, 0021:D9 amended; D4 a contract; D5 image repository only; D9:R6; OQ6 blocking; OQ13 added.'
   - date: "2026-10-04"
     event: 'Owner round 2: own module train (D1, D7), catalog path with prerequisites (D2, D12), migration recreate (D8); handoff dropped; OQ3-6 resolved as D8, D10, D11; semver major.'
+  - date: "2026-10-04"
+    event: 'Second review applied: dependency digests and recorded operator version (D1), cascade and docs pins (D7), resumable proven migration (D8), CRD floor first (D10); three owner readings listed.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
