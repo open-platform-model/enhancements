@@ -223,4 +223,6 @@ The `affects` values map to workspace repos:
 | `opm` | `opm/` | The meta repo: authored documentation prose, internal specs, benchmarks |
 | `opm-portal` | `opm-portal/` | The web portal: a versioned read API with an HTMX UI over OPM modules and instances |
 
+`#Repo` also accepts `orca`. It is reserved: no workspace checkout exists and no entry names it yet, so the tables above leave it out.
+
 Delivery crosses several of these. `06-operational.md` in each entry states what must land before what.
