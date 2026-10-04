@@ -76,3 +76,25 @@ _assertKey: #ModuleFileCustomKey & "opmodel.dev@v0"
 //   core.major "v1" (no such dep)       -> declared.core.version: TrimPrefix of an undefined field
 //   catalogs missing the opm entry      -> declared.catalogs."opmodel.dev/catalogs/opm@v2": field required by the implied side
 //   catalogs with an entry not in deps  -> _catalogsAreDeps.<path>: undefined field deps.<path>
+
+// The open tail (D2:R7): a block carrying the reserved `listing` key and a
+// key no entry defines yet both pass, and the gate still asserts the
+// duplicated values. The listing value is opaque here; entry 0031 owns its
+// shape.
+openTailGate: #ModuleFileCustomGate & {
+	module:          "opmodel.dev/modules/cert_manager@v2"
+	identityVersion: "2.0.1"
+	deps: {
+		"opmodel.dev/catalogs/opm@v2": v: "v2.0.0-alpha.2"
+		"opmodel.dev/core@v2":         v: "v2.0.0-alpha.4"
+	}
+	declared: certManagerBlock & {
+		listing: {
+			schemaVersion: "v1"
+			summary:       "Automatically provision and manage TLS certificates."
+		}
+		futureKey: {anything: true}
+	}
+}
+_assertOpenTailListing: openTailGate.declared.listing.schemaVersion & "v1"
+_assertOpenTailFuture:  openTailGate.declared.futureKey.anything & true

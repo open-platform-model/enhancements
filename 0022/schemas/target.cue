@@ -9,7 +9,8 @@
 //   - #ModuleFileCustom — NEW: the block shape (D2). Plain data: CUE parses
 //     cue.mod/module.cue in data mode, so nothing here may be referenced
 //     from the module file itself; the definition is a PUBLISH GATE input
-//     (SPEC.md §5), never embedded by an artifact.
+//     (SPEC.md §5), never embedded by an artifact. Ends in an open tail
+//     (D1:R3, D2:R7) with `listing` reserved for entry 0031.
 //   - #ModuleFileCustomGate — NEW: the gate publish unifies against (D4),
 //     declared beside implied in the #CatalogMemberFQNGate style. Inputs are
 //     what publish already holds: the module file's `module:` and `deps`,
@@ -39,10 +40,14 @@ import "strings"
 // #ArtifactKind: what the artifact is. Templates are module-kind at publish
 // (0011 D25) but a template is what a scaffolder looks for and an instance
 // initializer refuses, so it names itself (D3).
+//
+// OQ6: whether an `index` kind joins this set, for the published listing
+// index entry 0031 proposes, is open and owned by 0031; it is not added here.
 #ArtifactKind: "module" | "catalog" | "template"
 
 // #ModuleFileCustom: the block an artifact carries at
-// custom[#ModuleFileCustomKey]. Every field required, every value concrete.
+// custom[#ModuleFileCustomKey]. Every field this entry defines is required,
+// every value concrete, and the block ends open (D2:R7).
 #ModuleFileCustom: {
 	kind!: #ArtifactKind
 
@@ -65,6 +70,17 @@ import "strings"
 	// same string that keys deps and a platform's registry map) to its exact
 	// pin. May be empty.
 	catalogs!: [#ModulePathType]: #VersionType
+
+	// listing is reserved for the module listing card entry 0031 defines.
+	// Its shape and validation are 0031's; this delta deliberately does not
+	// import or restate them, so `_` here admits any value.
+	listing?: _
+
+	// Open tail: a key a later entry defines passes this gate, so an older
+	// core accepts a block written for a newer one (D1:R3). Measured cost:
+	// a misspelled optional key passes silently; a CLI lint warns on keys
+	// the CLI's core does not know (experiments/07-open-tail/).
+	...
 }
 
 // #ModuleFileCustomGate: what publish unifies the block against. The

@@ -18,6 +18,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
+**Revised:** 2026-10-04. R5 said the block reaches the registry byte-verbatim. Measured: dependency tidying canonicalises the module file (comments dropped, keys sorted, one-line structs expanded) with every value intact, and publish then ships the tidied bytes unchanged. R5 now states values-intact; the block's meaning is unchanged.
+
 **Decision:** OPM's artifact metadata is a struct under the `custom` field of `cue.mod/module.cue`, keyed `"opmodel.dev@v0"`. The `@v0` suffix versions the block's own shape: it is bumped only when a key changes meaning or is removed, never for an added key. A reader ignores keys it does not know. The block holds concrete data only, because CUE parses the module file in data mode.
 
 **Requirements:**
@@ -26,7 +28,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 - R2: Adding a key to the block leaves the key suffix at `v0`; the suffix changes only when an existing key changes meaning or is removed.
 - R3: A reader ignores block keys it does not know.
 - R4: Every value in the block is concrete; a block holding a reference, a definition or a default does not parse as a module file.
-- R5: The block reaches the registry byte-verbatim in the published module file and survives dependency tidying with every value intact.
+- R5: The block survives dependency tidying with every value intact, though tidying may canonicalise its text (comments dropped, keys sorted); publish ships the module file as it stands after tidying, byte for byte, so the registry holds the same values the tree does.
 
 **Alternatives considered:**
 
@@ -35,13 +37,17 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 - *A third OCI layer.* Rejected: CUE's client refuses a module manifest that does not have exactly two layers.
 - *A sidecar artifact or referrer.* Rejected: a second publish step, a second distribution channel, and content that can drift from the module it describes.
 
-**Rationale:** CUE reserved this field for exactly this use, carries it through every rewrite and ships it byte-verbatim in the registry. Using it means no CUE consumer changes and no OPM-specific fetcher exists. The suffix is a free insurance policy and doubles as the version a reader checks before trusting the shape.
+**Rationale:** CUE reserved this field for exactly this use, carries it through every rewrite with its values intact, and ships the module file verbatim in the registry. Using it means no CUE consumer changes and no OPM-specific fetcher exists. The suffix is a free insurance policy and doubles as the version a reader checks before trusting the shape.
 
-**Source:** User decision 2026-08-24. Verified in cuelang.org/go v0.17.1: `mod/modfile/schema.cue` (the `custom` declaration and the `#Strict` key regex), `internal/mod/modload/tidy.go` (the block is carried across `tidy`), `mod/modregistry/client.go` (module file pushed and fetched verbatim); shipped in CUE v0.9.0.
+**Measured (2026-10-04):** across the 20 published fleet modules (12 from `opm-modules`, 8 from `modules`), each carrying the block plus an unknown key holding a listing card, `cue mod tidy` (cue v0.17.1) kept every value intact 20 of 20, dropped all comments, sorted keys and expanded one-line structs. The published module-file blob was byte-identical to the tidied file. Experiment 07 measured the reader side of R3: the gate as first drafted refused the unknown key ("field not allowed"), which is why `#ModuleFileCustom` now ends in an open tail.
+
+**Source:** User decision 2026-08-24. Verified in cuelang.org/go v0.17.1: `mod/modfile/schema.cue` (the `custom` declaration and the `#Strict` key regex), `internal/mod/modload/tidy.go` (the block is carried across `tidy`), `mod/modregistry/client.go` (module file pushed and fetched verbatim); shipped in CUE v0.9.0. Owner decision 2026-10-04 to revise in place; measurement 2026-10-04 in `experiments/06-module-file-card-roundtrip/`.
 
 ### D2: The block carries `kind`, `identity`, `core` and `catalogs`, and nothing about toolchains
 
 **Kind:** contract
+
+**Revised:** 2026-10-04. The block was closed at these four fields. It now ends open, because the closed gate refused a key a later entry defines (measured), contradicting D1:R3. R7 added.
 
 **Decision:** The block has four required fields:
 
@@ -52,6 +58,8 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 Nothing about the toolchain that authored the file lives in the block.
 
+The block ends open. A key beyond these four passes this entry's validation unchecked, so a block written for a newer shape passes an older gate. The key `listing` is reserved for the module listing card entry 0031 defines; that entry owns its shape and its validation, and this entry does not restate it.
+
 **Requirements:**
 
 - R1: The block carries `kind`, `identity`, `core` and `catalogs`; a block missing any of them fails validation.
@@ -60,16 +68,18 @@ Nothing about the toolchain that authored the file lives in the block.
 - R4: `core` names the core major and the exact core version pinned in the module file's dependencies.
 - R5: `catalogs` maps every catalog dependency, keyed by module path with major, to its pinned version, and may be empty.
 - R6: The block carries no fact about the toolchain that authored it.
+- R7: A block carrying a key this entry does not define passes this entry's validation; such a key is validated only by the entry that defines it.
 
 **Alternatives considered:**
 
 - *Only fields the module file does not already state (`kind` alone, or `kind` plus a list of catalog keys).* The tighter shape, and the entry's own first draft. Rejected by the owner: a reader that holds the module file should not have to know how `deps` keys are spelled or where the identity version lives; the duplication is the feature, and D4 makes it safe.
 - *`builtWith {cue, opm}` in the block.* Rejected: publish never writes the tree (0011 D2), so the only tooling that could write it is the version writer, and "the opm that last set the version" is neither the publisher nor a floor anyone needs; `language.version` already states the one cue value with semantics. Push-time provenance goes to annotations (D6).
 - *`identity` as a single `fqn` string.* Rejected: two named fields are what `#IdentityPackage` authors, and the gate asserts each against its own source.
+- *A closed block, extended key by key in each core release* (previously adopted, as the drafted shape). Rejected on measurement: it refused a listing card ("field not allowed") and every unknown future key, so an older core's gate refuses a block written for a newer one, which contradicts D1:R3. The open tail costs one thing, also measured: a misspelled optional key (`listng`) passes the gate silently. That is caught by a CLI lint that warns on block keys the CLI's core does not know, not by closing the gate.
 
-**Rationale:** The four fields answer the questions a consumer asks before paying for the zip: what is this, which artifact exactly, which core line, which catalogs. Each is either not in the file at all (`kind`, `identity.Version`) or is a projection the gate keeps honest.
+**Rationale:** The four fields answer the questions a consumer asks before paying for the zip: what is this, which artifact exactly, which core line, which catalogs. Each is either not in the file at all (`kind`, `identity.Version`) or is a projection the gate keeps honest. The open tail is what lets D1's promise hold: the suffix stays at `v0` when a key is added, so an older reader, gate included, must let the new key through.
 
-**Source:** User decision 2026-08-24.
+**Source:** User decision 2026-08-24. Owner decision 2026-10-04 to open the block in place for the listing key; measurement in `experiments/07-open-tail/`.
 
 ### D3: Module, catalog and template artifacts carry the block; `core` and `library` do not
 
@@ -130,6 +140,7 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 - R2: Writing a new version to the identity package writes the same version to the block's `identity.Version` in the same operation, so the two never differ after a write.
 - R3: Re-identifying a template rewrites the block's `identity.ModulePath` when it rewrites the module path.
 - R4: A block write preserves comments and is a no-op when the value already matches.
+- R5: A block write preserves every key in the block it does not itself write, including keys a later entry defines.
 
 **Alternatives considered:**
 
