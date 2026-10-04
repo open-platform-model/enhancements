@@ -8,7 +8,7 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **The transfer command returns, forward only (D1).** `opm instance handoff` moves a CLI-owned instance to the operator, never back, as entry 0006 decided (0006:D16).
 
-**Twelve gates must pass before anything is written (D2).** They include a named applier, a re-render from the registry that reproduces the recorded fingerprint of what was applied, and a write that fails if the record changed. Success means the operator reconciled with the same resources, pruned nothing, and recorded the same render fingerprint.
+**Thirteen gates must pass before anything is written (D2).** They include a named applier, a re-render from the registry that reproduces the recorded fingerprint of what was applied, and a write that fails if the record changed. Success means the operator reconciled with the same resources, pruned nothing, and recorded the same render fingerprint.
 
 **The user names who applies (D3).** The transfer requires a service account and a prune choice. It asks the cluster whether that account can apply every resource, including the extra rights Kubernetes demands for roles and bindings.
 
@@ -52,7 +52,7 @@ The CLI proves what it can from its side: it reads the record, asks the cluster 
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ11
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12
 
 [`experiments/`](experiments/) holds two concluded runnable checks. Experiment 01 found which local renders go unmarked, that a warm cache passes a republished tag, and that the CLI cannot predict the operator's fetch but can predict its render fingerprint. Experiment 02 found that an access review predicts the operator's apply once role escalation is modelled, and that the CLI keeps owning every field after a flip.
 
@@ -72,7 +72,7 @@ The CLI proves what it can from its side: it reads the record, asks the cluster 
 
 - Not a reverse transfer from operator to CLI, and not the GitOps export of entry 0014.
 - Transferring the operator's own instance, which entry 0028 keeps CLI-owned forever.
-- Registry credentials for the operator; transfers verify what an anonymous fetch reaches.
+- Registry credentials for the operator; the operator's fetch presents no credentials, so its adoption check proves what such a fetch reaches.
 - Pinning module content after the transfer (an open question, not a decision).
 - Creating the applier account or its RBAC (an open question, not a decision).
 
@@ -87,7 +87,7 @@ None at this stage. Update this section when implementation lands and any delibe
 | [`../archive/0006/03-decisions.md`](../archive/0006/03-decisions.md) | The original transfer (D7), forward-only rule (D16), local provenance (D38) and success criterion (D40) this entry amends or rests on |
 | [`../0028/`](../0028/) | The operator as an OPM module; defines the operator's own instance this entry refuses to transfer |
 | [`../0014/`](../0014/) | Export to GitOps, which reuses this entry's gate set |
-| [`../0012/03-decisions.md`](../0012/03-decisions.md) | D6, the runtime-neutral render digest that OQ5 waits on |
+| [`../0012/03-decisions.md`](../0012/03-decisions.md) | D6, the runtime-neutral render digest the hand-flip comparison of D4 depends on |
 | `cli/openspec/changes/archive/2026-08-31-remove-instance-handoff/` | Why the first transfer command was removed |
 | `cli/openspec/changes/archive/2026-07-20-cli-instance-handoff/` | The first transfer command's design and gate chain |
 

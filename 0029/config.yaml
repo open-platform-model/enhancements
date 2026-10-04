@@ -27,6 +27,7 @@ affects:
   - cli
   - opm-operator
   - core
+  - opm
 # Does this enhancement add or change opmodel.dev/core definitions?
 # true  → schemas/ MUST exist (target.cue + examples.cue + spec.md) and
 #         affects MUST include "core".
@@ -52,6 +53,8 @@ history:
     event: 'D1 to D7 drafted from owner decisions: forward-only transfer, twelve gates, named applier, operator mapping report, operator backstop, wider local marker. OQ1 to OQ4 wait on the two experiments.'
   - date: "2026-10-04"
     event: 'Experiments 01 and 02 concluded and folded in: D4 rewritten to an operator-side render check, D2 and D3 sharpened, D8 added; OQ1 to OQ5 resolved, OQ8 blocks on the owner.'
+  - date: "2026-10-04"
+    event: 'Review applied: D4 depends on 0012:D6 and is scoped to CLI-applied records; D3 keeps the applier through thin edits; D2 gains gate 12; OQ12 added.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -60,6 +63,7 @@ history:
 # both directions and refuses a cycle.
 depends_on:
   - "0006"
+  - "0012"
   - "0028"
 # Entries whose DECISIONS this entry's decisions change. Directed and
 # decision-backed like depends_on: list MMMM iff a live `### DN:` block in

@@ -50,7 +50,7 @@ Experiment 02 reproduced the removal reason on a stock install. With no applier 
 
 **Kind:** contract
 
-**Depends:** 0006:D11, 0006:D38, 0006:D40, 0028:D4
+**Depends:** 0006:D11, 0006:D38, 0006:D40, 0028:D3, 0028:D4
 
 **Amends:** 0006:D7, 0006:D40
 
@@ -59,19 +59,20 @@ Experiment 02 reproduced the removal reason on a stock install. With no applier 
 1. The cluster gates every mutating CLI path runs: the instance CRD present, its field floor met, the operator's version within the CLI's ceiling.
 2. The operator is installed and ready.
 3. The instance's record exists and is CLI-owned.
-4. The instance is not the one that deploys the operator itself (0028:D4).
+4. The instance is not the one that deploys the operator itself (0028:D4), recognised first by the fixed name and namespace 0028:D3 R11 gives that instance on every cluster.
 5. The record carries no local-provenance marker (D6).
 6. The record names a complete published coordinate: module path and version.
 7. The render skipped no contract.
 8. The record carries the render digest of what the CLI applied.
-9. The applier identity the user names can apply, and if asked to prune can delete, every entry the instance renders (D3).
+9. The applier identity the user names can apply, and if asked to prune can delete, every entry of the recorded inventory (D3).
 10. The running operator performs the adoption check of D4.
 11. A strict re-render reproduces the recorded digest. It resolves from registries only, ignores any local replacement, uses a module cache no earlier fetch could have filled, renders against the cluster Platform (0006:D11), and replays the recorded values.
-12. The record is unchanged since it was read for gate 3, apart from its status.
+12. Every entry the verification render adds to the recorded inventory passes gate 9's review too (D3).
+13. The record is unchanged since it was read for gate 3, apart from status conditions the operator writes.
 
 A force option skips gate 11's comparison and nothing else. Then one write, conditional on the record being the one the gates read, sets the owner to `operator`, restates the verified module and values, records the applier identity and prune intent, and states the digest the operator must reproduce (D4). Success is 0006:D40's inventory-stable reconcile, plus one check 0006:D40 banned: the digest the operator recorded for its first apply equals the digest the transfer stated. After success the CLI gives up its field ownership (D8).
 
-What survives of 0006:D7: operator ready, CLI-owned, a published and resolvable coordinate, a digest re-render, force limited to the digest, and a bounded wait. What changes against 0006:D7: gates 4, 7, 9 and 10 are new; gate 12 becomes a condition on the write itself rather than a re-read before it; the write records the applier identity and the expected digest, which 0006:D7's single-field flip never did. What survives of 0006:D40: the inventory-stable verdict and the reported relabel. What changes against 0006:D40: the verdict also compares the operator's recorded render digest to the stated one, which its first corollary forbade.
+What survives of 0006:D7: operator ready, CLI-owned, a published and resolvable coordinate, a digest re-render, force limited to the digest, and a bounded wait. What changes against 0006:D7: gates 4, 7, 9, 10 and 12 are new; gate 13 becomes a condition on the write itself rather than a re-read before it; the write records the applier identity and the expected digest, which 0006:D7's single-field flip never did. What survives of 0006:D40: the inventory-stable verdict and the reported relabel. What changes against 0006:D40: the verdict also compares the operator's recorded render digest to the stated one, which its first corollary forbade.
 
 **Requirements:**
 
@@ -87,7 +88,7 @@ What survives of 0006:D7: operator ready, CLI-owned, a published and resolvable 
 - R10: The transfer reports success only when the operator has reconciled the written generation as ready, with the same inventory entry set, an incremented revision and nothing pruned; the managed-by relabel is reported, not counted as a change.
 - R11: The verification render cannot be satisfied by a module cached before the transfer started, and resolves no local replacement.
 - R12: The transfer reports success only when the render digest the operator recorded for its first apply equals the digest the transfer stated.
-- R13: A change to the record's status alone between verification and the write does not refuse the transfer.
+- R13: A change between verification and the write to the status conditions the operator writes does not refuse the transfer. A change to anything else the gates read refuses it: the spec, the owner, any annotation, and the status the CLI's apply writes (the inventory and the recorded render digest).
 
 **Alternatives considered:**
 
@@ -104,7 +105,9 @@ What survives of 0006:D7: operator ready, CLI-owned, a published and resolvable 
 
 Gate 11's isolated cache is measured, not assumed. Experiment 01 republished a tag with other bytes: a fresh cache refused, a warm cache passed wrongly. A cold verification of a one-object module took about 3 seconds, almost all of it fetching core and the catalog. Gate 11 is still a self-comparison through the CLI's own registries; the cross-actor proof is D4's.
 
-R13 exists because the record's version also moves on status writes, such as the operator's own acknowledgement of a CLI-owned record (experiment 02 case 4). A guard that refused those would refuse transfers for no reason.
+R13 exists because the record's version also moves on status writes, such as the operator's own acknowledgement of a CLI-owned record (experiment 02 case 4). A guard that refused those would refuse transfers for no reason. It tolerates only the operator's conditions, because the CLI's own apply writes the inventory and the recorded digest that gates 8, 9 and 11 verified. A concurrent re-apply with an unchanged spec, from another Platform source or after a tag was republished, moves only those status fields and the live objects; a write that ignored them would repeat case 4's silent revert. Annotations count for the same reason: a local re-apply with unchanged values changes only the local-provenance annotation, and the generation does not move on an annotation change, so experiment 02's suggested retry ("only the resourceVersion moved, the generation did not") is not a safe test.
+
+Gate 9 reviews the recorded inventory so that R2 holds: the access review needs no registry, and the verification render of gate 11 does. When gate 11's comparison passes, the render's entries are the ones the recorded digest covers. Gate 12 catches what the inventory misses, which happens only under force or when the recorded inventory and digest disagree.
 
 **Source:** User decision 2026-10-04 (AskUserQuestion, "Shape of the redesigned handoff?": "CLI gates + operator backstop (Recommended)": revive the old gate chain plus applier-identity and registry-reachability gates). Old chain read from cli commit `093b9761` and the archived change `cli/openspec/changes/archive/2026-07-20-cli-instance-handoff/`. Experiment outcomes: `experiments/01-provenance-digest-reachability/` (gate verdicts per case, cold verification time); `experiments/02-applier-identity-and-field-transfer/` (cases 3 and 4).
 
@@ -114,22 +117,23 @@ R13 exists because the record's version also moves on status writes, such as the
 
 **Kind:** contract
 
-**Depends:** 0006:D17
+**Depends:** 0006:D17, 0006:D18
 
 **Amends:** 0006:D7
 
-**Decision:** The user names, at transfer, the service account the operator will apply the instance as and whether the operator prunes it. The transfer refuses when either is unstated. It never falls back to the operator's default account or the controller's own identity. Before writing, the transfer asks the cluster's authorizer whether that account, as the operator will impersonate it, may do what the operator will do with every entry the instance renders: read, create and patch it, and delete it when pruning is asked for. For an entry that is a role or a role binding, it also asks what Kubernetes escalation prevention will ask: whether the account holds every right the role grants, or may escalate that role, or may bind the role a binding references. It also asks whether the operator's own identity may act as that account. A refusal reports every denied entry and right, not the first. The write records the named account and the prune intent on the instance, so the identity the operator uses is the one the gate checked. What changes against 0006:D7: its flip wrote only the owner, leaving the applier to whatever the operator defaulted to, which is the defect that removed the command.
+**Decision:** The user names, at transfer, the service account the operator will apply the instance as and whether the operator prunes it. The transfer refuses when either is unstated. It never falls back to the operator's default account or the controller's own identity. Before writing, the transfer asks the cluster's authorizer whether that account, as the operator will impersonate it, may do what the operator will do with every entry the instance records, and then with every entry its verification render adds (D2, gates 9 and 12): read, create and patch it, and delete it when pruning is asked for. For an entry that is a role or a role binding, it also asks what Kubernetes escalation prevention will ask: whether the account holds every right the role grants, or may escalate that role, or may bind the role a binding references. It also asks whether the operator's own identity may act as that account and present the groups the operator's impersonation adds. A refusal reports every denied entry and right, not the first. The write records the named account and the prune intent on the instance, so the identity the operator uses is the one the gate checked. Later CLI edits of the operator-owned instance's spec, the thin editor of 0006:D18, keep both as recorded; only the user stating a new account or prune intent changes them. What changes against 0006:D7: its flip wrote only the owner, leaving the applier to whatever the operator defaulted to, which is the defect that removed the command.
 
 **Requirements:**
 
 - R1: A transfer without a named applier account, or without a stated prune intent, refuses before any write.
 - R2: The transfer refuses when the named account does not exist in the instance's namespace.
 - R3: The transfer refuses when the authorizer denies the named account any right the operator needs on any entry the instance renders, naming every such entry and right; delete rights are checked only when pruning is asked for.
-- R4: The transfer refuses when the operator's own identity may not act as the named account.
+- R4: The transfer refuses when the operator's own identity may not act as the named account, or may not present the groups the operator's impersonation adds to it (R8). Experiment 02 did not measure this check; its prototype gate never asked about the operator's impersonate right.
 - R5: After the transfer, the instance records the named account and the stated prune intent, and the operator applies it as that account.
 - R6: When the person running the transfer lacks the right to ask the authorizer about another identity, the transfer refuses and names that right; it never treats an unanswered review as a pass.
 - R7: The transfer refuses when an entry is a role the named account could not create without escalation, or a binding it could not create without the bind right, naming the rights it lacks.
 - R8: The access review answers for the account with the group memberships the operator's impersonation presents.
+- R9: A later CLI edit of the instance's spec after the transfer leaves the recorded applier account and prune intent unchanged, unless the user states new ones.
 
 **Alternatives considered:**
 
@@ -142,9 +146,11 @@ R13 exists because the record's version also moves on status writes, such as the
 
 **Rationale:** The removed command stranded instances because the operator applied as an identity nobody chose. Making the user name one, and proving it against the exact entries the operator will apply, turns the stranding into a refusal before anything changes. Recording the identity on the instance keeps the proof valid after the transfer: the operator uses what was checked, not what its flags say later. The transfer is an operator-adoption step and already needs the cluster Platform, so needing the right to review another identity's access fits the administrator context 0006:D17 allows for it.
 
-Experiment 02 measured the prediction against the operator's real apply in five cases. Once escalation was modelled, every outcome matched: two predicted failures stranded or stalled, three predicted passes adopted. The entries reviewed are the verification render's, which gate 11 proves equal to the recorded inventory; reviewing the inventory alone would miss an entry the render adds.
+Experiment 02 captured four predictions against the operator's real apply: three predicted failures (cases 1, 2 and 2b), which stranded or stalled, and one predicted pass (case 3), which adopted. Cases 4 to 6 ran with case 3's grants. Once escalation was modelled, every outcome matched. The review covers the recorded inventory first, so it needs no registry (D2 R2), and then whatever the verification render adds; reviewing the inventory alone would miss an entry the render adds under force.
 
-**Source:** User decision 2026-10-04 (AskUserQuestion, "Shape of the redesigned handoff?": "CLI gates + operator backstop (Recommended)", naming the applier-identity gate). Removal reason quoted from cli PR 196. The operator's impersonation precedence (instance account, then default flag, then its own client) read from `opm-operator/internal/apply/` on 2026-10-04. Experiment outcome: `experiments/02-applier-identity-and-field-transfer/` (cases 1, 2, 2b and 3; prototype gate `predict.sh`).
+R9 exists because the CLI's thin editor (0006:D18) server-side-applies the spec as the CLI's field manager with force and sends only the module, owner, values and annotations. If the transfer recorded the account and prune intent under that same manager, the next `opm instance apply` would remove both. The operator would then apply as its default account or its own identity, which is the stranding that removed the command, and with prune gone a later delete would orphan the workloads. How the CLI keeps them, by restating them or by writing them under another field manager, is the implementing change's choice.
+
+**Source:** User decision 2026-10-04 (AskUserQuestion, "Shape of the redesigned handoff?": "CLI gates + operator backstop (Recommended)", naming the applier-identity gate). Removal reason quoted from cli PR 196. The thin editor's write read from `cli/internal/workflow/apply/thineditor.go` and `cli/internal/inventory/store.go` (`ApplySpec`) on 2026-10-04. The operator's impersonation precedence and groups (`internal/apply/impersonate.go`), and its orphan-on-delete when prune is off, (instance account, then default flag, then its own client) read from `opm-operator/internal/apply/` and `internal/reconcile/moduleinstance.go` on 2026-10-04. Experiment outcome: `experiments/02-applier-identity-and-field-transfer/` (cases 1, 2, 2b and 3; prototype gate `predict.sh`; prediction captures `captures/c1-predict.txt`, `c2-predict.txt`, `c2b-predict.txt`, `c3-predict.txt`).
 
 ---
 
@@ -152,13 +158,17 @@ Experiment 02 measured the prediction against the operator's real apply in five 
 
 **Kind:** contract
 
-**Depends:** 0006:D40
+**Depends:** 0006:D40, 0012:D6
 
 **Amends:** 0006:D40
 
 **Revised:** 2026-10-04 — experiment 01 refuted the drafted registry-mapping report; the proof of reachability moved into the operator's adoption.
 
-**Decision:** Before it registers a finalizer on an instance it has never applied, the operator renders the instance through its own registries and compares the render's digest to the digest the adoption expects. The transfer's write states that digest: the digest of the CLI's verification render (D2, gate 11), as the operator's render of the same bytes would digest it. A record whose owner was changed by hand states none; for it the operator expects the render digest the CLI recorded for what it applied. The comparison ignores only which runtime stamped the render. The operator refuses the adoption when the module does not resolve, when the digests differ, or when a record another actor applied carries neither digest. A refusal is a stalled status naming the reason, with no finalizer and nothing applied or pruned, as D5's refusals are. This check is the transfer's reachability gate: the proof runs where the fetch runs.
+**Decision:** The check applies to an instance whose owner is not `cli` and that the operator has not yet adopted, when its record either states an expected digest or carries an inventory or a render digest the CLI's apply recorded. The record must let the operator tell a status the CLI recorded from one it recorded itself; that signal is part of this contract, and its form is the repos' choice. An instance created operator-owned carries neither, and the operator adopts it through its ordinary path, with D5's refusals.
+
+For an instance the check applies to, the operator renders it through its own registries before it registers a finalizer, and compares the render's digest to the digest the adoption expects. The transfer's write states that digest: the digest of the CLI's verification render (D2, gate 11), as the running operator's release would digest the same bytes. A record whose owner was changed by hand states none; for it the operator expects the render digest the CLI recorded for what it applied. That comparison crosses runtimes, so it uses 0012:D6's shared digest, which ignores only which runtime stamped the render. Until both runtimes compute that digest, the operator meets it by digesting its render as stamped with the CLI's runtime name. When both digests are present, the stated one wins: it is the newer, verified statement. A stated digest binds one adoption: the operator consumes it when it adopts, and a CLI apply to a CLI-owned record removes any it finds.
+
+The operator refuses the adoption when the module is not found at the coordinate, or when the digests differ. A refusal is a stalled status naming the reason, with no finalizer and nothing applied or pruned, as D5's refusals are. A render that cannot run yet, because a registry did not answer or the Platform is not ready, is not a refusal: the operator retries on its ordinary backoff, adds no finalizer and applies nothing, and its status says what it waits for. This check is the transfer's reachability gate: the proof runs where the fetch runs.
 
 What survives of 0006:D40: success is the inventory-stable reconcile, and the managed-by relabel is reported, not counted. What changes against 0006:D40: its first corollary banned every cross-actor digest comparison; this decision makes one, at adoption, because experiment 01 showed it is exact.
 
@@ -168,25 +178,31 @@ What survives of 0006:D40: success is the inventory-stable reconcile, and the ma
 - R2: (retired, 2026-10-04) The mapping report carried no credential.
 - R3: (retired, 2026-10-04) A transfer against an operator without the report refused.
 - R4: (retired, 2026-10-04) The verification fetch presented the operator's credentials.
-- R5: The operator applies, prunes and finalizes nothing for an instance it has never applied until its own render of that instance reproduces the expected digest.
-- R6: When the operator cannot resolve the module, or its render differs from the expected one, the instance stays unadopted with a stalled status naming the reason, and its workloads are unchanged.
+- R5: For an instance whose owner is not `cli`, that the operator has not adopted, and whose record states an expected digest or carries an inventory or render digest the CLI recorded, the operator applies, prunes and finalizes nothing until its own render reproduces the expected digest.
+- R6: When the module is not found at the recorded coordinate, or the operator's render differs from the expected digest, the instance stays unadopted with a stalled status naming the reason, and its workloads are unchanged.
 - R7: The transfer states the expected digest in the same write that changes the owner; a forced transfer states the digest of the render the user accepted.
 - R8: An instance whose owner was changed by hand is adopted only if the operator's render reproduces the digest the CLI recorded for what it applied.
 - R9: A transfer against an operator that does not perform this check refuses, naming the operator release that adds it.
+- R10: The operator can tell, from the record alone, whether its inventory and render digest were recorded by the CLI or by the operator; an instance created operator-owned is never judged by R5.
+- R11: When the operator cannot render yet, because a registry did not answer or the Platform is not ready, it retries, adds no finalizer and applies nothing, and it does not report a stalled refusal for that reason.
+- R12: A stated digest binds only the adoption that follows the write that stated it. The operator stops honouring it once it has adopted the instance, and a CLI apply to a CLI-owned record removes it.
+- R13: When a record carries both a stated digest and a CLI-recorded digest, the operator compares against the stated one.
+- R14: The transfer states the expected digest under the digest definition of the running operator's release; when the CLI does not know that definition, gate 10 refuses.
 
 **Alternatives considered:**
 
 - **The operator reports its registry mapping on the cluster Platform's status, and the CLI fetches through it (previously adopted in this draft).** Refuted by experiment 01. The mapping names hosts only the cluster network resolves, so the CLI cannot fetch through it from where it runs. A mapping also is not bytes: the case where both sides resolve the same coordinate to different bytes passes every CLI gate. Today the mapping is visible only in the operator Deployment's arguments and a startup log line; publishing it for diagnostics stays possible and is not part of this decision.
 - **An operator-side resolve the CLI requests before the flip.** It proves reachability before any write, which this decision cannot. Not chosen yet: it needs a request path on a record the operator otherwise ignores (0006:D3), and the adoption check is still needed afterwards, because the operator's cache or the tag can change between the probe and the adoption. OQ8 holds it as an option.
 - **Compare digests only at the CLI (0006:D40's first corollary, the delivered rule).** It leaves the operator's own fetch unchecked. Experiment 01 flipped a republished tag while the operator's cache was warm, and the operator applied the old bytes. Not chosen.
-- **Wait for 0012:D6's runtime-neutral digest before comparing across actors (this draft's OQ5).** Not needed: experiment 01 reproduced the operator's recorded digest byte for byte for three instances by rendering with the operator's runtime name. 0012:D6 makes the comparison simpler when it lands; it does not change this decision.
+- **Compare without 0012:D6's runtime-neutral digest (this draft's earlier answer to OQ5).** Experiment 01 reproduced the operator's recorded digest byte for byte for three instances by rendering with the operator's runtime name, which covers the transfer's stated digest (R7). It does not cover a hand flip (R8): both runtimes hash the full objects with the managed-by value included, the CLI stamps `opm-cli` and the operator `opm-controller`, so the operator's own render never matches a digest the CLI recorded. Not chosen: R8 depends on 0012:D6, and until then on the operator re-stamping its render with the CLI's name, which is the reverse of what experiment 01 measured and is itself unmeasured.
+- **Treat every failed render as a refusal.** Experiment 01 saw a `PlatformNotReady` window after every operator restart, and a stalled instance with a named account is rechecked only every 30 minutes (experiment 02 case 2). A transient outage during a transfer would become a failed transfer. Not chosen: R11 retries what may pass on its own and stalls only on a fact.
 - **Rely on the local-provenance marker as the operator's only check.** The marker misses renders experiment 01 found (D5, D6). Not chosen.
 
 **Rationale:** Reachability and byte identity are properties of the operator's fetch, so only the operator's fetch proves them. Experiment 01 showed three ways a CLI-side proof fails: a version only the CLI's registry has (stranded on `module not found`), a coordinate two registries serve differently (silent swap, reported Ready), and the operator's own stale cache (old bytes applied). This check refuses all three, and every hand flip of a local render, from one comparison. Checking before the finalizer keeps a refused adoption as easy to undo as a CLI-owned record; experiment 02 showed what a finalizer on an unmanaged record costs.
 
 The price is that a reachability failure is now found after the owner field changed, not before. The instance is then operator-owned, unadopted and untouched. OQ8 states this against the owner's choice of a CLI-side reachability gate.
 
-**Source:** Experiment outcome `experiments/01-provenance-digest-reachability/` (cases ii and iii, "What the operator did after a flip", "The CLI can predict the operator's digest"). User decision 2026-10-04 (AskUserQuestion, "Shape of the redesigned handoff?": "CLI gates + operator backstop (Recommended)", naming the registry-reachability gate and the operator backstop). The operator's registry precedence read from `opm-operator/cmd/main.go` at release 1.0.0-beta.5.
+**Source:** Experiment outcome `experiments/01-provenance-digest-reachability/` (cases ii and iii, "What the operator did after a flip", "The CLI can predict the operator's digest", and the `PlatformNotReady` window in case ii). The two digest implementations read on 2026-10-04: `cli/internal/inventory/digest.go` and `opm-operator/internal/status/digests.go`, both hashing the full object JSON; the operator's runtime name `opm-controller` (`core.LabelManagedByControllerValue`) from `opm-operator/cmd/main.go`. The 30-minute recheck from `experiments/02-applier-identity-and-field-transfer/` (case 2). User decision 2026-10-04 (AskUserQuestion, "Shape of the redesigned handoff?": "CLI gates + operator backstop (Recommended)", naming the registry-reachability gate and the operator backstop). The operator's registry precedence read from `opm-operator/cmd/main.go` at release 1.0.0-beta.5.
 
 ---
 
@@ -194,15 +210,15 @@ The price is that a reachability failure is now found after the owner field chan
 
 **Kind:** contract
 
-**Depends:** 0006:D38, 0028:D4
+**Depends:** 0006:D38, 0028:D3, 0028:D4
 
 **Amends:** 0006:D38
 
-**Decision:** Before it registers a finalizer on an instance whose owner says `operator`, the operator refuses to adopt it when the instance carries the local-provenance marker, or when it is the instance that deploys the operator itself (0028:D4). The self check also runs on what the instance renders, before any apply, so an instance created operator-owned, which has no recorded inventory, is refused too. A refused instance shows a stalled status that names the reason and the remedy. The operator renders nothing for a marked instance and applies, prunes and finalizes nothing for either, so deleting it never waits on the operator. The operator never prunes the objects of the instance that deploys it, even when that instance is deleted while carrying an operator finalizer. What survives of 0006:D38: the marker only ever blocks, and the CLI's strict-registry digest gate stays the authority on render parity. What changes against 0006:D38: the operator reads the marker too, so a hand edit of the owner field meets a refusal it did not meet before. The marker refusal is the early, explained refusal; D4's digest check is the proof.
+**Decision:** Before it registers a finalizer on an instance whose owner is not `cli`, which includes an absent or empty owner, the operator refuses to adopt it when the instance carries the local-provenance marker, or when it is the instance that deploys the operator itself (0028:D4). The fixed name and namespace 0028:D3 R11 gives that instance on every cluster is the first signal for recognising it. The self check also runs on what the instance renders, before any apply, so an instance created operator-owned, which has no recorded inventory, is refused too. A refused instance shows a stalled status that names the reason and the remedy. The operator renders nothing for a marked instance and applies, prunes and finalizes nothing for either, so deleting it never waits on the operator. The operator never prunes the objects of the instance that deploys it, even when that instance is deleted while carrying an operator finalizer. What survives of 0006:D38: the marker only ever blocks, and the CLI's strict-registry digest gate stays the authority on render parity. What changes against 0006:D38: the operator reads the marker too, so a hand edit of the owner field meets a refusal it did not meet before. The marker refusal is the early, explained refusal; D4's digest check is the proof.
 
 **Requirements:**
 
-- R1: The operator does not apply, prune or finalize an operator-owned instance that carries the local-provenance marker, and its status names the marker as the reason.
+- R1: The operator does not apply, prune or finalize an instance whose owner is not `cli` and that carries the local-provenance marker, and its status names the marker as the reason.
 - R2: The operator does not apply, prune or finalize the instance that deploys the operator, whatever its owner field says, and its status names the reason.
 - R3: A refused instance carries no operator finalizer, so its deletion completes without the operator.
 - R4: Once the cause is removed, by a registry re-apply that clears the marker, the next reconcile adopts the instance through the ordinary path.
@@ -214,7 +230,7 @@ The price is that a reachability failure is now found after the owner field chan
 - **CLI gates only, the delivered design (0006:D38).** A hand edit of the owner field bypasses every one of them. Experiment 01 confirmed the operator then adopts: two marked instances flipped by hand reached Ready, one keeping the marker and one with it stripped by the flip itself. Not chosen: the owner asked for a backstop.
 - **The marker as the whole backstop.** The old flip's own server-side apply drops the marker, and a module copied into the instance's own package is rendered with none (experiment 01, cases i and iv). Not chosen: D4's digest check carries the proof, and the marker gives the early, named refusal.
 - **A validating admission webhook on the owner field.** It refuses the edit itself, which is stronger. Not chosen here: it adds a certificate and an availability dependency the operator does not have, and operator issue 144 tracks webhooks as their own question.
-- **Refuse adoption when no applier account is named.** It would also catch the old stranding on a hand flip. Not chosen: an instance created operator-owned by hand legitimately relies on the operator's default account, and the operator cannot tell a flip from a creation by the record alone.
+- **Refuse adoption when no applier account is named.** It would also catch the old stranding on a hand flip. An instance created operator-owned legitimately relies on the operator's default account, so the refusal could only apply to a record the CLI applied, which D4 R10 lets the operator recognise. Not chosen in this draft: the default-account flag is the operator's supported way to name an applier for any instance that names none, and refusing would override it for flipped instances. A hand flip with neither a named account nor a default still strands as before; OQ12 holds whether to refuse it.
 
 **Rationale:** The CLI gates protect the command; the backstop protects the cluster. The two refusals are the cases where adoption does damage that a later reconcile cannot undo. Applying bytes nobody published replaces a running workload. Adopting the operator's own instance hands the operator the means to delete itself and then wait forever on its own finalizer. Refusing before the finalizer keeps a refused instance as deletable as a CLI-owned one: experiment 02 case 1 showed a finalizer left on a record the operator no longer manages wedges its deletion. The self check must also judge the render because the recorded inventory is written by the CLI, and an instance created operator-owned has none.
 
@@ -266,7 +282,7 @@ The marker does not cover inputs that are registry bytes from the wrong place or
 - **Fold export into this entry.** Export has its own questions about the exported tree, values and field managers, and none of them bear on the transfer. Not chosen.
 - **Let 0014 keep its own copy of the gate list.** Two copies drift, which is how 0014 came to cite a command that no longer exists. Not chosen.
 
-**Rationale:** One gate set means one place to add the next gate. Export applied to a CLI-owned instance is itself a transfer (0014's third question), so the two must not disagree on what a safe transfer requires.
+**Rationale:** One gate set means one place to add the next gate. Export applied to a CLI-owned instance is itself a transfer (0014's third question), so the two must not disagree on what a safe transfer requires. The coordination edit must also revisit 0014's first question, what export writes for the applier account and the prune intent: that question assumed a CLI-applied, handed-off instance carries neither, and after D3 a transferred instance records both.
 
 **Source:** Design discussion 2026-10-04 (the supervisor's brief for this entry), following the owner's 2026-10-04 choice of two enhancement entries ("Planning vehicle before OpenSpec changes?": "Two enhancement entries (Recommended)"). 0014's stale citation read from `0014/03-decisions.md` (D2) and `0014/07-questions.md` (OQ3).
 

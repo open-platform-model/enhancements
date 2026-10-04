@@ -31,17 +31,19 @@ opm instance handoff <name> --service-account <sa> --prune=<bool>
   |  1  cluster gates (CRDs, field floor, operator version ceiling)
   |  2  operator installed and ready
   |  3  record exists and is CLI-owned
-  |  4  not the operator's own instance (0028)
+  |  4  not the operator's own instance (0028; fixed name and namespace)
   |  5  no local-provenance marker
   |  6  complete published coordinate
   |  7  no skipped contracts
   |  8  a recorded render digest
-  |  9  the named identity can apply (and prune) every rendered entry,
+  |  9  the named identity can apply (and prune) every recorded entry,
   |     escalation rules for roles and bindings included
   | 10  the running operator performs the adoption check
   | 11  strict re-render (registries only, isolated cache, the cluster
   |     Platform) reproduces the recorded digest   <- the only gate force may skip
-  | 12  the record is unchanged except its status (a condition on the write)
+  | 12  the same review for any entry the render adds to the inventory
+  | 13  the record is unchanged except the operator's status conditions
+  |     (a condition on the write)
   v
 one conditional write: owner=operator, module and values restated,
   applier identity, prune intent, the digest the operator must reproduce
@@ -49,7 +51,9 @@ one conditional write: owner=operator, module and values restated,
   v
 operator, before any finalizer:
   marker or own instance?               -> stalled, nothing applied (D5)
-  render via its registries == stated?  -> no: stalled, nothing applied (D4)
+  CLI-applied record or stated digest?  -> render via its own registries:
+    cannot render yet (registry, Platform) -> retry, nothing applied
+    module not found, or digest differs    -> stalled, nothing applied (D4)
   |
   v  adopt: finalizer, apply as the named account
 verdict: Ready for the written generation, same entry set, revision
@@ -68,7 +72,7 @@ The operator side has two parts. The backstop (D5) refuses a marked instance and
 
 Both experiments have concluded and are cited from the decisions they constrain.
 
-- **The registry-mapping report was dropped (D4).** [`experiments/01-provenance-digest-reachability/`](experiments/01-provenance-digest-reachability/) showed the operator's mapping names hosts only the cluster network resolves, and that a coordinate two registries serve differently passes every CLI gate and then swaps bytes silently. The same experiment showed the CLI can predict the operator's render digest exactly, by rendering with the operator's runtime name. So the operator checks its own render at adoption. This moves the reachability refusal after the owner write, which OQ8 puts to the owner.
+- **The registry-mapping report was dropped (D4).** [`experiments/01-provenance-digest-reachability/`](experiments/01-provenance-digest-reachability/) showed the operator's mapping names hosts only the cluster network resolves, and that a coordinate two registries serve differently passes every CLI gate and then swaps bytes silently. The same experiment showed the CLI can predict the operator's render digest exactly, by rendering with the operator's runtime name. The reverse, the operator matching a digest the CLI recorded under its own name, was not measured and cannot match while both digests include the runtime name; D4 depends on 0012:D6 for it, and until that lands the operator digests a render stamped with the CLI's runtime name instead. So the operator checks its own render at adoption. This moves the reachability refusal after the owner write, which OQ8 puts to the owner.
 - **The verdict gained a digest check (D2).** The old inventory-stable verdict scored two broken adoptions as success in experiment 01: a hybrid object and a silent swap.
 - **The isolated verification cache is required (D2).** With a warm cache the verification passed a republished tag; with a fresh one it refused. A cold verification of a one-object module took about 3 seconds.
 - **The access review models RBAC escalation (D3).** [`experiments/02-applier-identity-and-field-transfer/`](experiments/02-applier-identity-and-field-transfer/) showed a review of the apply verbs alone passes a role the operator's apply is then refused for escalation. With escalation modelled, the prediction matched the operator in every case. The operator names only the first refused object, so the transfer reports the full table.
@@ -80,16 +84,18 @@ Both experiments have concluded and are cited from the decisions they constrain.
 
 No `opmodel.dev/core` definition changes. The `ModuleInstance` CRD already carries the owner, module, values, applier service account and prune fields the transfer writes.
 
-- **The digest the operator must reproduce (D4).** The transfer's write states it on the instance's record. Whether it is a spec field or an annotation is the repos' choice; a new spec field would be an additive CRD change.
-- **Operator adoption refusals (D4, D5).** New stalled reasons on a `ModuleInstance` whose owner is `operator`: a render that does not reproduce the expected digest or does not resolve, a local-provenance marker, and the operator's own instance. Their spelling is the operator's to choose; that each is a stalled status naming the reason, with no finalizer, is the contract.
+- **The digest the operator must reproduce (D4).** The transfer's write states it on the instance's record. Whether it is a spec field or an annotation is the repos' choice; a new spec field would be an additive CRD change. Its lifetime is a contract (D4 R12, R13): it binds one adoption and is consumed by it.
+- **Which actor recorded the status (D4 R10).** The operator must be able to tell an inventory and digest the CLI recorded from ones it recorded itself. Whether an existing field already says so or a new one does is the repos' choice.
+- **Operator adoption refusals (D4, D5).** New stalled reasons on a `ModuleInstance` whose owner is not `cli`: a render that does not reproduce the expected digest or does not resolve, a local-provenance marker, and the operator's own instance. Their spelling is the operator's to choose; that each is a stalled status naming the reason, with no finalizer, is the contract.
 - **Local-provenance marker (D6).** The existing annotation, `module-instance.opmodel.dev/source: local`, with a wider trigger. Its key and value are unchanged.
 - **The transfer command (D1).** `opm instance handoff` returns as a CLI command. The user-facing inputs it requires are an applier service account and a prune intent (D3); `--force` keeps its old meaning, skipping only the CLI's digest comparison (D2).
 
 ## Affected Surfaces
 
 - **cli.** `opm instance handoff` returns with the gate set in D2, the access review of D3, the conditional write, the verdict with the digest check, and the field release of D8. Every render that is not a pure registry artifact carries the local marker (D6). Operator-owned thin edits keep refusing local renders as they do today (0006:D18). Docs that say no command moves an instance change with the command.
-- **opm-operator.** Before adopting an instance it has never applied, the operator refuses a marked instance or its own instance (D5), and renders and compares the digest (D4), all before the finalizer. The ownership spec's "flip adopts" requirement narrows to "flip adopts unless refused".
-- **core.** Concept docs only: the page on who owns an instance says no command moves one, and that stops being true. No schema change.
+- **opm-operator.** Before adopting an instance whose owner is not `cli`, the operator refuses a marked instance or its own instance (D5), and, for a record the CLI applied or a transfer stated a digest for, renders and compares the digest (D4), all before the finalizer. The ownership spec's "flip adopts" requirement narrows to "flip adopts unless refused".
+- **core.** Concept docs only: the pages on who owns an instance and on modules and instances say no command moves one, and that stops being true. No schema change.
+- **opm.** Site pages that promise no command moves an instance and that the CLI never changes an owner: what OPM is, what OPM does not do, OPM for Kubernetes users, and the glossary's owner entry (06-operational.md lists them).
 - **enhancements (0014).** Export depends on this entry's gate set instead of citing the removed command (D7). The 0014 edit rides its own change.
 - **enhancements (0028).** 0028:D5's rationale points at an operator report of its registry mapping that this entry designed and then dropped (D4). The edit to that rationale is 0028's.
 
