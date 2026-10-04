@@ -199,16 +199,17 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R1: A caller without read access to a kind in a namespace receives the same refusal for an existing and a non-existing object of that kind.
 - R2: A list contains only items the caller may read, and a caller with no access receives an empty list with no count or name of hidden items.
 - R3: Objects inside a readable response that the caller cannot read are marked forbidden, and objects the portal itself cannot read are marked not readable; neither fails the response.
-- R4: A request for an object no OPM inventory reaches is refused as not in inventory, and only after the caller passed the authorization check for it.
+- R4: A request for an object no OPM inventory reaches, including an events request about such an object, is refused with the same `forbidden` problem document a forbidden read gets (R1); there is no distinct not-in-inventory code, so a caller cannot learn whether such an object exists.
 
 **Alternatives considered:**
 
 - **Look up first, then authorize.** Simpler handlers, but a missing-versus-forbidden difference leaks which objects exist.
 - **Serve any object the caller may read.** Turns the portal into a general cluster browser and widens the role the in-cluster portal needs.
+- **A distinct not-in-inventory refusal** (the earlier R4). Tells a caller who passed authorization that the object is outside every inventory, and an events request about an object the caller names would answer whether that object exists.
 
 **Rationale:** A shared cache serving many users is exactly where a cross-tenant leak happens. Making authorization the first step of every read path, and testing that a caller without access sees nothing, is cheaper than auditing each handler.
 
-**Source:** Portal V1 architecture, error model and access sections; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
+**Source:** Portal V1 architecture, error model and access sections; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model. Supervisor ruling 2026-10-04, pending acceptance (R4: one `forbidden` answer for objects no inventory reaches, events requests included).
 
 ---
 
