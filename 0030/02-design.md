@@ -41,7 +41,7 @@ A new service, `opm-portal`, reads what the opm-operator and the API server alre
  TransformerRegistration, inventory objects, Pods, events
 ```
 
-**Two milestones, one design.** Milestone 1 is a binary on the user's machine, bound to loopback, reading with the user's kubeconfig. The user's RBAC is the whole boundary, and there is no login code. Milestone 2 runs the same binary in-cluster: users sign in with OIDC, every read is authorized by a SubjectAccessReview for that user, and the portal then reads with its own narrow, read-only ServiceAccount.
+**Two milestones, one design.** Milestone 1 is a binary on the user's machine, bound to loopback, reading with the user's kubeconfig. The user's RBAC is the whole boundary, and there is no login code. Each read is checked first with a SelfSubjectAccessReview, so a node the user may not read shows as locked before it is read. Milestone 2 runs the same binary in-cluster: users sign in with OIDC, every read is authorized by a SubjectAccessReview for that user, and the portal then reads with its own narrow, read-only ServiceAccount.
 
 **The portal keeps a watched view.** The four OPM kinds are watched. Inventory objects are watched per kind, selected by the OPM instance label, from the moment an inventory names that kind. Pods and ReplicaSets below an instance are watched only while someone has that instance open. Events and logs are read on demand. Where the reading identity can only `get` a kind, the portal polls it and says how old the answer is. The live capture made this tier mandatory: serving one instance's graph with request-time reads took 7.4 to 9.4 s (measured, [experiment 01](experiments/01-live-cluster-capture/), observation 12).
 

@@ -20,9 +20,9 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** scope
 
-**Decision:** The V1 portal creates, edits and deletes nothing, in either milestone. It reads the four OPM kinds, the objects their inventories name, the runtime children below those objects, events and Pod logs. Writes, including ordering a module, arrive with the module marketplace, a separate entry that builds on the self-service kinds of entry 0027. A CLI-owned ModuleInstance is shown like any other instance and is equally read-only.
+**Decision:** The V1 portal creates, edits and deletes no stored object, in either milestone. The only requests it creates are access reviews the API server evaluates and never stores, named in D5, D6 and D11. It reads the four OPM kinds, the objects their inventories name, the runtime children below those objects, events and Pod logs. Writes, including ordering a module, arrive with the module marketplace, a separate entry that builds on the self-service kinds of entry 0027. A CLI-owned ModuleInstance is shown like any other instance and is equally read-only.
 
-**Requirements:** none (scope boundary; the observable consequences are D6's no-write-verb requirement and D11's read-only role)
+**Requirements:** none (scope boundary; the observable consequences are D5's and D6's review-only creates and D11's read-only role)
 
 **Alternatives considered:**
 
@@ -31,7 +31,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** A read-only V1 can ship on today's operator with no dependency on unaccepted entries, and it removes every write-side security question from the first release.
 
-**Source:** User decision 2026-10-04 (V1 read-only, writes in V2 through 0027 kinds); portal master plan, section 2.
+**Source:** User decision 2026-10-04 (V1 read-only, writes in V2 through 0027 kinds); portal master plan, section 2. Owner decision 2026-10-04 (keep the review seam: the only allowed creates are the non-persisted review APIs).
 
 ---
 
@@ -133,7 +133,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** In local mode the portal is a binary on the user's machine that reads the cluster only as the kubeconfig's identity. It binds to loopback only, refuses a request whose `Host` is not that loopback address, and admits a browser only through a one-time launch token exchanged for a session cookie. There is no login code against the cluster and nothing to install in it.
+**Decision:** In local mode the portal is a binary on the user's machine that reads the cluster only as the kubeconfig's identity. It binds to loopback only, refuses a request whose `Host` is not that loopback address, and admits a browser only through a one-time launch token exchanged for a session cookie. There is no login code against the cluster and nothing to install in it. Before each read the portal asks the API server whether the kubeconfig's identity may make it, with a SelfSubjectAccessReview for the exact verb, resource, namespace and name, and learns who that identity is with a SelfSubjectReview. A node the user may not read is shown locked up front, and in-cluster mode swaps the review for D6's SubjectAccessReview behind the same check. These two reviews are the only objects local mode creates; the API server evaluates them and stores nothing.
 
 **Requirements:**
 
@@ -142,16 +142,19 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R3: A request that does not carry the session established from the launch token is refused, so another local user or process cannot read the cluster through the portal.
 - R4: A request whose `Host` header names anything other than the loopback address and port is refused.
 - R5: A user who cannot list the OPM kinds cluster-wide can still use the portal on the namespaces they can read.
+- R6: In local mode the only create requests the portal sends are `selfsubjectaccessreviews` and `selfsubjectreviews`; it sends no other create, update, patch or delete.
+- R7: In local mode every read is preceded by an allowed SelfSubjectAccessReview for the kubeconfig's identity and the exact request attributes, and an object the identity may not read is shown as locked without being read.
 
 **Alternatives considered:**
 
 - **In-cluster first.** Needs OIDC, a session store, RBAC for the portal and an install manifest before anyone can see anything; local mode gives the same views with none of that.
 - **Loopback without a launch token.** Any local process or user can reach loopback; the token is the same defence notebook servers use.
 - **A container image as the only artifact.** A container cannot reach a kind API server on host loopback or serve a browser on loopback without host networking, so local mode ships as binaries.
+- **No access review in local mode: read, and map the API server's refusal.** Creates nothing at all, but the UI learns a node is locked only after a failed read, and in-cluster mode would need a second authorization path instead of swapping one backend. The reviews store nothing, so the portal's write rule was narrowed to name them instead.
 
 **Rationale:** The user's own RBAC is already the right boundary on their machine. Local mode exercises every read path and the whole API before any authentication code exists.
 
-**Source:** User decision 2026-10-04 ("Local first, then in-cluster": milestone 1 runs on your machine with your kubeconfig, your RBAC is the boundary, no auth code).
+**Source:** User decision 2026-10-04 ("Local first, then in-cluster": milestone 1 runs on your machine with your kubeconfig, your RBAC is the boundary, no auth code). Owner decision 2026-10-04 ("Keep the seam": local mode checks each read with a SelfSubjectAccessReview so the UI shows locked nodes up front, and the only allowed creates are the non-persisted review APIs `subjectaccessreviews`, `selfsubjectaccessreviews` and `selfsubjectreviews`).
 
 ---
 
@@ -159,7 +162,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer, naming the portal's configured audience. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb, and it keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount.
+**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer, naming the portal's configured audience. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb; the only object it creates is the SubjectAccessReview, which the API server evaluates and does not store. It keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount.
 
 **Requirements:**
 
@@ -171,6 +174,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R6: Unless the deployment declares that the API server trusts the portal's issuer, the portal refuses to start with an empty username or groups prefix.
 - R7: The portal records, per authenticated person, each read it authorized and each it denied.
 - R8: A bearer token is accepted only when it is signed by the configured issuer and names the configured audience; any other token is refused with no Kubernetes call made on its behalf.
+- R9: In-cluster, the only create request the portal sends is `subjectaccessreviews`; it sends no other create, update, patch or delete.
 
 **Alternatives considered:**
 
@@ -180,7 +184,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** Reads need the user's authorization, not the user's credential. Checking with a SubjectAccessReview and reading with a narrow ServiceAccount keeps the user's RBAC as the boundary without granting the portal the power to become anyone. The cost, users being invisible in the API server's audit log, is paid by R7.
 
-**Source:** User decision 2026-10-04 (milestone 2: in-cluster Deployment, OIDC login, SubjectAccessReview-as-user, fail closed on empty identity); [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
+**Source:** User decision 2026-10-04 (milestone 2: in-cluster Deployment, OIDC login, SubjectAccessReview-as-user, fail closed on empty identity). Owner decision 2026-10-04 (the only allowed creates are the non-persisted review APIs; in-cluster that is `subjectaccessreviews`); [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
 
 ---
 
@@ -286,11 +290,11 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, on every non-Secret kind the pinned OPM catalog's transformers can render, and on the runtime children those workloads own (Pods, `apps` ReplicaSets, and `batch` Jobs a CronJob creates), which D3's Pod rule, D4's runtime children and D10's reach check all read; `create` on SubjectAccessReviews; and `get` on `pods/log`. It grants no write verb, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations; whether they aggregate into the built-in `view` role is OQ6.
+**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, on every non-Secret kind the pinned OPM catalog's transformers can render, and on the runtime children those workloads own (Pods, `apps` ReplicaSets, and `batch` Jobs a CronJob creates), which D3's Pod rule, D4's runtime children and D10's reach check all read; `create` on `subjectaccessreviews` and on nothing else; and `get` on `pods/log`. That create stores nothing: the API server evaluates the review and returns it. The role grants no other create, no update, patch or delete, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations; whether they aggregate into the built-in `view` role is OQ6.
 
 **Requirements:**
 
-- R1: The in-cluster portal's role contains no write verb, no impersonate verb and no access to Secrets.
+- R1: The in-cluster portal's role contains no impersonate verb, no access to Secrets, and no verb that stores or changes an object; its only `create` is on `subjectaccessreviews`.
 - R2: Every non-Secret kind the pinned OPM catalog can render, and every runtime child kind below those workloads (Pods, ReplicaSets, Jobs), is readable by the portal's role, and a catalog that adds a kind the role does not cover is caught before the portal releases.
 - R3: An inventory object of a kind the portal's role does not cover is shown as not readable, with the reason, never omitted.
 - R4: A cluster administrator can grant a non-admin read access to Platforms, ModulePackages and TransformerRegistrations using a role the operator ships.
@@ -304,6 +308,6 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Rationale:** A read-only role is the in-cluster form of D1. Checking it against the catalog keeps "read-only" from silently turning into "cannot see half the objects" after a catalog bump.
 
-**Source:** opm-operator's shipped RBAC, read from source (one viewer role, ModuleInstances only, no aggregation label); kind list from the opm catalog's transformer outputs, read from source; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
+**Source:** Owner decision 2026-10-04 (in-cluster, the portal's role holds create only on `subjectaccessreviews`). opm-operator's shipped RBAC, read from source (one viewer role, ModuleInstances only, no aggregation label); kind list from the opm catalog's transformer outputs, read from source; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.
