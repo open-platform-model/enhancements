@@ -8,15 +8,15 @@ All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md]
 
 **Each operator release publishes the operator as a module (D1).** The module has the release's version and points at the release's image by its version tag. One release produces one number for the CLI to pin.
 
-**The module is the one source of the install shape (D2).** Its CRDs and permissions are generated from the controller's own code, and a mismatch stops the release. The kubectl install manifest is rendered from the module, so the two cannot differ.
+**The module is the one source of the install shape (D2).** Its CRDs and permissions are generated from the controller's own code, and a mismatch stops the release. It keeps the names, Deployment selector and pod security of today's manifest. The kubectl install manifest is rendered from the module, so the two cannot differ.
 
-**Install applies the module in two steps (D3).** The CLI pulls the module from its registry, applies the CRDs first, then records a CLI-owned instance. Air-gapped clusters use a registry mirror.
+**Install applies the module in two steps (D3).** The CLI pulls the module from its registry, applies the CRDs first, then records a CLI-owned instance. An install that refuses changes nothing, and success means the new operator is reconciling. Air-gapped clusters use a registry mirror.
 
 **The operator never manages itself (D4).** Its instance stays CLI-owned, and re-running install is the upgrade and the repair. Entry 0029's ownership transfer refuses this instance.
 
 **Settings are instance values and survive upgrades (D5).** Image, registry mapping, applier account, resources, replicas and extra arguments are recorded on the instance and reused by every reinstall.
 
-**Existing clusters migrate in place (D8, D9).** The first module install adopts the running operator without recreating it. Uninstall deletes what the instance recorded, never the CRDs or the Namespace, as entry 0006 required (0006:D34).
+**Existing clusters migrate in place (D8, D9).** The first module install adopts the running operator without recreating it. Uninstall deletes what the instance recorded, never the CRDs or the Namespace, and no CLI command deletes the operator's instance while instances still wait on its cleanup (0006:D34).
 
 <!--
 Do NOT add an implementation-status block here. Whether this design has been
@@ -51,9 +51,9 @@ The operator release is the only producer: it builds the image and publishes the
 1. [04-graduation.md](04-graduation.md): what must hold before `draft` becomes `accepted`
 1. [05-risks.md](05-risks.md): risks, drawbacks, alternatives not taken
 1. [06-operational.md](06-operational.md): rollout, versioning, rollback, cross-repo ordering
-1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ11
+1. [07-questions.md](07-questions.md): the open-questions register, OQ1 to OQ12
 
-[`experiments/`](experiments/) holds the two experiments the design rests on: whether the catalog can render the whole install shape, and whether the two-step install and the migration work on a real cluster.
+[`experiments/`](experiments/) holds the two concluded experiments the design rests on: the catalog renders the whole install shape, but only manifest-shaped workload and RBAC objects keep its names, selector and pod security (01); the two-step install, reinstall and upgrade work on a real cluster, and a self-owned operator wedges on its own deletion (02).
 
 ## Scope
 

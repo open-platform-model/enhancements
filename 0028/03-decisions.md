@@ -8,7 +8,7 @@ Decisions are numbered sequentially (D1, D2, D3, …) and recorded as they are m
 
 Each decision carries a `**Kind:**` line (`contract`, `policy` or `scope`) and passes the admission test: *if every affected repo were rewritten from scratch, would this decision still bind the result?* Mechanism decisions belong in the implementing OpenSpec change in the target repo.
 
-Three decisions rest on experiments that have not concluded: D2 on [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/), D3 and D8 on [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/). Each names the open question its experiment resolves, and each stays revisable in place until that question closes.
+Both experiments concluded on 2026-10-04 and are folded in. [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/) backs D2 and refuted its first form: the catalog's workload and role resources change three binding names, the Deployment's selector and the pod's seccomp profile, so D2 now requires the earlier manifest's names, selector and security posture. [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) backs D3, D4, D8 and D9: the two-step install, reinstall and upgrade held; a refused install had already changed the CRDs, `--wait` returned before the operator reconciled, and deleting the operator's instance with `opm instance delete` skipped the finalizer guard, so D3 and D9 gained requirements.
 
 ---
 
@@ -39,7 +39,7 @@ Three decisions rest on experiments that have not concluded: D2 on [`experiments
 
 **Rationale:** The owner chose a registry pull for install, which needs a published module at an address the CLI can pin. Publishing it from the release that builds the image is the only placement where the module and the image cannot describe different releases. The path follows the first-party module convention: one flat snake-case leaf under `opmodel.dev/modules/`, which the CLI's publish gate already admits.
 
-**Measured 2026-10-04:** the operator's release workflow already installs the CLI and publishes its test fixture modules with it, between the image job and the job that makes the release public (`opm-operator/.github/workflows/release.yml`, jobs `image-release`, `publish-examples`, `publish-release`). The publish gate admits first-party paths of the form `opmodel.dev/modules/<leaf>` (`cli/internal/publish/gates.go`, read the same day).
+**Measured 2026-10-04:** the operator's release workflow already installs the CLI and publishes its test fixture modules with it, between the image job and the job that makes the release public (`opm-operator/.github/workflows/release.yml`, jobs `image-release`, `publish-examples`, `publish-release`). The publish gate admits first-party paths of the form `opmodel.dev/modules/<leaf>` (`cli/internal/publish/gates.go`, read the same day). [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/) could default the image by digest only because the beta.5 image already existed when the module was written, which is the ordering problem the tag-only default avoids. Its local registry accepted a re-push of the same module version, so R1's "one release, one number" relies on the registry refusing re-pushes, as GHCR's version tags do under 0021:D10 (entry 0029 OQ9 asks the same of every module).
 
 **Source:** User decision 2026-10-04: "Where does opm operator install get the operator module?" = "Registry pull (Recommended)" (pull opmodel.dev/modules/opm_operator from GHCR; air-gapped users point --registry at a mirror; drop the embedded install.yaml; the CLI pins a module version). Tag-only image reference and the signing clause: supervisor defaults 2026-10-04, not yet confirmed by the owner.
 
@@ -51,22 +51,28 @@ Three decisions rest on experiments that have not concluded: D2 on [`experiments
 
 **Amends:** 0021:D4
 
-**Decision:** The operator module is the one source of the operator's install shape. Its CRDs and the controller's cluster RBAC are generated from what the controller's own code declares (its CRD schemas and its permission markers), and a release whose module disagrees with them is refused before anything is published. The release keeps publishing an install manifest, and that manifest is the module's render at its default values, so a kubectl-only install stays possible and cannot differ from the module. The objects keep the names an operator installed from an earlier manifest has, so tooling, documentation and the migration of D8 see the same operator.
+**Decision:** The operator module is the one source of the operator's install shape. Its CRDs and the controller's cluster RBAC are generated from what the controller's own code declares (its CRD schemas and its permission markers), and a release whose module disagrees with them is refused before anything is published. The release keeps publishing an install manifest, and that manifest is the module's render at its default values, so a kubectl-only install stays possible and cannot differ from the module. The objects keep the names an operator installed from an earlier manifest has, so tooling, documentation and the migration of D8 see the same operator. The controller Deployment keeps the earlier manifest's pod selector, which Kubernetes never lets an apply change, so no move between a manifest install and a module install, or between two module versions, has to delete the operator's Deployment. The operator's pods keep the security posture the manifest gave them: they satisfy the Kubernetes Pod Security `restricted` profile.
+
+These three properties bind the module's authoring. Where a first-party catalog resource renders an object with another name, another selector or a weaker security context, the module writes that object in the earlier manifest's shape instead. On 2026-10-04 that is the controller's workload and all its RBAC (experiment 01, variant).
 
 This amends 0021:D4. What survives: the install manifest is still not an artifact class of its own. What changes: the manifest is now a render of the operator module, and the operator module falls in the module class, with its `#config` schema as the compatibility surface 0021:D2 assigns to every module. An operator release that narrows the values `#config` accepts is therefore a breaking release of the operator.
 
-This decision is draft until [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/) shows the module can render the whole install shape, names included (OQ1).
+**Revised:** 2026-10-04: R7 and R8 added and the authoring rule stated after experiment 01 refuted the catalog-first shape.
 
 **Requirements:**
 
-- R1: For every operator release, the CRDs its module renders are identical to the CRD schemas the controller of that release serves.
+- R1: For every operator release, the CRDs its module renders are identical to the CRD schemas the controller of that release serves. Validated by [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/): all four CRD specs rendered equal to the controller's generated YAML.
 - R2: For every operator release, the cluster RBAC its module renders for the controller grants exactly the permissions the controller of that release declares it needs.
-- R3: A release whose module fails R1 or R2 publishes nothing.
+- R3: A release whose module fails R1 or R2 publishes nothing. Experiment 01's regenerate-and-diff check failed on one added RBAC verb and one added CRD short name, and passed against the operator's own generated tree.
 - R4: Every operator release publishes an install manifest equal to its module's render at default values, and applying that manifest with kubectl yields a running operator.
-- R5: The operator's Namespace, Deployment, ServiceAccount, RBAC objects and CRDs have the same names whether the operator was installed from the module or from an earlier release's manifest.
+- R5: The operator's Namespace, Deployment, ServiceAccount, RBAC objects and CRDs have the same names whether the operator was installed from the module or from an earlier release's manifest. Experiment 01: the catalog's role resource renamed three bindings; the variant kept all 19 names.
 - R6: An operator release whose module's `#config` stops accepting a value the previous release accepted is a breaking release of the operator.
+- R7: Installing the module over an operator installed from an earlier release's manifest, upgrading between module versions, and applying an earlier release's manifest over a module install never require deleting the operator's Deployment.
+- R8: The operator's pods satisfy the Kubernetes Pod Security `restricted` profile, as the pods of the earlier manifest do.
 
 **Alternatives considered:**
+
+- **Render the controller's workload and RBAC through the catalog's workload and role resources (previously adopted as the default).** Not chosen after [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/). The catalog adds the instance and component labels to every workload selector, so the Deployment's selector changes and the first module install over a manifest-installed operator fails with "field is immutable" unless the Deployment is deleted first ([`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/), step 6). The catalog's role resource names each binding after its role, which leaves the three bindings of the earlier manifest behind unrecorded. The catalog's security context has no seccomp field, so the pod loses `seccompProfile: RuntimeDefault` and fails the `restricted` profile. Writing those objects in the manifest's shape reached spec parity with only label differences. The cost is that the operator's own module exercises the catalog's CRD and Namespace resources but not its workload abstractions; when the module may move its workload onto them is OQ12.
 
 - **Keep the kustomize tree as the authority and generate the module from its render.** Not chosen: the module would be a passthrough of bytes with no typed configuration of its own, and the tuning surface of D5 would have to be patched into kustomize output. The kustomize tree stays where it is useful, as the source of what the controller's generators emit.
 - **Drop the install manifest and make the module the only install path.** Not chosen: a kubectl-only install is a documented path, and some users apply the manifest from their own GitOps tooling. Rendering the manifest from the module keeps that path at the cost of one release step, and it cannot drift.
@@ -76,7 +82,14 @@ This decision is draft until [`experiments/01-operator-module-render/`](experime
 
 **Measured 2026-10-04:** the kernel loads only the `.cue` files of a module tree (`library/opm/internal/sourcetree/sourcetree.go`), so a module cannot carry the controller's CRD YAML as files and must hold it as CUE. The first-party modules `cert_manager` and `metallb` hold their CRDs as CUE generated by `cue import`, with a README recipe and no drift check (`modules/cert_manager/README.md`, `modules/metallb/README.md`). The catalog's `objects` resource renders an object under the name written, which is how an object that no idiomatic resource expresses (an unbound ClusterRole) keeps its name (`catalog_opm/src/resources/v1alpha1/objects.cue`).
 
-**Source:** Supervisor seed 2026-10-04, following from the owner's registry-pull decision of the same day. The 0021:D4 amendment follows 0021:D2 ("A module's compatibility surface is its `#config` schema").
+**Measured 2026-10-04 by [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/)** (operator v1.0.0-beta.5, core v2.0.0-beta.2, catalog opm 4.5.2, CLI 1.0.0-beta.7):
+
+- The module renders all 19 objects with no cluster and no cluster Platform. Every name derives from the instance's name and namespace: instance `opm-operator` in `opm-operator-system` reproduces the manifest's names, because the manifest's name prefix equals `<instance>-`. The CRDs do not vary with the instance, so the module is a cluster singleton (D3:R11).
+- The CRDs are generated from the controller's YAML into CUE and embedded whole. Every schema feature the operator's CRDs use survived (CEL validations, preserve-unknown-fields, list-map keys, the status subresource, printer columns). The catalog's CRD resource cannot carry `conversion` or `preserveUnknownFields`; embedding the whole spec makes such a field refuse the render instead of vanishing, so a future multi-version CRD needs a catalog change first (05-risks.md).
+- Catalog path: three binding names, the Deployment selector and the seccomp profile differ (the alternative above). Objects written in the manifest's shape: the same 19 names, no spec differences, only labels (the kustomize labels give way to OPM's managed-by, module and instance labels).
+- Cost: 5.7 s and 507 MB peak memory cold, 2 to 4 s warm. The module is 1,977 lines of CUE, 1,713 of them generated.
+
+**Source:** Supervisor seed 2026-10-04, following from the owner's registry-pull decision of the same day. The 0021:D4 amendment follows 0021:D2 ("A module's compatibility surface is its `#config` schema"). R7, R8 and the authoring rule: experiment outcome `0028/experiments/01-operator-module-render/` (2026-10-04), with the selector failure measured by `0028/experiments/02-cli-bootstrap-install/`.
 
 ### D3: `opm operator install` deploys the module as a CLI-owned ModuleInstance
 
@@ -90,7 +103,9 @@ This decision is draft until [`experiments/01-operator-module-render/`](experime
 
 The CLI carries no copy of the operator's manifests. Each CLI release names one default module version, and the user may select another version for a run. A cluster with no access to the public registry installs from a mirror by pointing the CLI's registry mapping at it. The CRDs-only form keeps its meaning: it applies exactly the CRDs of the same render and nothing else, writing no instance record, no workload and no Platform.
 
-The operator's instance is a singleton: it has the same name and namespace on every cluster and every install. The spellings of that name and namespace are fixed by the implementing change and are part of this contract from then on.
+The operator's instance is a singleton: it has the same name and namespace on every cluster and every install. The spellings of that name and namespace are fixed by the implementing change and are part of this contract from then on. The module renders the operator's Namespace itself, so install creates it only as an object of the instance and records it.
+
+An install that refuses changes nothing. Every check that can refuse the instance apply, the apply guard of entry 0012 among them, runs before the CRD step, because the CRD step writes the instance's identity onto the CRDs. Install reports success only once the operator release it installed is reconciling, not when its Deployment is merely rolled out: the cluster Platform reports Ready from that release. Every CLI command that needs to know whether the operator is present and serving finds it through the operator's instance record, since the CLI no longer carries the manifest it used to look it up in.
 
 This amends three decisions of entry 0006:
 
@@ -98,21 +113,24 @@ This amends three decisions of entry 0006:
 - **0006:D32.** What survives: the `opm operator` command group and its CRDs-only form. What changes: install applies the operator module as an instance instead of applying the documents of an embedded manifest.
 - **0006:D35.** What survives: the CRDs are a subset of the one artifact the full install applies, so they cannot drift from it, and install waits until the CRDs are served and the operator has rolled out. What changes: the artifact is the module's render, not an embedded manifest; the pinned manifest and its refresh task go away; selecting another version resolves a module version from the registry instead of downloading a GitHub release asset.
 
-This decision is draft until [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) shows the two steps work on a cluster with no OPM objects (OQ2).
+**Revised:** 2026-10-04: R10 tightened and R12 to R14 added after experiment 02.
 
 **Requirements:**
 
-- R1: On a cluster with none of OPM's CRDs, one install run leaves the operator running and recorded as exactly one CLI-owned ModuleInstance of the operator module.
+- R1: On a cluster with none of OPM's CRDs, one install run leaves the operator running and recorded as exactly one CLI-owned ModuleInstance of the operator module. Validated by [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/), step 1.
 - R2: Install writes the instance record only after the module's CRDs are served.
-- R3: Every object the module renders, the CRDs included, is recorded in the instance's inventory, and no step of the install refuses an object the install itself applied.
+- R3: Every object the module renders, the CRDs and the Namespace included, is recorded in the instance's inventory, and no step of the install refuses an object the install itself applied. Experiment 02: all 19 objects recorded; creating the Namespace outside the module made the instance apply refuse it as a foreign object.
 - R4: The CLI obtains the operator module from its configured module registry and carries no copy of the operator's manifests.
 - R5: Each CLI release names one default module version, and a user can install any other published version.
 - R6: With the CLI's registry mapping pointed at a mirror holding the module and its dependencies, install succeeds on a cluster with no access to the public registry.
 - R7: The CRDs-only form applies exactly the CRDs a full install of the same module version applies, and writes no instance record, no workload and no Platform.
-- R8: A full install after a CRDs-only install of the same module version records the existing CRDs without recreating them.
-- R9: Re-running install with an unchanged module version and unchanged values changes no live object.
-- R10: Install reports success only after the CRDs are served and the operator's Deployment has completed its rollout.
+- R8: A full install after a CRDs-only install of the same module version records the existing CRDs without recreating them. Experiment 02: the instance apply reported the four CRDs unchanged.
+- R9: Re-running install with an unchanged module version and unchanged values changes no live object. Validated by experiment 02, step 4: all 19 objects kept their uid and resourceVersion.
+- R10: Install reports success only after the CRDs are served, the operator's Deployment has completed its rollout, and the cluster Platform reports Ready from the operator release just installed.
 - R11: A cluster holds at most one operator instance, and it has the same name and namespace on every cluster.
+- R12: An install that refuses changes no object in the cluster.
+- R13: After a module install, every CLI command that checks for a running operator before it acts finds the operator the install recorded, without a copy of the operator's manifest.
+- R14: Install creates no object outside the module's render except the cluster Platform and the opt-in user role of D6.
 
 **Alternatives considered:**
 
@@ -125,7 +143,16 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Measured 2026-10-04:** the CLI refuses an instance apply with "ModuleInstance CRD not found" when the CRD is absent (`cli/internal/inventory/gates.go`). On a cluster with no Platform, the CLI renders against a platform generated from the module's own dependency pins (`cli/openspec/specs/platform-resolution`, read the same day), so the bootstrap needs no Platform. An instance's identity is a name-based UUID of its own coordinates (`core/src/module_instance.cue`), so the first step can stamp the identity the second step will record.
 
-**Source:** User decision 2026-10-04: "Where does opm operator install get the operator module?" = "Registry pull (Recommended)" (pull opmodel.dev/modules/opm_operator from GHCR; air-gapped users point --registry at a mirror; drop the embedded install.yaml; the CLI pins a module version). The two-step bootstrap: supervisor brief 2026-10-04, from the CRD gate measured above.
+**Measured 2026-10-04 by [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/)** (kind, Kubernetes 1.36, module emulating install with `kubectl` for the CRD step and `opm instance apply` for the rest):
+
+- Fresh install: the render used the instance's own dependency pins ("cluster Platform not used … rendering against the instance's own deps"), the apply wrote the Namespace first and then the other 18 objects, and the ModuleInstance landed in the Namespace the same apply created. The operator then wrote only a `ManagedExternally` status condition on its own instance and reconciled a fixture end to end once the Platform was seeded.
+- Upgrade between two module versions was a re-apply: one new ReplicaSet, 13.9 s for apply and wait. The new pod's controllers started 28 s after the pod did, the first fixture reconcile after the upgrade reported `PlatformNotReady`, and `opm instance apply --wait` had reported the instance healthy about 30 s before the operator reconciled anything. R10 is tightened for this.
+- Migration probe: the instance apply refused at its first foreign object, but the CRD step had already relabelled the four CRDs. R12 and the order of checks above follow from this.
+- The CLI's readiness check, which the per-instance delete guard calls, locates the operator through the CRD names and the Deployment name of the embedded manifest (`cli/internal/operator/ready.go`, read 2026-10-04). Dropping the manifest removes that locator, so R13 is a requirement of this decision rather than an implementation detail.
+- Install time on a fresh cluster was the same as today's within noise (28.6 to 31.8 s against 28.7 to 30.7 s); render plus CRDs cost 2.3 to 3.5 s of it.
+- The operator's module fetches worked unchanged through a plain pull-through mirror of GHCR, which is the mirror path of R6 on the operator's side. The CLI's side of R6 was not measured: the host running the CLI had public access.
+
+**Source:** User decision 2026-10-04: "Where does opm operator install get the operator module?" = "Registry pull (Recommended)" (pull opmodel.dev/modules/opm_operator from GHCR; air-gapped users point --registry at a mirror; drop the embedded install.yaml; the CLI pins a module version). The two-step bootstrap: supervisor brief 2026-10-04, from the CRD gate measured above. R10, R12, R13, R14: experiment outcome `0028/experiments/02-cli-bootstrap-install/` (2026-10-04).
 
 ### D4: The operator's own instance stays CLI-owned
 
@@ -143,6 +170,13 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 - **Allow the transfer, guarded by the same gates as any instance.** Not chosen: the gates prove the operator can pull and apply the instance, not that it can recover from applying itself wrongly. A self-managing operator has no outer layer left to repair it.
 
 **Rationale:** The operator is the one workload whose failure stops every other instance, so its recovery path must not depend on it. Prior art agrees: the Flux Operator does not upgrade itself and is deployed by something else, and Flux's own guidance for a broken self-managed install is to run the bootstrap command again. Keeping the instance CLI-owned makes install that outer layer permanently.
+
+**Measured 2026-10-04 by [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/), step 8,** flipping the operator's own instance to `owner: operator` by hand, which no frontend refuses today:
+
+- With the shipped RBAC, the operator's dry-run was forbidden to patch its own CRDs and nothing was applied, but the operator had already added its cleanup finalizer to its own instance.
+- With cluster-admin granted, the operator adopted all 19 objects in place and became their co-manager. Re-running the CLI then only edited the spec and waited for the operator: the escape hatch "re-run install" no longer existed.
+- Deleting that self-owned instance made the operator prune its own Deployment, ServiceAccount, Service and manager role and die mid-cleanup. The record stayed in deletion on a finalizer only the dead operator could clear, two bindings were left pointing at deleted objects, and an operator-managed fixture was orphaned with its finalizer set. The only way back was removing the finalizer by hand and re-running the CLI apply.
+- While the instance stayed CLI-owned, deleting it and re-running install brought the operator back, and the operator then finished a fixture's pending cleanup (step 7).
 
 **Source:** User decision 2026-10-04: "Who owns the operator's own ModuleInstance after opm operator install?" = "CLI-owned forever" (the operator never reconciles itself; handoff refuses the operator's own instance).
 
@@ -170,6 +204,8 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Rationale:** A tuning surface that lives on the instance survives upgrades by construction, because the upgrade renders from the instance. Under 0021:D2 the same schema becomes the operator's compatibility surface, so removing a tuning value is a breaking release that a consumer can see coming. R4 makes the configured mapping visible to a client deciding whether the operator can pull a module, the question entry 0029 asks; what the operator actually resolves with is the operator's own report, which entry 0029 designs.
 
+**Measured 2026-10-04:** [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/) rendered every value of R1 into the Deployment (the image without a digest, two replicas, the registry mapping and default service account as controller arguments, two extra arguments after them, and the given resources). [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) set the registry mapping as a value and the operator resolved modules through two plain pull-through mirrors with it. Neither experiment exercised R2 or R3: both re-ran install from an instance file that already held the values, so whether a reinstall keeps values the user does not restate is untested. Neither exercised R5: the image came through a node-level registry mirror, not through the image value.
+
 **Source:** Supervisor seed 2026-10-04, from the install guide's documented reinstall trap (`opm-operator/docs/site/start/install-the-operator.md`) and the controller's arguments (`opm-operator/cmd/main.go`), both read 2026-10-04. The field list is a supervisor default, not yet confirmed by the owner.
 
 ### D6: Platform seeding and the CLI user role stay outside the module
@@ -188,6 +224,8 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 - **Make the user role a value of the module.** Not chosen: the CRDs-only path creates the role and writes no instance (D3:R7), so the role cannot live in an instance's inventory.
 
 **Rationale:** Both objects have owners other than the operator's instance. Keeping them out keeps the instance's inventory a list of exactly what the operator release installs.
+
+**Measured 2026-10-04:** in [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) the Platform was seeded with a create after the instance apply, and the operator generated it and reported it Ready. The seeded Platform then changed what the next install rendered against (OQ5).
 
 **Source:** Supervisor seed 2026-10-04, from 0006:D12 ("the operator always owns the singleton") and the CRDs-only form of 0006:D32.
 
@@ -216,9 +254,9 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Depends:** 0012:D8
 
-**Decision:** The first module install on a cluster whose operator was installed from an earlier release's manifest, by an earlier CLI or with kubectl, takes the existing objects into the new instance's inventory. It deletes and recreates none of them, so custom resources stored under the operator's CRDs are untouched and the operator keeps running except for the rollout its own changed Deployment causes. The adoption passes the apply guard of entry 0012 through its one override, the per-object adopt annotation naming the adopting instance (0012:D8). Whether install may set that annotation itself on the objects of the release it replaces, or the user must, is OQ3, because 0012:D8:R3 allows no other override. An operator installed with kubectl from a manifest rendered from the module (D2:R4) already carries the instance's identity and needs no adoption step.
+**Decision:** The first module install on a cluster whose operator was installed from an earlier release's manifest, by an earlier CLI or with kubectl, takes the existing objects into the new instance's inventory. It deletes and recreates none of them, so custom resources stored under the operator's CRDs are untouched and the operator keeps running except for the rollout its own changed Deployment causes. The adoption passes the apply guard of entry 0012 through its one override, the per-object adopt annotation naming the adopting instance (0012:D8). Whether install may set that annotation itself on the objects of the release it replaces, or the user must, is OQ3, because 0012:D8:R3 allows no other override. An operator installed with kubectl from a manifest rendered from the module (D2:R4) already carries the instance's identity and needs no adoption step. No recreation is possible only because the module keeps the earlier manifest's names and Deployment selector (D2:R5, R7); a migration that refuses leaves the earlier operator as it was (D3:R12).
 
-This decision is draft until [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) shows the adoption over a manifest-installed operator (OQ2, OQ3).
+**Revised:** 2026-10-04: kept after experiment 02, which showed the migration needs D2's names and selector and an explicit adoption; R5 added.
 
 **Requirements:**
 
@@ -226,6 +264,7 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 - R2: Custom resources stored under the operator's CRDs are unchanged by the migration.
 - R3: An object of the earlier manifest that the module does not render is named in install's report and left in place.
 - R4: An operator installed with kubectl from a manifest rendered from the module is taken into the instance by install with no step on any object by the user.
+- R5: A migration install that refuses leaves the earlier operator running and every object of the earlier manifest unchanged.
 
 **Alternatives considered:**
 
@@ -236,7 +275,13 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Measured 2026-10-04:** every object of the embedded manifest carries `app.kubernetes.io/managed-by: kustomize` and no OPM instance identity (`cli/internal/operator/dist/install.yaml`), so under 0012:D8 each is a foreign object to the new instance.
 
-**Source:** Supervisor seed 2026-10-04 (migration pending experiment 02).
+**Measured 2026-10-04 by [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/), step 6,** installing a catalog-path module over today's `opm operator install`:
+
+- The CLI's apply refused at the first object without an OPM managed-by label (`cli/internal/inventory/stale.go`, read 2026-10-04). It neither adopted nor duplicated anything. The CRD step that ran before it had already relabelled the four CRDs (D3:R12).
+- With every old object relabelled as OPM-managed, which stands in for the adoption OQ3 decides, 18 objects were taken over in place with their uids, and the earlier manifest's labels were dropped cleanly because both installs apply as field manager `opm-cli`. The Deployment failed as immutable (its selector changed), so no instance record was written.
+- After deleting the Deployment by hand the install completed, but three bindings of the earlier manifest stayed in the cluster unrecorded beside the module's renamed ones. The module shape D2 now requires keeps those names and the selector ([`experiments/01-operator-module-render/`](experiments/01-operator-module-render/), variant), which removes both failures; the end-to-end migration with that shape is not yet measured.
+
+**Source:** Supervisor seed 2026-10-04. R5 and the dependence on D2:R5 and R7: experiment outcome `0028/experiments/02-cli-bootstrap-install/` (2026-10-04).
 
 ### D9: Upgrade and uninstall act on the operator's instance
 
@@ -248,12 +293,17 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Decision:** Upgrading the operator is installing another module version over the existing instance: objects whose render changed are applied, objects the new version no longer renders are removed, and the CRDs and the Namespace are never removed. Uninstalling the operator deletes its instance through the CLI. This amends 0006:D34. What survives: uninstall refuses while any ModuleInstance in the cluster carries the operator's cleanup finalizer, its explicit override removes that finalizer only and orphans those instances' workloads, and the CRDs and the Namespace are never deleted. What changes: the set uninstall deletes is the operator instance's recorded inventory, not the documents of a manifest built into the CLI, so an object an older release installed is removed too.
 
+Because the operator's instance is an ordinary CLI-owned instance, the CLI's generic instance delete can reach it too. That path keeps the same guard: deleting the operator's instance by any CLI command either meets uninstall's finalizer refusal or is refused with a pointer to uninstall.
+
+**Revised:** 2026-10-04: R5 added after experiment 02 deleted the operator's instance past an armed finalizer.
+
 **Requirements:**
 
 - R1: Upgrading to another module version removes every object the previous version rendered and the new one does not, except CRDs and the Namespace.
 - R2: Uninstall refuses while any ModuleInstance in the cluster carries the operator's cleanup finalizer, unless the user explicitly chooses to remove that finalizer and orphan those instances' workloads.
 - R3: Uninstall removes every object recorded in the operator instance's inventory except CRDs and the Namespace, and then removes the instance record.
 - R4: Uninstall removes no object the operator instance's inventory does not record.
+- R5: No CLI command deletes the operator's instance while any ModuleInstance in the cluster carries the operator's cleanup finalizer, unless the user makes the same explicit choice R2 offers.
 
 **Alternatives considered:**
 
@@ -262,6 +312,12 @@ This decision is draft until [`experiments/02-cli-bootstrap-install/`](experimen
 
 **Rationale:** Once the operator has an inventory, the inventory is the only honest answer to "what did install put here". The finalizer guard of 0006:D34 protects the instances the operator manages, which do not change when the operator's own record does.
 
-**Source:** Supervisor seed 2026-10-04 (seed D4's uninstall clause, split out because it carries requirements and D4 is a policy).
+**Measured 2026-10-04 by [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/):**
+
+- Upgrade from module 0.1.0 to 0.2.0 re-applied every non-CRD object (their version label changed) and left the CRDs unchanged. Both versions render the same object set, so R1's removal of a dropped object was not exercised.
+- `opm instance delete` of the operator's instance deleted 14 objects and left the Namespace and the four CRDs ("CRDs and Namespaces are never deleted"), as R3 asks. It did not check finalizers: an operator-managed fixture still carried the cleanup finalizer and the delete went ahead silently. Today's uninstall guard (`cli/internal/operator/uninstall.go`, `CheckFinalizerGuard`, read 2026-10-04) has no counterpart on that path, hence R5.
+- The orphaned fixture's later delete wedged in deletion until install was re-run; the restored operator then finished its cleanup.
+
+**Source:** Supervisor seed 2026-10-04 (seed D4's uninstall clause, split out because it carries requirements and D4 is a policy). R5: experiment outcome `0028/experiments/02-cli-bootstrap-install/` (2026-10-04).
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.

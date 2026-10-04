@@ -8,7 +8,8 @@ The five fixed production-readiness prompts, answered for this design.
 
 - **The operator's instance is the record.** `opm instance list` and `kubectl get moduleinstances` show the operator's instance like any other: its module version, its values and its inventory. Which operator release runs on a cluster becomes a field of a record instead of an image tag on a Deployment.
 - **Install reports what it did.** The report names the module version installed, the registry it came from, the objects created, changed and adopted, and, during a migration, every object of the earlier manifest the module does not render (D8:R3).
-- **New refusals, each naming its cause.** A recorded value the target module version rejects (D5:R3); a module the registry cannot serve; and the rules OQ4 and OQ5 settle.
+- **New refusals, each naming its cause.** A recorded value the target module version rejects (D5:R3); a module the registry cannot serve; a delete of the operator's instance while instances still carry its cleanup finalizer, now on the generic instance delete too (D9:R5); and the rules OQ4 and OQ5 settle. A refusal changes nothing in the cluster (D3:R12).
+- **Install success means the operator is reconciling.** Install waits for the cluster Platform to report Ready from the release it installed (D3:R10), which experiment 02 showed is about 30 s later than the Deployment's rollout after an upgrade.
 - **The operator emits nothing new.** Its own metrics and conditions are unchanged.
 
 ## Semver Impact
@@ -39,7 +40,7 @@ All of them go in the CLI release that switches install to the module; a CLI tha
 **If this lands and proves bad, what's the rollback story?**
 
 - **The operator itself.** Re-run install with the previous module version (D9). Install needs nothing from the running operator (D4), so a broken operator does not block its own rollback.
-- **The CLI.** A user can return to a CLI release that still embeds the manifest. Its install applies the manifest over the same objects with the same field manager, which drops the instance identity labels the module had set. The operator's instance record then describes objects that no longer carry its identity, and the next module install takes them back through the migration of D8.
+- **The CLI.** A user can return to a CLI release that still embeds the manifest. Its install applies the manifest over the same objects with the same field manager, which drops the instance identity labels the module had set; it succeeds only because the module keeps the manifest's Deployment selector (D2:R7). The operator's instance record then describes objects that no longer carry its identity, and the next module install takes them back through the migration of D8. Experiment 02 measured that a re-apply by the same field manager drops the other install's labels cleanly; the rollback direction itself was not run.
 - **The release.** Published module versions are never re-pointed (0021:D10). A bad module release is fixed by the next release, and the CLI's pin moves back by a pin change.
 - **State that survives.** CRDs and the custom resources under them are never deleted by either path, so no rollback loses an instance.
 
@@ -47,9 +48,10 @@ All of them go in the CLI release that switches install to the module; a CLI tha
 
 **Which repos must coordinate, and what constrains the order?**
 
-- **The catalog resources the module needs exist before the module.** The module renders through the first-party catalog's existing workload, role, CRD and `objects` resources; it pins a catalog release that carries all of them.
+- **The catalog resources the module needs exist before the module.** The module renders through the first-party catalog's existing CRD, Namespace and `objects` resources (D2); catalog opm 4.5.2 carries all of them (experiment 01). A future operator CRD with a conversion webhook needs a catalog release whose CRD resource carries `conversion` first (OQ6).
 - **The operator release publishes the module before the CLI pins it.** The CLI's default module version must name a published module, and the module must be published before the operator release becomes public (D1:R1).
 - **The release's CLI can publish the module without needing it.** The operator release runs a pinned CLI to publish; that CLI must not depend on the operator module it publishes.
 - **The apply guard's adopt annotation exists before the migration.** D8 adopts through 0012:D8's override, so the frontends implement the annotation before the CLI release that installs the module over manifest-installed operators.
 - **The CLI's install switch and the documentation move together.** The install pages in `opm` and `opm-operator` describe the module install only once a CLI release installs that way; documentation that changes before the release shows a command that does not yet behave as described.
-- **Entry 0029 refuses the operator's instance before any transfer command ships.** A transfer command that could move the operator's own instance would break D4 the day it ships.
+- **Entry 0029 refuses the operator's instance before any transfer command ships.** A transfer command that could move the operator's own instance would break D4 the day it ships. The operator-side refusal matters before that too: experiment 02 showed a hand edit of the owner field already makes the operator adopt or wedge itself today.
+- **The CLI's operator locator moves with the install switch.** The readiness check behind the CLI's delete guard reads the embedded manifest today, so the release that drops the manifest also switches the check to the operator's instance (D3:R13).

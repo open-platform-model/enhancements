@@ -8,3 +8,5 @@ experiment. Per-experiment status lives in each `NN-*/README.md`'s
 
 | # | Concept | Status |
 | - | ------- | ------ |
+| 01 | [operator-module-render](01-operator-module-render/): whether the first-party catalog renders the operator's 19-object install with no cluster, names and specs equal, CRDs and RBAC generated and drift-checked | Concluded |
+| 02 | [cli-bootstrap-install](02-cli-bootstrap-install/): whether "apply the module's CRDs, then a CLI-owned instance" installs, reinstalls, upgrades and deletes the operator, migrates a manifest install, and survives a self-transfer | Concluded |
