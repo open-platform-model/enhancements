@@ -1,41 +1,13 @@
 # Graduation Criteria: The Operator Ships as an OPM Module
 
-These are design acceptance criteria, not implementation milestones:
-delivery is logged in this entry's `delivery.yaml` and read back with
-`task delivery`. The entry's documents store nothing about delivery
-progress.
-
-Repo-wide checks (semver set, placeholders gone, CUE compiles, cross-refs
-resolve) live in `gates.cue` and `task vet`, not here. What belongs here
-is what is true of THIS design and no other.
+These are design acceptance criteria, not implementation milestones: delivery is logged in this entry's `delivery.yaml` and read back with `task delivery`. Repo-wide checks live in `gates.cue` and `task vet`; per-question blocking rules live on the questions in `07-questions.md`.
 
 ## draft → accepted
 
-Seven gates must all hold before promoting this design from draft to
-accepted:
-
-- {Goals and Non-Goals in `02-design.md` are final and reviewed.}
-- {Every **contract-level** Open Question is resolved
-  (`resolved-by-D##`, `deferred-to-NNNN`, or `answered`); every
-  implementation-level question left open is explicitly
-  `deferred-to-implementation` with the context a future implementer
-  needs. No question is merely unanswered.}
-- {Every decision in `03-decisions.md` carries a valid `**Kind:**`
-  (contract | policy | scope) and passes the admission test: mechanism
-  decisions have been moved out or left to the implementing slices.}
-- {Every `contract` decision lists at least one `- Rn:` requirement; every
-  `policy` or `scope` decision carries `**Requirements:** none` with a reason.}
-- {No document in the entry prescribes mechanism: no filename, identifier
-  spelling, directory layout, or code structure is stated as instruction.
-  Paths cited as evidence are fine; paths cited as the address of an edit
-  are not.}
-- {If `core_schema: true`: `schemas/` compiles (`cue vet ./...` passes),
-  `examples.cue` carries concrete instances that actually exercise every
-  new or changed definition, and `spec.md` drafts the core SPEC.md delta
-  (four-part format), `task vet` enforces file presence at `accepted`.
-  If `core_schema: false`: no `schemas/` exists; any `contracts/` compiles.}
-- {`depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final
-  and resolve; every `depends_on` id is carried by a `**Depends:**` line in
-  a live decision.}
-- {`semver` in `config.yaml` is set (major / minor / none).}
-- {No `{Capitalised}` placeholder strings remain in any markdown file.}
+- **Both experiments have concluded and their outcomes are linked.** [`experiments/01-operator-module-render/`](experiments/01-operator-module-render/) from D2, and [`experiments/02-cli-bootstrap-install/`](experiments/02-cli-bootstrap-install/) from D3 and D8, each as measured evidence under the decision it constrains. A decision the evidence contradicts has been revised in place, with the old position under *Alternatives considered*.
+- **The migration contract is settled against entry 0012.** OQ3 is resolved, and D8 reads consistently with 0012:D8:R3: either install sets no adopt annotation itself, or entry 0012 has been amended to allow what install does.
+- **The operator's own instance is refused at both ends of the transfer.** Entry 0029 states, as requirements, that its transfer command and the operator's adoption refusal both refuse the instance that deploys the operator, and carries a `**Depends:**` line on 0028:D4.
+- **The supervisor defaults are confirmed or replaced by the owner.** D1's tag-only image reference and signing clause, D5's list of typed values, D6, D7 and D9 each carry an owner decision in their `Source:` lines, or have been revised.
+- **The install refusal rules are decided.** OQ4 (an operator version newer than the CLI) and OQ5 (which platform install renders against) are resolved as decisions with requirements.
+- **`config.yaml.semver` is set** from OQ9's answer.
+- **Every decision passes the admission test**, every contract decision lists requirements, and no document prescribes a file, an identifier or a layout in the operator or CLI repositories.
