@@ -70,6 +70,6 @@ Phases 7 to 9 added the registration states D4 shows: refused, accepted and acti
 
 Sizes: the cert-manager ModuleInstance is 14.6 KB (status 12.6 KB, inventory 6.3 KB at about 148 B per entry, history 4.1 KB for five entries); podinfo is 3.4 KB.
 
-Not captured: a working ModulePackage (needs Flux and a pushed artifact), and an accepted, active registration on a released operator: phase 8 ran an unreleased build, because no released operator carries library v1.0.0-beta.2 or later yet: opm-operator `main` still pins library v1.0.0-beta.1, and opm-operator PR 213 bumps it to beta.4.
+Not captured: a working ModulePackage (needs Flux and a pushed artifact), and an accepted, active registration on a released operator: phase 8 ran an unreleased build, because no released operator carries library v1.0.0-beta.2 or later yet (opm-operator `main` still pins library v1.0.0-beta.1; opm-operator PR 213 bumps it to beta.4).
 
 **Hypothesis held, with corrections.** The operator's status, inventory and labels carry enough for applied state, the instance graph and a feed without any render, but health needs a Pod-level rule (3), contract demand is not recorded (2), events need deduplication (4, 5), and the cache tier is mandatory (12). These corrections are folded into D3, D4, D8 and D9 of the decision log.
