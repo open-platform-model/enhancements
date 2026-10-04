@@ -130,6 +130,8 @@ The block ends open. A key beyond these four passes this entry's validation unch
 
 **Depends:** 0011:D3, 0011:D8, 0011:D16
 
+**Revised:** 2026-10-04. R5 added. Once the block ends in an open tail (D2:R7), a writer that rebuilt the block from the four fields it owns would drop a key a later entry defines, such as a listing card. The decision's meaning is otherwise unchanged.
+
 **Decision:** The block is written by the same tooling 0011 already trusts with the tree. `opm module init` seeds it when it seeds the identity package; `version set` and `publish --version` keep `identity.Version` in step when they write the identity version; template re-identification rewrites `identity.ModulePath` when it rewrites `module:`. Each write is surgical (comments preserved, no-op when the value already matches), as the identity writer is. Publish reads and refuses, never writes.
 
 This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the version writer's only target. Once this entry is accepted, 0011 gains a new decision carrying `**Amends:** D3, D8`: the writer keeps every schema-fixed copy of `Version` in step. The wording is OQ4.
@@ -149,7 +151,7 @@ This extends 0011 D3 and D8, which name `identity/identity.cue` `Version` as the
 
 **Rationale:** The block's release-varying value is `identity.Version`, and the tool that changes the version is the one that knows the new value. Everything else in the block changes only when `module:` or `deps` change, which `init`, re-identification and dependency updates already own.
 
-**Source:** User decision 2026-08-24. Enhancement 0011 D3, D8, D12 (the version writer), D16 (publish never edits), D20 (init repairs an existing tree).
+**Source:** User decision 2026-08-24. Enhancement 0011 D3, D8, D12 (the version writer), D16 (publish never edits), D20 (init repairs an existing tree). R5: proposed 2026-10-04 alongside the owner's decision to open the block for the listing key (D2), awaiting the owner's confirmation.
 
 ### D6: Push-time provenance lives in OCI manifest annotations, never in the tree
 
