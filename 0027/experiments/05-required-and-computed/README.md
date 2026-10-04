@@ -33,4 +33,4 @@ The required-versus-defaulted sample is `cue/samples/r01-required`; the corpus r
 - Both remaining disagreements are computed fields. A computed field's wrong value is admitted. A computed field whose inputs have defaults is frozen into a one-value enum, so setting a different input together with the matching computed value is refused although CUE accepts it. Every real module serves the image reference this way today.
 - Emitting CUE defaults as CRD defaults breaks the struct-default reduction of experiment 04: that sample's CRD is invalid.
 
-Hypothesis held. Candidate for OQ21: a defaulted field is not required, defaults are not emitted as CRD defaults (consistent with the OQ9 candidate), and computed fields leave the consumer schema.
+Hypothesis held. Candidate for OQ21: a defaulted field is not required and defaults are not emitted as CRD defaults (consistent with the OQ9 candidate). This experiment did not measure what replaces the one-value enum for computed fields; removing them from the consumer schema and serving them as unconstrained strings are both open in OQ21.

@@ -43,6 +43,6 @@ Other findings:
 - Recognising a secret field by core's hidden tag reports every scalar, map, list and nested-pattern secret path with no values present, and reports neither the tag-less look-alike nor the old shape. Recognition by shape would misfire on the look-alike.
 - A field typed by an imported definition hides its disjunction arms and scalar bounds unless the value is evaluated first. Any encoder must evaluate before reading arms or bounds.
 - None of the 451 API server refusals in experiment 02 echoed a literal secret value. The server echoes a value only on pattern or enum failures, so `value` must never carry a pattern, enum, format or length bound.
-- All 13 secret sites in the current fleet are scalar fields, so neither A nor B meets the cost ceiling today.
+- All 13 future secret sites in the current fleet (fields commented as becoming `#Secret`) are scalar fields, so neither A nor B would meet the cost ceiling when they move.
 
 Hypothesis held: a tag-recognised fixed flattened object serves `#Secret` with full agreement. B is the candidate for OQ19; A is an optional improvement where the CEL budget allows.
