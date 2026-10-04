@@ -2,6 +2,8 @@
 
 Status: Concluded
 
+> **Note (2026-10-04):** a later owner decision chose the catalog path this experiment measured, with the seccomp profile and roles with no subjects added to the catalog first (0028:D2, 0028:D12), over the exact-objects variant; the outcome below is unchanged.
+
 ## Hypothesis
 
 The opm-operator's full install (the 19 objects in the cli's embedded

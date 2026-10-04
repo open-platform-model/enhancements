@@ -2,6 +2,8 @@
 
 Status: Concluded
 
+> **Note (2026-10-04):** a later owner decision chose the catalog-path module this experiment installed, so the migration of step 6 (Deployment delete, superseded bindings) is what install now does itself (0028:D8); ownership transfer was taken out of these plans, and step 8 remains the evidence for 0028:D4. The outcome below is unchanged.
+
 ## Hypothesis
 
 On a fresh cluster with no operator, "install = SSA the module's CRD subset,
