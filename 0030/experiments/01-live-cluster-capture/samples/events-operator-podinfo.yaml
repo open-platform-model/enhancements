@@ -1,0 +1,100 @@
+- action: Apply
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: "2026-10-04T13:41:11.411848Z"
+  kind: Event
+  metadata:
+    creationTimestamp: "2026-10-04T13:41:11Z"
+    name: podinfo.18db574e7c264dbc
+    namespace: default
+    resourceVersion: "1122"
+    uid: 930b5180-56a0-4e9b-9dba-ebc9fb6d4f90
+  note: Applied 2 resources (2 created, 0 updated, 0 unchanged)
+  reason: Applied
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: ModuleInstance
+    name: podinfo
+    namespace: default
+    resourceVersion: "1094"
+    uid: d2a752ef-f190-403b-b22a-d85e98484358
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-59cbdd66c6-r72wt
+  type: Normal
+- action: Reconcile
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: "2026-10-04T13:41:11.411899Z"
+  kind: Event
+  metadata:
+    creationTimestamp: "2026-10-04T13:41:11Z"
+    name: podinfo.18db574e7c26fd56
+    namespace: default
+    resourceVersion: "1123"
+    uid: e930afa0-224f-467e-b9cf-8d0827fa46df
+  note: Reconciliation succeeded
+  reason: ReconciliationSucceeded
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: ModuleInstance
+    name: podinfo
+    namespace: default
+    resourceVersion: "1094"
+    uid: d2a752ef-f190-403b-b22a-d85e98484358
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-59cbdd66c6-r72wt
+  type: Normal
+- action: Apply
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: "2026-10-04T13:46:57.843672Z"
+  kind: Event
+  metadata:
+    creationTimestamp: "2026-10-04T13:46:57Z"
+    name: podinfo.18db579f25186afb
+    namespace: default
+    resourceVersion: "2044"
+    uid: 07585c4e-8518-4c1d-9819-3ba8aa2b3f81
+  note: Applied 2 resources (0 created, 1 updated, 1 unchanged)
+  reason: Applied
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: ModuleInstance
+    name: podinfo
+    namespace: default
+    resourceVersion: "2040"
+    uid: d2a752ef-f190-403b-b22a-d85e98484358
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-59cbdd66c6-r72wt
+  type: Normal
+- action: Reconcile
+  apiVersion: events.k8s.io/v1
+  deprecatedFirstTimestamp: null
+  deprecatedLastTimestamp: null
+  deprecatedSource: {}
+  eventTime: "2026-10-04T13:46:57.843715Z"
+  kind: Event
+  metadata:
+    creationTimestamp: "2026-10-04T13:46:57Z"
+    name: podinfo.18db579f2518fea4
+    namespace: default
+    resourceVersion: "2045"
+    uid: 3e4cb2e5-029c-4c24-ad5c-2a9dfb1ad33e
+  note: Reconciliation succeeded
+  reason: ReconciliationSucceeded
+  regarding:
+    apiVersion: opmodel.dev/v1alpha1
+    kind: ModuleInstance
+    name: podinfo
+    namespace: default
+    resourceVersion: "2040"
+    uid: d2a752ef-f190-403b-b22a-d85e98484358
+  reportingController: opm-controller
+  reportingInstance: opm-controller-opm-operator-controller-manager-59cbdd66c6-r72wt
+  type: Normal

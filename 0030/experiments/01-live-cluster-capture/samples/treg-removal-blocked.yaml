@@ -1,0 +1,57 @@
+# Phase 9: the claim deleted while backup-consumer still demands its contract. Stalled=True and Ready=False with reason
+# DependentsRemain, while status.accepted and status.active stay true and the Active condition stays True.
+- apiVersion: opmodel.dev/v1alpha1
+  kind: TransformerRegistration
+  metadata:
+    creationTimestamp: '2026-10-04T14:28:36Z'
+    deletionGracePeriodSeconds: 0
+    deletionTimestamp: '2026-10-04T14:30:18Z'
+    finalizers:
+    - opmodel.dev/dependents
+    generation: 2
+    labels:
+      app.kubernetes.io/instance: registration
+      app.kubernetes.io/managed-by: opm-controller
+      app.kubernetes.io/name: registration
+      component.opmodel.dev/name: registration
+      module-instance.opmodel.dev/name: backup-provider
+      module-instance.opmodel.dev/uuid: ad4c18d3-442d-5255-a0e1-ae43ea2a6030
+      module.opmodel.dev/name: backup_provider
+      module.opmodel.dev/uuid: 9ede50a5-502d-5749-ab7a-07923793c01e
+      module.opmodel.dev/version: 0.1.0
+    name: default.backup-provider
+    resourceVersion: '2291'
+    uid: 24ed4f40-1eb7-403e-98ff-0ddfd2c9aabe
+  spec:
+    catalog: testing.opmodel.dev/catalogs/operator/backup@v0
+    providerRef:
+      name: backup-provider
+      namespace: default
+    provides:
+    - opmodel.dev/catalogs/opm/traits/backup@v1alpha1
+    version: 0.1.0
+  status:
+    accepted: true
+    active: true
+    conditions:
+    - lastTransitionTime: '2026-10-04T14:30:18Z'
+      message: 'Deletion blocked: 1 module instance(s) still demand contracts this claim provides (default/backup-consumer);
+        remove them before removing the provider'
+      observedGeneration: 2
+      reason: DependentsRemain
+      status: 'True'
+      type: Stalled
+    - lastTransitionTime: '2026-10-04T14:30:18Z'
+      message: 'Deletion blocked: 1 module instance(s) still demand contracts this claim provides (default/backup-consumer);
+        remove them before removing the provider'
+      observedGeneration: 2
+      reason: DependentsRemain
+      status: 'False'
+      type: Ready
+    - lastTransitionTime: '2026-10-04T14:29:32Z'
+      message: Provider ModuleInstance default/backup-provider is Ready
+      observedGeneration: 1
+      reason: ProviderReady
+      status: 'True'
+      type: Active
+    observedGeneration: 1
