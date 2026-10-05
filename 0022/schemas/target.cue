@@ -10,7 +10,8 @@
 //     cue.mod/module.cue in data mode, so nothing here may be referenced
 //     from the module file itself; the definition is a PUBLISH GATE input
 //     (SPEC.md §5), never embedded by an artifact. Ends in an open tail
-//     (D1:R3, D2:R7) with `listing` reserved for entry 0031.
+//     (D1:R3, D2:R7) with `listing` reserved for module
+//     presentation (0027:OQ17).
 //   - #ModuleFileCustomGate — NEW: the gate publish unifies against (D4),
 //     declared beside implied in the #CatalogMemberFQNGate style. Inputs are
 //     what publish already holds: the module file's `module:` and `deps`,
@@ -43,8 +44,8 @@ import "strings"
 //
 // OQ6 (open, blocks acceptance): the rule for a kind a reader or gate does
 // not know is this entry's to decide, and may change this closed set. Whether
-// an `index` kind joins it, for the listing index entry 0031 proposes, is
-// 0031's question; it is not added here.
+// an `index` kind joins it, for a listing index, belongs to whatever answers
+// module presentation (0027:OQ17); it is not added here.
 #ArtifactKind: "module" | "catalog" | "template"
 
 // #ModuleFileCustom: the block an artifact carries at
@@ -73,8 +74,8 @@ import "strings"
 	// pin. May be empty.
 	catalogs!: [#ModulePathType]: #VersionType
 
-	// listing is reserved for the module listing card entry 0031 defines.
-	// Its shape and validation are 0031's; this delta deliberately does not
+	// listing is reserved for module presentation (0027:OQ17). Its shape
+	// and validation belong to that answer; this delta deliberately does not
 	// import or restate them, so `_` here admits any value.
 	listing?: _
 
