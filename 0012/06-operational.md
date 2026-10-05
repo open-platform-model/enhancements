@@ -24,8 +24,6 @@ The conformance test required at graduation is itself an observability artefact:
 
 `opm-operator` and `cli`: internal-only changes at the Go level. Both delete packages under `pkg/`, so anything importing them breaks; the CLI has no external Go consumers, and the operator's `pkg/` surface has no known external importer. Neither CRD's spec changes shape, and the one CRD change is additive: `ModulePackage` gains a status field holding its instance identity (0012:D8). So no cluster-level compatibility question arises unless OQ5 flips `spec.prune`'s default, which is a behavioural break at the operational level even though the schema is unchanged, and is called out separately in [`05-risks.md`](05-risks.md).
 
-One behaviour change reaches users with no schema change. Under 0012:D8:R8 an instance whose UUID changes, because its module moved to a new registry path, refuses every object in its inventory as `adopted-elsewhere` and drops it, leaving the objects in place and untracked ([`05-risks.md`](05-risks.md)). A release that moves a module's registry path therefore carries a migration note telling the user to annotate each object `opmodel.dev/adopt` with the instance's new UUID, which the refusal message also names.
-
 `library`'s `migration-guard` contract applies: every breaking commit needs a `Migration: <slug>` trailer and a matching `MIGRATIONS.md` entry, or CI blocks the PR.
 
 ## Deprecation
