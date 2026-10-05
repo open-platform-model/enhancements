@@ -162,7 +162,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer, naming the portal's configured audience. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb other than `create` on the review API of 0030:D6:R9; the only object it creates is the SubjectAccessReview, which the API server evaluates and does not store. It keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount.
+**Decision:** In-cluster, users sign in through OIDC (authorization code with PKCE); programmatic clients present a bearer JWT from the same issuer, naming the portal's configured audience. For every read the portal sends a SubjectAccessReview carrying the user's mapped name and groups for the exact verb, resource, namespace and name, and reads with its own ServiceAccount only on allow. Identity mapping fails closed: an empty mapped username is refused before any Kubernetes call, a `system:` username is refused, every `system:` group from the identity provider is stripped, and `system:authenticated` is added for every authenticated principal. Mapped names carry a non-empty prefix unless the deployment declares that the API server trusts the same issuer with the same prefixes. A review that errors or times out is a denial. The portal holds no impersonate permission and no write verb other than `create` on the review API of 0030:D6:R9; the only object it creates is the SubjectAccessReview, which the API server evaluates and does not store. It keeps a per-user log of reads because the API server's audit log sees only the portal's ServiceAccount. Background reads that serve no single user, such as the portal's watches and polls, are authorized the same way: at startup, and again at a bounded interval, the portal sends a SubjectAccessReview naming its own ServiceAccount for each read attribute set it needs. Those reads stay behind that review, and every answer they feed to a user still passes the user's own review.
 
 **Requirements:**
 
@@ -175,16 +175,19 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R7: The portal records, per authenticated person, each read it authorized and each it denied.
 - R8: A bearer token is accepted only when it is signed by the configured issuer and names the configured audience; any other token is refused with no Kubernetes call made on its behalf.
 - R9: In-cluster, the only create request the portal sends is `subjectaccessreviews`; it sends no other create, update, patch or delete.
+- R10: In-cluster, a background read the portal makes for no single user is preceded by an allowed SubjectAccessReview naming the portal's own ServiceAccount for that read's attributes, sent at startup and renewed at a bounded interval; a denied, failed or expired review stops that read, and what it would have read is shown as not readable.
 
 **Alternatives considered:**
 
 - **Impersonation** (the Flux Operator UI's model). Requires the impersonate verb, which is the blast radius of the empty-identity bug class (CVE-2026-23990 in the Flux Operator UI: empty claims fell through to the server's own identity). SubjectAccessReview-then-read needs no impersonate grant at all. Revisiting it after V1 is OQ1.
 - **Token passthrough.** Works only where the API server trusts the portal's issuer, which most clusters do not; it stays an option for writes in V2.
 - **A shared portal identity with no per-user check.** Shows every user what the portal can see; rejected outright.
+- **Exempt background reads from authorization.** The role already limits them, but it adds an exception to "every read is authorized", and nothing in the portal would notice a role that lost a grant until a read failed.
+- **A SelfSubjectAccessReview for background reads.** It would describe the same ServiceAccount, but R9 allows only the SubjectAccessReview in-cluster, and one review type keeps one check path.
 
-**Rationale:** Reads need the user's authorization, not the user's credential. Checking with a SubjectAccessReview and reading with a narrow ServiceAccount keeps the user's RBAC as the boundary without granting the portal the power to become anyone. The cost, users being invisible in the API server's audit log, is paid by R7. In-cluster a SelfSubjectAccessReview or SelfSubjectReview would describe the portal's own ServiceAccount, not the user, so R9 forbids them: a check that answers for the portal would turn it into a confused deputy.
+**Rationale:** Reads need the user's authorization, not the user's credential. Checking with a SubjectAccessReview and reading with a narrow ServiceAccount keeps the user's RBAC as the boundary without granting the portal the power to become anyone. The cost, users being invisible in the API server's audit log, is paid by R7. In-cluster a SelfSubjectAccessReview or SelfSubjectReview would describe the portal's own ServiceAccount, not the user, so R9 forbids them: a check that answers for the portal would turn it into a confused deputy. A background read is the one read that is the portal's own, so R10 checks it as the portal, by name, and never lets it answer a user without that user's review.
 
-**Source:** Owner decision 2026-10-04 (milestone 2: in-cluster Deployment, OIDC login, SubjectAccessReview-as-user, fail closed on empty identity). Owner decision 2026-10-04 ("Keep the seam": the only allowed creates are the non-persisted review APIs `subjectaccessreviews`, `selfsubjectaccessreviews` and `selfsubjectreviews`; milestone 1 shows locked nodes up front, and milestone 2 swaps the backend without rewriting the seam); [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
+**Source:** Owner decision 2026-10-04 (milestone 2: in-cluster Deployment, OIDC login, SubjectAccessReview-as-user, fail closed on empty identity). Owner decision 2026-10-04 ("Keep the seam": the only allowed creates are the non-persisted review APIs `subjectaccessreviews`, `selfsubjectaccessreviews` and `selfsubjectreviews`; milestone 1 shows locked nodes up front, and milestone 2 swaps the backend without rewriting the seam); [research/prior-art-and-access.md](research/prior-art-and-access.md), access model. Owner decision 2026-10-05 ("SAR for its own SA": at startup and per TTL the portal sends a SubjectAccessReview naming its own ServiceAccount, background reads hold that grant, and every user-facing answer is still gated by a review as the user) (R10).
 
 ---
 
@@ -200,16 +203,18 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R2: A list contains only items the caller may read, and a caller with no access receives an empty list with no count or name of hidden items.
 - R3: Objects inside a readable response that the caller cannot read are marked forbidden, and objects the portal itself cannot read are marked not readable; neither fails the response.
 - R4: A request for an object no OPM inventory reaches, including an events request about such an object, is refused with the same `forbidden` problem document a forbidden read gets (R1); there is no distinct not-in-inventory code, so a caller cannot learn whether such an object exists.
+- R5: In every mode, the change stream sends a subscriber an update only when the document rendered for that subscriber differs from the last one sent to that subscriber, so a change the subscriber cannot see produces no message and reveals no timing.
 
 **Alternatives considered:**
 
 - **Look up first, then authorize.** Simpler handlers, but a missing-versus-forbidden difference leaks which objects exist.
 - **Serve any object the caller may read.** Turns the portal into a general cluster browser and widens the role the in-cluster portal needs.
+- **Detect changes per topic and re-render for every subscriber of the topic.** Sends a subscriber an unchanged document when something they cannot see changes, which tells them when it changed.
 - **A distinct not-in-inventory refusal** (the earlier R4). Tells a caller who passed authorization that the object is outside every inventory, and an events request about an object the caller names would answer whether that object exists.
 
 **Rationale:** A shared cache serving many users is exactly where a cross-tenant leak happens. Making authorization the first step of every read path, and testing that a caller without access sees nothing, is cheaper than auditing each handler.
 
-**Source:** Portal V1 architecture, error model and access sections; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model. Supervisor ruling 2026-10-04, pending acceptance (R4: one `forbidden` answer for objects no inventory reaches, events requests included).
+**Source:** Portal V1 architecture, error model and access sections; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model. Supervisor ruling 2026-10-04, pending acceptance (R4: one `forbidden` answer for objects no inventory reaches, events requests included). Supervisor ruling 2026-10-05, pending acceptance (R5: compare each subscriber's rendered document with the last one sent to that subscriber and send only on a difference, in every mode), resolving OQ20.
 
 ---
 
@@ -217,7 +222,11 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
+**Depends:** 0013:D28
+
 **Decision:** The portal never reads a Secret's data, in any mode, so it can never serve one. In V1 it shows no instance's `spec.values`: users supply plain values that unification marks as secrets only inside the module's schema, and modules still take plain-string passwords, so no marker in the stored values identifies what to hide. The `kubectl.kubernetes.io/last-applied-configuration` annotation is stripped from every object the portal serves, because a client-side apply copies the full values into it. Hiding `spec.values` does not hide what the values became: a value a module renders into a non-Secret object (a ConfigMap entry, a container's environment) is shown in that object's YAML view to any user whose RBAC lets them read it, exactly as `kubectl` would show it. Keeping a value out of reach means rendering it into a Secret.
+
+The operator's condition and event messages are a second carrier. The kernel the operator embeds does not yet redact marked secret paths in them, as entry 0013's diagnostics rule (0013:D28) requires. Until it does, the in-cluster portal shows the reason of an OPM condition or an operator event and never its message text. Local mode keeps messages verbatim, because they reveal nothing the user's kubeconfig cannot already read.
 
 **Requirements:**
 
@@ -225,15 +234,19 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R2: No API document, YAML view or page in V1 contains an instance's or package's `spec.values`.
 - R3: No object the portal serves carries the `kubectl.kubernetes.io/last-applied-configuration` annotation.
 - R4: The portal's documentation states that values rendered into non-Secret objects are visible to anyone who may read those objects, in the portal as in `kubectl`.
+- R5: In-cluster, no API document, page or change-stream message carries the message text of a condition on an OPM resource or of an event the operator records; the condition's or event's reason is shown in its place. This holds until the kernel the operator embeds redacts those messages as 0013:D28 requires.
+- R6: In local mode, condition and event messages are shown verbatim.
 
 **Alternatives considered:**
 
 - **Show values with secret leaves masked** (an earlier revision of the design). There is nothing to mask on: secret markers are added by unification inside the module, not stored in `spec.values`, and plain-string password fields carry no marker at all.
 - **Show values to users who may read Secrets in every namespace the inventory renders a Secret into.** Possible, but it still cannot find secret leaves without the module's schema walker, which V1 does not carry. Left for later (OQ7).
+- **Show operator messages verbatim in-cluster too.** Gives users the full remediation text, and serves any secret value a message quotes to every user who may read the object.
+- **Redact operator messages in the portal.** The portal cannot find the secret paths in a message without the module's schema, which V1 does not carry; redaction belongs in the kernel, where 0013:D28 puts it.
 
-**Rationale:** The live capture confirmed the annotation leak: a client-side apply of an instance copies every value into the annotation (observation 14). Hiding values and stripping the annotation is the only rule V1 can keep without reading module schemas.
+**Rationale:** The live capture confirmed the annotation leak: a client-side apply of an instance copies every value into the annotation (observation 14). Hiding values and stripping the annotation is the only rule V1 can keep without reading module schemas. Messages follow the same reasoning: with no redaction in the kernel, hiding message text in-cluster is the only safe rule. It is the safest choice and it makes remediation harder, because a user sees why something failed only as a reason.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observation 14. Core's secret marker shape and the plain-string password fields in the first-party modules, read from source.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observation 14. Core's secret marker shape and the plain-string password fields in the first-party modules, read from source. Owner decision 2026-10-05 ("Hide messages in-cluster": in-cluster mode shows only reasons, never message text, until the kernel redacts; safest, but remediation gets much harder for users), resolving OQ8. The library's `main` branch holds no redaction code for condition or event messages, as the owner's question records.
 
 ---
 
@@ -243,6 +256,8 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: the event recorder folds a repeat into `series` only when it regards the same object version, so repeats after the object's status changed arrive as separate events, and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time, whichever way each repeat was recorded. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
 
+The event feed reads events through field selectors on the regarded object, the reason and the type, so the supported Kubernetes range has to carry them. The portal and the operator declare Kubernetes 1.34 as their minimum version, the oldest version OPM tests today. One CI job runs on that floor, and the event field selectors are verified there.
+
 **Requirements:**
 
 - R1: Every status value the portal shows comes from conditions or status history; none is inferred from an event.
@@ -250,16 +265,20 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R3: Repeated events about the same object with the same reason and message appear once, with a count and the latest occurrence time, for both operator and kubelet events, and whether each repeat was recorded as a separate event, in an event's `series`, or in its deprecated count.
 - R4: Events about the Platform and about each TransformerRegistration appear on that object's page.
 - R5: The instance page states that render warnings are kept only as events and that older ones are gone.
+- R6: The portal and the opm-operator each declare Kubernetes 1.34 as their minimum supported version.
+- R7: CI keeps at least one job on a Kubernetes 1.34 cluster, and that job shows the event field selectors the portal relies on work there.
 
 **Alternatives considered:**
 
 - **Rely on event `series` for collapsing** (previously assumed in the design). In the capture the only operator events with `series` were three repeats (`count: 2`), two Platform `Generated` and one ModuleInstance `NoOp`, each regarding an unchanged object version and all from the unreleased library beta.4 rebuild, none from the released beta.5 controller; cert-manager's four `ApplyFailed` repeats, identical but for the regarded object's `resourceVersion`, were four separate events, and kubelet events have `eventTime: null` (observation 4).
 - **Look for Platform events in the Platform's namespace.** It has none; the capture found them in `default` (observation 5).
+- **A floor of 1.36,** the version the capture verified the selectors on. Excludes clusters OPM already tests on, and would only be needed for ConstrainedImpersonation, which V1 does not use (OQ1).
+- **No declared floor.** Leaves installers guessing, and nothing would notice a selector an older API server lacks.
 - **Persist events in the portal.** Makes the portal stateful and a second record of history; whether anyone should persist them is OQ9.
 
-**Rationale:** Events are transition-only and expire, so they cannot carry state. Labelling them honestly and folding repeats keeps the feed useful without pretending it is history.
+**Rationale:** Events are transition-only and expire, so they cannot carry state. Labelling them honestly and folding repeats keeps the feed useful without pretending it is history. A floor is only a promise if something tests it, which is why R7 runs a job there rather than trusting the version the capture used.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 4, 5, 7 and 10.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observations 4, 5, 7 and 10. Owner decision 2026-10-05 ("1.34": the oldest version tested today, kind 1.34.3 in the CLI and 1.36 in the captures; CI keeps one job on the floor and event field selectors are checked there), resolving OQ2.
 
 ---
 
@@ -291,7 +310,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Kind:** contract
 
-**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, on every non-Secret kind the pinned OPM catalog's transformers can render, and on the runtime children those workloads own (Pods, `apps` ReplicaSets, and `batch` Jobs a CronJob creates), which D3's Pod rule, D4's runtime children and D10's reach check all read; `create` on `subjectaccessreviews`; and `get` on `pods/log`. That create stores nothing: the API server evaluates the review and returns it. The role grants no other create, no update, patch or delete, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations; whether they aggregate into the built-in `view` role is OQ6.
+**Decision:** The in-cluster portal's ClusterRole grants `get`, `list` and `watch` on the four OPM kinds and their status, on events, on every non-Secret kind the pinned OPM catalog's transformers can render, and on the runtime children those workloads own (Pods, `apps` ReplicaSets, and `batch` Jobs a CronJob creates), which D3's Pod rule, D4's runtime children and D10's reach check all read; `create` on `subjectaccessreviews`; and `get` on `pods/log`. That create stores nothing: the API server evaluates the review and returns it. The role grants no other create, no update, patch or delete, no impersonate and no Secrets. The kind list is checked against the pinned catalog, so a catalog bump that adds a kind fails before release. Kinds that provider modules define (cert-manager's Certificate, for example) are not covered in V1 and show as not readable. On the user side, the opm-operator ships viewer roles a cluster administrator can bind so non-admins may read Platforms, ModulePackages and TransformerRegistrations. Those roles never aggregate into the built-in `view` role: an administrator binds them explicitly, so reading the cluster-scoped Platform and TransformerRegistrations, and reading ModuleInstances, is granted on purpose and never inherited by every namespace viewer.
 
 **Requirements:**
 
@@ -300,15 +319,17 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 - R3: An inventory object of a kind the portal's role does not cover is shown as not readable, with the reason, never omitted.
 - R4: A cluster administrator can grant a non-admin read access to Platforms, ModulePackages and TransformerRegistrations using a role the operator ships.
 - R5: A user without read access to the Platform sees that it is hidden by their access, not an empty Platform.
+- R6: No viewer role the operator ships aggregates into the built-in `view`, `edit` or `admin` roles; a user gains read access to OPM kinds through one of them only when an administrator binds it.
 
 **Alternatives considered:**
 
 - **A wildcard read role.** Covers provider kinds for free and also covers Secrets and every other tenant's objects; rejected.
 - **Aggregate provider kinds into the portal's role through a label in V1.** Needs an owner decision on which provider kinds a portal may read; moved to a follow-up.
+- **Aggregate the viewer roles into `view`.** Every namespace viewer could then read ModuleInstance `spec.values` through `kubectl`, and 0013 allows plaintext secret literals there; D8 hides values in the portal but cannot hide them from `kubectl`.
 - **No operator change, and document hand-written roles.** Leaves every installation to rediscover the same role, and no role the operator ships lets a non-admin read Platforms, ModulePackages or TransformerRegistrations.
 
-**Rationale:** A read-only role is the in-cluster form of D1. Checking it against the catalog keeps "read-only" from silently turning into "cannot see half the objects" after a catalog bump.
+**Rationale:** A read-only role is the in-cluster form of D1. Checking it against the catalog keeps "read-only" from silently turning into "cannot see half the objects" after a catalog bump. Keeping the viewer roles unbound costs administrators one binding and keeps instance values away from every namespace viewer (R6).
 
-**Source:** Owner decision 2026-10-04 ("Keep the seam": only the non-persisted review APIs may be created), which in-cluster leaves `subjectaccessreviews` (0030:D6:R9). opm-operator's shipped RBAC, read from source (one viewer role, ModuleInstances only, no aggregation label); kind list from the opm catalog's transformer outputs, read from source; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
+**Source:** Owner decision 2026-10-04 ("Keep the seam": only the non-persisted review APIs may be created), which in-cluster leaves `subjectaccessreviews` (0030:D6:R9). Owner decision 2026-10-05 ("No aggregation": keep the viewer roles unbound and let administrators bind them, because aggregating into `view` would let every namespace viewer read ModuleInstance `spec.values`), resolving OQ6. opm-operator's shipped RBAC, read from source (one viewer role, ModuleInstances only, no aggregation label); kind list from the opm catalog's transformer outputs, read from source; [research/prior-art-and-access.md](research/prior-art-and-access.md), access model.
 
 Open Questions live in [`07-questions.md`](07-questions.md), the entry-wide question register with its own numbering and status rules.

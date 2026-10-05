@@ -17,7 +17,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-No existing consumer breaks. `opmodel.dev/core` is untouched. The opm-operator gains viewer roles, an addition. The portal is new: its releases start at `0.1.0` and stay `0.x` until the read API declares stability (OQ10); its API starts at `v1alpha1`, where changes are additive and a breaking one is marked as such in the release notes (D2:R2). Leaving alpha adds a new path version served beside the old one.
+No existing consumer breaks. `opmodel.dev/core` is untouched. The opm-operator gains viewer roles, an addition. The portal is new: its releases start at `0.1.0` and stay `0.x` until the read API declares stability (OQ10); its API starts at `v1alpha1`, where changes are additive and a breaking one is marked as such in the release notes (D2:R2). Leaving alpha adds a new path version served beside the old one. The portal and the operator support Kubernetes 1.34 and later, and CI keeps one job on that floor (D9:R6, D9:R7).
 
 ## Deprecation
 
