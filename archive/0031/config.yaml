@@ -15,7 +15,7 @@ title: Module Presentation Contract
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
   Let any UI list and present a module, and a platform's offering of it, from what the author and the platform declare, with no kind-specific code.
-status: draft
+status: rejected
 # Type of work, single-valued: schema | runtime | distribution | tooling | misc.
 # See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
 category: distribution
@@ -41,7 +41,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: true
 created: "2026-10-04"
-updated: "2026-10-04"
+updated: "2026-10-05"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -59,6 +59,8 @@ history:
     event: D3 (card images in the zip) retracted as outside the four approved layers; its candidate moved to OQ17, now acceptance-blocking.
   - date: "2026-10-04"
     event: OQ18 opened (field caps in runes or bytes); OQ17 narrowed to what card images may be, the assets/ path rule staying in D2.
+  - date: "2026-10-05"
+    event: Rejected and archived; the reason is in rejected_reason.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -87,3 +89,4 @@ supersedes: []
 # and gets no back-link. See `task archive:list` for prior art.
 revives: []
 superseded_by: null
+rejected_reason: Not rejected on merit. The owner asked only for open questions on 0027, and those hold the marketplace presentation and form questions (0027:OQ17 to 0027:OQ29). The measured evidence stays in this archived entry.

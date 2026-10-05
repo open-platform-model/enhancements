@@ -1,8 +1,10 @@
+> **Rejected (2026-10-05).** Not rejected on merit. The owner asked only for open questions on 0027, and those hold the marketplace presentation and form questions (0027:OQ17 to 0027:OQ29). The measured evidence stays in this archived entry.
+
 # Enhancement 0031: Module Presentation Contract
 
 A UI that lists OPM modules can show a module path and one line of text, and lays out every configuration field flat. This entry gives authors a place to describe a module and its form, gives platform teams a place to override that for their users, and gives publishers a cheap list of everything they offer.
 
-All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
@@ -79,12 +81,12 @@ deliberate divergences from the design need to be documented.
 
 | Document | Purpose |
 | -------- | ------- |
-| [../0022/](../0022/) | The module-file block the card lives in (0022:D1), and the gate it rides beside |
-| [../0027/](../0027/) | The platform-owned definition that carries `presentation` (0027:D1) and the projection presets are checked through (0027:D6) |
-| [../0013/](../0013/) | The `@opm` attribute namespace (0013:D2), which D4 amends, and the tagged `#Secret` type no hint may replace |
-| [../archive/0011/](../archive/0011/) | The namespace decision D7 amends (0011:D13) and the `index` reservation precedent (0011:D25) |
-| [../0021/](../0021/) | The change classes OQ4 cites for presentation-only releases (0021:D2) |
-| [../0023/](../0023/) | The referrer and signing work a signature badge (OQ6) and a listing referrer would wait on |
-| [../0025/](../0025/) | The aspect mechanism D1 deliberately does not use, and 0025:OQ13 under 0027 |
+| [../0022/](../../0022/) | The module-file block the card lives in (0022:D1), and the gate it rides beside |
+| [../0027/](../../0027/) | The platform-owned definition that carries `presentation` (0027:D1) and the projection presets are checked through (0027:D6) |
+| [../0013/](../../0013/) | The `@opm` attribute namespace (0013:D2), which D4 amends, and the tagged `#Secret` type no hint may replace |
+| [../archive/0011/](../0011/) | The namespace decision D7 amends (0011:D13) and the `index` reservation precedent (0011:D25) |
+| [../0021/](../../0021/) | The change classes OQ4 cites for presentation-only releases (0021:D2) |
+| [../0023/](../../0023/) | The referrer and signing work a signature badge (OQ6) and a listing referrer would wait on |
+| [../0025/](../../0025/) | The aspect mechanism D1 deliberately does not use, and 0025:OQ13 under 0027 |
 | [schemas/spec.md](schemas/spec.md) | The four new core constructs in SPEC.md format |
 | [contracts/hints.cue](contracts/hints.cue) | Hint vocabulary version 1 |
