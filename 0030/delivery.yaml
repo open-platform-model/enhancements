@@ -1,0 +1,17 @@
+# Delivery log — see ../schema.cue #Delivery and ../README.md ## Delivery Log.
+# Validate: cue vet -d '#Delivery' ../schema.cue delivery.yaml
+log:
+  - date: "2026-10-05"
+    summary: >-
+      opm-portal local mode serves the read API and pod log topics on a loopback server with the user's kubeconfig (opm-portal PR 20)
+    change: { kind: openspec, repo: opm-portal, change: add-local-mode }
+    decisions: [D10]
+  - date: "2026-10-05"
+    summary: >-
+      opm-portal web UI: platform, instance and package pages, graph, events, logs, YAML (opm-portal PR 22, first part)
+    change: { kind: openspec, repo: opm-portal, change: add-htmx-ui }
+  - date: "2026-10-05"
+    summary: >-
+      opm-portal web UI completed: conditions served by the read API, separate applied mark, live refresh of every region, locked rendering (opm-portal PR 22)
+    change: { kind: openspec, repo: opm-portal, change: refine-htmx-ui }
+    decisions: [D2, D3, D4, D5]
