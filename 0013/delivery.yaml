@@ -20,6 +20,14 @@ log:
     summary: >-
       core: stopped injecting the opm-secrets component into #ModuleInstance (landed before delivery tracking); instance-scoped group naming still pending, so no decision is claimed
     change: { kind: commit, repo: core, sha: a77a12d66466ff20651c259d8be183e2e9105200 }
+  - date: "2026-10-05"
+    summary: >-
+      library render reports RequiredContracts, every contract key of every component in the build, failing closed on a missing resources map; R1 (a synthesised secret source) stays open, no synthesised component exists yet
+    change: { kind: openspec, repo: library, change: expose-render-demand-and-instance-reads }
+  - date: "2026-10-05"
+    summary: >-
+      opm-operator records an instance's contract demand from the kernel's render instead of walking the instance itself, so the walk that read a missing resources map as no demand is gone; R1 stays open
+    change: { kind: openspec, repo: opm-operator, change: read-demand-from-kernel }
 no_work:
   D1: >-
     Superseded by D10 the day it was written; retained position only, no work
