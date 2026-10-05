@@ -23,7 +23,7 @@ The CLI shows one instance at a time from a terminal. The operator ships one vie
 
 **Generic dashboards do not know OPM.** Headlamp, the Kubernetes Dashboard or Argo CD's tree draw ownerReferences and label selectors. They cannot draw module to component to object, cannot tell a refused registration from a pending one, and cannot read the inventory.
 
-**Access is all or nothing.** The operator's only viewer role covers ModuleInstances. A non-admin cannot read the Platform, ModulePackages or TransformerRegistrations at all, and no role aggregates into the built-in `view` role.
+**Access is all or nothing.** The operator's only viewer role covers ModuleInstances. A non-admin cannot read the Platform, ModulePackages or TransformerRegistrations at all.
 
 ## Concrete Example
 
