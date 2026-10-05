@@ -125,7 +125,11 @@ import "strings"
 	relation: #StaleSetBaseRelation
 
 	// Entries in `previous` with no counterpart in `current` under `relation`.
-	// Membership is computed in Go; this states what the set MEANS.
+	// Membership is computed in Go; this states what the set MEANS. `current`
+	// is the inventory the instance records, so an object it dropped after a
+	// refusal as "adopted-elsewhere" is stale although it is still rendered;
+	// the deletion plan skips it as "adopted-elsewhere" (0012:D7:R1,
+	// 0012:D8:R8).
 	stale: [...#InventoryEntry]
 }
 
@@ -178,7 +182,8 @@ import "strings"
 // instance's UUID, the value of that instance's #Labels.instanceUUID label.
 // Neither frontend sets it on the user's behalf. An instance whose recorded
 // inventory holds an object annotated for another instance lets go of it:
-// it refuses and drops the object, and never deletes it (0012:D8:R8).
+// it refuses and drops the object, and never deletes it (0012:D8:R8). The
+// instance-UUID label alone never makes an instance let go of an object.
 #AdoptAnnotation: #LabelKey & "opmodel.dev/adopt"
 
 // OQ6: does a CLI-owned instance carry the hold? Today it does not, so
@@ -196,7 +201,8 @@ import "strings"
 //   "safety-excluded"   kind is in #SafetyExcludedKind
 //   "not-opm-managed"   live managedBy is not in #OPMManagedBy
 //   "owner-mismatch"    live instance-UUID label disagrees with the owner
-//   "adopted-elsewhere" live #AdoptAnnotation names another instance (0012:D8:R8)
+//   "adopted-elsewhere" live #AdoptAnnotation is set and names another instance,
+//                       whatever either UUID is (0012:D8:R8)
 //   "already-absent"    live object is gone; nothing to do
 #SkipReason: "safety-excluded" | "not-opm-managed" | "owner-mismatch" | "adopted-elsewhere" | "already-absent"
 
@@ -213,8 +219,9 @@ import "strings"
 #DeletionPlan: {
 	// The instance whose resources these are. Empty disables the owner
 	// comparison — the fallback for a caller that cannot supply one (a
-	// freshly-created instance whose UUID is not yet persisted). Empty also
-	// disables the #AdoptAnnotation comparison behind "adopted-elsewhere".
+	// freshly-created instance whose UUID is not yet persisted). Empty never
+	// matches #AdoptAnnotation, so every non-blank one then names another
+	// instance and skips as "adopted-elsewhere".
 	ownerUUID: string | *""
 
 	policy: #DeletionPolicy
@@ -248,20 +255,22 @@ import "strings"
 // The refusal reasons: "foreign-object" when the object exists outside the
 // instance's recorded inventory and its managedBy is not in #OPMManagedBy;
 // "other-instance" when it exists outside that inventory, is OPM-managed and
-// carries another instance's identity; "adopted-elsewhere" (0012:D8:R8) when
-// it is in that inventory and its #AdoptAnnotation, or its instance-UUID
-// label, names another instance, or when it is outside that inventory, is
-// OPM-managed, no other reason refuses it and its #AdoptAnnotation names
-// another instance; "terminating" when it exists with a deletionTimestamp,
-// whether or not it is in the inventory.
+// carries the identity of another instance than the one its #AdoptAnnotation
+// names; "adopted-elsewhere" (0012:D8:R8) when its #AdoptAnnotation names
+// another instance and it is in that inventory, or it is outside that
+// inventory and no other reason refuses it, as when the annotation equals its
+// instance-UUID label; "terminating" when it exists with a deletionTimestamp,
+// whether or not it is in the inventory. The instance-UUID label alone never
+// refuses an object in the inventory.
 //
 // A frontend leaves its inventory as it is on "foreign-object" and
 // "other-instance". On "adopted-elsewhere" for an object in the inventory it
 // drops the object from the inventory it records next, keeps applying the
 // instance's other objects, and reports the reason; the object is never
-// pruned for being dropped (#SkipReason "adopted-elsewhere"). When this
-// instance's UUID is unknown, an object in its inventory is not refused for
-// ownership.
+// pruned for being dropped (#SkipReason "adopted-elsewhere"). A refusal as
+// "adopted-elsewhere" never stops the apply. When this instance's UUID is
+// unknown, an object in its inventory is not refused for ownership, and
+// outside it every #AdoptAnnotation names another instance.
 //
 // The one override is #AdoptAnnotation on the live object naming this
 // instance's UUID. It lifts only the three ownership refusals
@@ -342,3 +351,8 @@ import "strings"
 	// of `authorised`, asserted by a shared test in library rather than by review.
 	authorised: [for a in plan.actions if a.action == "delete" {a.entry}]
 }
+
+// Pins for the 0012:D8:R8 literals and key, so that dropping one fails vet.
+_adoptKey: #AdoptAnnotation & "opmodel.dev/adopt"
+_adoptedElsewhereApply: #ApplyVerdict & {entry: {group: "apps", kind: "Deployment", name: "x"}, verdict: "refuse", reason: "adopted-elsewhere"}
+_adoptedElsewhereSkip: #PlannedAction & {entry: {group: "apps", kind: "Deployment", name: "x"}, action: "skip", reason: "adopted-elsewhere"}
