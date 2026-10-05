@@ -59,7 +59,7 @@ history:
   - date: "2026-10-04"
     event: 'D2 revised in place: Depends on 0008 dropped, fleet encoder measurement added, R3 lists allowed narrowings. OQ17-OQ29 added for portal and order questions; experiments 01-05 record candidates.'
   - date: "2026-10-05"
-    event: '0031 rejected: OQ17 to OQ29 reworded so none names 0031; OQ17 still asks only about the definition''s presentation block.'
+    event: 'Presentation proposal withdrawn: OQ17 holds the presentation candidates (definition block, author card, field hints, index), none decided; their measurements copied into experiment 06.'
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
