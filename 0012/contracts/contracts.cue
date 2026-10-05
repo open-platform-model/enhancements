@@ -173,6 +173,14 @@ import "strings"
 // spell it identically.
 #HoldName: "opmodel.dev/cleanup"
 
+// The per-object override of the apply guard's ownership refusals (0012:D8).
+// A user sets it on an existing live object; its value is the adopting
+// instance's UUID, the value of that instance's #Labels.instanceUUID label.
+// Neither frontend sets it on the user's behalf. An instance whose recorded
+// inventory holds an object annotated for another instance lets go of it:
+// it refuses and drops the object, and never deletes it (0012:D8:R8).
+#AdoptAnnotation: #LabelKey & "opmodel.dev/adopt"
+
 // OQ6: does a CLI-owned instance carry the hold? Today it does not, so
 // `kubectl delete moduleinstance` on one removes the only inventory record and
 // orphans every workload with nothing left to find them by.
@@ -184,10 +192,13 @@ import "strings"
 // both frontends report the same fact in their own idiom rather than one
 // logging a warning and the other silently doing something else.
 
-#SkipReason: "safety-excluded" | // kind is in #SafetyExcludedKind
-	"not-opm-managed" | // live managedBy is not in #OPMManagedBy
-	"owner-mismatch" | // live instance-UUID label disagrees with the owner
-	"already-absent" // live object is gone; nothing to do
+// The skip reasons:
+//   "safety-excluded"   kind is in #SafetyExcludedKind
+//   "not-opm-managed"   live managedBy is not in #OPMManagedBy
+//   "owner-mismatch"    live instance-UUID label disagrees with the owner
+//   "adopted-elsewhere" live #AdoptAnnotation names another instance (0012:D8:R8)
+//   "already-absent"    live object is gone; nothing to do
+#SkipReason: "safety-excluded" | "not-opm-managed" | "owner-mismatch" | "adopted-elsewhere" | "already-absent"
 
 #PlannedAction: {
 	entry: #InventoryEntry
@@ -202,7 +213,8 @@ import "strings"
 #DeletionPlan: {
 	// The instance whose resources these are. Empty disables the owner
 	// comparison — the fallback for a caller that cannot supply one (a
-	// freshly-created instance whose UUID is not yet persisted).
+	// freshly-created instance whose UUID is not yet persisted). Empty also
+	// disables the #AdoptAnnotation comparison behind "adopted-elsewhere".
 	ownerUUID: string | *""
 
 	policy: #DeletionPolicy
@@ -236,14 +248,27 @@ import "strings"
 // The refusal reasons: "foreign-object" when the object exists outside the
 // instance's recorded inventory and its managedBy is not in #OPMManagedBy;
 // "other-instance" when it exists outside that inventory, is OPM-managed and
-// carries another instance's identity; "terminating" when it exists with a
-// deletionTimestamp, whether or not it is in the inventory.
+// carries another instance's identity; "adopted-elsewhere" (0012:D8:R8) when
+// it is in that inventory and its #AdoptAnnotation, or its instance-UUID
+// label, names another instance, or when it is outside that inventory, is
+// OPM-managed, no other reason refuses it and its #AdoptAnnotation names
+// another instance; "terminating" when it exists with a deletionTimestamp,
+// whether or not it is in the inventory.
 //
-// The one override is a per-object adopt annotation on the live object naming
-// this instance's identity. It lifts only the two ownership refusals
-// ("foreign-object", "other-instance"); it never lifts "terminating".
+// A frontend leaves its inventory as it is on "foreign-object" and
+// "other-instance". On "adopted-elsewhere" for an object in the inventory it
+// drops the object from the inventory it records next, keeps applying the
+// instance's other objects, and reports the reason; the object is never
+// pruned for being dropped (#SkipReason "adopted-elsewhere"). When this
+// instance's UUID is unknown, an object in its inventory is not refused for
+// ownership.
+//
+// The one override is #AdoptAnnotation on the live object naming this
+// instance's UUID. It lifts only the three ownership refusals
+// ("foreign-object", "other-instance", "adopted-elsewhere"); it never lifts
+// "terminating".
 
-#ApplyRefusalReason: "foreign-object" | "other-instance" | "terminating"
+#ApplyRefusalReason: "foreign-object" | "other-instance" | "adopted-elsewhere" | "terminating"
 
 #ApplyVerdict: {
 	entry: #InventoryEntry
