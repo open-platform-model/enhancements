@@ -15,7 +15,7 @@ title: 'OPM Portal V1'
 # `task archive:list` renders rejected ideas by this field.
 summary: >-
   A read-only web portal and versioned read API that show what OPM runs in a cluster, from the Platform down to Pods, with applied state and workload health kept apart.
-status: draft
+status: rejected
 # Type of work, single-valued: schema | runtime | distribution | tooling | misc.
 # See enhancements/schema.cue #Category. `task new` requires CATEGORY=.
 category: runtime
@@ -36,7 +36,7 @@ affects:
 # exempt from the iff-rule (0000 is skipped by `task vet`).
 core_schema: false
 created: "2026-10-04"
-updated: "2026-10-04"
+updated: "2026-10-05"
 authors:
   - emil@jacero.se
 # Append-only timeline of milestones. The validator (future) enforces
@@ -54,6 +54,8 @@ history:
     event: 'D1, D5, D6, D11 revised: owner allowed only non-persisted review APIs; this entry splits them per mode; D5:R6-R7, D6:R9 added.'
   - date: "2026-10-04"
     event: 'D7:R4 revised (one forbidden answer, no not-in-inventory code); OQ20 added (per-topic stream timing signal); OQ8 scoped to the in-cluster release. Supervisor ruling, pending acceptance.'
+  - date: "2026-10-05"
+    event: Rejected and archived; the reason is in rejected_reason.
 # Entries whose decisions this entry's decisions depend on. An edge exists
 # iff a decision depends on a decision: list MMMM here only when a live
 # `### DN:` block in 03-decisions.md carries `**Depends:** MMMM:DN`, and
@@ -78,3 +80,4 @@ supersedes: []
 # and gets no back-link. See `task archive:list` for prior art.
 revives: []
 superseded_by: null
+rejected_reason: 'Not rejected on merit. The portal continues without an enhancement: its plan, decisions and progress live in the opm-portal repo (docs/DESIGN.md and ROADMAP.md), and its delivery log stays here as the record of what landed.'
