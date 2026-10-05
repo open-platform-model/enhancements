@@ -22,11 +22,11 @@ log:
     change: { kind: commit, repo: core, sha: a77a12d66466ff20651c259d8be183e2e9105200 }
   - date: "2026-10-05"
     summary: >-
-      library render reports RequiredContracts, every contract key of every component in the build, failing closed on a missing resources map; R1 (a synthesised secret source) stays open, no synthesised component exists yet
+      library render reports RequiredContracts, every contract key of every component in the build, failing closed on a missing resources map; D24 R1 (an instance using a secret source depends on its contract) stays open
     change: { kind: openspec, repo: library, change: expose-render-demand-and-instance-reads }
   - date: "2026-10-05"
     summary: >-
-      opm-operator records an instance's contract demand from the kernel's render instead of walking the instance itself, so the walk that read a missing resources map as no demand is gone; R1 stays open
+      opm-operator records an instance's contract demand from the kernel's render, dropping its own walk that read a missing resources map as no demand; D24 R1 (an instance using a secret source depends on its contract) stays open
     change: { kind: openspec, repo: opm-operator, change: read-demand-from-kernel }
 no_work:
   D1: >-
