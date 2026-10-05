@@ -89,4 +89,4 @@ supersedes: []
 # and gets no back-link. See `task archive:list` for prior art.
 revives: []
 superseded_by: null
-rejected_reason: Not rejected on merit. The owner asked only for open questions on 0027, and those hold the marketplace presentation and form questions (0027:OQ17 to 0027:OQ29). The measured evidence stays in this archived entry.
+rejected_reason: Not rejected on merit. The owner asked only for open questions on 0027, and those hold the marketplace presentation and form questions (0027:OQ17 to 0027:OQ29). The measured evidence stays in this archived entry and is copied, for 0027:OQ17, into 0027's experiment 06.

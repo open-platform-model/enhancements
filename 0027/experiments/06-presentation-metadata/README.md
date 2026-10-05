@@ -4,7 +4,7 @@ Status: Concluded
 
 ## Hypothesis
 
-The author-side presentation metadata OQ17 lists as candidates (a card under the `listing` key of entry 0022's module-file block, `@opm(ui, ...)` field hints with doc-comment help text, and a publisher index module) survives tidy, publish and kernel acquisition on real modules, while presentation keys inside a served CRD do not. Evidence for OQ17 only; it decides nothing.
+The author-side presentation metadata OQ17 lists as candidates (a card under the `listing` key of entry 0022's module-file block, `@opm(ui, ...)` field hints with doc-comment help text, and a publisher index module) survives tidy, publish and kernel acquisition on real modules (card, index) and a module derived from a real one (hints), while presentation keys inside a served CRD do not. Evidence for OQ17 only; it decides nothing.
 
 ## Setup
 
