@@ -7,5 +7,5 @@ log:
     change: { kind: openspec, repo: library, change: library-slot-prune }
   - date: "2026-10-05"
     summary: >-
-      library kernel verbs check the caller's context at entry and between stages, the standalone part D9 allows; a running load or build is not interrupted, and cancellation inside a stage stays this entry's
+      library directory and synthesis verbs check the caller's context at entry and between stages, Render and the registry fetch after their step; a running load or build is not interrupted, and cancellation inside a stage stays this entry's
     change: { kind: openspec, repo: library, change: type-fetch-errors-and-check-cancellation }
