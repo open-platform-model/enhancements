@@ -27,14 +27,14 @@ graph LR
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
   Cschema["schema (5 live entries, 3 closed)"]:::category
-  Cruntime["runtime (5 live entries, 2 closed)"]:::category
-  Cdistribution["distribution (5 live entries, 4 closed)"]:::category
+  Cruntime["runtime (4 live entries, 3 closed)"]:::category
+  Cdistribution["distribution (4 live entries, 5 closed)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (0 live entries, 1 closed)"]:::category
 
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
-  Cruntime -->|3| Cschema
+  Cruntime -->|2| Cschema
   Cruntime -->|3| Cdistribution
   Cdistribution -->|2| Cschema
   Cdistribution -->|3| Cruntime
@@ -70,7 +70,6 @@ graph TD
   N0019["0019 · runtime"]:::stub
   N0020["0020 · distribution"]:::stub
   N0027["0027 · runtime"]:::stub
-  N0030["0030 · runtime"]:::stub
   N0031["0031 · distribution"]:::stub
 
   N0009 -->|depends on| N0025
@@ -86,7 +85,6 @@ graph TD
   N0026 -->|depends on| N0019
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0025
-  N0030 -->|depends on| N0015
   N0031 -->|depends on| N0013
   N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
@@ -115,7 +113,6 @@ graph TD
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
-  N0030["0030: OPM Portal V1"]:::draft
   N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
@@ -140,7 +137,6 @@ graph TD
   N0027 -->|depends on| N0015
   N0027 -->|depends on| N0021
   N0027 -->|depends on| N0025
-  N0030 -->|depends on| N0015
   N0031 -->|depends on| N0027
   N0012 -.->|amends 1/10| N0009
   N0013 -.->|amends 1/4| N0014
@@ -168,7 +164,7 @@ graph TD
   N0021["0021: OPM Versioning Policy"]:::draft
   N0022["0022: Machine-Readable Artifact Metadata in cue.mod/mod…"]:::draft
   N0023["0023: Artifact Provenance, Signatures and Platform Trus…"]:::draft
-  N0031["0031: Module Presentation Contract"]:::draft
+  N0031["0031: Module Presentation Contract"]:::rejected
   N0006["0006 · runtime"]:::stub
   N0012["0012 · runtime"]:::stub
   N0013["0013 · schema"]:::stub
@@ -201,7 +197,6 @@ graph TD
   N0031 -->|depends on| N0027
   N0021 -.->|amends 7/40| N0006
   N0026 -.->|amends 1/37| N0010
-  N0031 -.->|amends 1/25| N0011
   N0031 -.->|amends 1/36| N0013
 ```
 
