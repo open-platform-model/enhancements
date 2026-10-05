@@ -15,13 +15,13 @@ log:
     change: { kind: openspec, repo: cli, change: adopt-draft-first-release }
   - date: "2026-10-05"
     summary: >-
-      library types its registry fetch failures (ErrTransient, FetchError with a kind, Classify) where a fetch or resolution leaves the kernel; author-defect resolution failures stay unclassified by design (D8 R12, library side)
+      library types registry fetch failures (ErrTransient, FetchError, Classify) as they leave the library; author-defect resolution failures stay unclassified by design and the cli still matches one by text, so D8 R12 waits on an owner ruling
     change: { kind: openspec, repo: library, change: type-fetch-errors-and-check-cancellation }
   - date: "2026-10-05"
     summary: >-
-      opm-operator decides retry or stall from the library's typed fetch errors instead of an acquisition marker and a network-error probe, for every kernel call; R12 itself is the library's
+      opm-operator decides retry or stall from the library's typed fetch errors instead of an acquisition marker and a network-error probe, for every kernel call; D8 R12 itself is the library's
     change: { kind: openspec, repo: opm-operator, change: classify-registry-errors-by-type }
   - date: "2026-10-05"
     summary: >-
-      cli reads its connectivity, unpublished and absent answers from the library's typed fetch errors, exit codes unchanged; two text matches stay (compat unprovided import, platform build hint); R12 itself is the library's
+      cli reads its connectivity, unpublished and absent answers from the library's typed fetch errors, exit codes unchanged; two text matches stay (compat unprovided import, platform build hint); D8 R12 itself is the library's
     change: { kind: openspec, repo: cli, change: classify-registry-errors-by-type }
