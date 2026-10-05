@@ -61,7 +61,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue) (core delta) and [`con
 
 **Core: two new publish-gate definitions** (§5 of SPEC.md, beside `#IdentityPackage`):
 
-- `#ModuleFileCustom`: the block shape. `kind` (`module | catalog | template`), `identity {ModulePath, Version}`, `core {major, version}`, `catalogs` (catalog module path with major to version, possibly empty). Those four are required and every value is concrete. The block ends open (D2): `listing` is reserved for entry 0031's card, and any other key a later entry defines passes too.
+- `#ModuleFileCustom`: the block shape. `kind` (`module | catalog | template`), `identity {ModulePath, Version}`, `core {major, version}`, `catalogs` (catalog module path with major to version, possibly empty). Those four are required and every value is concrete. The block ends open (D2): `listing` is reserved for a module listing card, which no live entry defines yet, and any other key a later entry defines passes too.
 - `#ModuleFileCustomGate`: declared beside implied. Inputs are what publish already holds: `module:`, the identity `Version`, the `deps` map. Implied values: `identity.ModulePath` is `module:`; `identity.Version` is the identity version; `core.version` is the pin of `opmodel.dev/core@<core.major>` in `deps`; `catalogs` contains every `opmodel.dev/catalogs/*` dep at its pin, and every declared catalog is a dep at that pin. Unification is the check.
 
 Additive: no existing definition changes; nothing in `core` unifies against these; an artifact without the block is unaffected by the schema.

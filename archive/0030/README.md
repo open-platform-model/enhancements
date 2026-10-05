@@ -1,8 +1,10 @@
+> **Rejected (2026-10-05).** Not rejected on merit. The portal continues without an enhancement: its plan, decisions and progress live in the opm-portal repo (docs/DESIGN.md and ROADMAP.md), and its delivery log stays here as the record of what landed.
+
 # Enhancement 0030: OPM Portal V1
 
 OPM records what it runs in Kubernetes status, but nobody can see it in one place, and the operator's "Ready" means "applied", not "working". This entry adds a read-only web portal and a versioned read API. They show a Platform, its catalogs and providers, and each deployed module down to its Pods, with applied state and workload health kept apart.
 
-All entries: [INDEX.md](../INDEX.md). How this one relates to others: [GRAPH.md](../GRAPH.md). Metadata: [config.yaml](config.yaml).
+All entries: [INDEX.md](../../INDEX.md). How this one relates to others: [GRAPH.md](../../GRAPH.md). Metadata: [config.yaml](config.yaml).
 
 ## Summary
 
@@ -75,7 +77,7 @@ None at this stage. Update this section when implementation lands and any delibe
 
 | Document | Purpose |
 | -------- | ------- |
-| [../archive/0015/README.md](../archive/0015/README.md) | Catalog contracts and transformer registration: the registration resource and its verdicts the Platform view reads, and the readiness rule behind "Applied" |
-| [../0027/README.md](../0027/README.md) | Self-service kinds, which the later marketplace builds its writes on |
-| [../0013/README.md](../0013/README.md) | Secrets and the diagnostics redaction rule behind OQ8 |
+| [../archive/0015/README.md](../0015/README.md) | Catalog contracts and transformer registration: the registration resource and its verdicts the Platform view reads, and the readiness rule behind "Applied" |
+| [../0027/README.md](../../0027/README.md) | Self-service kinds, which the later marketplace builds its writes on |
+| [../0013/README.md](../../0013/README.md) | Secrets and the diagnostics redaction rule behind OQ8 |
 | [experiments/01-live-cluster-capture/README.md](experiments/01-live-cluster-capture/README.md) | The live capture that corrected the design in fourteen places |

@@ -28,4 +28,4 @@ bash run.sh
 - **Drafted shape plus `listing?` and `...`:** accepts valid cards and future keys, and refuses the bad category, the `https://` icon and `locales`.
 - **Cost of any open tail:** the misspelled `listng` passes silently. A forbidden key written as `_|_` gives a poor error ("explicit error (_|_ literal) in source").
 
-Hypothesis refuted for the drafted shape. The block now ends in `...` with `listing?: _` reserved: entry 0031 owns the card schema, so this entry does not import it. A misspelled key is a CLI lint warning on keys the CLI's core does not know, not a gate refusal.
+Hypothesis refuted for the drafted shape. The block now ends in `...` with `listing?: _` reserved: whatever entry defines the listing card owns its schema, so this entry does not import it. A misspelled key is a CLI lint warning on keys the CLI's core does not know, not a gate refusal.

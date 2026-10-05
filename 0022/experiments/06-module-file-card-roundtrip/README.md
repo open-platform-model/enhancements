@@ -27,7 +27,7 @@ WS=/path/to/workspace bash run.sh
 - The published module-file blob was byte-identical to the tidied file on 20 of 20.
 - The card vetted on 20 of 20. Cards were 471 to 585 B as canonical JSON (mean 520). Module files grew from about 210 B to 1,038 to 1,177 B with the full block plus the card.
 - `assets/icon.svg` shipped inside the published zip.
-- A card with every field at its cap (8,486 B) still tidied value-intact, published, and resolved from a cold consumer, with a 9,375 B module file. Its size cap belongs to entry 0031.
+- A card with every field at its cap (8,486 B) still tidied value-intact, published, and resolved from a cold consumer, with a 9,375 B module file. No live entry sets its size cap.
 - The 0022 gate itself was not run on the tidied files, so OQ5 is not closed by this experiment.
 
 Hypothesis held. Tidy canonicalises the block's text and keeps its values; publish then ships the tidied bytes unchanged. D1:R5 states exactly that.

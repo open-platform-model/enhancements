@@ -21,8 +21,6 @@
 | [0025](./0025/) | schema | core, library | draft | not-started | Self-Describing Modules | Let a module state facts about itself as a whole, as named bundles of catalog-published traits that the kernel matches and renders the way it already does components. |
 | [0026](./0026/) | schema | core, library, cli, opm-operator, catalog | draft | not-started | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
 | [0027](./0027/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create, so a consumer supplies values and never names a module or a version. |
-| [0030](./0030/) | runtime | opm-portal, opm-operator, opmodel.dev | draft | in-progress | OPM Portal V1 | A read-only web portal and versioned read API that show what OPM runs in a cluster, from the Platform down to Pods, with applied state and workload health kept apart. |
-| [0031](./0031/) | distribution | core, library, cli, opm-operator, catalog, modules, opmodel.dev, opm-portal | draft | not-started | Module Presentation Contract | Let any UI list and present a module, and a platform's offering of it, from what the author and the platform declare, with no kind-specific code. |
 
 ## Archived (delivered / rejected / superseded)
 
@@ -38,6 +36,8 @@
 | [0016](./archive/0016/) | distribution | delivered | Initialize a Module Instance Package from a Published Module | Generate a complete, ready-to-build module instance package from a published module, instead of hand-typing its pins, majors and wiring. | delivered 2026-09-29 (1 landings) |
 | [0018](./archive/0018/) | misc | rejected | Documentation Architecture | Organise the docs by what a reader is holding when they arrive, with diagnostics as a top-level entry point for anyone who came from an error message. | Not rejected on merit. The documentation work continues without an enhancement: its page rules live in the workspace STYLE.md (Site Pages) and its voice in VOICE.md, and the owning repos implement them directly. |
 | [0019](./archive/0019/) | runtime | delivered | Kernel render path parity with pure CUE | Make the Go kernel render exactly what plain CUE unification would, by folding matching into one build so the two cannot drift. | delivered 2026-09-04 (27 landings) |
+| [0030](./archive/0030/) | runtime | rejected | OPM Portal V1 | A read-only web portal and versioned read API that show what OPM runs in a cluster, from the Platform down to Pods, with applied state and workload health kept apart. | Not rejected on merit. The portal continues without an enhancement: its plan, decisions and progress live in the opm-portal repo (docs/DESIGN.md and ROADMAP.md), and its delivery log stays here as the record of what landed. |
+| [0031](./archive/0031/) | distribution | rejected | Module Presentation Contract | Let any UI list and present a module, and a platform's offering of it, from what the author and the platform declare, with no kind-specific code. | Not rejected on merit. The owner asked only for open questions on 0027, and those hold the marketplace presentation and form questions (0027:OQ17 to 0027:OQ29). The measured evidence stays in this archived entry and is copied, for 0027:OQ17, into 0027's experiment 06. |
 
 ## Status legend
 
