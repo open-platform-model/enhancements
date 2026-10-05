@@ -256,7 +256,7 @@ The operator's messages are a second carrier: the message of a condition on an O
 
 **Decision:** Status badges and the durable part of the timeline come from conditions and `status.history`. Kubernetes events are a recent-activity feed with the API server's roughly one-hour lifetime, labelled as such, and no displayed state is inferred from them. The portal deduplicates events itself: the event recorder folds a repeat into `series` only when it regards the same object version, so repeats after the object's status changed arrive as separate events, and kubelet events count through the deprecated count and timestamp fields, so repeated events about the same object with the same reason and message become one line with a count and the latest time, whichever way each repeat was recorded. Events about the cluster-scoped Platform and TransformerRegistrations, which Kubernetes records in namespace `default`, appear on those objects' pages. Render warnings the operator records only as events are labelled on the instance page as expiring with the feed.
 
-The event feed reads events through field selectors on the regarded object, the reason and the type, so the supported Kubernetes range has to carry them. The portal and the operator declare Kubernetes 1.34 as their minimum version, the oldest version OPM tests today. One CI job runs on that floor, and the event field selectors are verified there.
+The event feed reads events through field selectors on the regarded object, the reason and the type, so the supported Kubernetes range has to carry them. The portal and the operator declare Kubernetes 1.34 as their minimum version, the oldest version OPM tests today. The portal and the operator each keep one CI job on that floor; the portal's job verifies the event field selectors there.
 
 **Requirements:**
 
@@ -266,7 +266,7 @@ The event feed reads events through field selectors on the regarded object, the 
 - R4: Events about the Platform and about each TransformerRegistration appear on that object's page.
 - R5: The instance page states that render warnings are kept only as events and that older ones are gone.
 - R6: The portal and the opm-operator each declare Kubernetes 1.34 as their minimum supported version.
-- R7: CI keeps at least one job on a Kubernetes 1.34 cluster, and that job shows the event field selectors the portal relies on work there.
+- R7: The portal's CI and the opm-operator's CI each keep at least one job on a Kubernetes 1.34 cluster; the portal's job shows the event field selectors it relies on work there.
 
 **Alternatives considered:**
 
