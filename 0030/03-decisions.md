@@ -226,7 +226,7 @@ All eleven decisions are draft. Each was proposed from the portal design and the
 
 **Decision:** The portal never reads a Secret's data, in any mode, so it can never serve one. In V1 it shows no instance's `spec.values`: users supply plain values that unification marks as secrets only inside the module's schema, and modules still take plain-string passwords, so no marker in the stored values identifies what to hide. The `kubectl.kubernetes.io/last-applied-configuration` annotation is stripped from every object the portal serves, because a client-side apply copies the full values into it. Hiding `spec.values` does not hide what the values became: a value a module renders into a non-Secret object (a ConfigMap entry, a container's environment) is shown in that object's YAML view to any user whose RBAC lets them read it, exactly as `kubectl` would show it. Keeping a value out of reach means rendering it into a Secret.
 
-The operator's condition and event messages are a second carrier. The kernel the operator embeds does not yet redact marked secret paths in them, as entry 0013's diagnostics rule (0013:D28) requires. Until it does, the in-cluster portal shows the reason of an OPM condition or an operator event and never its message text. Local mode keeps messages verbatim, because they reveal nothing the user's kubeconfig cannot already read.
+The operator's messages are a second carrier: the message of a condition on an OPM resource, of an event the operator records, and of a `status.history` entry, which the operator fills with the same reconcile error text. The kernel the operator embeds does not yet redact marked secret paths in them, as entry 0013's diagnostics rule (0013:D28) requires. Until it does, the in-cluster portal shows a condition's or event's reason and a history entry's action, never the message text, and the instance document's `reconcile` block carries its reason with no message. Local mode keeps messages verbatim, because they reveal nothing the user's kubeconfig cannot already read.
 
 **Requirements:**
 
@@ -234,8 +234,8 @@ The operator's condition and event messages are a second carrier. The kernel the
 - R2: No API document, YAML view or page in V1 contains an instance's or package's `spec.values`.
 - R3: No object the portal serves carries the `kubectl.kubernetes.io/last-applied-configuration` annotation.
 - R4: The portal's documentation states that values rendered into non-Secret objects are visible to anyone who may read those objects, in the portal as in `kubectl`.
-- R5: In-cluster, no API document, page or change-stream message carries the message text of a condition on an OPM resource or of an event the operator records; the condition's or event's reason is shown in its place. This holds until the kernel the operator embeds redacts those messages as 0013:D28 requires.
-- R6: In local mode, condition and event messages are shown verbatim.
+- R5: In-cluster, no API document, page or change-stream message carries an operator-written message: the message of a condition on an OPM resource, of an event the operator records, or of a `status.history` entry, nor the `reconcile` block's message derived from them. A condition or event shows its reason in its place and a history entry its action. This holds until the kernel the operator embeds redacts those messages as 0013:D28 requires.
+- R6: In local mode, condition, event and history messages are shown verbatim.
 
 **Alternatives considered:**
 
@@ -246,7 +246,7 @@ The operator's condition and event messages are a second carrier. The kernel the
 
 **Rationale:** The live capture confirmed the annotation leak: a client-side apply of an instance copies every value into the annotation (observation 14). Hiding values and stripping the annotation is the only rule V1 can keep without reading module schemas. Messages follow the same reasoning: with no redaction in the kernel, hiding message text in-cluster is the only safe rule. It is the safest choice and it makes remediation harder, because a user sees why something failed only as a reason.
 
-**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observation 14. Core's secret marker shape and the plain-string password fields in the first-party modules, read from source. Owner decision 2026-10-05 ("Hide messages in-cluster": in-cluster mode shows only reasons, never message text, until the kernel redacts; safest, but remediation gets much harder for users), resolving OQ8. The library's `main` branch holds no redaction code for condition or event messages, as the owner's question records.
+**Source:** Measured on a live cluster: [experiment 01](experiments/01-live-cluster-capture/), observation 14. Core's secret marker shape and the plain-string password fields in the first-party modules, read from source. Owner decision 2026-10-05 ("Hide messages in-cluster": in-cluster mode shows only reasons, never message text, until the kernel redacts; safest, but remediation gets much harder for users), resolving OQ8. Library `main` (a8bfc76) and opm-operator `main`, read from source: no redaction of condition, event or history messages, and the operator writes reconcile error text into `status.history[].message` (`internal/status/history.go`, `NewFailureEntry`).
 
 ---
 
