@@ -19,7 +19,7 @@ Two NEW constructs, both publish gates, pre-drafting the core/SPEC.md §5 co-upd
     identity!: {ModulePath!: #ModulePathType, Version!: #VersionType}
     core!:     {major!: =~"^v[0-9]+$", version!: #VersionType}
     catalogs!: [#ModulePathType]: #VersionType
-    listing?:  _   // reserved for module presentation (0027:OQ17)
+    listing?:  _   // reserved for a module listing card
     ...            // open tail
 }
 ```
@@ -27,7 +27,7 @@ Two NEW constructs, both publish gates, pre-drafting the core/SPEC.md §5 co-upd
 ### Constraints
 
 - `kind`, `identity`, `core` and `catalogs` are REQUIRED. Every value MUST be concrete; the block MUST contain no references, definitions or defaults (CUE data mode).
-- The block is OPEN: a key this definition does not name MUST pass it, so an older core's gate accepts a block written for a newer shape. `listing` is reserved for module presentation (0027:OQ17), whose answer defines and validates it; this definition admits any value there. A tool MAY warn on a key its own core does not know (a misspelled optional key otherwise passes silently).
+- The block is OPEN: a key this definition does not name MUST pass it, so an older core's gate accepts a block written for a newer shape. `listing` is reserved for a module listing card, which no live entry defines yet; the entry that defines it validates it; this definition admits any value there. A tool MAY warn on a key its own core does not know (a misspelled optional key otherwise passes silently).
 - `identity.ModulePath` MUST be byte-identical to the module file's `module:` field; `identity.Version` MUST equal the identity package's `Version`. Both are asserted by `#ModuleFileCustomGate`, never here.
 - `core.version` MUST equal the `deps` pin of `opmodel.dev/core@<core.major>`, without its `v` prefix.
 - `catalogs` MUST contain every `opmodel.dev/catalogs/*` dependency at its pin and MUST NOT name a path that is not a dependency. Catalog dependencies outside that prefix: unresolved (OQ1).

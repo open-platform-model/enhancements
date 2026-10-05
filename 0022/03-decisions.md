@@ -58,7 +58,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 Nothing about the toolchain that authored the file lives in the block.
 
-The block ends open. A key beyond these four passes this entry's validation unchecked, so a block written for a newer shape passes an older gate. The key `listing` is reserved for module presentation, an open question in entry 0027 (0027:OQ17); whatever answers it owns the key's shape and validation, and this entry does not restate them.
+The block ends open. A key beyond these four passes this entry's validation unchecked, so a block written for a newer shape passes an older gate. The key `listing` is reserved for a module listing card, which no live entry defines yet; whatever entry defines it owns its shape and validation, and this entry does not restate them.
 
 **Requirements:**
 

@@ -79,8 +79,8 @@ _assertKey: #ModuleFileCustomKey & "opmodel.dev@v0"
 
 // The open tail (D2:R7): a block carrying the reserved `listing` key and a
 // key no entry defines yet both pass, and the gate still asserts the
-// duplicated values. The listing value is opaque here; module presentation
-// (0027:OQ17) owns its shape.
+// duplicated values. The listing value is opaque here; no live entry defines
+// its shape yet.
 openTailGate: #ModuleFileCustomGate & {
 	module:          "opmodel.dev/modules/cert_manager@v2"
 	identityVersion: "2.0.1"
