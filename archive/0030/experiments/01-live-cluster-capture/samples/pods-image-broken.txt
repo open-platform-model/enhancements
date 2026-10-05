@@ -1,4 +1,0 @@
-NAMESPACE NAME READY STATUS RESTARTS AGE
-default podinfo-podinfo-794bd8c7fb-cc5ql 0/1 ImagePullBackOff 0 72s
-default podinfo-podinfo-d9585d794-5m9tx 1/1 Running 0 6m58s
-default podinfo-podinfo-d9585d794-j6jr9 1/1 Running 0 6m58s
