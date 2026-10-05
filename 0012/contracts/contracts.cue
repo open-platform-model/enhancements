@@ -128,8 +128,8 @@ import "strings"
 	// Membership is computed in Go; this states what the set MEANS. `current`
 	// is the inventory the instance records, so an object it dropped after a
 	// refusal as "adopted-elsewhere" is stale although it is still rendered;
-	// the deletion plan skips it as "adopted-elsewhere" (0012:D7:R1,
-	// 0012:D8:R8).
+	// the deletion plan skips it (as "adopted-elsewhere" unless an earlier
+	// skip reason, such as "owner-mismatch", applies; 0012:D7:R1, 0012:D8:R8).
 	stale: [...#InventoryEntry]
 }
 
@@ -253,15 +253,16 @@ import "strings"
 // OQ8). An object that does not exist is never refused.
 //
 // The refusal reasons: "foreign-object" when the object exists outside the
-// instance's recorded inventory and its managedBy is not in #OPMManagedBy;
-// "other-instance" when it exists outside that inventory, is OPM-managed and
-// carries the identity of another instance than the one its #AdoptAnnotation
-// names; "adopted-elsewhere" (0012:D8:R8) when its #AdoptAnnotation names
-// another instance and it is in that inventory, or it is outside that
-// inventory and no other reason refuses it, as when the annotation equals its
-// instance-UUID label; "terminating" when it exists with a deletionTimestamp,
-// whether or not it is in the inventory. The instance-UUID label alone never
-// refuses an object in the inventory.
+// instance's recorded inventory and its managedBy is not in #OPMManagedBy,
+// unless the operator install admits it (0012:D8:R6); "other-instance" when
+// it exists outside that inventory, is OPM-managed and carries a UUID label
+// naming neither this instance nor the one its #AdoptAnnotation names;
+// "adopted-elsewhere" (0012:D8:R8) when its #AdoptAnnotation names another
+// instance and it is in that inventory, or it is outside that inventory and
+// no other reason refuses it, as when its instance-UUID label names this
+// instance or the one the annotation names; "terminating" when it exists
+// with a deletionTimestamp, whether or not it is in the inventory. The
+// instance-UUID label alone never refuses an object in the inventory.
 //
 // A frontend leaves its inventory as it is on "foreign-object" and
 // "other-instance". On "adopted-elsewhere" for an object in the inventory it
