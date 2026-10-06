@@ -19,10 +19,10 @@ env:
   # cue.mod language version in every entry module is v0.17.0; v0.17.1 is the
   # binary the other OPM repos pin.
   CUE_VERSION: 'v0.17.1'
-  TASK_VERSION: '3.52.0'
-  YQ_VERSION: 'v4.53.3'
+  TASK_VERSION: '3.54.0'
+  YQ_VERSION: 'v4.54.1'
   # sha256 of yq_linux_amd64 for YQ_VERSION, from the release's checksums file.
-  YQ_SHA256: 'fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4'
+  YQ_SHA256: '8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f'
 
 jobs:
   check:
