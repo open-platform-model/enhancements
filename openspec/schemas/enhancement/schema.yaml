@@ -1,0 +1,133 @@
+name: enhancement
+version: 1
+description: OPM enhancement - intent -> meta -> decisions -> specs (no tasks; a contract, not a build plan)
+# MOCKUP (branch openspec-store-design). See openspec/MOCKUP.md.
+#
+# Why a project-local schema: an enhancement is a design, not an implementation.
+# It has no tasks: each affected repo delivers its part as its own OpenSpec change
+# and cites requirement ids from this store. The three written layers are ordered
+# by depth, so a reader stops as soon as they know enough:
+#   README.md      intent      2 minutes, written for a newcomer
+#   decisions.md   the why     for someone who asks "why this way?"
+#   specs/         contract    for whoever implements a slice
+artifacts:
+  - id: intent
+    generates: README.md
+    description: The intent in plain language, one page, owned by the proposer
+    template: README.md
+    instruction: |
+      Write the intent: what OPM does once this lands, for a developer who has never seen it.
+
+      The proposer owns this file word for word. Draft it only from what the proposer said,
+      show it, and change it only on their instruction. Never expand it to add detail: detail
+      belongs in decisions.md or the specs.
+
+      Hard limits:
+      - At most 300 words, not counting the code block and the "Go deeper" table.
+      - Plain words. No decision numbers, no requirement ids, no file names, and no type
+        names the reader must already know. If a sentence needs one, move it down a layer.
+      - No metadata. Title aside, ids, status, repos and dates live in config.yaml.
+
+      Sections, in the template's order: the lede (three sentences at most), Why, What
+      changes (3 to 5 observable bullets), What this is not (2 or 3 bullets), Example (one
+      small code block from the user's side), Go deeper (keep the table as it is).
+
+      Test before you finish: could a new developer explain this enhancement to a colleague
+      after reading only this page? If not, it is too detailed or too vague.
+    requires: []
+
+  - id: meta
+    generates: config.yaml
+    description: The enhancement's metadata; only facts that do not change after the design is done
+    template: config.yaml
+    instruction: |
+      Fill config.yaml. It holds only facts that stay true once the design is done.
+
+      Do not add a status field, a history or amendment lists. They are derived:
+      - draft: the folder is in `changes/` and config.yaml has no `accepted` date.
+      - accepted (ready to implement): the folder is in `changes/` and has an `accepted`
+        date. The accept step writes the date and syncs the delta specs into openspec/specs/.
+      - delivered or rejected: the folder is in `changes/archive/`. Rejected has a
+        `rejected_reason`.
+      - amends and supersedes: the delta specs. A MODIFIED or REMOVED requirement whose id
+        starts with another enhancement's number is the edge.
+      - delivery: `delivery.yaml` in the enhancement's folder.
+      - history: `git log` on the folder.
+    requires:
+      - intent
+
+  - id: decisions
+    generates: decisions.md
+    description: Each choice, what was rejected and why; plus risks, rollout and open questions
+    template: decisions.md
+    instruction: |
+      Write the decision log. The proposer makes each decision; you may draft the prose.
+
+      A decision earns a number only if it would still bind a from-scratch rewrite of the
+      affected repos. How a repo achieves the contract belongs in that repo's own change.
+
+      Per decision: the choice as a statement, its Kind (contract, policy or scope), the
+      decision, the ids of its requirements with a link to the delta spec, the alternatives
+      considered with the reason each lost, the rationale, and the source (who decided, when).
+      A contract decision has at least one requirement. Policy and scope decisions have none.
+
+      Decision numbers are permanent: other repos cite them as NNNN:D<n>. While the
+      enhancement is a draft, revise a decision in place. Never renumber. A withdrawn number
+      keeps a one-line tombstone. Once accepted, a decision is changed only by a new decision.
+
+      After the decisions, three short sections: Risks, Rollout, Open questions. Every open
+      question says whether it blocks acceptance. An enhancement with a blocking question
+      open is not archived.
+    requires:
+      - meta
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: The contract - delta specs against the store's capability specs
+    template: spec.md
+    instruction: |
+      Write the contract as delta specs: one file per capability this enhancement touches,
+      at `specs/<capability>/spec.md`. Read `openspec/specs/` first and reuse an existing
+      capability before you create one. A capability is a lasting area of behaviour
+      ("secrets", "instance-export"), never the name of this enhancement.
+
+      When this enhancement creates a capability, start its delta with a `## Purpose` of one
+      or two sentences. `openspec archive` reads it only at creation; without it the new spec
+      gets a placeholder that fails validation. It is also the line every repo sees in its
+      index of this store, so write it for a reader who is choosing what to open.
+
+      Requirements:
+      - The name is the id: `### Requirement: NNNN:D<n>:R<n>`. Nothing else in the heading.
+      - One SHALL sentence that a consumer can observe from outside one repo's code. No Go
+        symbol, CLI flag or file path.
+      - A `- Decision:` line that points at the decision in decisions.md. No rationale here.
+      - At least one scenario (`#### Scenario:` with WHEN and THEN). `openspec validate`
+        refuses a requirement without one.
+
+      Delta sections:
+      - `## ADDED Requirements`: new ids from this enhancement's decisions.
+      - `## MODIFIED Requirements`: an existing requirement changes. Keep its original id,
+        even when another enhancement introduced it, and restate the full requirement with
+        every scenario that still holds. Add a `- Modified by:` line naming your decision.
+      - `## REMOVED Requirements`: with **Reason** and **Migration**. The id is never reused.
+      Never use RENAMED: an id does not change.
+
+      Every requirement id listed in decisions.md appears here, and every id here is listed
+      in decisions.md.
+    requires:
+      - decisions
+
+# An enhancement is never applied in this repo. Its lifecycle:
+#   draft      in changes/, no `accepted` date. Everything may change.
+#   accepted   in changes/, ready to implement. The delta specs are synced into
+#              openspec/specs/, so every repo sees the contract. Decisions and requirements
+#              are protected from here on; repos deliver and log to delivery.yaml.
+#   delivered  `openspec archive --skip-specs`: the specs already hold the contract.
+#   rejected   `openspec archive --skip-specs` with `rejected_reason`; never synced.
+apply:
+  requires: [specs]
+  instruction: |
+    Do not implement anything here. An enhancement is delivered by OpenSpec changes in the
+    affected repos, each citing requirement ids from this store. In this repo the next step
+    after review is acceptance: sync the delta specs into openspec/specs/ and write the
+    `accepted` date. The folder stays in changes/ until every decision is delivered.

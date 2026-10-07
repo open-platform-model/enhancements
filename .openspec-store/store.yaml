@@ -1,0 +1,3 @@
+version: 1
+id: opm-enhancements
+remote: git@github.com:open-platform-model/enhancements.git

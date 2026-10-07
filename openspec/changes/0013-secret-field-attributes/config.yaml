@@ -1,0 +1,26 @@
+# Metadata for enhancement 0013. Only facts that stay true once the design is done.
+# Derived, so never written here: amends and supersedes (the delta specs), delivery
+# (delivery.yaml beside this file), history (git log).
+id: "0013"
+slug: secret-field-attributes
+title: Attribute-Declared Secret Fields
+summary: >-
+  Let an author mark which Kubernetes Secret a field belongs in with a CUE attribute, so the field
+  itself holds only the value the deployer supplies.
+semver: major
+category: schema
+affects:
+  - core
+  - library
+  - catalog
+  - modules
+  - cli
+  - opm-operator
+  - opmodel.dev
+core_schema: true
+authors:
+  - emil@jacero.se
+depends_on:
+  - "0014"
+# The date the enhancement was accepted: ready to implement. Absent while it is a draft.
+accepted: "2026-08-14"
