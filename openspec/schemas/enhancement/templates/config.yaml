@@ -1,6 +1,6 @@
 # Metadata for enhancement NNNN. Only facts that stay true once the design is done.
 # Derived, so never written here: amends and supersedes (the delta specs), delivery
-# (delivery.yaml beside this file), history (git log).
+# (tasks.md beside this file), history (git log).
 id: "NNNN"
 slug: <kebab-case-slug>
 title: <Title>

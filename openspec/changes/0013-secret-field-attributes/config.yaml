@@ -1,6 +1,6 @@
 # Metadata for enhancement 0013. Only facts that stay true once the design is done.
 # Derived, so never written here: amends and supersedes (the delta specs), delivery
-# (delivery.yaml beside this file), history (git log).
+# (tasks.md beside this file), history (git log).
 id: "0013"
 slug: secret-field-attributes
 title: Attribute-Declared Secret Fields
