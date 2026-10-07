@@ -1,0 +1,22 @@
+# Metadata for enhancement NNNN. Only facts that stay true once the design is done.
+# Derived, so never written here: amends and supersedes (the delta specs), delivery
+# (delivery.yaml beside this file), history (git log).
+id: "NNNN"
+slug: <kebab-case-slug>
+title: <Title>
+# One line: the capability OPM will have and does not have today.
+summary: >-
+  <summary>
+semver: <major | minor | patch>
+category: <schema | runtime | distribution | tooling | misc>
+# Every repo that ships a change driven by this enhancement.
+affects: []
+core_schema: false
+authors: []
+# Enhancements whose decisions this one's decisions depend on.
+depends_on: []
+# The date the enhancement was accepted: ready to implement. Absent while it is a draft.
+# Written once, by the accept step, which also syncs the delta specs into openspec/specs/.
+# accepted: "YYYY-MM-DD"
+# Set only when the enhancement is rejected, before `openspec archive --skip-specs`.
+# rejected_reason: <why>

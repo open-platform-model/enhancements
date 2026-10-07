@@ -1,0 +1,23 @@
+# MOCKUP (branch openspec-store-design). See openspec/MOCKUP.md.
+schema: enhancement
+
+context: |
+  This repo is the OpenSpec store `opm-enhancements`: the design record of the Open Platform
+  Model (OPM), read by every OPM repo through `references:`.
+
+  - `openspec/specs/<capability>/spec.md` is the contract OPM has agreed to, by capability.
+    It says what is agreed, not what is built. Each repo's own specs say what is built.
+  - `openspec/changes/NNNN-<slug>/` is one enhancement in motion: a draft, or accepted
+    (ready to implement, with an `accepted` date in its config.yaml) and being delivered.
+  - `openspec/changes/archive/` holds finished enhancements: delivered or rejected.
+  - The specs hold the requirements of every accepted enhancement, delivered or not.
+  - An enhancement states what consumers can rely on. It never tells a repo how to name a
+    file, spell an identifier or structure its code.
+
+rules:
+  intent:
+    - At most 300 words, not counting the code block and the "Go deeper" table.
+    - No decision numbers, no requirement ids, no type names the reader must already know.
+  specs:
+    - A requirement name is its id, NNNN:D<n>:R<n>. An id is never changed and never reused.
+    - A requirement another enhancement introduced keeps its original id when modified.
