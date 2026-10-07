@@ -1,6 +1,6 @@
-<!-- LAYER 3: THE CONTRACT, as a delta against openspec/specs/<capability>/spec.md.
-     Owner: agent-written, approved by the proposer in the pull request. Reader: whoever implements a slice.
-     A requirement name is its id and never changes. Delete the delta sections you do not use. -->
+<!-- THE CONTRACT, as a delta against openspec/specs/<capability>/spec.md.
+     Owner: agent-written, approved by the proposer in the pull request. Reader: whoever implements a piece.
+     A requirement name is a short plain statement. Delete the sections you do not use. -->
 
 ## Purpose
 
@@ -8,11 +8,11 @@
 
 ## ADDED Requirements
 
-### Requirement: NNNN:D1:R1
+### Requirement: <Short plain statement, at most 8 words>
 
 <Subject> SHALL <observable outcome>.
 
-- Decision: `NNNN`, D1
+- Design: NNNN, <theme>
 
 #### Scenario: <short name>
 
@@ -21,12 +21,12 @@
 
 ## MODIFIED Requirements
 
-### Requirement: MMMM:D3:R1
+### Requirement: <The existing requirement's name, unchanged>
 
-<The full requirement as it reads after this enhancement. Keep the original id, and restate every scenario that still holds.>
+<The full requirement as it reads after this enhancement. Restate every scenario that still holds.>
 
-- Decision: `MMMM`, D3
-- Modified by: `NNNN`, D2
+- Design: MMMM, <theme>
+- Changed by: NNNN, <theme>
 
 #### Scenario: <short name>
 
@@ -35,8 +35,8 @@
 
 ## REMOVED Requirements
 
-### Requirement: MMMM:D4:R2
+### Requirement: <The existing requirement's name>
 
-**Reason**: <Why it no longer holds, and the decision that removes it.>
+**Reason**: <Why it no longer holds.>
 
 **Migration**: <What a consumer does instead.>

@@ -9,15 +9,22 @@ context: |
     It says what is agreed, not what is built. Each repo's own specs say what is built.
   - `openspec/changes/NNNN-<slug>/` is one enhancement in motion: a draft, or accepted
     (ready to implement, with an `accepted` date in its config.yaml) and being delivered.
+    One feature is one id and one folder, however large.
+  - `tasks.md` in that folder says which repo still has work.
   - `openspec/changes/archive/` holds finished enhancements: delivered or rejected.
   - The specs hold the requirements of every accepted enhancement, delivered or not.
   - An enhancement states what consumers can rely on. It never tells a repo how to name a
     file, spell an identifier or structure its code.
 
 rules:
-  intent:
-    - At most 300 words, not counting the code block and the "Go deeper" table.
+  proposal:
+    - At most 300 words, not counting the code block.
     - No decision numbers, no requirement ids, no type names the reader must already know.
+  design:
+    - At most 7 themes. A theme has at most 120 words. At most 10 alternatives, one line each.
+    - No numbered decisions. Long comparisons and measurements go to evidence/.
+  tasks:
+    - One line per piece of work in one repo. Name the outcome, never the method.
   specs:
-    - A requirement name is its id, NNNN:D<n>:R<n>. An id is never changed and never reused.
-    - A requirement another enhancement introduced keeps its original id when modified.
+    - A requirement name is a short plain statement, at most 8 words. No numbers, no ids.
+    - A requirement another enhancement introduced keeps its name when modified.
