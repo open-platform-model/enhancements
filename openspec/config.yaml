@@ -1,0 +1,30 @@
+# MOCKUP (branch openspec-store-design). See openspec/MOCKUP.md.
+schema: enhancement
+
+context: |
+  This repo is the OpenSpec store `opm-enhancements`: the design record of the Open Platform
+  Model (OPM), read by every OPM repo through `references:`.
+
+  - `openspec/specs/<capability>/spec.md` is the contract OPM has agreed to, by capability.
+    It says what is agreed, not what is built. Each repo's own specs say what is built.
+  - `openspec/changes/NNNN-<slug>/` is one enhancement in motion: a draft, or accepted
+    (ready to implement, with an `accepted` date in its config.yaml) and being delivered.
+    One feature is one id and one folder, however large.
+  - `tasks.md` in that folder says which repo still has work.
+  - `openspec/changes/archive/` holds finished enhancements: delivered or rejected.
+  - The specs hold the requirements of every accepted enhancement, delivered or not.
+  - An enhancement states what consumers can rely on. It never tells a repo how to name a
+    file, spell an identifier or structure its code.
+
+rules:
+  proposal:
+    - At most 300 words, not counting the code block.
+    - No decision numbers, no requirement ids, no type names the reader must already know.
+  design:
+    - At most 7 themes. A theme has at most 120 words. At most 10 alternatives, one line each.
+    - No numbered decisions. Long comparisons and measurements go to evidence/.
+  tasks:
+    - One line per piece of work in one repo. Name the outcome, never the method.
+  specs:
+    - A requirement name is a short plain statement, at most 8 words. No numbers, no ids.
+    - A requirement another enhancement introduced keeps its name when modified.
