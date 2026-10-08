@@ -25,3 +25,15 @@ log:
     summary: >-
       cli reads its connectivity, unpublished and absent answers from the library's typed fetch errors, exit codes unchanged; two text matches stay (compat unprovided import, platform build hint); D8 R12 itself is the library's
     change: { kind: openspec, repo: cli, change: classify-registry-errors-by-type }
+  - date: "2026-10-05"
+    summary: >-
+      library#218: author-defect resolution failures leave the library typed as ResolutionError with a kind, by the owner's strict reading of D8 R12; the library half of R12, with the cli move to follow
+    change: { kind: openspec, repo: library, change: type-author-resolution-errors }
+  - date: "2026-10-08"
+    summary: >-
+      cli#346: the cli decides fetch and resolution answers from the library's error types, and a guard test refuses a new text match; four named text matches stay, none a fetch or resolution failure (D8 R12, cli half)
+    change: { kind: openspec, repo: cli, change: drop-resolution-text-matches }
+  - date: "2026-10-08"
+    summary: >-
+      library#222: a token endpoint's 401 or 403 classifies as unauthorized instead of unreachable, through one anchored text match inside the library, the owner's recorded exception to D8 R12 (library ADR-014)
+    change: { kind: openspec, repo: library, change: classify-token-endpoint-refusal }
