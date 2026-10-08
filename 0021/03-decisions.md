@@ -185,7 +185,7 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 **Depends:** 0011:D9
 
-**Decision:** A beta line drops its suffix only when every requirement below holds for it. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion.
+**Decision:** A beta line drops its suffix only when every requirement below holds for it, except R14, which is a guideline. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion.
 
 **Requirements:**
 
@@ -217,7 +217,7 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 **Revised:** 2026-10-04: R9 orders the operator module's first `v1` release between the operator and the CLI, which pins that module instead of embedding the operator.
 
-**Revised:** 2026-10-08, by owner decision: R14 is a guideline, not a gate. In the owner's words: "I DO NOT want the rule to be that strict. It should be treated as a guideline. It should be common practice to take your time, so three releases might not be enough for certain APIs." The owner judges when the kernel library's API has settled. R14's first sentence is unchanged.
+**Revised:** 2026-10-08, by owner decision: R14 is a guideline, not a gate. In the owner's words: "I DO NOT want the rule to be that strict. It should be treated as a guideline. It should be common practice to take your time, so three releases might not be enough for certain APIs." The owner judges when the kernel library's API has settled. The Decision names R14 as the one requirement it does not gate on. R14's first sentence is unchanged.
 
 **Revised:** 2026-10-08, by owner decision: R3's decision is taken for the first GA. Asked to choose between serving `v1alpha1` at GA with no conversion, closing 0021:OQ9 with that, and a move to `v1beta1` or `v1` with conversion before GA, the owner chose the first ("Yes"). R3's rule for a later move, conversion and every first-party artifact naming the served version, is unchanged.
 

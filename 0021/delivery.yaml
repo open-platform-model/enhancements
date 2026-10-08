@@ -27,7 +27,7 @@ log:
     change: { kind: openspec, repo: cli, change: classify-registry-errors-by-type }
   - date: "2026-10-05"
     summary: >-
-      library#218: author-defect resolution failures leave the library typed as ResolutionError with a kind, by the owner's strict reading of D8 R12; the library half of R12, with the cli move to follow
+      library#218: author-defect resolution failures leave the library typed as ResolutionError with a kind, by the owner's strict reading of D8 R12; the library half of R12
     change: { kind: openspec, repo: library, change: type-author-resolution-errors }
   - date: "2026-10-08"
     summary: >-

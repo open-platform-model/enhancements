@@ -11,9 +11,9 @@ log:
     change: { kind: openspec, repo: cli, change: adopt-kubernetes-ownership-package }
   - date: "2026-10-08"
     summary: >-
-      cli#349: the cli asks the library apply verdict for every object on every apply and adopts by annotation only (D4 R2, D8 R1, R5, R8 for the cli); no decision claimed, the operator side is not delivered
+      cli#349: the cli asks the library apply verdict for each rendered object on every apply, adoption by annotation only (D8 R1, R5, R8, cli side); the operator install's --rbac objects stay outside the guard; no decision claimed
     change: { kind: openspec, repo: cli, change: guard-every-apply-by-ownership }
   - date: "2026-10-08"
     summary: >-
-      cli#350: cli instance delete, operator uninstall and prune follow the library deletion plan and its release verdict (D4 R1, R5, R6 for the cli); D4 is not claimed until the operator adopts the deletion protocol
+      cli#350: cli instance delete, operator uninstall and prune follow the library deletion plan, and delete and uninstall its release verdict (D4 R1, R5, R6 for the cli); D4 is not claimed until the operator adopts the deletion protocol
     change: { kind: openspec, repo: cli, change: adopt-kubernetes-lifecycle-package }

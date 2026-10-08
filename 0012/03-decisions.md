@@ -299,6 +299,6 @@ A ModulePackage gets a persisted instance identity in an additive status field, 
 
 **Revised:** 2026-10-05: the guard also judges objects in the recorded inventory. An object there whose adopt annotation names another instance is refused as `adopted-elsewhere` and dropped from the next inventory, the apply goes on, and no instance re-takes or deletes an object annotated for another (R8). The annotation key is `opmodel.dev/adopt` and its value is the adopting instance's UUID.
 
-**Revised:** 2026-10-08, by owner decision: R8 excepts the operator install from "does not stop the apply". Asked what `opm operator install` does when it meets an object it needs that another instance owns, the owner chose "Refuse with exit 2 (Recommended)". The install refuses for every object it applies, before it changes anything. Every other apply still lets go of the object and goes on.
+**Revised:** 2026-10-08, by owner decision: R8 excepts the operator install from "does not stop the apply". Asked what `opm operator install` does when it meets an object it needs that another instance owns, the owner chose "Refuse with exit 2 (Recommended)". The install refuses before it changes anything. The owner's answer covers an object the install needs; that this is every object the install renders was settled when the CLI change that builds it was accepted, and the owner has not confirmed that scope. Every other apply still lets go of the object and goes on.
 
 Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
