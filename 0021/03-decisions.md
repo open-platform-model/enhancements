@@ -185,13 +185,13 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 
 **Depends:** 0011:D9
 
-**Decision:** A beta line drops its suffix only when every requirement below holds for it. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion.
+**Decision:** A beta line drops its suffix only when every requirement below holds for it, except R14, which is a guideline. The requirements are the GA exit criteria: what a consumer can observe once GA is cut. Enhancement 0013 lands during beta as an announced break, and its delivery is a GA criterion rather than a beta entry criterion.
 
 **Requirements:**
 
 - R1: Enhancement 0013 is delivered before any line it breaks reaches GA.
 - R2: Before GA, the policy names each draft entry whose delivery would break a GA line, and each named entry either lands before GA or waits for that line's next major.
-- R3: Before the operator reaches GA, the CRD API version it serves is decided: a move from `v1alpha1` to `v1beta1` or `v1` is served with conversion, and every first-party artifact that names the CRD version (platform pins, the installer, the CLI's mirrored CRD types) names the served one.
+- R3: Before the operator reaches GA, the CRD API version it serves is decided: a move from `v1alpha1` to `v1beta1` or `v1` is served with conversion, and every first-party artifact that names the CRD version (platform pins, the installer, the CLI's mirrored CRD types) names the served one. For the first GA the decision is taken: the operator serves `v1alpha1` at GA, so no version moves and no conversion is served.
 - R4: From GA on, the kernel library records a migration note for every breaking change of its exported API, and its published API-stability statement describes the GA promise.
 - R5: Removed (catalog retired 2026-10-02). The number stays so citations resolve.
 - R6: After GA, the GitHub "latest" release of the core, kernel library, CLI and operator repositories, the operator image's `latest` tag, and Go's latest-version query for the kernel library and the CLI each resolve the GA release; no `0.x` release or prerelease is advertised as latest.
@@ -202,7 +202,7 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 - R11: Before the kernel library reaches GA, no value its render operation returns to a caller is a live CUE value; rendered output reaches the caller as plain data. The acquired instance, platform and module packages and the configuration schema may still expose CUE values, under the library's rule that their holder bounds their lifetime (library ADR-007).
 - R12: Before the kernel library reaches GA, a caller can tell each fetch or resolution failure it returns by type, without matching on message text: whether the failure is transient, and which kind of fetch or resolution failed.
 - R13: Before the kernel library reaches GA, its main specs pass strict validation, and every exported identifier and behaviour its README, ADRs and specs name exists as described.
-- R14: The kernel library reaches GA only after three consecutive beta releases of its line, none of which carries a breaking change.
+- R14: The kernel library reaches GA only after three consecutive beta releases of its line, none of which carries a breaking change. This is a guideline and not a gate: the owner judges when the library's API has settled, and three releases may be too few for some APIs.
 
 **Alternatives considered:**
 
@@ -216,6 +216,10 @@ For the core schema this narrows the pre-stable rule copied under class 1: on a 
 **Revised:** 2026-10-03: R11 to R14 added, the kernel library's API-quality criteria for GA.
 
 **Revised:** 2026-10-04: R9 orders the operator module's first `v1` release between the operator and the CLI, which pins that module instead of embedding the operator.
+
+**Revised:** 2026-10-08, by owner decision: R14 is a guideline, not a gate. In the owner's words: "I DO NOT want the rule to be that strict. It should be treated as a guideline. It should be common practice to take your time, so three releases might not be enough for certain APIs." The owner judges when the kernel library's API has settled. The Decision names R14 as the one requirement it does not gate on. R14's first sentence is unchanged.
+
+**Revised:** 2026-10-08, by owner decision: R3's decision is taken for the first GA. Asked to choose between serving `v1alpha1` at GA with no conversion, closing 0021:OQ9 with that, and a move to `v1beta1` or `v1` with conversion before GA, the owner chose the first ("Yes"). R3's rule for a later move, conversion and every first-party artifact naming the served version, is unchanged.
 
 ### D9: The CLI's ceiling on operator versions compares `MAJOR.MINOR` only
 
