@@ -68,6 +68,7 @@ history:
 # both directions and refuses a cycle.
 depends_on:
   - "0006"
+  - "0021"
 # Entries whose DECISIONS this entry's decisions change. Directed and
 # decision-backed like depends_on: list MMMM iff a live `### DN:` block in
 # 03-decisions.md carries the qualified token `MMMM:DN` on its `**Amends:**`

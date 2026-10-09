@@ -42,7 +42,7 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 
 **Kind:** contract
 
-**Depends:** 0006:D3, 0006:D7, 0006:D18, 0006:D24, 0006:D32, 0006:D34, 0006:D35
+**Depends:** 0006:D3, 0006:D7, 0006:D18, 0006:D24, 0006:D32, 0006:D34, 0006:D35, 0021:D11
 
 **Amends:** 0006:D3, 0006:D7, 0006:D18, 0006:D24, 0006:D32, 0006:D34, 0006:D35
 
@@ -53,7 +53,8 @@ A *mechanism* decision is how a repo achieves the contract: algorithm choice, co
 - The CLI's dual mode keys on the owner `controller` where it keyed on `operator` (0006:D18).
 - The controller reports its running version in `controllerVersion` on the Platform's status, and the CLI's version ceiling reads that field and no other (0006:D24).
 - The CLI command group is `opm controller`, with install, its CRDs-only form, and uninstall; no `opm operator` command exists (0006:D32, 0006:D34).
-- The install artifact comes from the repository `open-platform-model/opm-controller`: its image is `ghcr.io/open-platform-model/opm-controller`, and the module that deploys it is `opmodel.dev/modules/opm_controller` (0006:D35).
+- The install artifact comes from the repository `open-platform-model/opm-controller`: its image is `ghcr.io/open-platform-model/opm-controller` (0006:D35).
+- The module that deploys the controller is `opmodel.dev/modules/opm_controller`. That the install artifact is a registry module, applied as a CLI-owned instance, is 0021:D11 and stands; this decision rests on it and gives the module and the instance their names.
 - The default install creates the instance `opm-controller` in namespace `opm-system`. Its Deployment and its ServiceAccount are named `opm-controller-manager`, and the Deployment selects its pods by the label `control-plane` with the value `manager`. The other objects the install creates carry the name prefix `opm-controller-`; that prefix is not confirmed for the namespace `opm-system` and is 0032:OQ1. Uninstall preserves the namespace `opm-system` as it preserved the former one (0006:D34).
 
 The namespace does not carry the component's name. It is `opm-system`, not `opm-controller-system`.
@@ -73,11 +74,11 @@ No alias, fallback read, deprecation warning or migration covers the former name
 
 **Alternatives considered:**
 
-- **Keep the shipped names (0006:D3, 0006:D24, 0006:D32, 0006:D35).** The owner value `operator`, the status field `operatorVersion`, the command group `opm operator`, the `opm-operator` repository and image, the namespace `opm-operator-system`, and the selector value `controller-manager`. Not kept: "operator" means an application-specific controller in Kubernetes, and OPM's component is a generic delivery engine.
+- **Keep the names 0006 published (0006:D3, 0006:D24, 0006:D32, 0006:D35).** The owner value `operator`, the status field `operatorVersion`, the command group `opm operator`, the `opm-operator` repository and image, the namespace `opm-operator-system`, and the selector value `controller-manager`. Not kept: "operator" means an application-specific controller in Kubernetes, and OPM's component is a generic delivery engine.
 - **Rename with a transition window.** Accept both owner values, read both status fields, and keep `opm operator` as a hidden alias for a release. Not chosen: nobody runs OPM yet, so a window would only leave traces to remove later.
 - **The namespace `opm-controller-system` (previously adopted by owner decision).** It followed the full rename of every name, namespace included. Not kept by the owner: the namespace is `opm-system`, and the Revised line below dates the change.
 - **A glossary line instead of a rename.** Not chosen: every contract value, command and address would keep saying the opposite of the glossary.
-- **Host the decision in entry 0021, which already amends five of these decisions (0006:D3, 0006:D24, 0006:D32, 0006:D34, 0006:D35).** Not chosen: 0021 decides versioning policy, and the rename shares no premise with it.
+- **Host the decision in entry 0021, which already amends five of these decisions (0006:D3, 0006:D24, 0006:D32, 0006:D34, 0006:D35).** Not chosen: 0021 decides versioning policy. The rename rests on one of its decisions, the module install of 0021:D11, and shares no premise with the others.
 
 **Rationale:** The name is the first thing a Kubernetes reader uses to place the component, and "operator" places it beside application operators it does not resemble. A full rename with no window is the cheapest it will ever be: nobody runs OPM yet, and these names become permanent at the first `v1.0.0` release, so the rename runs before it. Splitting product from loops ("controller" and "reconciler") gives the docs a word for each.
 

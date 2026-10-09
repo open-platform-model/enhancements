@@ -5,8 +5,7 @@
 - **A missed site keeps the former name.** A value, an address or a help string left behind contradicts the contract and confuses the next reader. **Mitigation:** a workspace-wide search for the former names after the last repo lands, with an explicit list of the residue that is history by intent, such as changelogs and archived OpenSpec changes.
 - **A cluster runs the controller under its former names.** With no migration, such a cluster cannot upgrade in place. **Mitigation:** none in OPM; the owner moves any such cluster by hand, by reinstalling under the new names.
 - **"Operator" is still used loosely.** The human role and upstream operators keep the word, so a careless edit can reintroduce the product sense. **Mitigation:** 0032:D1:R7 states the vocabulary rule, and review applies it.
-
-- **The namespace `opm-system` is shared ground.** It does not carry the controller's name, so another OPM component can be installed into it, and an object name there must stay distinct per component. **Mitigation:** the controller's objects carry the name prefix `opm-controller-`; whether that prefix stays is 0032:OQ1.
+- **The namespace name does not reserve it for the controller.** `opm-system` does not carry the controller's name, so nothing in the name stops another component from being installed there, and an object name there must then stay distinct per component. Whether anything else installs into it is not decided. **Mitigation:** the controller's objects carry the name prefix `opm-controller-`; whether that prefix stays is 0032:OQ1.
 
 ## Drawbacks
 

@@ -63,4 +63,4 @@ deliberate divergences from the design need to be documented.
 | Document | Purpose |
 | -------- | ------- |
 | [archive/0006/03-decisions.md](../archive/0006/03-decisions.md) | The seven decisions this entry amends |
-| [0021/03-decisions.md](../0021/03-decisions.md) | The install artifact and version ceiling that carry the new names |
+| [0021/03-decisions.md](../0021/03-decisions.md) | The module install this entry rests on (0021:D11), and the version ceiling |
