@@ -470,7 +470,7 @@ tasks:
           base="$WS/$repodir/openspec/changes"
           [ -d "$base" ] || continue
           case "$repodir" in catalog_opm) repo=catalog ;; *) repo="$repodir" ;; esac
-          # opm-operator and opm-controller name one repo, before and after its rename (0032:D1): match a log line under either.
+          # opm-operator and opm-controller name one repo, before and after its rename: match a log line under either.
           case "$repo" in opm-controller) alt=opm-operator ;; opm-operator) alt=opm-controller ;; *) alt="$repo" ;; esac
           for decl in "$base"/*/enhancement.yaml "$base"/archive/*/enhancement.yaml; do
             [ -f "$decl" ] || continue
@@ -1511,7 +1511,7 @@ tasks:
             daffects=$(yq -r '.affects | join(" ")' "$dir/config.yaml" 2>/dev/null | sed 's/opm-operator/opm-controller/g' || true)
             for r in $drepos; do
               # opm-operator and opm-controller name one repo, before and after
-              # its rename (0032:D1): compare both under the new name.
+              # its rename: compare both under the new name.
               local rn="$r"
               case "$rn" in opm-operator) rn=opm-controller ;; esac
               case " $daffects " in

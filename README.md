@@ -225,6 +225,6 @@ The `affects` values map to workspace repos:
 
 `#Repo` also accepts `orca`. It is reserved: no workspace checkout exists and no entry names it yet, so the tables above leave it out.
 
-`#Repo` also accepts `opm-controller`. It is the name the `opm-operator` repo takes when it is renamed (0032:D1). Until then no checkout has that name, and only entry 0032 lists it. Both values name the same repo: `task check` and `task delivery:reconcile` treat a delivery-log line under one as matching `affects` or a change under the other.
+`#Repo` also accepts `opm-controller`. It is the name the `opm-operator` repo takes when it is renamed. Until then no checkout has that name and no entry lists it. Both values name the same repo: `task check` and `task delivery:reconcile` treat a delivery-log line under one as matching `affects` or a change under the other.
 
 Delivery crosses several of these. `06-operational.md` in each entry states what must land before what.

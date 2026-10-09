@@ -21,7 +21,6 @@
 | [0025](./0025/) | schema | core, library | draft | not-started | Self-Describing Modules | Let a module state facts about itself as a whole, as named bundles of catalog-published traits that the kernel matches and renders the way it already does components. |
 | [0026](./0026/) | schema | core, library, cli, opm-operator, catalog | draft | not-started | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
 | [0027](./0027/) | runtime | core, library, catalog, cli, opm-operator | draft | not-started | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create, so a consumer supplies values and never names a module or a version. |
-| [0032](./0032/) | runtime | opm-controller, cli, library, core, catalog, opmodel.dev, opm, opm-portal, modules | draft | not-started | The Operator Becomes the Controller | The OPM Kubernetes controller is named the controller in every contract a user meets: owner value, version field, command group, repo, image and module. |
 
 ## Archived (delivered / rejected / superseded)
 
