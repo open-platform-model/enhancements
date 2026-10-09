@@ -253,10 +253,10 @@ import "strings"
 // OQ8). An object that does not exist is never refused.
 //
 // The refusal reasons: "foreign-object" when the object exists outside the
-// instance's recorded inventory and its managedBy is not in #OPMManagedBy,
-// unless the operator install admits it (0012:D8:R6); "other-instance" when
-// it exists outside that inventory, is OPM-managed and carries a UUID label
-// naming neither this instance nor the one its #AdoptAnnotation names;
+// instance's recorded inventory and its managedBy is not in #OPMManagedBy;
+// "other-instance" when it exists outside that inventory, is OPM-managed and
+// carries a UUID label naming neither this instance nor the one its
+// #AdoptAnnotation names;
 // "adopted-elsewhere" (0012:D8:R8) when its #AdoptAnnotation names another
 // instance and it is in that inventory, or it is outside that inventory and
 // no other reason refuses it, as when its instance-UUID label names this

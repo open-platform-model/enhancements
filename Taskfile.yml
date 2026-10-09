@@ -239,7 +239,7 @@ tasks:
         area_of_dir() {
           case "$1" in
             catalog_opm) echo catalog ;;
-            cli|core|library|opm-operator|modules|opmodel.dev|opm|opm-portal) echo "$1" ;;
+            cli|core|library|opm-controller|opm-operator|modules|opmodel.dev|opm|opm-portal) echo "$1" ;;
             *) return 1 ;;
           esac
         }
@@ -466,10 +466,12 @@ tasks:
         GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; DIM='\033[2m'; RESET='\033[0m'
         WS="{{.WORKSPACE_ROOT}}"
         missing=0; inflight=0; ok=0; bad=0
-        for repodir in catalog_opm cli core library opm-operator modules opmodel.dev opm-portal; do
+        for repodir in catalog_opm cli core library opm-controller opm-operator modules opmodel.dev opm-portal; do
           base="$WS/$repodir/openspec/changes"
           [ -d "$base" ] || continue
           case "$repodir" in catalog_opm) repo=catalog ;; *) repo="$repodir" ;; esac
+          # opm-operator and opm-controller name one repo, before and after its rename (0032:D1): match a log line under either.
+          case "$repo" in opm-controller) alt=opm-operator ;; opm-operator) alt=opm-controller ;; *) alt="$repo" ;; esac
           for decl in "$base"/*/enhancement.yaml "$base"/archive/*/enhancement.yaml; do
             [ -f "$decl" ] || continue
             cdir=$(dirname "$decl")
@@ -493,7 +495,7 @@ tasks:
               fi
               logged=0
               if [ -f "$edir/delivery.yaml" ]; then
-                hit=$(yq -r ".log[] | select(.change.kind == \"openspec\" and .change.repo == \"$repo\" and .change.change == \"$slug\") | .date" "$edir/delivery.yaml" 2>/dev/null | head -1 || true)
+                hit=$(yq -r ".log[] | select(.change.kind == \"openspec\" and (.change.repo == \"$repo\" or .change.repo == \"$alt\") and .change.change == \"$slug\") | .date" "$edir/delivery.yaml" 2>/dev/null | head -1 || true)
                 # Plain `if`, not `[ … ] && logged=1`: an `&&` list is the last
                 # statement of this `if` body, so a false test makes the whole
                 # `if` return 1 and errexit kills the run under Task's shell.
@@ -1506,10 +1508,14 @@ tasks:
           if [ -f "$dir/delivery.yaml" ]; then
             local drepos daffects r
             drepos=$(yq -r '.log[].change.repo' "$dir/delivery.yaml" 2>/dev/null | sort -u || true)
-            daffects=$(yq -r '.affects | join(" ")' "$dir/config.yaml" 2>/dev/null || true)
+            daffects=$(yq -r '.affects | join(" ")' "$dir/config.yaml" 2>/dev/null | sed 's/opm-operator/opm-controller/g' || true)
             for r in $drepos; do
+              # opm-operator and opm-controller name one repo, before and after
+              # its rename (0032:D1): compare both under the new name.
+              local rn="$r"
+              case "$rn" in opm-operator) rn=opm-controller ;; esac
               case " $daffects " in
-                *" $r "*) : ;;
+                *" $rn "*) : ;;
                 *) warnings="${warnings}\n    delivery.yaml logs a change in '$r', which affects[] does not list (fine for cross-entry carriage, a typo otherwise)" ;;
               esac
             done
@@ -1841,8 +1847,8 @@ tasks:
       # and an unstated blast radius is the same drift for `affects`.
       - sh: 'printf %s "{{.CATEGORY}}" | grep -Eqx "schema|runtime|distribution|tooling|misc"'
         msg: 'CATEGORY is required and must be one of schema|runtime|distribution|tooling|misc — the ONE dominant type of work (see schema.cue #Category). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category>'
-      - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules|opm|opm-portal)(,(core|library|catalog|cli|opm-operator|opmodel\.dev|orca|modules|opm|opm-portal))*"'
-        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opmodel.dev|orca|modules|opm|opm-portal, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
+      - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opm-controller|opmodel\.dev|orca|modules|opm|opm-portal)(,(core|library|catalog|cli|opm-operator|opm-controller|opmodel\.dev|orca|modules|opm|opm-portal))*"'
+        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opm-controller|opmodel.dev|orca|modules|opm|opm-portal, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
         msg: 'CORE_SCHEMA must be true or false'
       - sh: '[ -z "{{.ISSUE}}" ] || printf %s "{{.ISSUE}}" | grep -Eq "^[0-9]+$"'
