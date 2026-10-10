@@ -1,0 +1,11 @@
+## MODIFIED Requirements
+
+### Requirement: Missing thing
+
+The system SHALL keep the existing thing, now in a new way.
+
+#### Scenario: A clean entry
+
+- **WHEN** the checker reads a clean entry
+- **THEN** it reports no error
+
