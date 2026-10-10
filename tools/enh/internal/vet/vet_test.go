@@ -344,3 +344,37 @@ func TestModeLevelTable(t *testing.T) {
 		}
 	}
 }
+
+// An old-layout entry that is still live is a valid after and superseded_by
+// target, so that every commit of the migration passes whatever the order of
+// the conversion. The template folder 0000 is not.
+func TestOldLiveEntryIsATarget(t *testing.T) {
+	for _, tc := range []struct{ rule, fixture string }{{"V6", "valid-2"}, {"V8", "valid-2"}} {
+		root := materialize(t, tc.rule, tc.fixture)
+		res, err := Run(Options{Root: root, Today: "2026-10-11", SchemaPath: schemaPath})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.HasErrors() {
+			var b strings.Builder
+			res.Format(&b)
+			t.Errorf("%s %s: an old live id is refused:\n%s", tc.rule, tc.fixture, b.String())
+		}
+	}
+	root := materialize(t, "V6", "valid-2")
+	if err := os.Rename(filepath.Join(root, "0021"), filepath.Join(root, "0000")); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(root, "openspec/changes/0100-demo-entry/config.yaml"))
+	if err := os.WriteFile(filepath.Join(root, "openspec/changes/0100-demo-entry/config.yaml"), []byte(strings.Replace(string(b), `"0021"`, `"0000"`, 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, _ := Run(Options{Root: root, Today: "2026-10-11", SchemaPath: schemaPath})
+	found := false
+	for _, f := range res.Findings {
+		found = found || (f.Rule == "V6" && strings.Contains(f.Msg, "does not exist"))
+	}
+	if !found {
+		t.Error("the template folder 0000 must not be an after target")
+	}
+}
