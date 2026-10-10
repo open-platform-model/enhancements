@@ -144,6 +144,16 @@ artifacts:
         name untrue. Rename it, then modify it under the new name.
 
       A theme of the design that holds a stance has no requirement. That is correct.
+
+      `.openspec.yaml` keys that you set by hand:
+      - `skip_specs: true` when the entry has no requirements and so no `specs/` folder; leave it
+        out when `specs/` exists. The checker warns in a draft and refuses from accept.
+      - `retire_capabilities: true` when a REMOVED takes the last requirement of a capability.
+        Without it `openspec archive` aborts.
+
+      After accept, an edit to a requirement needs a re-sample: run `task resample`, review what
+      it prints, then confirm. The confirmation rewrites `accepted:`. Until then the checker
+      refuses the edit in a pull request.
     requires:
       - design
 
@@ -184,5 +194,5 @@ apply:
 
     When that change is archived, tick the line here and add the change's name. When every
     line is ticked, the enhancement is delivered: `task deliver` validates, archives and
-    indexes it in one commit. Do not run `openspec archive` by hand: only a delivery changes
-    `openspec/specs/`.
+    indexes it in one commit. Do not run `openspec archive` by hand: only a delivery, a seed or a
+    Purpose-only correction pull request changes `openspec/specs/`.

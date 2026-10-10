@@ -16,8 +16,9 @@ context: |
   - Lifecycle: draft, then accepted (both in `changes/`), then archived as delivered, rejected,
     superseded or withdrawn. `status` is stored in `config.yaml`.
   - `openspec/specs/<capability>/spec.md` holds DELIVERED work only: what OPM ships and has agreed.
-    It changes only when an entry is delivered (archive) or when a seed is delivered. Until an
-    entry is archived, its requirements live in its own delta specs. A seed change
+    It changes only when an entry is delivered (archive), when a seed is delivered, or in a pull
+    request that corrects a `## Purpose` and nothing else. Until an entry is archived, its
+    requirements live in its own delta specs. A seed change
     (`seed-<capability>`, schema `seed`) records behaviour that already ships so that an entry can
     modify it; it has no number.
   - `tasks.md` says which repo still has work. Each repo delivers its line in its own OpenSpec
@@ -42,7 +43,7 @@ rules:
     - Open questions are one line each, marked `- Blocking:` or `- Not blocking:`. An answered one is
       marked `- Answered:` and moves into the design theme it settles. Accept refuses a `- Blocking:`
       line and an `- Answered:` line left in the proposal.
-    - A reversed idea is a new entry that names the old id in its Why.
+    - A revived idea, or the successor of a superseded entry, is a new entry that names the old id in its Why.
   design:
     - Advice, not a refusal - about 1,500 words, rejected options included. One diagram of at most 7 boxes.
     - About 7 themes of about 120 words. A theme is a lasting area, never a phase. Stances live in a theme.
@@ -64,8 +65,15 @@ rules:
       and an ADDED under the new name.
     - A REMOVED requirement has `**Reason**` and `**Migration**`. A requirement is ADDED, MODIFIED, REMOVED or
       RENAMED against `openspec/specs/` only. An entry that needs an undelivered entry stays a draft.
+    - "An entry with no requirements has no `specs/` folder and sets `skip_specs: true` in `.openspec.yaml`. An
+      entry with a `specs/` folder does not. The checker warns in a draft and refuses from accept."
+    - "A REMOVED that takes the last requirement of a capability needs `retire_capabilities: true` in
+      `.openspec.yaml`. Without it `openspec archive` aborts, and the checker refuses at delivery."
+    - "After accept, an edit to a requirement needs a re-sample. Run `task resample`, review what it prints, then
+      confirm. The confirmation rewrites the `accepted:` line. The checker refuses the edit in a pull request
+      until then. A seed follows the same rule after its `sampled:` line."
   tasks:
-    - One line per repo change, written `- [ ] <n>.<m> <repo>, then a colon and the outcome`, under `## <n>. <Theme>`. Name the outcome, never the method.
+    - "One line per repo change, written `- [ ] <n>.<m> <repo>: <outcome>`, under `## <n>. <Theme>`. Name the outcome, never the method."
     - The sections run in order - section 1 is done before section 2. This is advice; no field or check holds it.
     - At accept, every repo in `affects` has a line.
     - A ticked line ends with the change name without its date, `(<change-name>)`, or `(PR <n>)` for a repo with
@@ -78,4 +86,4 @@ operations:
   archive:
     guidance:
       - Archive an entry only through `task deliver`, `task reject`, `task withdraw` or `task supersede`. Only a
-        delivery changes `openspec/specs/`.
+        delivery, a seed or a Purpose-only correction changes `openspec/specs/`.

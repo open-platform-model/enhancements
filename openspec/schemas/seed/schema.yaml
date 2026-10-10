@@ -60,5 +60,8 @@ artifacts:
       - At least one scenario, written with the requirement: `#### Scenario:` with WHEN and
         THEN.
       - Leave out behaviour that a live enhancement owns.
+      - After `sampled:` is written, an edit to a requirement needs a new sample: run
+        `task accept ID=seed-<cap>`, review it, then confirm. The checker refuses the edit
+        in a pull request until the `sampled:` line is rewritten.
     requires:
       - source
