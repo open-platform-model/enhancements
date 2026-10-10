@@ -18,9 +18,9 @@ import (
 // FetchNote is the warning for a call that got no branch names.
 const FetchNote = "no branch names given: fetch and pass `git branch -a` to see ids that open branches use"
 
-// BranchPrefixes are the branch name prefixes that carry an id, as in
+// branchPrefixes are the branch name prefixes that carry an id, as in
 // docs/0033-title. A ref is matched after its refs/heads/ or remote prefix.
-var BranchPrefixes = []string{"docs"}
+var branchPrefixes = []string{"docs"}
 
 // Inputs is everything Next reads.
 type Inputs struct {
@@ -141,7 +141,10 @@ func Taken(in Inputs) (map[string][]string, error) {
 // optional refs/heads/, refs/remotes/<remote>/ or <remote>/ prefix.
 func BranchID(ref string) (string, bool) {
 	name := strings.TrimSpace(ref)
+	// git branch -a marks the checked-out branch with "* " and a branch checked
+	// out in a linked worktree with "+ ".
 	name = strings.TrimPrefix(name, "* ")
+	name = strings.TrimPrefix(name, "+ ")
 	name = strings.TrimPrefix(name, "remotes/")
 	switch {
 	case strings.HasPrefix(name, "refs/heads/"):
@@ -150,7 +153,7 @@ func BranchID(ref string) (string, bool) {
 		name = strings.TrimPrefix(name, "refs/remotes/")
 		name = dropFirstSegment(name)
 	}
-	for _, p := range BranchPrefixes {
+	for _, p := range branchPrefixes {
 		for _, cand := range []string{name, dropFirstSegment(name)} {
 			if rest, ok := strings.CutPrefix(cand, p+"/"); ok && len(rest) >= 5 && idRe.MatchString(rest[:4]) && rest[4] == '-' {
 				return rest[:4], true

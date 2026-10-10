@@ -338,17 +338,26 @@ func TestLoad_yamlDatesStayText(t *testing.T) {
 }
 
 func TestGenerate_unknownReference(t *testing.T) {
-	_, err := Load(fstest.MapFS{"openspec/changes/0050-thing/config.yaml": cfg("after: [\"0099\"]\n")})
-	if err != nil {
-		t.Fatalf("Load: %v", err)
+	tests := []struct {
+		name string
+		fs   fstest.MapFS
+		want string
+	}{
+		{"after", fstest.MapFS{"openspec/changes/0050-thing/config.yaml": cfg("after: [\"0099\"]\n")}, "0099"},
+		{"superseded_by", fstest.MapFS{"openspec/changes/archive/2026-10-02-0050-thing/config.yaml": &fstest.MapFile{Data: []byte(
+			strings.Replace(string(cfg("superseded_by: {date: \"2026-10-01\", ids: [\"0098\"], reason: r}\n").Data), "status: draft", "status: superseded", 1))}}, "0098"},
 	}
-	tree, _ := Load(fstest.MapFS{"openspec/changes/0050-thing/config.yaml": cfg("after: [\"0099\"]\n")})
-	files, err := Generate(tree)
-	if err == nil || !strings.Contains(err.Error(), "0099") || files != nil {
-		t.Errorf("Generate = %v, %v; want an error that names 0099 and no file", files, err)
+	for _, tt := range tests {
+		tree, err := Load(tt.fs)
+		if err != nil {
+			t.Errorf("%s: Load: %v", tt.name, err)
+			continue
+		}
+		files, err := Generate(tree)
+		if err == nil || !strings.Contains(err.Error(), tt.want) || files != nil {
+			t.Errorf("%s: Generate = %v, %v; want an error that names %s and no file", tt.name, files, err, tt.want)
+		}
 	}
-	tree, _ = Load(fstest.MapFS{"openspec/changes/0050-thing/config.yaml": cfg("status: superseded\nsuperseded_by: {date: \"2026-10-01\", ids: [\"0098\"], reason: r}\n")})
-	_ = tree
 }
 
 func TestCheckPath(t *testing.T) {

@@ -91,7 +91,22 @@ graph TD
 
 ## distribution
 
-No live entries.
+```mermaid
+graph TD
+  classDef draft       fill:#fef3c7,stroke:#b45309,color:#000
+  classDef accepted    fill:#dbeafe,stroke:#1d4ed8,color:#000
+  classDef rejected    fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:4 2
+  classDef withdrawn   fill:#fef2f2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:1 3
+  classDef superseded  fill:#e5e7eb,stroke:#6b7280,color:#6b7280
+  classDef delivered   fill:#dcfce7,stroke:#15803d,color:#14532d
+  classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
+  classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
+
+  N0010["0010: Module and Catalog Identity"]:::delivered
+  N0026["0026 · schema"]:::stub
+
+  N0026 -->|after| N0010
+```
 
 ## tooling
 

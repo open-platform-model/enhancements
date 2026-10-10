@@ -228,10 +228,6 @@ func nodeLabel(e *Entry) string {
 func renderCategory(b *strings.Builder, t *Tree, edges []edge, cat map[string]string, c string) {
 	live, _ := countLiveClosed(t, c)
 	fmt.Fprintf(b, "## %s\n\n", c)
-	if live == 0 {
-		b.WriteString("No live entries.\n\n")
-		return
-	}
 	// Edges with at least one member endpoint, in either direction.
 	var sec []edge
 	hit := map[string]bool{}
@@ -241,9 +237,6 @@ func renderCategory(b *strings.Builder, t *Tree, edges []edge, cat map[string]st
 			hit[ed.from], hit[ed.to] = true, true
 		}
 	}
-	b.WriteString("```mermaid\ngraph TD\n")
-	writeClassDefs(b)
-	b.WriteString("\n")
 	var members, stubs []string
 	for _, e := range t.Entries {
 		if e.Category != c {
@@ -254,6 +247,15 @@ func renderCategory(b *strings.Builder, t *Tree, edges []edge, cat map[string]st
 		}
 		members = append(members, fmt.Sprintf("  N%s[\"%s\"]:::%s", e.ID, nodeLabel(e), e.Status))
 	}
+	// A stub in another section says "lives in that section", so a closed entry
+	// that a live edge reaches is drawn here even when no live entry is.
+	if live == 0 && len(members) == 0 {
+		b.WriteString("No live entries.\n\n")
+		return
+	}
+	b.WriteString("```mermaid\ngraph TD\n")
+	writeClassDefs(b)
+	b.WriteString("\n")
 	stubSeen := map[string]bool{}
 	for _, ed := range sec {
 		for _, id := range []string{ed.from, ed.to} {

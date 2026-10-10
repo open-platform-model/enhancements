@@ -104,8 +104,8 @@ func TestNext_table(t *testing.T) {
 		{
 			name: "remote branch and refs form",
 			fs:   fstest.MapFS{},
-			refs: []string{"origin/docs/0001-a", "remotes/origin/docs/0002-b", "refs/heads/docs/0003-c", "refs/remotes/origin/docs/0004-d", "* docs/0005-e"},
-			sch:  schema, want: "0006",
+			refs: []string{"origin/docs/0001-a", "remotes/origin/docs/0002-b", "refs/heads/docs/0003-c", "refs/remotes/origin/docs/0004-d", "* docs/0005-e", "+ docs/0006-f"},
+			sch:  schema, want: "0007",
 		},
 		{
 			name: "a branch that is not an id branch does not count",
@@ -126,7 +126,7 @@ func TestNext_table(t *testing.T) {
 			want: "0005",
 		},
 		{
-			name: "emptied blocked list: the next id is 0030",
+			name: "emptied blocked list: a lower gap still comes first",
 			fs: fstest.MapFS{
 				"archive/0027/x": &keep, "archive/0026/x": &keep, "archive/0001/x": &keep,
 			},
@@ -252,6 +252,8 @@ func TestBranchID(t *testing.T) {
 		ok   bool
 	}{
 		{"docs/0033-title", "0033", true},
+		{"+ docs/0033-title", "0033", true},
+		{"* docs/0033-title", "0033", true},
 		{"origin/docs/0033-title", "0033", true},
 		{"upstream/docs/0033-title", "0033", true},
 		{"remotes/origin/docs/0033-title", "0033", true},
