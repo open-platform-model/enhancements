@@ -1,43 +1,48 @@
 # 0013: Attribute-Declared Secret Fields
 
-A module author marks a config field as a secret once. The deployer chooses how to supply it in each environment. Plaintext never enters the render.
+An author marks a sensitive field once, with a CUE attribute. The deployer chooses, per environment, how the value is supplied. OPM rewrites every secret to a reference before render, so plaintext reaches only the object that stores it.
 
 ## Why
 
-Today a secret travels as plain text through the whole render. The author states where a secret goes in two places, and nothing checks that they agree. Three parts of the system each work out the Secret's name their own way, so an environment variable and a volume can point at different objects.
+Today a secret travels as plain text through the whole render. The routing that says which Secret object a key belongs in is written twice by hand, once on the field and once in a map, and nothing checks that the two agree. Three code paths compute the same object name and disagree.
 
 ## What Changes
 
-- The author marks the field with an attribute that names the Secret and the key it belongs in.
-- The deployer fills the field with a literal, a reference to an existing Secret, or a named secret source.
-- The kernel finds every secret from the schema and replaces it with a reference before render.
-- The kernel alone names each Secret object, so every consumer reads the same name.
-- Mistakes are caught early: a malformed or unfilled secret fails, and a forgotten attribute gets safe defaults.
+- An author declares a secret with one attribute and the secret type. The routing is stated once.
+- A deployer supplies a literal, a reference to an existing Secret, or a named secret source, per environment, with no republish of the module.
+- At render every secret is a reference. The supplied value never enters the rendered component graph.
+- A platform installs secret sources (a plain Secret, a sealed one, an external store) as catalogs. The first-party catalog ships the literal one.
+- A mistake fails loudly. A malformed or missing secret fails validation, and no error carries a secret value.
 
 ## What this is not
 
-- Not cryptography. OPM calls SOPS where the CLI reads and writes files, and ships no cipher code.
-- Not a Vault, external-secrets or sealed-secrets integration. Those are later catalogs.
-- Not secret rotation. A secret is resolved once per render.
+- Not cryptography. SOPS encrypts at the file edge, and OPM ships no cipher.
+- Not an external-store, Vault, sealed-secret or CSI source. Those are later catalogs.
+- Not rotation, leasing or dynamic secrets. A secret is resolved once per render.
+- Not protection of a literal inside an instance resource. It is plaintext at rest, documented.
+- Not the encryption of an exported instance. That belongs to enhancement 0014.
 
 ## Example
 
 ```cue
-// author, once, in the published module
+// the author, once, in the published module
 #config: db: password: #Secret @opm(secret, group=db-creds, key=password)
 
-// deployer, per environment
-values: db: password: {value: "hunter2"}                           // a literal
-values: db: password: {ref: "existing-db-creds", key: "password"}  // an existing Secret
+// the deployer, per environment
+values: db: password: {value: "hunter2"}
+values: db: password: {ref: "existing-db-creds", key: "password"}
 ```
 
 ## Capabilities
 
-- **New:** `secrets`
-- **Modified:** `instance-export`. An export now encrypts literal secrets.
+- **New:** `secret-declaration`, `secret-resolution`, `secret-sources`, `secret-tooling`
 
 ## Impact
 
-- **Module authors** mark each secret field once. A module that carries a secret as a plain string must change.
-- **Deployers** keep their values files. A literal inside an instance package must move to a values file or become a reference.
-- **Breaking** for `core` and the opm catalog. Seven repos ship a part; `config.yaml` lists them.
+- **Module authors** replace the hand-written secret map with one attribute. Instance files that supply a literal do not change.
+- **Platform teams** enable one catalog for each secret source they want.
+- **Seven repos** change: core, library, catalog_opm, cli, opm-operator, modules and opmodel.dev. The change is breaking: core withdraws published definitions.
+
+## Open questions
+
+- Blocking: When a secret field copies another secret field, does the copy get its own object entry, or share the entry of the field it copies? A module that needs such a copy would settle it.
