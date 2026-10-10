@@ -1,0 +1,16 @@
+package core
+
+// A module path is derived from the catalog, so it never drifts (enhancement 0010).
+#Module: {
+	// Measured in enhancement 0010 experiment 04.
+	apiVersion: string
+
+	// WHY: introduced by enhancement 0001. The context lists components.
+	ctx: _
+
+	note: "enhancement 0013 is the reason in words"
+	raw:  #"a "quoted" // not 0019 a comment"#
+	multi: """
+		text // 0021 inside a multi-line string
+		"""
+}

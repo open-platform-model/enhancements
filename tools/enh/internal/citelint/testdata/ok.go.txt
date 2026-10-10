@@ -1,0 +1,35 @@
+package sample
+
+// Rewrite each secret to a reference, so plaintext never reaches the render
+// (enhancement 0013).
+func rewrite() {}
+
+// The denylist rejects a name that the registry reserves (enhancements 0010 and 0026).
+func deny() {}
+
+// The kernel owns no build context (enhancement 0010 experiment 04).
+func kernel() {}
+
+// WHY fqn: authored at the definition site, so no loader derives it (enhancement 0010).
+type Label struct{}
+
+// WHY: introduced by enhancement 0001; the context lists components.
+type Why struct{}
+
+// The listener binds 8080 and 2026 are not ids.
+func ports() {}
+
+// 2026
+func year() {}
+
+const url = "https://example.test/a//b" // not a comment start inside the string
+
+const r = '"'
+
+const raw = `// 0010 stays text in a raw string`
+
+var s = "a \" quote then // 0001 text"
+
+/* The block keeps the reason in words
+   (enhancement 0019). */
+func block() {}

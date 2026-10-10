@@ -1,0 +1,34 @@
+package sample
+
+// AidSentence is 0010:D35's framing, carried in the check command's help text
+// verbatim.
+const AidSentence = "x"
+
+// NewCmd creates the registry check command (0011:D7).
+func NewCmd() {}
+
+// cluster Platform CR by default (0006:D21/OQ12) and a later
+// clause (0016:D5:R5, 0016:D10:R1).
+func two() {}
+
+// (enhancement 0013).
+func lone() {}
+
+// 0021
+func bare() {}
+
+/*
+   0010:D44
+*/
+func block() {}
+
+func messages() {
+	_ = "--provider is retired (0006:D21)"
+	_ = `raw text cites 0021:D8:R12
+over two lines`
+	x := 1 // 0010:D3 trailing
+	_ = x
+}
+
+// WHY fqn: enhancement 0010.
+type Label struct{}
