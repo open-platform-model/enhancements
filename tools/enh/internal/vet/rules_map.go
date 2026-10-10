@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/delta"
@@ -19,7 +21,20 @@ var (
 	mapDecIDRe  = regexp.MustCompile(`^(D\d+)\b`)
 	mapOQIDRe   = regexp.MustCompile(`^(OQ\d+)\b`)
 	headingRe   = regexp.MustCompile(`^#{1,6}\s+(.*?)\s*#*\s*$`)
+	// cutLineRe reads a line of evidence/cut-requirements.md: the old id, the
+	// disposition and an optional qualifier ("carried by: ..." for a cut line,
+	// the repo for a repo line), then the old text.
+	cutLineRe = regexp.MustCompile(`^-\s+(\d{4}:D\d+:R\d+)\s+\((cut|repo)(?:,\s*(.*?))?\):`)
 )
+
+// cutFile is the name the map's cut and repo targets use for the cut list.
+const cutFile = "cut-requirements.md"
+
+// cutLine is one parsed line of the cut list.
+type cutLine struct {
+	disp, qualifier string
+	line            int
+}
 
 type mapRow struct {
 	id, disp, target string
@@ -64,10 +79,7 @@ func (r *run) mapRules(e *ent) {
 	r.sameIDs(e, mapPath, "decision", oldDecIDs, decs)
 	r.sameIDs(e, mapPath, "open question", oldOQIDs, oqs)
 
-	cutText := ""
-	if cb, err := os.ReadFile(filepath.Join(e.Dir, "evidence", "cut-requirements.md")); err == nil {
-		cutText = string(cb)
-	}
+	cuts, cutErr := readCutLines(filepath.Join(e.Dir, "evidence", cutFile))
 	designHeads := headings(e.Design.Text)
 	proposalHeads := headings(e.Proposal.Text)
 
@@ -79,13 +91,13 @@ func (r *run) mapRules(e *ent) {
 			case "kept", "merged":
 				ok, why = r.deltaTarget(e, t)
 			case "cut", "repo":
-				if cutText == "" {
-					ok, why = false, "evidence/cut-requirements.md is missing"
-				} else if !strings.Contains(cutText, t) {
-					ok, why = false, "no such line in evidence/cut-requirements.md"
-				}
+				ok, why = r.cutTarget(e, row, first, t, cuts, cutErr)
 			case "moved":
-				ok, why = r.movedTarget(t)
+				var warn string
+				ok, why, warn = r.movedTarget(t)
+				if warn != "" {
+					r.add(e, "V25", Warning, mapPath, row.line, "%s: target %q: %s", row.id, t, warn)
+				}
 			default:
 				ok, why = false, "disposition must be kept, merged, cut, repo or moved"
 			}
@@ -97,6 +109,7 @@ func (r *run) mapRules(e *ent) {
 			r.add(e, "V25", Error, mapPath, row.line, "%s has no target", row.id)
 		}
 	}
+	r.checkCutList(e, cuts, reqs)
 	for _, row := range decs {
 		r.checkDocRow(e, mapPath, row, designHeads, proposalHeads, []string{"design", "proposal", "evidence", "dropped"})
 	}
@@ -160,8 +173,18 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 		return
 	}
 	for _, t := range targets {
+		// A target may start with the disposition it belongs to ("design:
+		// A theme"). A row with two dispositions needs it to tell them apart.
+		use := disps
+		if d, rest, ok := targetPrefix(t, allowed); ok {
+			if !containsStr(disps, d) {
+				r.add(e, "V25", Error, path, row.line, "%s: target %q starts with %q, which is not a disposition of the row", row.id, t, d)
+				continue
+			}
+			use, t = []string{d}, rest
+		}
 		ok := false
-		for _, d := range disps {
+		for _, d := range use {
 			switch d {
 			case "design":
 				ok = ok || hasHeading(design, t)
@@ -174,8 +197,89 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 			}
 		}
 		if !ok {
-			r.add(e, "V25", Error, path, row.line, "%s: target %q is not found for disposition %s", row.id, t, strings.Join(disps, "/"))
+			r.add(e, "V25", Error, path, row.line, "%s: target %q is not found for disposition %s", row.id, t, strings.Join(use, "/"))
 		}
+	}
+}
+
+// targetPrefix splits "design: A theme" into "design" and "A theme" when the
+// word before the first colon is one of the allowed dispositions.
+func targetPrefix(t string, allowed []string) (disp, rest string, ok bool) {
+	head, tail, found := strings.Cut(t, ":")
+	if !found {
+		return "", t, false
+	}
+	head = strings.ToLower(strings.TrimSpace(head))
+	if !containsStr(allowed, head) {
+		return "", t, false
+	}
+	return head, strings.TrimSpace(tail), true
+}
+
+// readCutLines parses evidence/cut-requirements.md into a map by old id.
+func readCutLines(p string) (map[string]cutLine, error) {
+	b, err := os.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]cutLine{}
+	for i, l := range strings.Split(strings.ReplaceAll(string(b), "\r\n", "\n"), "\n") {
+		if m := cutLineRe.FindStringSubmatch(l); m != nil {
+			out[m[1]] = cutLine{disp: m[2], qualifier: strings.TrimSpace(m[3]), line: i + 1}
+		}
+	}
+	return out, nil
+}
+
+// cutTarget checks the target of a cut or repo row: "cut-requirements.md: <old
+// id>", where the line for the row's own id exists, has the row's disposition,
+// and, for a cut line with a "carried by" list, names requirements of this
+// entry.
+func (r *run) cutTarget(e *ent, row mapRow, disp, t string, cuts map[string]cutLine, cutErr error) (bool, string) {
+	if cutErr != nil {
+		return false, "evidence/cut-requirements.md is missing"
+	}
+	id := strings.TrimSpace(strings.TrimPrefix(t, cutFile+":"))
+	if !mapReqIDRe.MatchString(id) {
+		return false, "write the target as " + cutFile + ": <old id>"
+	}
+	if id != row.id {
+		return false, "a " + disp + " row points at the line of its own id, " + row.id
+	}
+	l, ok := cuts[id]
+	if !ok {
+		return false, "no line for " + id + " in evidence/cut-requirements.md (a line reads \"- " + id + " (" + disp + "): old text\")"
+	}
+	if l.disp != disp {
+		return false, "the map says " + disp + " but the line in evidence/cut-requirements.md says " + l.disp
+	}
+	if disp == "cut" && strings.HasPrefix(l.qualifier, "carried by:") {
+		for _, c := range splitTargets(strings.TrimPrefix(l.qualifier, "carried by:")) {
+			if ok, why := r.deltaTarget(e, c); !ok {
+				return false, "line " + strconv.Itoa(l.line) + " of evidence/cut-requirements.md is carried by " + strconv.Quote(c) + ": " + why
+			}
+		}
+	}
+	return true, ""
+}
+
+// checkCutList reports a line of the cut list that no cut or repo row points at.
+func (r *run) checkCutList(e *ent, cuts map[string]cutLine, reqs []mapRow) {
+	used := map[string]bool{}
+	for _, row := range reqs {
+		if d := firstWord(row.disp); d == "cut" || d == "repo" {
+			used[row.id] = true
+		}
+	}
+	var ids []string
+	for id := range cuts {
+		if !used[id] {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		r.add(e, "V25", Error, e.rel+"/evidence/"+cutFile, cuts[id].line, "%s has a line here but no cut or repo row in the map", id)
 	}
 }
 
@@ -200,18 +304,24 @@ func (r *run) deltaTarget(e *ent, t string) (bool, string) {
 }
 
 // movedTarget checks "NNNN capability/Requirement name" in the receiving entry.
-func (r *run) movedTarget(t string) (bool, string) {
-	idPart, rest, ok := strings.Cut(t, " ")
-	if !ok || !idRe.MatchString(idPart) {
-		return false, "write the target as NNNN capability/Requirement name"
+// While the receiving entry is still an old-layout folder it has no
+// requirements to check: the result is a warning, and the target is checked
+// once the entry converts.
+func (r *run) movedTarget(t string) (ok bool, why, warn string) {
+	idPart, rest, found := strings.Cut(t, " ")
+	if !found || !idRe.MatchString(idPart) {
+		return false, "write the target as NNNN capability/Requirement name", ""
+	}
+	cap, name, found := strings.Cut(rest, "/")
+	if !found {
+		return false, "write the target as NNNN capability/Requirement name", ""
 	}
 	recv := r.store.Find(idPart)
 	if recv == nil {
-		return false, "the receiving entry " + idPart + " does not exist"
-	}
-	cap, name, ok := strings.Cut(rest, "/")
-	if !ok {
-		return false, "write the target as NNNN capability/Requirement name"
+		if containsStr(r.store.LegacyLive, idPart) {
+			return true, "", "the receiving entry " + idPart + " is not converted yet; the target is checked when it is"
+		}
+		return false, "the receiving entry " + idPart + " does not exist", ""
 	}
 	name = delta.NormalizeName(name)
 	for _, sp := range recv.Specs {
@@ -220,11 +330,11 @@ func (r *run) movedTarget(t string) (bool, string) {
 		}
 		for _, q := range sp.Requirements {
 			if q.Name == name {
-				return true, ""
+				return true, "", ""
 			}
 		}
 	}
-	return false, "no such requirement in entry " + idPart
+	return false, "no such requirement in entry " + idPart, ""
 }
 
 // parseMap reads the three tables of a migration map.

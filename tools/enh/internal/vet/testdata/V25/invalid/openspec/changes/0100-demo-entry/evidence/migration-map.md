@@ -7,13 +7,13 @@ source: 0100 @ abcdef1
 | Old id | Disposition | Target | Note |
 | --- | --- | --- | --- |
 | 0100:D1:R1 | kept | demo-cap/The checker accepts a clean entry | |
-| 0100:D1:R2 | cut | Cut: the second requirement | |
+| 0100:D1:R2 | cut | cut-requirements.md: 0100:D1:R2 | |
 
 ## Decisions
 
-| Old heading | Disposition | Target |
-| --- | --- | --- |
-| D1: The demo works | design | A theme |
+| Old heading | Disposition | Target | Note |
+| --- | --- | --- | --- |
+| D1: The demo works | design; evidence | design: A theme; evidence: README.md | the prefix pairs each target with its disposition |
 
 ## Open questions
 
