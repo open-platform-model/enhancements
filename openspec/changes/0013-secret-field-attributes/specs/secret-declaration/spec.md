@@ -71,7 +71,7 @@ Discovery SHALL find a secret declared through an alias, an embedding, a pattern
 
 ### Requirement: A malformed secret value is rejected
 
-Plain CUE validation of an instance SHALL reject a secret value that carries both arms, a bare string, an unknown field, a routing field of the withdrawn vocabulary, or the wrong type, whether or not a component reads it. A module carrying either arm SHALL validate standalone, without the kernel.
+Plain CUE validation of an instance SHALL reject a secret value that carries more than one arm, a bare string, an unknown field, a routing field of the withdrawn vocabulary, or the wrong type, whether or not a component reads it. A module carrying any arm SHALL validate standalone, without the kernel.
 
 #### Scenario: Both arms at once
 

@@ -2,7 +2,7 @@
 
 source: 0013 @ 18705155d2c7312029132c30d2b106ca59e57125
 
-The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b106ca59e57125:0013/03-decisions.md`. The 100 requirements are the lines of that file that start `- Rn:` under a `**Requirements:**` heading. Every `kept` target is `capability/Requirement name` in `specs/` of this folder. A `cut` or `repo` target is the line of `cut-requirements.md` that starts with the old id. A `moved` target is `NNNN capability/Name` in the receiving entry; 0014 is still in the old layout, so the capability and the names are proposed, and the migration of 0014 (wave C) settles them. 0013 restarts as a draft, so the open question OQ9 stays in the proposal.
+The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b106ca59e57125:0013/03-decisions.md`. The 100 requirements are the lines of that file that start `- Rn:` under a `**Requirements:**` heading. Every `kept` target is `capability/Requirement name` in `specs/` of this folder. A `cut` or `repo` target is the line of `cut-requirements.md` that starts with the old id. A `moved` target is `NNNN capability/Name` in the receiving entry; 0014 is still in the old layout, so the capability and the names are proposed, and the migration of 0014 (wave C) settles them. 0013 restarts as a draft, so the open question OQ9 stays in the proposal. A decision row names one target for each of its dispositions, written `<disposition>: <name>` and separated by a semicolon; a free note goes in the Note column.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0013:D6:R2 | cut | cut-requirements.md: 0013:D6:R2 | components that consume one group reach the same object |
 | 0013:D6:R3 | kept | secret-resolution/Members of a group must agree |  |
 | 0013:D6:R4 | repo | cut-requirements.md: 0013:D6:R4 | dead special-case component name; the catalog and library changes remove it |
-| 0013:D7:R1 | cut | cut-requirements.md: 0013:D7:R1 | superseded by the named-source arm: a third form is now accepted (D18 R1, merged into the sources capability) |
+| 0013:D7:R1 | cut | cut-requirements.md: 0013:D7:R1 | superseded by the named-source arm: a third form is now accepted (D18 R1, carried by secret-declaration/The deployer chooses how a secret is supplied) |
 | 0013:D7:R2 | cut | cut-requirements.md: 0013:D7:R2 | literal materialises, reference materialises nothing |
 | 0013:D8:R1 | cut | cut-requirements.md: 0013:D8:R1 | a module names no backend |
 | 0013:D8:R2 | cut | cut-requirements.md: 0013:D8:R2 | a catalog adds a source with no core or kernel change |
@@ -117,44 +117,44 @@ Each of the 22 new requirements has at least one `kept` row (22 in all), and it 
 
 Every `### Dn:` heading of the old log. The full reasoning and the alternatives of each decision are in `decision-log.md`. The design keeps one line for each rejected option someone would propose again. No decision is dropped.
 
-| Old heading | Disposition | Target |
-| --- | --- | --- |
-| D1: A sensitive field is marked with a CUE field attribute, not typed with a contract struct | evidence; design | evidence: decision-log.md; design: Considered and rejected. superseded by D10 the day it was written; the full text is in decision-log.md |
-| D2: The marker reuses the existing `@opm(...)` namespace, dispatched on position 0 | design | design: A secret is declared once |
-| D3: Discovery reads the module's `#config` schema, not the instance's values | design | design: The schema declares, discovery finds |
-| D4: The kernel substitutes an opaque handle for every marked value before components are built | evidence; design | evidence: decision-log.md; design: Considered and rejected. superseded by D11 the day it was written; the handle is a rejected option in the design, and the full text is in decision-log.md |
-| D5: Secret object naming is owned solely by the kernel | design | design: One object name per group |
-| D6: OPM-owned Secret objects are instance-scoped and group-named, not component-scoped | design | design: One object name per group |
-| D7: Two fulfilment kinds ship, supplied and referenced | design | design: A secret is declared once; design: Sources are catalog resources. superseded by D18; the two arms are in the first theme and the open arm in the fifth |
-| D8: How a supplied secret is materialised is a platform choice, resolved through catalog subscription | design | design: Sources are catalog resources. superseded by D19; its backend-neutral stance lives in the fifth theme |
-| D9: The dead and duplicated secret machinery is deleted, not deprecated | design | design: A secret is declared once |
-| D10: The secret field is typed `#Secret`, a two-arm disjunction; the attribute carries routing only | design | design: A secret is declared once |
-| D11: The kernel resolves in place; it rewrites each secret value to its `#SecretRef` form | design | design: Secrets resolve in place |
-| D12: `#Secret` lives in `core`, and `core` is its only definition | design | design: A secret is declared once |
-| D13: Discovery keys on the type and the marker, and fails closed | design | design: The schema declares, discovery finds |
-| D14: SOPS support lands at the file seams, decrypt on input, encrypt on export; never an arm, a backend, or kernel code | design | design: Encryption stays at the edge. the export half moved to 0014 (D14 R4) |
-| D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection | design | design: Encryption stays at the edge |
-| D16: The rewrite is omission at build assembly, measured viable on the real kernel path, one graph build, no new kernel seams | design | design: Secrets resolve in place |
-| D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data, not AST, not FillPath-graft | design | design: Secrets resolve in place |
-| D18: `#Secret` gains an open source arm; the literal stays as sugar; core defines the source input once | design | design: Sources are catalog resources |
-| D19: A secret source is a catalog-defined resource; the platform installs any number side by side; the deployer chooses per value | design | design: Sources are catalog resources |
-| D20: Kernel-interpreted primitive annotations live under a reserved `opmodel.dev/` prefix, one key per feature | design | design: Sources are catalog resources |
-| D21: A source's settings default at the platform; the source decides what a deployer may override | design | design: Sources are catalog resources |
-| D22: catalog_opm ships the literal source as a new resource, beside the hand-authored secrets resource | design | design: Sources are catalog resources |
-| D23: The synthesised secrets component uses a key no author can write | design | design: Mistakes fail loudly |
-| D24: The kernel reports every contract a render required, synthesised components included | design | design: Mistakes fail loudly |
-| D25: An authored instance package refuses literal secrets | design | design: Secrets resolve in place |
-| D26: Exported instances encrypt the literal values at marked paths | design | design: Encryption stays at the edge. the design says export encryption belongs to enhancement 0014; the requirement lines moved to 0014 |
-| D27: The CLI writes raw values to the instance it applies; plaintext at rest covers that path too | design | design: Encryption stays at the edge |
-| D28: Diagnostics never carry a value at a marked path | design | design: Mistakes fail loudly |
-| D29: A secret source is named by its exact contract FQN; the annotation only marks what is a source | design | design: Sources are catalog resources |
-| D30: `#SecretLiteral` resolves to the one source marked `literal`; a platform with two is not routable | design | design: Sources are catalog resources |
-| D31: A source's settings are their own field; a group agrees on source and settings | design | design: Sources are catalog resources |
-| D32: A platform fills a source's settings through its catalog entry, and the operator and CLI carry that fill | design | design: Sources are catalog resources |
-| D33: Core tags each `#Secret` arm; discovery walks the schema for listing and the unified values for completeness | design | design: The schema declares, discovery finds |
-| D34: A deployer's values are checked against `#config` on every path, without changing what the instance exports | design | design: Mistakes fail loudly |
-| D35: A synthesised component is held to what an authored one is | design | design: Mistakes fail loudly |
-| D36: Redaction covers synthesised components, whose spec is never a readable field | design | design: Mistakes fail loudly |
+| Old heading | Disposition | Target | Note |
+| --- | --- | --- | --- |
+| D1: A sensitive field is marked with a CUE field attribute, not typed with a contract struct | evidence; design | evidence: decision-log.md; design: Considered and rejected | superseded by D10 the day it was written; the full text is in decision-log.md |
+| D2: The marker reuses the existing `@opm(...)` namespace, dispatched on position 0 | design | design: A secret is declared once | |
+| D3: Discovery reads the module's `#config` schema, not the instance's values | design | design: The schema declares, discovery finds | |
+| D4: The kernel substitutes an opaque handle for every marked value before components are built | evidence; design | evidence: decision-log.md; design: Considered and rejected | superseded by D11 the day it was written; the handle is a rejected option in the design, and the full text is in decision-log.md |
+| D5: Secret object naming is owned solely by the kernel | design | design: One object name per group | |
+| D6: OPM-owned Secret objects are instance-scoped and group-named, not component-scoped | design | design: One object name per group | |
+| D7: Two fulfilment kinds ship, supplied and referenced | design | design: A secret is declared once; design: Sources are catalog resources | superseded by D18; the two arms are in the first theme and the open arm in the fifth |
+| D8: How a supplied secret is materialised is a platform choice, resolved through catalog subscription | design | design: Sources are catalog resources | superseded by D19; its backend-neutral stance lives in the fifth theme |
+| D9: The dead and duplicated secret machinery is deleted, not deprecated | design | design: A secret is declared once | |
+| D10: The secret field is typed `#Secret`, a two-arm disjunction; the attribute carries routing only | design | design: A secret is declared once | |
+| D11: The kernel resolves in place; it rewrites each secret value to its `#SecretRef` form | design | design: Secrets resolve in place | |
+| D12: `#Secret` lives in `core`, and `core` is its only definition | design | design: A secret is declared once | |
+| D13: Discovery keys on the type and the marker, and fails closed | design | design: The schema declares, discovery finds | |
+| D14: SOPS support lands at the file seams, decrypt on input, encrypt on export; never an arm, a backend, or kernel code | design | design: Encryption stays at the edge | the export half moved to 0014 (D14 R4) |
+| D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection | design | design: Encryption stays at the edge | |
+| D16: The rewrite is omission at build assembly, measured viable on the real kernel path, one graph build, no new kernel seams | design | design: Secrets resolve in place | |
+| D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data, not AST, not FillPath-graft | design | design: Secrets resolve in place | |
+| D18: `#Secret` gains an open source arm; the literal stays as sugar; core defines the source input once | design | design: Sources are catalog resources | |
+| D19: A secret source is a catalog-defined resource; the platform installs any number side by side; the deployer chooses per value | design | design: Sources are catalog resources | |
+| D20: Kernel-interpreted primitive annotations live under a reserved `opmodel.dev/` prefix, one key per feature | design | design: Sources are catalog resources | |
+| D21: A source's settings default at the platform; the source decides what a deployer may override | design | design: Sources are catalog resources | |
+| D22: catalog_opm ships the literal source as a new resource, beside the hand-authored secrets resource | design | design: Sources are catalog resources | |
+| D23: The synthesised secrets component uses a key no author can write | design | design: Mistakes fail loudly | |
+| D24: The kernel reports every contract a render required, synthesised components included | design | design: Mistakes fail loudly | |
+| D25: An authored instance package refuses literal secrets | design | design: Secrets resolve in place | |
+| D26: Exported instances encrypt the literal values at marked paths | design | design: Encryption stays at the edge | the design says export encryption belongs to enhancement 0014; the requirement lines moved to 0014 |
+| D27: The CLI writes raw values to the instance it applies; plaintext at rest covers that path too | design | design: Encryption stays at the edge | |
+| D28: Diagnostics never carry a value at a marked path | design | design: Mistakes fail loudly | |
+| D29: A secret source is named by its exact contract FQN; the annotation only marks what is a source | design | design: Sources are catalog resources | |
+| D30: `#SecretLiteral` resolves to the one source marked `literal`; a platform with two is not routable | design | design: Sources are catalog resources | |
+| D31: A source's settings are their own field; a group agrees on source and settings | design | design: Sources are catalog resources | |
+| D32: A platform fills a source's settings through its catalog entry, and the operator and CLI carry that fill | design | design: Sources are catalog resources | |
+| D33: Core tags each `#Secret` arm; discovery walks the schema for listing and the unified values for completeness | design | design: The schema declares, discovery finds | |
+| D34: A deployer's values are checked against `#config` on every path, without changing what the instance exports | design | design: Mistakes fail loudly | |
+| D35: A synthesised component is held to what an authored one is | design | design: Mistakes fail loudly | |
+| D36: Redaction covers synthesised components, whose spec is never a readable field | design | design: Mistakes fail loudly | |
 
 ## Open questions
 

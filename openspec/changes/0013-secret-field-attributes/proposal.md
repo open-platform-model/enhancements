@@ -11,7 +11,7 @@ Today a secret travels as plain text through the whole render. The routing that 
 - An author declares a secret with one attribute and the secret type. The routing is stated once.
 - A deployer supplies a literal, a reference to an existing Secret, or a named secret source, per environment, with no republish of the module.
 - At render every secret is a reference. The supplied value never enters the rendered component graph.
-- A platform installs secret sources (a plain Secret, a sealed one, an external store) as catalogs. The first-party catalog ships the literal one.
+- A platform installs secret sources as catalogs. The first-party catalog ships the literal one.
 - A mistake fails loudly. A malformed or missing secret fails validation, and no error carries a secret value.
 
 ## What this is not
