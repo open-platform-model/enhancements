@@ -1,9 +1,19 @@
-# The repo's own gates: every entry passes the hard gate, every relative link
-# in a published file resolves, and INDEX.md / GRAPH.md match what their
-# generators write. Each step is the Taskfile target a contributor runs
-# locally. The docs bundle opmodel.dev pulls has its own lint gate
-# (docs.yml, Docs / check); docs.yml's edge job publishes each push to main
-# whether or not this workflow passed.
+# The repo's own gates, one job each, every job one task command:
+#
+#   vet         task vet, then task legacy:vet (the old-layout entries)
+#   links       task links, then task legacy:links
+#   fresh       task fresh (INDEX.md, GRAPH.md and the README.md of each entry)
+#   specs-rule  task specs-rule: openspec/specs/ changes only by a delivery, a
+#               seed or a Purpose correction, and equals the replayed archive
+#   docs:pins:check  the docs-kit pins agree (offline)
+#
+# ci-ok is the one job a ruleset requires: it fails when any gate failed, was
+# cancelled or was skipped. The docs bundle opmodel.dev pulls has its own lint
+# gate (docs.yml, Docs / check); docs.yml's edge job publishes each push to
+# main whether or not this workflow passed.
+#
+# The legacy:* tasks check the old-layout entries (NNNN/) that enh does not
+# read. They go with the old tools at migration step M4.
 name: CI
 
 on:
@@ -15,6 +25,11 @@ on:
 permissions:
   contents: read
 
+# A PR run cancels the run it replaces; a run on main always finishes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # cue.mod language version in every entry module is v0.17.0; v0.17.1 is the
   # binary the other OPM repos pin.
@@ -23,20 +38,39 @@ env:
   YQ_VERSION: 'v4.53.3'
   # sha256 of yq_linux_amd64 for YQ_VERSION, from the release's checksums file.
   YQ_SHA256: 'fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4'
+  # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
+  # replay refuses another version.
+  OPENSPEC_VERSION: '1.14.1'
+  # The migration branch delivers about ten seeds in one pull request, so the
+  # one-delivery step of specs-rule would fail it. For a PR from this branch of
+  # this repository the job runs `enh specs-rule --chain` instead, which checks
+  # each commit after CHAIN_SINCE on its own. 69475cb emptied the mock specs.
+  # No later PR has this branch name; the first later PR deletes these two
+  # lines and the chain step.
+  CHAIN_BRANCH: 'refactoring-enhancements/phase-3'
+  CHAIN_SINCE: '69475cb'
 
 jobs:
-  check:
-    name: Vet, links and freshness
+  vet:
+    name: vet
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
+    env:
+      # The base of the pull request (or the previous main) for V7, V27 and V31.
+      BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # V7, V27 and V31 read git history against the base.
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/enh/go.mod
+          cache-dependency-path: tools/enh/go.sum
 
       - name: Setup CUE
         uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c # v2.0.0
@@ -61,21 +95,166 @@ jobs:
       - name: Tool versions
         run: |
           task --version
+          go version
           cue version
           yq --version
 
-      - name: Vet every entry
+      - name: Vet the entries of openspec/changes
+        run: task vet -- --base "$BASE_REF"
+
+      - name: Vet the old-layout entries
         # Entry schemas/ and contracts/ modules resolve opmodel.dev/core from
         # GHCR anonymously; the Taskfile sets the registry mapping.
-        run: task vet
+        run: task legacy:vet
 
-      - name: Check links in published files
+  links:
+    name: links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/enh/go.mod
+          cache-dependency-path: tools/enh/go.sum
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check links between entries
         run: task links
 
-      - name: Check INDEX.md and GRAPH.md are fresh
+      - name: Check links in the old-layout entries
+        run: task legacy:links
+
+  fresh:
+    name: fresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/enh/go.mod
+          cache-dependency-path: tools/enh/go.sum
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check the generated files are fresh
         run: task fresh
+
+  specs-rule:
+    name: specs-rule
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The rule reads the merge base and, in chain mode, every commit.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/enh/go.mod
+          cache-dependency-path: tools/enh/go.sum
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Install OpenSpec
+        # The pinned CLI runs the replay. No install script of the package or
+        # of its dependencies is needed.
+        run: npm install -g --ignore-scripts "@fission-ai/openspec@${OPENSPEC_VERSION}"
+
+      - name: Tool versions
+        run: |
+          task --version
+          go version
+          openspec --version
+
+      - name: Pick the mode
+        id: mode
+        # Chain mode only for a PR from this repository on the migration
+        # branch: a fork cannot name its branch to dodge the one-delivery step.
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$THIS_REPO" ] && [ "$HEAD_REF" = "$CHAIN_BRANCH" ]; then
+            echo "chain=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "chain=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check openspec/specs against the replayed archive
+        if: ${{ steps.mode.outputs.chain != 'true' }}
+        run: task specs-rule BASE="$BASE_REF"
+
+      - name: Check each commit of the migration branch (chain mode)
+        if: ${{ steps.mode.outputs.chain == 'true' }}
+        run: task specs-rule:chain SINCE="$CHAIN_SINCE" -- --head "$HEAD_SHA"
+
+  docs-pins:
+    name: docs:pins:check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
 
       # Offline: .opm-docs-version and every docs-kit publish.yml ref name the
       # same release. The bundle build itself is Docs / check (docs.yml).
       - name: Verify the docs-kit pins agree
         run: task docs:pins:check
+
+  ci-ok:
+    # The one required check. It runs after every gate, fails on a failed,
+    # cancelled or skipped gate, and has no allow-list: no gate may skip.
+    name: CI result
+    if: always()
+    needs: [vet, links, fresh, specs-rule, docs-pins]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Every gate succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'to_entries | all(.[]; .value.result == "success")' <<<"$NEEDS"
