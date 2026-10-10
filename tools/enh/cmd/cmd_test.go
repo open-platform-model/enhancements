@@ -81,7 +81,10 @@ func TestUsageErrors(t *testing.T) {
 			t.Errorf("%s: exit %d, want %d", name, code, ExitUsage)
 		}
 	}
-	if code, out, _ := run("help"); code != ExitOK || !strings.Contains(out, "enh vet") {
+	if code, out, _ := run("help"); code != ExitOK || !strings.Contains(out, "vet") {
 		t.Errorf("help: exit %d out %q", code, out)
+	}
+	if code, out, _ := run("help", "vet"); code != ExitOK || !strings.Contains(out, "Usage: enh vet") || !strings.Contains(out, "--mode") {
+		t.Errorf("help vet: exit %d out %q", code, out)
 	}
 }
