@@ -104,6 +104,9 @@ type Options struct {
 	// OpenSpec, when non-nil, enables V32 and V35: it runs the openspec CLI.
 	// A nil value skips both rules and the result says so.
 	OpenSpec Runner
+	// Cue, when non-nil, enables the second half of V29: `cue vet ./...` in
+	// each evidence module. A nil value skips it and the result says so.
+	Cue Runner
 	// Strict adds `openspec validate --strict` runs (V35).
 	Strict bool
 	// Final makes V30 an error: the migration is over (ENH_FINAL=1).
@@ -236,6 +239,9 @@ func Run(opts Options) (*Result, error) {
 	}
 	if opts.OpenSpec == nil {
 		r.res.Skipped = append(r.res.Skipped, "V32 V35: no openspec runner (pass --openspec)")
+	}
+	if opts.Cue == nil {
+		r.res.Skipped = append(r.res.Skipped, "V29 cue vet of evidence modules: no cue runner (pass --cue)")
 	}
 	if opts.Base == "" {
 		r.res.Skipped = append(r.res.Skipped, "V7 ancestry, V27, V31: no base ref (pass --base)")

@@ -257,11 +257,43 @@ func foreignEntryLink(rel, target string) string {
 	return ""
 }
 
-// evidenceRules runs V29. The `cue vet` of evidence modules is left for CI.
+// evidenceRules runs V29: the README index of evidence/ and, when a cue runner
+// is given, `cue vet` on each module under it.
 func (r *run) evidenceRules(e *ent) {
 	if e.isSeed() || !e.HasEvidence {
 		return
 	}
+	r.evidenceIndex(e)
+	r.evidenceModules(e)
+}
+
+// evidenceModules runs `cue vet ./...` in each folder under evidence/ that
+// holds a cue.mod/module.cue. A failure is a warning, never an error: an
+// experiment may show a failure on purpose.
+func (r *run) evidenceModules(e *ent) {
+	if r.opts.Cue == nil {
+		return
+	}
+	for _, f := range e.Evidence {
+		var mod string
+		switch {
+		case f == "cue.mod/module.cue":
+			mod = "."
+		case strings.HasSuffix(f, "/cue.mod/module.cue"):
+			mod = strings.TrimSuffix(f, "/cue.mod/module.cue")
+		default:
+			continue
+		}
+		rel := path.Join(e.rel, "evidence", mod)
+		dir := filepath.Join(e.Dir, "evidence", filepath.FromSlash(mod))
+		if out, err := r.opts.Cue(dir, "cue", "vet", "./..."); err != nil {
+			r.add(e, "V29", Warning, rel+"/cue.mod", 0, "cue vet ./... failed in the evidence module %s: %s", rel, summary(out, err))
+		}
+	}
+}
+
+// evidenceIndex checks that evidence/README.md indexes what is under evidence/.
+func (r *run) evidenceIndex(e *ent) {
 	var readme string
 	hasReadme := false
 	var others []string
@@ -278,7 +310,7 @@ func (r *run) evidenceRules(e *ent) {
 	if len(others) == 0 {
 		return
 	}
-	path := e.rel + "/evidence/README.md"
+	readmePath := e.rel + "/evidence/README.md"
 	if !hasReadme {
 		r.add(e, "V29", Warning, e.rel+"/evidence", 0, "evidence/ has %d files and no README.md index", len(others))
 		return
@@ -289,7 +321,7 @@ func (r *run) evidenceRules(e *ent) {
 			key = f[:i] // a folder is indexed by its name
 		}
 		if !strings.Contains(readme, key) {
-			r.add(e, "V29", Warning, path, 0, "evidence/%s has no line in the index", key)
+			r.add(e, "V29", Warning, readmePath, 0, "evidence/%s has no line in the index", key)
 		}
 	}
 }

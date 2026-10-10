@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -408,5 +409,90 @@ func TestV33IgnoresSampledLineInComment(t *testing.T) {
 		if f.Rule == "V33" {
 			t.Errorf("accept mode: a commented sampled line drew %s", f)
 		}
+	}
+}
+
+// V29, second half: cue vet runs in each folder under evidence/ that holds a
+// cue.mod/module.cue, and a failure is a warning, never an error.
+func TestV29CueVetOfEvidenceModules(t *testing.T) {
+	root := t.TempDir()
+	copyTree(t, "testdata/base", root)
+	ev := filepath.Join(root, "openspec", "changes", "0100-demo-entry", "evidence")
+	files := map[string]string{
+		"README.md":                        "ok-mod bad-mod cue-deps plain.md\n",
+		"plain.md":                         "x\n",
+		"ok-mod/cue.mod/module.cue":        "module: \"x.example/ok@v0\"\n",
+		"ok-mod/a.cue":                     "a: 1\n",
+		"bad-mod/cue.mod/module.cue":       "module: \"x.example/bad@v0\"\n",
+		"bad-mod/a.cue":                    "a: 1 & 2\n",
+		"bad-mod/inner/cue.mod/module.cue": "module: \"x.example/inner@v0\"\n",
+		"cue-deps/core/cue.mod/module.cue": "module: \"x.example/core@v0\"\n",
+	}
+	for rel, body := range files {
+		p := filepath.Join(ev, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var calls []string
+	fake := func(dir, name string, args ...string) ([]byte, error) {
+		rel, _ := filepath.Rel(ev, dir)
+		calls = append(calls, filepath.ToSlash(rel)+": "+name+" "+strings.Join(args, " "))
+		if filepath.Base(dir) == "bad-mod" {
+			return []byte("a: conflicting values 2 and 1"), errors.New("exit status 1")
+		}
+		return nil, nil
+	}
+	res, err := Run(Options{Root: root, Today: "2026-10-11", SchemaPath: schemaPath, Cue: fake})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCalls := []string{"bad-mod/inner: cue vet ./...", "bad-mod: cue vet ./...", "cue-deps/core: cue vet ./...", "ok-mod: cue vet ./..."}
+	got := append([]string(nil), calls...)
+	sort.Strings(got)
+	sort.Strings(wantCalls)
+	if strings.Join(got, "\n") != strings.Join(wantCalls, "\n") {
+		t.Errorf("cue calls = %q, want %q", got, wantCalls)
+	}
+	var warns []Finding
+	for _, f := range res.Findings {
+		if f.Rule == "V29" {
+			warns = append(warns, f)
+		}
+	}
+	if len(warns) != 1 {
+		t.Fatalf("V29 findings = %v, want one for bad-mod", warns)
+	}
+	w := warns[0]
+	if w.Level != Warning || !strings.Contains(w.Msg, "evidence/bad-mod") || !strings.Contains(w.Msg, "conflicting values") {
+		t.Errorf("finding = %s", w)
+	}
+	if res.HasErrors() {
+		t.Errorf("a failed cue vet must not be an error: %v", res.Findings)
+	}
+	for _, s := range res.Skipped {
+		if strings.Contains(s, "V29") {
+			t.Errorf("V29 reported skipped with a runner: %q", s)
+		}
+	}
+
+	// Without a runner the rule says it was skipped and runs nothing.
+	calls = nil
+	res, err = Run(Options{Root: root, Today: "2026-10-11", SchemaPath: schemaPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 0 {
+		t.Errorf("cue ran without a runner: %v", calls)
+	}
+	found := false
+	for _, s := range res.Skipped {
+		found = found || strings.Contains(s, "V29 cue vet")
+	}
+	if !found {
+		t.Errorf("no skipped line for V29 without a runner: %v", res.Skipped)
 	}
 }

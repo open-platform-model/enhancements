@@ -103,7 +103,8 @@ jobs:
           yq --version
 
       - name: Vet the entries of openspec/changes
-        run: task vet -- --base "$BASE_REF"
+        # --cue adds V29's cue vet of each evidence module, as warnings only.
+        run: task vet -- --base "$BASE_REF" --cue
 
       - name: Vet the old-layout entries
         # Entry schemas/ and contracts/ modules resolve opmodel.dev/core from
