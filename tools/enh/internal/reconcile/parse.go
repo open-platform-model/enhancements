@@ -28,14 +28,19 @@ type Task struct {
 	// Refs holds the change names of the tick, "(a-change)" or
 	// "(a-change, b-change)". PR references are left out.
 	Refs []string
+	// PR is true when the tick names pull requests ("(PR 12)").
+	PR bool
 }
 
 var (
-	deliversRe = regexp.MustCompile(`^\s*(?:[-*]\s+)?Delivers\s+(\d{4}),\s+task\s+(\d+\.\d+)\.?\s*$`)
-	taskRe     = regexp.MustCompile(`^\s*- \[([ xX])\] (\d+\.\d+) ([A-Za-z0-9._-]+): (.*)$`)
-	trailRe    = regexp.MustCompile(`\(([^()]*)\)\s*$`)
-	nameRe     = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
-	fenceRe    = regexp.MustCompile("^\\s*(`{3,}|~{3,})")
+	// A line that opens like a Delivers line, so a typo in it is not read as prose.
+	deliversLikeRe = regexp.MustCompile("^\\s*(?:[-*]\\s+)?`?Delivers\\s+(?:\\d{4}|\\d+\\s*,|tasks?\\b)")
+	prRe           = regexp.MustCompile(`^PR #?\d+$`)
+	deliversRe     = regexp.MustCompile(`^\s*(?:[-*]\s+)?Delivers\s+(\d{4}),\s+task\s+(\d+\.\d+)\.?\s*$`)
+	taskRe         = regexp.MustCompile(`^\s*- \[([ xX])\] (\d+\.\d+) ([A-Za-z0-9._-]+): (.*)$`)
+	trailRe        = regexp.MustCompile(`\(([^()]*)\)\s*$`)
+	nameRe         = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+	fenceRe        = regexp.MustCompile("^\\s*(`{3,}|~{3,})")
 )
 
 // blank returns src with HTML comments and fenced code replaced by empty
@@ -94,14 +99,18 @@ func blank(src string) []string {
 
 // ParseDeclarations returns the Delivers lines of a proposal, outside code
 // and comments. The repo, change and path fields are left for the caller.
-func ParseDeclarations(src string) []Declaration {
-	var out []Declaration
+// malformed holds the line numbers of lines that open like a Delivers line
+// ("Delivers 0013 ...", "Delivers task ...") but do not have the exact form
+// "Delivers NNNN, task X.Y.": a typo must not pass in silence.
+func ParseDeclarations(src string) (out []Declaration, malformed []int) {
 	for i, l := range blank(src) {
 		if m := deliversRe.FindStringSubmatch(l); m != nil {
 			out = append(out, Declaration{Entry: m[1], Task: m[2], Line: i + 1})
+		} else if deliversLikeRe.MatchString(l) {
+			malformed = append(malformed, i+1)
 		}
 	}
-	return out
+	return out, malformed
 }
 
 // ParseTasks returns the task lines of a tasks.md, outside code and comments.
@@ -114,30 +123,34 @@ func ParseTasks(src string) []Task {
 		}
 		t := Task{Line: i + 1, ID: m[2], Repo: m[3], Outcome: strings.TrimSpace(m[4]), Done: m[1] != " "}
 		if t.Done {
-			t.Refs = refsOf(t.Outcome)
+			t.Refs, t.PR = refsOf(t.Outcome)
 		}
 		out = append(out, t)
 	}
 	return out
 }
 
-// refsOf reads the trailing "(change-name)" of a ticked line. Text that is
-// not a list of change names, and "PR n", yields none.
-func refsOf(outcome string) []string {
+// refsOf reads the trailing "(change-name)" of a ticked line. Backticks round
+// a name and a final full stop are tolerated. It returns the change names, or
+// pr true for "(PR n)". Text that is neither yields no ref and pr false.
+func refsOf(outcome string) (refs []string, pr bool) {
+	outcome = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(outcome), "."))
 	m := trailRe.FindStringSubmatch(outcome)
 	if m == nil {
-		return nil
+		return nil, false
 	}
-	var refs []string
-	for _, part := range strings.FieldsFunc(m[1], func(r rune) bool { return r == ',' }) {
+	for _, part := range strings.Split(m[1], ",") {
 		part = strings.TrimSpace(part)
-		if strings.HasPrefix(part, "and ") {
-			part = strings.TrimSpace(strings.TrimPrefix(part, "and "))
+		part = strings.TrimSpace(strings.TrimPrefix(part, "and "))
+		part = strings.Trim(part, "`")
+		switch {
+		case prRe.MatchString(part):
+			pr = true
+		case nameRe.MatchString(part):
+			refs = append(refs, part)
+		default:
+			return nil, false
 		}
-		if !nameRe.MatchString(part) {
-			return nil
-		}
-		refs = append(refs, part)
 	}
-	return refs
+	return refs, pr
 }

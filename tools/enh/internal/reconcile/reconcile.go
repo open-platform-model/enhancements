@@ -8,6 +8,10 @@
 //   - unknown-task: a Delivers line names an entry or a task that does not
 //     exist.
 //
+// A line it cannot read (a Delivers line with a typo, a tick that names
+// neither a change nor a PR) is flagged malformed, so that a typo cannot
+// pass as a clean run.
+//
 // It needs sibling checkouts, so it is a local check, not a PR gate.
 package reconcile
 
@@ -35,6 +39,10 @@ const (
 	KindUnticked      = "unticked"
 	KindMissingChange = "missing-change"
 	KindUnknownTask   = "unknown-task"
+	// KindMalformed marks a line the other kinds could not read: a Delivers
+	// line with a typo, or a tick that names neither a change nor a PR. The
+	// check reports it rather than pass a line it did not understand.
+	KindMalformed = "malformed"
 )
 
 // Repo is a checkout of a repo that may hold repo changes. Name is a member
@@ -154,8 +162,18 @@ func loadEntries(root string) (map[string]*entry, error) {
 	return out, nil
 }
 
-// changes lists the change folders of a repo: name (no date) to archived.
-func changes(root string) (map[string]bool, bool, error) {
+// folder is one change folder of a repo.
+type folder struct {
+	name     string // without the date
+	archived bool
+	abs      string
+	rel      string // relative to the repo root, slash-separated
+}
+
+// changes lists every change folder of a repo, live and archived. Two folders
+// may share a name; each is listed. ok is false when the repo has no
+// openspec/changes.
+func changes(root string) (out []folder, ok bool, err error) {
 	base := filepath.Join(root, "openspec", "changes")
 	live, err := os.ReadDir(base)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -164,10 +182,9 @@ func changes(root string) (map[string]bool, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	out := map[string]bool{}
 	for _, e := range live {
 		if e.IsDir() && e.Name() != "archive" {
-			out[e.Name()] = false
+			out = append(out, folder{e.Name(), false, filepath.Join(base, e.Name()), "openspec/changes/" + e.Name()})
 		}
 	}
 	arch, err := os.ReadDir(filepath.Join(base, "archive"))
@@ -176,7 +193,8 @@ func changes(root string) (map[string]bool, bool, error) {
 	}
 	for _, e := range arch {
 		if e.IsDir() {
-			out[datePrefixRe.ReplaceAllString(e.Name(), "")] = true
+			out = append(out, folder{datePrefixRe.ReplaceAllString(e.Name(), ""), true,
+				filepath.Join(base, "archive", e.Name()), "openspec/changes/archive/" + e.Name()})
 		}
 	}
 	return out, true, nil
@@ -213,26 +231,28 @@ func Run(enhRoot string, repos []Repo) (Report, error) {
 			continue
 		}
 		rep.Scanned = append(rep.Scanned, r.Name)
-		repoChanges[r.Name] = ch
-		for name, archived := range ch {
-			dir := filepath.Join(r.Root, "openspec", "changes", name)
-			rel := "openspec/changes/" + name
-			if archived {
-				dir, rel = archiveFolder(r.Root, name)
-			}
-			src, err := os.ReadFile(filepath.Join(dir, "proposal.md"))
+		names := map[string]bool{}
+		for _, f := range ch {
+			names[f.name] = true
+			src, err := os.ReadFile(filepath.Join(f.abs, "proposal.md"))
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			if err != nil {
 				return rep, err
 			}
-			for _, d := range ParseDeclarations(string(src)) {
-				d.Repo, d.Change, d.Archived = r.Name, name, archived
-				d.Path = r.Name + "/" + rel + "/proposal.md"
+			path := r.Name + "/" + f.rel + "/proposal.md"
+			found, bad := ParseDeclarations(string(src))
+			for _, d := range found {
+				d.Repo, d.Change, d.Archived, d.Path = r.Name, f.name, f.archived, path
 				decls = append(decls, d)
 			}
+			for _, ln := range bad {
+				rep.Flags = append(rep.Flags, Flag{KindMalformed, path, ln,
+					fmt.Sprintf("change %s has a line that opens like a Delivers line but is not exactly \"Delivers NNNN, task X.Y.\"", f.name)})
+			}
 		}
+		repoChanges[r.Name] = names
 	}
 	sort.SliceStable(decls, func(i, j int) bool {
 		if decls[i].Path != decls[j].Path {
@@ -285,6 +305,11 @@ func Run(enhRoot string, repos []Repo) (Report, error) {
 	for _, id := range ids {
 		en := entries[id]
 		for _, t := range en.tasks {
+			if t.Done && len(t.Refs) == 0 && !t.PR {
+				rep.Flags = append(rep.Flags, Flag{KindMalformed, en.dir + "/tasks.md", t.Line,
+					fmt.Sprintf("task %s is ticked, but the line does not end in (change-name) or (PR n)", t.ID)})
+				continue
+			}
 			ch, scanned := repoChanges[t.Repo]
 			if !scanned {
 				continue
@@ -307,24 +332,12 @@ func Run(enhRoot string, repos []Repo) (Report, error) {
 	return rep, nil
 }
 
-// archiveFolder finds the dated folder of an archived change.
-func archiveFolder(root, name string) (abs, rel string) {
-	base := filepath.Join(root, "openspec", "changes", "archive")
-	ents, _ := os.ReadDir(base)
-	for _, e := range ents {
-		if e.IsDir() && datePrefixRe.ReplaceAllString(e.Name(), "") == name {
-			return filepath.Join(base, e.Name()), "openspec/changes/archive/" + e.Name()
-		}
-	}
-	return filepath.Join(base, name), "openspec/changes/archive/" + name
-}
-
 // Summary renders the counts as one line.
 func (r Report) Summary() string {
 	n := map[string]int{}
 	for _, f := range r.Flags {
 		n[f.Kind]++
 	}
-	return fmt.Sprintf("reconcile: %d declarations in %s; %d unticked, %d missing-change, %d unknown-task, %d in flight",
-		r.Declarations, strings.Join(r.Scanned, ", "), n[KindUnticked], n[KindMissingChange], n[KindUnknownTask], len(r.InFlight))
+	return fmt.Sprintf("reconcile: %d declarations in %s; %d unticked, %d missing-change, %d unknown-task, %d malformed, %d in flight",
+		r.Declarations, strings.Join(r.Scanned, ", "), n[KindUnticked], n[KindMissingChange], n[KindUnknownTask], n[KindMalformed], len(r.InFlight))
 }

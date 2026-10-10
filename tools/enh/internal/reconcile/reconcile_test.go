@@ -54,10 +54,23 @@ func TestEntryReposMatchSchema(t *testing.T) {
 func TestParseDeclarations(t *testing.T) {
 	src := "# Change\n\n## Enhancement\n\nDelivers 0013, task 2.1.\n- Delivers 0013, task 2.10\n" +
 		"<!-- Delivers 0099, task 9.9. -->\n```\nDelivers 0098, task 1.1.\n```\nNone.\nDelivers 13, task 1.1.\n"
-	got := ParseDeclarations(src)
+	got, bad := ParseDeclarations(src)
 	want := []Declaration{{Entry: "0013", Task: "2.1", Line: 5}, {Entry: "0013", Task: "2.10", Line: 6}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v\nwant %+v", got, want)
+	}
+	// "Delivers 13, task 1.1." opens like a Delivers line and is malformed.
+	if !reflect.DeepEqual(bad, []int{12}) {
+		t.Errorf("malformed lines: %v", bad)
+	}
+}
+
+func TestParseDeclarationsMalformed(t *testing.T) {
+	src := "Delivers 0013, task 1.1 and 1.2.\nDelivers 0013 task 1.1.\nDelivers 0013, tasks 1.1.\n" +
+		"`Delivers 0013, task 1.1.`\nDelivers task 1.1.\nDelivers a better build for everyone.\n"
+	got, bad := ParseDeclarations(src)
+	if len(got) != 0 || !reflect.DeepEqual(bad, []int{1, 2, 3, 4, 5}) {
+		t.Errorf("got %+v, malformed %v", got, bad)
 	}
 }
 
@@ -68,25 +81,30 @@ func TestParseTasks(t *testing.T) {
 		"- [x] 1.3 cli: two changes (one-change, two-change)\n" +
 		"- [x] 1.4 opm-operator: by pr (PR 12)\n" +
 		"- [x] 1.5 catalog_opm: no ref (see below)\n" +
-		"- [X] 1.6 modules: plain\n"
+		"- [X] 1.6 modules: plain\n" +
+		"- [x] 1.7 core: backticks (`add-field`).\n" +
+		"- [x] 1.8 core: mixed (PR 3, add-field)\n"
 	got := ParseTasks(src)
 	type row struct {
 		line int
 		id   string
 		done bool
 		refs []string
+		pr   bool
 	}
 	var rows []row
 	for _, t := range got {
-		rows = append(rows, row{t.Line, t.ID, t.Done, t.Refs})
+		rows = append(rows, row{t.Line, t.ID, t.Done, t.Refs, t.PR})
 	}
 	want := []row{
-		{6, "1.1", false, nil},
-		{7, "1.2", true, []string{"add-thing"}},
-		{8, "1.3", true, []string{"one-change", "two-change"}},
-		{9, "1.4", true, nil},
-		{10, "1.5", true, nil},
-		{11, "1.6", true, nil},
+		{6, "1.1", false, nil, false},
+		{7, "1.2", true, []string{"add-thing"}, false},
+		{8, "1.3", true, []string{"one-change", "two-change"}, false},
+		{9, "1.4", true, nil, true},
+		{10, "1.5", true, nil, false},
+		{11, "1.6", true, nil, false},
+		{12, "1.7", true, []string{"add-field"}, false},
+		{13, "1.8", true, []string{"add-field"}, true},
 	}
 	if !reflect.DeepEqual(rows, want) {
 		t.Errorf("got %+v\nwant %+v", rows, want)
@@ -171,7 +189,7 @@ func TestRun(t *testing.T) {
 	if !reflect.DeepEqual(rep.Skipped, []string{"opm: no openspec/changes"}) {
 		t.Errorf("skipped: %q", rep.Skipped)
 	}
-	if !strings.Contains(rep.Summary(), "2 unticked, 1 missing-change, 3 unknown-task, 3 in flight") {
+	if !strings.Contains(rep.Summary(), "2 unticked, 1 missing-change, 3 unknown-task, 0 malformed, 3 in flight") {
 		t.Errorf("summary: %s", rep.Summary())
 	}
 }
@@ -223,5 +241,37 @@ func TestSiblingRepos(t *testing.T) {
 	}
 	if len(missing) != len(EntryRepos)-3 {
 		t.Errorf("missing: %q", missing)
+	}
+}
+
+func TestRunReadsEveryFolderOfAReusedName(t *testing.T) {
+	ws := t.TempDir()
+	tree(t, ws, map[string]string{
+		"enhancements/openspec/changes/0013-x/tasks.md":            "- [ ] 1.1 core: a\n- [ ] 1.2 core: b\n- [ ] 1.3 core: c\n",
+		"core/openspec/changes/archive/2026-01-01-fix/proposal.md": "Delivers 0013, task 1.1.\n",
+		"core/openspec/changes/archive/2026-02-01-fix/proposal.md": "Delivers 0013, task 1.2.\n",
+		"core/openspec/changes/fix/proposal.md":                    "Delivers 0013, task 1.3.\n",
+	})
+	rep, err := Run(filepath.Join(ws, "enhancements"), []Repo{{"core", filepath.Join(ws, "core")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Declarations != 3 || len(rep.Flags) != 2 || len(rep.InFlight) != 1 {
+		t.Fatalf("declarations %d, flags %v, in flight %v", rep.Declarations, rep.Flags, rep.InFlight)
+	}
+}
+
+func TestRunFlagsLinesItCannotRead(t *testing.T) {
+	ws := t.TempDir()
+	tree(t, ws, map[string]string{
+		"enhancements/openspec/changes/0013-x/tasks.md": "- [x] 1.1 core: no ref\n- [x] 1.2 core: backticks (`add-field`)\n",
+		"core/openspec/changes/add-field/proposal.md":   "Delivers 0013 task 1.2.\n",
+	})
+	rep, err := Run(filepath.Join(ws, "enhancements"), []Repo{{"core", filepath.Join(ws, "core")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Flags) != 2 || rep.Flags[0].Kind != KindMalformed || rep.Flags[1].Kind != KindMalformed {
+		t.Fatalf("flags: %v", rep.Flags)
 	}
 }
