@@ -120,7 +120,7 @@ exValuesDev: {
 	"auth.username": {value: "admin"}
 	"auth.password": {value: "s3cr3t"}
 	"tls.cert": {value: "-----BEGIN CERTIFICATE-----\nDEV\n-----END CERTIFICATE-----"}
-	"tls.key": {value: "-----BEGIN PRIVATE KEY-----\nDEV\n-----END PRIVATE KEY-----"}
+	"tls.key": {value: "DEV-PEM-PRIVATE-KEY-BODY"}
 	"deeply.nested.a.b.c.d.e.f.g.h.i.token": {value: "tok-123"}
 }
 
