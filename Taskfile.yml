@@ -1002,9 +1002,6 @@ tasks:
         fi
 
         exit $FAIL
-      # The new-layout entries (openspec/changes) are checked by enh. The old
-      # script above only reads NNNN/ and archive/NNNN/.
-      - task: vet:enh
 
   vet:enh:
     desc: Check the new-layout entries in openspec/changes with enh vet (ID or folder name optional)
