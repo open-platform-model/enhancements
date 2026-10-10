@@ -1002,6 +1002,21 @@ tasks:
         fi
 
         exit $FAIL
+      # The new-layout entries (openspec/changes) are checked by enh. The old
+      # script above only reads NNNN/ and archive/NNNN/.
+      - task: vet:enh
+
+  vet:enh:
+    desc: Check the new-layout entries in openspec/changes with enh vet (ID or folder name optional)
+    summary: |
+      Usage:
+        task vet:enh                    every entry, draft mode
+        task vet:enh ID=0013 MODE=accept
+        task vet:enh MODE=deliver ID=0013
+      Flags go to `enh vet`: MODE is draft (default), accept or deliver.
+    dir: tools/enh
+    cmds:
+      - go run . vet --mode {{.MODE | default "draft"}} {{.ID}}
 
   vet:one:
     desc: Validate a single enhancement (ID=NNNN)
