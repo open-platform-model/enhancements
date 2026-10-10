@@ -95,7 +95,7 @@ This repo holds OPM enhancement proposals. Each entry under `NNNN/` is a design 
 
 ## Repository Rules
 
-These invariants hold across every enhancement; violations fail PR review even if `task legacy:vet` does not catch them. The `enhancements` skill carries the full rule text and the rationale.
+These invariants hold across every old-layout enhancement (`NNNN/`). A new-layout entry (`openspec/changes/<id>-<slug>/`) follows the table "New layout (`enh`)" under "Build And Dev Commands": its gate is `task vet`, and its folder names, files and open questions are those of `enh help` and the OpenSpec change, not the rules below. Violations fail PR review even if `task legacy:vet` does not catch them. The `enhancements` skill carries the full rule text and the rationale.
 
 - **`config.yaml` is the sole source of metadata.** No metadata table in `README.md`. Every entry carries a one-line `summary` — the capability it adds — which `task legacy:new` requires and the archive listing renders.
 - **The entry stores rules and intent; every fact that changes over time is derived from where it actually lives.** This is the governing principle. Delivery derives from the entry's own `delivery.yaml` log (`task delivery`), maturity derives from the published artifact's `apiVersion`, the admission gate's output is the entry's own prose. Apply the test before adding any field to `config.yaml`: if the value would need updating after the design is done, it does not belong here.
@@ -136,7 +136,7 @@ Read these on entry:
 - `GRAPH.md` — Mermaid relationship diagrams (`depends_on` / `amends` / `supersedes` / `revives`): a category rollup plus one diagram per `category`, foreign entries drawn as stubs, closed entries only where a live entry reaches them.
 - `schema.cue` — CUE schema for `config.yaml` (every entry validates against this).
 - `0000/` — template entry; copy this when scaffolding a new one.
-- **`.claude/skills/enhancements/SKILL.md`** — **authoritative workflow protocol.** Load before any create / iterate / promote / implement / supersede action. This `AGENTS.md` is orientation; the skill is the binding protocol.
+- **`.claude/skills/enhancements/SKILL.md`** — **authoritative workflow protocol for the old layout.** It still uses the old task names: read a bare `task new`, `task vet:one`, `task graph` or `task supersede` there as `task legacy:<name>`. For `openspec/changes/`, the table "New layout (`enh`)" and `enh help` govern until the skill is updated. Load before any create / iterate / promote / implement / supersede action. This `AGENTS.md` is orientation; the skill is the binding protocol for the old layout.
 
 Sibling skills to load when applicable:
 
@@ -177,8 +177,8 @@ docs-kit.cue                The enhancements section bundle opmodel.dev shows at
 scripts/                    delivery.sh (derives delivery state from each entry's delivery.yaml), depends.sh (depends_on / amends edge rules, derived amended-by), entry_hash.sh (gate binding)
 AGENTS.md                   This file — orientation
 README.md                   How to read enhancements
-INDEX.md                    Generated browse aid (run `task legacy:index` after config.yaml edits)
-GRAPH.md                    Generated relationship diagrams, one per category (run `task legacy:graph` after any category / depends_on / amends / supersedes / revives edit)
+INDEX.md                    Generated browse aid (run `task index` after config.yaml edits; never `task legacy:index`, which writes the old format)
+GRAPH.md                    Generated relationship diagrams, one per category (run `task index` after any category / depends_on / amends / supersedes / revives edit; never `task legacy:graph`)
 schema.cue                  config.yaml schema (validated by `task legacy:vet`)
 Taskfile.yml                Workflow automation
 .claude/skills/             Repo-local skills: enhancements, delivery-log, enhancement-experiments, …
@@ -238,18 +238,20 @@ These tasks keep their old behaviour on the folders `NNNN/` and `archive/NNNN/`.
 | `task legacy:reject ID=NNNN REASON="…"` | Kill an idea: move to `archive/NNNN/`, set `rejected` + reason, banner the README. |
 | `task close ID=NNNN` | Close a finished design: refuses unless `task delivery` derives `implemented`; sets `delivered`, replaces any progress banner with a delivered one, retargets cross-entry links repo-wide (naming live files it touched, since that moves their gate hash), moves to `archive/NNNN/`. |
 | `task archive:list` / `archive:data` | Archived entries (rejected with reasons, superseded with successors) — the `prior-art` gate's input. |
-| `task legacy:index` | Regenerate `INDEX.md` (browse aid for opaque NNNN folders). Run after any `config.yaml` edit. |
+| `task legacy:index` | Write `INDEX.md` in the old format, from the `NNNN/` entries alone. Do not run it before M4: the new-layout entries drop out and `task fresh` (the CI `fresh` gate) fails. Use `task index`. |
 | `task docs:bundle` | Build the enhancements section bundle of the work tree into `out/enhancements/` (a local preview of edge). |
 | `task docs:bundle:check` | Check the docs-kit pins agree, then build and lint the section bundle without writing `out/`. |
 | `task docs:pins:check` | Refuse a docs-kit `publish.yml` ref that names another release than `.opm-docs-version` (offline; run by CI). |
 | `task tools:opm-docs` | Install or reuse `.bin/opm-docs`, the checksum-verified docs-kit release `.opm-docs-version` names. |
-| `task legacy:graph` | Regenerate `GRAPH.md`: a category rollup plus one Mermaid diagram per `category`, foreign entries as stubs, closed entries only where a live edge reaches them. Run after any `category` / `depends_on` / `amends` / `supersedes` / `revives` edit or a `task close`. |
+| `task legacy:graph` | Write `GRAPH.md` in the old format, from the `NNNN/` entries alone. Do not run it before M4: `task fresh` fails after it. Use `task index`. |
 
 ### Docs bundle
 
 `docs-kit.cue` declares one section bundle, `enhancements`: every entry, live and archived (an archived entry keeps its `/enhancements/NNNN/` URL), plus `INDEX.md` and `GRAPH.md`, published to `ghcr.io/open-platform-model/docs/enhancements` by docs-kit's `publish.yml` (docs-kit C21). `docs.yml` checks every pull request (`Docs / check`) and publishes each push to `main` as `edge`. A section has no release and no docs revision, so there is nothing to dispatch: what `main` holds is what the site shows after its next build. Preview with `task docs:bundle` (pages in `out/enhancements/content/`) or `opm-docs serve`. The build rewrites relative links, untagged fences and HTML comments by itself, but never relaxes the page-dialect lint or its markup check: a page they refuse fails `Docs / check`, and the fix goes in the entry's source. **Standing rule for such mechanical fixes:** a docs-bundle fix may touch any entry, frozen ones included, without a carve-out; it keeps the rendered meaning identical (the markup may change; no claim, number or decision does); it re-hashes `.gates/NNNN.yaml` only when the recorded hash matched the entry before the fix, so a stale verdict never becomes current; and its PR notes that the recorded verdicts stand. `.opm-docs-version` and every `publish.yml@` ref name the same docs-kit release and move in one PR (`task docs:pins:check`, run by CI).
 
 ### Workflow phases
+
+The phases and commands below are those of the old layout (`NNNN/`). For a new-layout entry, use `task new`, `task accept`, `task deliver` and the other tasks of the table "New layout (`enh`)".
 
 ```
 admit (gates) → new → fill problem + design → accrete decisions → walk gates → promote (accepted) → deliver + log via delivery.yaml → close (delivered, archived)
@@ -272,18 +274,20 @@ Each phase has gating criteria and a concrete checklist. The `enhancements` skil
 
 ## Working Style for Agents
 
+The lines below describe the old layout (`NNNN/`) unless they name `enh` or `openspec/changes/`. For a new-layout entry, the gate is `task vet` and the table "New layout (`enh`)" governs.
+
 - **Always load the `enhancements` skill** before doing workflow work (create, edit `config.yaml`, promote status, append history, add `depends_on` / `**Depends:**` or `amends` / qualified `**Amends:**` edges, run any `task` other than read-only `list`/`show`).
 - **Preserve research evidence under `NNNN/research/`.** When an enhancement's design rests on external research — a `/deep-research` report, a benchmark, a vendor-doc or prior-art survey — write the cited findings to `NNNN/research/` (primary dossier as `research/findings.md`; topic-named files for further write-ups) so the evidence travels with the design rather than living only in a chat transcript. Keep it cited and dated, distinguish verified facts from recommendations, and reference it back from the `Source:` lines in `03-decisions.md` (and from `01-problem.md` / `05-risks.md` where it drives a claim). `research/` is for *gathered* evidence (read-only synthesis); `experiments/` is for *authored* runnable proofs — keep the two distinct. `research/` is optional and not gated by `task legacy:vet`. The full convention lives in the `enhancements` skill, `## Phase 2 — Iterate`.
 - If your task is only to *read* an existing enhancement, you don't need the skill — read its `README.md`, then walk `01-problem.md` through `07-questions.md`.
 - Run `task legacy:vet` after any `config.yaml`, `schemas/`, or `contracts/` edit — hard gate, PR-blocking.
-- Run `task legacy:index` after any `config.yaml` change; `task legacy:graph` after any `category` / `depends_on` / `amends` / `supersedes` / `revives` change or a `task close`.
+- Run `task index` after any `config.yaml` change, and after any `category` / `depends_on` / `amends` / `supersedes` / `revives` change or a `task close`. It writes `INDEX.md` and `GRAPH.md` for both layouts. Do not run `task legacy:index` or `task legacy:graph` before M4: they write the old format and `task fresh` fails.
 - **Ordering constraints stay design prose; landings get logged.** `06-operational.md ## Cross-Repo Coordination` states the cross-repo ordering constraints as design facts (constraints only: what must exist before what, and why). There is no forecast layer: nothing is written before work lands, and each landing is logged in the entry's `delivery.yaml` via `task delivery:log` as it happens. Load the `delivery-log` skill before logging.
 - When a change touches `core/`, the `core-schema-edit` skill is the binding protocol for SPEC.md co-updates.
 
 ### Source of truth precedence
 
-When guidance conflicts, the most-specific source wins: target-repo skill > enhancements skill > target-repo `AGENTS.md` > this `AGENTS.md` > workspace root `AGENTS.md`.
+When guidance conflicts, the most-specific source wins: target-repo skill > enhancements skill > target-repo `AGENTS.md` > this `AGENTS.md` > workspace root `AGENTS.md`. For `openspec/changes/` the enhancements skill ranks below this `AGENTS.md` until the skill is updated, because it describes the old layout.
 
 - Workspace root `/AGENTS.md` governs cross-repo routing and the repo vocabulary (`schema.cue` `#Repo`).
-- This `AGENTS.md` orients agents to the repo; the `enhancements` skill is the authoritative workflow protocol.
+- This `AGENTS.md` orients agents to the repo; the `enhancements` skill is the authoritative workflow protocol for the old layout. It does not describe `openspec/changes/` yet: there, the table "New layout (`enh`)" and `enh help` govern.
 - Each target repo's own `AGENTS.md` governs its source code; implementation changes follow those rules.
