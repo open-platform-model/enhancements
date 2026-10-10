@@ -4,7 +4,9 @@
 #   links       task links, then task legacy:links
 #   fresh       task fresh (INDEX.md, GRAPH.md and the README.md of each entry)
 #   specs-rule  task specs-rule: openspec/specs/ changes only by a delivery, a
-#               seed or a Purpose correction, and equals the replayed archive
+#               seed or a Purpose correction, and equals the replayed archive.
+#               Pull requests only: every change to main lands by PR, so the
+#               push run on main skips its steps (the job still succeeds)
 #   docs:pins:check  the docs-kit pins agree (offline)
 #
 # ci-ok is the one job a ruleset requires: it fails when any gate failed, was
@@ -45,9 +47,10 @@ env:
   # one-delivery step of specs-rule would fail it. For a PR from this branch of
   # this repository the job runs `enh specs-rule --chain` instead, which checks
   # each commit after CHAIN_SINCE on its own. 69475cb emptied the mock specs.
-  # No later PR has this branch name; the first later PR deletes these two
-  # lines and the chain step.
-  CHAIN_BRANCH: 'refactoring-enhancements/phase-3'
+  # The migration phase sets its own branch name here: the owner pushes the
+  # swarm branch as openspec-store-design (PR 107). No later PR has this
+  # branch name; the first later PR deletes these two lines and the chain step.
+  CHAIN_BRANCH: 'openspec-store-design'
   CHAIN_SINCE: '69475cb'
 
 jobs:
@@ -165,8 +168,12 @@ jobs:
     env:
       BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    # Pull requests only. The steps below carry the condition, not the job, so
+    # the job still reports success on the push run to main and ci-ok keeps
+    # its rule that no gate may skip.
     steps:
       - name: Check out
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The rule reads the merge base and, in chain mode, every commit.
@@ -174,22 +181,26 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: tools/enh/go.mod
           cache-dependency-path: tools/enh/go.sum
 
       - name: Install Task
+        if: ${{ github.event_name == 'pull_request' }}
         uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           version: ${{ env.TASK_VERSION }}
 
       - name: Set up Node
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
 
       - name: Install OpenSpec
+        if: ${{ github.event_name == 'pull_request' }}
         # The pinned CLI runs the replay. No install script of the package or
         # of its dependencies is needed. The package ships no lockfile, so npm
         # resolves its dependencies at run time; the byte comparison of the
@@ -198,12 +209,14 @@ jobs:
         run: npm install -g --ignore-scripts "@fission-ai/openspec@${OPENSPEC_VERSION}"
 
       - name: Tool versions
+        if: ${{ github.event_name == 'pull_request' }}
         run: |
           task --version
           go version
           openspec --version
 
       - name: Pick the mode
+        if: ${{ github.event_name == 'pull_request' }}
         id: mode
         # Chain mode only for a PR from this repository on the migration
         # branch: a fork cannot name its branch to dodge the one-delivery step.
@@ -220,11 +233,11 @@ jobs:
           fi
 
       - name: Check openspec/specs against the replayed archive
-        if: ${{ steps.mode.outputs.chain != 'true' }}
+        if: ${{ github.event_name == 'pull_request' && steps.mode.outputs.chain != 'true' }}
         run: task specs-rule BASE="$BASE_REF"
 
       - name: Check each commit of the migration branch (chain mode)
-        if: ${{ steps.mode.outputs.chain == 'true' }}
+        if: ${{ github.event_name == 'pull_request' && steps.mode.outputs.chain == 'true' }}
         run: task specs-rule:chain SINCE="$CHAIN_SINCE" -- --head "$HEAD_SHA"
 
   docs-pins:
