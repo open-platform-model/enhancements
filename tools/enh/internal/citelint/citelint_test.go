@@ -200,3 +200,31 @@ func TestWalkSkipsCachesAndWorktrees(t *testing.T) {
 		t.Fatalf("res=%+v err=%v", res, err)
 	}
 }
+
+// A paragraph that holds only an id fails even inside a longer comment; the
+// same id on the last line of a sentence passes.
+func TestLoneIDParagraph(t *testing.T) {
+	for _, tc := range []struct {
+		name, comment string
+		want          int // the line of the lone-id finding, 0 for none
+	}{
+		{"own paragraph", "// Reads the file.\n//\n// (enhancement 0013).", 5},
+		{"first paragraph", "// 0013\n//\n// Reads the file and says why.", 3},
+		{"end of a sentence", "// Reads the file, so the order is the order of the\n// file (enhancement 0013).", 0},
+		{"two paragraphs with words", "// Reads the file.\n//\n// Second paragraph (enhancement 0013).", 0},
+		{"block comment", "/*\nReads the file.\n\n0013\n*/", 6},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := []byte("package p\n\n" + tc.comment + "\nfunc f() {}\n")
+			line := 0
+			for _, f := range LintSource("a.go", src, Options{}) {
+				if f.Rule == RuleLoneID {
+					line = f.Line
+				}
+			}
+			if line != tc.want {
+				t.Errorf("lone-id at line %d, want %d", line, tc.want)
+			}
+		})
+	}
+}

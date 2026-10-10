@@ -32,3 +32,8 @@ over two lines`
 
 // WHY fqn: enhancement 0010.
 type Label struct{}
+
+// Parse reads the file and returns its entries.
+//
+// (enhancement 0013).
+func paragraph() {}

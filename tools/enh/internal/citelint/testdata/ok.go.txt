@@ -33,3 +33,9 @@ var s = "a \" quote then // 0001 text"
 /* The block keeps the reason in words
    (enhancement 0019). */
 func block() {}
+
+// Parse reads the file and returns its entries.
+//
+// The order follows the file, so a reader sees them as written
+// (enhancement 0013).
+func paragraphs() {}

@@ -115,6 +115,29 @@ func (g group) joined() string {
 	return strings.Join(parts, " ")
 }
 
+// paragraphs splits a comment at its blank lines. A paragraph that holds
+// only an id fails even when other paragraphs in the same comment hold words
+// (the owner's rule: an id is never alone).
+func (g group) paragraphs() []group {
+	var out []group
+	var cur []textLine
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, group{lines: cur})
+			cur = nil
+		}
+	}
+	for _, l := range g.lines {
+		if l.text == "" {
+			flush()
+			continue
+		}
+		cur = append(cur, l)
+	}
+	flush()
+	return out
+}
+
 func buildGroups(spans []span) []group {
 	var groups []group
 	var cur *group
@@ -202,18 +225,22 @@ func LintSource(name string, src []byte, opts Options) []Finding {
 	}
 
 	for _, g := range buildGroups(spans) {
-		why := false
-		for _, l := range g.lines {
-			decisions(l.line, l.text)
-			if m := whyRe.FindStringSubmatch(l.text); m != nil && onlyIDs(m[2]) {
-				why = true
-				add(l.line, RuleWhyLabel, l.text,
-					fmt.Sprintf("WHY label %q holds only an id: state the reason in words", m[1]))
+		for _, para := range g.paragraphs() {
+			why := false
+			for _, l := range para.lines {
+				decisions(l.line, l.text)
+				if m := whyRe.FindStringSubmatch(l.text); m != nil && onlyIDs(m[2]) {
+					why = true
+					add(l.line, RuleWhyLabel, l.text,
+						fmt.Sprintf("WHY label %q holds only an id: state the reason in words", m[1]))
+				}
 			}
-		}
-		if !why && onlyIDs(g.joined()) {
-			add(g.lines[0].line, RuleLoneID, g.joined(),
-				"comment is only an id: write the reason in words beside the id")
+			// A paragraph is the unit of "never alone": an id on a line of
+			// its own passes only when the paragraph around it says why.
+			if !why && onlyIDs(para.joined()) {
+				add(para.lines[0].line, RuleLoneID, para.joined(),
+					"comment is only an id: write the reason in words beside the id")
+			}
 		}
 	}
 
