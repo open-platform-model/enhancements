@@ -392,11 +392,12 @@ import (
 // Closed list of repos an entry may affect: the directory names of the
 // workspace AGENTS.md "Repos" table, so `catalog_opm`, not `catalog`. The old
 // #Repo above still lists `catalog`, `orca` and `opm-controller` for the
-// old-layout entries; this list replaces it at migration step M4. Add a value
-// here when a repo joins the workspace; do not allow free text.
+// old-layout entries; this list replaces it at migration step M4. It lists
+// `opm-controller` beside `opm-operator`, as #Repo does. Add a value here when
+// a repo joins the workspace; do not allow free text.
 #EntryRepo: "core" | "library" | "catalog_opm" | "cli" | "opm-operator" |
-	"opm-portal" | "opm" | "opmodel.dev" | "docs-kit" | "enhancements" |
-	"modules" | "opm-suite-installer" | ".github"
+	"opm-controller" | "opm-portal" | "opm" | "opmodel.dev" | "docs-kit" |
+	"enhancements" | "modules" | "opm-suite-installer" | ".github"
 
 // Ids the allocator never hands out and no entry may carry. Regular fields,
 // so `cue export -e reservedIds schema.cue` reads them.

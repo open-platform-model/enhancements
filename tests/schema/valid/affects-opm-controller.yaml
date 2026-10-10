@@ -1,0 +1,14 @@
+# A draft that affects the renamed controller repo beside the operator repo.
+id: "0033"
+slug: example-controller
+title: An example that affects the controller
+summary: >-
+  Let a platform team run the controller beside the operator during the rename.
+status: draft
+category: runtime
+affects:
+  - opm-controller
+  - opm-operator
+authors:
+  - emil@jacero.se
+created: "2026-10-10"
