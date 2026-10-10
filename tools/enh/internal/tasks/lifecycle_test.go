@@ -382,6 +382,34 @@ func TestListShowQuestions(t *testing.T) {
 	}
 }
 
+func TestShowOldLayout(t *testing.T) {
+	f := newFx(t)
+	f.write("archive/0010/config.yaml", "id: \"0010\"\nslug: artifact-identity\ntitle: Module and Catalog Identity\nsummary: >-\n  Make the path the whole\n  identity.\nstatus: delivered\ncategory: distribution\naffects: [core, cli]\ncreated: 2026-07-26\n")
+	f.write("0012/config.yaml", "id: \"0012\"\nslug: k8s-tier\ntitle: A Live Old Entry\nsummary: s\nstatus: draft\ncategory: runtime\naffects: [library]\ncreated: \"2026-07-27\"\ndepends_on: [\"0006\"]\n")
+	for key, wants := range map[string][]string{
+		"0010": {"folder:   archive/0010 (old layout)", "title:    Module and Catalog Identity", "summary:  Make the path the whole identity.", "status:   delivered", "affects:  core, cli", "created:  2026-07-26"},
+		"0012": {"folder:   0012 (old layout)", "status:   draft", "depends_on: 0006"},
+	} {
+		f.reset()
+		f.mustNil(f.env.Show(key))
+		for _, want := range wants {
+			if !strings.Contains(f.out.String(), want) {
+				t.Errorf("show %s lacks %q\n%s", key, want, f.out)
+			}
+		}
+	}
+	// A new-layout entry of the same id wins over its old folder.
+	f.write("0100/config.yaml", "id: \"0100\"\ntitle: The old folder\n")
+	f.reset()
+	f.mustNil(f.env.Show("0100"))
+	if strings.Contains(f.out.String(), "old layout") || !strings.Contains(f.out.String(), "Demo Entry") {
+		t.Errorf("show 0100 did not prefer the new layout:\n%s", f.out)
+	}
+	if err := f.env.Show("0777"); !IsUsage(err) {
+		t.Errorf("unknown old id: %v", err)
+	}
+}
+
 func TestStaleFindingsOnlyForAcceptedEntries(t *testing.T) {
 	f := newFx(t)
 	st, _ := f.env.load()
