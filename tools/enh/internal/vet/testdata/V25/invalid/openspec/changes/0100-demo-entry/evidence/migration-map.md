@@ -19,5 +19,5 @@ source: 0100 @ abcdef1
 
 | Old id | Disposition | Target |
 | --- | --- | --- |
-| OQ1 | proposal | Open questions |
-| OQ2 | design (answered) | A theme |
+| OQ1 | proposal | Open questions, not blocking |
+| OQ2 | design (answered; the theme says how) | A theme |

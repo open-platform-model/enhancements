@@ -139,7 +139,7 @@ func (r *run) sameIDs(e *ent, path, kind string, old []string, rows []mapRow) {
 // checkDocRow checks one decision or question row.
 func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[string]bool, allowed []string) {
 	var disps []string
-	for _, seg := range strings.Split(row.disp, ";") {
+	for _, seg := range splitTop(row.disp) {
 		if w := firstWord(seg); w != "" {
 			disps = append(disps, w)
 		}
@@ -164,9 +164,9 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 		for _, d := range disps {
 			switch d {
 			case "design":
-				ok = ok || design[strings.ToLower(t)]
+				ok = ok || hasHeading(design, t)
 			case "proposal":
-				ok = ok || proposal[strings.ToLower(t)]
+				ok = ok || hasHeading(proposal, t)
 			case "evidence":
 				ok = ok || containsStr(e.Evidence, strings.TrimPrefix(t, "evidence/"))
 			case "dropped":
@@ -321,10 +321,46 @@ func firstWord(s string) string {
 
 func splitTargets(s string) []string {
 	var out []string
-	for _, t := range strings.Split(strings.ReplaceAll(s, "<br>", ";"), ";") {
+	for _, t := range splitTop(strings.ReplaceAll(s, "<br>", ";")) {
 		if t = strings.TrimSpace(t); t != "" {
 			out = append(out, t)
 		}
 	}
 	return out
+}
+
+// splitTop splits at semicolons that are not inside parentheses.
+func splitTop(s string) []string {
+	var out []string
+	depth, start := 0, 0
+	for i, r := range s {
+		switch r {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ';':
+			if depth == 0 {
+				out = append(out, s[start:i])
+				start = i + 1
+			}
+		}
+	}
+	return append(out, s[start:])
+}
+
+// hasHeading reports whether a heading equals the target, or the target is
+// the heading followed by a comma and a qualifier ("Open questions, not
+// blocking" names the heading "Open questions").
+func hasHeading(heads map[string]bool, target string) bool {
+	t := strings.ToLower(strings.TrimSpace(target))
+	if heads[t] {
+		return true
+	}
+	if i := strings.Index(t, ","); i > 0 {
+		return heads[strings.TrimSpace(t[:i])]
+	}
+	return false
 }
