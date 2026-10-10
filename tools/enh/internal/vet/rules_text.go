@@ -318,7 +318,8 @@ func (r *run) seedRules(e *ent) {
 	if !codeSpanRe.MatchString(e.Source.Text) {
 		r.add(e, "V33", Error, src, 0, "source.md names no repo spec or code (write each as a `code span`)")
 	}
-	m := samplingRe.FindStringSubmatch(e.Source.Text)
+	// A line inside an HTML comment is the template's note, not a sample.
+	m := samplingRe.FindStringSubmatch(blankComments(e.Source.Text))
 	switch {
 	case m == nil:
 		r.add(e, "V33", e.from(Deliver, Error), src, 0, "source.md has no \"sampled: <date> <commit>\" line")

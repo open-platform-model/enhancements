@@ -2,9 +2,12 @@ package tasks
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/open-platform-model/enhancements/tools/enh/internal/vet"
 )
 
 func seedPtr(n uint64) *uint64 { return &n }
@@ -228,5 +231,46 @@ func TestCollisionListKeepsARenamedRequirement(t *testing.T) {
 	i := strings.Index(out, "demo-cap/Readiness of every platform is reported\n    ")
 	if i < 0 || !strings.Contains(out[i:], "| existing-cap/Readiness is reported") {
 		t.Errorf("a renamed requirement must stay in the collision list\n%s", out[i:])
+	}
+}
+
+// A seed made by seed:new and filled from the shipped template must pass
+// accept, plain and CONFIRM. The template is the file the schema ships; the
+// test does not copy it.
+func TestAcceptSeedMadeFromTheShippedTemplate(t *testing.T) {
+	f := newFx(t)
+	f.mustNil(f.env.SeedNew("tmpl-cap"))
+	template, err := os.ReadFile("../../../../openspec/schemas/seed/templates/source.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	b.WriteString("## Purpose\n\nRecord the shipped behaviour of the template capability for the fixture seed.\n\n## ADDED Requirements\n\n")
+	for i := 1; i <= 4; i++ {
+		fmt.Fprintf(&b, "### Requirement: Shipped thing %d\n\nThe system SHALL do shipped%d.\n\n#### Scenario: Done %d\n\n- **WHEN** a\n- **THEN** b\n\n", i, i, i)
+	}
+	f.write("openspec/changes/seed-tmpl-cap/specs/tmpl-cap/spec.md", b.String())
+	f.write("openspec/changes/seed-tmpl-cap/source.md", string(template))
+	f.commit("docs: seed from the template")
+	f.reset()
+
+	f.env.Seed = seedPtr(2)
+	f.mustNil(f.env.Accept("seed-tmpl-cap"))
+	if strings.Contains(f.out.String(), "refused") || strings.Contains(f.out.String(), "V33") {
+		t.Errorf("the plain run of a template seed was refused:\n%s", f.out)
+	}
+	f.env.Confirm = true
+	f.mustNil(f.env.Accept("seed-tmpl-cap"))
+	src := f.read("openspec/changes/seed-tmpl-cap/source.md")
+	if !strings.HasSuffix(src, "\n\nsampled: 2026-10-11 "+strings.TrimSpace(f.git("rev-parse", "--short", "HEAD"))+"\n") {
+		t.Errorf("CONFIRM wrote no sampled line:\n%s", src[len(src)-200:])
+	}
+	// The written line is the one V33 reads: deliver mode accepts it.
+	res, err := f.env.vet(vet.Deliver, "seed-tmpl-cap")
+	f.mustNil(err)
+	for _, fi := range res.Findings {
+		if fi.Rule == "V33" {
+			t.Errorf("deliver mode: %s", fi)
+		}
 	}
 }

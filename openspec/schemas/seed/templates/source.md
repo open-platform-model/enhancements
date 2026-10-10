@@ -17,7 +17,6 @@ Capability: `<capability>`. <Full seed or an excerpt; the number of requirements
 
 - <Behaviour left out, and why. A live enhancement owns it, or it describes a mechanism.>
 
-<!-- The last line is written by `task accept ID=seed-<capability>` with CONFIRM=1, never by hand:
-
-sampled: <date> <commit>
--->
+<!-- The sample line is the last line of this file. `task accept ID=seed-<capability>` with CONFIRM=1
+     writes it after the owner has read the sample; never write it by hand. It has the form
+     `sampled: <date> <commit>`. Until then the file has no such line. -->

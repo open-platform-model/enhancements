@@ -120,7 +120,7 @@ func TestRules(t *testing.T) {
 		{rule: "V30", level: Error, invalid: []invalidCase{{"invalid", "legacy live folders"}}, tune: func(o *Options) { o.Final = true }},
 		{rule: "V32", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "openspec validate"}}, tune: func(o *Options) { o.OpenSpec = stubOpenSpec }},
 		{rule: "V33", level: Error, invalid: []invalidCase{{"invalid", "ADDED requirements only"}, {"invalid", "source.md is missing"}}},
-		{rule: "V33", mode: Deliver, level: Error, valid: "valid-deliver", invalid: []invalidCase{{"invalid-2", "no \"sampled:"}}},
+		{rule: "V33", mode: Deliver, level: Error, valid: "valid-deliver", invalid: []invalidCase{{"invalid-2", "no \"sampled:"}, {"invalid-3", "no \"sampled:"}}},
 		{rule: "V34", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "no ## Purpose"}, {"invalid-2", "placeholder"}}},
 		{rule: "V35", level: Error, invalid: []invalidCase{{"invalid", "--strict failed"}}, tune: func(o *Options) { o.OpenSpec = stubOpenSpec; o.Strict = true }},
 	}
@@ -376,5 +376,21 @@ func TestOldLiveEntryIsATarget(t *testing.T) {
 	}
 	if !found {
 		t.Error("the template folder 0000 must not be an after target")
+	}
+}
+
+// The seed template carries a note about the sampled line inside an HTML
+// comment. It is no sample: V33 neither reads it as a malformed line nor as a
+// sample (deliver mode still wants the real line).
+func TestV33IgnoresSampledLineInComment(t *testing.T) {
+	root := materialize(t, "V33", "invalid-3")
+	res, err := Run(Options{Root: root, Mode: Accept, Today: "2026-10-11", SchemaPath: schemaPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range res.Findings {
+		if f.Rule == "V33" {
+			t.Errorf("accept mode: a commented sampled line drew %s", f)
+		}
 	}
 }
