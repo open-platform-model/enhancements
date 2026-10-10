@@ -39,7 +39,9 @@
 
 ## Capabilities
 
-No capability yet. `openspec/specs/` fills when an entry or a seed is delivered.
+| Capability | Requirements | Purpose |
+| ---------- | ------------ | ------- |
+| [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
 
