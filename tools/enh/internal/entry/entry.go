@@ -183,7 +183,7 @@ var (
 	idDirRe    = regexp.MustCompile(`^\d{4}$`)
 	taskRe     = regexp.MustCompile(`^- \[( |x|X)\] (\d+)\.(\d+) ([^:]+): (.+)$`)
 	taskLikeRe = regexp.MustCompile(`^\s*- \[[ xX]\]`)
-	refRe      = regexp.MustCompile(`\s\(([^()]+)\)\s*$`)
+	refRe      = regexp.MustCompile("\\s\\(`?([^()`]+)`?\\)\\s*$")
 	questionRe = regexp.MustCompile(`^\s*[-*]\s+(Blocking|Not blocking|Answered):\s*(.*)$`)
 )
 
