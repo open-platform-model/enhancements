@@ -1015,6 +1015,187 @@ tasks:
     cmds:
       - go run . vet --mode {{.MODE | default "draft"}} {{.ID}}
 
+  # The tasks below are one-line calls to `enh` (design part two, section 3).
+  # They carry the prefix `enh:` while the old tasks of the same names exist;
+  # the CI task (T3.4) removes the old ones and drops the prefix. Values of
+  # the command line are shell-quoted, so a value with spaces or quotes stays
+  # one argument. CONFIRM=1 is read by `enh` itself.
+  enh:new:
+    desc: "Make a draft entry: id, openspec change, config.yaml, index"
+    summary: |
+      Usage:
+        task enh:new SLUG=my-feature TITLE="My Feature" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . new {{.SLUG | default "" | shellQuote}} {{.TITLE | default "" | shellQuote}} {{.SUMMARY | default "" | shellQuote}} {{.CATEGORY | default "" | shellQuote}} {{.AFFECTS | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:seed:new:
+    desc: "Make the seed change seed-CAP"
+    summary: |
+      Usage:
+        task enh:seed:new CAP=registration-acceptance
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . seed:new {{.CAP | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:accept:
+    desc: "Accept a draft: print the sample and collisions (CONFIRM=1 writes the record)"
+    summary: |
+      Usage:
+        task enh:accept ID=0013
+        CONFIRM=1 task enh:accept ID=0013
+        task enh:accept ID=seed-registration-acceptance
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . accept {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:resample:
+    desc: "Re-sample an accepted entry (CONFIRM=1 rewrites accepted)"
+    summary: |
+      Usage:
+        task enh:resample ID=0013
+        CONFIRM=1 task enh:resample ID=0013
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . resample {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:deliver:
+    desc: "Deliver an accepted entry or a seed: check, archive, index, commit"
+    summary: |
+      Usage:
+        task enh:deliver ID=0013
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . deliver {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:reject:
+    desc: "Reject a draft with a reason"
+    summary: |
+      Usage:
+        task enh:reject ID=0013 REASON="why"
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . reject {{.ID | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:withdraw:
+    desc: "Withdraw a draft or accepted entry with a reason"
+    summary: |
+      Usage:
+        task enh:withdraw ID=0013 REASON="why"
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . withdraw {{.ID | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:supersede:
+    desc: "Supersede an entry by one or more others"
+    summary: |
+      Usage:
+        task enh:supersede ID=0013 BY=0033 REASON="why"
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . supersede {{.ID | default "" | shellQuote}} {{.BY | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:tick:
+    desc: "Tick a task line and append (REF)"
+    summary: |
+      Usage:
+        task enh:tick ID=0013 LINE=1.1 REF=change-name
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . tick {{.ID | default "" | shellQuote}} {{.LINE | default "" | shellQuote}} {{.REF | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:index:
+    desc: "Write README.md of each entry, INDEX.md and GRAPH.md"
+    summary: |
+      Usage:
+        task enh:index
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . index {{.CLI_ARGS}}
+
+  enh:fresh:
+    desc: "Fail when a generated file is missing or stale"
+    summary: |
+      Usage:
+        task enh:fresh
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . fresh {{.CLI_ARGS}}
+
+  enh:history:
+    desc: "Print the history of a requirement"
+    summary: |
+      Usage:
+        task enh:history REQ="A name"
+        task enh:history REQ="A name" CAP=capability
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . history {{.REQ | default "" | shellQuote}} {{if .CAP}}{{.CAP | shellQuote}}{{end}} {{.CLI_ARGS}}
+
+  enh:stale:
+    desc: "Print the stale-base flags of an accepted entry"
+    summary: |
+      Usage:
+        task enh:stale ID=0013
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . stale {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:links:
+    desc: "Check the links between entries"
+    summary: |
+      Usage:
+        task enh:links
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . links {{.CLI_ARGS}}
+
+  enh:reconcile:
+    desc: "Compare Delivers lines with ticks (needs sibling checkouts)"
+    summary: |
+      Usage:
+        task enh:reconcile
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . reconcile --workspace "{{.ROOT_DIR}}/.." {{.CLI_ARGS}}
+
+  enh:cite-lint:
+    desc: "Lint decision numbers and lone ids in Go and CUE comments"
+    summary: |
+      Usage:
+        task enh:cite-lint
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . cite-lint --root "{{.ROOT_DIR}}" {{.CLI_ARGS}}
+
+  enh:list:
+    desc: "List the live entries"
+    summary: |
+      Usage:
+        task enh:list
+        task enh:list -- --archived
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . list {{.CLI_ARGS}}
+
+  enh:show:
+    desc: "Print the facts of one entry"
+    summary: |
+      Usage:
+        task enh:show ID=0013
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . show {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  enh:questions:
+    desc: "Print the open questions of one entry"
+    summary: |
+      Usage:
+        task enh:questions ID=0013
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . questions {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+
   vet:one:
     desc: Validate a single enhancement (ID=NNNN)
     summary: |
