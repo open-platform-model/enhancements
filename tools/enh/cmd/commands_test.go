@@ -325,3 +325,51 @@ func TestFindRootErrors(t *testing.T) {
 		t.Errorf("exit %d err %q", code, e.String())
 	}
 }
+
+// vet takes the base of V7, V27 and V31 from --base, else from origin/main,
+// else from main, and prints a skipped line when none of them exists.
+func TestVetBase(t *testing.T) {
+	skipped := "V7 ancestry, V27, V31: no base ref"
+	closed := func(r *repo) {
+		// edit an old closed folder on a branch: V31 needs a base to see it
+		r.put("archive/0001/README.md", "# old\n")
+		testrepo.Commit(t, r.root, "docs: add closed readme")
+		testrepo.Git(t, r.root, "checkout", "-q", "-b", "work")
+		r.put("archive/0001/config.yaml", "id: \"0001\"\nslug: old\ntitle: Old edited\nstatus: delivered\ncategory: tooling\ncreated: 2026-01-01\nupdated: 2026-02-01\n")
+		testrepo.Commit(t, r.root, "docs: edit a closed entry")
+	}
+
+	r := newRepo(t)
+	closed(r)
+	code, out, errOut := r.do("vet")
+	if code != ExitError || !strings.Contains(out, "V31") || strings.Contains(out, skipped) {
+		t.Errorf("default base main: exit %d\n%s\n%s", code, out, errOut)
+	}
+
+	// an explicit base wins: HEAD itself as the base shows no edit
+	code, out, errOut = r.do("vet", "--base", "HEAD")
+	if code != ExitOK || strings.Contains(out, "V31") || strings.Contains(out, skipped) {
+		t.Errorf("--base HEAD: exit %d\n%s\n%s", code, out, errOut)
+	}
+
+	// origin/main is preferred when it exists; here it points at the work commit
+	testrepo.Git(t, r.root, "update-ref", "refs/remotes/origin/main", "HEAD")
+	code, out, errOut = r.do("vet")
+	if code != ExitOK || strings.Contains(out, "V31") {
+		t.Errorf("origin/main preferred: exit %d\n%s\n%s", code, out, errOut)
+	}
+
+	// no main and no origin/main: the rules are skipped and the line says so
+	r2 := newRepo(t)
+	testrepo.Git(t, r2.root, "branch", "-m", "trunk")
+	code, out, errOut = r2.do("vet")
+	if code != ExitOK || !strings.Contains(out, skipped) {
+		t.Errorf("no base: exit %d\n%s\n%s", code, out, errOut)
+	}
+
+	// a bad ref is an error, not a skip
+	code, _, errOut = r.do("vet", "--base", "no-such-branch")
+	if code != ExitUsage || !strings.Contains(errOut, "merge base") {
+		t.Errorf("bad base: exit %d\n%s", code, errOut)
+	}
+}

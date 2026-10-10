@@ -18,13 +18,14 @@ import (
 var commands = []command{
 	{
 		name: "vet", synopsis: "vet [flags] [ID|FOLDER ...]", summary: "check every entry, or the named ones",
-		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).",
+		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).\nV7, V27 and V31 compare with a base ref and run only when one exists; a CI run passes the base of the pull\nrequest with --base. Without a ref they print a skipped line.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.mode, "mode", "draft", "draft, accept or deliver")
 			fs.BoolVar(&o.openspec, "openspec", false, "also run the openspec CLI: validate at accept and deliver (V32)")
 			fs.BoolVar(&o.strict, "strict", false, "with --openspec, run validate --strict (V35)")
 			fs.StringVar(&o.today, "today", "", "the date that bounds \"created\" (default: today, UTC)")
+			fs.StringVar(&o.base, "base", "", "the base ref of the pull request, for V7, V27 and V31 (default: origin/main when it exists, else main)")
 		},
 		min: 0, max: -1, run: runVet,
 	},
@@ -202,6 +203,7 @@ func runVet(c *call) int {
 	opts := vet.Options{
 		Root: env.Root, Mode: m, Keys: c.args, Today: c.o.today, SchemaPath: c.o.schema,
 		Strict: c.o.strict, Final: c.d.Getenv("ENH_FINAL") == "1",
+		Base: c.vetBase(env.Root),
 	}
 	if c.o.openspec {
 		opts.OpenSpec = vet.Runner(c.d.Runner)
