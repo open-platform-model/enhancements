@@ -195,7 +195,7 @@ func TestAcceptSeedWritesOnlyTheSampledLine(t *testing.T) {
 	f.env.Seed = seedPtr(5)
 	f.mustNil(f.env.Accept("seed-new-cap"))
 	out := f.out.String()
-	if !strings.Contains(out, "max(3, 10 percent of 8) = 3 requirements") || strings.Count(out, "[ADDED] ") != 3 {
+	if !strings.Contains(out, "Sample: 3 of 8 ADDED requirements") || strings.Count(out, "[ADDED] ") != 3 {
 		t.Errorf("seed sample:\n%s", out)
 	}
 	if strings.Contains(out, "Collision review") {
@@ -214,5 +214,19 @@ func TestAcceptSeedWritesOnlyTheSampledLine(t *testing.T) {
 	}
 	if f.exists("openspec/changes/seed-new-cap/config.yaml") || f.exists("README.md") {
 		t.Error("accept of a seed wrote another file")
+	}
+}
+
+func TestCollisionListKeepsARenamedRequirement(t *testing.T) {
+	f := newFx(t)
+	f.addedDelta(1, "")
+	d := f.read(demo + "/specs/demo-cap/spec.md")
+	f.write(demo+"/specs/demo-cap/spec.md", d+"### Requirement: Readiness of every platform is reported\n\nThe operator SHALL report readiness of every platform.\n\n#### Scenario: S\n\n- **WHEN** a\n- **THEN** b\n\n")
+	f.write(demo+"/specs/existing-cap/spec.md", "## RENAMED Requirements\n\n- FROM: `### Requirement: Readiness is reported`\n- TO: `### Requirement: Readiness is shown`\n")
+	f.mustNil(f.env.Accept("0100"))
+	out := f.out.String()
+	i := strings.Index(out, "demo-cap/Readiness of every platform is reported\n    ")
+	if i < 0 || !strings.Contains(out[i:], "| existing-cap/Readiness is reported") {
+		t.Errorf("a renamed requirement must stay in the collision list\n%s", out[i:])
 	}
 }

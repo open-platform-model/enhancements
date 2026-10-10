@@ -64,11 +64,14 @@ func universe(st *entry.Store) []sample.Req {
 	return out
 }
 
-// skipTargets returns a filter that drops the requirements the entry removes,
-// modifies or renames: the collision list is about what is new.
+// skipTargets returns a filter that drops the requirements the entry removes
+// or modifies: the collision list is about what is new.
 func skipTargets(en *entry.Entry) func(sample.Req) bool {
 	skip := map[string]bool{}
 	for _, t := range stale.Targets(en.Specs) {
+		if t.Op == stale.OpRenamed {
+			continue // the design skips what the entry removes or modifies
+		}
 		skip[t.Capability+"/"+t.Name] = true
 	}
 	return func(r sample.Req) bool { return skip[r.ID()] }

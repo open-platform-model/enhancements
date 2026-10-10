@@ -18,7 +18,7 @@ type options struct {
 	mode, today, seed, id, author           string
 	workspace, filesFrom                    string
 	confirm, noCommit, noValidate, archived bool
-	openspec, strict, skipStrings           bool
+	openspec, strict                        bool
 	exclude                                 stringList
 }
 

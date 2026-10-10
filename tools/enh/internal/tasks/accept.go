@@ -129,7 +129,7 @@ func (e *Env) seedSample(en *entry.Entry, seed uint64) {
 		return
 	}
 	k := sample.Count(len(added))
-	e.printf("\nSample: max(3, 10 percent of %d) = %d requirements, drawn at random.\n", len(added), k)
+	e.printf("\nSample: %d of %d ADDED requirements, drawn at random: max(3, 10 percent), rounded up, all if fewer than 3.\n", k, len(added))
 	e.printf("Random seed: %d (repeat the draw with --seed %d)\n", seed, seed)
 	e.printf("Say for each: fine, or refine.\n")
 	for _, i := range sample.Draw(len(added), k, seed) {

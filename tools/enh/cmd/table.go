@@ -59,8 +59,11 @@ var commands = []command{
 	},
 	{
 		name: "resample", synopsis: "resample [flags] ID", summary: "print stale flags and edited requirements of an accepted entry",
-		help:  "A plain run prints each stale-base flag with both texts, then every requirement that differs from the entry\ntext on the main commit that last wrote accepted:, each with its 3 nearest requirements. It never refuses on\na flag. CONFIRM=1 (or --confirm) rewrites accepted:, which is the reconciliation.",
-		flags: confirmFlags, min: 1, max: 1, run: func(c *call) int {
+		help: "A plain run prints each stale-base flag with both texts, then every requirement that differs from the entry\ntext on the main commit that last wrote accepted:, each with its 3 nearest requirements. It never refuses on\na flag. CONFIRM=1 (or --confirm) rewrites accepted:, which is the reconciliation.",
+		flags: func(fs *flag.FlagSet, o *options) {
+			gitFlags(fs, o)
+			fs.BoolVar(&o.confirm, "confirm", false, "rewrite accepted: (the same as CONFIRM=1); needs a plain run on the same commit first")
+		}, min: 1, max: 1, run: func(c *call) int {
 			return c.withEnv(func(e *tasks.Env) error { return e.Resample(c.args[0]) })
 		},
 	},
@@ -143,7 +146,6 @@ var commands = []command{
 			fs.StringVar(&o.root, "root", "", "the repo to lint (default: the current directory)")
 			fs.StringVar(&o.filesFrom, "files-from", "", "read the paths from this file, newline or NUL separated; - is standard input")
 			fs.Var(&o.exclude, "exclude", "skip a path pattern; repeat the flag for more")
-			fs.BoolVar(&o.skipStrings, "skip-strings", false, "do not check string literals")
 		},
 		min: 0, max: -1, run: runCiteLint,
 	},
@@ -329,7 +331,7 @@ func runCiteLint(c *call) int {
 	if len(paths) == 0 {
 		paths = []string{"."}
 	}
-	res, err := citelint.LintFiles(root, paths, citelint.Options{Exclude: c.o.exclude, SkipStrings: c.o.skipStrings})
+	res, err := citelint.LintFiles(root, paths, citelint.Options{Exclude: c.o.exclude})
 	if err != nil {
 		fmt.Fprintf(c.errOut, "enh cite-lint: %v\n", err)
 		return ExitUsage
