@@ -38,8 +38,6 @@ const maxPerFolder = 5
 
 var (
 	baseRefRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/@{}~^-]*$`)
-	// linkTargetRe finds the target of a Markdown inline link.
-	linkTargetRe = regexp.MustCompile(`\]\(([^)\s]+)\)`)
 )
 
 func gitFiles(root, ref, dir string) ([]byte, error) {
@@ -119,9 +117,13 @@ func (r *run) acceptedAncestry(e *ent) {
 
 // V27 for an entry: its requirement text differs from Base while accepted is unchanged.
 func (r *run) editAfterAccept(e *ent) {
-	baseCfg, ok := r.baseFile(path.Join(e.rel, "config.yaml"))
+	baseDir, ok := r.baseFolder(e)
 	if !ok {
 		return // the entry is new on this branch
+	}
+	baseCfg, ok := r.baseFile(path.Join(baseDir, "config.yaml"))
+	if !ok {
+		return
 	}
 	var c struct {
 		Accepted string `yaml:"accepted"`
@@ -132,12 +134,13 @@ func (r *run) editAfterAccept(e *ent) {
 	if c.Accepted != e.Config.Accepted {
 		return // rewritten by a re-sample or a new accept
 	}
-	r.compareSpecs(e, "accepted")
+	r.compareSpecs(e, baseDir, "accepted")
 }
 
 // V27 for a seed: the requirement text differs from Base after `sampled:`.
 func (r *run) editAfterSample(e *ent) {
-	baseSrc, ok := r.baseFile(path.Join(e.rel, "source.md"))
+	baseDir := e.rel
+	baseSrc, ok := r.baseFile(path.Join(baseDir, "source.md"))
 	if !ok {
 		return
 	}
@@ -149,20 +152,56 @@ func (r *run) editAfterSample(e *ent) {
 	if hm != nil && strings.TrimSpace(hm[1]) != strings.TrimSpace(string(bm[1])) {
 		return // sampled again
 	}
-	r.compareSpecs(e, "sampled")
+	r.compareSpecs(e, baseDir, "sampled")
 }
 
-// baseFile reads a file at the base ref; ok is false when it is not there.
+// defaultGitMergeBase returns the best common ancestor of two refs.
+func defaultGitMergeBase(root, a, b string) (string, error) {
+	out, err := exec.Command("git", "-C", root, "merge-base", a, b).Output()
+	if err != nil {
+		return "", fmt.Errorf("git merge-base %s %s: %w", a, b, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// baseFolder finds the folder of an entry at the comparison point. A rename
+// of the slug moves the folder, so the id decides, not the head path.
+func (r *run) baseFolder(e *ent) (string, bool) {
+	if _, ok := r.baseFile(path.Join(e.rel, "config.yaml")); ok {
+		return e.rel, true
+	}
+	if e.isSeed() || e.FolderID == "" {
+		return "", false
+	}
+	files, err := r.opts.GitFiles(r.store.Root, r.since, "openspec/changes")
+	if err != nil {
+		return "", false
+	}
+	prefix := "openspec/changes/" + e.FolderID + "-"
+	var found []string
+	for _, f := range files {
+		if strings.HasPrefix(f, prefix) && path.Base(f) == "config.yaml" && strings.Count(strings.TrimPrefix(f, "openspec/changes/"), "/") == 1 {
+			found = append(found, path.Dir(f))
+		}
+	}
+	sort.Strings(found)
+	if len(found) == 0 {
+		return "", false
+	}
+	return found[0], true
+}
+
+// baseFile reads a file at the comparison point; ok is false when it is not there.
 func (r *run) baseFile(rel string) ([]byte, bool) {
-	b, err := r.opts.GitShow(r.store.Root, r.opts.Base, rel)
+	b, err := r.opts.GitShow(r.store.Root, r.since, rel)
 	return b, err == nil
 }
 
 // compareSpecs reports every requirement of e that is new or differs from the
 // copy at Base. A requirement that only left the entry is not reported: no
 // text remains to sample.
-func (r *run) compareSpecs(e *ent, marker string) {
-	files, err := r.opts.GitFiles(r.store.Root, r.opts.Base, path.Join(e.rel, "specs"))
+func (r *run) compareSpecs(e *ent, baseDir, marker string) {
+	files, err := r.opts.GitFiles(r.store.Root, r.since, path.Join(baseDir, "specs"))
 	if err != nil {
 		r.add(e, "V27", Error, e.rel, 0, "cannot read specs/ at %s: %s", r.opts.Base, firstLine(err.Error()))
 		return
@@ -228,7 +267,7 @@ func (r *run) closedFolders() {
 		return
 	}
 	for _, ar := range archiveRoots {
-		files, err := r.opts.GitFiles(r.store.Root, r.opts.Base, ar.dir)
+		files, err := r.opts.GitFiles(r.store.Root, r.since, ar.dir)
 		if err != nil {
 			r.add(nil, "V31", Error, ar.dir, 0, "cannot list %s at %s: %s", ar.dir, r.opts.Base, firstLine(err.Error()))
 			continue
@@ -287,7 +326,7 @@ func (r *run) closedFolder(dir string, baseFiles []string, generatedMD bool) {
 			problems = append(problems, fmt.Sprintf("%s cannot be read: %s", f, firstLine(err.Error())))
 			continue
 		}
-		old, err := r.opts.GitShow(r.store.Root, r.opts.Base, f)
+		old, err := r.opts.GitShow(r.store.Root, r.since, f)
 		if err != nil {
 			problems = append(problems, fmt.Sprintf("%s cannot be read at %s: %s", f, r.opts.Base, firstLine(err.Error())))
 			continue
@@ -322,10 +361,15 @@ func (r *run) closedFolder(dir string, baseFiles []string, generatedMD bool) {
 	}
 }
 
-// linkFixOnly reports whether head differs from old only by links that left
-// the folder: the same lines, and on each changed line every link that
-// pointed out of the folder is gone (the M4 rewrite into the words
-// "enhancement NNNN").
+// outLinkRe finds an inline link whose target leaves the folder.
+var outLinkRe = regexp.MustCompile(`\[([^\]]*)\]\((\.\./[^)\s]*)\)`)
+
+var idInTargetRe = regexp.MustCompile(`\b(\d{4})\b`)
+
+// linkFixOnly reports whether head differs from old only by the M4 rewrite:
+// the same lines, and on each changed line every link that pointed out of the
+// folder became its label or the words "enhancement NNNN" (NNNN is the id in
+// the target). Any other word that changed fails.
 func linkFixOnly(old, head string) bool {
 	ol := strings.Split(strings.ReplaceAll(old, "\r\n", "\n"), "\n")
 	hl := strings.Split(strings.ReplaceAll(head, "\r\n", "\n"), "\n")
@@ -336,20 +380,35 @@ func linkFixOnly(old, head string) bool {
 		if ol[i] == hl[i] {
 			continue
 		}
-		out := 0
-		for _, m := range linkTargetRe.FindAllStringSubmatch(ol[i], -1) {
-			t := m[1]
-			if !strings.HasPrefix(t, "../") {
-				continue
-			}
-			if strings.Contains(hl[i], "]("+t+")") {
-				return false // an out-of-folder link is still there
-			}
-			out++
-		}
-		if out == 0 {
-			return false // the line changed but held no such link
+		if !lineLinkFixed(ol[i], hl[i]) {
+			return false
 		}
 	}
 	return true
+}
+
+// lineLinkFixed builds a pattern from the old line, with each out-of-folder
+// link replaced by the spellings the fix allows, and matches the new line.
+func lineLinkFixed(old, head string) bool {
+	locs := outLinkRe.FindAllStringSubmatchIndex(old, -1)
+	if len(locs) == 0 {
+		return false
+	}
+	var pat strings.Builder
+	pat.WriteString("^")
+	last := 0
+	for _, m := range locs {
+		pat.WriteString(regexp.QuoteMeta(old[last:m[0]]))
+		label, target := old[m[2]:m[3]], old[m[4]:m[5]]
+		alts := []string{regexp.QuoteMeta(label), regexp.QuoteMeta("enhancement " + label)}
+		if id := idInTargetRe.FindString(target); id != "" {
+			alts = append(alts, regexp.QuoteMeta("enhancement "+id))
+		}
+		pat.WriteString("(?:" + strings.Join(alts, "|") + ")")
+		last = m[1]
+	}
+	pat.WriteString(regexp.QuoteMeta(old[last:]))
+	pat.WriteString("$")
+	re, err := regexp.Compile(pat.String())
+	return err == nil && re.MatchString(head)
 }

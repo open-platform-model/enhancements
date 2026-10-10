@@ -122,6 +122,11 @@ type Options struct {
 	// GitAncestor reports whether commit is an ancestor of ref; an unknown
 	// commit is an error. The default runs `git merge-base --is-ancestor`.
 	GitAncestor func(root, commit, ref string) (bool, error)
+	// GitMergeBase returns the best common ancestor of two refs. V27 and V31
+	// compare with the merge base of Base and HEAD, so a branch that is behind
+	// Base does not see what Base gained as a deletion. The default runs
+	// `git merge-base`.
+	GitMergeBase func(root, a, b string) (string, error)
 }
 
 // Result is the outcome of a run.
@@ -169,7 +174,10 @@ type run struct {
 	store  *entry.Store
 	schema *cueschema.Schema
 	today  string
-	res    *Result
+	// since is the merge base of Options.Base and HEAD: the comparison point
+	// of V27 and V31. Empty without a Base.
+	since string
+	res   *Result
 }
 
 // ent is an entry plus the per-entry state of a run.
@@ -212,10 +220,20 @@ func Run(opts Options) (*Result, error) {
 	if opts.GitAncestor == nil {
 		opts.GitAncestor = defaultGitAncestor
 	}
+	if opts.GitMergeBase == nil {
+		opts.GitMergeBase = defaultGitMergeBase
+	}
 	if opts.Base != "" && !baseRefRe.MatchString(opts.Base) {
 		return nil, fmt.Errorf("vet: base ref %q is not a plain ref name", opts.Base)
 	}
 	r := &run{opts: opts, store: st, schema: sch, today: opts.Today, res: &Result{}}
+	if opts.Base != "" {
+		mb, err := opts.GitMergeBase(st.Root, opts.Base, "HEAD")
+		if err != nil {
+			return nil, fmt.Errorf("vet: cannot find the merge base of %s and HEAD (a shallow clone lacks it; fetch the full history): %w", opts.Base, err)
+		}
+		r.since = mb
+	}
 	if opts.OpenSpec == nil {
 		r.res.Skipped = append(r.res.Skipped, "V32 V35: no openspec runner (pass --openspec)")
 	}

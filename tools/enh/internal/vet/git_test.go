@@ -320,8 +320,26 @@ func TestV27EditAfterAccept(t *testing.T) {
 			t.Errorf("an entry that is not at the base is new:\n%s", dump(res))
 		}
 	})
-	t.Run("the hook reads the base", func(t *testing.T) {
+	t.Run("a slug rename with an edit", func(t *testing.T) {
 		g, _, _ := newGitRepo(t)
+		g.git("mv", entryDir, "openspec/changes/0100-new-slug")
+		g.replace("openspec/changes/0100-new-slug/config.yaml", "slug: demo-entry", "slug: new-slug")
+		g.replace("openspec/changes/0100-new-slug/specs/demo-cap/spec.md", ruleText, "The checker SHALL accept every entry.")
+		res := g.vet(nil)
+		if !has(res, "V27", "differs from main while accepted is unchanged") {
+			t.Errorf("a renamed folder is still the same entry:\n%s", dump(res))
+		}
+	})
+	t.Run("a slug rename alone", func(t *testing.T) {
+		g, _, _ := newGitRepo(t)
+		g.git("mv", entryDir, "openspec/changes/0100-new-slug")
+		g.replace("openspec/changes/0100-new-slug/config.yaml", "slug: demo-entry", "slug: new-slug")
+		if res := g.vet(nil); count(res, "V27") != 0 {
+			t.Errorf("a rename with no edit is silent:\n%s", dump(res))
+		}
+	})
+	t.Run("the hook reads the merge base", func(t *testing.T) {
+		g, _, two := newGitRepo(t)
 		g.replace(specFile, ruleText, "The checker SHALL accept every entry.")
 		var asked []string
 		res := g.vet(func(o *Options) {
@@ -330,8 +348,8 @@ func TestV27EditAfterAccept(t *testing.T) {
 				return gitShow(root, ref, p)
 			}
 		})
-		if !has(res, "V27", "differs") || len(asked) == 0 || !strings.HasPrefix(asked[0], "main:") {
-			t.Errorf("GitShow was not asked for the base: %v", asked)
+		if !has(res, "V27", "differs") || len(asked) == 0 || !strings.HasPrefix(asked[0], two+":") {
+			t.Errorf("GitShow was not asked for the merge base %s: %v", two, asked)
 		}
 	})
 }
@@ -448,6 +466,13 @@ func TestV31ClosedFolders(t *testing.T) {
 			t.Errorf("another edit beside the link fix must fail:\n%s", dump(res))
 		}
 	})
+	t.Run("the link fix with other words changed", func(t *testing.T) {
+		g, _, _ := newGitRepo(t)
+		g.replace(oldDir+"/02-design.md", "See [0014](../../0014/) for the rest.", "We now decide the opposite.")
+		if res := g.vet(nil); !has(res, "V31", "was changed") {
+			t.Errorf("a rewrite of the words is not the link fix:\n%s", dump(res))
+		}
+	})
 	t.Run("a link line that keeps its link", func(t *testing.T) {
 		g, _, _ := newGitRepo(t)
 		g.replace(oldDir+"/02-design.md", "for the rest.", "for all the rest.")
@@ -467,6 +492,24 @@ func TestV31ClosedFolders(t *testing.T) {
 		g.write("openspec/changes/archive/2026-10-11-0103-new-entry/proposal.md", "new\n")
 		if res := g.vet(nil); count(res, "V31") != 0 {
 			t.Errorf("a folder that is not at the base is the archive itself:\n%s", dump(res))
+		}
+	})
+	t.Run("a branch that is behind the base", func(t *testing.T) {
+		g, _, _ := newGitRepo(t)
+		g.git("branch", "feature")
+		// main archives a folder after the branch point.
+		g.write("openspec/changes/archive/2026-10-10-0103-later/proposal.md", "archived on main\n")
+		g.write("archive/0002/02-design.md", "an old folder that main gained\n")
+		g.commit("three: main archives more")
+		g.git("checkout", "-q", "feature")
+		res := g.vet(nil)
+		if count(res, "V31") != 0 {
+			t.Errorf("what main gained since the branch point is not a deletion:\n%s", dump(res))
+		}
+		// An edit on the branch is still seen.
+		g.replace(closedDir+"/proposal.md", "The text", "Other text")
+		if res := g.vet(nil); !has(res, "V31", "proposal.md was changed") {
+			t.Errorf("an edit on the branch must still fail:\n%s", dump(res))
 		}
 	})
 	t.Run("keys limit the folders", func(t *testing.T) {
@@ -490,9 +533,15 @@ func TestLinkFixOnly(t *testing.T) {
 		want            bool
 	}{
 		{"same", "a\n", "a\n", true},
-		{"link removed", "See [x](../../0014/).\n", "See enhancement 0014.\n", true},
+		{"link into the words", "See [x](../../0014/).\n", "See enhancement 0014.\n", true},
+		{"link into its label", "See [the design](../../0014/02-design.md) now.\n", "See the design now.\n", true},
+		{"id from the target", "See [the design](../../0014/02-design.md) now.\n", "See enhancement 0014 now.\n", true},
+		{"link removed and words changed", "See [0014](../../0014/) for the rest.\n", "We now decide the opposite.\n", false},
+		{"link fixed and a word changed", "See [0014](../../0014/) for the rest.\n", "See enhancement 0014 for all the rest.\n", false},
 		{"two links, one left", "[a](../a/) [b](../b/)\n", "enhancement a [b](../b/)\n", false},
-		{"two links, both gone", "[a](../a/) [b](../b/)\n", "enhancement a and b\n", true},
+		{"two links, both fixed", "[a](../a/) [b](../b/)\n", "enhancement a b\n", true},
+		{"two links, a new word", "[a](../a/) [b](../b/)\n", "enhancement a and b\n", false},
+		{"target changed", "[a](../a/)\n", "[a](../b/)\n", false},
 		{"an inside link changes", "[a](a.md)\n", "[a](b.md)\n", false},
 		{"a link kept and text changed", "[a](../a/) now\n", "[a](../a/) later\n", false},
 		{"line added", "x\n", "x\ny\n", false},
