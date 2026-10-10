@@ -1,0 +1,7 @@
+log:
+  - date: "2026-08-07"
+    summary: one
+  - date: "2026-08-28"
+    summary: two
+  - date: "2026-08-10"
+    summary: three

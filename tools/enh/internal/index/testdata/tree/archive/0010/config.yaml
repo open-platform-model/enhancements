@@ -1,0 +1,11 @@
+id: "0010"
+slug: artifact-identity
+title: Module and Catalog Identity
+summary: Make the module path the artifact's whole identity, major included.
+status: delivered
+category: distribution
+affects: [core]
+created: "2026-07-26"
+updated: "2026-09-19"
+authors: [emil@jacero.se]
+superseded_by: null

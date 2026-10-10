@@ -1,0 +1,11 @@
+id: "0042"
+slug: old-news
+title: Old News
+summary: Delivered long ago, and nothing live leans on it.
+status: delivered
+category: tooling
+breaking: false
+affects: [enhancements]
+authors: [emil@jacero.se]
+created: "2026-09-01"
+accepted: "2026-09-02 7654321"

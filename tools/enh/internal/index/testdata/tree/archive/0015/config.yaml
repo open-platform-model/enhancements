@@ -1,0 +1,10 @@
+id: "0015"
+slug: catalog-contracts
+title: Catalog Contracts and Transformer Registration
+summary: A Catalog lists the resources it defines.
+status: delivered
+category: schema
+affects: [core]
+created: "2026-08-01"
+updated: "2026-09-19"
+authors: [emil@jacero.se]

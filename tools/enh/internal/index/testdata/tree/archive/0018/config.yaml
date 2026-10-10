@@ -1,0 +1,11 @@
+id: "0018"
+slug: documentation-architecture
+title: Documentation Architecture
+summary: Organise the docs by what a reader is holding.
+status: rejected
+category: misc
+affects: [opmodel.dev]
+created: "2026-08-01"
+updated: "2026-09-19"
+authors: [emil@jacero.se]
+rejected_reason: 'Not rejected on merit. Page rules live in STYLE.md | voice in VOICE.md.'

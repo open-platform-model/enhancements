@@ -1,0 +1,11 @@
+id: "0041"
+slug: all-shipped
+title: All Shipped
+summary: Every task is ticked.
+status: accepted
+category: tooling
+breaking: false
+affects: [enhancements]
+authors: [emil@jacero.se]
+created: "2026-10-01"
+accepted: "2026-10-03 abcdef2"

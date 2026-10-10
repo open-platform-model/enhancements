@@ -1,0 +1,12 @@
+id: "0034"
+slug: rejected-idea
+title: Rejected Idea
+summary: An idea nobody wanted.
+status: rejected
+category: misc
+affects: [opm]
+authors: [emil@jacero.se]
+created: "2026-09-20"
+rejected:
+  date: 2026-10-15
+  reason: Not needed | the platform already does it.
