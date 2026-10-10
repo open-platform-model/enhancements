@@ -7,7 +7,9 @@
 //   - a link inside one entry is allowed: it moves with the folder;
 //   - every other relative link of a published file must resolve.
 //
-// It replaces scripts/check-links.sh and relink.sh.
+// Only new-layout entries are checked as sources: the folders NNNN/ and
+// archive/NNNN/ are skipped until migration step M4 has rewritten their
+// cross-entry links. It replaces scripts/check-links.sh and relink.sh.
 package links
 
 import (
@@ -65,6 +67,8 @@ type place struct {
 	entry string
 	// archive is true for the archive folder itself, with no entry named.
 	archive bool
+	// legacy is true for an old-layout entry folder: NNNN/ or archive/NNNN/.
+	legacy bool
 }
 
 // locate classifies a clean, repo-relative, slash-separated path.
@@ -78,9 +82,9 @@ func locate(p string) place {
 	case strings.HasPrefix(p, changesDir+"/"):
 		return place{entry: changesDir + "/" + segs[2]}
 	case segs[0] == legacyArchiveDir && len(segs) > 1:
-		return place{entry: legacyArchiveDir + "/" + segs[1]}
+		return place{entry: legacyArchiveDir + "/" + segs[1], legacy: true}
 	case entryIDRe.MatchString(segs[0]):
-		return place{entry: segs[0]}
+		return place{entry: segs[0], legacy: true}
 	}
 	return place{}
 }
@@ -249,6 +253,13 @@ func check(root string, files []string, resolves func(string) bool) (Result, err
 	var errs []error
 	for _, f := range files {
 		f = path.Clean(filepath.ToSlash(f))
+		// The old-layout folders are checked again only if the owner asks;
+		// they hold 67 links between entries that migration step M4 removes
+		// (DECISIONS.md 2026-10-10 23:20). A link from a new-layout file
+		// into one of them is still refused.
+		if locate(f).legacy {
+			continue
+		}
 		src, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(f)))
 		if err != nil {
 			errs = append(errs, err)
