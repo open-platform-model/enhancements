@@ -30,6 +30,18 @@ func (c *checker) git(args ...string) ([]byte, error) {
 	return out, nil
 }
 
+// gitAllowFail is git for a command whose exit code 1 still prints a result
+// (merge-tree with a conflict). Any other failure is an error.
+func (c *checker) gitAllowFail(args ...string) ([]byte, error) {
+	cmd := exec.Command("git", append([]string{"-C", c.opts.Root}, args...)...)
+	out, err := cmd.Output()
+	var ee *exec.ExitError
+	if err != nil && !(errors.As(err, &ee) && ee.ExitCode() == 1) {
+		return nil, fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+	}
+	return out, nil
+}
+
 func (c *checker) gitString(args ...string) (string, error) {
 	out, err := c.git(args...)
 	return strings.TrimSpace(string(out)), err
@@ -73,6 +85,12 @@ func (c *checker) show(commit, file string) ([]byte, error) {
 // untar reads a tar stream of regular files and calls put with the path and
 // content of each. It refuses a path that leaves the archive root.
 func untar(data []byte, put func(name string, body []byte, exec bool) error) error {
+	return untarKinds(data, put, nil)
+}
+
+// untarKinds is untar with a callback for each entry that is not a regular
+// file or a directory (a symlink, for one).
+func untarKinds(data []byte, put func(name string, body []byte, exec bool) error, other func(name string)) error {
 	tr := tar.NewReader(bytes.NewReader(data))
 	for {
 		h, err := tr.Next()
@@ -83,7 +101,10 @@ func untar(data []byte, put func(name string, body []byte, exec bool) error) err
 			return err
 		}
 		if h.Typeflag != tar.TypeReg {
-			continue // directories come with their files; links are not in specs
+			if h.Typeflag != tar.TypeDir && h.Typeflag != tar.TypeXGlobalHeader && other != nil {
+				other(path.Clean(h.Name))
+			}
+			continue // directories come with their files
 		}
 		name := path.Clean(h.Name)
 		if path.IsAbs(name) || name == ".." || strings.HasPrefix(name, "../") {

@@ -50,11 +50,18 @@ func (c *checker) compareSpecs(scratch, head string) ([]string, error) {
 	}
 	got := map[string][]byte{}
 	if len(tarball) > 0 {
-		if err := untar(tarball, func(name string, body []byte, _ bool) error {
+		var odd []string
+		if err := untarKinds(tarball, func(name string, body []byte, _ bool) error {
 			got[name] = body
 			return nil
-		}); err != nil {
+		}, func(name string) { odd = append(odd, name) }); err != nil {
 			return nil, err
+		}
+		// OpenSpec reads a symlink under specs/ as a real spec; archive never writes one.
+		for _, name := range odd {
+			if name != specsDir {
+				got[name] = []byte("(not a regular file)")
+			}
 		}
 	}
 	var diffs []string

@@ -322,3 +322,31 @@ func TestWithoutPurpose(t *testing.T) {
 		t.Error("a body difference was hidden")
 	}
 }
+
+// A heading inside a code fence is example text, as OpenSpec's parser sees it.
+func TestWithoutPurposeIgnoresFencedHeadings(t *testing.T) {
+	a := "## Purpose\nOne.\n\n## Requirements\n\n```\n## Purpose\n```\n\n### Requirement: Other\n\nThe system SHALL do A.\n"
+	b := strings.Replace(a, "SHALL do A", "SHALL do B", 1)
+	if withoutPurpose(a) == withoutPurpose(b) {
+		t.Error("an edit after a fenced ## Purpose line was hidden")
+	}
+	c := strings.Replace(a, "One.", "Two.", 1)
+	if withoutPurpose(a) != withoutPurpose(c) {
+		t.Error("a Purpose edit was seen as a change")
+	}
+	tilde := strings.ReplaceAll(a, "```", "~~~")
+	if withoutPurpose(tilde) == withoutPurpose(strings.Replace(tilde, "SHALL do A", "SHALL do B", 1)) {
+		t.Error("a tilde fence was not tracked")
+	}
+}
+
+func TestASymlinkUnderSpecsIsADifference(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.deliver("0100-demo")
+	if err := os.Symlink("demo-cap", filepath.Join(r.root, "openspec/specs/alias")); err != nil {
+		t.Fatal(err)
+	}
+	r.commit("feat: deliver with a symlink")
+	wantFail(t, r.check(r.base), "openspec/specs/alias")
+}

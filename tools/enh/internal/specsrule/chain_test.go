@@ -80,3 +80,46 @@ func fullSHA(t *testing.T, r *rig, short string) string {
 	t.Helper()
 	return strings.TrimSpace(testrepo.Git(t, r.root, "rev-parse", short))
 }
+
+// A merge commit that carries an edit of specs/ which no parent has fails; a
+// clean merge of the base into the branch passes.
+func TestChainChecksMergeCommits(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	since := r.base
+	r.deliver("0100-demo")
+	r.commit("feat: deliver 0100")
+
+	// main moves on with a file outside specs/
+	testrepo.Git(t, r.root, "checkout", "-q", "main")
+	r.write("elsewhere.txt", "x")
+	r.commit("docs: main moves")
+	testrepo.Git(t, r.root, "checkout", "-q", "work")
+	testrepo.Git(t, r.root, "merge", "-q", "--no-edit", "main")
+
+	res, err := Chain(Options{Root: r.root}, since)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantOK(t, res)
+	if !strings.Contains(strings.Join(res.Lines, "\n"), "merge commit: openspec/specs equals the merge of its parents") {
+		t.Errorf("lines: %q", res.Lines)
+	}
+
+	// a second merge that edits specs/ inside the merge commit itself
+	testrepo.Git(t, r.root, "checkout", "-q", "main")
+	r.write("more.txt", "y")
+	r.commit("docs: main moves again")
+	testrepo.Git(t, r.root, "checkout", "-q", "work")
+	testrepo.Git(t, r.root, "merge", "-q", "--no-commit", "--no-ff", "main")
+	p := "openspec/specs/demo-cap/spec.md"
+	r.write(p, strings.Replace(r.read(p), "SHALL hold thing", "SHALL hold things", 1))
+	testrepo.Git(t, r.root, "add", p)
+	testrepo.Git(t, r.root, "commit", "-q", "-m", "Merge main with a hand edit")
+
+	res, err = Chain(Options{Root: r.root}, since)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantFail(t, res, "merge commit: openspec/specs differs from the merge of its parents")
+}

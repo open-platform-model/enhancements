@@ -9,8 +9,10 @@ import (
 // and entries in one pull request, so step 2 would fail it. Every commit
 // after `since` that touches openspec/specs/ is checked on its own against its
 // parent, in commit order: it must be one archive, and its specs/ must equal
-// the replay of that archive. A merge commit is skipped; the commits it brings
-// are checked on their own.
+// the replay of that archive. A merge commit brings no archive of its own: it
+// passes when its openspec/specs/ equals the clean merge of its two parents
+// (the commits it brings are checked on their own), and fails when it carries
+// an edit of specs/ that no parent has, such as a hand-resolved conflict.
 func Chain(opts Options, since string) (*Result, error) {
 	opts.defaults()
 	if since == "" {
@@ -45,7 +47,20 @@ func Chain(opts Options, since string) (*Result, error) {
 	if list != "" {
 		commits = strings.Split(list, "\n")
 	}
-	c.res.logf("specs-rule --chain: %d commit(s) after %s touch %s", len(commits), short(start), specsDir)
+	merges, err := c.gitString("rev-list", "--reverse", "--topo-order", "--merges", start+".."+head)
+	if err != nil {
+		return nil, err
+	}
+	var mergeCommits []string
+	if merges != "" {
+		mergeCommits = strings.Split(merges, "\n")
+	}
+	c.res.logf("specs-rule --chain: %d commit(s) after %s touch %s; %d merge commit(s) to compare", len(commits), short(start), specsDir, len(mergeCommits))
+	for _, m := range mergeCommits {
+		if err := c.checkMerge(m); err != nil {
+			return nil, fmt.Errorf("merge commit %s: %w", short(m), err)
+		}
+	}
 	for _, commit := range commits {
 		sub := &checker{opts: opts, res: &Result{}}
 		if err := sub.run(commit+"^", commit); err != nil {
@@ -59,4 +74,61 @@ func Chain(opts Options, since string) (*Result, error) {
 		}
 	}
 	return c.res, nil
+}
+
+// checkMerge compares openspec/specs/ of a merge commit with that of the merge
+// of its parents that git computes on its own. A difference means the merge
+// commit carries an edit of specs/ that came from no archive. A conflict
+// outside specs/ does not matter: only the specs/ subtree is compared.
+func (c *checker) checkMerge(commit string) error {
+	parents, err := c.gitString("rev-list", "--parents", "-n", "1", commit)
+	if err != nil {
+		return err
+	}
+	f := strings.Fields(parents)[1:]
+	if len(f) < 2 {
+		return fmt.Errorf("%s has %d parents, not a merge", commit, len(f))
+	}
+	if len(f) > 2 {
+		c.res.failf("%s: an octopus merge cannot be compared; merge two parents at a time", short(commit))
+		return nil
+	}
+	// A conflict makes merge-tree exit 1 but still print the tree on the
+	// first line, with the conflict markers in the conflicted files.
+	out, err := c.gitAllowFail("merge-tree", "--write-tree", f[0], f[1])
+	if err != nil {
+		return err
+	}
+	tree := strings.TrimSpace(strings.SplitN(string(out), "\n", 2)[0])
+	if tree == "" {
+		return fmt.Errorf("git merge-tree printed no tree")
+	}
+	want, err := c.specsTree(tree)
+	if err != nil {
+		return err
+	}
+	got, err := c.specsTree(commit)
+	if err != nil {
+		return err
+	}
+	if want != got {
+		c.res.failf("%s: merge commit: %s differs from the merge of its parents; a merge may not change specs/", short(commit), specsDir)
+		return nil
+	}
+	c.res.logf("%s: merge commit: %s equals the merge of its parents: pass", short(commit), specsDir)
+	return nil
+}
+
+// specsTree returns the object name of openspec/specs/ in a commit or tree, or
+// "" when it has none.
+func (c *checker) specsTree(rev string) (string, error) {
+	out, err := c.git("ls-tree", rev, "--", specsDir)
+	if err != nil {
+		return "", err
+	}
+	f := strings.Fields(string(out))
+	if len(f) < 3 {
+		return "", nil
+	}
+	return f[2], nil
 }
