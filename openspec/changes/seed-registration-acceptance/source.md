@@ -23,3 +23,5 @@ All read at the commit named. The requirement text is rewritten at intent level:
 
 - "Acceptance holds on both paths of the provider-set derivation": it describes how a test is built, a mechanism.
 - The own-major comparison in "A build-incompatible provider is refused at acceptance" (the second half of that requirement and its two last scenarios). The spec marks it `Source: 0015:D8, 0026:D7:R2, 0026:D9:R7`. A live entry owns it, so the seed holds the shipped behaviour of enhancement 0015 only. The code already has the own-major comparison (change `index-build-compat-by-major`, 2026-09-30).
+
+sampled: 2026-10-10 e99b116
