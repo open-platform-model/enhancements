@@ -152,3 +152,26 @@ func (g Git) Dir(name string) (string, error) {
 	}
 	return s, nil
 }
+
+// ArchiveOrder returns the order in which the folders under
+// openspec/changes/archive first appeared in the history of HEAD, oldest
+// first, to break a tie between two folders of one date.
+func (g Git) ArchiveOrder() (map[string]int, error) {
+	s, err := g.run("log", "--reverse", "--diff-filter=A", "--name-only", "--format=", "--", "openspec/changes/archive")
+	if err != nil {
+		return nil, err
+	}
+	const prefix = "openspec/changes/archive/"
+	order := map[string]int{}
+	for _, line := range strings.Split(s, "\n") {
+		rest, ok := strings.CutPrefix(line, prefix)
+		if !ok {
+			continue
+		}
+		folder, _, _ := strings.Cut(rest, "/")
+		if _, seen := order[folder]; !seen && folder != "" {
+			order[folder] = len(order)
+		}
+	}
+	return order, nil
+}

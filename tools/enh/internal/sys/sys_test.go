@@ -58,6 +58,18 @@ func TestGit(t *testing.T) {
 	if err != nil || !strings.HasSuffix(p, filepath.Join(".git", "enh", "x")) {
 		t.Errorf("Dir = %q, %v", p, err)
 	}
+	testrepo.Write(t, dir, "openspec/changes/archive/2026-10-01-b/config.yaml", "x")
+	if err := g.Commit("docs: b", "openspec"); err != nil {
+		t.Fatal(err)
+	}
+	testrepo.Write(t, dir, "openspec/changes/archive/2026-10-01-a/config.yaml", "x")
+	if err := g.Commit("docs: a", "openspec"); err != nil {
+		t.Fatal(err)
+	}
+	ord, err := g.ArchiveOrder()
+	if err != nil || ord["2026-10-01-b"] != 0 || ord["2026-10-01-a"] != 1 {
+		t.Errorf("ArchiveOrder = %v, %v", ord, err)
+	}
 	if _, err := g.MergeBase("nope"); err == nil {
 		t.Error("MergeBase with an unknown ref succeeded")
 	}
