@@ -1,0 +1,10 @@
+# expect: id: invalid value "0000"
+id: "0000"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

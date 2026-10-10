@@ -1,0 +1,10 @@
+# expect: category: conflicting values "schema" and "other"
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: other
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

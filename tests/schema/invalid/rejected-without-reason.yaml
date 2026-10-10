@@ -1,0 +1,12 @@
+# expect: rejected.reason: field is required
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: rejected
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"
+rejected:
+  date: "2026-10-11"

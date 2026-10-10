@@ -1,0 +1,10 @@
+# expect: accepted: field is required
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: accepted
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

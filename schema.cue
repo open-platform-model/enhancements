@@ -365,3 +365,126 @@ import (
 #ChangeDeclaration: {
 	implements!: [#ChangeImplements, ...#ChangeImplements]
 }
+
+// ─── New layout: enhancement as an OpenSpec change ──────────────────────────
+//
+// The definitions below validate the `config.yaml` of a new-layout entry,
+// openspec/changes/<id>-<slug>/config.yaml (and the same file after archive).
+// They sit beside the old-layout definitions above, which stay until the
+// migration step that deletes the old layout (T2.3 section 8.1, M4): the 17
+// live and 10 archived old-layout entries keep validating against
+// #EnhancementConfig, with its own #Status and #Repo. Use
+//   cue vet -d '#EntryConfig' schema.cue <config.yaml>
+// to validate one file. tests/schema/run.sh runs the valid and invalid
+// fixtures.
+//
+// A new-layout config.yaml holds facts only. Differences from the old one:
+// no `updated` (docs-kit derives the date from git), no `semver` (replaced by
+// `breaking`), no `depends_on`, `amends`, `supersedes`, `history`,
+// `core_schema` or `revives` (history is `git log`, the edges are derived
+// from the delta specs), and the end-state records `rejected`, `withdrawn`
+// and `superseded_by` are structured. `after` is a soft hint for the graph.
+
+// Lifecycle of a new-layout entry (T2.2 section 4): draft and accepted live in
+// openspec/changes/; the other four are archived endings. `withdrawn` is new.
+#EntryStatus: "draft" | "accepted" | "delivered" | "rejected" | "superseded" | "withdrawn"
+
+// Closed list of repos an entry may affect: the directory names of the
+// workspace AGENTS.md "Repos" table, so `catalog_opm`, not `catalog`. The old
+// #Repo above still lists `catalog`, `orca` and `opm-controller` for the
+// old-layout entries; this list replaces it at migration step M4. Add a value
+// here when a repo joins the workspace; do not allow free text.
+#EntryRepo: "core" | "library" | "catalog_opm" | "cli" | "opm-operator" |
+	"opm-portal" | "opm" | "opmodel.dev" | "docs-kit" | "enhancements" |
+	"modules" | "opm-suite-installer" | ".github"
+
+// Ids the allocator never hands out and no entry may carry. Regular fields,
+// so `cue export -e reservedIds schema.cue` reads them.
+//
+// reservedIds: 0000 is the template folder, deleted at migration but never
+// reused; 0028 and 0029 are held for entries parked elsewhere.
+// blockedIds: 0030 and 0031 stay out of use until the last phase has stripped
+// every `0030:` citation from the other repos. That commit empties this list,
+// and the next two entries then take 0030 and 0031. An archived id is never
+// handed out either; that check reads the folders, not this file.
+reservedIds: ["0000", "0028", "0029"]
+blockedIds: ["0030", "0031"]
+
+// `accepted` is "<date> <commit>": the date and the `main` commit the accept
+// PR started from, whose specs/ the checks read.
+#AcceptedStr: =~"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9a-f]{7,40}$"
+
+// The record of a rejection or a withdrawal.
+#EntryEnding: {
+	date!:   #DateStr
+	reason!: string & strings.MinRunes(1)
+}
+
+// The record of a supersession: the successor ids, at least one.
+#EntrySuperseded: {
+	date!: #DateStr
+	ids!: [#IDStr, ...#IDStr] & list.UniqueItems()
+	reason!: string & strings.MinRunes(1)
+}
+
+#EntryConfig: {
+	// "NNNN", equal to the folder prefix (the checker compares them). A
+	// reserved or blocked id is refused here.
+	id!: #IDStr
+	for r in list.Concat([reservedIds, blockedIds]) {
+		id: !=r
+	}
+
+	// Kebab-case. The folder is <id>-<slug>.
+	slug!: #SlugStr
+
+	// At most 80 characters, one line.
+	title!: #TitleStr & !~"\n"
+
+	// One line, at most 200 characters: the capability OPM gains.
+	summary!: string & strings.MinRunes(1) & strings.MaxRunes(200) & !~"\n"
+
+	// Stored, because the docs site reads this one file. The checker also
+	// refuses a value that disagrees with the markers or the folder.
+	status!: #EntryStatus
+
+	category!: #Category
+
+	// Does the entry break a published contract? May be unset in a draft;
+	// required once the entry is accepted (see the guards below). A version
+	// bump stays each repo's own rule.
+	breaking?: bool
+
+	// At least one repo, no repeats. The first element is typed too: the
+	// form `[_, ...T]` leaves it unchecked.
+	affects!: [#EntryRepo, ...#EntryRepo] & list.UniqueItems()
+
+	authors!: [string, ...string]
+
+	// The date the entry was created. A new-layout entry has no `updated`.
+	created!: #DateStr
+
+	// Soft hint for the graph: entries this one follows. It blocks nothing.
+	// The checker refuses an id that does not exist and a cycle.
+	after?: [...#IDStr] & list.UniqueItems()
+
+	// The record that belongs to a status. A record that does not belong to
+	// the status is not allowed (a draft and a rejected entry were never
+	// accepted, so they carry no `accepted`), and a record the status needs is
+	// required.
+	if status == "accepted" || status == "delivered" {
+		accepted!: #AcceptedStr
+		breaking!: bool
+	}
+	if status == "superseded" {
+		accepted?:      #AcceptedStr
+		superseded_by!: #EntrySuperseded
+	}
+	if status == "withdrawn" {
+		accepted?:  #AcceptedStr
+		withdrawn!: #EntryEnding
+	}
+	if status == "rejected" {
+		rejected!: #EntryEnding
+	}
+}

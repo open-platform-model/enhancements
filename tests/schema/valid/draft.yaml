@@ -1,0 +1,16 @@
+# A draft: breaking may be unset, no accepted, no records.
+id: "0032"
+slug: example-draft
+title: An example draft
+summary: >-
+  Let a platform admit a catalog path with a version range.
+status: draft
+category: schema
+affects:
+  - core
+  - catalog_opm
+authors:
+  - emil@jacero.se
+created: "2026-10-10"
+after:
+  - "0010"

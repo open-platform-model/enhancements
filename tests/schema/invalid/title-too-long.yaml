@@ -1,0 +1,10 @@
+# expect: title: invalid value
+id: "0032"
+slug: example
+title: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

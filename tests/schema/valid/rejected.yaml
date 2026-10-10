@@ -1,0 +1,13 @@
+# Rejected from draft: no accepted, a rejected record.
+id: "0035"
+slug: example-rejected
+title: An example rejected entry
+summary: One line.
+status: rejected
+category: misc
+affects: [opm]
+authors: [emil@jacero.se]
+created: "2026-09-08"
+rejected:
+  date: "2026-10-11"
+  reason: The idea moved into 0033.
