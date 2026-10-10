@@ -88,10 +88,10 @@ type ruleCase struct {
 func TestRules(t *testing.T) {
 	cases := []ruleCase{
 		{rule: "V1", level: Error, invalid: []invalidCase{{"invalid", "does not equal the folder prefix"}}},
-		{rule: "V2", level: Error, invalid: []invalidCase{{"invalid", "81 characters"}}},
+		{rule: "V2", level: Error, invalid: []invalidCase{{"invalid", "81 characters"}, {"invalid-2", "conflicting values"}}},
 		{rule: "V3", level: Error, invalid: []invalidCase{{"invalid", "folder is live"}}},
-		{rule: "V4", level: Error, invalid: []invalidCase{{"invalid", "after today"}}},
-		{rule: "V5", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "breaking must be"}}},
+		{rule: "V4", level: Error, invalid: []invalidCase{{"invalid", "after today"}, {"invalid-2", "conflicting values"}}},
+		{rule: "V5", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "breaking must be"}, {"invalid-2", "conflicting values"}}},
 		{rule: "V6", level: Error, invalid: []invalidCase{{"invalid", "does not exist"}, {"invalid-2", "cycle"}}},
 		{rule: "V7", level: Error, invalid: []invalidCase{{"invalid", "never accepted"}, {"invalid-2", "must read"}}},
 		{rule: "V8", level: Error, invalid: []invalidCase{{"invalid", "does not exist"}}},
@@ -109,11 +109,11 @@ func TestRules(t *testing.T) {
 		{rule: "V18", level: Error, invalid: []invalidCase{{"invalid", "no SHALL or MUST"}}},
 		{rule: "V19", level: Error, invalid: []invalidCase{{"invalid", "file path"}, {"invalid-2", "CLI flag"}, {"invalid-3", "Go symbol"}}},
 		{rule: "V20", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "is not in openspec/specs"}, {"invalid-2", "already in openspec/specs"}}},
-		{rule: "V21", level: Error, invalid: []invalidCase{{"invalid", "no **Migration**"}, {"invalid-2", "exactly"}, {"invalid-3", "no ADDED requirement of that name"}}},
+		{rule: "V21", level: Error, invalid: []invalidCase{{"invalid", "no **Migration**"}, {"invalid-2", "exactly"}, {"invalid-3", "no ADDED requirement of that name"}, {"invalid-4", "list item"}}},
 		{rule: "V22", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "blocking question"}, {"invalid-2", "must move into design.md"}}},
 		{rule: "V23", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", `"cli" is in affects`}, {"invalid-2", "does not match"}}},
 		{rule: "V24", mode: Deliver, level: Error, invalid: []invalidCase{{"invalid", "not ticked"}, {"invalid-2", "does not end with"}}},
-		{rule: "V25", level: Error, invalid: []invalidCase{{"invalid", "0100:D1:R3 has no row"}}, tune: func(o *Options) { o.GitShow = fixtureGit }},
+		{rule: "V25", level: Error, invalid: []invalidCase{{"invalid", "0100:D1:R3 has no row"}, {"invalid-2", "say proposal but proposal.md lists"}}, tune: func(o *Options) { o.GitShow = fixtureGit }},
 		{rule: "V28", level: Error, invalid: []invalidCase{{"invalid", "leads into 0014-other"}}},
 		{rule: "V29", level: Warning, invalid: []invalidCase{{"invalid", "lost.md"}}},
 		{rule: "V30", level: Warning, invalid: []invalidCase{{"invalid", "legacy live folders"}}},
@@ -294,5 +294,53 @@ func TestParseMode(t *testing.T) {
 	}
 	if _, err := ParseMode("nope"); err == nil {
 		t.Error("ParseMode should refuse an unknown mode")
+	}
+}
+
+// modeCase checks the level of one rule at each mode against its invalid fixture.
+// "" means the rule is silent in that mode.
+func TestModeLevelTable(t *testing.T) {
+	type levels [3]Level // draft, accept, deliver
+	cases := []struct {
+		rule, fixture string
+		want          levels
+		tune          func(*Options)
+	}{
+		{"V5", "invalid", levels{"", Error, Error}, nil},
+		{"V12", "invalid", levels{Warning, Error, Error}, nil},
+		{"V13", "invalid", levels{"", "", Error}, nil},
+		{"V20", "invalid", levels{"", Error, Error}, nil},
+		{"V22", "invalid", levels{"", Error, Error}, nil},
+		{"V23", "invalid", levels{"", Error, Error}, nil},
+		{"V23", "invalid-2", levels{Warning, Error, Error}, nil},
+		{"V24", "invalid", levels{"", "", Error}, nil},
+		{"V32", "invalid", levels{"", Error, Error}, func(o *Options) { o.OpenSpec = stubOpenSpec }},
+		{"V34", "invalid", levels{"", Error, Error}, nil},
+	}
+	for _, tc := range cases {
+		for i, mode := range []Mode{Draft, Accept, Deliver} {
+			t.Run(tc.rule+"/"+tc.fixture+"/"+mode.String(), func(t *testing.T) {
+				root := materialize(t, tc.rule, tc.fixture)
+				opts := Options{Root: root, Mode: mode, Today: "2026-10-11", SchemaPath: schemaPath}
+				if tc.tune != nil {
+					tc.tune(&opts)
+				}
+				res, err := Run(opts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := Level("")
+				for _, f := range res.Findings {
+					if f.Rule == tc.rule && (got == "" || f.Level == Error) {
+						got = f.Level
+					}
+				}
+				if got != tc.want[i] {
+					var b strings.Builder
+					res.Format(&b)
+					t.Errorf("%s in %s: level %q, want %q\n%s", tc.rule, mode, got, tc.want[i], b.String())
+				}
+			})
+		}
 	}
 }

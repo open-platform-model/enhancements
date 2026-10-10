@@ -69,3 +69,34 @@ func TestBadYAML(t *testing.T) {
 		t.Errorf("issues = %+v", is)
 	}
 }
+
+// A type error on a plain field is an issue, not the arm of a disjunction.
+func TestTypeErrorsOnPlainFields(t *testing.T) {
+	s := load(t)
+	base := "id: \"0100\"\nslug: demo\ntitle: T\nsummary: S\nstatus: draft\ncategory: tooling\naffects: [core]\nauthors: [a]\ncreated: \"2026-10-10\"\n"
+	for name, change := range map[string][2]string{
+		"breaking yes":    {"breaking: yes\n", "breaking"},
+		"breaking string": {"breaking: \"yes\"\n", "breaking"},
+		"title number":    {"title: 12345\n", "title"},
+		"authors number":  {"authors: [42]\n", "authors"},
+	} {
+		src := base + change[0]
+		if change[1] != "breaking" {
+			src = strings.Replace(base, change[1]+": "+map[string]string{"title": "T", "authors": "[a]"}[change[1]], change[0], 1)
+		}
+		found := false
+		for _, is := range s.CheckConfig([]byte(src)) {
+			if is.Field == change[1] {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s: no issue on %s", name, change[1])
+		}
+	}
+	// the refused value of a disjunction is named
+	got := s.CheckConfig([]byte(strings.Replace(base, "category: tooling", "category: nope", 1)))
+	if len(got) == 0 || !strings.Contains(got[0].Msg, `"nope"`) {
+		t.Errorf("category issue = %+v", got)
+	}
+}

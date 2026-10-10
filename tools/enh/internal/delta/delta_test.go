@@ -113,3 +113,27 @@ func TestNormalizeName(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestRemovedBulletsAndRenameForms(t *testing.T) {
+	src := "## REMOVED Requirements\n\n- `### Requirement: Dash`\n* ### Requirement: Star\n+ `### Requirement: Plus`\n\n### Requirement: Header\n\n**Reason**: r\n\n**Migration**: m\n\n## RENAMED Requirements\n\n* FROM: `### Requirement: A`\n* TO: `### Requirement: B`\nFROM: `### Requirement: C`\n+ TO: `### Requirement: D`\nfrom: `### Requirement: lower`\n"
+	sp := Parse("p", "cap", []byte(src))
+	rm := sp.By(Removed)
+	if len(rm) != 4 {
+		t.Fatalf("removed = %+v", rm)
+	}
+	bullets := 0
+	for _, r := range rm {
+		if r.Bullet {
+			bullets++
+		}
+	}
+	if bullets != 3 || rm[0].Name != "Dash" || rm[3].Name != "Header" {
+		t.Errorf("bullets = %d removed = %+v", bullets, rm)
+	}
+	if len(sp.Renames) != 2 || sp.Renames[0].To != "B" || sp.Renames[1].From != "C" {
+		t.Errorf("renames = %+v", sp.Renames)
+	}
+	if len(sp.UnpairedRenames) != 0 {
+		t.Errorf("unpaired = %v (lower-case from: is not a FROM line)", sp.UnpairedRenames)
+	}
+}

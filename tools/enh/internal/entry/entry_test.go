@@ -22,7 +22,7 @@ func TestLoadStore(t *testing.T) {
 	c := "openspec/changes/0100-demo/"
 	write(t, root, c+"config.yaml", "id: \"0100\"\nslug: demo\ncreated: 2026-10-07\nbreaking: false\nstatus: draft\n")
 	write(t, root, c+".openspec.yaml", "schema: enhancement\ncreated: 2026-10-07\nskip_specs: true\n")
-	write(t, root, c+"proposal.md", "# 0100: Demo\n\n## Why\n\nx\n\n## Open questions\n\n- Blocking: why?\n- Answered: yes\n- Not blocking: when?\n- stray\n")
+	write(t, root, c+"proposal.md", "# 0100: Demo\n\n## Why\n\nx\n\n## Open questions\n\n- Blocking: why?\n- Answered: yes\n- Not blocking: when?\n- stray\n  continued here\n")
 	write(t, root, c+"tasks.md", "<!-- c\n- [ ] 9.9 x: y -->\n## 1. A\n\n- [ ] 1.1 core: do it\n- [x] 1.2 cli: done (my-change)\n- [x] 1.3 cli: quoted (`quoted-change`)\n- [x] bad line\n")
 	write(t, root, c+"specs/cap/spec.md", "## ADDED Requirements\n\n### Requirement: A\n\nIt SHALL.\n\n#### Scenario: s\n\n- **WHEN** a\n")
 	write(t, root, c+"evidence/README.md", "x")
@@ -50,7 +50,7 @@ func TestLoadStore(t *testing.T) {
 	if !e.SkipSpecs || len(e.OpenSpecKeys) != 3 {
 		t.Errorf("openspec = %v skip=%v", e.OpenSpecKeys, e.SkipSpecs)
 	}
-	if len(e.Questions) != 4 || e.Questions[0].Kind != "blocking" || e.Questions[1].Kind != "answered" || e.Questions[3].Kind != "" {
+	if len(e.Questions) != 4 || e.Questions[3].Text != "stray continued here" || e.Questions[0].Kind != "blocking" || e.Questions[1].Kind != "answered" || e.Questions[3].Kind != "" {
 		t.Errorf("questions = %+v", e.Questions)
 	}
 	if len(e.TaskLines) != 3 || e.TaskLines[2].Ref != "quoted-change" || e.TaskLines[1].Ref != "my-change" || !e.TaskLines[1].Done || len(e.TaskLineErrors) != 1 {
