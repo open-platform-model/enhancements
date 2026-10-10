@@ -115,8 +115,8 @@ func lex(src string, lang language) []span {
 }
 
 // lexQuoted reads a string or rune literal that starts at src[i]. CUE strings
-// may start with hashes (#"..."#), use ' for bytes and """ or ”' for
-// multi-line text. It returns the literal, the index after it, and false when
+// may start with hashes (#"..."#), use a single quote for bytes and three double or
+// three single quotes for multi-line text. It returns the literal, the index after it, and false when
 // src[i] does not start a literal.
 func lexQuoted(src string, i int, lang language) (span, int, bool) {
 	hashes := 0
