@@ -84,14 +84,35 @@ func (s *Schema) CheckConfig(src []byte) []Issue {
 	if err == nil {
 		return nil
 	}
-	var out []Issue
-	seen := map[string]bool{}
+	type raw struct {
+		path []string
+		msg  string
+	}
+	var all []raw
+	conflict := map[string]string{} // path -> the value a disjunction refused
 	for _, e := range cueerrors.Errors(err) {
 		format, args := e.Msg()
 		msg := fmt.Sprintf(format, args...)
 		path := e.Path()
 		if len(path) > 0 && path[0] == "#EntryConfig" {
 			path = path[1:]
+		}
+		if i := strings.LastIndex(msg, " and "); strings.HasPrefix(msg, "conflicting values ") && i > 0 {
+			if _, ok := conflict[strings.Join(path, ".")]; !ok {
+				conflict[strings.Join(path, ".")] = msg[i+5:]
+			}
+			continue // the head error of the disjunction carries the value
+		}
+		all = append(all, raw{path, msg})
+	}
+	var out []Issue
+	seen := map[string]bool{}
+	for _, r := range all {
+		msg, path := r.msg, r.path
+		if strings.Contains(msg, "errors in empty disjunction") {
+			if v, ok := conflict[strings.Join(path, ".")]; ok {
+				msg = fmt.Sprintf("value %s is not one of the allowed values", v)
+			}
 		}
 		key := strings.Join(path, ".") + "|" + msg
 		if seen[key] {
