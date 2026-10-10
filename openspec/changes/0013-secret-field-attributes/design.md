@@ -87,6 +87,6 @@ A literal inside an instance resource is accepted and documented as plaintext at
 - Considered a shared base so the rewrite is a plain fill; rejected because plaintext would stay in the graph by convention.
 - Considered a backend chosen for the whole platform; rejected because the right source depends on the data each deployer holds.
 - Considered short source names resolved through the annotation; rejected because they break the day a catalog carries two apiVersions.
-- Considered a values-from indirection on the resource; rejected as not wanted, and it can be added later.
+- Considered a values-from indirection on the resource; rejected because the reference arm already gives the production posture without it.
 - Considered a SOPS arm or a SOPS backend; rejected because encryption is a property of the file.
 - Considered a kernel plugin registry for backends; rejected because it needs a kernel rebuild.

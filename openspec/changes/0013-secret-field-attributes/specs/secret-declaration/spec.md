@@ -20,7 +20,7 @@ A module author SHALL declare a sensitive config field with the core secret type
 
 ### Requirement: The deployer chooses how a secret is supplied
 
-A deployer SHALL supply each secret per environment as a literal value or as a reference to an existing object and key, and a published module SHALL accept either without republishing. A literal SHALL cause a Secret object to be materialised; a reference SHALL cause nothing to be materialised. A values file that supplies a literal today SHALL be accepted unchanged.
+A deployer SHALL supply each secret per environment as a literal value, as a reference to an existing object and key, or as a named source with that source's own data, and a published module SHALL accept each without republishing. A literal SHALL cause a Secret object to be materialised; a reference SHALL cause nothing to be materialised. A values file that supplies a literal today SHALL be accepted unchanged.
 
 #### Scenario: One module, two environments
 
@@ -85,7 +85,7 @@ Plain CUE validation of an instance SHALL reject a secret value that carries bot
 
 ### Requirement: Core alone defines the secret type
 
-Core SHALL publish the secret type and its two arms, a literal with a value and a reference with a ref and a key, and catalogs SHALL import them and define none of their own. A module written against the withdrawn secret vocabulary SHALL fail to type-check, and no alias SHALL accept it.
+Core SHALL publish the secret type with three arms, a literal with a value, a reference with a ref and a key, and an open named-source arm, with the input envelope a source receives. Catalogs SHALL import them and define none of their own. A module written against the withdrawn secret vocabulary SHALL fail to type-check, and no alias SHALL accept it.
 
 #### Scenario: A catalog imports the type
 

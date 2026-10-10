@@ -6,8 +6,8 @@
 
 ## 2. Kernel
 
-- [x] 2.1 library: report every contract a render required, synthesised components included (expose-render-demand-and-instance-reads)
-- [ ] 2.2 library: discover secrets from the schema, resolve them in place, synthesise a component per group and redact diagnostics
+- [x] 2.1 library: report every contract of every component in a render, failing closed on a missing resources map (expose-render-demand-and-instance-reads)
+- [ ] 2.2 library: discover secrets from the schema, resolve them in place, synthesise a component per group, count synthesised components in the reported contract demand, and redact diagnostics
 
 ## 3. Catalog
 

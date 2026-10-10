@@ -1,6 +1,6 @@
 # Design: Attribute-Declared Secret Fields
 
-Routing moves to an inert field attribute; fulfilment stays a narrowed `#Secret` type the kernel resolves in place. Trade-off reasoning lives in [`03-decisions.md`](03-decisions.md); the full CUE surface lives in [`schemas/target.cue`](schemas/target.cue) with worked values in [`schemas/examples.cue`](schemas/examples.cue).
+Routing moves to an inert field attribute; fulfilment stays a narrowed `#Secret` type the kernel resolves in place. Trade-off reasoning lives in [`decision-log.md`](decision-log.md); the full CUE surface lives in [`schemas/target.cue`](schemas/target.cue) with worked values in [`schemas/examples.cue`](schemas/examples.cue).
 
 ## Design Goals
 

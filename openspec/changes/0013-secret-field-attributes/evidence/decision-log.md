@@ -957,4 +957,4 @@ What survives of D10: CUE type-checks the deployer's choice of arm. What changes
 
 **Source:** `research/2026-09-30-feasibility-experiments.md` (OQ5).
 
-Open Questions live in [`07-questions.md`](07-questions.md): the entry's question register.
+Open Questions live in [`questions.md`](questions.md): the entry's question register.
