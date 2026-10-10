@@ -110,7 +110,7 @@ func TestRules(t *testing.T) {
 		{rule: "V19", level: Error, invalid: []invalidCase{{"invalid", "file path"}, {"invalid-2", "CLI flag"}, {"invalid-3", "Go symbol"}}},
 		{rule: "V20", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "is not in openspec/specs"}, {"invalid-2", "already in openspec/specs"}}},
 		{rule: "V21", level: Error, invalid: []invalidCase{{"invalid", "no **Migration**"}, {"invalid-2", "exactly"}, {"invalid-3", "no ADDED requirement of that name"}, {"invalid-4", "list item"}}},
-		{rule: "V22", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "blocking question"}, {"invalid-2", "must move into design.md"}}},
+		{rule: "V22", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "blocking question"}, {"invalid-2", "must move into design.md"}, {"invalid-3", "a blocking question is still open"}, {"invalid-4", "a blocking question is still open"}}},
 		{rule: "V23", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", `"cli" is in affects`}, {"invalid-2", "does not match"}}},
 		{rule: "V24", mode: Deliver, level: Error, invalid: []invalidCase{{"invalid", "not ticked"}, {"invalid-2", "does not end with"}}},
 		{rule: "V25", level: Error, invalid: []invalidCase{{"invalid", "0100:D1:R3 has no row"}, {"invalid-2", "say proposal but proposal.md lists"}}, tune: func(o *Options) { o.GitShow = fixtureGit }},

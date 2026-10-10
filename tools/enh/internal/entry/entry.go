@@ -184,8 +184,12 @@ var (
 	taskRe     = regexp.MustCompile(`^- \[( |x|X)\] (\d+)\.(\d+) ([^:]+): (.+)$`)
 	taskLikeRe = regexp.MustCompile(`^\s*- \[[ xX]\]`)
 	refRe      = regexp.MustCompile("\\s\\(`?([^()`]+)`?\\)\\s*$")
-	listItemRe = regexp.MustCompile(`^[-*+]\s`)
-	questionRe = regexp.MustCompile(`^\s*[-*]\s+(Blocking|Not blocking|Answered):\s*(.*)$`)
+	// A list item starts a question however deep it is indented, with a
+	// bullet or a number: "  - Blocking: ..." and "1. Blocking: ..." both
+	// count. A line without a marker continues the question above it.
+	listItemRe = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s`)
+	itemMarkRe = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+`)
+	questionRe = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+(Blocking|Not blocking|Answered):\s*(.*)$`)
 )
 
 // LoadStore reads the folders under root.
@@ -412,7 +416,7 @@ func (e *Entry) readProposal() {
 			}
 			continue
 		}
-		q := Question{Line: i + 1, Text: strings.TrimSpace(t[1:])}
+		q := Question{Line: i + 1, Text: strings.TrimSpace(itemMarkRe.ReplaceAllString(l, ""))}
 		if m := questionRe.FindStringSubmatch(l); m != nil {
 			q.Kind, q.Text = strings.ToLower(m[1]), strings.TrimSpace(m[2])
 		}

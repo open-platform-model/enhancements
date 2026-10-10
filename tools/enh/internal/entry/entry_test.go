@@ -3,6 +3,7 @@ package entry
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -93,5 +94,38 @@ func TestLoadTypeErrorKeepsFields(t *testing.T) {
 	e := st.Live[0]
 	if e.ConfigErr == nil || e.Config.Slug != "demo" {
 		t.Errorf("err=%v config=%+v", e.ConfigErr, e.Config)
+	}
+}
+
+// A question is a list item at any depth, with a bullet or a number. A line
+// with no marker continues the question above it.
+func TestQuestionForms(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "openspec/changes/0100-demo/proposal.md", "# 0100: Demo\n\n## Open questions\n\n"+
+		"- Blocking: plain\n"+
+		"  - Blocking: indented\n"+
+		"\t* Not blocking: tab and star\n"+
+		"1. Blocking: numbered\n"+
+		"  2) Answered: numbered and indented\n"+
+		"+ Blocking: plus\n"+
+		"- Blocking: wrapped\n  onto a second line\n")
+	st, err := LoadStore(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := st.Find("0100")
+	if e == nil {
+		t.Fatal("no entry 0100")
+	}
+	var got []string
+	for _, q := range e.Questions {
+		got = append(got, q.Kind+"|"+q.Text)
+	}
+	want := []string{
+		"blocking|plain", "blocking|indented", "not blocking|tab and star", "blocking|numbered",
+		"answered|numbered and indented", "blocking|plus", "blocking|wrapped onto a second line",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("questions\n got: %q\nwant: %q", got, want)
 	}
 }
