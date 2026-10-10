@@ -2,9 +2,10 @@
 // design (T2.3 section 2) on the entries of one checkout. A rule is a method
 // on a run context; a finding names its rule, its level, the file and the line.
 //
-// Rules that need git history are not here: V7 ancestry of the accepted
-// commit, V26 stale base, V27 edit after accept, and V31 closed folders. They
-// belong to the tasks that read history (T3.3).
+// Three rules read git history, through the hooks of Options and only when a
+// Base ref is given: V7 ancestry of the accepted commit, V27 edit after
+// accept, and V31 closed folders (rules_git.go). V26 stale base belongs to
+// the task that reads history (T3.3).
 package vet
 
 import (
@@ -109,6 +110,18 @@ type Options struct {
 	Final bool
 	// GitShow reads a file at a commit for V25. The default runs `git show`.
 	GitShow func(root, commit, path string) ([]byte, error)
+	// Base is the base ref of the pull request, for example origin/main. V7
+	// (ancestry of the accepted commit), V27 (an edit after accept or after
+	// sampling) and V31 (a closed folder) compare with it. Empty means those
+	// three rules are skipped. Root must be the repository top level.
+	Base string
+	// GitFiles lists the files under dir at ref, as paths relative to the top
+	// level; a folder that is not there gives an empty list. The default runs
+	// `git ls-tree`.
+	GitFiles func(root, ref, dir string) ([]string, error)
+	// GitAncestor reports whether commit is an ancestor of ref; an unknown
+	// commit is an error. The default runs `git merge-base --is-ancestor`.
+	GitAncestor func(root, commit, ref string) (bool, error)
 }
 
 // Result is the outcome of a run.
@@ -193,9 +206,21 @@ func Run(opts Options) (*Result, error) {
 	if opts.GitShow == nil {
 		opts.GitShow = gitShow
 	}
+	if opts.GitFiles == nil {
+		opts.GitFiles = defaultGitFiles
+	}
+	if opts.GitAncestor == nil {
+		opts.GitAncestor = defaultGitAncestor
+	}
+	if opts.Base != "" && !baseRefRe.MatchString(opts.Base) {
+		return nil, fmt.Errorf("vet: base ref %q is not a plain ref name", opts.Base)
+	}
 	r := &run{opts: opts, store: st, schema: sch, today: opts.Today, res: &Result{}}
 	if opts.OpenSpec == nil {
 		r.res.Skipped = append(r.res.Skipped, "V32 V35: no openspec runner (pass --openspec)")
+	}
+	if opts.Base == "" {
+		r.res.Skipped = append(r.res.Skipped, "V7 ancestry, V27, V31: no base ref (pass --base)")
 	}
 	r.repoRules()
 	for _, e := range st.All() {
@@ -208,6 +233,7 @@ func Run(opts Options) (*Result, error) {
 	if opts.OpenSpec != nil && opts.Strict && len(r.opts.Keys) == 0 {
 		r.validateSpecsStrict()
 	}
+	r.closedFolders()
 	sort.SliceStable(r.res.Findings, func(i, j int) bool {
 		a, b := r.res.Findings[i], r.res.Findings[j]
 		if a.Entry != b.Entry {
@@ -301,6 +327,7 @@ func (r *run) entry(raw *entry.Entry) {
 		e.mode = Accept
 	}
 	r.configRules(e)
+	r.gitRules(e)
 	r.idRules(e)
 	r.openspecYamlRules(e)
 	if e.Archived {
