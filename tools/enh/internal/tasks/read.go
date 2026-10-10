@@ -1,7 +1,9 @@
 package tasks
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -108,8 +110,11 @@ func (e *Env) showOldLayout(key string) (bool, error) {
 	}
 	for _, rel := range []string{"archive/" + key, key} {
 		b, err := os.ReadFile(filepath.Join(e.Root, filepath.FromSlash(rel), "config.yaml"))
-		if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
 			continue
+		}
+		if err != nil {
+			return true, err
 		}
 		var c oldConfig
 		if err := yaml.Unmarshal(b, &c); err != nil {

@@ -172,9 +172,11 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 		r.add(e, "V25", Error, path, row.line, "%s has no target (a dropped row needs its reason)", row.id)
 		return
 	}
+	named := map[string]bool{}
 	for _, t := range targets {
 		// A target may start with the disposition it belongs to ("design:
-		// A theme"). A row with two dispositions needs it to tell them apart.
+		// A theme"). A row with two dispositions needs it on every target, to
+		// tell them apart, and each disposition needs a target.
 		use := disps
 		if d, rest, ok := targetPrefix(t, allowed); ok {
 			if !containsStr(disps, d) {
@@ -182,6 +184,10 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 				continue
 			}
 			use, t = []string{d}, rest
+			named[d] = true
+		} else if len(uniqueStrs(disps)) > 1 {
+			r.add(e, "V25", Error, path, row.line, "%s: the row has dispositions %s, so target %q must start with one of them and a colon", row.id, strings.Join(disps, "/"), t)
+			continue
 		}
 		ok := false
 		for _, d := range use {
@@ -200,6 +206,24 @@ func (r *run) checkDocRow(e *ent, path string, row mapRow, design, proposal map[
 			r.add(e, "V25", Error, path, row.line, "%s: target %q is not found for disposition %s", row.id, t, strings.Join(use, "/"))
 		}
 	}
+	if len(uniqueStrs(disps)) > 1 {
+		for _, d := range uniqueStrs(disps) {
+			if !named[d] {
+				r.add(e, "V25", Error, path, row.line, "%s: the row has the disposition %s but no target starts with %q", row.id, d, d+":")
+			}
+		}
+	}
+}
+
+// uniqueStrs returns the distinct values of ss.
+func uniqueStrs(ss []string) []string {
+	var out []string
+	for _, s := range ss {
+		if !containsStr(out, s) {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // targetPrefix splits "design: A theme" into "design" and "A theme" when the
@@ -239,7 +263,11 @@ func (r *run) cutTarget(e *ent, row mapRow, disp, t string, cuts map[string]cutL
 	if cutErr != nil {
 		return false, "evidence/cut-requirements.md is missing"
 	}
-	id := strings.TrimSpace(strings.TrimPrefix(t, cutFile+":"))
+	rest, hasFile := strings.CutPrefix(t, cutFile+":")
+	if !hasFile {
+		return false, "write the target as " + cutFile + ": <old id>"
+	}
+	id := strings.TrimSpace(rest)
 	if !mapReqIDRe.MatchString(id) {
 		return false, "write the target as " + cutFile + ": <old id>"
 	}
@@ -253,14 +281,28 @@ func (r *run) cutTarget(e *ent, row mapRow, disp, t string, cuts map[string]cutL
 	if l.disp != disp {
 		return false, "the map says " + disp + " but the line in evidence/cut-requirements.md says " + l.disp
 	}
-	if disp == "cut" && strings.HasPrefix(l.qualifier, "carried by:") {
-		for _, c := range splitTargets(strings.TrimPrefix(l.qualifier, "carried by:")) {
+	if disp == "cut" && l.qualifier != "" {
+		names, isCarried := carriedBy(l.qualifier)
+		if !isCarried {
+			return false, "line " + strconv.Itoa(l.line) + " of evidence/cut-requirements.md has the qualifier " + strconv.Quote(l.qualifier) + "; a cut line has none or \"carried by: <capability/Requirement name>; ...\""
+		}
+		for _, c := range splitTargets(names) {
 			if ok, why := r.deltaTarget(e, c); !ok {
 				return false, "line " + strconv.Itoa(l.line) + " of evidence/cut-requirements.md is carried by " + strconv.Quote(c) + ": " + why
 			}
 		}
 	}
 	return true, ""
+}
+
+// carriedBy returns the names after "carried by:" (any case), and whether the
+// qualifier has that form.
+func carriedBy(q string) (string, bool) {
+	const key = "carried by:"
+	if len(q) < len(key) || !strings.EqualFold(q[:len(key)], key) {
+		return "", false
+	}
+	return q[len(key):], true
 }
 
 // checkCutList reports a line of the cut list that no cut or repo row points at.
