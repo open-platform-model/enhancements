@@ -1,10 +1,16 @@
 # Tasks for OPM enhancements workflow.
 #
-# Operate on enhancements/NNNN/ entries (four-digit ids; 0000 is reserved
-# for the template). Run from the enhancements/ directory, or via the
-# workspace-root include (`task enhancements:<name>`).
+# The bare task names (vet, new, accept, deliver, index, fresh, links, ...) are
+# one-line calls to `enh`, the Go program in tools/enh/ (design part two,
+# section 3). They work on the entries in openspec/changes/. The old bash
+# tasks of the same names, and the rest of the old-layout workflow, still work
+# on the old NNNN/ entries: the clashing ones are renamed legacy:<name>, and
+# migration step M4 deletes them with scripts/ and gates.cue. Run from the
+# enhancements/ directory, or via the workspace-root include
+# (`task enhancements:<name>`).
 #
-# Deps: cue, yq, awk, sed. Same toolchain as every other OPM Taskfile.
+# Deps: go (for enh), cue, yq, awk, sed; the openspec CLI (1.14.1) for the
+# tasks that run it. Same toolchain as every other OPM Taskfile.
 version: "3"
 
 silent: true
@@ -29,31 +35,39 @@ tasks:
     cmds:
       - |
         cat <<'EOF'
+        Every command below is a one-line call to `enh` (tools/enh/, `go run`). `enh help` lists its flags.
+        Entries live in openspec/changes/ (the new layout). The old NNNN/ entries are checked by the
+        legacy:* tasks until migration step M4 deletes them.
+
         Common tasks:
-          task list                              — status table of every enhancement
-          task show ID=0001                      — full metadata + document list for one
-          task vet                               — hard gate (CUE schema + cross-refs + placeholders)
-          task vet:one ID=0001                   — same, single enhancement
-          task check [ID=0001]                   — soft gate (scope section, decisions, impl block, …)
-          task new SLUG=foo TITLE="Foo Bar" CATEGORY=schema — scaffold a new enhancement from 0000/ (CATEGORY: schema|runtime|distribution|tooling|misc; CORE_SCHEMA=true when it changes core schemas)
-          task new:contracts ID=0001             — scaffold contracts/ (non-core compilable CUE) inside an enhancement
-          task new:experiment ID=0001 NAME=foo   — scaffold an experiment inside an enhancement
-          task experiments:list ID=0001          — list experiments for one enhancement (parsed Status)
-          task questions:list ID=0001            — list Open Questions for one enhancement (grouped, classified)
-          task questions:open ID=0001            — TSV of unresolved Open Questions (for the OQ-walk skill)
-          task graph                             — regenerate GRAPH.md
-          task index                             — regenerate INDEX.md (browse aid for opaque NNNN folders)
-          task links                             — fail on a broken relative link in a published file
-          task fresh                             — fail when INDEX.md or GRAPH.md is stale
+          task check                             — the gate: vet, links, fresh, then the legacy checks
+          task vet [ID=0013] [MODE=accept|deliver] [BASE=origin/main] — check the entries
+          task new SLUG=foo TITLE="Foo Bar" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
+          task seed:new CAP=registration-acceptance
+          task accept ID=0013                    — print the sample; then CONFIRM=1 task accept ID=0013
+          task resample ID=0013                  — same for an accepted entry whose text changed
+          task deliver ID=0013                   — check, archive, index, commit
+          task reject|withdraw ID=0013 REASON="…"
+          task supersede ID=0013 BY=0033 REASON="…"
+          task tick ID=0013 LINE=1.1 REF=change-name
+          task index                             — write README.md per entry, INDEX.md and GRAPH.md
+          task fresh                             — fail when a generated file is stale
+          task links                             — fail on a broken link between entries
+          task list | show ID=0013 | questions ID=0013 | stale ID=0013 | history REQ="Name"
+          task reconcile                         — Delivers lines against ticks (needs sibling checkouts)
+          task cite-lint                         — decision numbers and lone ids in Go and CUE comments
+          task specs-rule [BASE=ref]             — CI rule for openspec/specs/ (needs openspec 1.14.1)
           task docs:bundle:check                 — build and lint the enhancements docs bundle (opm-docs)
-          task delivery [ID=0001]                — derived delivery state (from each entry's delivery.yaml log)
-          task delivery:log ...                  — append a landed change to an entry's delivery log
-          task delivery:reconcile                — archived OpenSpec changes that declared an entry but were never logged
-          task delivery:uncovered ID=0001        — decisions no logged change carries and no_work does not excuse
-          task delivery:deferred                 — deferred-to-implementation OQs no log entry claims
+
+        Old layout (NNNN/), until M4:
+          task legacy:vet | legacy:vet:one ID=0001 | legacy:check | legacy:links | legacy:fresh
+          task legacy:list | legacy:show ID=0001 | legacy:index | legacy:graph | legacy:new | legacy:reject | legacy:supersede
+          task delivery [ID=0001] | delivery:log ... | delivery:reconcile | delivery:uncovered ID=0001 | delivery:deferred
+          task new:contracts ID=0001 | new:experiment ID=0001 NAME=foo | experiments:list ID=0001
+          task questions:list ID=0001 | questions:open ID=0001 | gate | promote | close | compact:plan | archive:list | ideas
         EOF
 
-  list:
+  legacy:list:
     desc: List enhancements with status and metadata (reads each config.yaml)
     preconditions:
       - sh: command -v yq >/dev/null 2>&1
@@ -518,7 +532,7 @@ tasks:
         printf "reconcile: ${GREEN}%s logged${RESET}, %s in flight, ${YELLOW}%s unlogged${RESET}, ${RED}%s invalid/dangling${RESET}\n" "$ok" "$inflight" "$missing" "$bad"
         [ "$missing" -eq 0 ] && [ "$bad" -eq 0 ]
 
-  vet:
+  legacy:vet:
     desc: Validate every enhancement's config.yaml against schema.cue + consistency checks
     preconditions:
       - sh: command -v cue >/dev/null 2>&1
@@ -948,12 +962,12 @@ tasks:
           # above apply. Left in place it would be gated as live work.
           live_status=$(yq -r '.status' "$cfg")
           if [ "$live_status" = "rejected" ]; then
-            printf "${RED}FAIL${RESET} %s\n    status is rejected but the entry is not in archive/ — use 'task reject ID=%s REASON=...'\n" "$cfg" "$id"
+            printf "${RED}FAIL${RESET} %s\n    status is rejected but the entry is not in archive/ — use 'task legacy:reject ID=%s REASON=...'\n" "$cfg" "$id"
             FAIL=1
             continue
           fi
           if [ "$live_status" = "superseded" ]; then
-            printf "${RED}FAIL${RESET} %s\n    status is superseded but the entry is not in archive/ — use 'task supersede ID=%s BY=<successor>'\n" "$cfg" "$id"
+            printf "${RED}FAIL${RESET} %s\n    status is superseded but the entry is not in archive/ — use 'task legacy:supersede ID=%s BY=<successor>'\n" "$cfg" "$id"
             FAIL=1
             continue
           fi
@@ -967,7 +981,7 @@ tasks:
           # 0000 and must pass the schema), but doc placeholders are
           # expected. This also exempts 0000 from the core_schema iff-rule
           # by design: the template keeps schemas/ and contracts/ as copy
-          # sources for `task new` / `task new:contracts` while declaring
+          # sources for `task legacy:new` / `task new:contracts` while declaring
           # core_schema: false.
           if [ "$id" = "0000" ]; then
             if cue_out=$(cue vet -d '#EnhancementConfig' schema.cue "$cfg" 2>&1); then
@@ -1003,211 +1017,253 @@ tasks:
 
         exit $FAIL
 
-  vet:enh:
-    desc: Check the new-layout entries in openspec/changes with enh vet (ID or folder name optional)
+  # The tasks below are one-line calls to `enh` (design part two, section 3).
+  # Values of the command line are shell-quoted, so a value with spaces or
+  # quotes stays one argument. CONFIRM=1 is read by `enh` itself. The old
+  # bash tasks that had these names are `legacy:<name>`: they check the
+  # old-layout entries (NNNN/) until migration step M4 deletes them.
+  vet:
+    desc: "Check the entries in openspec/changes with enh vet (ID, MODE and BASE optional)"
     summary: |
       Usage:
-        task vet:enh                    every entry, draft mode
-        task vet:enh ID=0013 MODE=accept
-        task vet:enh MODE=deliver ID=0013
-      Flags go to `enh vet`: MODE is draft (default), accept or deliver.
-    dir: tools/enh
+        task vet                         every entry, draft mode
+        task vet ID=0013 MODE=accept
+        task vet MODE=deliver ID=0013
+        task vet BASE=origin/main        V7, V27 and V31 compare with this ref
+      MODE is draft (default), accept or deliver. BASE defaults to origin/main
+      when that ref exists, else main. Extra flags of the enh command go after
+      `--`. See `enh help vet`.
     cmds:
-      - go run . vet --mode {{.MODE | default "draft"}} {{.ID}}
+      - go -C tools/enh run . vet {{if .MODE}}--mode {{.MODE | shellQuote}} {{end}}{{if .BASE}}--base {{.BASE | shellQuote}} {{end}}{{if .ID}}{{.ID | shellQuote}} {{end}}{{.CLI_ARGS}}
 
-  # The tasks below are one-line calls to `enh` (design part two, section 3).
-  # They carry the prefix `enh:` while the old tasks of the same names exist;
-  # the CI task (T3.4) removes the old ones and drops the prefix. Values of
-  # the command line are shell-quoted, so a value with spaces or quotes stays
-  # one argument. CONFIRM=1 is read by `enh` itself.
-  enh:new:
+  new:
     desc: "Make a draft entry: id, openspec change, config.yaml, index"
     summary: |
       Usage:
-        task enh:new SLUG=my-feature TITLE="My Feature" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
+        task new SLUG=my-feature TITLE="My Feature" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . new {{.SLUG | default "" | shellQuote}} {{.TITLE | default "" | shellQuote}} {{.SUMMARY | default "" | shellQuote}} {{.CATEGORY | default "" | shellQuote}} {{.AFFECTS | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:seed:new:
+  seed:new:
     desc: "Make the seed change seed-CAP"
     summary: |
       Usage:
-        task enh:seed:new CAP=registration-acceptance
+        task seed:new CAP=registration-acceptance
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . seed:new {{.CAP | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:accept:
+  accept:
     desc: "Accept a draft: print the sample and collisions (CONFIRM=1 writes the record)"
     summary: |
       Usage:
-        task enh:accept ID=0013
-        CONFIRM=1 task enh:accept ID=0013
-        task enh:accept ID=seed-registration-acceptance
+        task accept ID=0013
+        CONFIRM=1 task accept ID=0013
+        task accept ID=seed-registration-acceptance
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . accept {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:resample:
+  resample:
     desc: "Re-sample an accepted entry (CONFIRM=1 rewrites accepted)"
     summary: |
       Usage:
-        task enh:resample ID=0013
-        CONFIRM=1 task enh:resample ID=0013
+        task resample ID=0013
+        CONFIRM=1 task resample ID=0013
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . resample {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:deliver:
+  deliver:
     desc: "Deliver an accepted entry or a seed: check, archive, index, commit"
     summary: |
       Usage:
-        task enh:deliver ID=0013
+        task deliver ID=0013
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . deliver {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:reject:
+  reject:
     desc: "Reject a draft with a reason"
     summary: |
       Usage:
-        task enh:reject ID=0013 REASON="why"
+        task reject ID=0013 REASON="why"
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . reject {{.ID | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:withdraw:
+  withdraw:
     desc: "Withdraw a draft or accepted entry with a reason"
     summary: |
       Usage:
-        task enh:withdraw ID=0013 REASON="why"
+        task withdraw ID=0013 REASON="why"
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . withdraw {{.ID | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:supersede:
+  supersede:
     desc: "Supersede an entry by one or more others"
     summary: |
       Usage:
-        task enh:supersede ID=0013 BY=0033 REASON="why"
+        task supersede ID=0013 BY=0033 REASON="why"
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . supersede {{.ID | default "" | shellQuote}} {{.BY | default "" | shellQuote}} {{.REASON | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:tick:
+  tick:
     desc: "Tick a task line and append (REF)"
     summary: |
       Usage:
-        task enh:tick ID=0013 LINE=1.1 REF=change-name
+        task tick ID=0013 LINE=1.1 REF=change-name
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . tick {{.ID | default "" | shellQuote}} {{.LINE | default "" | shellQuote}} {{.REF | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:index:
+  index:
     desc: "Write README.md of each entry, INDEX.md and GRAPH.md"
     summary: |
       Usage:
-        task enh:index
+        task index
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . index {{.CLI_ARGS}}
 
-  enh:fresh:
+  fresh:
     desc: "Fail when a generated file is missing or stale"
     summary: |
       Usage:
-        task enh:fresh
+        task fresh
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . fresh {{.CLI_ARGS}}
 
-  enh:history:
+  history:
     desc: "Print the history of a requirement"
     summary: |
       Usage:
-        task enh:history REQ="A name"
-        task enh:history REQ="A name" CAP=capability
+        task history REQ="A name"
+        task history REQ="A name" CAP=capability
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . history {{.REQ | default "" | shellQuote}} {{if .CAP}}{{.CAP | shellQuote}}{{end}} {{.CLI_ARGS}}
 
-  enh:stale:
+  stale:
     desc: "Print the stale-base flags of an accepted entry"
     summary: |
       Usage:
-        task enh:stale ID=0013
+        task stale ID=0013
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . stale {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:links:
+  links:
     desc: "Check the links between entries"
     summary: |
       Usage:
-        task enh:links
+        task links
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . links {{.CLI_ARGS}}
 
-  enh:reconcile:
+  reconcile:
     desc: "Compare Delivers lines with ticks (needs sibling checkouts)"
     summary: |
       Usage:
-        task enh:reconcile
+        task reconcile
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . reconcile --workspace "{{.ROOT_DIR}}/.." {{.CLI_ARGS}}
 
-  enh:cite-lint:
+  cite-lint:
     desc: "Lint decision numbers and lone ids in Go and CUE comments"
     summary: |
       Usage:
-        task enh:cite-lint
+        task cite-lint
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . cite-lint --root "{{.ROOT_DIR}}" {{.CLI_ARGS}}
 
-  enh:list:
+  list:
     desc: "List the live entries"
     summary: |
       Usage:
-        task enh:list
-        task enh:list -- --archived
+        task list
+        task list -- --archived
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . list {{.CLI_ARGS}}
 
-  enh:show:
+  show:
     desc: "Print the facts of one entry"
     summary: |
       Usage:
-        task enh:show ID=0013
+        task show ID=0013
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . show {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  enh:questions:
+  questions:
     desc: "Print the open questions of one entry"
     summary: |
       Usage:
-        task enh:questions ID=0013
+        task questions ID=0013
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . questions {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
-  vet:one:
+  specs-rule:
+    desc: "Check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction"
+    summary: |
+      Usage:
+        task specs-rule                  against origin/main
+        task specs-rule BASE=some-ref
+      Replays `openspec archive` (the pinned 1.14.1) in a scratch copy, so
+      it needs that CLI and the full git history. Extra flags of the enh
+      command go after `--`. See `enh help specs-rule`.
+    cmds:
+      - go -C tools/enh run . specs-rule --base {{.BASE | default "origin/main" | shellQuote}} {{.CLI_ARGS}}
+
+  specs-rule:chain:
+    desc: "Check each commit after SINCE that touches openspec/specs/ (the migration branch)"
+    summary: |
+      Usage:
+        task specs-rule:chain SINCE=69475cb
+      Extra flags of the enh command go after `--`. See `enh help specs-rule`.
+    requires:
+      vars: [SINCE]
+    cmds:
+      - go -C tools/enh run . specs-rule --chain --since {{.SINCE | shellQuote}} {{.CLI_ARGS}}
+
+  check:
+    desc: "The gate of this repo: enh vet, links and fresh, then the legacy checks of the old-layout entries"
+    summary: |
+      Runs, in order: `task vet`, `task links`, `task fresh`, then
+      `task legacy:vet` and `task legacy:links`. The two legacy tasks check
+      the old-layout entries (NNNN/ and archive/NNNN/) that `enh` does not
+      read; they go with the old tools at migration step M4.
+      Not in this task: `specs-rule` (it needs the PR base and the OpenSpec
+      CLI; CI runs it) and `legacy:fresh` (it writes INDEX.md and GRAPH.md
+      in the old layout, which `fresh` owns now).
+    cmds:
+      - task: vet
+      - task: links
+      - task: fresh
+      - task: legacy:vet
+      - task: legacy:links
+
+  legacy:vet:one:
     desc: Validate a single enhancement (ID=NNNN)
     summary: |
       Usage:
-        task vet:one ID=0001
+        task legacy:vet:one ID=0001
 
-      Runs the same checks as `task vet` against one enhancement.
+      Runs the same checks as `task legacy:vet` against one enhancement.
     vars:
       ID: '{{.ID | default ""}}'
     preconditions:
       - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task vet:one ID=<4-digit-id>'
+        msg: 'ID is required. Usage: task legacy:vet:one ID=<4-digit-id>'
       - sh: command -v cue >/dev/null 2>&1
         msg: "cue is required"
       - sh: command -v yq >/dev/null 2>&1
@@ -1230,7 +1286,7 @@ tasks:
         cfg="$DIR/config.yaml"
         [ -f "$cfg" ] || { echo "Missing $cfg" >&2; exit 1; }
 
-        # Archived entries get the same REDUCED validation as in `task vet`:
+        # Archived entries get the same REDUCED validation as in `task legacy:vet`:
         # schema plus the placement rules, none of the prose gates.
         if [ "$DIR" != "$ID" ]; then
           errors=""
@@ -1393,11 +1449,11 @@ tasks:
             ref_exists "$ref" || errors="${errors}\n    $field contains unknown ref '$ref'"
           done < <(yq -r ".$field[]?" "$cfg")
         done
-        # Relation edges (same implementation as `task vet`, step 3b).
+        # Relation edges (same implementation as `task legacy:vet`, step 3b).
         dep_err=$(./scripts/depends.sh check "$ID" 2>/dev/null || true)
         [ -z "$dep_err" ] || errors="${errors}\n    relation edges (depends_on / **Depends:**, amends / **Amends:** **Supersedes:**) mismatch:\n$(echo "$dep_err" | sed 's/^/      /')"
         # Global acyclicity, failing only when this entry sits on the loop;
-        # a cycle elsewhere is `task vet`'s to report.
+        # a cycle elsewhere is `task legacy:vet`'s to report.
         loop=$(./scripts/depends.sh cycles 2>/dev/null || true)
         if printf '%s\n' "$loop" | grep -qx "$ID"; then
           errors="${errors}\n    depends_on cycle through this entry: $(printf '%s\n' "$loop" | paste -sd',' - | sed 's/,/, /g')"
@@ -1551,10 +1607,10 @@ tasks:
         fi
         printf "${GREEN}ok${RESET}   %s\n" "$cfg"
 
-  check:
+  legacy:check:
     desc: Soft per-status checklist (scope section, decisions, OQ block, impl block, deviations)
     summary: |
-      Complements `task vet`. vet enforces the machine-readable contract
+      Complements `task legacy:vet`. vet enforces the machine-readable contract
       (schema, cross-refs, placeholders, affects); check audits the
       prose conventions that don't fit a schema:
 
@@ -1588,11 +1644,11 @@ tasks:
         - superseded  → README has '> **Superseded by NNNN …**' quote block
 
       Archived entries (rejected and superseded both live in archive/NNNN/)
-      get only their banner check — reduced validation, matching `task vet`.
+      get only their banner check — reduced validation, matching `task legacy:vet`.
 
       Usage:
-        task check                # every enhancement
-        task check ID=0001        # single enhancement
+        task legacy:check                # every enhancement
+        task legacy:check ID=0001        # single enhancement
     vars:
       ID: '{{.ID | default ""}}'
     preconditions:
@@ -1634,7 +1690,7 @@ tasks:
           local core_schema; core_schema=$(yq -r '.core_schema // "false"' "$cfg")
           local warnings=""
 
-          # Archived entries: reduced validation, mirroring `task vet`. Only
+          # Archived entries: reduced validation, mirroring `task legacy:vet`. Only
           # the reader-facing banner is checked — a rejected draft is
           # incomplete by definition, a superseded entry is a stub, and a
           # delivered entry passed every gate while live.
@@ -1870,11 +1926,11 @@ tasks:
         done
         exit $FAIL
 
-  show:
+  legacy:show:
     desc: Show full metadata for a single enhancement (ID=NNNN)
     summary: |
       Usage:
-        task show ID=0001
+        task legacy:show ID=0001
 
       Prints the resolved directory, every config.yaml field (including
       the full history list), and every document present in that
@@ -1883,7 +1939,7 @@ tasks:
       ID: '{{.ID | default ""}}'
     preconditions:
       - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task show ID=<4-digit-id>'
+        msg: 'ID is required. Usage: task legacy:show ID=<4-digit-id>'
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
     cmds:
@@ -1988,12 +2044,12 @@ tasks:
     cmds:
       - gh issue list --label idea --state open
 
-  new:
+  legacy:new:
     desc: Scaffold a new enhancement from 0000/ (auto-numbers id; fills config.yaml + doc titles)
     summary: |
       Usage:
-        task new SLUG=platform-context TITLE="Platform Context" SUMMARY="…" NOT="…" CATEGORY=schema AFFECTS=core,library
-        task new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…" CATEGORY=runtime AFFECTS=cli AUTHOR="jane@example.com"
+        task legacy:new SLUG=platform-context TITLE="Platform Context" SUMMARY="…" NOT="…" CATEGORY=schema AFFECTS=core,library
+        task legacy:new SLUG=foo TITLE="Foo Bar" SUMMARY="…" NOT="…" CATEGORY=runtime AFFECTS=cli AUTHOR="jane@example.com"
 
       SLUG must match ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ (kebab-case).
       Computes the next four-digit id from the highest existing enhancement.
@@ -2022,9 +2078,9 @@ tasks:
       ISSUE:       '{{.ISSUE       | default ""}}'
     preconditions:
       - sh: '[ -n "{{.SLUG}}" ]'
-        msg: 'SLUG is required. Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
+        msg: 'SLUG is required. Usage: task legacy:new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
       - sh: '[ -n "{{.TITLE}}" ]'
-        msg: 'TITLE is required. Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
+        msg: 'TITLE is required. Usage: task legacy:new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>"'
       # The two admission answers, required so an entry cannot be scaffolded
       # without an articulated capability. Eight files with no stated
       # capability is where the drift starts, and this is the one place the
@@ -2039,9 +2095,9 @@ tasks:
       # is how half the entries ended up there; `misc` must not become the sink,
       # and an unstated blast radius is the same drift for `affects`.
       - sh: 'printf %s "{{.CATEGORY}}" | grep -Eqx "schema|runtime|distribution|tooling|misc"'
-        msg: 'CATEGORY is required and must be one of schema|runtime|distribution|tooling|misc — the ONE dominant type of work (see schema.cue #Category). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category>'
+        msg: 'CATEGORY is required and must be one of schema|runtime|distribution|tooling|misc — the ONE dominant type of work (see schema.cue #Category). Usage: task legacy:new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category>'
       - sh: 'printf %s "{{.AFFECTS}}" | grep -Eqx "(core|library|catalog|cli|opm-operator|opm-controller|opmodel\.dev|orca|modules|opm|opm-portal)(,(core|library|catalog|cli|opm-operator|opm-controller|opmodel\.dev|orca|modules|opm|opm-portal))*"'
-        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opm-controller|opmodel.dev|orca|modules|opm|opm-portal, see schema.cue #Repo). Usage: task new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
+        msg: 'AFFECTS is required: a comma-separated list of the repos that ship changes (core|library|catalog|cli|opm-operator|opm-controller|opmodel.dev|orca|modules|opm|opm-portal, see schema.cue #Repo). Usage: task legacy:new SLUG=<slug> TITLE="<title>" SUMMARY="<capability>" NOT="<what this is not>" CATEGORY=<category> AFFECTS=<repo,repo>'
       - sh: 'printf %s "{{.CORE_SCHEMA}}" | grep -Eqx "true|false"'
         msg: 'CORE_SCHEMA must be true or false'
       - sh: '[ -z "{{.ISSUE}}" ] || printf %s "{{.ISSUE}}" | grep -Eq "^[0-9]+$"'
@@ -2128,7 +2184,7 @@ tasks:
         # Replace the {Enhancement Title} and {Enhancement Id} placeholders in
         # README + the seven split docs (+ schemas/spec.md when CORE_SCHEMA=true
         # kept schemas/). Every other {Capitalised} placeholder is the author's
-        # to overwrite, and `task vet` fails while one remains.
+        # to overwrite, and `task legacy:vet` fails while one remains.
         ESCAPED_TITLE=$(printf '%s' "$TITLE" | sed -e 's/[\\&]/\\&/g')
         for f in README.md 01-problem.md 02-design.md 03-decisions.md 04-graduation.md 05-risks.md 06-operational.md 07-questions.md schemas/spec.md; do
           # if/then rather than `[ -f ] && sed`: schemas/spec.md is absent on
@@ -2180,14 +2236,14 @@ tasks:
         fi
         echo "  3. Add Open Questions to $NEW_DIR/07-questions.md; fill decisions iteratively, each with **Kind:** and a **Requirements:** list (or none with a reason on policy / scope)"
         echo "  4. Update $NEW_DIR/README.md scope; a decision resting on another entry's decision carries **Depends:** MMMM:DN and lists MMMM in depends_on; one changing another entry's decision carries the qualified MMMM:DN token on **Amends:** / **Supersedes:** and lists MMMM in amends"
-        echo "  5. Validate:           task vet:one ID=$NEW_ID"
-        echo "  6. Regenerate index:   task index"
+        echo "  5. Validate:           task legacy:vet:one ID=$NEW_ID"
+        echo "  6. Regenerate index:   task legacy:index"
         if [ -n "$ISSUE" ]; then
           echo "  7. Close idea issue #$ISSUE with a link to $NEW_DIR/:"
           echo "     gh issue close $ISSUE --comment \"Promoted to enhancement $NEW_ID.\""
         fi
 
-  links:
+  legacy:links:
     desc: Fail on a broken relative link in a published file (entry docs, INDEX.md, GRAPH.md)
     summary: |
       opmodel.dev publishes each entry's README.md and split documents, live
@@ -2197,10 +2253,10 @@ tasks:
     cmds:
       - ./scripts/check-links.sh
 
-  fresh:
+  legacy:fresh:
     desc: Fail when INDEX.md or GRAPH.md is stale (regenerates both in place, prints the diff)
     summary: |
-      Runs `task index` and `task graph`, then compares both files against
+      Runs `task legacy:index` and `task legacy:graph`, then compares both files against
       the git index. A difference means a config.yaml, decision log or
       delivery log changed without a regeneration: the regenerated files are
       left in the working tree, so committing them is the fix.
@@ -2208,8 +2264,8 @@ tasks:
       - sh: command -v git >/dev/null 2>&1
         msg: "git is required"
     cmds:
-      - task: index
-      - task: graph
+      - task: legacy:index
+      - task: legacy:graph
       - |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -2252,7 +2308,7 @@ tasks:
       - task: docs:pins:check
       - .bin/opm-docs check --project enhancements
 
-  index:
+  legacy:index:
     desc: (Re)generate INDEX.md — browse aid for opaque NNNN/ folders
     summary: |
       Walks every NNNN/config.yaml and writes INDEX.md with a single table
@@ -2341,7 +2397,7 @@ tasks:
 
         printf 'Wrote %s\n' "$OUT"
 
-  graph:
+  legacy:graph:
     desc: (Re)generate GRAPH.md — category rollup plus one Mermaid diagram per category
     summary: |
       Walks every NNNN/config.yaml (archive/ included) and writes GRAPH.md
@@ -2350,7 +2406,7 @@ tasks:
         - ## Overview: one node per category, edges labelled with the number
           of depends_on edges crossing from one category into another, and a
           sentence naming mutually dependent categories (informational: the
-          entry-level depends_on graph stays acyclic, task vet enforces it).
+          entry-level depends_on graph stays acyclic, task legacy:vet enforces it).
         - ## <category>: member entries coloured by status, every edge with
           a member endpoint in either direction, and foreign endpoints drawn
           as grey stubs labelled "NNNN · <category>" so the reader knows
@@ -2404,7 +2460,7 @@ tasks:
           case " $CATS " in
             *" $category "*) ;;
             *)
-              printf 'graph: %s: category %s is not one of %s (task vet reports the same)\n' \
+              printf 'graph: %s: category %s is not one of %s (task legacy:vet reports the same)\n' \
                 "$cfg" "'$category'" "${CATS// /|}" >&2
               exit 1 ;;
           esac
@@ -2449,7 +2505,7 @@ tasks:
           }' "$NODES" "$EDGES" > "$EDGES.live" && mv -f "$EDGES.live" "$EDGES"
 
         # ---- Validate before writing anything ----------------------------------
-        # Every NNNN endpoint must be a known entry. `task vet` existence-checks
+        # Every NNNN endpoint must be a known entry. `task legacy:vet` existence-checks
         # supersedes but not revives, so this is the only catch for a dangling revive.
         unknown=$(awk -F'\t' '
           NR==FNR { known[$1]=1; next }
@@ -2482,7 +2538,7 @@ tasks:
 
         # Mutually reachable category pairs over the cross-edge graph (Warshall
         # closure; five nodes, exact). Informational only: the entry-level
-        # depends_on graph stays acyclic, `task vet` enforces that.
+        # depends_on graph stays acyclic, `task legacy:vet` enforces that.
         cycle_pairs() {
           awk -F'\t' -v cats="$CATS" '
             BEGIN { n = split(cats, C, " ") }
@@ -2764,7 +2820,7 @@ tasks:
         echo "  2. Add a row to $EXP_DIR/README.md:"
         echo "     | $NEW_NUM | $NAME | Draft |"
         echo "  3. List:                task experiments:list ID=$ID"
-        echo "  4. Validate structure:  task vet:one ID=$ID"
+        echo "  4. Validate structure:  task legacy:vet:one ID=$ID"
 
   experiments:list:
     desc: List experiments for one enhancement with status parsed from each README
@@ -3309,7 +3365,7 @@ tasks:
       Creates NNNN/contracts/ from the 0000 template — the home for
       compilable CUE that is NOT a core-schema delta: decision procedures,
       kernel-behaviour contracts, CLI command contracts, taxonomies.
-      Optional and never required; when present, `task vet` requires it to
+      Optional and never required; when present, `task legacy:vet` requires it to
       be non-empty and to compile (cue vet ./...). The core-schema delta
       itself lives in schemas/ and is gated by config.yaml.core_schema.
     vars:
@@ -3339,7 +3395,7 @@ tasks:
         echo
         echo "Next steps:"
         echo "  1. Replace the template .cue with your contracts (package name stays 'contracts')"
-        echo "  2. Validate: task vet:one ID=$ID"
+        echo "  2. Validate: task legacy:vet:one ID=$ID"
 
   gate:
     desc: Admission rubric for one enhancement — mechanical checks + the questions to walk
@@ -3389,7 +3445,7 @@ tasks:
 
         printf "${BOLD}Mechanical${RESET} ${DIM}(deterministic — no judgement involved)${RESET}\n"
 
-        if vet_out=$(task vet:one ID="$ID" 2>&1); then
+        if vet_out=$(task legacy:vet:one ID="$ID" 2>&1); then
           printf "  %-22s ${GREEN}ok${RESET}\n" "vet"
         else
           printf "  %-22s ${RED}FAIL${RESET}\n%s\n" "vet" "$(echo "$vet_out" | sed 's/^/    /')"
@@ -3481,7 +3537,7 @@ tasks:
     summary: |
       Status flips stop being hand edits. This refuses unless:
 
-        - task vet:one passes
+        - task legacy:vet:one passes
         - no Open Question is still marked `Blocking: acceptance`
         - config.yaml.semver is set
         - a verdict file .gates/NNNN.yaml records a pass for every
@@ -3515,8 +3571,8 @@ tasks:
 
         refusals=""
 
-        task vet:one ID="$ID" >/dev/null 2>&1 \
-          || refusals="${refusals}\n  - task vet:one fails (run it for the detail)"
+        task legacy:vet:one ID="$ID" >/dev/null 2>&1 \
+          || refusals="${refusals}\n  - task legacy:vet:one fails (run it for the detail)"
 
         blockers=$(grep -oE '\*\*OQ[0-9]+:' "$ID/07-questions.md" 2>/dev/null | tr -d '*:' | while read -r oq; do
                      grep -E "\*\*${oq}:" "$ID/07-questions.md" | grep -q 'Blocking: acceptance' && echo "$oq"
@@ -3560,12 +3616,12 @@ tasks:
         echo
         echo "Next steps:"
         echo "  1. Log changes as they land:    task delivery:log FROM=<change-dir> SUMMARY=\"...\""
-        echo "  2. Refresh the browse aids:     task index && task graph"
+        echo "  2. Refresh the browse aids:     task legacy:index && task legacy:graph"
 
-  supersede:
+  legacy:supersede:
     desc: Mark an entry superseded by its successor and archive it (ID=NNNN BY=MMMM)
     summary: |
-      The supersession counterpart of `task reject` — the other terminal
+      The supersession counterpart of `task legacy:reject` — the other terminal
       state, under the same rule: a terminal entry is ALWAYS archived. Sets
       status: superseded and superseded_by, appends a history event, banners
       the README when no hand-written banner exists yet, moves the entry
@@ -3575,7 +3631,7 @@ tasks:
       Refuses unless the successor already lists this id in its
       `supersedes` — both halves of the link exist before the move. Only an
       accepted entry can be superseded: a draft that a newer idea replaces
-      is killed with `task reject` instead (the schema requires semver on a
+      is killed with `task legacy:reject` instead (the schema requires semver on a
       superseded entry, and a draft may not have one — the design was never
       agreed, so there is nothing to hand over).
 
@@ -3583,15 +3639,15 @@ tasks:
       after the move — `task compact:plan` resolves archived entries too.
 
       Usage:
-        task supersede ID=0003 BY=0010
+        task legacy:supersede ID=0003 BY=0010
     vars:
       ID: '{{.ID | default ""}}'
       BY: '{{.BY | default ""}}'
     preconditions:
       - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task supersede ID=<4-digit-id> BY=<successor-id>'
+        msg: 'ID is required. Usage: task legacy:supersede ID=<4-digit-id> BY=<successor-id>'
       - sh: '[ -n "{{.BY}}" ]'
-        msg: 'BY is required — a superseded entry must name its successor. Usage: task supersede ID=<id> BY=<successor-id>'
+        msg: 'BY is required — a superseded entry must name its successor. Usage: task legacy:supersede ID=<id> BY=<successor-id>'
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
     cmds:
@@ -3607,7 +3663,7 @@ tasks:
         status=$(yq -r '.status' "$ID/config.yaml")
         [ "$status" = "accepted" ] || {
           echo "Entry $ID is '$status' — only an accepted entry can be superseded." >&2
-          echo "A draft replaced by a newer idea is killed instead: task reject ID=$ID REASON=\"superseded by $BY: ...\"" >&2
+          echo "A draft replaced by a newer idea is killed instead: task legacy:reject ID=$ID REASON=\"superseded by $BY: ...\"" >&2
           exit 1
         }
 
@@ -3656,9 +3712,9 @@ tasks:
         echo
         echo "Next steps:"
         echo "  1. Stub the entry via the enhancement-compaction skill (task compact:plan ID=$ID)"
-        echo "  2. task vet && task index && task graph"
+        echo "  2. task legacy:vet && task legacy:index && task legacy:graph"
 
-  reject:
+  legacy:reject:
     desc: Kill an idea — archive it with a reason (ID=NNNN REASON="...")
     summary: |
       Moves the entry to archive/NNNN/, sets status: rejected, records the
@@ -3673,18 +3729,18 @@ tasks:
       drafts nobody believes in.
 
       The id is kept forever: cross-references must keep resolving, and
-      `task new` will not reissue it.
+      `task legacy:new` will not reissue it.
 
       Usage:
-        task reject ID=0021 REASON="Subsumed by 0015's contract maps"
+        task legacy:reject ID=0021 REASON="Subsumed by 0015's contract maps"
     vars:
       ID: '{{.ID | default ""}}'
       REASON: '{{.REASON | default ""}}'
     preconditions:
       - sh: '[ -n "{{.ID}}" ]'
-        msg: 'ID is required. Usage: task reject ID=<4-digit-id> REASON="<why>"'
+        msg: 'ID is required. Usage: task legacy:reject ID=<4-digit-id> REASON="<why>"'
       - sh: '[ -n "{{.REASON}}" ]'
-        msg: 'REASON is required — an archived idea must say why it stopped. Usage: task reject ID=<id> REASON="<why>"'
+        msg: 'REASON is required — an archived idea must say why it stopped. Usage: task legacy:reject ID=<id> REASON="<why>"'
       - sh: command -v yq >/dev/null 2>&1
         msg: "yq is required"
     cmds:
@@ -3729,7 +3785,7 @@ tasks:
         ./scripts/relink.sh
         echo
         echo "Next steps:"
-        echo "  1. task vet && task index && task graph   # archived entries get reduced validation"
+        echo "  1. task legacy:vet && task legacy:index && task legacy:graph   # archived entries get reduced validation"
 
   close:
     desc: Close a delivered design — archive it as `delivered` (ID=NNNN; refuses unless task delivery derives implemented)
@@ -3742,7 +3798,7 @@ tasks:
 
       This is not the stored progress field the repo removed: `task close`
       refuses unless the derivation says `implemented`, writes the status
-      once, and nothing in the entry changes again. `task vet` re-checks the
+      once, and nothing in the entry changes again. `task legacy:vet` re-checks the
       derivation on every archived delivered entry, so the status can never
       outlive its evidence.
 
@@ -3760,7 +3816,7 @@ tasks:
 
       Delivered is closed, not gone: depends_on / amends edges into it keep
       resolving, and a later entry amends it by naming its decisions (its log
-      is read, never edited; `task show ID=NNNN` lists the amenders).
+      is read, never edited; `task legacy:show ID=NNNN` lists the amenders).
 
       Usage:
         task close ID=0001
@@ -3823,7 +3879,7 @@ tasks:
         if [ -f "$readme" ]; then
           awk 'BEGIN{skip=0} /^> \*\*Implementation status/ {skip=1} skip && !/^>/ { skip=0; if ($0=="") next } !skip' "$readme" > "$readme.tmp"
           if ! grep -q '^> \*\*Delivered (' "$readme.tmp"; then
-            banner="> **Delivered ($delivered_on).** Every live decision is carried by this entry's delivery log or excused in it ($landings landings; \`task delivery ID=$ID\`). The design is closed: a correction is a new enhancement that amends it, and \`task show ID=$ID\` lists any."
+            banner="> **Delivered ($delivered_on).** Every live decision is carried by this entry's delivery log or excused in it ($landings landings; \`task delivery ID=$ID\`). The design is closed: a correction is a new enhancement that amends it, and \`task legacy:show ID=$ID\` lists any."
             { printf '%s\n\n' "$banner"; cat "$readme.tmp"; } > "$readme.tmp2"
             mv -f "$readme.tmp2" "$readme.tmp"
           fi
@@ -3834,7 +3890,7 @@ tasks:
         ./scripts/relink.sh
         echo
         echo "Next steps:"
-        echo "  1. task vet && task index && task graph"
+        echo "  1. task legacy:vet && task legacy:index && task legacy:graph"
 
   archive:list:
     desc: Archived (delivered / rejected / superseded) entries with summaries and why they closed
