@@ -259,7 +259,7 @@ func Format(w io.Writer, chains []Chain) {
 			if r.Seed {
 				tag = "  (origin)"
 			}
-			fmt.Fprintf(w, "  %s  %-28s  %-8s%s\n", r.Date, r.Label, r.Op, tag)
+			fmt.Fprintln(w, strings.TrimRight(fmt.Sprintf("  %s  %-28s  %-8s%s", r.Date, r.Label, r.Op, tag), " "))
 			switch r.Op {
 			case OpRenamed:
 				fmt.Fprintf(w, "    from %q to %q\n", r.Name, r.To)
