@@ -30,7 +30,7 @@ import (
 // of #EntryRepo in schema.cue; a test keeps the two equal.
 var EntryRepos = []string{
 	"core", "library", "catalog_opm", "cli", "opm-operator",
-	"opm-portal", "opm", "opmodel.dev", "docs-kit", "enhancements",
+	"opm-controller", "opm-portal", "opm", "opmodel.dev", "docs-kit", "enhancements",
 	"modules", "opm-suite-installer", ".github",
 }
 
