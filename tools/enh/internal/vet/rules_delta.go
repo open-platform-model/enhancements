@@ -146,6 +146,10 @@ func (r *run) requirementRules(e *ent, q delta.Requirement, path string) {
 
 // removedRules: V21.
 func (r *run) removedRules(e *ent, q delta.Requirement, path string, added map[string]bool) {
+	if q.Bullet {
+		r.add(e, "V21", Error, path, q.Line, "REMOVED requirement %q is a list item, which cannot carry **Reason** and **Migration**; write a ### Requirement block", q.Name)
+		return
+	}
 	if !q.HasReason || q.Reason == "" {
 		r.add(e, "V21", Error, path, q.Line, "REMOVED requirement %q has no **Reason**", q.Name)
 	}

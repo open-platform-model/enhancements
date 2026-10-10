@@ -89,7 +89,8 @@ func (s *Schema) CheckConfig(src []byte) []Issue {
 		msg  string
 	}
 	var all []raw
-	conflict := map[string]string{} // path -> the value a disjunction refused
+	var conflicts []raw // "conflicting values A and B" errors
+	heads := map[string]bool{}
 	for _, e := range cueerrors.Errors(err) {
 		format, args := e.Msg()
 		msg := fmt.Sprintf(format, args...)
@@ -97,20 +98,34 @@ func (s *Schema) CheckConfig(src []byte) []Issue {
 		if len(path) > 0 && path[0] == "#EntryConfig" {
 			path = path[1:]
 		}
-		if i := strings.LastIndex(msg, " and "); strings.HasPrefix(msg, "conflicting values ") && i > 0 {
-			if _, ok := conflict[strings.Join(path, ".")]; !ok {
-				conflict[strings.Join(path, ".")] = msg[i+5:]
+		switch {
+		case strings.HasPrefix(msg, "conflicting values "):
+			conflicts = append(conflicts, raw{path, msg})
+		default:
+			if strings.Contains(msg, "errors in empty disjunction") {
+				heads[strings.Join(path, ".")] = true
 			}
-			continue // the head error of the disjunction carries the value
+			all = append(all, raw{path, msg})
 		}
-		all = append(all, raw{path, msg})
+	}
+	// A conflict at the path of a disjunction head is one arm of that
+	// disjunction: the head reports it, with the refused value. A conflict
+	// anywhere else is a type error on a plain field and stays an issue.
+	refused := map[string][]string{} // path -> operand pairs
+	for _, c := range conflicts {
+		key := strings.Join(c.path, ".")
+		if heads[key] {
+			refused[key] = append(refused[key], c.msg)
+			continue
+		}
+		all = append(all, c)
 	}
 	var out []Issue
 	seen := map[string]bool{}
 	for _, r := range all {
 		msg, path := r.msg, r.path
 		if strings.Contains(msg, "errors in empty disjunction") {
-			if v, ok := conflict[strings.Join(path, ".")]; ok {
+			if v := refusedValue(refused[strings.Join(path, ".")]); v != "" {
 				msg = fmt.Sprintf("value %s is not one of the allowed values", v)
 			}
 		}
@@ -135,4 +150,37 @@ func firstLine(s string) string {
 		return s[:i]
 	}
 	return s
+}
+
+// refusedValue finds the value the data holds in the arms of a disjunction:
+// the operand that all the "conflicting values A and B" messages share.
+func refusedValue(msgs []string) string {
+	var pairs [][2]string
+	for _, m := range msgs {
+		m = strings.TrimPrefix(m, "conflicting values ")
+		if i := strings.LastIndex(m, " (mismatched types"); i >= 0 {
+			m = m[:i]
+		}
+		if i := strings.Index(m, " and "); i >= 0 {
+			pairs = append(pairs, [2]string{m[:i], m[i+5:]})
+		}
+	}
+	if len(pairs) == 0 {
+		return ""
+	}
+	if len(pairs) > 1 {
+		count := map[string]int{}
+		for _, p := range pairs {
+			count[p[0]]++
+			count[p[1]]++
+		}
+		for _, p := range pairs {
+			for _, v := range p {
+				if count[v] == len(pairs) {
+					return v
+				}
+			}
+		}
+	}
+	return pairs[0][1]
 }

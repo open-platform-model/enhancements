@@ -8,6 +8,7 @@ package delta
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/words"
@@ -51,6 +52,9 @@ type Requirement struct {
 	HasReason, HasMigration bool
 	// Raw is the whole block, heading to last line.
 	Raw string
+	// Bullet marks a REMOVED name written as a list item. OpenSpec removes
+	// the requirement, but the form cannot carry a Reason or a Migration.
+	Bullet bool
 }
 
 // RealScenarios counts the scenarios that have a body.
@@ -110,10 +114,14 @@ var (
 	metaLineRe  = regexp.MustCompile(`^\*\*[^*]+\*\*:`)
 	reasonRe    = regexp.MustCompile(`^\*\*Reason\*\*:\s*(.*)$`)
 	migrationRe = regexp.MustCompile(`^\*\*Migration\*\*:\s*(.*)$`)
-	fromRe      = regexp.MustCompile("(?i)^\\s*-?\\s*FROM:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$")
-	toRe        = regexp.MustCompile("(?i)^\\s*-?\\s*TO:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$")
-	closingRe   = regexp.MustCompile(`[ \t]+#+[ \t]*$`)
-	scenPrefix  = regexp.MustCompile(`(?i)^Scenario:\s*`)
+	// The next three follow requirement-blocks.ts at OpenSpec 1.14.1: any
+	// CommonMark bullet marker, the bullet optional for FROM and TO, and
+	// FROM and TO written in capitals.
+	fromRe     = regexp.MustCompile("^\\s*[-*+]?\\s*FROM:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$")
+	toRe       = regexp.MustCompile("^\\s*[-*+]?\\s*TO:\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$")
+	bulletRe   = regexp.MustCompile("^\\s*[-*+]\\s*`?###\\s*Requirement:\\s*(.+?)`?\\s*$")
+	closingRe  = regexp.MustCompile(`[ \t]+#+[ \t]*$`)
+	scenPrefix = regexp.MustCompile(`(?i)^Scenario:\s*`)
 )
 
 // NormalizeName folds a requirement name the way OpenSpec matches it: a
@@ -138,6 +146,7 @@ func Parse(path, capability string, src []byte) *Spec {
 	kind := none
 	curOp := Op("")
 	var purposeLines []string
+	var bullets []Requirement
 	var pendingFrom string
 	var pendingFromLine int
 
@@ -212,6 +221,8 @@ func Parse(path, capability string, src []byte) *Spec {
 				closeSpan(i)
 				spans = append(spans, span{op: curOp, start: i, name: NormalizeName(m[1])})
 				open = len(spans) - 1
+			} else if m := bulletRe.FindStringSubmatch(l); m != nil && curOp == Removed {
+				bullets = append(bullets, Requirement{Op: Removed, Name: NormalizeName(m[1]), Line: i + 1, Raw: strings.TrimSpace(l), Bullet: true})
 			}
 		}
 	}
@@ -224,6 +235,8 @@ func Parse(path, capability string, src []byte) *Spec {
 	for _, s := range spans {
 		sp.Requirements = append(sp.Requirements, readBlock(lines[s.start:s.end], mask[s.start:s.end], s.start, s.op, s.name))
 	}
+	sp.Requirements = append(sp.Requirements, bullets...)
+	sort.SliceStable(sp.Requirements, func(i, j int) bool { return sp.Requirements[i].Line < sp.Requirements[j].Line })
 	return sp
 }
 

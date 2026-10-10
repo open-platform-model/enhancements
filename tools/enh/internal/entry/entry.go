@@ -184,6 +184,7 @@ var (
 	taskRe     = regexp.MustCompile(`^- \[( |x|X)\] (\d+)\.(\d+) ([^:]+): (.+)$`)
 	taskLikeRe = regexp.MustCompile(`^\s*- \[[ xX]\]`)
 	refRe      = regexp.MustCompile("\\s\\(`?([^()`]+)`?\\)\\s*$")
+	listItemRe = regexp.MustCompile(`^[-*+]\s`)
 	questionRe = regexp.MustCompile(`^\s*[-*]\s+(Blocking|Not blocking|Answered):\s*(.*)$`)
 )
 
@@ -400,10 +401,18 @@ func (e *Entry) readProposal() {
 			in = strings.EqualFold(strings.TrimSpace(l[3:]), "Open questions")
 			continue
 		}
-		if !in || strings.TrimSpace(l) == "" || strings.HasPrefix(strings.TrimSpace(l), "<!--") {
+		t := strings.TrimSpace(l)
+		if !in || t == "" || strings.HasPrefix(t, "<!--") {
 			continue
 		}
-		q := Question{Line: i + 1, Text: strings.TrimSpace(l)}
+		if !listItemRe.MatchString(l) {
+			// An indented or plain line below a question continues it.
+			if n := len(e.Questions); n > 0 {
+				e.Questions[n-1].Text += " " + t
+			}
+			continue
+		}
+		q := Question{Line: i + 1, Text: strings.TrimSpace(t[1:])}
 		if m := questionRe.FindStringSubmatch(l); m != nil {
 			q.Kind, q.Text = strings.ToLower(m[1]), strings.TrimSpace(m[2])
 		}

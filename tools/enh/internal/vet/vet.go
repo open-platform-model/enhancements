@@ -277,7 +277,7 @@ func (r *run) addField(e *ent, rule string, lv Level, field, format string, args
 	r.res.Findings[len(r.res.Findings)-1].Field = field
 }
 
-// by returns lv when the entry's mode is at least m, else "".
+// from returns lv when the entry's mode is at least m, else "".
 func (e *ent) from(m Mode, lv Level) Level {
 	if e.mode >= m {
 		return lv
@@ -285,7 +285,7 @@ func (e *ent) from(m Mode, lv Level) Level {
 	return ""
 }
 
-// modeLevel returns the level for a rule that is a warning below m and an
+// warnThenError returns the level for a rule that is a warning below m and an
 // error from m on.
 func (e *ent) warnThenError(m Mode) Level {
 	if e.mode >= m {
