@@ -109,6 +109,15 @@ func Load(fsys fs.FS) (*Tree, error) {
 		}
 		t.Entries = append(t.Entries, e)
 	}
+	live, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		return nil, fmt.Errorf("index: read the root: %w", err)
+	}
+	for _, d := range live {
+		if d.IsDir() && legacyNameRe.MatchString(d.Name()) && d.Name() != "0000" {
+			t.OldLiveIDs = append(t.OldLiveIDs, d.Name())
+		}
+	}
 	caps, err := loadCapabilities(fsys)
 	if err != nil {
 		errs = append(errs, err)

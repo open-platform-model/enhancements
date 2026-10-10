@@ -120,6 +120,20 @@ type Tree struct {
 	// Entries is sorted by id.
 	Entries      []*Entry
 	Capabilities []Capability
+	// OldLiveIDs lists the ids of old-layout entries that are still live
+	// (NNNN/ at the root, 0000 excluded). They are not rendered, but an
+	// `after` or `superseded_by` id may name one, so that every commit of
+	// the migration passes whatever the order of the conversion.
+	OldLiveIDs []string
+}
+
+func (t *Tree) oldLive(id string) bool {
+	for _, x := range t.OldLiveIDs {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // Entry returns the entry with the id, or nil.

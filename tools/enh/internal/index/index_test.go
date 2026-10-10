@@ -372,3 +372,43 @@ func TestCheckPath(t *testing.T) {
 		}
 	}
 }
+
+// An old-layout entry that is still live is a valid `after` and
+// `superseded_by` target, so that every commit of the migration passes
+// whatever the order of the conversion. It is not drawn.
+func TestGenerate_oldLiveEntryIsATarget(t *testing.T) {
+	old := strings.NewReplacer("id: \"0050\"", "id: \"0051\"", "status: draft", "status: superseded").
+		Replace(string(cfg("superseded_by: {date: \"2026-10-01\", ids: [\"0021\"], reason: r}\n").Data))
+	mfs := fstest.MapFS{
+		"openspec/changes/0050-thing/config.yaml":                    cfg("after: [\"0021\", \"0027\"]\n"),
+		"openspec/changes/archive/2026-10-02-0051-thing/config.yaml": &fstest.MapFile{Data: []byte(old)},
+		"0021/config.yaml": &fstest.MapFile{Data: []byte("id: \"0021\"\n")},
+		"0027/config.yaml": &fstest.MapFile{Data: []byte("id: \"0027\"\n")},
+		"0000/config.yaml": &fstest.MapFile{Data: []byte("id: \"0000\"\n")},
+	}
+	tree, err := Load(mfs)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !slices.Equal(tree.OldLiveIDs, []string{"0021", "0027"}) {
+		t.Fatalf("OldLiveIDs = %v, want 0021 and 0027 (0000 is the template)", tree.OldLiveIDs)
+	}
+	files, err := Generate(tree)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	for _, f := range files {
+		if f.Path == "GRAPH.md" && strings.Contains(string(f.Content), "N0021") {
+			t.Errorf("GRAPH.md draws the old live entry 0021")
+		}
+	}
+	// An id that is neither an entry nor an old live folder is still refused.
+	delete(mfs, "0027/config.yaml")
+	tree, err = Load(mfs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Generate(tree); err == nil || !strings.Contains(err.Error(), "0027") {
+		t.Errorf("Generate = %v, want an error that names 0027", err)
+	}
+}

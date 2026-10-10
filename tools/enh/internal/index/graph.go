@@ -71,6 +71,11 @@ func buildEdges(t *Tree) ([]edge, error) {
 	seen := map[edge]bool{}
 	var all []edge
 	add := func(kind, from, to, owner string) {
+		// An old-layout entry that is still live has no node. Naming it is
+		// fine and draws nothing, until its conversion makes it an entry.
+		if (known[to] == nil && t.oldLive(to)) || (known[from] == nil && t.oldLive(from)) {
+			return
+		}
 		if known[to] == nil || known[from] == nil {
 			missing := to
 			if known[to] != nil {
