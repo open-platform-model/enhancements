@@ -24,13 +24,13 @@ The design was decided at the design gate of 2026-10-10 (rounds 13 to 17): a for
 | --- | --- | --- | --- |
 | `config.yaml` | What are the facts? | human gives facts; commands write state | none |
 | `README.md` | Where do I start? | generated | none |
-| `proposal.md` | What changes, and why? | human, word for word | 300 words, not counting "Open questions" |
+| `proposal.md` | What changes, and why? | human, word for word | 300 words, not counting "Open questions" (also outside the total) |
 | `design.md` | How does it work, and why this way? | human decides; agent drafts | 1,500 words |
 | `specs/<capability>/spec.md` | Exactly what must hold? | agent writes; human approves in a sample | with the 3,000 total |
 | `tasks.md` | Which repo still has work? | agent writes and ticks | none |
 | `evidence/` | What is the proof? | agent or human | none; outside the total |
 
-All caps are advice: the checker warns and never refuses. The total of proposal, design and requirement text is 3,000 words.
+All caps are advice: the checker warns and never refuses. The total of proposal, design and requirement text is 3,000 words; the proposal's "Open questions" section is outside it.
 
 ## The life of an entry
 

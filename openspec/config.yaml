@@ -23,7 +23,7 @@ context: |
   - `tasks.md` says which repo still has work. Each repo delivers its line in its own OpenSpec
     change, whose proposal says `Delivers NNNN, task X.Y.`. Nothing is implemented in this repo.
   - Caps are advice, counted without Markdown markup: proposal about 300 words (its `Open
-    questions` section is outside the cap), design about 1,500, all three of proposal, design and
+    questions` section is outside the cap and outside the 3,000 total), design about 1,500, all three of proposal, design and
     requirement text about 3,000. The checker warns on them and never refuses.
   - An enhancement states what consumers can rely on. It never tells a repo how to name a file,
     spell an identifier or structure its code.
@@ -43,8 +43,6 @@ rules:
       marked `- Answered:` and moves into the design theme it settles. Accept refuses a `- Blocking:`
       line and an `- Answered:` line left in the proposal.
     - A reversed idea is a new entry that names the old id in its Why.
-    - When a change in another repo delivers a line of an entry's `tasks.md`, that repo's proposal has a
-      `## Enhancement` section with one line `Delivers NNNN, task X.Y.` per task, else `None.`
   design:
     - Advice, not a refusal - about 1,500 words, rejected options included. One diagram of at most 7 boxes.
     - About 7 themes of about 120 words. A theme is a lasting area, never a phase. Stances live in a theme.
@@ -67,7 +65,7 @@ rules:
     - A REMOVED requirement has `**Reason**` and `**Migration**`. A requirement is ADDED, MODIFIED, REMOVED or
       RENAMED against `openspec/specs/` only. An entry that needs an undelivered entry stays a draft.
   tasks:
-    - One line per repo change - `- [ ] <n>.<m> <repo>: <outcome>` under `## <n>. <Theme>`. Name the outcome, never the method.
+    - One line per repo change, written `- [ ] <n>.<m> <repo>, then a colon and the outcome`, under `## <n>. <Theme>`. Name the outcome, never the method.
     - The sections run in order - section 1 is done before section 2. This is advice; no field or check holds it.
     - At accept, every repo in `affects` has a line.
     - A ticked line ends with the change name without its date, `(<change-name>)`, or `(PR <n>)` for a repo with
