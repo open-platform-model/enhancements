@@ -1,0 +1,15 @@
+id: "0038"
+slug: example-accepted-then-superseded
+title: An accepted entry that a later entry replaced
+summary: One line.
+status: superseded
+category: schema
+breaking: true
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-09-08"
+accepted: "2026-09-20 abcdef1"
+superseded_by:
+  date: "2026-10-20"
+  ids: ["0010"]
+  reason: A later entry covers it.
