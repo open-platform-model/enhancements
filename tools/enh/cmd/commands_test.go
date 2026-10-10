@@ -122,7 +122,7 @@ func TestEveryCommandHasHelp(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"vet", "new", "seed:new", "accept", "resample", "deliver", "reject", "withdraw", "supersede", "tick",
-		"index", "fresh", "history", "stale", "links", "reconcile", "cite-lint", "list", "show", "questions"} {
+		"index", "fresh", "history", "stale", "links", "reconcile", "cite-lint", "specs-rule", "list", "show", "questions"} {
 		if lookup(name) == nil {
 			t.Errorf("command %s is not wired", name)
 		}
@@ -371,5 +371,50 @@ func TestVetBase(t *testing.T) {
 	code, _, errOut = r.do("vet", "--base", "no-such-branch")
 	if code != ExitUsage || !strings.Contains(errOut, "merge base") {
 		t.Errorf("bad base: exit %d\n%s", code, errOut)
+	}
+}
+
+func TestSpecsRuleCommand(t *testing.T) {
+	r := newRepo(t)
+	base := strings.TrimSpace(testrepo.Git(t, r.root, "rev-parse", "HEAD"))
+	testrepo.Git(t, r.root, "checkout", "-q", "-b", "work")
+
+	// nothing under specs/ changed: pass
+	r.put("notes.txt", "x")
+	testrepo.Commit(t, r.root, "docs: notes")
+	code, out, errOut := r.do("specs-rule", "--base", base)
+	wantCode(t, "no change", code, ExitOK, out, errOut)
+	if !strings.Contains(out, "enh specs-rule: pass") {
+		t.Errorf("out: %s", out)
+	}
+
+	// a spec file written by hand: fail, exit 1
+	r.put("openspec/specs/sneaky/spec.md", "# sneaky\n\n## Purpose\nA hand written capability with a purpose that is long enough.\n")
+	testrepo.Commit(t, r.root, "docs: a spec by hand")
+	code, out, errOut = r.do("specs-rule", "--base", base)
+	wantCode(t, "hand edit", code, ExitError, out, errOut)
+	if !strings.Contains(out, "FAIL step 2") || !strings.Contains(out, "1 failure(s)") {
+		t.Errorf("out: %s", out)
+	}
+
+	// usage errors: exit 2
+	for name, args := range map[string][]string{
+		"no base":          {"specs-rule"},
+		"chain with base":  {"specs-rule", "--chain", "--base", base},
+		"chain no since":   {"specs-rule", "--chain"},
+		"since not chain":  {"specs-rule", "--since", base, "--base", base},
+		"base with a dash": {"specs-rule", "--base=-x"},
+	} {
+		code, out, errOut := r.do(args...)
+		if code != ExitUsage {
+			t.Errorf("%s: exit %d\n%s\n%s", name, code, out, errOut)
+		}
+	}
+
+	// chain mode: the hand-written commit is not an archive
+	code, out, errOut = r.do("specs-rule", "--chain", "--since", base)
+	wantCode(t, "chain", code, ExitError, out, errOut)
+	if !strings.Contains(out, "1 commit(s) after") {
+		t.Errorf("out: %s", out)
 	}
 }

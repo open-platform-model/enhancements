@@ -11,6 +11,7 @@ import (
 	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/links"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/reconcile"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/specsrule"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/tasks"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/vet"
 )
@@ -149,6 +150,18 @@ var commands = []command{
 			fs.Var(&o.exclude, "exclude", "skip a path pattern; repeat the flag for more")
 		},
 		min: 0, max: -1, run: runCiteLint,
+	},
+	{
+		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction",
+		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered or schema seed; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.\n--chain is for the migration branch: each commit after --since that touches openspec/specs/ is checked on its\nown against its parent, in commit order.",
+		flags: func(fs *flag.FlagSet, o *options) {
+			rootFlags(fs, o)
+			fs.StringVar(&o.base, "base", "", "the base ref of the pull request (an all-zero id means the parent of HEAD)")
+			fs.StringVar(&o.head, "head", "HEAD", "the commit to check")
+			fs.BoolVar(&o.chain, "chain", false, "check every commit after --since on its own, in order (the migration branch)")
+			fs.StringVar(&o.since, "since", "", "with --chain: start after this commit")
+		},
+		min: 0, max: 0, run: runSpecsRule,
 	},
 	{
 		name: "list", synopsis: "list [flags]", summary: "list the live entries and seeds, or the archived ones",
@@ -345,5 +358,43 @@ func runCiteLint(c *call) int {
 	if len(res.Findings) > 0 {
 		return ExitError
 	}
+	return ExitOK
+}
+
+func runSpecsRule(c *call) int {
+	env, err := c.env()
+	if err != nil {
+		fmt.Fprintf(c.errOut, "enh specs-rule: %v\n", err)
+		return ExitUsage
+	}
+	opts := specsrule.Options{Root: env.Root, Base: c.o.base, Head: c.o.head, OpenSpec: c.d.Runner}
+	var res *specsrule.Result
+	switch {
+	case c.o.chain && c.o.base != "":
+		fmt.Fprintln(c.errOut, "enh specs-rule: --chain starts after --since; it takes no --base")
+		return ExitUsage
+	case c.o.chain:
+		res, err = specsrule.Chain(opts, c.o.since)
+	case c.o.since != "":
+		fmt.Fprintln(c.errOut, "enh specs-rule: --since belongs to --chain")
+		return ExitUsage
+	default:
+		res, err = specsrule.Check(opts)
+	}
+	if err != nil {
+		fmt.Fprintf(c.errOut, "enh specs-rule: %v\n", err)
+		return ExitUsage
+	}
+	for _, l := range res.Lines {
+		fmt.Fprintln(c.out, l)
+	}
+	for _, f := range res.Failures {
+		fmt.Fprintf(c.out, "FAIL %s\n", f)
+	}
+	if !res.OK() {
+		fmt.Fprintf(c.out, "enh specs-rule: %d failure(s)\n", len(res.Failures))
+		return ExitError
+	}
+	fmt.Fprintln(c.out, "enh specs-rule: pass")
 	return ExitOK
 }

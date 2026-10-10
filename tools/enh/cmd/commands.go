@@ -14,11 +14,11 @@ import (
 // options holds the value of every flag of every command; a command registers
 // the ones it takes.
 type options struct {
-	root, schema, base                      string
+	root, schema, base, head, since         string
 	mode, today, seed, id, author           string
 	workspace, filesFrom                    string
 	confirm, noCommit, noValidate, archived bool
-	openspec, strict                        bool
+	openspec, strict, chain                 bool
 	exclude                                 stringList
 }
 
