@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -184,22 +185,81 @@ func (e *Env) markerPath(kind string, en *entry.Entry) (string, error) {
 	return e.git().Dir("enh/" + kind + "-" + en.Folder)
 }
 
+// marker is what a plain run of accept or resample records. CONFIRM is allowed
+// only when all three facts still hold: the merge-base commit that goes into
+// the record, the HEAD commit of the checkout, and a hash of the content of
+// the entry folder (the working tree, so an edit that is not committed counts).
+type marker struct {
+	Commit, Head, Content string
+	Seed                  *uint64
+}
+
+func (m marker) String() string {
+	line := fmt.Sprintf("commit=%s head=%s content=%s", m.Commit, m.Head, m.Content)
+	if m.Seed != nil {
+		line += fmt.Sprintf(" seed=%d", *m.Seed)
+	}
+	return line + "\n"
+}
+
+func parseMarker(text string) (marker, bool) {
+	var m marker
+	for _, f := range strings.Fields(text) {
+		k, v, ok := strings.Cut(f, "=")
+		if !ok {
+			return marker{}, false
+		}
+		switch k {
+		case "commit":
+			m.Commit = v
+		case "head":
+			m.Head = v
+		case "content":
+			m.Content = v
+		case "seed":
+			n, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return marker{}, false
+			}
+			m.Seed = &n
+		}
+	}
+	return m, m.Commit != "" && m.Head != "" && m.Content != ""
+}
+
+// current reads the three facts of the checkout now.
+func (e *Env) current(en *entry.Entry, commit string) (marker, error) {
+	head, err := e.git().Head()
+	if err != nil {
+		return marker{}, err
+	}
+	sum, err := record.HashFolder(en.Dir)
+	if err != nil {
+		return marker{}, err
+	}
+	return marker{Commit: commit, Head: head, Content: sum}, nil
+}
+
 func (e *Env) writeMarker(kind string, en *entry.Entry, commit string, seed *uint64) error {
 	p, err := e.markerPath(kind, en)
 	if err != nil {
 		return err
 	}
+	m, err := e.current(en, commit)
+	if err != nil {
+		return err
+	}
+	m.Seed = seed
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		return err
 	}
-	line := commit
-	if seed != nil {
-		line += fmt.Sprintf(" %d", *seed)
-	}
-	return record.WriteFile(p, []byte(line+"\n"))
+	return record.WriteFile(p, []byte(m.String()))
 }
 
-// needMarker refuses CONFIRM unless a plain run happened on the same commit.
+// needMarker refuses CONFIRM unless a plain run happened on the same commit
+// and the checkout is as that run left it: the same HEAD and the same entry
+// folder content. A CONFIRM after an edit or a new commit would write a record
+// for text the human did not read.
 func (e *Env) needMarker(kind string, en *entry.Entry, commit string) error {
 	p, err := e.markerPath(kind, en)
 	if err != nil {
@@ -209,11 +269,31 @@ func (e *Env) needMarker(kind string, en *entry.Entry, commit string) error {
 	if err != nil {
 		return refuse("CONFIRM before a plain run: run `enh %s %s` first, read the output, then confirm", kind, en.Base)
 	}
-	f := strings.Fields(string(b))
-	if len(f) == 0 || f[0] != commit {
-		return refuse("the plain run of `enh %s %s` was on commit %s, not %s: run it again before CONFIRM", kind, en.Base, strings.Join(f[:min(1, len(f))], ""), commit)
+	then, ok := parseMarker(string(b))
+	if !ok {
+		return refuse("the record of the plain run of `enh %s %s` cannot be read: run it again before CONFIRM", kind, en.Base)
+	}
+	now, err := e.current(en, commit)
+	if err != nil {
+		return err
+	}
+	again := fmt.Sprintf("run it again (`enh %s %s`), read the output, then confirm", kind, en.Base)
+	switch {
+	case then.Commit != now.Commit:
+		return refuse("the plain run of `enh %s %s` was on commit %s, not %s: %s", kind, en.Base, then.Commit, now.Commit, again)
+	case then.Head != now.Head:
+		return refuse("HEAD moved from %s to %s since the plain run of `enh %s %s`: %s", short(then.Head), short(now.Head), kind, en.Base, again)
+	case then.Content != now.Content:
+		return refuse("the files of %s changed since the plain run of `enh %s %s` (content %s, now %s): %s", e.rel(en), kind, en.Base, short(then.Content), short(now.Content), again)
 	}
 	return nil
+}
+
+func short(s string) string {
+	if len(s) > 12 {
+		return s[:12]
+	}
+	return s
 }
 
 // existing keeps the paths that exist under the root, so git add never gets a

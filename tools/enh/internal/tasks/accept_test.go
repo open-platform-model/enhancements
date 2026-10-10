@@ -274,3 +274,86 @@ func TestAcceptSeedMadeFromTheShippedTemplate(t *testing.T) {
 		}
 	}
 }
+
+// CONFIRM needs the checkout as the plain run left it: the same HEAD and the
+// same content of the entry folder (design part two, section 3; DECISIONS.md
+// 2026-10-11 02:15).
+func TestAcceptConfirmRefusesAnEditAfterThePlainRun(t *testing.T) {
+	f := newFx(t)
+	f.addedDelta(4, "")
+	f.env.Seed = seedPtr(3)
+	f.mustNil(f.env.Accept("0100"))
+
+	// an edit of the entry that is not committed
+	d := f.read(demo + "/specs/demo-cap/spec.md")
+	f.write(demo+"/specs/demo-cap/spec.md", strings.Replace(d, "report the held versions", "report all held versions", 1))
+	f.env.Confirm = true
+	err := f.env.Accept("0100")
+	if !IsRefusal(err) || !strings.Contains(err.Error(), "changed since the plain run") {
+		t.Fatalf("confirm after an edit: %v", err)
+	}
+	if strings.Contains(f.read(demo+"/config.yaml"), "accepted") {
+		t.Fatal("the record was written after an edit")
+	}
+
+	// a new file in the entry folder counts too
+	f.write(demo+"/specs/demo-cap/spec.md", d)
+	f.env.Confirm = false
+	f.mustNil(f.env.Accept("0100"))
+	f.write(demo+"/evidence/note.md", "x\n")
+	f.env.Confirm = true
+	if err := f.env.Accept("0100"); !IsRefusal(err) || !strings.Contains(err.Error(), "changed since the plain run") {
+		t.Fatalf("confirm after a new file: %v", err)
+	}
+	os.Remove(f.root + "/" + demo + "/evidence/note.md")
+	os.Remove(f.root + "/" + demo + "/evidence")
+
+	// an edit that is put back is the same content: CONFIRM goes through
+	f.env.Confirm = false
+	f.mustNil(f.env.Accept("0100"))
+	f.write(demo+"/specs/demo-cap/spec.md", d+"x")
+	f.write(demo+"/specs/demo-cap/spec.md", d)
+	f.env.Confirm = true
+	f.mustNil(f.env.Accept("0100"))
+	if !strings.Contains(f.read(demo+"/config.yaml"), "status: accepted") {
+		t.Error("CONFIRM after a restored edit wrote no record")
+	}
+}
+
+func TestAcceptConfirmRefusesWhenHeadMovedButTheBaseDidNot(t *testing.T) {
+	f := newFx(t)
+	f.addedDelta(4, "")
+	f.commit("docs: entry")
+	f.git("checkout", "-q", "-b", "work")
+	f.env.Seed = seedPtr(3)
+	f.mustNil(f.env.Accept("0100"))
+
+	// HEAD moves on the work branch; the merge base with main stays
+	f.write("notes.txt", "x")
+	f.commit("docs: more work")
+	f.env.Confirm = true
+	err := f.env.Accept("0100")
+	if !IsRefusal(err) || !strings.Contains(err.Error(), "HEAD moved") {
+		t.Fatalf("confirm after HEAD moved: %v", err)
+	}
+	f.env.Confirm = false
+	f.mustNil(f.env.Accept("0100"))
+	f.env.Confirm = true
+	f.mustNil(f.env.Accept("0100"))
+}
+
+func TestSeedConfirmRefusesAnEditAfterThePlainRun(t *testing.T) {
+	f := newFx(t)
+	f.seed(8)
+	f.env.Seed = seedPtr(5)
+	f.mustNil(f.env.Accept("seed-new-cap"))
+	p := "openspec/changes/seed-new-cap/specs/new-cap/spec.md"
+	f.write(p, f.read(p)+"\n### Requirement: Sneaked in\n\nThe system SHALL sneak.\n\n#### Scenario: S\n\n- **WHEN** a\n- **THEN** b\n")
+	f.env.Confirm = true
+	if err := f.env.Accept("seed-new-cap"); !IsRefusal(err) || !strings.Contains(err.Error(), "changed since the plain run") {
+		t.Fatalf("seed confirm after an edit: %v", err)
+	}
+	if strings.Contains(f.read("openspec/changes/seed-new-cap/source.md"), "sampled: 2") {
+		t.Fatal("a sampled line was written")
+	}
+}

@@ -56,6 +56,11 @@ func (g Git) MergeBase(ref string) (string, error) {
 	return g.run("rev-parse", "--short", full)
 }
 
+// Head returns the full commit that HEAD names.
+func (g Git) Head() (string, error) {
+	return g.run("rev-parse", "HEAD")
+}
+
 // HasCommit reports whether commit names a commit of the repo.
 func (g Git) HasCommit(commit string) bool {
 	_, err := g.run("cat-file", "-e", commit+"^{commit}")

@@ -52,7 +52,7 @@ var commands = []command{
 	},
 	{
 		name: "accept", synopsis: "accept [flags] ID", summary: "check a draft in accept mode and print the sample and the collision list",
-		help:  "A plain run prints the sample (every MODIFIED and REMOVED requirement, and max(3, 10 percent) of the ADDED\nones drawn at random with the seed printed), the collision list, and the blocking questions. A refused run\nstill prints the sample and the list under \"refused: fix the errors first\".\nCONFIRM=1 (or --confirm) then writes status: accepted and accepted:, and runs index. It refuses before a\nplain run on the same commit.\nID=seed-CAP: the sample of all ADDED requirements; CONFIRM writes only the sampled: line of source.md.",
+		help:  "A plain run prints the sample (every MODIFIED and REMOVED requirement, and max(3, 10 percent) of the ADDED\nones drawn at random with the seed printed), the collision list, and the blocking questions. A refused run\nstill prints the sample and the list under \"refused: fix the errors first\".\nCONFIRM=1 (or --confirm) then writes status: accepted and accepted:, and runs index. It refuses before a\nplain run, and after one when HEAD or the files of the entry folder changed since.\nID=seed-CAP: the sample of all ADDED requirements; CONFIRM writes only the sampled: line of source.md.",
 		flags: confirmFlags, min: 1, max: 1, run: func(c *call) int {
 			return c.withEnv(func(e *tasks.Env) error { return e.Accept(c.args[0]) })
 		},

@@ -195,7 +195,7 @@ func gitFlags(fs *flag.FlagSet, o *options) {
 
 func confirmFlags(fs *flag.FlagSet, o *options) {
 	gitFlags(fs, o)
-	fs.BoolVar(&o.confirm, "confirm", false, "write the record (the same as CONFIRM=1); needs a plain run on the same commit first")
+	fs.BoolVar(&o.confirm, "confirm", false, "write the record (the same as CONFIRM=1); needs a plain run first, with the same HEAD and entry files")
 	fs.StringVar(&o.seed, "seed", "", "repeat a draw: the random seed that an earlier plain run printed")
 }
 

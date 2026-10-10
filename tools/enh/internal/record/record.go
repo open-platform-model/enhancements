@@ -5,9 +5,12 @@ package record
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -172,4 +175,45 @@ func WriteFile(path string, data []byte) (err error) {
 		return err
 	}
 	return os.Rename(name, path)
+}
+
+// HashFolder returns a hex SHA-256 over the relative path and the bytes of every
+// file under dir, in path order. A change to any file, a new file or a removed
+// file changes the sum. It reads the working tree, not git, so an edit that is
+// not committed counts. A symlink counts by its name and target, never followed.
+func HashFolder(dir string) (string, error) {
+	h := sha256.New()
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, p)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(h, "%s\x00", filepath.ToSlash(rel))
+		if d.Type()&fs.ModeSymlink != 0 {
+			target, err := os.Readlink(p)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(h, "link:%s\x00", target)
+			return nil
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(h, "%d\x00", len(b))
+		h.Write(b)
+		h.Write([]byte{0})
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -399,3 +399,20 @@ func TestStaleFindingsOnlyForAcceptedEntries(t *testing.T) {
 		t.Errorf("other key: %v", got)
 	}
 }
+
+func TestResampleConfirmRefusesAnEditAfterThePlainRun(t *testing.T) {
+	f := newFx(t)
+	f.accepted()
+	f.changeMain()
+	f.mustNil(f.env.Resample("0100"))
+	d := f.read(demo + "/specs/demo-cap/spec.md")
+	f.write(demo+"/specs/demo-cap/spec.md", strings.Replace(d, "report the held versions", "report all held versions", 1))
+	f.env.Confirm = true
+	err := f.env.Resample("0100")
+	if !IsRefusal(err) || !strings.Contains(err.Error(), "changed since the plain run") {
+		t.Fatalf("resample confirm after an edit: %v", err)
+	}
+	if strings.Contains(f.read(demo+"/config.yaml"), "2026-10-11 "+strings.TrimSpace(f.git("rev-parse", "--short", "HEAD"))) {
+		t.Error("accepted: was rewritten")
+	}
+}
