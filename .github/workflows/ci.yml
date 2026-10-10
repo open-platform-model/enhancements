@@ -191,7 +191,10 @@ jobs:
 
       - name: Install OpenSpec
         # The pinned CLI runs the replay. No install script of the package or
-        # of its dependencies is needed.
+        # of its dependencies is needed. The package ships no lockfile, so npm
+        # resolves its dependencies at run time; the byte comparison of the
+        # replay is where a changed dependency would show. Accepted for now:
+        # a failure here is a red check, not a wrong pass.
         run: npm install -g --ignore-scripts "@fission-ai/openspec@${OPENSPEC_VERSION}"
 
       - name: Tool versions

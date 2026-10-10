@@ -1173,7 +1173,7 @@ tasks:
         task reconcile
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
-      - go -C tools/enh run . reconcile --workspace "{{.ROOT_DIR}}/.." {{.CLI_ARGS}}
+      - go -C tools/enh run . reconcile --workspace "{{.TASKFILE_DIR}}/.." {{.CLI_ARGS}}
 
   cite-lint:
     desc: "Lint decision numbers and lone ids in Go and CUE comments"
@@ -1182,7 +1182,7 @@ tasks:
         task cite-lint
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
-      - go -C tools/enh run . cite-lint --root "{{.ROOT_DIR}}" {{.CLI_ARGS}}
+      - go -C tools/enh run . cite-lint --root "{{.TASKFILE_DIR}}" {{.CLI_ARGS}}
 
   list:
     desc: "List the live entries"
