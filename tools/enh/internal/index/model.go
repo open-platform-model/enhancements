@@ -29,6 +29,10 @@ const (
 	LayoutOpenSpec Layout = iota
 	// LayoutLegacy is one of the ten old-layout entries in archive/NNNN/.
 	LayoutLegacy
+	// LayoutLegacyLive is an old-layout entry that is still live, in NNNN/ at
+	// the root, read from its config.yaml. It is listed in INDEX.md and
+	// GRAPH.md until migration step M4, and has no generated README.
+	LayoutLegacyLive
 )
 
 // Ending is the record of a rejection or a withdrawal.
@@ -121,9 +125,10 @@ type Tree struct {
 	Entries      []*Entry
 	Capabilities []Capability
 	// OldLiveIDs lists the ids of old-layout entries that are still live
-	// (NNNN/ at the root, 0000 excluded). They are not rendered, but an
-	// `after` or `superseded_by` id may name one, so that every commit of
-	// the migration passes whatever the order of the conversion.
+	// (NNNN/ at the root, 0000 excluded). An `after` or `superseded_by` id may
+	// name one, so that every commit of the migration passes whatever the
+	// order of the conversion. Each one that has a config.yaml and no
+	// converted entry of the same id is also an Entry of LayoutLegacyLive.
 	OldLiveIDs []string
 }
 
@@ -135,6 +140,8 @@ func (t *Tree) oldLive(id string) bool {
 	}
 	return false
 }
+
+func (t *Tree) hasEntry(id string) bool { return t.Entry(id) != nil }
 
 // Entry returns the entry with the id, or nil.
 func (t *Tree) Entry(id string) *Entry {

@@ -29,6 +29,9 @@ var (
 	dateRe         = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
 )
 
+// errMissing marks a config.yaml that does not exist.
+var errMissing = errors.New("missing")
+
 type rawEnding struct {
 	Date   string `yaml:"date"`
 	Reason string `yaml:"reason"`
@@ -53,6 +56,7 @@ type rawConfig struct {
 	Created        string     `yaml:"created"`
 	Breaking       *bool      `yaml:"breaking"`
 	After          []string   `yaml:"after"`
+	DependsOn      []string   `yaml:"depends_on"`
 	Accepted       string     `yaml:"accepted"`
 	Rejected       *rawEnding `yaml:"rejected"`
 	Withdrawn      *rawEnding `yaml:"withdrawn"`
@@ -116,6 +120,19 @@ func Load(fsys fs.FS) (*Tree, error) {
 	for _, d := range live {
 		if d.IsDir() && legacyNameRe.MatchString(d.Name()) && d.Name() != "0000" {
 			t.OldLiveIDs = append(t.OldLiveIDs, d.Name())
+		}
+	}
+	for _, id := range t.OldLiveIDs {
+		if t.hasEntry(id) {
+			continue // the converted entry stands for the old folder
+		}
+		e, err := loadLegacyLive(fsys, id)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if e != nil {
+			t.Entries = append(t.Entries, e)
 		}
 	}
 	caps, err := loadCapabilities(fsys)
@@ -222,13 +239,37 @@ func loadLegacy(fsys fs.FS, name string) (*Entry, error) {
 	return e, nil
 }
 
+// loadLegacyLive reads an old-layout entry that is still live. A folder with no
+// config.yaml gives no entry and no error: it stays a name in OldLiveIDs. The
+// old `depends_on` list stands for `after`, the nearest relation the graph has.
+func loadLegacyLive(fsys fs.FS, name string) (*Entry, error) {
+	raw, err := readConfig(fsys, path.Join(name, "config.yaml"))
+	if err != nil {
+		if errors.Is(err, errMissing) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	raw.After = raw.DependsOn
+	e, err := entryFromConfig(raw, path.Join(name, "config.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	if e.ID != name {
+		return nil, fmt.Errorf("%s/config.yaml: id %q does not match the folder id %q", name, e.ID, name)
+	}
+	e.Layout = LayoutLegacyLive
+	e.Dir = name
+	return e, nil
+}
+
 func readConfig(fsys fs.FS, p string) (*rawConfig, error) {
 	text, ok, err := readOptional(fsys, p)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, fmt.Errorf("%s: missing", p)
+		return nil, fmt.Errorf("%s: %w", p, errMissing)
 	}
 	var raw rawConfig
 	if err := yaml.Unmarshal([]byte(text), &raw); err != nil {

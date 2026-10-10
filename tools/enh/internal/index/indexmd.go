@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-// Indexmd returns INDEX.md: the live table, the archived table (the ten
+// Indexmd returns INDEX.md: the live table (the old-layout entries that are
+// still live are in it until migration step M4), the archived table (the ten
 // old-layout entries and every archived new-layout entry), the capability
 // table and the status legend.
 func Indexmd(t *Tree) []byte {

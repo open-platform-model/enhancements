@@ -25,14 +25,15 @@ graph LR
   classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
-  Cschema["schema (1 live entry, 2 closed)"]:::category
+  Cschema["schema (2 live entries, 2 closed)"]:::category
   Cruntime["runtime (1 live entry, 1 closed)"]:::category
   Cdistribution["distribution (0 live entries, 2 closed)"]:::category
   Ctooling["tooling (2 live entries, 2 closed)"]:::category
   Cmisc["misc (0 live entries, 3 closed)"]:::category
 
   Cschema -->|1| Cruntime
-  Cschema -->|1| Cdistribution
+  Cschema -->|2| Cdistribution
+  Cschema -->|1| Ctooling
   Cruntime -->|1| Cschema
 ```
 
@@ -54,14 +55,18 @@ graph TD
   N0015["0015: Catalog Contracts and Transformer Registration"]:::delivered
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::accepted
   N0036["0036: Superseded Idea"]:::superseded
+  N0044["0044: An Old-Layout Entry That Is Still Live"]:::draft
   N0010["0010 · distribution"]:::stub
   N0019["0019 · runtime"]:::stub
   N0027["0027 · runtime"]:::stub
+  N0040["0040 · tooling"]:::stub
 
   N0026 -->|after| N0010
   N0026 -->|after| N0015
   N0026 -->|after| N0019
   N0027 -->|after| N0026
+  N0044 -->|after| N0010
+  N0044 -->|after| N0040
   N0026 ==>|supersedes| N0036
   N0027 ==>|supersedes| N0036
 ```
@@ -104,8 +109,10 @@ graph TD
 
   N0010["0010: Module and Catalog Identity"]:::delivered
   N0026["0026 · schema"]:::stub
+  N0044["0044 · schema"]:::stub
 
   N0026 -->|after| N0010
+  N0044 -->|after| N0010
 ```
 
 ## tooling
@@ -124,8 +131,10 @@ graph TD
   N0033["0033: Delivered Thing"]:::delivered
   N0040["0040: A Tooling Thing With a Rather Long Title That Nee…"]:::accepted
   N0041["0041: All Shipped"]:::accepted
+  N0044["0044 · schema"]:::stub
 
   N0040 -->|after| N0033
+  N0044 -->|after| N0040
 ```
 
 ## misc

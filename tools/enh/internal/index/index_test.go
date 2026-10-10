@@ -375,15 +375,18 @@ func TestCheckPath(t *testing.T) {
 
 // An old-layout entry that is still live is a valid `after` and
 // `superseded_by` target, so that every commit of the migration passes
-// whatever the order of the conversion. It is not drawn.
+// whatever the order of the conversion. It is drawn from its config.yaml.
 func TestGenerate_oldLiveEntryIsATarget(t *testing.T) {
 	old := strings.NewReplacer("id: \"0050\"", "id: \"0051\"", "status: draft", "status: superseded").
 		Replace(string(cfg("superseded_by: {date: \"2026-10-01\", ids: [\"0021\"], reason: r}\n").Data))
+	oldLive := func(id string) *fstest.MapFile {
+		return &fstest.MapFile{Data: []byte(strings.Replace(string(cfg("").Data), `id: "0050"`, `id: "`+id+`"`, 1))}
+	}
 	mfs := fstest.MapFS{
 		"openspec/changes/0050-thing/config.yaml":                    cfg("after: [\"0021\", \"0027\"]\n"),
 		"openspec/changes/archive/2026-10-02-0051-thing/config.yaml": &fstest.MapFile{Data: []byte(old)},
-		"0021/config.yaml": &fstest.MapFile{Data: []byte("id: \"0021\"\n")},
-		"0027/config.yaml": &fstest.MapFile{Data: []byte("id: \"0027\"\n")},
+		"0021/config.yaml": oldLive("0021"),
+		"0027/config.yaml": oldLive("0027"),
 		"0000/config.yaml": &fstest.MapFile{Data: []byte("id: \"0000\"\n")},
 	}
 	tree, err := Load(mfs)
@@ -398,8 +401,8 @@ func TestGenerate_oldLiveEntryIsATarget(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 	for _, f := range files {
-		if f.Path == "GRAPH.md" && strings.Contains(string(f.Content), "N0021") {
-			t.Errorf("GRAPH.md draws the old live entry 0021")
+		if f.Path == "GRAPH.md" && !strings.Contains(string(f.Content), "N0021") {
+			t.Errorf("GRAPH.md does not draw the old live entry 0021")
 		}
 	}
 	// An id that is neither an entry nor an old live folder is still refused.
@@ -410,5 +413,47 @@ func TestGenerate_oldLiveEntryIsATarget(t *testing.T) {
 	}
 	if _, err := Generate(tree); err == nil || !strings.Contains(err.Error(), "0027") {
 		t.Errorf("Generate = %v, want an error that names 0027", err)
+	}
+}
+
+func TestLoad_oldLiveEntries(t *testing.T) {
+	tree := loadFixture(t)
+	e := tree.Entry("0044")
+	if e == nil || e.Layout != LayoutLegacyLive || e.Dir != "0044" {
+		t.Fatalf("0044 = %+v, want an old live entry in folder 0044", e)
+	}
+	if !slices.Equal(e.After, []string{"0010", "0040"}) {
+		t.Errorf("0044 After = %v, want its depends_on", e.After)
+	}
+	// The converted 0027 stands for the old 0027/ folder.
+	if c := tree.Entry("0027"); c == nil || c.Layout != LayoutOpenSpec || c.Title != "Self-Service Kinds from Published Modules" {
+		t.Errorf("0027 = %+v, want the converted entry", c)
+	}
+	if !slices.Contains(tree.OldLiveIDs, "0027") {
+		t.Errorf("OldLiveIDs = %v, want 0027 listed: the folder still exists", tree.OldLiveIDs)
+	}
+	files, err := Generate(tree)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		if strings.Contains(string(f.Content), "old layout)") {
+			t.Errorf("%s shows the text of the old 0027 folder", f.Path)
+		}
+		if strings.HasSuffix(f.Path, "README.md") && strings.HasPrefix(f.Path, "0044") {
+			t.Errorf("%s: an old live entry gets no generated README", f.Path)
+		}
+	}
+}
+
+func TestLoad_oldLiveErrors(t *testing.T) {
+	// A folder with no config.yaml is no entry and no error.
+	if tree, err := Load(fstest.MapFS{"0021/proposal.md": &fstest.MapFile{}}); err != nil || len(tree.Entries) != 0 {
+		t.Errorf("Load = %v, %v; want no entry and no error", tree, err)
+	}
+	// A config.yaml that is not the folder's entry is an error.
+	_, err := Load(fstest.MapFS{"0021/config.yaml": cfg("")})
+	if err == nil || !strings.Contains(err.Error(), "does not match the folder id") {
+		t.Errorf("Load = %v, want an id mismatch", err)
 	}
 }

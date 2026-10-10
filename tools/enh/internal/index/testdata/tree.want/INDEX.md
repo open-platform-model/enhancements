@@ -8,6 +8,7 @@
 | [0027](./openspec/changes/0027-self-service-kinds/) | runtime | core, library | draft | - | - | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create \| with no module name. |
 | [0040](./openspec/changes/0040-tooling-thing/) | tooling | enhancements | accepted | 2 of 4 | no | A Tooling Thing With a Rather Long Title That Needs Cutting Short For The Graph Label | Do a tooling thing. |
 | [0041](./openspec/changes/0041-all-shipped/) | tooling | enhancements | accepted | 1 of 1 | no | All Shipped | Every task is ticked. |
+| [0044](./0044/) | schema | core, cli | draft | - | - | An Old-Layout Entry That Is Still Live | Stands for the entries of NNNN/ until migration step M4. |
 
 ## Archived (delivered / rejected / superseded / withdrawn)
 

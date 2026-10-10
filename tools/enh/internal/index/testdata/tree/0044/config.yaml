@@ -1,0 +1,16 @@
+id: "0044"
+slug: old-layout-live
+title: An Old-Layout Entry That Is Still Live
+summary: Stands for the entries of NNNN/ until migration step M4.
+status: draft
+category: schema
+affects: [core, cli]
+semver: none
+core_schema: false
+created: "2026-08-01"
+updated: "2026-09-01"
+authors: [emil@jacero.se]
+depends_on:
+  - "0010"
+  - "0040"
+superseded_by: null
