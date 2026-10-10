@@ -193,6 +193,15 @@ func TestAnExtraSpecFileBesideADeliveryFails(t *testing.T) {
 	wantFail(t, r.check(r.base), "openspec/specs/extra/spec.md: head has it, the replay does not write it")
 }
 
+func TestAFileBesideTheArchiveFoldersIsNotADelivery(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.write("openspec/changes/archive/.gitkeep", "")
+	r.deliver("0100-demo")
+	r.commit("feat: deliver 0100 and keep the archive folder")
+	wantOK(t, r.check(r.base))
+}
+
 func TestTwoDeliveriesInOnePullRequestFail(t *testing.T) {
 	needOpenSpec(t)
 	r := newRig(t)

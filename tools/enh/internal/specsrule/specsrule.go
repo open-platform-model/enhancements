@@ -218,8 +218,11 @@ func (c *checker) oneDelivery(mb, head string) (name, dated string, err error) {
 			continue
 		}
 		rest := strings.TrimPrefix(ch.Path, archiveDir+"/")
-		folder, _, _ := strings.Cut(rest, "/")
-		if folder != "" && !added[folder] {
+		folder, inside, _ := strings.Cut(rest, "/")
+		if inside == "" {
+			continue // a file beside the folders, such as .gitkeep, is no delivery
+		}
+		if !added[folder] {
 			added[folder] = true
 			order = append(order, folder)
 		}
