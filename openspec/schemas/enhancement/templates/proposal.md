@@ -1,6 +1,6 @@
 <!-- THE PROPOSAL. Owner: the proposer, word for word. Reader: a developer new to this. Reading time: 2 minutes.
-     Cap: 300 words, not counting the code block.
-     Plain words. No decision numbers, no requirement ids, no type names the reader must already know. -->
+     Advice: about 300 words, not counting the code block or "Open questions". The checker warns, never refuses.
+     Plain words. No decision numbers, no requirement ids. -->
 
 # NNNN: <Title>
 
@@ -12,9 +12,13 @@
 
 ## What Changes
 
-- <Three to five bullets, one line each. Each is something a person can observe afterwards.>
+<!-- 3 to 5 observable bullets, one line each. Each is something a person can observe afterwards. -->
+
+- <Observable change.>
 
 ## What this is not
+
+<!-- Boundaries. -->
 
 - Not <X>. <One sentence on where X lives instead.>
 
@@ -32,3 +36,12 @@
 ## Impact
 
 - **<Who>** <what they must do, or "change nothing">.
+
+## Open questions
+
+<!-- One line each: "- Blocking: <question>" (acceptance waits) or "- Not blocking: <question>".
+     When the owner has answered one, mark it "- Answered: <answer>" and move it into the design
+     theme it settles. Accept refuses while a "- Blocking:" or "- Answered:" line stays here.
+     This section is outside the 300-word cap and outside the 3,000-word total. -->
+
+- Not blocking: <question>
