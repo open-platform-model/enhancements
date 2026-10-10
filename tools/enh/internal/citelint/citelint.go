@@ -68,7 +68,7 @@ var (
 	decisionRe = regexp.MustCompile(`(?:^|[^0-9A-Za-z_])(\d{4}:(?:D\d+(?::R\d+)?|OQ\d+))`)
 
 	// An id with an optional decision suffix and slash continuations
-	// ("0006:D21/OQ12"). Ids start with 0 (0001 to 0999), so a year or a
+	// (NNNN:Dn/OQn). Ids start with 0 (0001 to 0999), so a year or a
 	// port number is not an id.
 	idRe = regexp.MustCompile(`\b0\d{3}(?::(?:D\d+(?::R\d+)?|OQ\d+))?(?:/(?:D|R|OQ)\d+)*\b`)
 
