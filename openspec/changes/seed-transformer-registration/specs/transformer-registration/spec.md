@@ -33,10 +33,10 @@ The API server SHALL reject a claim that lacks the provider catalog's module pat
 - **WHEN** a claim is applied with an empty version
 - **THEN** the API server rejects it
 
-#### Scenario: A claim with an empty provided list is accepted
+#### Scenario: A claim with an empty provided list is admitted
 
-- **WHEN** a claim is applied whose provided list is empty
-- **THEN** the API server accepts it, because a catalog that implements no provider-fulfilled contract is a claim that acceptance refuses on its merits, not a malformed object
+- **WHEN** a claim is applied whose provided list is empty and every other required field is present
+- **THEN** the API server accepts and stores it, and admission leaves the judgement of the list to acceptance
 
 ### Requirement: The claim's name is instance-derived
 
@@ -103,7 +103,6 @@ An accepted claim SHALL become active when the module instance named as its prov
 
 - **WHEN** a claim that was accepted and waiting on its provider is later refused
 - **THEN** it no longer reports that it is waiting on its provider
-- **AND** a claim refused while already active keeps reporting that it is active
 
 ### Requirement: Activation latches against provider health
 
@@ -118,6 +117,11 @@ An active claim SHALL NOT be deactivated because its provider's readiness regres
 
 - **WHEN** that provider becomes ready again
 - **THEN** the claim is still active and records no new activation, because it never left
+
+#### Scenario: A refusal does not end activation
+
+- **WHEN** an active claim is later refused
+- **THEN** it is no longer accepted and still reports active
 
 ### Requirement: A claim with dependents cannot be deleted
 
@@ -152,6 +156,11 @@ The platform SHALL derive the dependent count from what instances demand, and SH
 - **WHEN** a blocked deletion is evaluated again with no change to the instances
 - **THEN** the same count and the same refusal are reported
 
+#### Scenario: An unreadable count keeps the block
+
+- **WHEN** a depended-on claim is deleted and the platform cannot read what the instances demand
+- **THEN** the object is not removed, and the deletion is evaluated again later
+
 ### Requirement: A shrinking upgrade is refused while dependents exist
 
 The platform SHALL refuse to apply a rendered claim that removes a contract from its provided list while instances still demand that contract. The refusal SHALL take effect while the previously accepted claim is the stored one, SHALL name the dropped contracts and the dependent count, and covers writes the platform makes itself: an edit by another actor is outside the guarantee.
@@ -169,7 +178,7 @@ The platform SHALL refuse to apply a rendered claim that removes a contract from
 #### Scenario: A non-shrinking upgrade passes
 
 - **WHEN** a provider upgrade renders its claim with the same contracts at a new catalog version
-- **THEN** this requirement does not refuse it
+- **THEN** the stored claim names the new version, and the provider's instance reports no shrink refusal
 
 #### Scenario: Dropping a contract nobody demands is allowed
 
@@ -179,7 +188,7 @@ The platform SHALL refuse to apply a rendered claim that removes a contract from
 #### Scenario: A provider that renders no claim is unaffected
 
 - **WHEN** a module that renders no claim is upgraded
-- **THEN** this requirement refuses nothing
+- **THEN** the upgrade applies, and the instance reports no shrink refusal
 
 ### Requirement: A refused upgrade is reported on its provider
 

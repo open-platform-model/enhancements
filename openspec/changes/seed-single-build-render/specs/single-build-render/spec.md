@@ -186,17 +186,12 @@ On a passing gate the render SHALL return the rendered objects in the build's de
 
 ### Requirement: Render is the kernel's sole render path
 
-The kernel SHALL render an instance against a platform by one verb only. It SHALL offer no separate compile, match or materialize step; a dry run is a render with its output discarded, since the build evaluates every matched pair regardless. A render SHALL be refused for a platform that does not carry its catalogs by import: a registry entry that names no embedded catalog is not rendered, because the entry's version is read from the catalog's stamped identity.
+The kernel SHALL render an instance against a platform by one verb only. It SHALL offer no separate compile, match or materialize step; a dry run is a render with its output discarded, since the build evaluates every matched pair regardless.
 
 #### Scenario: The old entry points are gone
 
 - **WHEN** a consumer inspects what the kernel offers
 - **THEN** it finds no compile, match or materialize verb and no materialized-platform type
-
-#### Scenario: A subscription-shaped platform is not rendered
-
-- **WHEN** a render is asked for a platform that declares a registry entry with a version and no embedded catalog
-- **THEN** the render is refused with a missing-required-field error that names the entry's version, and no build is attempted
 
 ### Requirement: The single-provider guard runs inside the build
 
@@ -222,10 +217,10 @@ The render SHALL read the provider count from the platform's contract inventory 
 - **WHEN** the platform carries the defining catalog entry disabled, and enables two other entries whose transformers both require the gateway contract
 - **THEN** the render fails with one over-subscription row naming the key and those two entries, and the inventory reads the same key as over-subscribed
 
-#### Scenario: The inventory and the render agree on every served platform
+#### Scenario: The inventory and the render agree
 
-- **WHEN** every served render platform is acquired, its inventory read, and its classified instance rendered against it
-- **THEN** the inventory's over-subscribed keys equal the keys of the render's rows, every row's entries equal the inventory's providers for its key, and the routable verdict is true exactly when the render carries no over-subscription row
+- **WHEN** a platform enables two entries whose transformers both require one provider-fulfilled contract, its inventory is read, and an instance is rendered against it
+- **THEN** the inventory's over-subscribed keys equal the keys of the render's over-subscription rows, each row's entries equal the inventory's providers for its key, and the inventory reads not routable
 
 ### Requirement: Unresolved demands are diagnosed with alternatives
 
@@ -343,16 +338,16 @@ Before staging, a render SHALL check that the platform's core carries the provid
 
 ### Requirement: An unexplained not-routable platform is refused
 
-The render SHALL decode the platform's routable verdict onto the diagnostics, and SHALL refuse with a typed not-routable cause when it reads false and the diagnostics carry no over-subscription row. That cause SHALL be the last joined cause. It keeps the kernel's decision in step with the render module's gate when a later core adds a term to the verdict that no row reports.
+The render SHALL decode the platform's routable verdict onto the diagnostics, and SHALL refuse with a typed not-routable cause when it reads false, the diagnostics carry no over-subscription row, and no contract key collides. That cause SHALL be the last joined cause. It keeps the kernel's decision in step with the render module's gate when a later core adds a term to the verdict that no row reports.
 
-#### Scenario: No served platform raises the catch-all
+#### Scenario: An explained verdict raises no catch-all
 
-- **WHEN** every served render platform is rendered
-- **THEN** no refusal carries the not-routable cause, and the decoded routable diagnostic equals the inventory's verdict
+- **WHEN** a routable platform, and a platform that is not routable because of one over-subscribed contract, are each rendered
+- **THEN** no refusal carries the not-routable cause, and each decoded routable diagnostic equals its platform's inventory verdict
 
 #### Scenario: An unexplained verdict refuses
 
-- **WHEN** the gate is given diagnostics whose routable verdict is false and which carry no over-subscription row
+- **WHEN** the gate is given diagnostics whose routable verdict is false, which carry no over-subscription row, and in which no contract key collides
 - **THEN** the gate refuses with the typed not-routable cause, joined after every other cause present
 
 ### Requirement: Each render is its own in-memory build

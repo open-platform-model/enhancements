@@ -11,7 +11,7 @@ At the transform site, the context's instance metadata block SHALL be computed f
 #### Scenario: The block computes from the filled inputs
 
 - **WHEN** a transform has its instance and component inputs filled concretely and the runtime name supplied
-- **THEN** every field of the instance metadata block evaluates concretely, and the label and annotation folds resolve from it, with nothing else supplied
+- **THEN** every field of the instance metadata block evaluates concretely, with nothing else supplied
 
 #### Scenario: The version comes from the module
 

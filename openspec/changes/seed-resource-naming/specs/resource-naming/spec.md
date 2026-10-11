@@ -41,7 +41,7 @@ An authored resource name SHALL be a DNS subdomain: dot-separated labels of lowe
 #### Scenario: A name over 253 runes is refused
 
 - **WHEN** a component sets a resource name of 254 runes
-- **THEN** validation fails with the same message
+- **THEN** validation fails at the resource name with one message naming the value and the DNS-subdomain rule
 
 ### Requirement: DNS variants follow the resource name
 
@@ -77,7 +77,7 @@ The instance name and the component name are each at most 63 runes, so the defau
 
 #### Scenario: A 127-rune default is admitted
 
-- **WHEN** an instance name and a component name of 63 runes each meet, with no resource name set
+- **WHEN** an instance name and a component name of 63 runes each meet, with no resource name set and no name constraint attached
 - **THEN** the component is valid with the 127-rune default
 
 ### Requirement: Three name types mirror the server's validators
@@ -140,13 +140,13 @@ A component SHALL collect the name constraint of every attached resource, trait 
 
 #### Scenario: Two constraints combine
 
-- **WHEN** a component attaches a trait declaring `#ServiceNameType` and a blueprint declaring `#NameType`
-- **THEN** its resource name meets both, and a default of two labels joined by a hyphen with a letter first is valid
+- **WHEN** component `web` of instance `shop` attaches a trait declaring `#ServiceNameType` and a blueprint declaring `#NameType`
+- **THEN** the resource name `shop-web` is valid, and the resource name `1shop-web`, which `#NameType` alone admits, fails naming the DNS-1035 pattern
 
 #### Scenario: An authored name that meets the constraint
 
 - **WHEN** a component with a `#ServiceNameType` constraint sets the resource name `istiod`
-- **THEN** the component is valid and its full DNS form is `istiod.<namespace>.svc.<cluster domain>`
+- **THEN** the component is valid and its resource name is `istiod`
 
 ### Requirement: A computed constraint binds on every path
 
