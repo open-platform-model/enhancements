@@ -97,7 +97,8 @@ func titleLine(tt *Titles, cs []cites.Cite) string {
 	var parts []string
 	for _, c := range cs {
 		for _, n := range c.Decisions {
-			if t, ok := tt.Title(c.ID, n); ok {
+			if rid, t, ok := tt.Effective(c.ID, n); ok {
+				_ = rid
 				parts = append(parts, c.ID+" D"+itoa(n)+": "+t)
 			}
 		}
@@ -112,7 +113,7 @@ func titleLine(tt *Titles, cs []cites.Cite) string {
 // a failure.
 func textForm(tt *Titles, cs []cites.Cite, compact bool) (string, string) {
 	var ids []string
-	byID := map[string][]int{}
+	byID := map[string][]string{}
 	for _, c := range cs {
 		if len(c.Decisions) == 0 {
 			return "", KindOQ
@@ -120,27 +121,30 @@ func textForm(tt *Titles, cs []cites.Cite, compact bool) (string, string) {
 		if !tt.Known(c.ID) {
 			return "", KindUnknownID
 		}
-		if _, ok := byID[c.ID]; !ok {
-			ids = append(ids, c.ID)
-		}
 		for _, n := range c.Decisions {
-			if _, ok := tt.Title(c.ID, n); !ok {
+			rid, title, ok := tt.Effective(c.ID, n)
+			if !ok {
 				return "", KindUnknownDec
 			}
-			byID[c.ID] = appendOnce(byID[c.ID], n)
+			if _, seen := byID[rid]; !seen {
+				ids = append(ids, rid)
+			}
+			q := Quoted(title)
+			dup := false
+			for _, x := range byID[rid] {
+				dup = dup || x == q
+			}
+			if !dup {
+				byID[rid] = append(byID[rid], q)
+			}
 		}
 	}
 	var parts []string
 	for _, id := range ids {
-		var titles []string
-		for _, n := range byID[id] {
-			t, _ := tt.Title(id, n)
-			titles = append(titles, Quoted(t))
-		}
 		if compact && len(ids) == 1 {
-			return "enhancement " + id + ", " + joinWords(titles), ""
+			return "enhancement " + id + ", " + joinWords(byID[id]), ""
 		}
-		parts = append(parts, "enhancement "+id+" ("+joinWords(titles)+")")
+		parts = append(parts, "enhancement "+id+" ("+joinWords(byID[id])+")")
 	}
 	return joinWords(parts), ""
 }
