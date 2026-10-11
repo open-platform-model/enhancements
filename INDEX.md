@@ -44,6 +44,7 @@
 | [apply-preflight-gates](./openspec/specs/apply-preflight-gates/spec.md) | 8 | The checks the CLI runs before it applies an instance to a cluster, and what it refuses or warns about before any object is written. |
 | [artifact-identity](./openspec/specs/artifact-identity/spec.md) | 18 | State how a published module or catalog declares who it is. |
 | [artifact-publishing](./openspec/specs/artifact-publishing/spec.md) | 21 | State the identity-driven pipeline behind publishing a module or a catalog. |
+| [catalog-acquisition](./openspec/specs/catalog-acquisition/spec.md) | 6 | Read a catalog into the kernel: fetched from a registry by module path and version, or loaded from a directory. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
