@@ -1,0 +1,21 @@
+# Facts only. History is `git log`.
+id: "0012"
+slug: kubernetes-first-class-kernel-platform
+title: Kubernetes as a First-Class Library Tier
+summary: >-
+  Move the Kubernetes runtime code into one library tier beside the kernel, so deleting, ownership
+  checks and resource ordering have one implementation instead of one per frontend.
+status: draft
+category: runtime
+breaking: false
+affects:
+  - library
+  - opm-operator
+  - cli
+authors:
+  - emil@jacero.se
+created: "2026-07-27"
+after:
+  - "0006"
+  - "0010"
+  - "0009"
