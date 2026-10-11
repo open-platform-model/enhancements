@@ -221,7 +221,7 @@ func (r *run) idExists(id string) bool {
 	}
 	// An old-layout entry that is still live is a valid target, so that every
 	// commit of the migration passes whatever the order of the conversion
-	// (DECISIONS.md 2026-10-10 23:35). 0000 is the template, not an entry.
+	// (DECISIONS.md 2026-10-10 23:35). 0000 was the template, not an entry.
 	if id != "0000" && containsStr(r.store.LegacyLive, id) {
 		return true
 	}

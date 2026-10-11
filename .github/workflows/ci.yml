@@ -87,7 +87,7 @@ jobs:
 
       - name: Vet the entries of openspec/changes
         # The task adds --cue (V29's cue vet of each evidence module, as
-        # warnings only) and sets ENH_FINAL=1 (V25 and V30 are errors).
+        # warnings only) and sets ENH_FINAL=1 (V30 is an error).
         # Evidence modules resolve opmodel.dev/core from GHCR anonymously;
         # the Taskfile sets the registry mapping.
         run: task vet -- --base "$BASE_REF"

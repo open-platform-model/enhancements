@@ -60,7 +60,7 @@ func Next(in Inputs) (Result, error) {
 	if len(in.Refs) == 0 {
 		res.Warnings = append(res.Warnings, FetchNote)
 	}
-	// 0000 is the template folder. It is never handed out, whatever the lists say.
+	// 0000 was the template folder. It is never handed out, whatever the lists say.
 	for n := 1; n <= 9999; n++ {
 		id := fmt.Sprintf("%04d", n)
 		if _, ok := taken[id]; !ok {

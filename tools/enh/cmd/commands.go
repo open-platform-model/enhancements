@@ -144,8 +144,14 @@ func (c *call) env() (*tasks.Env, error) {
 			return nil, err
 		}
 	}
+	base := c.o.base
+	if base == "" {
+		// The same default as vet: origin/main when that ref exists, else
+		// main. "" lets the task fall back to main.
+		base = c.vetBase(root)
+	}
 	e := &tasks.Env{
-		Root: root, Schema: c.o.schema, Base: c.o.base, Run: c.d.Runner, Out: c.out, Err: c.errOut, Now: c.d.Now,
+		Root: root, Schema: c.o.schema, Base: base, Run: c.d.Runner, Out: c.out, Err: c.errOut, Now: c.d.Now,
 		Confirm:  c.o.confirm || c.d.Getenv("CONFIRM") == "1",
 		NoCommit: c.o.noCommit, NoValidate: c.o.noValidate, ID: c.o.id,
 	}
@@ -190,7 +196,7 @@ func rootFlags(fs *flag.FlagSet, o *options) {
 
 func gitFlags(fs *flag.FlagSet, o *options) {
 	rootFlags(fs, o)
-	fs.StringVar(&o.base, "base", "main", "the local branch the PR starts from; the base ref of V7, V27 and V31")
+	fs.StringVar(&o.base, "base", "", "the branch the PR starts from; the base ref of V7, V27 and V31 (default: origin/main when it exists, else main)")
 }
 
 func confirmFlags(fs *flag.FlagSet, o *options) {

@@ -12,7 +12,7 @@
 //   - every other relative link of a published file must resolve.
 //
 // Every entry folder is a source, the ten old-layout folders archive/NNNN/
-// included. It replaces scripts/check-links.sh and relink.sh.
+// included.
 package links
 
 import (
@@ -151,8 +151,8 @@ func Published(root string) ([]string, error) {
 	return out, nil
 }
 
-// entryDirs lists the entry folders that exist, repo-relative. The template
-// folder 0000 is not an entry for this purpose.
+// entryDirs lists the entry folders that exist, repo-relative. The id 0000
+// was the template folder and is not an entry for this purpose.
 func entryDirs(root string) ([]string, error) {
 	var out []string
 	add := func(parent string, numericOnly bool, skip string) error {

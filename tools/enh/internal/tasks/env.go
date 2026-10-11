@@ -158,8 +158,9 @@ func (e *Env) vet(mode vet.Mode, keys ...string) (*vet.Result, error) {
 	})
 }
 
-// vetBase is the base ref for V7, V27 and V31: the branch of --base (default
-// main), so the git rules run at accept and deliver. The rules read paths from
+// vetBase is the base ref for V7, V27 and V31: the branch of --base (the
+// command defaults it to origin/main when that ref exists, else main), so the
+// git rules run at accept and deliver. The rules read paths from
 // the top level of the repository, so a Root that is not that top level gets
 // no base and vet prints its skipped line.
 func (e *Env) vetBase() string {

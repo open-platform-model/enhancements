@@ -277,6 +277,31 @@ func TestAcceptAndDeliverTakeBase(t *testing.T) {
 	}
 }
 
+// accept without --base takes the base the way vet does: origin/main when that
+// ref exists, else main.
+func TestAcceptDefaultBase(t *testing.T) {
+	r := newRepo(t)
+	testrepo.Git(t, r.root, "checkout", "-q", "-b", "work")
+	code, out, errOut := r.do("accept", "0100", "--seed", "4")
+	wantCode(t, "accept default", code, ExitOK, out, errOut)
+	if !strings.Contains(out, "base: main ") {
+		t.Errorf("no origin/main, want base main:\n%s", out)
+	}
+
+	testrepo.Git(t, r.root, "update-ref", "refs/remotes/origin/main", "main")
+	code, out, errOut = r.do("accept", "0100", "--seed", "4")
+	wantCode(t, "accept origin/main", code, ExitOK, out, errOut)
+	if !strings.Contains(out, "base: origin/main ") {
+		t.Errorf("origin/main exists, want it as the base:\n%s", out)
+	}
+
+	code, out, errOut = r.do("accept", "0100", "--seed", "4", "--base", "main")
+	wantCode(t, "accept --base main", code, ExitOK, out, errOut)
+	if !strings.Contains(out, "base: main ") {
+		t.Errorf("explicit --base main wins:\n%s", out)
+	}
+}
+
 func TestVetAtDeliverModeRunsV26(t *testing.T) {
 	r := newRepo(t)
 	r.put("openspec/specs/other-cap/spec.md", r.file("openspec/specs/other-cap/spec.md"))
