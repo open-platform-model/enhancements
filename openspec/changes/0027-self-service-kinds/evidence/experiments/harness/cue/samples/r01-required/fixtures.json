@@ -1,0 +1,113 @@
+[
+ {
+  "name": "minimal",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   }
+  }
+ },
+ {
+  "name": "fromdefault-changed-input",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   },
+   "app": "web"
+  }
+ },
+ {
+  "name": "fromdefault-given-matching",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   },
+   "app": "web",
+   "fromDefault": "web-x"
+  }
+ },
+ {
+  "name": "no-regular",
+  "values": {
+   "reqMarked": "a",
+   "nestedReq": {
+    "inner": "i"
+   }
+  }
+ },
+ {
+  "name": "no-marked",
+  "values": {
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   }
+  }
+ },
+ {
+  "name": "constant-wrong",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   },
+   "constant": "other"
+  }
+ },
+ {
+  "name": "computed-given",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   },
+   "computed": "a-svc"
+  }
+ },
+ {
+  "name": "computed-wrong",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "nestedReq": {
+    "inner": "i"
+   },
+   "computed": "zzz"
+  }
+ },
+ {
+  "name": "no-nestedReq",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b"
+  }
+ },
+ {
+  "name": "all",
+  "values": {
+   "reqMarked": "a",
+   "regularNoDefault": "b",
+   "defaulted": 4,
+   "optional": "o",
+   "constant": "fixed",
+   "nested": {
+    "inner": "y"
+   },
+   "nestedReq": {
+    "inner": "i"
+   },
+   "listDefault": [
+    "b"
+   ],
+   "boolDefault": true
+  }
+ }
+]

@@ -1,0 +1,46 @@
+[
+ {
+  "name": "s3-key",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "auth": {
+     "mode": "key",
+     "id": "x"
+    }
+   }
+  }
+ },
+ {
+  "name": "s3-iam",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "auth": {
+     "mode": "iam"
+    }
+   }
+  }
+ },
+ {
+  "name": "s3-iam-with-id",
+  "values": {
+   "backup": {
+    "kind": "s3",
+    "auth": {
+     "mode": "iam",
+     "id": "x"
+    }
+   }
+  }
+ },
+ {
+  "name": "nfs",
+  "values": {
+   "backup": {
+    "kind": "nfs",
+    "server": "s"
+   }
+  }
+ }
+]

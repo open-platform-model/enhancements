@@ -1,0 +1,25 @@
+[
+ {
+  "name": "absent",
+  "values": {}
+ },
+ {
+  "name": "ref",
+  "values": {
+   "pw": {
+    "ref": "a",
+    "key": "b"
+   }
+  }
+ },
+ {
+  "name": "literal-and-ref",
+  "values": {
+   "pw": {
+    "value": "x",
+    "ref": "a",
+    "key": "b"
+   }
+  }
+ }
+]

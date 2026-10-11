@@ -1,0 +1,33 @@
+[
+ {
+  "name": "url",
+  "values": {
+   "src": {
+    "url": "u"
+   }
+  }
+ },
+ {
+  "name": "cm",
+  "values": {
+   "src": {
+    "configMapRef": "c"
+   }
+  }
+ },
+ {
+  "name": "both",
+  "values": {
+   "src": {
+    "url": "u",
+    "configMapRef": "c"
+   }
+  }
+ },
+ {
+  "name": "none",
+  "values": {
+   "src": {}
+  }
+ }
+]

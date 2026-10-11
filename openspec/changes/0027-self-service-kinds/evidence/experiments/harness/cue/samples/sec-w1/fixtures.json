@@ -1,0 +1,157 @@
+[
+ {
+  "name": "literal",
+  "values": {
+   "pw": {
+    "value": "hunter2"
+   }
+  }
+ },
+ {
+  "name": "ref",
+  "values": {
+   "pw": {
+    "ref": "db-creds",
+    "key": "password"
+   }
+  }
+ },
+ {
+  "name": "ref-dotted-name",
+  "values": {
+   "pw": {
+    "ref": "tls.example.com",
+    "key": "tls.key"
+   }
+  }
+ },
+ {
+  "name": "bare-string",
+  "values": {
+   "pw": "hunter2"
+  }
+ },
+ {
+  "name": "literal-and-ref",
+  "values": {
+   "pw": {
+    "value": "hunter2",
+    "ref": "db-creds",
+    "key": "password"
+   }
+  }
+ },
+ {
+  "name": "ref-without-key",
+  "values": {
+   "pw": {
+    "ref": "db-creds"
+   }
+  }
+ },
+ {
+  "name": "key-without-ref",
+  "values": {
+   "pw": {
+    "key": "password"
+   }
+  }
+ },
+ {
+  "name": "empty-object",
+  "values": {
+   "pw": {}
+  }
+ },
+ {
+  "name": "unknown-field",
+  "values": {
+   "pw": {
+    "value": "hunter2",
+    "extra": 1
+   }
+  }
+ },
+ {
+  "name": "literal-wrong-type",
+  "values": {
+   "pw": {
+    "value": 12345
+   }
+  }
+ },
+ {
+  "name": "ref-bad-name",
+  "values": {
+   "pw": {
+    "ref": "Not_A_Name",
+    "key": "password"
+   }
+  }
+ },
+ {
+  "name": "ref-bad-key",
+  "values": {
+   "pw": {
+    "ref": "db-creds",
+    "key": "a/b"
+   }
+  }
+ },
+ {
+  "name": "missing",
+  "values": {}
+ },
+ {
+  "name": "source",
+  "values": {
+   "pw": {
+    "source": "secrets.example.com/eso/external@v1",
+    "spec": {
+     "remoteKey": "prod/db"
+    }
+   }
+  }
+ },
+ {
+  "name": "source-settings",
+  "values": {
+   "pw": {
+    "source": "secrets.example.com/eso/external@v1",
+    "settings": {
+     "store": "vault"
+    },
+    "spec": {
+     "remoteKey": "prod/db"
+    }
+   }
+  }
+ },
+ {
+  "name": "source-bad-fqn",
+  "values": {
+   "pw": {
+    "source": "eso"
+   }
+  }
+ },
+ {
+  "name": "source-and-literal",
+  "values": {
+   "pw": {
+    "value": "x",
+    "source": "secrets.example.com/eso/external@v1"
+   }
+  }
+ },
+ {
+  "name": "spec-without-source",
+  "values": {
+   "pw": {
+    "spec": {
+     "remoteKey": "prod/db"
+    }
+   }
+  }
+ }
+]

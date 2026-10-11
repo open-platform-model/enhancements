@@ -1,0 +1,48 @@
+[
+ {
+  "name": "literal",
+  "values": {
+   "pw": {
+    "value": "hunter2"
+   }
+  }
+ },
+ {
+  "name": "k8sref",
+  "values": {
+   "pw": {
+    "secretName": "db-creds",
+    "remoteKey": "password"
+   }
+  }
+ },
+ {
+  "name": "bare-string",
+  "values": {
+   "pw": "hunter2"
+  }
+ },
+ {
+  "name": "literal-and-ref",
+  "values": {
+   "pw": {
+    "value": "x",
+    "secretName": "a",
+    "remoteKey": "b"
+   }
+  }
+ },
+ {
+  "name": "missing",
+  "values": {}
+ },
+ {
+  "name": "ref-arm-new-names",
+  "values": {
+   "pw": {
+    "ref": "db-creds",
+    "key": "password"
+   }
+  }
+ }
+]

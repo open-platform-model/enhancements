@@ -1,0 +1,167 @@
+[
+ {
+  "name": "ok",
+  "values": {
+   "list0": [
+    {
+     "value": "x"
+    }
+   ],
+   "list1": [
+    {
+     "value": "x"
+    }
+   ],
+   "list2": [
+    {
+     "value": "x"
+    }
+   ],
+   "list3": [
+    {
+     "value": "x"
+    }
+   ],
+   "list4": [
+    {
+     "value": "x"
+    }
+   ],
+   "list5": [
+    {
+     "value": "x"
+    }
+   ],
+   "list6": [
+    {
+     "value": "x"
+    }
+   ],
+   "list7": [
+    {
+     "value": "x"
+    }
+   ],
+   "list8": [
+    {
+     "value": "x"
+    }
+   ],
+   "list9": [
+    {
+     "value": "x"
+    }
+   ],
+   "list10": [
+    {
+     "value": "x"
+    }
+   ],
+   "list11": [
+    {
+     "value": "x"
+    }
+   ],
+   "list12": [
+    {
+     "value": "x"
+    }
+   ],
+   "list13": [
+    {
+     "value": "x"
+    }
+   ],
+   "list14": [
+    {
+     "value": "x"
+    }
+   ],
+   "list15": [
+    {
+     "value": "x"
+    }
+   ],
+   "list16": [
+    {
+     "value": "x"
+    }
+   ],
+   "list17": [
+    {
+     "value": "x"
+    }
+   ],
+   "list18": [
+    {
+     "value": "x"
+    }
+   ],
+   "list19": [
+    {
+     "value": "x"
+    }
+   ],
+   "list20": [
+    {
+     "value": "x"
+    }
+   ],
+   "list21": [
+    {
+     "value": "x"
+    }
+   ],
+   "list22": [
+    {
+     "value": "x"
+    }
+   ],
+   "list23": [
+    {
+     "value": "x"
+    }
+   ],
+   "list24": [
+    {
+     "value": "x"
+    }
+   ]
+  }
+ },
+ {
+  "name": "bad",
+  "values": {
+   "list0": [
+    {
+     "value": "x",
+     "source": "a.b/c@v1"
+    }
+   ],
+   "list1": [],
+   "list2": [],
+   "list3": [],
+   "list4": [],
+   "list5": [],
+   "list6": [],
+   "list7": [],
+   "list8": [],
+   "list9": [],
+   "list10": [],
+   "list11": [],
+   "list12": [],
+   "list13": [],
+   "list14": [],
+   "list15": [],
+   "list16": [],
+   "list17": [],
+   "list18": [],
+   "list19": [],
+   "list20": [],
+   "list21": [],
+   "list22": [],
+   "list23": [],
+   "list24": []
+  }
+ }
+]

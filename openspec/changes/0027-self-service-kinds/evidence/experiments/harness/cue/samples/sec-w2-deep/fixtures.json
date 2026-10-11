@@ -1,0 +1,39 @@
+[
+ {
+  "name": "ok",
+  "values": {
+   "tenants": {
+    "a": {
+     "users": [
+      {
+       "name": "u",
+       "password": {
+        "ref": "s",
+        "key": "k"
+       }
+      }
+     ]
+    }
+   }
+  }
+ },
+ {
+  "name": "bad",
+  "values": {
+   "tenants": {
+    "a": {
+     "users": [
+      {
+       "name": "u",
+       "password": {
+        "value": "hunter2",
+        "ref": "s",
+        "key": "k"
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+]

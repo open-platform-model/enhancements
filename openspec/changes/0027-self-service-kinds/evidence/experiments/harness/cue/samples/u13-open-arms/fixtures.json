@@ -1,0 +1,19 @@
+[
+ {
+  "name": "s3",
+  "values": {
+   "ext": {
+    "kind": "s3",
+    "anything": 1
+   }
+  }
+ },
+ {
+  "name": "bad",
+  "values": {
+   "ext": {
+    "kind": "gcs"
+   }
+  }
+ }
+]
