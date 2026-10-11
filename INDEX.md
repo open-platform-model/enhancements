@@ -46,6 +46,7 @@
 | [artifact-publishing](./openspec/specs/artifact-publishing/spec.md) | 21 | State the identity-driven pipeline behind publishing a module or a catalog. |
 | [catalog-acquisition](./openspec/specs/catalog-acquisition/spec.md) | 6 | Read a catalog into the kernel: fetched from a registry by module path and version, or loaded from a directory. |
 | [catalog-compatibility](./openspec/specs/catalog-compatibility/spec.md) | 8 | State when a catalog's contracts stay compatible with the ones it already published: the additive-only comparison, the levels it binds, and the standalone check that repeats the comparison on a published build. |
+| [catalog-contracts](./openspec/specs/catalog-contracts/spec.md) | 6 | State what a catalog publishes about the contracts it defines. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
