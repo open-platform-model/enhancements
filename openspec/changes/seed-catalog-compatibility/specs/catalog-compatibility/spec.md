@@ -6,7 +6,7 @@ State when a catalog's contracts stay compatible with the ones it already publis
 
 ### Requirement: Compatible means additive only
 
-A new definition of a contract SHALL be compatible with its prior definition only if it removes no field, adds no required field, changes no default and makes no optional field required. Fields and options MAY be added. Each violation SHALL carry its dotted path from the compared root and a stable kind. A default change SHALL carry the old and new values.
+A new definition of a contract SHALL be compatible with its prior definition only if it removes no field, adds no required field, changes no default, makes no optional field required and narrows no value a field accepts; a narrowing SHALL carry CUE's own diagnostic. Fields and options MAY be added. Each violation SHALL carry its dotted path from the compared root and a stable kind. A default change SHALL carry the old and new values.
 
 #### Scenario: A removed field is reported
 
@@ -17,7 +17,7 @@ A new definition of a contract SHALL be compatible with its prior definition onl
 
 - **WHEN** the new definition adds a field that is required and has no default
 - **THEN** the comparison reports the kind `field added without optional or default` at that path
-- **AND** adding the same field as optional or defaulted reports nothing
+- **AND** adding the same field as a regular field with a default, with no required marker, reports nothing
 
 #### Scenario: A field made required is reported
 
@@ -100,7 +100,7 @@ Two closed lists of equal length SHALL be compared element by element, so that a
 
 #### Scenario: Unequal-length lists are one value
 
-- **WHEN** the new definition drops an element from a list
+- **WHEN** the new definition drops an element from a closed list
 - **THEN** the comparison reports `domain narrowed` at the list's path
 
 #### Scenario: An unchanged guarded value is silent
@@ -147,7 +147,7 @@ With its compatibility mode, the check SHALL run the predecessor comparison for 
 
 #### Scenario: A violating build exits 2
 
-- **WHEN** the compatibility mode runs against a published build whose beta member narrows a field of the predecessor that publish would select
+- **WHEN** the compatibility mode runs against a published stable build whose beta member narrows a field of the predecessor that publish would select
 - **THEN** the check lists the violation and exits with code 2, as publish would refuse it
 
 ### Requirement: The check's exit code names the cause

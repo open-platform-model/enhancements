@@ -67,11 +67,6 @@ Publish SHALL evaluate every gate it can and report all refusals in one pass. Th
 - **WHEN** the tree has no module configuration
 - **THEN** publish reports that refusal alone
 
-#### Scenario: Local gates run before the registry is asked
-
-- **WHEN** a local gate refuses and the registry is also unreachable
-- **THEN** the local refusal is reported with the registry failure
-
 ### Requirement: A refusal has one fixed shape
 
 Every refusal SHALL state the condition, then the evidence, the consequence and the action, leaving a part out only where it adds nothing. Disagreeing values SHALL print in aligned columns that name the file, and the line where known, that declares each. The action SHALL name what clears the condition, as a runnable command where one exists. A refusal whose diagnostic is CUE's SHALL carry CUE's own error.
@@ -156,7 +151,7 @@ Publish SHALL always resolve dependencies as published, so local replacements SH
 
 ### Requirement: The version option fills or asserts
 
-The version option of either command SHALL fill an open identity version, writing the working tree, or assert one already concrete. A disagreement with a concrete value SHALL refuse, naming both values and the command that sets a version. The option SHALL NOT fill an absent field. An open version with no option SHALL refuse.
+The version option of either command SHALL fill an open identity version, writing the working tree, or assert one already concrete. A disagreement with a concrete value SHALL refuse, naming both values and the command that sets a version. The option SHALL NOT fill an absent field. An open version with no option SHALL refuse and name the command that sets a version and the version option.
 
 #### Scenario: An open version is filled, then published
 
@@ -171,7 +166,8 @@ The version option of either command SHALL fill an open identity version, writin
 #### Scenario: An open version with no option is refused
 
 - **WHEN** the identity version is open and no option is supplied
-- **THEN** publish refuses and offers both ways to supply it
+- **THEN** publish refuses, saying the version has no value
+- **AND** it names the command that sets a version and the version option
 
 ### Requirement: A published version is never replaced
 
@@ -214,13 +210,12 @@ Module publish SHALL load the tree through the kernel's module loader, the loade
 
 - **WHEN** a module tree loads as CUE but the kernel's loader refuses it, because its version is a defaulted disjunction
 - **THEN** publish and a dry run refuse with exit code 2, quoting the loader's error
-- **AND** the module vet command reports the same refusal
 - **AND** the same tree with the defect corrected passes the gate
 
 #### Scenario: An unfilled identity is refused once
 
-- **WHEN** the identity version is open and no version is supplied
-- **THEN** the identity gate refuses and the kernel loader adds no second refusal
+- **WHEN** a module's identity version is open and no version is supplied
+- **THEN** publish gives one refusal, from the identity gate, and the kernel loader adds none
 
 ### Requirement: The compatibility gate compares against history
 
@@ -228,17 +223,17 @@ For every beta or GA member of a catalog, publish SHALL compare the member under
 
 #### Scenario: A field removal is refused against the true predecessor
 
-- **WHEN** a beta member removes a field relative to the newest published build that carried it
+- **WHEN** a stable tag is published and a beta member removes a field relative to the newest published build that carried it
 - **THEN** publish refuses with the violation path and the predecessor coordinate
 
 #### Scenario: A prerelease predecessor counts
 
-- **WHEN** the newest build carrying the member is a prerelease newer than the latest stable
+- **WHEN** a stable tag is published and the newest published build below it that carries the member is a prerelease newer than the latest stable
 - **THEN** the comparison runs against that prerelease
 
 #### Scenario: Removal then re-adding is refused
 
-- **WHEN** a member absent from the immediate predecessor is shipped incompatibly reshaped and an older build carried it
+- **WHEN** a stable tag is published, a member absent from the immediate predecessor is shipped incompatibly reshaped, and an older build carried it
 - **THEN** the scan finds the older build and publish refuses
 
 #### Scenario: A new API version escapes the history
@@ -252,7 +247,7 @@ A compatibility refusal SHALL open with a header that names the member, its API 
 
 #### Scenario: A violation names its path
 
-- **WHEN** a member narrows a field of its earlier build
+- **WHEN** a stable tag is published and a beta member narrows a field of its earlier build
 - **THEN** the refusal names the member, the compared coordinate and the path of the field
 
 #### Scenario: An alpha member is exempt only here
@@ -262,7 +257,7 @@ A compatibility refusal SHALL open with a header that names the member, its API 
 
 ### Requirement: Dev builds and prerelease lines are exempt, visibly
 
-A dev build, a tag whose prerelease segment carries a dev identifier, SHALL NOT be judged by the gate and SHALL NOT serve as any build's predecessor. While the tag is a release prerelease (alpha, beta or rc), beta and GA members SHALL NOT be compared. The exemption SHALL end at the first stable tag of the major. The plan SHALL report each exemption on the compatibility row.
+A dev build, a tag whose prerelease segment carries a dev identifier, SHALL NOT be judged by the gate and SHALL NOT serve as any build's predecessor. While the tag is a release prerelease (alpha, beta or rc), beta and GA members SHALL NOT be compared. Only a stable tag SHALL be compared. The plan SHALL report each exemption on the compatibility row.
 
 #### Scenario: A dev build is not judged
 
@@ -271,13 +266,18 @@ A dev build, a tag whose prerelease segment carries a dev identifier, SHALL NOT 
 
 #### Scenario: A dev build is never the baseline
 
-- **WHEN** only a dev tag, newer than the latest release, carries an incompatible shape
-- **THEN** a release publish compares against the release tag and passes
+- **WHEN** a stable tag is published and only a dev tag, newer than the latest release, carries an incompatible shape
+- **THEN** publish compares against the release tag and passes
 
 #### Scenario: A prerelease line is exempt, visibly
 
 - **WHEN** the tag is an alpha prerelease and a beta member narrows a field of the previous alpha
 - **THEN** publish does not refuse and the row counts the member as prerelease-exempt with nothing compared
+
+#### Scenario: A prerelease after a stable tag stays exempt
+
+- **WHEN** the major already holds the stable tag 1.0.0, the tag is 1.1.0-rc.1, and a beta member narrows a field of 1.0.0
+- **THEN** publish does not refuse on compatibility and the row counts the member as prerelease-exempt
 
 #### Scenario: The first stable tag arms the gate
 

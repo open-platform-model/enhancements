@@ -59,6 +59,11 @@ Acquisition SHALL accept an artifact only if it carries the concrete kind Catalo
 - **WHEN** the artifact has the kind Catalog but no concrete version
 - **THEN** it is refused as a missing required field, and no catalog is returned
 
+#### Scenario: A defaulted version is not concrete
+
+- **WHEN** the artifact has the kind Catalog and its version is a disjunction with a default
+- **THEN** it is refused as a missing required field, and no catalog is returned
+
 ### Requirement: A catalog reports its provider-fulfilled contracts
 
 The kernel SHALL report the provider-fulfilled contracts a catalog implements: the list that core derives for the catalog from the contracts its own transformers require. It SHALL read that list from the catalog when core derived it, and otherwise derive the same list from the transformers. The result SHALL be the same list in either case. A catalog that implements none SHALL yield an empty list and no error.
@@ -116,8 +121,3 @@ The kernel SHALL expose the dependency requirements a catalog committed in its o
 
 - **WHEN** an acquired catalog's module file lists a dependency that carries a replacement
 - **THEN** reading its requirements fails with an error naming the module file, and returns no requirements
-
-#### Scenario: A catalog without a source has no file to read
-
-- **WHEN** a catalog was built from a bare value and carries no source
-- **THEN** reading its requirements fails and says there is no committed file to read

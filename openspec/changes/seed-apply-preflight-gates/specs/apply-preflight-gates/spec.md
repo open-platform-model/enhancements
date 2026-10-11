@@ -6,7 +6,7 @@ The checks the CLI runs before it applies an instance to a cluster, and what it 
 
 ### Requirement: A missing ModuleInstance CRD stops the apply
 
-Before it applies an instance, the CLI SHALL check that the ModuleInstance CustomResourceDefinition (`moduleinstances.opmodel.dev`) exists. When it is absent, the apply SHALL fail with a validation error of one line that says the CRD was not found and names the operator install command, in its CRDs-only form, as the fix. A read of the CRD that fails for another reason SHALL fail the apply and say that the CRD could not be read.
+Before it applies an instance, the CLI SHALL check that the ModuleInstance CustomResourceDefinition (`moduleinstances.opmodel.dev`) exists. When it is absent, the apply SHALL fail with exit code 2 and a validation error of one line that says the CRD was not found and names the operator install command, in its CRDs-only form, as the fix. A read of the CRD that fails for another reason SHALL fail the apply and say that the CRD could not be read.
 
 #### Scenario: The CRD is absent
 
@@ -21,7 +21,7 @@ Before it applies an instance, the CLI SHALL check that the ModuleInstance Custo
 
 ### Requirement: An outdated ModuleInstance CRD stops the apply
 
-The CLI SHALL check that the storage version of the installed ModuleInstance CRD carries the properties `spec.owner` and `status.inventory`. When none is marked as the storage version, the first served version SHALL count. A CRD that lacks either property SHALL stop the apply with a validation error that says required fields are missing and names the same fix. A CRD with no version, or with a version that has no schema, SHALL stop it too.
+The CLI SHALL check that the storage version of the installed ModuleInstance CRD carries the properties `spec.owner` and `status.inventory`. When none is marked as the storage version, the first served version SHALL count. A CRD that lacks either property SHALL stop the apply with exit code 2 and a validation error that says required fields are missing and names the same fix. A CRD with no version, or with a version that has no schema, SHALL stop it too, with an error that says what is missing.
 
 #### Scenario: The CRD lacks the owner property
 
@@ -32,7 +32,7 @@ The CLI SHALL check that the storage version of the installed ModuleInstance CRD
 #### Scenario: The CRD lacks the inventory property
 
 - **WHEN** the installed CRD schema has no `status.inventory`
-- **THEN** the apply is refused with the same error
+- **THEN** the apply is refused and the error says the CRD is missing required fields
 
 #### Scenario: A current CRD passes silently
 
@@ -42,7 +42,7 @@ The CLI SHALL check that the storage version of the installed ModuleInstance CRD
 #### Scenario: A CRD without a schema is refused
 
 - **WHEN** the installed CRD has no version, or its version has no schema
-- **THEN** the apply is refused with a validation error that names the missing part
+- **THEN** the apply is refused with a validation error that says the CRD has no version, or that its version has no schema
 
 ### Requirement: The ceiling is skipped when it cannot compare
 
@@ -50,8 +50,9 @@ For the operator-version ceiling the CLI SHALL read the cluster-scoped Platform 
 
 #### Scenario: A solo cluster skips the ceiling
 
+- **GIVEN** a CLI whose version is a released SemVer version
 - **WHEN** the cluster has no Platform, or the Platform reports no operator version
-- **THEN** the check is skipped, nothing is printed and the apply goes on
+- **THEN** the ceiling check is skipped and prints nothing, and the apply goes on
 
 #### Scenario: A development build skips with a warning
 
@@ -70,12 +71,13 @@ For the operator-version ceiling the CLI SHALL read the cluster-scoped Platform 
 
 #### Scenario: Another read failure stops the apply
 
+- **GIVEN** a CLI whose version is a released SemVer version
 - **WHEN** reading the Platform fails with an error that is neither not found nor forbidden
 - **THEN** the apply fails and the error says the Platform could not be read for the ceiling
 
 ### Requirement: Status access is checked before a CLI-run apply
 
-When the CLI itself applies the instance's objects, it SHALL ask the cluster, by a SelfSubjectAccessReview, whether the caller may patch `moduleinstances/status` in the instance namespace, before any object is applied. When access is denied, the apply SHALL fail with a permission-denied error. The error SHALL say that the inventory cannot be recorded and SHALL name the remedies: grant that access, or run the operator install command in its CRDs-only form with its RBAC option.
+When the CLI itself applies the instance's objects, it SHALL ask the cluster, by a SelfSubjectAccessReview, whether the caller may patch `moduleinstances/status` in the instance namespace, before any object is applied. When access is denied, the apply SHALL fail with exit code 4 and a permission-denied error. The error SHALL say that the inventory cannot be recorded and SHALL name the remedies: grant that access, or run the operator install command in its CRDs-only form with its RBAC option.
 
 #### Scenario: Denied status access stops the apply
 
@@ -144,7 +146,7 @@ A dry run SHALL skip the CRD presence, CRD field-floor, ceiling and status acces
 
 - **WHEN** an instance apply is made as a dry run against a cluster with no ModuleInstance CRD
 - **THEN** the render is produced and no missing-CRD error is raised
-- **AND** the CLI reads neither the CRD nor the Platform
+- **AND** none of the four checks reads the CRD or the Platform, and no access review is made
 
 #### Scenario: The same apply without a dry run is refused
 

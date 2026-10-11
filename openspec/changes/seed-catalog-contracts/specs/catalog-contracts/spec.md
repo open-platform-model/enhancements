@@ -108,9 +108,9 @@ A `#Catalog` SHALL derive the list of provider-fulfilled contracts its own trans
 - **WHEN** a catalog lists a provider-fulfilled trait and its only transformer requires catalog-fulfilled contracts
 - **THEN** the derived list is empty
 
-#### Scenario: Optional and catalog-fulfilled demands do not count
+#### Scenario: An optional demand does not count
 
-- **WHEN** a transformer names a provider-fulfilled contract only among its optional demands, or requires only catalog-fulfilled contracts
+- **WHEN** a transformer names a provider-fulfilled contract only among its optional demands
 - **THEN** the derived list is empty
 
 #### Scenario: A catalog with no transformers provides nothing

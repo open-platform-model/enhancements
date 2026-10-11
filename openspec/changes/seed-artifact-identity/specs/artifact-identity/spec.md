@@ -117,10 +117,11 @@ A `#Module` name SHALL be snake_case, and the leaf of its registry path SHALL eq
 - **WHEN** a module declares the name `cert-manager`
 - **THEN** validation fails against the snake_case name type
 
-#### Scenario: The snake_case projection does not exist
+#### Scenario: A module name has no second spelling
 
-- **WHEN** a module is evaluated
-- **THEN** its metadata holds no snake_case projection of the name
+- **WHEN** a module declares the name `cert_manager`
+- **THEN** its metadata `name` and its `module.opmodel.dev/name` label both read `cert_manager`
+- **AND** no metadata field holds `cert-manager` or another spelling of the name
 
 ### Requirement: Catalog primitives keep kebab-case names
 
