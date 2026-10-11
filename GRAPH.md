@@ -33,7 +33,7 @@ graph LR
 
   Cschema -->|3| Cruntime
   Cschema -->|3| Cdistribution
-  Cruntime -->|2| Cschema
+  Cruntime -->|3| Cschema
   Cruntime -->|3| Cdistribution
   Cdistribution -->|1| Cschema
   Cdistribution -->|2| Cruntime
@@ -62,12 +62,14 @@ graph TD
   N0025["0025: Self-Describing Modules"]:::draft
   N0026["0026: Module-Dictated Catalog Versions and the Generate…"]:::draft
   N0010["0010 · distribution"]:::stub
+  N0012["0012 · runtime"]:::stub
   N0014["0014 · runtime"]:::stub
   N0019["0019 · runtime"]:::stub
   N0020["0020 · distribution"]:::stub
   N0027["0027 · runtime"]:::stub
 
   N0009 -->|after| N0025
+  N0012 -->|after| N0009
   N0013 -->|after| N0014
   N0017 -->|after| N0010
   N0020 -->|after| N0015
@@ -100,6 +102,7 @@ graph TD
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
+  N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub
   N0015["0015 · schema"]:::stub
@@ -110,6 +113,7 @@ graph TD
   N0026["0026 · schema"]:::stub
 
   N0012 -->|after| N0006
+  N0012 -->|after| N0009
   N0012 -->|after| N0010
   N0013 -->|after| N0014
   N0014 -->|after| N0006
@@ -185,7 +189,7 @@ graph TD
   classDef stub        fill:#f3f4f6,stroke:#9ca3af,color:#374151
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
-  N0004["0004: Automated CUE Dependency Updates via Dagger"]:::accepted
+  N0004["0004: Automated CUE Dependency Updates via Dagger"]:::draft
   N0005["0005: Kubernetes-Native Refocus: Generated Mirror and C…"]:::draft
   N0008["0008: CUE-Native CRD Schemas as Single Source of Truth"]:::draft
   N0024["0024: CUE Testing and Conformance"]:::draft
