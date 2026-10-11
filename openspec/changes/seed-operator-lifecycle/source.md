@@ -95,3 +95,5 @@ Uninstall:
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - The requirement "The seeded subscription pins one catalog build" is gone (25 requirements become 24, and one is added again by review T4.R25): `seed-platform-resolution` holds the catalog-version resolution ("A catalog version is resolved from the registry") and now also states that install uses it for the seeded subscription. Install-side seeding ("Platform seeding follows the rollout") stays here.
+
+sampled: 2026-10-11 18705155
