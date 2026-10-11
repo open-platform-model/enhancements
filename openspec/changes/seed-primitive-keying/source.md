@@ -56,3 +56,5 @@ The code wins in each case.
 - `platform-registry`: its registry key is a catalog module path with a major, a different key from the contract keys here.
 - `single-build-render`: it states the render matches demands by key and refuses a render on colliding keys. This seed states what the key is, not how a render uses it.
 - `catalog-contracts`, `catalog-member-gate`, `component-matching` (not written when this seed was): each is a neighbour. The first holds a catalog's contract maps, the second the publish gate, the third the matching labels.
+
+sampled: 2026-10-11 18705155
