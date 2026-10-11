@@ -71,6 +71,7 @@
 | [published-module-resolution](./openspec/specs/published-module-resolution/spec.md) | 6 | Define how a command that takes a published OPM module turns a major-free module path and an optional version selector into one exact published version, and how it reports that choice. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 | [render-parity](./openspec/specs/render-parity/spec.md) | 11 | The differential contract between the kernel's render and pure-CUE unification of the same inputs: what a parity case names, when the two rendered values agree, how a known divergence is recorded and retired, and the rule that a divergence closes by removing kernel behaviour, never by weakening the comparison. |
+| [resource-naming](./openspec/specs/resource-naming/spec.md) | 13 | State how a component computes the name of the resource it renders and its DNS variants, and how a primitive declares the name rule of the Kubernetes kind it renders. |
 
 ## Status legend
 
