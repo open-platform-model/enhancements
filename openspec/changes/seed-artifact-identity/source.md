@@ -56,3 +56,5 @@ Where they differ, the code wins.
 - "The identity file is committed with real values" rests on comments in `catalog.cue` and `identity_package.cue` and on 0010 D5 and D6, plus the schema's required fields. The requirement states the schema side only: the committed file, the fixed field names, and an unfilled field as an absent value. The tooling that writes the fields and the check of a checkout against a published artifact are command and publish behaviour; they are left out (see Left out).
 - The requirement "The schema asserts no version-path agreement" keeps the spec's sentence that it pins an accepting behaviour on purpose. This guards against a later fix that restores the check.
 - Requirement "The identity package imports nothing from core" keeps the rule at intent level: a file may stay at the bottom of its module's import graph. The package name `core` is the name of a published module, not a Go symbol.
+
+sampled: 2026-10-11 18705155
