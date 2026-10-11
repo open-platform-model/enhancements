@@ -29,7 +29,7 @@ A breaking change released on a beta line SHALL keep the line's module path and 
 #### Scenario: A break during beta
 
 - **WHEN** a beta release breaks an exported definition
-- **THEN** the module path and major stay unchanged and the beta counter rises
+- **THEN** the module path and major stay unchanged
 
 ### Requirement: A stable line breaks as a new major
 

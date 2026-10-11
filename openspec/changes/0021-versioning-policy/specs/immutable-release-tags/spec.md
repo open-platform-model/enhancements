@@ -11,7 +11,7 @@ In every in-scope repository, a tag SHALL keep the commit it was first pushed wi
 #### Scenario: A tag move is attempted
 
 - **WHEN** anyone tries to move or delete an existing release tag
-- **THEN** the platform refuses it
+- **THEN** the repository host refuses it
 
 ### Requirement: A broken release is fixed forward
 
@@ -29,7 +29,7 @@ A version-named registry tag pushed by an in-scope repository's release SHALL al
 #### Scenario: A repeated push
 
 - **WHEN** a release path pushes a version tag that already holds different content
-- **THEN** the push is refused, and identical content is a no-op
+- **THEN** the tag still resolves to the content first pushed under it
 
 ### Requirement: Documentation pins name fixed refs
 

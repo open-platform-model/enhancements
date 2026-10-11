@@ -10,8 +10,8 @@ A trait or resource spec schema SHALL NOT mark a default, so attaching a primiti
 
 #### Scenario: A trait attached alone
 
-- **WHEN** a component attaches a trait whose field has a menu of values and no other layer speaks
-- **THEN** the field is not concrete
+- **WHEN** a component attaches a trait whose field has a menu of values and no other layer sets the field
+- **THEN** no value from the trait's menu is chosen for the field
 
 ### Requirement: A primitive admits what any kind accepts
 
@@ -20,7 +20,7 @@ A primitive's spec SHALL admit the union of what every target kind accepts, so t
 #### Scenario: A value legal on one kind
 
 - **WHEN** a value is accepted by one workload kind and refused by another
-- **THEN** the primitive admits it, and the blueprint for each kind narrows it
+- **THEN** the primitive's schema admits it
 
 ### Requirement: A defaulted primitive is refused at publish
 
@@ -29,7 +29,7 @@ A catalog member whose trait or resource spec marks a default SHALL be refused a
 #### Scenario: A defaulted trait is published
 
 - **WHEN** a catalog author publishes a trait whose spec marks a default
-- **THEN** the publish fails and names the rule
+- **THEN** the publish fails
 
 ### Requirement: The retired defaults definitions are gone
 

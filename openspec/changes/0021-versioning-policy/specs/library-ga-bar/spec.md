@@ -20,7 +20,7 @@ Before the kernel library reaches GA, a caller SHALL be able to tell each fetch 
 #### Scenario: A transient registry failure
 
 - **WHEN** a fetch fails because the registry is unreachable
-- **THEN** the caller tells it from an author defect by its type
+- **THEN** the caller learns from the error's type, without reading its message, that a fetch failed and that the failure is transient
 
 ### Requirement: Specs and documents match the code
 

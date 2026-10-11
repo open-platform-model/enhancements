@@ -1,0 +1,5 @@
+# Notes for the owner at accept
+
+This point is a clash that the old text of 0020 holds in its own requirement lines. The conversion is faithful, so it does not rewrite the requirements. The old entry did not hold it as an open question, so it is not in the proposal. The owner decides the wording at accept.
+
+- **A removal that is never refused, and two refusals of a removal.** "A removal itself is never refused" (old 0020:D6:R3) says a build that carries a tombstone for every omitted beta or stable contract publishes, and that the gate refuses the missing record and never the removal. Two other requirements refuse a build that carries a tombstone. "A withdrawal waits for the seasoning floor" (old 0020:D10:R1) refuses a tombstone that names a replacement younger than the floor. "An alpha contract is never tombstoned" (old 0020:D6:R5) refuses a tombstone for an alpha key. A build with such a tombstone satisfies the first requirement and fails the other two. The scenario "A deliberate removal" is narrowed to a tombstone that names no replacement and a stable key, so it holds under all three. The requirement text of the first is unchanged.

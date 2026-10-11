@@ -53,10 +53,10 @@ The exported module version SHALL carry its `v` prefix, so the operator can reso
 
 A field the export writes that the live instance did not carry SHALL be named in the command output together with its behavioural consequence. A field that decides the render SHALL only be copied, never completed or altered.
 
-#### Scenario: A completed prune setting
+#### Scenario: A completed field is reported
 
-- **WHEN** the live instance carries no prune setting and the export completes one
-- **THEN** the output names the field and states the change from orphaning to deleting the workloads on delete
+- **WHEN** the export writes a field that the live instance does not carry
+- **THEN** the output names that field together with its behavioural consequence
 
 #### Scenario: A render-bearing field is never completed
 

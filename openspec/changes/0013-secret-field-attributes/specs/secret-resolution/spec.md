@@ -35,7 +35,7 @@ A supplied secret value SHALL appear in no rendered manifest except the data of 
 #### Scenario: A literal in a package
 
 - **WHEN** an authored instance package carries a literal at a declared secret
-- **THEN** it is refused, and the same literal given through a resource's values renders normally
+- **THEN** it is refused with an error naming the path and the allowed alternatives
 
 ### Requirement: A secret group renders to one object name
 
@@ -58,6 +58,11 @@ Members of one secret group SHALL agree on the Secret type and immutability, and
 #### Scenario: Two types in one group
 
 - **WHEN** two members of one group declare different Secret types
+- **THEN** the group is rejected
+
+#### Scenario: Two sources in one group
+
+- **WHEN** two non-reference members of one group name different sources
 - **THEN** the render is refused, naming the group and both paths
 
 ### Requirement: An unfulfilled secret fails every render
@@ -81,7 +86,7 @@ No validation error, render error, event or status condition SHALL carry the val
 #### Scenario: A bare string where a secret belongs
 
 - **WHEN** a deployer writes a bare string at a declared secret
-- **THEN** the error names the path and the reason and shows a fixed placeholder, not the string
+- **THEN** the error names the path and the reason and carries no part of the string
 
 #### Scenario: A literal failing a source's constraint
 

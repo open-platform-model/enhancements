@@ -44,7 +44,7 @@ Discovery SHALL treat a config field typed as the secret type, with no attribute
 #### Scenario: An attribute on a plain string
 
 - **WHEN** a field carries the secret attribute but is typed as a string
-- **THEN** discovery fails, naming the field
+- **THEN** discovery fails
 
 ### Requirement: A module's secrets are listable without values
 

@@ -25,7 +25,7 @@ A blueprint SHALL mark at most one default per field, and the default SHALL sit 
 #### Scenario: A whole-struct default
 
 - **WHEN** a blueprint marks a default on a struct instead of on its leaves
-- **THEN** the publish fails and names the rule
+- **THEN** the catalog publish refuses it
 
 ### Requirement: A blueprint default yields to the author
 

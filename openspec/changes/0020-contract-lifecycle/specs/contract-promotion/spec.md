@@ -30,7 +30,7 @@ The level named by `promotedFrom` SHALL lie strictly below the contract's own le
 #### Scenario: A skipped rung
 
 - **WHEN** a contract at stable names alpha as its origin
-- **THEN** the origin is accepted and the promotion check runs against alpha
+- **THEN** the publish gate accepts the origin
 
 ### Requirement: The origin stays on the published contract
 
@@ -47,8 +47,8 @@ The level named by `promotedFrom` SHALL lie strictly below the contract's own le
 
 #### Scenario: A module demands the old level
 
-- **WHEN** a module demands the contract at its origin level
-- **THEN** it matches the origin key and not the promoted contract
+- **WHEN** a module demands the contract at its origin level and the catalog ships only the promoted contract
+- **THEN** the promoted contract does not satisfy the demand
 
 ### Requirement: A broken promotion is refused with a path
 

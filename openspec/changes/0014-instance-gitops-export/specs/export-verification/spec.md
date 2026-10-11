@@ -20,16 +20,19 @@ The cluster gates, the existence of the instance, a render that did not come fro
 #### Scenario: A local render
 
 - **WHEN** the instance was last applied from local bytes
-- **THEN** the export aborts with nothing written and says the module must be published and re-applied first
+- **THEN** the export aborts with nothing written and names the local render as the reason
 
 ### Requirement: A forced export skips only the digest check
 
 A forced export SHALL bypass the digest comparison only. The refusals for a local render and for an unresolvable module SHALL NOT be overridable.
 
-#### Scenario: Force on a mismatch and on a local render
+#### Scenario: Force on a mismatch
 
 - **WHEN** a user forces an export whose digests differ
 - **THEN** the export writes the directory
+
+#### Scenario: Force on a local render
+
 - **WHEN** a user forces an export of an instance applied from local bytes
 - **THEN** the export still refuses
 
@@ -40,4 +43,4 @@ The export report SHALL state the deployed digest, the rendered digest, and whet
 #### Scenario: A matched export
 
 - **WHEN** an export passes the digest check
-- **THEN** the report shows both digests and the word matched
+- **THEN** the report shows both digests and states that they matched

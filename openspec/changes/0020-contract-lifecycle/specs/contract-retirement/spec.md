@@ -11,7 +11,7 @@ The publish gate SHALL refuse a build that omits a contract which an earlier bui
 #### Scenario: A silent drop
 
 - **WHEN** a build omits a stable contract and carries no tombstone for it
-- **THEN** the publish is refused, naming the key and the build that last published it
+- **THEN** the publish is refused
 
 #### Scenario: A declared drop
 
@@ -33,7 +33,7 @@ A build that carries a tombstone for every omitted beta or stable contract SHALL
 
 #### Scenario: A deliberate removal
 
-- **WHEN** an author wants a stable contract gone and writes a tombstone for it
+- **WHEN** an author wants a stable contract gone and writes a tombstone for it that names no replacement
 - **THEN** the build publishes and the contract is gone
 
 ### Requirement: A tombstone dates the build that carries it
@@ -61,7 +61,7 @@ The publish gate SHALL refuse a tombstone that names a replacement unless that r
 #### Scenario: A withdrawal that comes too soon
 
 - **WHEN** a build tombstones a beta key and names a stable replacement that has been published for less than the floor
-- **THEN** the publish is refused, naming the replacement, the build it first appeared in and the shortfall
+- **THEN** the publish is refused
 
 #### Scenario: A withdrawal after the floor
 

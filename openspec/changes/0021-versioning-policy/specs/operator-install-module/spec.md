@@ -103,6 +103,11 @@ Uninstalling the operator SHALL delete the objects in the operator instance's re
 - **WHEN** an instance still carries the cleanup finalizer and the user did not ask to remove finalizers
 - **THEN** uninstall refuses and deletes nothing
 
+#### Scenario: Uninstall with no live instance
+
+- **WHEN** a user uninstalls the operator and no instance carries the cleanup finalizer
+- **THEN** every object of the operator instance's recorded inventory except the CRDs and the Namespace is deleted, and then the instance's record
+
 ### Requirement: No module release is marked latest
 
 No operator module release SHALL be marked as the GitHub latest release of the operator's repository.

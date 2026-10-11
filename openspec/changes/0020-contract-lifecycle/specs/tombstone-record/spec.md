@@ -8,10 +8,10 @@ The tombstone record of a catalog: that it is cumulative, and the rules for its 
 
 Every published catalog build SHALL carry the catalog's complete tombstone history, not the change since the previous build. A consumer holding one build SHALL be able to learn what happened to a key from that build alone.
 
-#### Scenario: A consumer on an old pin
+#### Scenario: A key retired several builds ago
 
-- **WHEN** a consumer asks what happened to a retired key and holds only the newest build
-- **THEN** the build answers from its own record, with no history walk
+- **WHEN** a key was tombstoned in an earlier build and a consumer holds only the newest build
+- **THEN** the newest build's own record holds that key's tombstone
 
 ### Requirement: A dropped tombstone is refused
 

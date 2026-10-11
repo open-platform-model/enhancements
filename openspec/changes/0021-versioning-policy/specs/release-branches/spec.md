@@ -22,14 +22,19 @@ A maintenance branch for a minor SHALL be cut only when the main branch's next r
 - **WHEN** the cut action runs and main's next release is still in that minor
 - **THEN** the action refuses
 
+#### Scenario: Main reaches a branch's minor
+
+- **WHEN** a maintenance branch exists for a minor and the main branch's release path would release a version of that minor
+- **THEN** the main branch's release path refuses it
+
 ### Requirement: No cut before the automation is proven
 
 No maintenance branch SHALL be cut in an in-scope repository until the cut action, release workflows on maintenance branches and pull-request checks on them exist there, proven in the sandbox repository. The proof SHALL include a cut from a tag that predates them and the case where main and a branch would compute the same version.
 
 #### Scenario: A fix needed before the automation exists
 
-- **WHEN** a fix is needed for a released minor and the automation is not yet proven
-- **THEN** the fix goes forward on main
+- **WHEN** a fix is needed for a released minor and the automation is not yet proven in the sandbox repository
+- **THEN** no maintenance branch is cut for that minor
 
 ### Requirement: A branch pull request runs main's checks
 
