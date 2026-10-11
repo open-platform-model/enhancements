@@ -84,3 +84,14 @@ func TestLead(t *testing.T) {
 		t.Errorf("no lead expected")
 	}
 }
+
+func TestScanParenthesisedDecisions(t *testing.T) {
+	text := "Core shipped the contract of enhancement 0019 (D20, D21, D23): the types."
+	cs := Scan(text)
+	if len(cs) != 1 || cs[0].Text != "0019 (D20, D21, D23)" || !reflect.DeepEqual(cs[0].Decisions, []int{20, 21, 23}) {
+		t.Fatalf("got %+v", cs)
+	}
+	if got := Scan("see 0019 (D20 and more)"); len(got) != 0 {
+		t.Errorf("an unclosed list is not a citation: %+v", got)
+	}
+}

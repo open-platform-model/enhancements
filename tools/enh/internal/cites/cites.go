@@ -115,6 +115,7 @@ func parse(text string, s, e int, path bool) (Cite, int, bool) {
 	open := s > 0 && text[s-1] == '`'
 	i := e
 	closed := false
+	paren := false
 	if open && i < len(text) && text[i] == '`' {
 		closed = true
 		i++
@@ -155,6 +156,11 @@ func parse(text string, s, e int, path bool) (Cite, int, bool) {
 		for i < len(text) && (text[i] == ' ' || text[i] == '\t') {
 			i++
 		}
+		if i+1 < len(text) && text[i] == '(' && partRe.MatchString(text[i+1:]) {
+			// 0019 (D20, D21, D23): the decisions in a parenthesis.
+			i++
+			paren = true
+		}
 		c.Spoken = true
 	default:
 		return c, 0, false
@@ -190,6 +196,12 @@ parts:
 	}
 	if first {
 		return c, 0, false
+	}
+	if paren {
+		if i >= len(text) || text[i] != ')' {
+			return c, 0, false
+		}
+		i++
 	}
 	if open && !closed && i < len(text) && text[i] == '`' {
 		closed = true
