@@ -42,6 +42,7 @@
 | Capability | Requirements | Purpose |
 | ---------- | ------------ | ------- |
 | [apply-preflight-gates](./openspec/specs/apply-preflight-gates/spec.md) | 8 | The checks the CLI runs before it applies an instance to a cluster, and what it refuses or warns about before any object is written. |
+| [artifact-identity](./openspec/specs/artifact-identity/spec.md) | 18 | State how a published module or catalog declares who it is. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
