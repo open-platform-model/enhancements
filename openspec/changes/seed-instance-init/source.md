@@ -45,3 +45,5 @@ All read at the commit named. The requirement text is rewritten at intent level:
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - The scenario "Registry unreachable" is gone: the exit 3 for a registry that cannot be reached while the module path is resolved is `published-module-resolution`'s ("Unreachable registry exits 3, refusal exits 2"). This seed keeps the exit codes of init and the unreachable cases of the dependency closure and of the module's own module file.
+
+sampled: 2026-10-11 18705155
