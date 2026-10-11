@@ -1,0 +1,22 @@
+# Facts only. History is `git log`.
+id: "0020"
+slug: contract-lifecycle
+title: Contract Promotion and Retirement
+summary: >-
+  Promote a contract by shipping both levels in one build with the promotion declared, and require a
+  tombstone with a reason when a key stops shipping.
+status: draft
+category: distribution
+breaking: false
+affects:
+  - core
+  - cli
+  - catalog_opm
+  - opmodel.dev
+authors:
+  - emil@jacero.se
+created: "2026-08-22"
+after:
+  - "0010"
+  - "0011"
+  - "0015"
