@@ -66,6 +66,7 @@
 | [platform-pull](./openspec/specs/platform-pull/spec.md) | 4 | Reproduce a cluster's platform package on the laptop from the Platform resource's effective inputs, so that a local build renders what the cluster renders. |
 | [platform-reconciliation](./openspec/specs/platform-reconciliation/spec.md) | 15 | State how the operator reconciles the cluster-scoped Platform after its module is generated: which Platform it reconciles, how it retries a failure, which platform it holds for readers, how the skew policy travels with it, and how a ModuleInstance renders against it, waits without it and wakes when it changes. |
 | [platform-registry](./openspec/specs/platform-registry/spec.md) | 7 | Define how a platform carries the catalogs it admits. |
+| [platform-resolution](./openspec/specs/platform-resolution/spec.md) | 23 | State which platform a CLI command renders against, in what order the sources are tried, how a missing or stale cluster Platform degrades, how a platform is generated from the cluster or from a render's own dependency pins, and what the CLI reports about its choice. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
