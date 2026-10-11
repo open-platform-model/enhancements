@@ -54,3 +54,5 @@ All read at the commit named. The requirement text is rewritten at intent level:
 - 0017 (layered defaults) accepts two divergences from plain CUE and adds a finalize step to the kernel (its design, "Plain CUE stays the floor"; it considered and rejected full parity). If it lands, "A divergence closes by removing kernel behaviour" and "Pure-CUE unification is the render oracle" may need a MODIFIED delta. This seed states the shipped rule only.
 - 0025 (self-describing modules) rejects a post-processor over rendered output because a second build breaks the oracle. No change to a requirement here.
 - 0024 (cue conformance) renders through the oracle; it does not change the harness.
+
+sampled: 2026-10-11 18705155
