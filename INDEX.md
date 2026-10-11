@@ -53,6 +53,7 @@
 | [contract-fulfilment](./openspec/specs/contract-fulfilment/spec.md) | 6 | State where a contract's implementation is expected to come from, and what a component's demands oblige a platform to supply. |
 | [duplicate-object-identities](./openspec/specs/duplicate-object-identities/spec.md) | 6 | Find, between render and apply, the rendered objects that share one Kubernetes apply identity, and name who produced each, so a runtime refuses the render before the last write silently wins. |
 | [instance-deploy](./openspec/specs/instance-deploy/spec.md) | 32 | State how the CLI deploys, updates and deletes an instance on a cluster: the commands a user runs, what each prints, asks and waits for, and how it ends. |
+| [instance-identity](./openspec/specs/instance-identity/spec.md) | 6 | Define how a deployed module instance derives its own identity, apart from the identity of the module it deploys. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
