@@ -53,3 +53,5 @@ All read at the commits named. The requirement text is rewritten at intent level
 ## Not verified
 
 - That a key which disagrees with its imported catalog's declared path fails the build at the entry. Read in T4.9 (not run): `core` `f3b7ecd` `src/platform.cue:180` binds the key into the embedded catalog's module path (`#catalog: metadata: modulePath: Path`), and the comment at `:176-179` calls the drift "a build conflict naming the entry". The scenario stays; it was not run with `cue`.
+
+sampled: 2026-10-11 18705155
