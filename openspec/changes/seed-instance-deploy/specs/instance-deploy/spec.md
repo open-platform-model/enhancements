@@ -188,6 +188,11 @@ Instance delete SHALL take exactly one argument: an instance file or a directory
 - **WHEN** the user runs delete for `hello` in a directory that holds a folder named `hello`
 - **THEN** the command deletes the instance named `hello` and does not read the folder
 
+#### Scenario: A path is an instance file
+
+- **WHEN** the user runs delete for `./hello` and that directory holds an instance file
+- **THEN** the command reads the instance file and deletes the instance it names
+
 #### Scenario: A UUID
 
 - **WHEN** the user passes the UUID recorded for an instance
@@ -257,7 +262,7 @@ For an operator-managed instance the prompt SHALL say so. When the prune setting
 #### Scenario: Warning before the question
 
 - **WHEN** the user passes data deletion for an operator-managed instance
-- **THEN** the warning that it changes nothing the operator does is printed before the question
+- **THEN** the data deletion warning is printed before the question
 
 ### Requirement: The prompt states the fate of operator claims
 
@@ -333,6 +338,11 @@ A CLI-owned instance that deploys the operator SHALL NOT be deleted while any in
 
 Both refusals SHALL hold on a dry run with the same outcome as the real run. The yes option and its deprecated alias SHALL NOT bypass them, delete SHALL offer no option that removes finalizers, and delete SHALL NOT change the owner of an instance. The refusals SHALL NOT apply to any other instance.
 
+#### Scenario: A dry run is refused alike
+
+- **WHEN** the user runs delete as a dry run for the operator's CLI-owned instance while another instance carries the finalizer
+- **THEN** the command exits 2 with the same refusal as the real run and deletes nothing
+
 #### Scenario: Yes does not bypass
 
 - **WHEN** the user runs delete with the yes option for the operator's instance while another instance carries the finalizer
@@ -371,9 +381,18 @@ Delete SHALL read each tracked resource again just before its delete and SHALL s
 - **WHEN** a tracked resource no longer exists at its re-read
 - **THEN** no error is reported and it is not counted as deleted
 
+### Requirement: A failed resource delete keeps the record
+
+For a CLI-owned instance, when the delete of a tracked resource fails, delete SHALL still process the others, keep the record, say that re-running is safe and exit 1. A failed API discovery request SHALL exit with the code of its cause instead.
+
+#### Scenario: A delete is refused for one resource
+
+- **WHEN** the server refuses the delete of one tracked ConfigMap with Forbidden and accepts the rest
+- **THEN** the other resources are deleted, the record stays, the command says re-running is safe and exits 1
+
 ### Requirement: An unreadable tracked resource keeps the record
 
-For a CLI-owned instance, when a tracked resource cannot be read during discovery for any reason but not found, delete SHALL list it with its read error, still process the others, keep the record, say re-running is safe, and exit 1. An unreadable Namespace, CustomResourceDefinition or, unless data deletion is asked, claim is not a failure. A dry run SHALL count the resource as not checked. An operator-managed delete SHALL ignore such errors.
+For a CLI-owned instance, when a tracked resource cannot be read during discovery for any reason but not found, delete SHALL list it with its read error, still process the others, keep the record, say re-running is safe, and exit 1, or with the code of a failed discovery request. An unreadable Namespace, CustomResourceDefinition or, unless data deletion is asked, claim is not a failure. A dry run SHALL count the resource as not checked. An operator-managed delete SHALL ignore such errors.
 
 #### Scenario: A forbidden read
 

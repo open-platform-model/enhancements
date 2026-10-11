@@ -74,6 +74,11 @@ When the kernel refuses a render, the command SHALL exit as a validation failure
 - **WHEN** the skew policy in force is to refuse and a module requires a newer catalog build than the platform pins
 - **THEN** the command fails as a validation failure naming the path, the version the module requires and the version the platform carries
 
+#### Scenario: A malformed replacement file is refused
+
+- **WHEN** the replacement file does not parse, or a replacement directory declares a different module path than the replaced one
+- **THEN** the command fails as a validation failure with the kernel's message naming the file or the two paths, and renders nothing
+
 ### Requirement: Honoured local replacements warn
 
 Every render SHALL turn on the kernel's local replacements, for the module context and the platform module directory, under the precedence the render capability states. For each replacement honoured, the CLI SHALL warn, naming the replaced path, where its bytes were served from and which side supplied it, and saying the rendered bytes may match no published build. The warnings SHALL NOT stop the render or change its output. A context with no replacement SHALL produce none.
@@ -98,11 +103,6 @@ Every render SHALL turn on the kernel's local replacements, for the module conte
 - **WHEN** neither the module context nor the platform module carries a replacement
 - **THEN** no replacement warning is printed
 
-#### Scenario: A malformed replacement file is refused
-
-- **WHEN** the replacement file does not parse, or a replacement directory declares a different module path than the replaced one
-- **THEN** the command fails as a validation failure with the kernel's message naming the file or the two paths, and renders nothing
-
 ### Requirement: An ignored module replacement is reported
 
 A module-context replacement of a path the platform names is not honoured, and SHALL be reported. The CLI SHALL warn that the replacement is ignored and that the redirect belongs in the platform module's own replacement file.
@@ -121,10 +121,10 @@ When the kernel refuses a render because the platform pins a core release older 
 - **WHEN** an instance build runs against a platform directory that pins an older core than the kernel reads
 - **THEN** the command fails as a validation failure, prints the kernel's message naming the platform, the missing field and the core release required, adds a hint naming the directory and the re-pin command, and prints no manifest
 
-#### Scenario: A platform the user did not name gets no hint
+#### Scenario: A refused named directory gets no fallback
 
-- **WHEN** a render against a platform that came from the cluster or from the module's own pins is refused for an older core
-- **THEN** the kernel's message is printed and no re-pin hint is added
+- **WHEN** an instance build against a platform directory the user named is refused because that directory pins an older core
+- **THEN** the command does not render against the cluster Platform or a platform generated from the instance package's pins, and prints no manifest
 
 #### Scenario: The platform check gets the hint too
 

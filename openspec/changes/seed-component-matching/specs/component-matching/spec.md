@@ -67,8 +67,8 @@ The core schema SHALL NOT name a matching label key and SHALL NOT export a const
 
 #### Scenario: A catalog adds a key without a core release
 
-- **WHEN** a catalog declares a new matching key on one of its primitives
-- **THEN** the key takes part in matching and core does not change
+- **WHEN** a catalog declares, on one of its primitives, a matching key that core does not name, and a transformer requires that key with the value the primitive declares
+- **THEN** a component that attaches the primitive satisfies the transformer's label predicate, with the core release already pinned
 
 ### Requirement: Matching labels are never rendered
 
@@ -95,5 +95,5 @@ A component SHALL add no matching label beyond those of its attached primitives,
 
 #### Scenario: Answering a required key on the component is refused
 
-- **WHEN** a component attaches a primitive that declares a required matching key and answers that key on the component itself
-- **THEN** evaluation fails, and the key is answered by attaching a blueprint that supplies it
+- **WHEN** a component attaches a primitive that declares a required matching key, attaches no primitive that answers it, and sets that key on the component itself
+- **THEN** evaluation fails

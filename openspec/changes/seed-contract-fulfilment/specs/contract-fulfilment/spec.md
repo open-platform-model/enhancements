@@ -8,10 +8,10 @@ State where a contract's implementation is expected to come from, and what a com
 
 A `#Resource` and a `#Trait` SHALL each declare their fulfilment as either the declaring catalog ("catalog", the default) or a transformer in another catalog ("provider"). No third value SHALL be accepted. A provider-fulfilled contract is one whose declaring catalog deliberately ships no transformer for it.
 
-#### Scenario: An existing primitive is unchanged
+#### Scenario: Fulfilment defaults to the catalog
 
 - **WHEN** a resource is declared without mentioning its fulfilment
-- **THEN** its fulfilment is "catalog" and nothing about the primitive's behaviour changes
+- **THEN** its fulfilment evaluates to "catalog"
 
 #### Scenario: A provider-fulfilled contract is declarable
 

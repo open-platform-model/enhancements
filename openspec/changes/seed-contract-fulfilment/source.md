@@ -10,7 +10,7 @@ All read at the commit named. The requirement text is rewritten at intent level:
 
 | Requirement here | Source requirement in `core`'s spec | Code read |
 | --- | --- | --- |
-| A contract declares where its fulfilment comes from | `core` `openspec/specs/contract-fulfilment/spec.md` at `f3b7ecd`, "A contract declares where its fulfilment comes from" | `core` `src/resource.cue` and `src/trait.cue` at `f3b7ecd` (the closed two-value fulfilment field, default "catalog") |
+| A contract declares where its fulfilment comes from | `core` `openspec/specs/contract-fulfilment/spec.md` at `f3b7ecd`, "A contract declares where its fulfilment comes from" | `core` `src/resource.cue:165` and `src/trait.cue:93` at `f3b7ecd` (`fulfilment: *"catalog" | "provider"`: the closed two-value field, default "catalog") |
 | A blueprint declares no fulfilment | same file, "A blueprint declares no fulfilment" | `core` `src/blueprint.cue` at `f3b7ecd` (no field; a declared one is a field-not-allowed error) |
 | A provider-fulfilled contract admits exactly one provider | same file, "A provider-fulfilled contract admits exactly one provider" (the inventory half; the render's refusal is left out) | `core` `src/platform.cue` at `f3b7ecd` (the provider count, the over-subscribed list and the routable flag; reported, never refused) |
 | Every declared resource is a required demand | same file, "Every declared resource is a required demand" | `core` `src/component.cue` at `f3b7ecd` (no demand-side optionality marker); `library` `opm/kernel/render.go` at `a87fdda` (unresolved demands refuse; what the render does with them is the render capability's) |

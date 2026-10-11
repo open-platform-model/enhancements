@@ -63,7 +63,7 @@ A rendered value with no kind or no name SHALL NOT be treated as a Kubernetes ob
 
 ### Requirement: The refusal is worded once
 
-The library SHALL provide one error for the rows of the check. Its message SHALL open with a header line that counts the objects and the identities, then name each identity once, on its own line, with every producer as component and transformer. When the producers of a row carry different API versions, the message SHALL name each producer's version, and `<no apiVersion>` for a producer with none. Otherwise it SHALL name no version.
+The library SHALL provide one error for the rows of the check. Its message SHALL open with a header line that counts the objects and the identities, then name each identity once, on its own line, with every producer as component and transformer. When the producers of a row carry different API versions, the message SHALL name each producer's version, and `<no apiVersion>` for a producer with none. Otherwise it SHALL name no per-producer version.
 
 #### Scenario: The message names every producer
 

@@ -18,10 +18,10 @@ The schema SHALL ship `#CatalogMemberFQNGate`. It takes a catalog's identity (`#
 - **WHEN** a publish run meets a member that disagrees with the identity
 - **THEN** the refusal carries the error CUE reports on the field, and no hand-written comparison text
 
-#### Scenario: A member filed one segment too deep fails on its path and its key
+#### Scenario: A grouped member fails on its path and its key
 
-- **WHEN** a blueprint authors a path and a key with an extra grouping segment under the blueprints prefix
-- **THEN** unification fails on the path and on the key, and the author reads both
+- **WHEN** a blueprint named `stateless-workload` with the API version `v1beta1` authors the path `opmodel.dev/catalogs/opm/blueprints/workload` and the key `opmodel.dev/catalogs/opm/blueprints/workload/stateless-workload@v1beta1`
+- **THEN** unification fails on the path and on the key, and the publish refusal shows both errors
 
 ### Requirement: A member's package path sits under its catalog's
 
