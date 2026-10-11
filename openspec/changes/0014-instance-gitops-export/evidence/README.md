@@ -11,7 +11,7 @@ Proof and source material. Outside the word total. The converted text of the ent
 - [questions.md](questions.md): the old `07-questions.md`, moved word for word. The register of open questions with their candidates.
 - [graduation.md](graduation.md): the old `04-graduation.md`, moved word for word. It holds the accept gates, among them the field-manager experiment that the proposal's fourth question needs.
 - [old-readme.md](old-readme.md): the old `README.md`, moved word for word. It holds the scope lists and the cross-reference table of files in other repos.
-- [notes-for-accept.md](notes-for-accept.md): two clashes that the old requirement lines hold, for the owner at accept.
+- [notes-for-accept.md](notes-for-accept.md): two clashes that the old requirement lines hold and one added sentence, for the owner at accept.
 - [contracts/](contracts/): the old `contracts/`, moved with its `cue.mod`. Compilable CUE for the request, the gate chain, the field split, the exported set and the adoption property. CI runs `cue vet` here as a warning.
 
 One change to the moved files: every em-dash character is replaced by a hyphen, to follow the workspace writing rule. The other edits: the seven old document names inside the files now read as the new names, and links to other entries and to `INDEX.md`, `GRAPH.md` and `config.yaml` are plain names (they would not resolve from here). The original characters are in git at the commit above. The old text uses decision numbers (`D1`) and requirement ids; they are history here and appear nowhere in the proposal, design or specs.
