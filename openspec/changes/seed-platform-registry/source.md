@@ -34,3 +34,5 @@ The code wins in each case.
 - The authored `#Platform` of admission entries and the move of today's shipped value to `#ResolvedPlatform`. A live entry owns both (0026). The requirements here name `#Platform` as it ships today; the entry modifies them.
 - Mechanism sentences of the repo spec: how the fold is written (a comprehension, never unifying one entry's map into another), the date of the closedness measurement, and the history of the removed subscription capability.
 - The `library` kernel artifact: the typed platform, its acquisition from a directory and its recorded inventory. They describe the library, not what a platform declares.
+
+sampled: 2026-10-11 18705155
