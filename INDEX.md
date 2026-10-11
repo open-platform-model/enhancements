@@ -64,6 +64,7 @@
 | [platform-contract-inventory](./openspec/specs/platform-contract-inventory/spec.md) | 12 | State what a platform derives about the contracts its enabled catalogs define and its enabled transformers require: which contracts exist, who requires and who provides them, which keys collide, and which transformers cannot be told apart. |
 | [platform-module-generation](./openspec/specs/platform-module-generation/spec.md) | 13 | Generate the platform module from the platform's catalog subscriptions and the active provider claims, and keep it current. |
 | [platform-pull](./openspec/specs/platform-pull/spec.md) | 4 | Reproduce a cluster's platform package on the laptop from the Platform resource's effective inputs, so that a local build renders what the cluster renders. |
+| [platform-reconciliation](./openspec/specs/platform-reconciliation/spec.md) | 15 | State how the operator reconciles the cluster-scoped Platform after its module is generated: which Platform it reconciles, how it retries a failure, which platform it holds for readers, how the skew policy travels with it, and how a ModuleInstance renders against it, waits without it and wakes when it changes. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
