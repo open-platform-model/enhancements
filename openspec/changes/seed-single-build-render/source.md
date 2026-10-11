@@ -68,3 +68,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 - "The single-provider guard runs inside the build" no longer defines the counting unit; it points to `contract-fulfilment`. It states what the render does with the inventory's count.
 - "The label predicate covers every admitted label type" compares a transformer's required labels with the component's matching labels, the wording `component-matching` holds.
 - The skip request and the collision refusal came out, as "Left out" says. The over-subscription and not-routable refusals stay, backed by archived 0015.
+
+sampled: 2026-10-11 18705155
