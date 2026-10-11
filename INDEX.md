@@ -67,6 +67,7 @@
 | [platform-reconciliation](./openspec/specs/platform-reconciliation/spec.md) | 15 | State how the operator reconciles the cluster-scoped Platform after its module is generated: which Platform it reconciles, how it retries a failure, which platform it holds for readers, how the skew policy travels with it, and how a ModuleInstance renders against it, waits without it and wakes when it changes. |
 | [platform-registry](./openspec/specs/platform-registry/spec.md) | 7 | Define how a platform carries the catalogs it admits. |
 | [platform-resolution](./openspec/specs/platform-resolution/spec.md) | 23 | State which platform a CLI command renders against, in what order the sources are tried, how a missing or stale cluster Platform degrades, how a platform is generated from the cluster or from a render's own dependency pins, and what the CLI reports about its choice. |
+| [primitive-keying](./openspec/specs/primitive-keying/spec.md) | 12 | Define what a `#Resource`, a `#Trait`, a `#Blueprint` and a `#ComponentTransformer` declare as their key, and why the four do not share one. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
