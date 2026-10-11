@@ -27,3 +27,5 @@ All read at the commit named. The requirement text is rewritten at intent level.
 - Behaviour a live entry owns: none found. Enhancement 0022 names `initValues` once, as a field a later entry may project from the zip, and states no requirement on it. Enhancement 0027 (`07-questions.md`, open question 29) lists the module's `initValues` as a candidate to prefill an order: an open question, not behaviour.
 - Anything of 0006 that 0021 changed: none touches this capability.
 - Library-internal placement rules no consumer observes: none. The library reads `debugValues` through the module but nothing reads `initValues`.
+
+sampled: 2026-10-11 18705155
