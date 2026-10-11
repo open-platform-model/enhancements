@@ -59,6 +59,7 @@
 | [module-authoring](./openspec/specs/module-authoring/spec.md) | 21 | State the commands that write module and catalog source, and registry credentials, without inventing identity. |
 | [module-init-values](./openspec/specs/module-init-values/spec.md) | 3 | Lets a module author state, in the module itself, the values a freshly initialized instance of the module starts from, apart from the `debugValues` the author tests with. |
 | [operator-lifecycle](./openspec/specs/operator-lifecycle/spec.md) | 26 | How the CLI installs, upgrades and removes the operator, and how the operator reports its own version. |
+| [platform-artifact](./openspec/specs/platform-artifact/spec.md) | 9 | State the platform as a typed artifact. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
