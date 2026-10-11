@@ -49,6 +49,7 @@
 | [catalog-contracts](./openspec/specs/catalog-contracts/spec.md) | 6 | State what a catalog publishes about the contracts it defines. |
 | [catalog-member-gate](./openspec/specs/catalog-member-gate/spec.md) | 6 | State what a catalog member must declare relative to its catalog identity: where it is filed, which build it names, how its key is built and which API version it carries. |
 | [cli-kernel-render](./openspec/specs/cli-kernel-render/spec.md) | 8 | Describe what the CLI adds around the kernel render. |
+| [component-matching](./openspec/specs/component-matching/spec.md) | 6 | State what a component and the primitives attached to it declare so that a transformer can select on them. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
