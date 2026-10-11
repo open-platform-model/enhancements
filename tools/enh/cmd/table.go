@@ -423,7 +423,9 @@ A dry run is the default and changes nothing. --write applies these forms:
 The spoken forms (enhancement 0010 D4, (0010 D49), 0011 D3/D15) count as decision numbers.
 
 Everything else is only listed: a lone id or WHY label, an id inside a sentence, NNNN:OQn, string
-literals, generated files, code fences, a path to a file inside an entry. --worklist FILE writes one
+literals, generated files, code fences, a Markdown heading that holds a citation, a path to a file
+inside an entry. Titles come from titles.tsv (generated) and short-titles.tsv (by hand); a citation of a
+merged or moved decision is written as the decision that took its place. --worklist FILE writes one
 tab-separated row per site: path, line, kind, line text, decision title. After --write and an empty
 worklist, enh cite-lint passes.
 

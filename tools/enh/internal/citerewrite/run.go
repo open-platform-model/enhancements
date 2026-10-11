@@ -104,7 +104,7 @@ func isGeneratedFile(name string, src []byte) bool {
 		if i < 8 && generatedRe.MatchString(l) {
 			return true
 		}
-		if i < 40 && strings.Contains(l, "controller-gen.kubebuilder.io/version") {
+		if i < 40 && !strings.HasSuffix(base, ".md") && strings.Contains(l, "controller-gen.kubebuilder.io/version") {
 			return true
 		}
 	}
