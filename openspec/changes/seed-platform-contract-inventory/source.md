@@ -58,3 +58,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - "Providers are named per registry entry" no longer says an optional demand is not provision, and its scenario is gone. `catalog-contracts` holds that rule ("A catalog derives the provider-fulfilled contracts it implements"); the inventory map agrees with the provider set each catalog states for itself.
 - The counting unit (an entry with its major) is `contract-fulfilment`'s; the map and the reports stay here.
+
+sampled: 2026-10-11 18705155
