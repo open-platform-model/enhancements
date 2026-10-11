@@ -56,3 +56,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - "An older-core platform gets a re-pin hint" now holds the hint for the platform check too (a new scenario, moved in from `platform-contract-gates`).
 - "Honoured local replacements warn" says the CLI turns replacements on for every render; the precedence and the inert module-side redirect are `single-build-render`'s. "An ignored module replacement is reported" keeps only the warning. The skew scenario keeps the exit as a validation failure and the facts named; the timing (before evaluation) is `single-build-render`'s.
+
+sampled: 2026-10-11 18705155
