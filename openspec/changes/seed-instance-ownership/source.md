@@ -112,3 +112,5 @@ The converted 0021 states "The operator never touches its own instance" (`operat
 - That a Platform event, a ServiceAccount event and the requeue interval skip CLI-owned instances: `platform-reconciliation` (Platform events), operator `serviceaccount-impersonation` and `reconcile-loop-assembly` (not seeded here). The requirement "The operator leaves a CLI-owned instance alone" keeps only the sentence "does not requeue it for work", which the operator spec states in this capability.
 - The ownership labels that stamp rendered objects with the instance identity: `instance-identity`.
 - The `ManagedExternally` event the operator emits on each acknowledgement (`moduleinstance.go:1271`): code only, an event is not a stated behaviour.
+
+sampled: 2026-10-11 18705155
