@@ -1,7 +1,7 @@
 # The repo's own gates, one job each, every job one task command:
 #
-#   vet         task vet, then task legacy:vet (the old-layout entries)
-#   links       task links, then task legacy:links
+#   vet         task vet (enh vet with --cue, and ENH_FINAL=1 set by the task)
+#   links       task links
 #   fresh       task fresh (INDEX.md, GRAPH.md and the README.md of each entry)
 #   specs-rule  task specs-rule: openspec/specs/ changes only by a delivery, a
 #               seed or a Purpose correction, and equals the replayed archive.
@@ -13,9 +13,6 @@
 # cancelled or was skipped. The docs bundle opmodel.dev pulls has its own lint
 # gate (docs.yml, Docs / check); docs.yml's edge job publishes each push to
 # main whether or not this workflow passed.
-#
-# The legacy:* tasks check the old-layout entries (NNNN/) that enh does not
-# read. They go with the old tools at migration step M4.
 name: CI
 
 on:
@@ -37,9 +34,6 @@ env:
   # binary the other OPM repos pin.
   CUE_VERSION: 'v0.17.1'
   TASK_VERSION: '3.52.0'
-  YQ_VERSION: 'v4.53.3'
-  # sha256 of yq_linux_amd64 for YQ_VERSION, from the release's checksums file.
-  YQ_SHA256: 'fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4'
   # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
   # replay refuses another version.
   OPENSPEC_VERSION: '1.14.1'
@@ -85,31 +79,18 @@ jobs:
         with:
           version: ${{ env.TASK_VERSION }}
 
-      - name: Install yq
-        # The runner image ships a yq, but not a pinned one.
-        run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL -o "$RUNNER_TEMP/bin/yq" \
-            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
-          echo "${YQ_SHA256}  $RUNNER_TEMP/bin/yq" | sha256sum -c -
-          chmod +x "$RUNNER_TEMP/bin/yq"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-
       - name: Tool versions
         run: |
           task --version
           go version
           cue version
-          yq --version
 
       - name: Vet the entries of openspec/changes
-        # --cue adds V29's cue vet of each evidence module, as warnings only.
-        run: task vet -- --base "$BASE_REF" --cue
-
-      - name: Vet the old-layout entries
-        # Entry schemas/ and contracts/ modules resolve opmodel.dev/core from
-        # GHCR anonymously; the Taskfile sets the registry mapping.
-        run: task legacy:vet
+        # The task adds --cue (V29's cue vet of each evidence module, as
+        # warnings only) and sets ENH_FINAL=1 (V25 and V30 are errors).
+        # Evidence modules resolve opmodel.dev/core from GHCR anonymously;
+        # the Taskfile sets the registry mapping.
+        run: task vet -- --base "$BASE_REF"
 
   links:
     name: links
@@ -134,9 +115,6 @@ jobs:
 
       - name: Check links between entries
         run: task links
-
-      - name: Check links in the old-layout entries
-        run: task legacy:links
 
   fresh:
     name: fresh

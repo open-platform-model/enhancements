@@ -196,15 +196,14 @@ enhancements/
 | Open question (`OQN`) | A numbered unresolved point in `07-questions.md`, with a `Blocking:` line |
 | Live decision | A decision whose number has not been retired to a tombstone |
 | Delivery log | `delivery.yaml`: the record of changes that landed, per decision |
-| Gate | A question an entry must answer before it is admitted or accepted; see `gates.cue` |
+| Gate | A question an entry must answer before it is admitted or accepted |
 | Compaction | The controlled edit of an accepted entry's decision bodies, under the `enhancement-compaction` skill |
 
 ## Where the full rules live
 
 - [`AGENTS.md`](AGENTS.md): repository rules and agent orientation.
 - [`.claude/skills/enhancements/SKILL.md`](.claude/skills/enhancements/SKILL.md): the binding workflow, phase by phase.
-- [`schema.cue`](schema.cue) and [`gates.cue`](gates.cue): the metadata contract and the admission rubric, with rationale in comments.
-- [`0000/README.md`](0000/README.md): the template, which is the shape of an entry README and nothing else.
+- [`schema.cue`](schema.cue): the metadata contract, with rationale in comments.
 - Sibling skills under `.claude/skills/`: `delivery-log`, `enhancement-gates`, `enhancement-compaction`, `enhancement-open-questions`, `enhancement-experiments`, `enhancement-diagrams`.
 
 ## Related repos

@@ -105,6 +105,10 @@ func TestCheck(t *testing.T) {
 		live13+"/specs/secrets/spec.md:2 cross-entry",
 		live13+"/evidence/note.md:2 cross-entry",
 		arch12+"/proposal.md:1 cross-entry",
+		// the old-layout folders are sources too
+		"archive/0016/README.md:1 cross-entry",
+		"archive/0016/02-design.md:1 cross-entry",
+		"0014/README.md:1 cross-entry",
 		// resolution on the published set
 		live13+"/design.md:2 broken",
 	)
@@ -117,14 +121,14 @@ func TestCheckFilesResolvesEveryFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect(t, res.Findings, live13+"/evidence/note.md:1 broken", live13+"/evidence/note.md:2 cross-entry")
-	// A listed file of an old-layout folder is skipped as well.
+	// A listed file of an old-layout folder is read like any other.
 	res, err = CheckFiles(root, []string{"archive/0016/README.md", "0014/README.md"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect(t, res.Findings)
-	if res.Files != 0 {
-		t.Errorf("Files = %d, want 0: legacy sources are not read", res.Files)
+	expect(t, res.Findings, "archive/0016/README.md:1 cross-entry", "0014/README.md:1 cross-entry")
+	if res.Files != 2 {
+		t.Errorf("Files = %d, want 2", res.Files)
 	}
 	if _, err := CheckFiles(root, []string{"nope.md"}); err == nil {
 		t.Fatal("want an error for a file that does not exist")
@@ -199,8 +203,8 @@ func TestLocate(t *testing.T) {
 		"openspec/changes/archive/2026-01-01-0012-x/a": {entry: "openspec/changes/archive/2026-01-01-0012-x"},
 		"openspec/changes/archive":                     {archive: true},
 		"archive":                                      {archive: true},
-		"archive/0016/a.md":                            {entry: "archive/0016", legacy: true},
-		"0014/README.md":                               {entry: "0014", legacy: true},
+		"archive/0016/a.md":                            {entry: "archive/0016"},
+		"0014/README.md":                               {entry: "0014"},
 		"openspec/specs/x/spec.md":                     {},
 		"schema.cue":                                   {},
 		"tools/enh/go.mod":                             {},
@@ -211,9 +215,9 @@ func TestLocate(t *testing.T) {
 	}
 }
 
-// Old-layout sources are skipped, but a new-layout file that links into an
-// old-layout folder is still refused.
-func TestLegacySourcesSkippedLegacyTargetsRefused(t *testing.T) {
+// Old-layout sources are checked like new-layout ones, and a new-layout file
+// that links into an old-layout folder is refused.
+func TestLegacySourcesCheckedLegacyTargetsRefused(t *testing.T) {
 	root := tree(t, map[string]string{
 		live13 + "/proposal.md":  "[old](../../../archive/0016/README.md)\n[old2](../../../0014/README.md)\n",
 		"archive/0016/README.md": "[to 0014](../../0014/)\n[broken](nowhere.md)\n",
@@ -223,5 +227,8 @@ func TestLegacySourcesSkippedLegacyTargetsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect(t, res.Findings, live13+"/proposal.md:1 cross-entry", live13+"/proposal.md:2 cross-entry")
+	expect(t, res.Findings,
+		live13+"/proposal.md:1 cross-entry", live13+"/proposal.md:2 cross-entry",
+		"archive/0016/README.md:1 cross-entry", "archive/0016/README.md:2 broken",
+		"0014/README.md:1 cross-entry")
 }
