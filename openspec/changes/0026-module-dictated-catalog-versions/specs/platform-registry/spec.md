@@ -45,7 +45,7 @@ A `#ResolvedPlatform` SHALL hold at most one entry per catalog module path, and 
 #### Scenario: The map key enforces uniqueness
 
 - **WHEN** a platform declares two registry entries under the same catalog module path
-- **THEN** they are one entry, so two distinct builds of one catalog major cannot be expressed
+- **THEN** the two declarations unify into one entry and a disagreement between them is a conflict, so two distinct builds of one catalog major cannot be expressed
 
 #### Scenario: Two majors are two entries
 

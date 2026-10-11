@@ -16,12 +16,12 @@ The module and catalog version commands SHALL write the version value of the art
 
 #### Scenario: A default keeps its marker
 
-- **WHEN** the version is declared as a default carrying a release-automation marker
+- **WHEN** the version is declared as a default carrying a release-automation marker and the version is set to 1.3.0
 - **THEN** the default value is replaced and the field is still a default with the marker intact
 
 #### Scenario: An open field gains the version
 
-- **WHEN** the version field is declared with no value, only its type
+- **WHEN** the version field is declared with no value, only its type, and the version is set to 1.3.0
 - **THEN** the file now unifies that type with the version that was set
 
 #### Scenario: A version bump updates the block
@@ -43,15 +43,10 @@ Module init SHALL fetch the template module, copy its source tree, and re-identi
 - **WHEN** the new module path has no major suffix
 - **THEN** init refuses before fetching and shows an example path
 
-#### Scenario: An existing target directory is refused
+#### Scenario: The scaffold starts at 0.1.0
 
-- **WHEN** the target directory already exists and holds no module
-- **THEN** init refuses and writes nothing
-
-#### Scenario: A failed scaffold leaves nothing behind
-
-- **WHEN** re-identification or the final check fails after the directory was created
-- **THEN** the new directory is removed
+- **WHEN** a module is scaffolded from an official template
+- **THEN** the identity file declares version 0.1.0 as a plain literal, and the module's metadata version reads 0.1.0
 
 #### Scenario: A renamed template
 

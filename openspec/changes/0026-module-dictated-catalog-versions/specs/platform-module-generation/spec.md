@@ -66,8 +66,8 @@ The operator SHALL generate the package once per distinct resolution, from exact
 
 #### Scenario: The waking event is ignored
 
-- **WHEN** regeneration is woken by a stale or duplicated event
-- **THEN** the package matches the one the current state implies
+- **WHEN** regeneration is woken by an event about a claim that has since left the active set
+- **THEN** the package matches the one the current state implies, with that claim's catalog absent
 
 #### Scenario: No active claim leaves the spec alone
 
@@ -86,7 +86,7 @@ The operator SHALL generate the package once per distinct resolution, from exact
 
 ### Requirement: Platform status names the package and its registry
 
-Each package SHALL carry an identity derived from the resolved catalog set, the Platform's generation and the sorted active claim coordinates: equal inputs give equal identities and any change gives a new one. Platform status SHALL report the identity of the package renders consume and the resolved registry, with each entry's source (subscription or claim), version and whether it registers transformers. Every render SHALL record the identity it consumed.
+Each package SHALL carry an identity derived from the resolved catalog set, the Platform's generation and the sorted active claim coordinates: equal inputs give equal identities and any change gives a new one. Platform status SHALL report the identity of the package renders consume and the resolved registry, with each entry's source (subscription or claim), version and whether it registers transformers. Every render SHALL log the identity it consumed.
 
 #### Scenario: A claim change yields a new identity
 
@@ -111,7 +111,7 @@ Each package SHALL carry an identity derived from the resolved catalog set, the 
 #### Scenario: A render reports what it consumed
 
 - **WHEN** a render completes
-- **THEN** the identity of the package it built against is recorded, so the render is attributable to an exact registry state
+- **THEN** the identity of the package it built against is written to the reconcile log, so the render is attributable to an exact registry state
 
 ## REMOVED Requirements
 

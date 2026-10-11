@@ -6,17 +6,17 @@ For every beta or GA member of a catalog, publish SHALL compare the member under
 
 #### Scenario: A field removal is refused against the true predecessor
 
-- **WHEN** a beta member removes a field relative to the newest published build that carried it
+- **WHEN** a stable tag is published and a beta member removes a field relative to the newest published build that carried it
 - **THEN** publish refuses with the violation path and the predecessor coordinate
 
 #### Scenario: A prerelease predecessor counts
 
-- **WHEN** the newest build carrying the member is a prerelease newer than the latest stable
+- **WHEN** a stable tag is published and the newest published build below it that carries the member is a prerelease newer than the latest stable
 - **THEN** the comparison runs against that prerelease
 
 #### Scenario: Removal then re-adding is refused
 
-- **WHEN** a member absent from the immediate predecessor is shipped incompatibly reshaped and an older build carried it
+- **WHEN** a stable tag is published, a member absent from the immediate predecessor is shipped incompatibly reshaped, and an older build carried it
 - **THEN** the scan finds the older build and publish refuses
 
 #### Scenario: A new API version escapes the history

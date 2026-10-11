@@ -29,7 +29,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0022:D5:R3 | kept | module-authoring/Init scaffolds by fetch and re-identification | a MODIFIED of the seeded requirement of that name: the re-identified items gain the block's identity module path; the old requirement's scenario is its last scenario |
 | 0022:D5:R4 | kept | block-authoring/A block write keeps comments and is idempotent |  |
 | 0022:D5:R5 | kept | block-authoring/A block write keeps unowned keys | added 2026-10-04 with the open tail |
-| 0022:D7:R1 | kept | published-module-resolution/No selector selects the highest core-compatible major | a MODIFIED of the seeded requirement of that name: the walk skips a non-module release; the old requirement's scenario is its sixth scenario |
+| 0022:D7:R1 | kept | published-module-resolution/No selector selects the highest core-compatible major | a MODIFIED of the seeded requirement of that name: the walk skips a non-module release; the old requirement's scenario is its fifth scenario |
 | 0022:D7:R2 | kept | published-module-resolution/No selector selects the highest core-compatible major | the dependency fallback; the same MODIFIED as 0022:D7:R1, whose last scenario is this requirement's scenario |
 | 0022:D7:R3 | kept | block-reader/Block and dependency verdicts agree |  |
 | 0022:D8:R1 | kept | block-publish-gate/A missing block warns first |  |

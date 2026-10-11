@@ -30,10 +30,10 @@ The API server SHALL reject a claim that lacks the provider catalog's module pat
 - **WHEN** a claim is applied with an empty version
 - **THEN** the API server rejects it
 
-#### Scenario: A claim with an empty provided list is accepted
+#### Scenario: A claim with an empty provided list is admitted
 
-- **WHEN** a claim is applied whose provided list is empty
-- **THEN** the API server accepts it, because a catalog that implements no provider-fulfilled contract is a claim that acceptance refuses on its merits, not a malformed object
+- **WHEN** a claim is applied whose provided list is empty and every other required field is present
+- **THEN** the API server accepts and stores it, and admission leaves the judgement of the list to acceptance
 
 #### Scenario: A defaulted window is visible
 

@@ -24,11 +24,6 @@ Without a selector, the command SHALL list the published versions across all maj
 - **WHEN** no major of the module depends on the CLI's core major
 - **THEN** the command exits 2 and lists every major with its reason
 
-#### Scenario: A module with no published version is refused
-
-- **WHEN** the registry lists no version of the module path
-- **THEN** the command exits 2 stating that the module has no published versions, naming the registry
-
 #### Scenario: A template is skipped
 
 - **WHEN** a candidate's block declares the kind template

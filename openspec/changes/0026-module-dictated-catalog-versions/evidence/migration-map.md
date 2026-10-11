@@ -25,7 +25,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0026:D3:R4 | kept | catalog-version-selection/Identical resolutions share one generated package; platform-module-generation/The package depends on spec and active claims; platform-module-generation/Platform status names the package and its registry | the last two are MODIFIED: the package is keyed by the resolved catalog set |
 | 0026:D3:R5 | kept | catalog-version-selection/A render without a platform holds its pins |  |
 | 0026:D5:R1 | kept | catalog-version-selection/A provider catalog follows the same pin rule | with D6:R6 |
-| 0026:D5:R2 | kept | catalog-version-selection/A provider catalog defaults to the registration's version |  |
+| 0026:D5:R2 | kept | catalog-version-selection/A provider catalog defaults to the registration's version; platform-module-generation/The package depends on spec and active claims | the second target is a MODIFIED: the seed scenario "An active claim's catalog reaches the package" gains the condition that no consumer pins its catalog's path |
 | 0026:D5:R3 | kept | transformer-registration/A provider may state a compatibility window |  |
 | 0026:D5:R4 | kept | transformer-registration/Every claim field is required at admission | MODIFIED: the rendered claim carries the window with its defaults filled |
 | 0026:D6:R1 | kept | registration-acceptance/A registration alone admits its provider catalog |  |
