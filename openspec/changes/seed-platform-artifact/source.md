@@ -49,3 +49,5 @@ All read at the commit named. Spec means `library` `openspec/specs/platform-arti
 - `platform-module-generation`: it builds the module that acquisition loads ("validated by building it" is a generation rule). No sentence is shared.
 
 Requirements 0026 is likely to MODIFY (a guess from D3, not a decision of 0026): "Acquisition refuses a package that is no platform" (the kind), and the wording of "A platform holds its package, metadata and source" (the name of the value).
+
+sampled: 2026-10-11 18705155
