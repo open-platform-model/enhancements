@@ -1,0 +1,3 @@
+# Class 8: CRDs (`opmodel.dev/v1alpha1`)
+
+**Carrier:** Kubernetes group/version, one served and storage version today. **Surface:** the served schema of each version, and the wire shapes shared with the CLI (`status.inventory` and its digest, the label vocabulary). **Bump:** Kubernetes' ladder; a `v1beta1` requires serving both versions and converting between them, which is the one place OPM inherits a consumer window it did not choose. **Pre-stable:** the alpha rung. **Enforcement:** none; OQ9 states the position, and CRD regen drift and cross-actor shape parity are implementation gaps this entry names.

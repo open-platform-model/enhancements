@@ -1,0 +1,3 @@
+# Class 6: CLI templates (`opmodel.dev/templates/<name>`)
+
+**Carrier:** CUE module SemVer, major in the path; the version rides the CLI's release train through the release marker in each template's identity package. **Surface:** a template is a module skeleton, so its surface is the module surface (class 5) applied to the scaffold it produces, plus the shortcut name the CLI resolves it by. **Bump:** the CLI's; a template whose scaffold stops being a valid module against the core and catalog majors it pins is breaking. **Pre-stable:** the CLI's line. **Enforcement:** `opm module publish` gates at release; nothing checks that the CLI's shortcut table and the template set agree, which is an implementation gap this entry names and does not prescribe.
