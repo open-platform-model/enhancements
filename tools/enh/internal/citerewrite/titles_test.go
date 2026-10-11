@@ -55,6 +55,8 @@ func TestQuoted(t *testing.T) {
 	}
 }
 
+var bareDRe = regexp.MustCompile(`(^|[^0-9A-Za-z_])D[0-9]+([^0-9A-Za-z_]|$)`)
+
 var anyIDRe = regexp.MustCompile(`(^|[^0-9A-Za-z_])0[0-9]{3}([^0-9A-Za-z_]|$)`)
 
 // Every title the tool can write passes the lint by itself (ruling 2026-10-11
@@ -78,6 +80,9 @@ func TestEveryEffectiveTitlePassesTheLint(t *testing.T) {
 			checked++
 			if cs := cites.Scan(title); len(cs) > 0 {
 				t.Errorf("%s D%d (%s): the title %q holds the citation %q", id, n, rid, title, cs[0].Text)
+			}
+			if _, isShort := tt.short[id][n]; isShort && bareDRe.MatchString(title) {
+				t.Errorf("%s D%d: the short form %q holds a bare decision number", id, n, title)
 			}
 			if anyIDRe.MatchString(title) {
 				t.Errorf("%s D%d (%s): the title %q holds an enhancement id", id, n, rid, title)

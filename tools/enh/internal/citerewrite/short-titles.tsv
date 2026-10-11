@@ -3,11 +3,11 @@
 # heading, and only for a heading that holds an enhancement id (a test fails for any other row, and
 # for a heading that holds an id and has no row). A short form removes the id and keeps the words
 # around it, or names the enhancement by its subject; it drops no clause, exception, negation or
-# scope limit. A long title is written in full. Keep this file sorted by id and number.
+# scope limit, and it holds no decision number (no bare D<n>). A long title is written in full. Keep this file sorted by id and number.
 0001	22	This entry lands on top of the core split's Part B; library + modules slices gated on `remove-api-binding-dispatch` shipping first
 0004	5	Design home is this enhancement
-0006	36	The CLI's CUE bump retargets to v0.17.1 and relocates from C2 to C1; library/operator pin bumps happen outside this enhancement; amends D14's clause (1)
-0012	1	The Kubernetes runtime surface homes in the library's Kubernetes tier (supersedes only D31's placement conclusion in the CLI inventory and handoff enhancement)
+0006	36	The CLI's CUE bump retargets to v0.17.1 and relocates from C2 to C1; library/operator pin bumps happen outside this enhancement; amends the first clause of its earlier CLI pin decision
+0012	1	The Kubernetes runtime surface homes in the library's Kubernetes tier (supersedes only the placement conclusion of the CLI inventory and handoff enhancement)
 0015	17	The generated-platform record survives the render-parity enhancement and is held per package identity, not per Platform CR generation
 0018	4	The deletion and prune hazard is documented now, independent of the Kubernetes library tier enhancement
 0018	5	Secrets documentation waits for the secret fields enhancement
