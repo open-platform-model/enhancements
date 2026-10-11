@@ -51,6 +51,7 @@
 | [cli-kernel-render](./openspec/specs/cli-kernel-render/spec.md) | 8 | Describe what the CLI adds around the kernel render. |
 | [component-matching](./openspec/specs/component-matching/spec.md) | 6 | State what a component and the primitives attached to it declare so that a transformer can select on them. |
 | [contract-fulfilment](./openspec/specs/contract-fulfilment/spec.md) | 6 | State where a contract's implementation is expected to come from, and what a component's demands oblige a platform to supply. |
+| [duplicate-object-identities](./openspec/specs/duplicate-object-identities/spec.md) | 6 | Find, between render and apply, the rendered objects that share one Kubernetes apply identity, and name who produced each, so a runtime refuses the render before the last write silently wins. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
