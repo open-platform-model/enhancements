@@ -40,7 +40,7 @@ An entry's version SHALL equal the version of its embedded catalog, and its tran
 #### Scenario: An unstamped catalog is incomplete
 
 - **WHEN** an entry embeds a catalog whose version is not set
-- **THEN** the entry's version is reported as incomplete, and the platform does not render while wrong
+- **THEN** the entry's version is reported as incomplete
 
 ### Requirement: A registry key must match its catalog
 
@@ -87,7 +87,7 @@ A `#Platform` SHALL hold at most one entry per catalog module path, and the path
 #### Scenario: The map key enforces uniqueness
 
 - **WHEN** a platform declares two registry entries under the same catalog module path
-- **THEN** they are one entry, so two distinct builds of one catalog major cannot be expressed
+- **THEN** the two declarations unify into one entry and a disagreement between them is a conflict, so two distinct builds of one catalog major cannot be expressed
 
 #### Scenario: Two majors are two entries
 

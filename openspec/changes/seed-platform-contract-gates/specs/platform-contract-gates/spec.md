@@ -72,8 +72,8 @@ A provider-fulfilled contract required by transformers of more than one enabled 
 
 #### Scenario: Plurality of catalog-fulfilled implementations is not over-subscription
 
-- **WHEN** many transformers across catalogs require a catalog-fulfilled contract
-- **THEN** the report lists them as implementations and the check exits 0
+- **WHEN** several transformers across enabled catalogs require one catalog-fulfilled contract
+- **THEN** the report lists no over-subscribed contract for it
 
 #### Scenario: A disabled defining catalog does not hide over-subscription
 
@@ -158,14 +158,14 @@ If the platform builds but its inventory cannot be read, the check SHALL fail wi
 
 The check and the generation gate SHALL take the over-subscribed contracts, comparable pairs and their providers from the inventory as core reports them, and SHALL NOT recompute any.
 
-#### Scenario: The check and the gate refuse the same platform
+#### Scenario: The check and the gate report the inventory's providers as given
 
-- **WHEN** two majors of one provider catalog are enabled and each has a transformer requiring one provider-fulfilled contract
-- **THEN** the check exits with the validation code and the gate refuses the package, each naming both registry entries
+- **WHEN** the inventory read lists a contract as over-subscribed with the providing entries it names
+- **THEN** the check's report and the gate's message name that contract with exactly those entries, in sorted order, and neither names an entry the inventory does not list
 
 ### Requirement: An over-subscribed platform is refused at generation
 
-After a generated platform module builds, when the inventory shows a provider-fulfilled contract provided by more than one enabled registry entry, the reconciler SHALL refuse the package: Ready SHALL be False with reason OverSubscribedContracts and a message naming, in a deterministic order, each contract, its defining catalog when an enabled one defines it, and every providing entry. An unroutable inventory that names no cause SHALL be refused the same way.
+After a generated platform module builds, when the inventory shows a provider-fulfilled contract provided by more than one enabled registry entry and no key collides, the reconciler SHALL refuse the package: Ready SHALL be False with reason OverSubscribedContracts and a message naming, in sorted order, each contract, its defining catalog when an enabled one defines it, and every providing entry. An unroutable inventory that names no cause and no colliding key SHALL be refused the same way.
 
 #### Scenario: Two catalogs providing one contract are refused
 
@@ -174,7 +174,7 @@ After a generated platform module builds, when the inventory shows a provider-fu
 
 #### Scenario: Two majors of one provider catalog are refused
 
-- **WHEN** two majors of one provider catalog are enabled and each has a transformer requiring the same provider-fulfilled contract
+- **WHEN** two majors of one provider catalog are enabled, each has a transformer requiring the same provider-fulfilled contract, and no contract key is listed by both majors
 - **THEN** Ready is False with reason OverSubscribedContracts, naming both entries, and no package is recorded
 
 #### Scenario: A contract whose defining catalog is not enabled is still counted
@@ -184,12 +184,12 @@ After a generated platform module builds, when the inventory shows a provider-fu
 
 #### Scenario: An unroutable inventory that names nothing still refuses
 
-- **WHEN** the inventory reads not routable and lists no over-subscribed contract
-- **THEN** Ready is False with reason OverSubscribedContracts, the message says the inventory names none, and it never reports a count of zero over-subscribed contracts
+- **WHEN** the inventory reads not routable and lists no over-subscribed contract and no colliding contract key
+- **THEN** Ready is False with reason OverSubscribedContracts, the message says the inventory names no cause, and it never reports a count of zero over-subscribed contracts
 
 ### Requirement: An undiscriminated platform is refused at generation
 
-When the inventory reports a pair of enabled transformers with comparable predicates over a shared catalog-fulfilled contract, the reconciler SHALL refuse the package: Ready SHALL be False with reason ComparablePredicates, and the message SHALL name for each pair the broader transformer, the narrower transformer and the shared contracts, in a deterministic order. No arbitration, ordering or most-specific-wins rule SHALL be applied.
+When the inventory is routable and reports a pair of enabled transformers with comparable predicates over a shared catalog-fulfilled contract, the reconciler SHALL refuse the package: Ready SHALL be False with reason ComparablePredicates, and the message SHALL name for each pair the broader transformer, the narrower transformer and the shared contracts, in a deterministic order. No arbitration, ordering or most-specific-wins rule SHALL be applied.
 
 #### Scenario: A comparable pair is refused naming both transformers
 
@@ -198,12 +198,12 @@ When the inventory reports a pair of enabled transformers with comparable predic
 
 #### Scenario: Discriminated transformers coexist
 
-- **WHEN** the inventory reports no comparable pair, however many transformers share a catalog-fulfilled contract
-- **THEN** the gate refuses nothing on discrimination and the package is recorded
+- **WHEN** the inventory is routable and reports no comparable pair, however many transformers share a catalog-fulfilled contract
+- **THEN** the gate refuses nothing and the package is recorded
 
 ### Requirement: One refusal reports every finding
 
-A refused package SHALL carry one reason and one message that holds every finding. The reason SHALL be OverSubscribedContracts when the platform is over-subscribed or unroutable, otherwise ComparablePredicates. A platform that is routable and discriminated SHALL NOT be refused on these grounds.
+A refused package SHALL carry one reason and one message that holds every finding. When no contract key collides, the reason SHALL be OverSubscribedContracts when the platform is over-subscribed or unroutable, and ComparablePredicates otherwise. A platform that is routable and discriminated SHALL NOT be refused on these grounds.
 
 #### Scenario: Both routing findings report under the routing reason
 

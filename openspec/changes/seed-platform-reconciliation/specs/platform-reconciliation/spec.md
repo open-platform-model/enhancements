@@ -157,6 +157,11 @@ When no generated platform is held, the reconciler SHALL set the ModuleInstance 
 - **WHEN** a ModuleInstance is applied while no platform has been generated
 - **THEN** it reports Ready=False with reason PlatformNotReady, and nothing is applied or pruned
 
+#### Scenario: A waiting instance is not stalled and fetches nothing
+
+- **WHEN** a ModuleInstance reconciles while no platform is held and its module's registry cannot be reached
+- **THEN** it reports Ready=False with reason PlatformNotReady and not Stalled, no fetch of its module is attempted, and it is requeued on the bounded retry backoff
+
 #### Scenario: The wait has its own reason
 
 - **WHEN** a render is blocked because no platform is held
@@ -183,8 +188,8 @@ The instance reconciler SHALL watch the Platform and, on an update, re-enqueue o
 
 #### Scenario: A generation bump alone enqueues nothing
 
-- **WHEN** a spec edit bumps the generation and the reconciler has not yet recorded the regenerated package
-- **THEN** no instance is enqueued, and the later status write that records the package re-enqueues them
+- **WHEN** a spec edit that leaves the skew policy unchanged bumps the generation, and the reconciler has not yet recorded the regenerated package
+- **THEN** no instance is enqueued, and the later status write that carries the new observed generation re-enqueues them
 
 ### Requirement: Only operator-managed instances are re-enqueued
 

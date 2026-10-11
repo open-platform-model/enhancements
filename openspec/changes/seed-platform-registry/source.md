@@ -11,10 +11,10 @@ All read at the commit named. The requirement text is rewritten at intent level:
 | Requirement here | Source requirement in the repo's spec | Code read |
 | --- | --- | --- |
 | A registry entry carries its catalog by import | `core` `openspec/specs/platform-registry/spec.md` at `f3b7ecd`, "A registry entry carries its catalog by import" | `src/platform.cue:28-43` (the entry definition: enable switch, embedded catalog), `:180` (the registry) |
-| Entry identity is derived, never authored | same file, "Entry identity is derived, never authored" | `src/platform.cue:41-42` (version and transformers derived from the catalog); `src/catalog.cue:101` (the version has no default) |
+| Entry identity is derived, never authored | same file, "Entry identity is derived, never authored" | `src/platform.cue:41-42` (version and transformers derived from the catalog); `src/catalog.cue:98-101` (the version is required and has no default, so an unstamped catalog leaves the entry's version incomplete: `src/platform.cue:36-41`). The seed states the incomplete readout only; it states no render rule |
 | A registry key must match its catalog | same file, "The registry key binds to the embedded catalog's module path" | `src/platform.cue:180` (key bound to the catalog's module path); `src/types.cue:75` (a module path needs a major) |
 | Composed transformers are derived from enabled entries | same file, "Composed transformers are a derived fold over enabled entries" | `src/platform.cue:185-189` (comprehension over enabled entries) |
-| One registry entry per catalog path | same file, "One registry entry per catalog path" | `src/platform.cue:180`; `src/types.cue:75` |
+| One registry entry per catalog path | same file, "One registry entry per catalog path" | `src/platform.cue:180`; `src/types.cue:75`. The registry is one map keyed by module path (`:180`), so two declarations under one key are CUE unification: one entry, a conflict where they disagree |
 | A platform carries no reverse index | same file, "A platform carries no reverse index" (both scenarios) | `src/platform.cue:158-337` (no matching index declared), `:79` and `:269-276` (the readiness index, implementation names only); `src/pins/platform_contracts_pins.cue:697-709` (a declared index is inert) |
 | Catalog selection depends on committed source only | same file, "Catalog selection is a pure function of committed source" | `src/platform.cue:28-43` (the entry has no lockfile, maturity or flag field) |
 

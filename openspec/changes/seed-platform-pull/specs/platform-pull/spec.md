@@ -11,7 +11,7 @@ The CLI SHALL provide a pull command that reads the cluster's Platform resource 
 #### Scenario: A pulled package reproduces the cluster's render
 
 - **WHEN** the pull command runs against a cluster whose Platform status records subscriptions and one catalog contributed by a provider claim
-- **THEN** the directory holds a platform module pinning every recorded catalog at its recorded version, and a local build against it resolves a provider contract as the cluster's render does
+- **THEN** the directory holds a platform module that pins every recorded catalog at its recorded version and carries an importing entry for the subscriptions and for the provider's catalog
 
 #### Scenario: The pulled module is the generated module
 
@@ -54,7 +54,7 @@ Pull SHALL print the Platform's name and generation, the generation the operator
 
 ### Requirement: Pull never overwrites by accident
 
-If the target exists and holds files, pull SHALL refuse with the general error code and write nothing, unless the user gives the overwrite option, which replaces the directory's contents with the generated module. The overwrite option SHALL be off by default. A target that is a file SHALL be refused either way.
+If the target exists and holds files, pull SHALL refuse with the general error code and write nothing, unless the user gives the overwrite option, which replaces the directory's contents with the generated module. The overwrite option SHALL be off by default. A target that is a file SHALL be refused either way. Pull SHALL judge the target before it reads the cluster, so a refused target fails with the general error code whatever the cluster's state.
 
 #### Scenario: A non-empty target is refused
 
@@ -78,7 +78,7 @@ If the target exists and holds files, pull SHALL refuse with the general error c
 
 ### Requirement: Pull has no local fallback
 
-A cluster without a readable Platform resource SHALL fail pull with the not-found code naming the resource: there is no cluster package to reproduce, and pull falls back to no other platform source. A Platform whose recorded registry cannot be generated, such as an unpublished pin or a subscription with no version, SHALL fail with the validation code and the generation diagnostic. A cluster that cannot be reached SHALL fail with the connectivity code.
+A cluster without a readable Platform resource SHALL fail pull with the not-found code naming the resource: there is no cluster package to reproduce, and pull falls back to no other platform source. A Platform whose registry cannot be generated, such as an unpublished pin or a subscription with no version, SHALL fail with the validation code and the generation diagnostic. A cluster that cannot be reached SHALL fail with the connectivity code.
 
 #### Scenario: No Platform resource
 
@@ -92,7 +92,7 @@ A cluster without a readable Platform resource SHALL fail pull with the not-foun
 
 #### Scenario: A legacy Platform cannot be generated
 
-- **WHEN** a stored Platform has a subscription with no version
+- **WHEN** a stored Platform has a subscription with no version and its status records no registry
 - **THEN** the command exits with the validation code and the message says the Platform may predate the one-version-per-subscription shape
 
 #### Scenario: An unpublished pin cannot be generated

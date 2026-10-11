@@ -120,8 +120,8 @@ The operator SHALL generate the package from exactly two inputs: the Platform's 
 
 #### Scenario: The waking event is ignored
 
-- **WHEN** regeneration is woken by a stale or duplicated event
-- **THEN** the package matches the one the current state implies
+- **WHEN** regeneration is woken by an event about a claim that has since left the active set
+- **THEN** the package matches the one the current state implies, with that claim's catalog absent
 
 #### Scenario: No active claim leaves the spec alone
 
@@ -149,8 +149,8 @@ The operator SHALL regenerate the package when the Platform's spec changes and w
 
 #### Scenario: A burst of activations coalesces
 
-- **WHEN** several claims become active in quick succession
-- **THEN** the number of regenerations stays well below the number of claims, and the final package reflects all of them
+- **WHEN** several claims are active when the reconciler next runs and it was woken once for each claim
+- **THEN** the first run generates one package that carries every one of their catalogs, and the other wake-ups regenerate nothing
 
 #### Scenario: A change outside the active set is ignored
 
@@ -159,7 +159,7 @@ The operator SHALL regenerate the package when the Platform's spec changes and w
 
 ### Requirement: Platform status names the package and its registry
 
-Each package SHALL carry an identity derived from the Platform's generation and the sorted active claim coordinates: equal inputs give equal identities and any change gives a new one. Platform status SHALL report the identity of the package renders consume and the resolved registry, with each entry's source (subscription or claim), version and whether it registers transformers. Every render SHALL record the identity it consumed.
+Each package SHALL carry an identity derived from the Platform's generation and the sorted active claim coordinates: equal inputs give equal identities and any change gives a new one. Platform status SHALL report the identity of the package renders consume and the resolved registry, with each entry's source (subscription or claim), version and whether it registers transformers. Every render SHALL log the identity it consumed.
 
 #### Scenario: A claim change yields a new identity
 
@@ -184,7 +184,7 @@ Each package SHALL carry an identity derived from the Platform's generation and 
 #### Scenario: A render reports what it consumed
 
 - **WHEN** a render completes
-- **THEN** the identity of the package it built against is recorded, so the render is attributable to an exact registry state
+- **THEN** the identity of the package it built against is written to the reconcile log, so the render is attributable to an exact registry state
 
 ### Requirement: The generated module is validated by building it
 
@@ -232,7 +232,7 @@ The operator SHALL write each package into a directory named by its identity, th
 #### Scenario: A crash mid-write leaves no current module
 
 - **WHEN** the operator fails after writing some files of a package
-- **THEN** no directory for that identity exists and the recorded package is unchanged
+- **THEN** no directory named by that identity holds a partial module and the recorded package is unchanged
 
 #### Scenario: Two identities for one generation do not collide
 
@@ -242,7 +242,7 @@ The operator SHALL write each package into a directory named by its identity, th
 #### Scenario: A held package survives the prune
 
 - **WHEN** a render holds a package while the next one is generated and built
-- **THEN** the held package remains beside the current one, and a later reconcile removes it once the render releases it
+- **THEN** the held package remains beside the current one, and the next reconcile that records a package removes it once the render releases it
 
 #### Scenario: Superseded packages are pruned
 
@@ -299,7 +299,7 @@ A Platform SHALL carry a required informational type and a registry keyed by maj
 #### Scenario: A minimal Platform is accepted
 
 - **WHEN** a Platform sets a type and one registry entry that carries only a version
-- **THEN** the API server accepts it, the enable flag reads true and the skew policy reads Warn
+- **THEN** the API server accepts it, the generated entry is enabled and the skew policy in force is Warn
 
 #### Scenario: A missing type is rejected
 

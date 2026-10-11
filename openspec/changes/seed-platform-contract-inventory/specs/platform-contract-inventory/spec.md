@@ -81,13 +81,13 @@ An enabled transformer's match predicate SHALL be the union of its required reso
 
 #### Scenario: A required trait is part of the predicate
 
-- **WHEN** two enabled transformers require one resource, and one also requires a trait while the other also requires a label
-- **THEN** neither predicate contains the other, because the trait and the label are each part of the predicate that declares them
+- **WHEN** two enabled transformers require one catalog-fulfilled resource, one of them also requires a trait, and the transformer with the trait has the name that sorts first
+- **THEN** the comparable report holds one row for the pair and marks the transformer without the trait as the broader
 
 #### Scenario: An optional demand does not widen the predicate
 
-- **WHEN** an enabled transformer requires a resource and names a trait among its optional demands
-- **THEN** its predicate is that resource alone
+- **WHEN** two enabled transformers require one catalog-fulfilled resource, one of them also requires a label value, and the other names a trait only among its optional demands
+- **THEN** the comparable report holds one row for the pair and marks the transformer with the optional trait as the broader
 
 ### Requirement: Comparable predicates are reported
 
