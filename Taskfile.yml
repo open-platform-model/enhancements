@@ -33,9 +33,9 @@ tasks:
           task vet [ID=0013] [MODE=accept|deliver] [BASE=origin/main] — check the entries
           task new SLUG=foo TITLE="Foo Bar" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
           task seed:new CAP=registration-acceptance
-          task accept ID=0013                    — print the sample; then CONFIRM=1 task accept ID=0013
+          task accept ID=0013 [BASE=main]        — print the sample; then CONFIRM=1 task accept ID=0013
           task resample ID=0013                  — same for an accepted entry whose text changed
-          task deliver ID=0013                   — check, archive, index, commit
+          task deliver ID=0013 [BASE=main]       — check, archive, index, commit
           task reject|withdraw ID=0013 REASON="…"
           task supersede ID=0013 BY=0033 REASON="…"
           task tick ID=0013 LINE=1.1 REF=change-name
@@ -96,9 +96,12 @@ tasks:
         task accept ID=0013
         CONFIRM=1 task accept ID=0013
         task accept ID=seed-registration-acceptance
-      Extra flags of the enh command go after `--`. See `enh help`.
+        task accept ID=0013 BASE=origin/main
+      BASE is the local branch the PR starts from (default main). V7, V27 and
+      V31 compare with it. Extra flags of the enh command go after `--`. See
+      `enh help accept`.
     cmds:
-      - go -C tools/enh run . accept {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+      - go -C tools/enh run . accept --base {{.BASE | default "main" | shellQuote}} {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
   resample:
     desc: "Re-sample an accepted entry (CONFIRM=1 rewrites accepted)"
@@ -115,9 +118,12 @@ tasks:
     summary: |
       Usage:
         task deliver ID=0013
-      Extra flags of the enh command go after `--`. See `enh help`.
+        task deliver ID=0013 BASE=origin/main
+      BASE is the local branch the PR starts from (default main). V7, V27 and
+      V31 compare with it. Extra flags of the enh command go after `--`. See
+      `enh help deliver`.
     cmds:
-      - go -C tools/enh run . deliver {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
+      - go -C tools/enh run . deliver --base {{.BASE | default "main" | shellQuote}} {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
   reject:
     desc: "Reject a draft with a reason"

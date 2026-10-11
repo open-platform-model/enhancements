@@ -424,6 +424,23 @@ func TestV33IgnoresSampledLineInComment(t *testing.T) {
 	}
 }
 
+// The hint on a V29 finding tells a registry fault from a fixture module.
+func TestCueVetHint(t *testing.T) {
+	for _, c := range []struct{ out, want string }{
+		{"import failed: cannot fetch opmodel.dev/core@v2.0.0: dial tcp: lookup ghcr.io: no such host", "the registry was not reached"},
+		{"cannot do HTTP request: Get \"https://nonexistent.invalid/v2/\": dial tcp: lookup nonexistent.invalid: no such host", "the registry was not reached"},
+		{"cannot fetch opmodel.dev/core@v2.0.0-alpha.12: module opmodel.dev/core@v2.0.0-alpha.12: module not found", "in no registry"},
+		{"x@v0: import failed: cannot find package \"y@v2\": cannot expand module graph: z@v1.0.0: module not found:", "in no registry"},
+		{"some instances are incomplete; use the -c flag to show errors or -c=false to allow incomplete instances", "not concrete"},
+		{"a: conflicting values 2 and 1", ""},
+	} {
+		got := cueVetHint([]byte(c.out))
+		if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
+			t.Errorf("cueVetHint(%q) = %q, want it to hold %q", c.out, got, c.want)
+		}
+	}
+}
+
 // V29, second half: cue vet runs in each folder under evidence/ that holds a
 // cue.mod/module.cue, and a failure is a warning, never an error.
 func TestV29CueVetOfEvidenceModules(t *testing.T) {

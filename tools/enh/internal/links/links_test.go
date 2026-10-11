@@ -232,3 +232,44 @@ func TestLegacySourcesCheckedLegacyTargetsRefused(t *testing.T) {
 		"archive/0016/README.md:1 cross-entry", "archive/0016/README.md:2 broken",
 		"0014/README.md:1 cross-entry")
 }
+
+// V28 exemption: a link from under an archive tree to an existing path under
+// an archive tree is allowed. Every other link into archive/ or another
+// entry's folder stays refused.
+func TestArchiveToArchiveExempt(t *testing.T) {
+	const dated = "openspec/changes/archive/2026-09-01-0012-render"
+	root := tree(t, map[string]string{
+		// allowed: legacy archive to legacy archive, folder and file, with a fragment
+		"archive/0001/README.md": "[dir](../0006/) [file](../0006/README.md#top) [dirfile](../0006/research/a.md)\n" +
+			"[root](../) [self](../0001/README.md)\n",
+		"archive/0006/README.md":                               "ok\n",
+		"archive/0006/research/a.md":                           "ok\n",
+		"archive/0010/README.md":                               "[to dated](../../openspec/changes/archive/2026-09-01-0012-render/README.md)\n",
+		dated + "/README.md":                                   "[to legacy](../../../../archive/0006/README.md) [to dated sibling](../2026-09-02-0015-x/)\n",
+		dated + "/proposal.md":                                 "[live](../../0013-live/README.md) [legacy live](../../../../0014/README.md)\n",
+		"openspec/changes/archive/2026-09-02-0015-x/README.md": "ok\n",
+
+		// refused: the target does not exist
+		"archive/0002/README.md": "[gone dir](../0099/) [gone file](../0006/missing.md)\n",
+		// refused: archive to a live entry, and live or new-layout to archive
+		"archive/0003/README.md":                 "[live](../../openspec/changes/0013-live/README.md)\n",
+		"0014/README.md":                         "[x](../archive/0006/README.md)\n",
+		"openspec/changes/0013-live/README.md":   "[arch](../archive/2026-09-02-0015-x/README.md) [legacy](../../../archive/0006/README.md) [root](../archive/)\n",
+		"openspec/changes/0013-live/proposal.md": "ok\n",
+	})
+	res, err := Check(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect(t, res.Findings,
+		"archive/0002/README.md:1 cross-entry",
+		"archive/0002/README.md:1 cross-entry",
+		"archive/0003/README.md:1 cross-entry",
+		"0014/README.md:1 cross-entry",
+		"openspec/changes/0013-live/README.md:1 cross-entry",
+		"openspec/changes/0013-live/README.md:1 cross-entry",
+		"openspec/changes/0013-live/README.md:1 cross-entry",
+		dated+"/proposal.md:1 cross-entry",
+		dated+"/proposal.md:1 cross-entry",
+	)
+}

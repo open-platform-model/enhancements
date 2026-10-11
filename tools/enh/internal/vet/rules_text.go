@@ -288,9 +288,27 @@ func (r *run) evidenceModules(e *ent) {
 		rel := path.Join(e.rel, "evidence", mod)
 		dir := filepath.Join(e.Dir, "evidence", filepath.FromSlash(mod))
 		if out, err := r.opts.Cue(dir, "cue", "vet", "./..."); err != nil {
-			r.add(e, "V29", Warning, rel+"/cue.mod", 0, "cue vet ./... failed in the evidence module %s: %s", rel, summary(out, err))
+			r.add(e, "V29", Warning, rel+"/cue.mod", 0, "cue vet ./... failed in the evidence module %s: %s%s", rel, summary(out, err), cueVetHint(out))
 		}
 	}
+}
+
+// cueVetHint says what a `cue vet` failure of an evidence module probably
+// means, so a reader can tell a network or registry fault from a module that
+// was never meant to vet alone. It returns "" when it knows nothing.
+func cueVetHint(out []byte) string {
+	s := string(out)
+	switch {
+	case strings.Contains(s, "module not found"):
+		// Checked first: cue also prints "cannot fetch" when the registry answers "module not found".
+		return " (hint: a module of the graph is in no registry; an experiment may serve it itself, see its README. This is not a network fault)"
+	case strings.Contains(s, "no such host") || strings.Contains(s, "connection refused") ||
+		strings.Contains(s, "i/o timeout") || strings.Contains(s, "cannot do HTTP request"):
+		return " (hint: the registry was not reached; check the network and CUE_REGISTRY)"
+	case strings.Contains(s, "some instances are incomplete"):
+		return " (hint: the module holds values that are not concrete; `cue vet -c=false ./...` allows them)"
+	}
+	return ""
 }
 
 // evidenceIndex checks that evidence/README.md indexes what is under evidence/.

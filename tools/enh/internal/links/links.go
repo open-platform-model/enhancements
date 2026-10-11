@@ -4,6 +4,10 @@
 //   - a link from one entry into another entry's folder, or into an archive
 //     folder, is refused: archive adds a date prefix to the folder name, so a
 //     path link breaks, and an entry cites another entry by id in words;
+//   - the one exception: a link whose source is under an archive tree and whose
+//     target is an existing file or folder under an archive tree is allowed,
+//     because an archived entry is final and its folder no longer moves (owner
+//     decision 2026-10-11 20:05);
 //   - a link inside one entry is allowed: it moves with the folder;
 //   - every other relative link of a published file must resolve.
 //
@@ -84,6 +88,18 @@ func locate(p string) place {
 		return place{entry: segs[0]}
 	}
 	return place{}
+}
+
+// inArchive reports whether a clean, repo-relative path is an archive tree or
+// lies under one: archive/ (the ten old-layout entries) or
+// openspec/changes/archive/ (delivered entries).
+func inArchive(p string) bool {
+	for _, a := range []string{legacyArchiveDir, changesArchiveDir} {
+		if p == a || strings.HasPrefix(p, a+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // Published lists the files the site publishes: INDEX.md, GRAPH.md and the
@@ -303,6 +319,12 @@ func checkFile(root, rel, src string, resolve bool) []Finding {
 			continue
 		}
 		if from.entry != "" {
+			// V28 exemption: archive to an existing archive path.
+			if inArchive(rel) && inArchive(target) {
+				if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(target))); err == nil {
+					continue
+				}
+			}
 			to := locate(target)
 			switch {
 			case to.archive:
