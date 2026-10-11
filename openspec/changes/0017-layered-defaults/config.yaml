@@ -1,0 +1,21 @@
+# Facts only. History is `git log`.
+id: "0017"
+slug: layered-defaults
+title: Layered Defaults
+summary: >-
+  Give each of the four layers one defaulting job, so a default survives meeting a second one and
+  authors stop restating Kubernetes defaults by hand.
+status: draft
+category: schema
+breaking: true
+affects:
+  - core
+  - library
+  - catalog_opm
+  - cli
+  - modules
+authors:
+  - emil@jacero.se
+created: "2026-08-18"
+after:
+  - "0010"
