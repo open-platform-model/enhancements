@@ -30,3 +30,5 @@ All read at the commit named. The requirement text is rewritten at intent level:
 
 - The library spec's "The refusal is worded once" says the message names each identity "one identity per line". The code also opens the message with a header line that counts the objects and the identities (`duplicates.go`, `Error`). The cli spec and code rely on that header. The seed states the header; the code wins.
 - The library spec says the check is "opt-in" in its Purpose. Both first-party runtimes run it on every render (cli `render.go:302`, operator `kernel_module_renderer.go:222`). The seed keeps "opt-in" for the render and states the runtimes' obligation in the last requirement.
+
+sampled: 2026-10-11 18705155
