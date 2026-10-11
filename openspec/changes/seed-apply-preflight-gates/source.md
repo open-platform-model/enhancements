@@ -46,3 +46,5 @@ The code wins.
 - The platform-fallback warning banner that the repo spec of an earlier change mentions (archive `test-coverage-and-fixture-hygiene`): not in the spec at `HEAD`, and not a gate.
 - The history of the full-version ceiling that 0021 replaced: no spec states it at `HEAD`, and it belongs with the comparison rule that is left out above.
 - Enhancement tokens (`0006:D24`, `0006:D27`, `0006:D23`, `0006:D33`, `0021:D9:R3`, `0021:D9:R4`) in the repo spec: provenance, not behaviour.
+
+sampled: 2026-10-11 18705155
