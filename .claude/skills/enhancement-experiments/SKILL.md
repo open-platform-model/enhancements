@@ -1,152 +1,88 @@
 ---
 name: enhancement-experiments
-description: Protocol for creating, updating, validating, and concluding experiments inside OPM enhancements. Load before scaffolding a new experiment under enhancements/NNNN/experiments/, before editing an existing experiment's README, before transitioning an experiment's Status (Draft → Running → Concluded), or when reviewing whether a design claim needs runnable validation.
+description: Protocol for experiments inside an OPM enhancement entry. Load before you add an experiment under an entry's evidence/experiments/, edit an experiment's README, change an experiment's Status (Draft, Running, Concluded), or check whether a design claim needs a runnable proof.
 user-invocable: true
 ---
 
 # Enhancement Experiments
 
+An experiment is a small runnable proof of one claim in an entry's `design.md`. It lives in the entry's `evidence/experiments/`. `evidence/` is outside every word cap, and no task scaffolds or lists experiments: you make the folders by hand.
+
 ## When this skill applies
 
-Load this skill when any of the following is true:
+Load it when:
 
-- A decision in `enhancements/NNNN/03-decisions.md` rests on a CUE evaluation pattern, kernel behaviour, or Go fixture that hasn't been demonstrated end-to-end and you are about to validate it.
-- A reviewer asks "does that actually work?" about a specific design claim and the cheapest honest answer is a small runnable sandbox.
-- A complex schema interaction (CUE comprehension, lock-step pattern, cycle-avoidance trick) is about to be baked into the entry's `schemas/` or `contracts/` CUE and you want evidence first.
-- You are about to invoke `task new:experiment` or `task experiments:list`.
-- You are editing any file under `enhancements/NNNN/experiments/`.
-- You are transitioning an experiment's `Status:` line.
+- a theme of `design.md` rests on a CUE evaluation pattern, kernel behaviour or Go fixture that nobody has shown end to end;
+- a reviewer asks "does that actually work?" and the cheapest honest answer is a small sandbox;
+- you edit any file under `evidence/experiments/` of an entry;
+- you change an experiment's `Status:` line.
 
-If your task is to *read* an existing experiment to learn what was tried, you do not need this skill — open the experiment's `README.md` and follow the Hypothesis / Setup / Run / Outcome sections.
+To read an existing experiment, you do not need this skill. Open its `README.md` and follow Hypothesis, Setup, Run and Outcome.
 
 ## Core rules
 
-1. **One concept per experiment.** Each experiment validates a single claim from `02-design.md`. If you are tempted to test two claims in one experiment, split into two — entangled experiments are uninterpretable when one half succeeds and the other fails.
-2. **Self-contained.** An experiment runs without modifying anything outside its own directory. No edits to `core/`, `library/`, `catalog/`, sibling experiments, or any other source-of-truth artefact. If your experiment needs a CUE schema or a Go fixture from the rest of the codebase, **copy it into the experiment dir** and modify the copy.
-3. **Copy, never reference.** Imports from `core/`, `library/`, `catalog/`, or another experiment are forbidden. Copy the bytes in. Why: experiments validate a claim as of a *specific* moment; an upstream change six months later silently invalidates a "reference" experiment.
-4. **Disposable.** Experiments are not production code. They may be deleted once the enhancement is `implemented` or rejected. Do not build infrastructure that other code depends on. Do not commit Go modules that other repos import. Do not write helper packages that escape the experiment's directory.
-5. **Languages.** Go for runtime / pipeline experiments; CUE for schema experiments; shell for orchestration; other languages where they fit. Pick the minimum tooling that proves the claim.
-6. **No tests, no CI.** Experiments are demonstrations, not test suites. They are exercised by running the documented `## Run` commands manually. CI does not exercise them; `task vet` validates only their structural presence.
+1. **One claim per experiment.** If you write two Hypothesis sentences, split it.
+1. **Self-contained.** An experiment runs without changing anything outside its own folder. If it needs a CUE schema or a Go fixture from another repo, copy it in and change the copy.
+1. **Copy, never import.** An import from `core/`, `library/` or `catalog_opm/` makes the experiment break when upstream moves, and nobody can tell whether the claim was ever valid. Cite the source path of every copy in Setup.
+1. **Disposable.** Nothing else depends on an experiment. Do not write a Go module that another repo imports.
+1. **Minimum tooling.** Go for runtime experiments, CUE for schema experiments, shell for orchestration.
+1. **A demonstration, not a test suite.** A human runs the commands in `## Run`. CI does not run them. If you want table-driven cases, write a test in the target repo.
 
-## Lifecycle
+## Make an experiment
 
-Three `Status:` values, recorded as the first non-heading content of the per-experiment README:
+Under the entry folder, `openspec/changes/<id>-<slug>/`:
+
+```text
+evidence/
+  README.md                  one line per file or folder, including experiments/
+  experiments/
+    README.md                the index: # / Concept / Status
+    01-concept-name/
+      README.md              Status, Hypothesis, Setup, Run, Outcome
+      ...                    the files the experiment needs
+```
+
+1. Make `evidence/experiments/` the first time a claim needs proof. Do not make it at scaffold time.
+1. Pick the next two-digit number and a kebab-case name.
+1. Write `01-concept-name/README.md`. The first content after the heading is `Status: Draft`. Then:
+   - **Hypothesis**: one sentence naming the claim in `design.md`. Name the specific assertion, not "the design works".
+   - **Setup**: what you copied, from where, and what you changed.
+   - **Run**: the exact commands. Prefer one command (`go run .`, `cue eval`, `bash run.sh`). If more are needed, number them.
+   - **Outcome**: a placeholder at Draft.
+1. Add a row to `evidence/experiments/README.md`: `| 01 | concept-name | Draft |`. The index is hand-kept.
+1. Add or keep a line naming `experiments/` in `evidence/README.md`. `task vet` warns (V29) when a file or folder of `evidence/` is not named there.
+1. Run `task vet ID=<id>`. It always runs `cue vet ./...` in each CUE module under `evidence/` and reports a failure as a warning.
+
+## Status
 
 | Status | Meaning | Next |
 | --- | --- | --- |
-| `Draft` | Just scaffolded. Hypothesis written; Setup / Run / Outcome are placeholders. | Fill in Setup and Run, attempt the experiment, transition to `Running`. |
-| `Running` | Live work. Hypothesis and Setup are concrete; commands in Run reproduce the in-flight state. Outcome may be partial or empty. | Once the outcome is recorded and the hypothesis is judged held / refuted, transition to `Concluded`. |
-| `Concluded` | Outcome recorded. Whether the hypothesis held is unambiguously stated. The experiment's claim is linked back into the enhancement's `02-design.md` or `03-decisions.md` so the evidence sits next to the design. | The experiment may be retained as historical reference or deleted; either is valid. |
+| `Draft` | Hypothesis written. Setup, Run and Outcome are placeholders. | Fill Setup and Run, try it, move to `Running`. |
+| `Running` | Setup and Run reproduce the current state. Outcome may be partial. | Record the outcome, then move to `Concluded`. |
+| `Concluded` | The outcome ends with "Hypothesis held." or "Hypothesis refuted." and one sentence of evidence. | Keep it, or delete it. |
 
-Status drives `task experiments:list`. Anything other than these three values renders verbatim (no enforcement), but reviewers and tooling expect the canonical set — use them.
+Edit the `Status:` line and the index row together. While `Running`, keep Setup and Run true for the current state, and write what you observe without judging the hypothesis early.
 
-## Create
+When an experiment concludes, link the result into the entry: one line in the `design.md` theme it informs, such as "Shown by `evidence/experiments/01-concept-name/`". If the hypothesis was refuted, the design must change. Change the theme, and keep the refuted option in `Considered and rejected` with one line on why.
 
-```bash
-# from enhancements/, or via the workspace include `task enhancements:new:experiment …`
-task new:experiment ID=NNNN NAME=concept-name
-```
-
-What this does:
-
-1. Validates `ID` is an existing enhancement directory (four-digit zero-padded).
-2. Validates `NAME` matches the kebab-case slug regex `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`.
-3. Creates `NNNN/experiments/` and seeds `experiments/README.md` (the hand-maintained index) on first invocation. Subsequent invocations skip this.
-4. Computes the next two-digit experiment number from existing `NN-*/` subdirs.
-5. Creates `NNNN/experiments/NN-NAME/README.md` with the canonical skeleton (Hypothesis / Setup / Run / Outcome / `Status: Draft`).
-6. Prints the path to the new experiment and the recommended next steps, including the index row to add by hand.
-
-The index row is **not** auto-appended to `experiments/README.md` — the index may carry extra columns or prose specific to that enhancement, and an auto-edit would force a parse-and-rewrite of someone else's markdown. Add the row yourself:
-
-```markdown
-| 01 | concept-name | Draft |
-```
-
-After scaffolding, the per-experiment README is a skeleton with placeholder prose for every section. Fill in:
-
-1. **Hypothesis** — One sentence naming the claim from `02-design.md` being validated. Avoid vague claims ("the design works"); name the specific assertion ("a `for id, c in #components { (id): c.#names }` comprehension under `#Module.#ctx` produces a fully-concrete map without an evaluation cycle").
-2. **Setup** — What was copied in, from where, and what was modified. Cite the source path of every copied artefact so a reviewer can compare. Note any modifications to the copies and why.
-3. **Run** — Exact commands that reproduce the result. Prefer a single command (`go run .`, `cue eval`, `bash run.sh`) over a multi-step sequence. If multi-step is unavoidable, number the steps.
-4. **Outcome** — Left as a placeholder during `Draft`. Filled when transitioning to `Running` (partial / in-flight observations OK) and finalised at `Concluded` with a clear "hypothesis held / refuted" statement.
-
-## Update
-
-Standard editing rules:
-
-- `Status:` line lives at the top of the per-experiment README (line 3 in the canonical skeleton). Edit it in place when transitioning.
-- The index table at `experiments/README.md` is hand-maintained. Update the status column when you transition an experiment.
-- The enhancement's `config.yaml.updated` field bumps on any meaningful edit, including experiment work.
-- A `config.yaml.history` event may capture an experiment milestone if it influenced the design (e.g. `{date: 2026-06-04, event: "Experiment 01-names-cascade concluded — D2/D3 ratified"}`).
-
-When updating an experiment in flight (`Running`):
-
-- Keep the Setup section accurate. If you change the copied artefacts or modify the experiment's command surface, update Setup before running.
-- The Run commands must continue to reproduce the current state — not a historical state. Update them in lockstep with the experiment.
-- Outcome accumulates observations. Write what you observed; do not pre-judge whether the hypothesis held until the experiment is complete.
-
-When transitioning `Running → Concluded`:
-
-- The Outcome section must end with an unambiguous statement: "Hypothesis held." or "Hypothesis refuted." with a one-sentence summary of the evidence.
-- Link the result into the enhancement: add a one-line reference in `02-design.md` (where the claim was stated) or `03-decisions.md` (under the relevant decision's Rationale or as a Source; when the outcome confirms or refutes one observable statement, cite it on that `- Rn:` line). Format suggestion: `Validated by experiments/01-concept-name/ — outcome 2026-06-04`.
-- Update the index row's Status column.
-- If the hypothesis was refuted, the design must change. Record a new decision in `03-decisions.md` capturing what the refutation taught you and what the design changed to.
-
-## Validate
-
-Two checks, both wired into `task vet`:
-
-1. **Index exists.** If `experiments/` is present, `experiments/README.md` MUST exist.
-2. **Per-experiment README exists.** Every `experiments/NN-*/` subdirectory MUST contain `README.md`.
-
-Neither check inspects content. The structural sanity is enforced; the prose is left to PR review.
-
-Run the structural check directly:
-
-```bash
-task vet:one ID=NNNN
-```
-
-List experiments with parsed status:
-
-```bash
-task experiments:list ID=NNNN
-```
-
-The list command parses the `Status:` line from each per-experiment README. Missing-or-unparseable Status renders as `(no Status: line)`; missing README renders as `(missing README.md)` (which `task vet` would also flag).
+Do not link `evidence/` from a requirement. A requirement states what holds, and the experiment is the proof behind a theme.
 
 ## When to remove
 
-Experiments are disposable. Three valid moments to delete:
-
-- **Enhancement reaches `implemented`.** The design is now in production code; experiments served their purpose. Decision: delete experiments that prove nothing the production code hasn't already validated more comprehensively, or keep them as historical reference if the technique is non-obvious and a future reader might want to see it isolated.
-- **Enhancement is rejected.** The whole package is being archived (or the entry is being set to `superseded`). Experiments may be deleted along with the rest of the design intent that was not adopted.
-- **Refuted experiment, design redirected.** A `Concluded — refuted` experiment that drove a major design pivot may be retained or deleted. Retain if the refutation itself is the lesson; delete if the new design entirely supersedes the question the experiment asked.
-
-Deletion is a regular `git rm`. Update the `experiments/README.md` index by removing the row. If `experiments/` becomes empty, delete it too — `task vet` does not require it to exist.
+An experiment is disposable. Delete it with `git rm` before `task deliver` when the shipped code proves the claim better, or when a new design makes its question moot. Keep a refuted experiment if the refutation is the lesson. Remove its index row and its line in `evidence/README.md`. An archived entry is not edited, so remove an experiment only while the entry is live.
 
 ## Anti-patterns
 
-- **Adding an experiment upfront when copying the template.** Don't. Create `experiments/` the first time a specific claim needs validation, never at scaffold time. Empty experiment scaffolds are noise.
-- **Two claims in one experiment.** If you find yourself writing two Hypothesis sentences, stop and split.
-- **Importing from `core/` or `library/` instead of copying.** A reviewer six months from now reads the experiment, finds it broken because `core/platform.cue` evolved, and cannot tell whether the claim was ever valid. Copy.
-- **Writing tests instead of demonstrations.** Experiments are not `go test ./...`. They are runnable scripts a human invokes to see a behaviour. If your "experiment" wants table-driven test cases and assertions, write a test fixture in `library/` instead.
-- **Leaving `Outcome` as the placeholder when transitioning to `Concluded`.** A Concluded experiment without a recorded outcome is a lie. Either write the outcome or roll the status back to `Running`.
-- **Not linking the result back into the enhancement.** A concluded experiment that lives only under `experiments/` is invisible to anyone reading the design. The link from `02-design.md` or `03-decisions.md` is what makes the evidence discoverable.
-- **Treating the experiment's code as canonical.** It isn't. The canonical CUE is the entry's `schemas/` (core delta) or `contracts/` files and (eventually) `core/*.cue`. The experiment's copies are *demonstrations of a moment*, not authoritative artefacts.
-
-## Where things live
-
-| Artefact | Path | Authority |
-| --- | --- | --- |
-| Experiments index | `enhancements/NNNN/experiments/README.md` | Hand-maintained by the agent / author. Lists `# / Concept / Status` rows. |
-| Per-experiment README | `enhancements/NNNN/experiments/NN-name/README.md` | Hand-maintained. Hypothesis / Setup / Run / Outcome / `Status:`. |
-| Experiment source files | `enhancements/NNNN/experiments/NN-name/*` | Whatever the experiment needs — `.cue`, `.go`, `Taskfile.yml`, `cue.mod/`, etc. Self-contained. |
-| Workflow tasks | `enhancements/Taskfile.yml` (`new:experiment`, `experiments:list`, `vet`) | Tooling source. |
-| Structural validation | `enhancements/Taskfile.yml` (`vet` and `vet:one` `check()` functions) | Index + README presence checks. |
-| This skill | `enhancements/.claude/skills/enhancement-experiments/SKILL.md` | Workflow guidance — the file you are reading. |
+- **Making `experiments/` at scaffold time.** An empty folder is noise.
+- **Two claims in one experiment.**
+- **Importing instead of copying.**
+- **Writing tests.** An experiment is a runnable demonstration.
+- **A Concluded experiment with a placeholder Outcome.** Write the outcome, or move the status back to `Running`.
+- **Not linking the result into `design.md`.** Evidence that nobody can find is not evidence.
+- **Treating the experiment's code as canonical.** The canonical CUE is in the target repo. The copies show one moment.
 
 ## Cross-references
 
-- `enhancements/AGENTS.md` — repo guide; points to this skill at the experiments section.
-- `enhancement-open-questions` skill (sibling, under `enhancements/.claude/skills/`) — when an experiment's outcome lands an OQ in the `informed-by-exp-NN` / `supported-by-exp-NN` partial bucket, the walk formalizes it into a `### DN:` block. Load that skill alongside this one when concluding an experiment whose result resolves a specific OQ.
-- `core/.claude/skills/core-schema-edit/SKILL.md` — sister skill governing SPEC.md co-update when an experiment's conclusion lands as a real schema change in `core/*.cue`.
+- `AGENTS.md`: the rules of the repo, including `evidence/`.
+- `.claude/skills/enhancements/SKILL.md`: the workflow protocol.
+- `core/.claude/skills/core-schema-edit/SKILL.md`: the SPEC.md co-update protocol, when an experiment's result lands as a change in `core/*.cue`.
