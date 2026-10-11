@@ -41,3 +41,5 @@ All read at the commits named. The requirement text is rewritten at intent level
 ## Disagreements between spec and code
 
 None that change a requirement. Code wins on one point: the `library` spec says the context comes from core's projection of `#moduleInstance` and `#component` at "core `v2.0.0-alpha.7`"; the code reads whatever core the platform carries. The seed names no version.
+
+sampled: 2026-10-11 18705155
