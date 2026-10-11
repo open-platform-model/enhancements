@@ -1,0 +1,21 @@
+# Facts only. History is `git log`.
+id: "0009"
+slug: operational-primitives
+title: 'Operational Primitives: Op, Action, Lifecycle, Workflow'
+summary: >-
+  Give the kernel a second half that turns a module into an ordered plan of steps, so a module can
+  say what should happen and not only what should exist.
+status: draft
+category: schema
+breaking: false
+affects:
+  - core
+  - library
+  - catalog_opm
+  - cli
+  - opm-operator
+authors:
+  - emil@jacero.se
+created: "2026-06-29"
+after:
+  - "0025"
