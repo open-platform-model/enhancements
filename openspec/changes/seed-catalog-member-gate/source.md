@@ -48,3 +48,5 @@ Where they differ, the code wins.
 - Field names (`declaredFQN` and the other `declared` fields) are left out of the text; the requirements say key, package path, catalog version and API version. `#CatalogMemberFQNGate` and `#IdentityPackage` are named as published definitions (V19, D 21:30 Q5).
 - The scenario "A key that carries the filing segment is refused" and "A transformer is filed at its prefix" (the refusal half) come from scratch probes and the pins' comments, not from the repo spec. The pins record the first (`_pinKeyOmitsFilingSegment`).
 - The scenario "A resource and a trait of one name keep distinct keys" is moved in from `primitive-keying`, which drops its requirement "A key carries its kind segment" (T4.R11 finding 2). Its source is `SPEC.md` 5.3 Rationale ("Why the kind segment is retained in the FQN") and the key formula at `identity_package.cue:233`. The kind-segment rule stays here, in "A key is built from level or build".
+
+sampled: 2026-10-11 18705155
