@@ -10,8 +10,8 @@ A platform SHALL hold the built platform package, the platform's metadata decode
 
 #### Scenario: Metadata carries the platform's identity
 
-- **WHEN** a platform value declares a name, a description, labels, annotations and a root-level type
-- **THEN** the platform's metadata holds all five, with the root-level type read as the metadata type
+- **WHEN** a platform is acquired from a directory whose package declares a name, a description, labels, annotations and a root-level type
+- **THEN** the platform holds the package, metadata with all five, the root-level type read as the metadata type, and the source it was loaded from
 
 #### Scenario: The composed transformers are not decoded
 
@@ -105,7 +105,7 @@ Acquisition SHALL refuse a platform whose registry holds an entry with any field
 
 #### Scenario: The same entry with its catalog imported passes
 
-- **WHEN** the entry embeds the imported catalog
+- **WHEN** a platform is acquired whose registry entry embeds the imported catalog
 - **THEN** acquisition succeeds
 
 #### Scenario: A catalog without a stamped version is refused
@@ -167,7 +167,7 @@ Reading the inventory of a platform whose core predates a report SHALL be refuse
 
 #### Scenario: A missing provider count is refused with the core-too-old error
 
-- **WHEN** a platform value built against core 2.0.0-alpha.11 or older is read
+- **WHEN** a platform value carries every other report field and no provider count, as a value built against core 2.0.0-alpha.10 or 2.0.0-alpha.11 does
 - **THEN** the read returns no inventory and a core-too-old error naming the provider count and the release 2.0.0-alpha.12
 
 #### Scenario: A value with no inventory is refused

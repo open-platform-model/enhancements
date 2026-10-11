@@ -2,7 +2,7 @@
 
 This is a seed. It records behaviour the cli ships today so that later entries can modify it. It is not an enhancement and has no number.
 
-Capability: `module-authoring`. Full seed (19 requirements, 50 scenarios). Written 2026-10-11 from the cli at commit `09b0b812`.
+Capability: `module-authoring`. Full seed (21 requirements, 54 scenarios; the fixes of review T4.R25 added two requirements, "Init never leaves a partial scaffold" and "A consistent tree needs no repair"). Written 2026-10-11 from the cli at commit `09b0b812`.
 
 ## Sources
 
@@ -13,16 +13,18 @@ All read at the commit named. The requirement text is rewritten at intent level:
 | Version set changes only the version value | `authoring-commands`, "version set writes in place, idempotently, offline" (first half) | `internal/cueedit/cueedit.go` (`SetIdentityVersion`, `spliceVersion`); test case "open field gains a unification" in `cueedit_test.go` |
 | Setting the declared version writes nothing | same requirement (no-op, offline, argument) | `internal/cmdutil/versionset.go` (`RunVersionSet`); `internal/cueedit/cueedit.go` (`CheckVersion`) |
 | A non-conformant identity file is refused | same requirement (refusal half) | `internal/cmdutil/versionset.go` (`versionSetRefusal`) |
-| Official templates are published modules | `template-modules`, "Templates are published modules in a reserved segment" (first part) | `.github/scripts/publish-templates.sh`; `.github/workflows/pr.yml` (dry-run step); `internal/publish/gates.go` (segment shape) |
+| Official templates are published modules | `template-modules`, "Templates are published modules in a reserved segment" (first part) | `.github/scripts/publish-templates.sh`; `.github/workflows/pr.yml` (dry-run step); `internal/publish/gates.go` (segment shape); `.github/scripts/publish-templates.sh:274-279` (the module path must be the segment, the template's name and its major), `:296-307` and `:339-340` (the gate accepts exactly one refusal, that the registry already holds this version, and goes on to the identical-tree check), `:367` (published through module publish) |
 | A failing template stops the release | same requirement (gates and release) | `publish-templates.sh` (gate phase, then publish phase); `.github/workflows/release.yml` ("Require the published templates") |
 | A template is exactly its published module | same requirement (tree, bump and version rules) | `publish-templates.sh` (`zip_holds_tree`, `same_as_published`, the version checks in `gate`) |
-| A template identity is a plain literal | same requirement (second paragraph) | `templates/*/identity/identity.cue`, `templates/*/module.cue` |
-| Init scaffolds by fetch and re-identification | `template-modules`, "init scaffolds by fetch and re-identification" | `internal/scaffold/scaffold.go` (`Run`, `Reidentify`, `ValidateNewModulePath`); `internal/cmd/module/init.go` (`runScaffold`) |
-| A clone source must derive its metadata | none (code only) | `internal/scaffold/scaffold.go` (`assertDerives`) |
-| Shortcut expansion is syntactic and never falls back | `template-modules`, "Shortcut expansion is syntactic and safe" | `internal/scaffold/ref.go` (`ParseTemplateRef`); `internal/cmd/module/init.go` (`pickTemplateRef`) |
-| Template list prints the official set offline | `template-modules`, "template list" | `internal/cmd/module/template.go` |
+| A template identity is a plain literal | same requirement (second paragraph) | `templates/{minimal,standard,advanced}/identity/identity.cue:14` (`Version: "1.0.4"`, a quoted literal), `templates/{minimal,standard}/module.cue:28` and `templates/advanced/module.cue:32` (`version: id.Version`, a plain reference) |
+| Init scaffolds by fetch and re-identification | `template-modules`, "init scaffolds by fetch and re-identification" | `internal/scaffold/scaffold.go` (`Run`, `Reidentify`, `ValidateNewModulePath`): `:202-204` resets the identity version to `InitialVersion` (0.1.0) through the writer that keeps the form it finds, and the official templates hold plain literals; `internal/cmd/module/init.go` (`runScaffold`) |
+| Init never leaves a partial scaffold | split out of the row above (review T4.R25 finding 3); the cli spec's scenarios on both rules | `internal/scaffold/scaffold.go:164-166` (target directory exists: refused), `:169`, `:174`, `:179` (`os.RemoveAll(dest)` after a failed copy, re-identification or derive check) |
+| A clone source must derive its metadata | none (code only) | `internal/scaffold/scaffold.go:282-305` (`assertDerives`: compares the metadata modulePath with the new path and the metadata version with 0.1.0, so a donor whose literal is 0.1.0 passes the version check) |
+| Shortcut expansion is syntactic and never falls back | `template-modules`, "Shortcut expansion is syntactic and safe" | `internal/scaffold/ref.go:99-135` (`ParseTemplateRef`: `:122` a reference with a slash or a dot is a literal module path); `internal/cmd/module/init.go:182-197` (`pickTemplateRef`: naming the template twice is a validation refusal) |
+| Template list prints the official set offline | `template-modules`, "template list" | `internal/cmd/module/template.go:44-65` (the list reads the baked table `scaffold.Official`, touches no registry, and writes a table, JSON or YAML) |
 | Init refuses honestly when it cannot fetch | `template-modules`, "init scaffolds by fetch..." (offline sentence) and "Shortcut expansion..." (prompt sentence) | `internal/scaffold/scaffold.go` (`ResolveTemplateVersion`); `internal/cmd/module/init.go` (`promptModulePath`, `initError`) |
-| Init repairs a tree behind a second confirmation | none in the cli's spec (its Purpose and one scenario mention repair); decision 0011:D20 | `internal/scaffold/repair.go` (`DetectRepair`, `Describe`); `internal/cmd/module/init.go` (`runRepair`, `confirm`) |
+| Init repairs a tree behind a second confirmation | none in the cli's spec (its Purpose and one scenario mention repair); decision 0011:D20 | `internal/scaffold/repair.go` (`DetectRepair`, `Describe`); `internal/cmd/module/init.go` (`runRepair`, `confirm`: `:312-320` a non-terminal input is refused with "Rerun with --yes to consent up front") |
+| A consistent tree needs no repair | split out of the row above (review T4.R25 finding 7) | `internal/cmd/module/init.go:262-265` ("Nothing to repair ..." and the module vet pointer) |
 | Repair never invents identity | none in the cli's spec; decision 0011:D20 | `internal/scaffold/repair.go` (`resolveRepairPath`, `planCueMod`, `planIdentity`, `statedVersion`) |
 | Scaffold layout is one package, no values file | `template-modules`, "Module tree layout" (scaffold half) | `templates/*` trees; `internal/scaffold/scaffold.go` (`RenamePackageClauses` call in `Reidentify`) |
 | Login stores the credential where push reads it | `registry-login`, "Login writes where the push reads" (file half) | `internal/dockercfg/dockercfg.go` (`Path`, `Upsert`) |

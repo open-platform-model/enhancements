@@ -10,7 +10,7 @@ All read at the commit named. Spec means `library` `openspec/specs/platform-arti
 
 | Requirement here | Source requirement in the library's spec | Code read |
 | --- | --- | --- |
-| A platform holds its package, metadata and source | "Platform Type Shape" (the struct fields, the metadata fields, no decoded derived view); "Platform carries its render source" (first sentence) | `opm/platform/platform.go:19-63`, `opm/platform/metadata.go` |
+| A platform holds its package, metadata and source | "Platform Type Shape" (the struct fields, the metadata fields, no decoded derived view); "Platform carries its render source" (first sentence) | `opm/platform/platform.go:19-63`, `opm/platform/metadata.go`; `opm/kernel/acquire.go:293-308` (a directory-acquired platform holds all three) |
 | A platform is built from a bare value | "Platform constructor takes a bare value" | `opm/platform/platform.go:74-111` (`NewPlatformFromValue`, `decodePlatformMetadata`) |
 | A directory-acquired platform carries its source | "Platform acquisition from a directory returns a source-carrying artifact" (source half and three scenarios) | `opm/kernel/acquire.go:293-308`, `acquire.go:139-156`, `acquire.go:558-578` (`sourceForDir`) |
 | Acquisition resolves catalogs through the configured registry | same requirement, the last two sentences; scenario "Registry override honored" | `opm/kernel/acquire.go:293-308`, `opm/internal/cueenv` (`Override`: a copy of the environment, never `os.Setenv`) |
@@ -18,13 +18,13 @@ All read at the commit named. Spec means `library` `openspec/specs/platform-arti
 | Acquisition refuses an incomplete registry entry | same scenario ("incomplete `#registry` entry"); `artifact-types` scenario "Registry entry with no embedded catalog rejected" | `opm/internal/loader/shape.go:152-178` (`requireCompleteEntries`) |
 | A platform records its contract inventory at construction | "A platform records its core floor and contract inventory at construction" (all scenarios but the two left out below) | `opm/platform/contracts.go:169-198` (`Contracts`, `CoreFloor`), `:228-296` (`decodeFacts`), `:300-316` (`clone`) |
 | The inventory is read as a decoded view | "Platform Type Shape": the accessor sentences and the scenarios "The inventory of a healthy platform...", "An over-subscribed platform is reported, not refused", "An unlisted demand leaves the inventory empty" (the member-schema half) | `opm/platform/contracts.go:62-140` (`ContractInventory`), `:150-168` |
-| An inventory that predates a report is refused | "Platform Type Shape": the sentences on a report the value does not carry, the collision exception, and the scenarios "An inventory that predates the comparable-predicate report is refused", "...the provider count is refused", "...the collision report reads no collision" | `opm/platform/contracts.go:228-296` (`decodeFacts`: the per-field release table and the collision loop) |
+| An inventory that predates a report is refused | "Platform Type Shape": the sentences on a report the value does not carry, the collision exception, and the scenarios "An inventory that predates the comparable-predicate report is refused", "...the provider count is refused", "...the collision report reads no collision" | `opm/platform/contracts.go:228-296` (`decodeFacts`: the per-field release table and the collision loop); the provider count is the last entry of the table, `:255`, read after every other field, so the first missing field is the one named (`:258-261`); `:193` and `opm/schema/paths.go:50` for alpha.12 |
 
 ## Where the code wins over the spec
 
 - The spec says the struct "has exactly three exported fields". The code adds two unexported ones (a once guard and the recorded facts, `platform.go:59-62`). The seed says what the platform holds, not a field count.
 - The spec has no scenario for "a value with no inventory" beyond "The zero platform reports no contracts" (the refusal names the inventory field). The code records the refusal with the first release 2.0.0-alpha.9 (`contracts.go:230-233`). The seed's scenario matches the code.
-- The first-release table (alpha.9, alpha.10, alpha.12, alpha.13) is read from the code (`contracts.go:240-253`, `schema/paths.go:50`); the seed names only 2.0.0-alpha.9, alpha.11, alpha.12 in scenarios, which the spec names too.
+- The first-release table (alpha.9, alpha.10, alpha.12, alpha.13) is read from the code (`contracts.go:240-253`, `schema/paths.go:50`); the seed names alpha.9, alpha.10, alpha.11 and alpha.12 in scenarios. The provider-count scenario states that every other field is present, because the code stops at the first missing field (`contracts.go:258-261`); a value built against alpha.9 is refused for the comparable list, not the provider count (review T4.R25 finding 1).
 
 ## Left out
 

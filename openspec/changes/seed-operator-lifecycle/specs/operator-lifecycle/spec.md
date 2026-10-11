@@ -140,9 +140,13 @@ Install SHALL report success only after the rendered CRDs are `Established` and 
 - **WHEN** the new controller pod cannot become ready before the timeout
 - **THEN** install exits non-zero naming `opm-operator-controller-manager` and the timeout, and every applied object and the record remain
 
+### Requirement: A failure after the CRDs says to re-run
+
+When the CRD step, the opt-in role apply or the rollout fails after install has applied a CRD, the error SHALL say that install is idempotent and safe to re-run.
+
 #### Scenario: A failure after the CRD step is safe to re-run
 
-- **WHEN** the instance apply fails after the CRDs were applied
+- **WHEN** the controller rollout does not complete after the CRDs were applied
 - **THEN** the error says that install is idempotent and safe to re-run
 
 ### Requirement: Platform seeding follows the rollout
@@ -157,7 +161,7 @@ After the rollout, unless the options that skip it are given, install SHALL crea
 #### Scenario: Platform create denied by RBAC
 
 - **WHEN** the installing user may apply the operator but may not create `platforms`
-- **THEN** the command warns that the Platform was not seeded, names the missing permission, and does not fail because of it
+- **THEN** the command warns that the Platform was not created because RBAC denied the create, and does not fail because of it
 
 #### Scenario: Seeding skipped on request
 
@@ -213,17 +217,26 @@ With the opt-in role, install SHALL also apply the ClusterRole `opm-cli-user`: a
 
 ### Requirement: Install refuses before it writes
 
-Before it writes any object, install SHALL run every check that can refuse it: module resolution, the render, the values against `#config`, the version rules, the permission to patch instance status (a CRDs-only install skips it), the wait for terminating objects and the ownership check. Only then SHALL it write: the CRDs, the instance, then the Platform. Outside the instance apply and its prune, install SHALL send no delete and no patch of managed fields. A refusal SHALL change no object.
+Before it writes any object, install SHALL run every check that can refuse it: module resolution, the render, the values against `#config`, the version rules, the permission to patch instance status, the wait for terminating objects and the ownership check. Only then SHALL it write: the CRDs, the instance, then the Platform. Outside the instance apply and its prune, install SHALL send no delete and no patch of managed fields. A refusal SHALL change no object.
 
 #### Scenario: A refused install leaves the CRDs untouched
 
-- **WHEN** install refuses because an object the render names already exists and OPM does not manage it
-- **THEN** no CRD, label or other object in the cluster has changed
+- **WHEN** the CRDs of an earlier OPM install are on the cluster and differ from the render's, and install refuses because a ClusterRole the new render adds already exists and OPM does not manage it
+- **THEN** the CRDs on the cluster are unchanged, and no label or other object has changed
+
+### Requirement: A missing status permission refuses install
+
+When the installing user may not patch the status of instances in `opm-operator-system`, install SHALL refuse with exit 4, name the permission, and change no object. A CRDs-only install records no instance and SHALL skip this check.
 
 #### Scenario: Status permission missing
 
 - **WHEN** the installing user may not patch instance status in `opm-operator-system`
 - **THEN** install exits 4 naming the permission, and nothing changed
+
+#### Scenario: CRDs-only skips the check
+
+- **WHEN** a CRDs-only install runs as a user who may not patch instance status
+- **THEN** the check is not made and the install goes on
 
 ### Requirement: Install judges every object it applies
 
@@ -261,17 +274,17 @@ Before the ownership check, install SHALL wait, within the timeout budget, for e
 #### Scenario: Install right after uninstall waits
 
 - **WHEN** `opm operator uninstall` has returned and install runs before the deleted Deployment is gone
-- **THEN** the command reports it is waiting for the terminating Deployment, applies only after it is gone, and completes
+- **THEN** install waits for the terminating Deployment to be gone, applies only after that, and completes
 
 #### Scenario: Terminating object outlives the budget
 
 - **WHEN** an object of the render stays terminating for longer than the timeout
-- **THEN** the command exits non-zero naming that object and the elapsed timeout, and nothing has been applied
+- **THEN** the command exits non-zero naming that object, and nothing has been applied
 
 #### Scenario: An object unreadable from the start
 
 - **WHEN** every read of a ClusterRole the render names fails with Forbidden
-- **THEN** the command exits 4 naming that ClusterRole and the read error, and no object has changed
+- **THEN** the command exits 4, and no object has changed
 
 ### Requirement: Uninstall keeps the record after a read failure
 
@@ -295,12 +308,12 @@ When every recorded object was deleted and the delete of the record then fails w
 
 ### Requirement: Every CLI server-side apply uses one field manager
 
-Every server-side apply the CLI performs, instance and module applies and operator installs alike, SHALL use the field manager `opm-cli`. The former manager name `opm` is retired: resources applied under it change owner on their next apply, with no change the user sees.
+Every server-side apply the CLI performs, instance and module applies and operator installs alike, SHALL use the field manager `opm-cli`. The former manager name `opm` is retired. On a resource applied under it, `opm` keeps every field the next apply does not change; only the fields whose value that apply changes move to `opm-cli`. A field `opm` still manages SHALL stay on the resource when a later apply no longer sets it.
 
 #### Scenario: One manager identity across the CLI
 
 - **WHEN** any CLI command applies a resource
-- **THEN** the resource's managed fields attribute the CLI's fields to the manager `opm-cli`, and no CLI code path applies with the manager `opm`
+- **THEN** the resource's managed fields attribute the CLI's fields to the manager `opm-cli`
 
 ### Requirement: The running-operator check uses fixed names
 
@@ -327,8 +340,8 @@ An operator build SHALL report `v` plus the version of the release it was built 
 
 #### Scenario: Tagged commit self-describes
 
-- **WHEN** the source at a release tag is built by any means: container image, local build or install from source
-- **THEN** the binary reports the tag's version with no build flags
+- **WHEN** the source at a release tag is built with no build flags, as a container image, a local build or an install from source
+- **THEN** the reported version, with any `+` suffix removed, is `v` plus the tag's version
 
 #### Scenario: Release image reports the clean tag
 

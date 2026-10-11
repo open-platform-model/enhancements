@@ -20,12 +20,12 @@ The module and catalog version commands SHALL write the version value of the art
 
 #### Scenario: A default keeps its marker
 
-- **WHEN** the version is declared as a default carrying a release-automation marker
+- **WHEN** the version is declared as a default carrying a release-automation marker and the version is set to 1.3.0
 - **THEN** the default value is replaced and the field is still a default with the marker intact
 
 #### Scenario: An open field gains the version
 
-- **WHEN** the version field is declared with no value, only its type
+- **WHEN** the version field is declared with no value, only its type, and the version is set to 1.3.0
 - **THEN** the file now unifies that type with the version that was set
 
 ### Requirement: Setting the declared version writes nothing
@@ -53,27 +53,27 @@ When the identity file is absent, does not parse, or declares no version at the 
 
 #### Scenario: A missing version field is refused
 
-- **WHEN** the identity file declares no version field
+- **WHEN** a version command runs on an identity file that declares no version field
 - **THEN** the command refuses, names the file and the missing field, and writes nothing
 
 #### Scenario: The catalog refusal names the dry run
 
-- **WHEN** a catalog's identity file is refused
+- **WHEN** a version command refuses a catalog's identity file
 - **THEN** the pointer names the catalog publish dry run and never module vet
 
 ### Requirement: Official templates are published modules
 
-The official templates minimal, standard and advanced SHALL be real modules hosted in the cli repository. The cli's release pipeline SHALL publish them through module publish into a reserved segment of the opmodel.dev domain, one name deep, and each SHALL pass every publish gate. The segment SHALL be a module segment. No official template version SHALL be published unless every template passes the gates.
+The official templates minimal, standard and advanced SHALL be real modules hosted in the cli repository. The cli's release pipeline SHALL publish them through module publish into a reserved segment of the opmodel.dev domain, one name deep, and each SHALL pass every publish gate other than the refusal of a version the registry already holds. The segment SHALL be a module segment. No official template version SHALL be published unless every template passes the gates.
 
 #### Scenario: Templates pass the gates of any module
 
-- **WHEN** a template tree violates a publish gate
-- **THEN** that template version is not published and the cli release fails
+- **WHEN** a template tree fails a publish gate other than the refusal of a version the registry already holds
+- **THEN** that template version is not published and the cli release stays a draft
 
-#### Scenario: A failing template publishes nothing
+#### Scenario: A template publishes one name deep in the reserved segment
 
-- **WHEN** one official template fails a gate
-- **THEN** no official template version is published
+- **WHEN** the official template standard declares version 1.2.0 and the cli release publishes it
+- **THEN** it is published through module publish as opmodel.dev/templates/standard@v1 at v1.2.0, and a template whose module path is not the segment, its own name and its major is refused
 
 ### Requirement: A failing template stops the release
 
@@ -83,6 +83,11 @@ Before any template is published, each SHALL pass the tidy check, the publish ga
 
 - **WHEN** one template fails module vet and the others pass
 - **THEN** nothing is published and the release stays a draft
+
+#### Scenario: A template renders its own debug values
+
+- **WHEN** module vet runs on an official template with no values given
+- **THEN** it renders every component and succeeds
 
 #### Scenario: An unchanged release publishes nothing
 
@@ -106,7 +111,7 @@ A template tree SHALL hold exactly the files its module zip holds: no symbolic l
 #### Scenario: A prerelease or lower version is refused
 
 - **WHEN** a template declares a prerelease, or a version below the highest published stable version of its major
-- **THEN** the release refuses it, so init never resolves a version other than the tree on the main branch
+- **THEN** the release refuses it
 
 ### Requirement: A template identity is a plain literal
 
@@ -117,10 +122,10 @@ A template's identity file SHALL declare the version as a concrete string litera
 - **WHEN** an official template's identity file is read
 - **THEN** the version is a quoted SemVer literal with no disjunction and no local version type
 
-#### Scenario: A template renders its own debug values
+#### Scenario: Metadata refers to the identity version
 
-- **WHEN** module vet runs on an official template with no values given
-- **THEN** it renders every component and succeeds
+- **WHEN** an official template's module file is read
+- **THEN** its metadata version is a plain reference to the identity file's version, with no literal and no default
 
 ### Requirement: Init scaffolds by fetch and re-identification
 
@@ -135,6 +140,15 @@ Module init SHALL fetch the template module, copy its source tree, and re-identi
 
 - **WHEN** the new module path has no major suffix
 - **THEN** init refuses before fetching and shows an example path
+
+#### Scenario: The scaffold starts at 0.1.0
+
+- **WHEN** a module is scaffolded from an official template
+- **THEN** the identity file declares version 0.1.0 as a plain literal, and the module's metadata version reads 0.1.0
+
+### Requirement: Init never leaves a partial scaffold
+
+When it scaffolds a new module, init SHALL refuse a target directory that already exists, and SHALL remove the new directory when any step fails after it created it.
 
 #### Scenario: An existing target directory is refused
 
@@ -152,17 +166,17 @@ After re-identification, init SHALL check that the scaffold's metadata carries t
 
 #### Scenario: A donor with literal metadata is refused
 
-- **WHEN** a module is cloned from a source whose metadata version is a literal
+- **WHEN** a module is cloned from a source whose metadata version is a literal other than 0.1.0
 - **THEN** init refuses, names the metadata field, and removes the new directory
 
 ### Requirement: Shortcut expansion is syntactic and never falls back
 
-A template reference that is a bare word SHALL expand into the reserved segment. A reference with a slash or a dot SHALL be a literal module path and SHALL never be expanded. A major suffix SHALL float to the newest release of that major, stable preferred. A full SemVer SHALL pin that tag. With no suffix an official template takes its default major. An explicit source option SHALL accept any published module.
+A template reference that is a bare word SHALL expand into the reserved segment. A reference with a slash or a dot SHALL be a literal module path and SHALL never be expanded. A major suffix SHALL float to the newest release of that major, stable preferred. A full SemVer SHALL pin that tag. With no suffix an official template takes its default major. An explicit source option SHALL accept any published module. Naming the template more than once SHALL be refused.
 
 #### Scenario: A bare word expands and a path never does
 
-- **WHEN** init is given a module path and the reference standard at v1
-- **THEN** the reference resolves inside the reserved segment and the path is taken literally
+- **WHEN** init is run once with the template reference standard@v1 and once with the reference example.com/templates/standard@v1
+- **THEN** the first resolves inside the reserved segment, and the second is looked up as the literal module path example.com/templates/standard@v1, never expanded
 
 #### Scenario: A typo fails inside the segment
 
@@ -177,6 +191,11 @@ A template reference that is a bare word SHALL expand into the reserved segment.
 ### Requirement: Template list prints the official set offline
 
 The template list command SHALL print each official template's name, description and default major from the same table that drives shortcut expansion. It SHALL need no registry access and SHALL print as a table, JSON or YAML.
+
+#### Scenario: The list prints offline
+
+- **WHEN** template list runs with no registry reachable
+- **THEN** it prints minimal, standard and advanced, each with its description and default major, and succeeds
 
 #### Scenario: A listed name expands
 
@@ -216,15 +235,24 @@ Run in a directory that already holds a module, init SHALL detect a missing or d
 - **WHEN** the author declines the confirmation
 - **THEN** init refuses and no file changes
 
-#### Scenario: A consistent tree needs nothing
+#### Scenario: No terminal and no consent is refused
 
-- **WHEN** the module declaration and the identity file agree
-- **THEN** init reports that there is nothing to repair and points at module vet
+- **WHEN** a repair is needed, standard input is not a terminal, and consent was not given up front
+- **THEN** init refuses, names the way to consent up front, and no file changes
 
 #### Scenario: A template for an existing module is refused
 
 - **WHEN** init is given a template and the target directory already holds a module
 - **THEN** init refuses and suggests repair without the template, or another directory
+
+### Requirement: A consistent tree needs no repair
+
+Run in a directory whose module declaration and identity file agree, init SHALL report that there is nothing to repair and point at module vet.
+
+#### Scenario: A consistent tree needs nothing
+
+- **WHEN** the module declaration and the identity file agree
+- **THEN** init reports that there is nothing to repair and points at module vet
 
 ### Requirement: Repair never invents identity
 
