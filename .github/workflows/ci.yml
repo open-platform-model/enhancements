@@ -8,6 +8,8 @@
 #               Pull requests only: every change to main lands by PR, so the
 #               push run on main skips its steps (the job still succeeds)
 #   docs:pins:check  the docs-kit pins agree (offline)
+#   test        task test (the checker's own tests: go test of tools/enh and the
+#               tests/schema fixtures), so a PR that breaks the checker fails
 #
 # ci-ok is the one job a ruleset requires: it fails when any gate failed, was
 # cancelled or was skipped. The docs bundle opmodel.dev pulls has its own lint
@@ -239,12 +241,58 @@ jobs:
       - name: Verify the docs-kit pins agree
         run: task docs:pins:check
 
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/enh/go.mod
+          cache-dependency-path: tools/enh/go.sum
+
+      - name: Setup CUE
+        uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c # v2.0.0
+        with:
+          version: ${{ env.CUE_VERSION }}
+
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Install OpenSpec
+        # The specsrule tests skip when the pinned CLI is missing, and a skip
+        # would hide a break. Same install as the specs-rule job.
+        run: npm install -g --ignore-scripts "@fission-ai/openspec@${OPENSPEC_VERSION}"
+
+      - name: Tool versions
+        run: |
+          task --version
+          go version
+          cue version
+          openspec --version
+
+      - name: Test the checker
+        run: task test
+
   ci-ok:
     # The one required check. It runs after every gate, fails on a failed,
     # cancelled or skipped gate, and has no allow-list: no gate may skip.
     name: CI result
     if: always()
-    needs: [vet, links, fresh, specs-rule, docs-pins]
+    needs: [vet, links, fresh, specs-rule, docs-pins, test]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

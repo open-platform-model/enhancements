@@ -187,6 +187,7 @@ All tasks run from `enhancements/` (`cd enhancements && task <name>`) or from th
 | `task list [-- --archived]`, `task show ID=0013`, `task questions ID=0013`, `task stale ID=0013`, `task history REQ="Name"` | Read-only views: entries, the facts of one, its open questions, its stale-base flags, the history of a requirement. |
 | `task reconcile` | Compare the `Delivers` lines of the sibling repos with the ticks of `tasks.md`. Needs sibling checkouts. |
 | `task cite-lint` | Flag decision numbers and lone ids in Go and CUE comments. |
+| `task test` | The checker's own tests: `go test` of `tools/enh` and the `tests/schema` fixtures. Not part of `task check`. CI runs it as the `test` job. The specsrule tests skip without openspec 1.14.1 on `PATH`. |
 | `task specs-rule [BASE=ref]` | The CI rule for `openspec/specs/`: one delivery, one seed or a Purpose correction. Needs openspec 1.14.1 and full git history. |
 | `task ideas` | List open idea issues on GitHub (needs `gh`). |
 | `task docs:bundle` / `task docs:bundle:check` | Build the enhancements bundle into `out/enhancements/` / build and lint it without writing `out/`. |

@@ -30,6 +30,7 @@ tasks:
 
         Common tasks:
           task check                             — the gate: vet (with --cue, ENH_FINAL=1), links, fresh
+          task test                              — the checker's own tests: go test of tools/enh and tests/schema (CI job `test`)
           task vet [ID=0013] [MODE=accept|deliver] [BASE=origin/main] — check the entries
           task new SLUG=foo TITLE="Foo Bar" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
           task seed:new CAP=registration-acceptance
@@ -286,6 +287,18 @@ tasks:
       - task: vet
       - task: links
       - task: fresh
+
+  test:
+    desc: "The checker's own tests: go test of tools/enh, then the schema fixtures"
+    summary: |
+      Runs `go -C tools/enh test ./...` and `bash tests/schema/run.sh`.
+      The specsrule tests skip without the pinned openspec CLI (1.14.1) on
+      PATH, so install it for a full run; CI does. Not part of `task check`,
+      which stays the gate of the entries (about 30 s because of the cue
+      vet); CI runs this task as its own job.
+    cmds:
+      - go -C tools/enh test ./...
+      - bash tests/schema/run.sh
 
   ideas:
     desc: List open idea issues (label `idea` on GitHub; the pre-entry intake)
