@@ -81,7 +81,7 @@ Three directories carry the shapes and the evidence. [`schemas/target.cue`](sche
 
 **Deferred to a different entry or command.**
 
-- Exporting a deployed instance to files. That is entry [0014](../../0014/), from cluster to git; this entry goes from registry to disk.
+- Exporting a deployed instance to files. That is entry 0014, from cluster to git; this entry goes from registry to disk.
 - A publish-time check that the starting values satisfy the module's config. If wanted, it is [0011](../0011/)'s decision.
 - Validating the generated package at init time. The report names the vet command; running it is the user's next step (D8).
 
@@ -97,7 +97,7 @@ Three directories carry the shapes and the evidence. [`schemas/target.cue`](sche
 ## Relationship to adjacent enhancements
 
 - [0002](../0002/) renamed the Release family to Instance vocabulary; this entry is written entirely in that vocabulary.
-- [0014](../../0014/) covers the opposite direction of the same lifecycle, turning a deployed instance into committable files. Both share the generated-not-hand-assembled stance.
+- enhancement 0014 covers the opposite direction of the same lifecycle, turning a deployed instance into committable files. Both share the generated-not-hand-assembled stance.
 - [0011](../0011/) owns publish-time gates and the author-side scaffolder this command mirrors, so a publish-time conformance check on the new field would land there.
 - [0019](../0019/) is the kernel render path the generated package is handed to, and this entry lands after it. The command's contract does not change with 0019, but the user's next command does, so the ordering constraint lives in `06-operational.md`. Three of its decisions bear on the output:
   - Catalog version skew between a module and its platform becomes a kernel-detected signal that warns and renders by default (0019:D7 and 0019:D18). That is the failure experiment 03 met as unresolved demands against a platform on a different catalog pin.
