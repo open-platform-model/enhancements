@@ -60,3 +60,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - Fact error fixed: requirement "Only operator-managed instances are re-enqueued" said the owner may be "absent, empty or `operator`". The API server rejects an empty owner (`opm-operator` `config/crd/bases/opmodel.dev_moduleinstances.yaml:117-138` at `cb97ffb0`: an absent or `operator` owner is operator-managed, the enum is `cli` and `operator`), so the text reads "absent or `operator`" (`seed-instance-ownership` requirement 1 holds the rule).
 - The scenario "A claim change replaces the held record" no longer says a claim activates: the new package identity on a claim change is `platform-module-generation`'s ("Platform status names the package and its registry"). The scenario "A stalled Platform reports its generation" no longer names the reasons BuildFailed and GenerateFailed, which `platform-module-generation` holds.
+
+sampled: 2026-10-11 18705155
