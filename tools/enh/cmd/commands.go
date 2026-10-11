@@ -16,9 +16,10 @@ import (
 type options struct {
 	root, schema, base, head, since         string
 	mode, today, seed, id, author           string
-	workspace, filesFrom                    string
+	workspace, filesFrom, worklist          string
 	confirm, noCommit, noValidate, archived bool
 	openspec, strict, chain, cue, v35       bool
+	write, dryRun                           bool
 	exclude                                 stringList
 }
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/citelint"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/citerewrite"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/links"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/reconcile"
@@ -152,6 +153,19 @@ var commands = []command{
 			fs.Var(&o.exclude, "exclude", "skip a path pattern; repeat the flag for more")
 		},
 		min: 0, max: -1, run: runCiteLint,
+	},
+	{
+		name: "cite-rewrite", synopsis: "cite-rewrite [flags] [PATH ...]", summary: "rewrite the decision citations of a repo; list what an agent must rewrite",
+		help: citeRewriteHelp,
+		flags: func(fs *flag.FlagSet, o *options) {
+			fs.StringVar(&o.root, "root", "", "the repo to rewrite (default: the current directory)")
+			fs.StringVar(&o.filesFrom, "files-from", "", "read the paths from this file, newline or NUL separated; - is standard input")
+			fs.Var(&o.exclude, "exclude", "skip a path pattern; repeat the flag for more")
+			fs.BoolVar(&o.write, "write", false, "apply the rewrites (default: a dry run that changes nothing)")
+			fs.BoolVar(&o.dryRun, "dry-run", false, "change nothing and print the summary (the default; the flag only says so)")
+			fs.StringVar(&o.worklist, "worklist", "", "write the sites an agent must rewrite to this file, one row per site")
+		},
+		min: 0, max: -1, run: runCiteRewrite,
 	},
 	{
 		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction",
@@ -334,24 +348,9 @@ func runCiteLint(c *call) int {
 		}
 		root = wd
 	}
-	paths := c.args
-	if c.o.filesFrom != "" {
-		r := c.d.Stdin
-		if c.o.filesFrom != "-" {
-			f, err := os.Open(c.o.filesFrom)
-			if err != nil {
-				fmt.Fprintf(c.errOut, "enh cite-lint: %v\n", err)
-				return ExitUsage
-			}
-			defer f.Close() // read-only
-			r = f
-		}
-		list, err := citelint.ReadFileList(r)
-		if err != nil {
-			fmt.Fprintf(c.errOut, "enh cite-lint: %v\n", err)
-			return ExitUsage
-		}
-		paths = append(paths, list...)
+	paths, err := c.pathArgs("cite-lint")
+	if err != nil {
+		return ExitUsage
 	}
 	if len(paths) == 0 {
 		paths = []string{"."}
@@ -407,4 +406,101 @@ func runSpecsRule(c *call) int {
 	}
 	fmt.Fprintln(c.out, "enh specs-rule: pass")
 	return ExitOK
+}
+
+const citeRewriteHelp = `Rewrites the citations of enhancement decisions in a repo, on the lexer of cite-lint, and
+lists the sites that it does not rewrite. Run it from a repo other than this one, in a worktree.
+
+A dry run is the default and changes nothing. --write applies these forms:
+  1  Go and CUE comments (also *.cue.tmpl): (0010:D11) becomes (enhancement 0010); several ids
+     become (enhancements 0010 and 0026); a trailing ", per 0010:D4." becomes " (enhancement 0010)."
+  2  Markdown, YAML and shell # comments: 0010:D11 becomes enhancement 0010 ("<decision title>")
+  3  0030 and 0031: the token goes, the text and punctuation stay valid
+  4  enhancements/NNNN paths become enhancement NNNN; the old site slugs of the 17 converted entries
+     map to the new pages (decisions to requirements, and so on)
+  5  enhancement.yaml files are deleted
+The spoken forms (enhancement 0010 D4, (0010 D49), 0011 D3/D15) count as decision numbers.
+
+Everything else is only listed: a lone id or WHY label, an id inside a sentence, NNNN:OQn, string
+literals, generated files, code fences, a path to a file inside an entry. --worklist FILE writes one
+tab-separated row per site: path, line, kind, line text, decision title. After --write and an empty
+worklist, enh cite-lint passes.
+
+Skipped always: CHANGELOG.md, vendor/**, agent-swarm/, .claude/worktrees/ and the CUE caches. Pass
+--exclude for published fixtures (cli tests/fixtures/**, opm-operator test/fixtures/modules/**) and
+for active OpenSpec changes (openspec/changes/*, except archive).
+Exit codes: 0 done, 2 usage or a failed run. A worklist does not make the exit code 1.`
+
+func runCiteRewrite(c *call) int {
+	root := c.o.root
+	if root == "" {
+		wd, err := c.d.Cwd()
+		if err != nil {
+			fmt.Fprintf(c.errOut, "enh cite-rewrite: %v\n", err)
+			return ExitUsage
+		}
+		root = wd
+	}
+	if c.o.write && c.o.dryRun {
+		fmt.Fprintln(c.errOut, "enh cite-rewrite: --write and --dry-run exclude each other")
+		return ExitUsage
+	}
+	paths, err := c.pathArgs("cite-rewrite")
+	if err != nil {
+		return ExitUsage
+	}
+	rep, err := citerewrite.Run(citerewrite.Options{Root: root, Paths: paths, Exclude: c.o.exclude, Write: c.o.write})
+	if rep != nil {
+		rep.WriteSummary(c.out, c.o.write)
+		if c.o.worklist != "" {
+			if werr := writeWorklist(c.o.worklist, rep); werr != nil {
+				fmt.Fprintf(c.errOut, "enh cite-rewrite: %v\n", werr)
+				return ExitUsage
+			}
+			fmt.Fprintf(c.out, "worklist written to %s\n", c.o.worklist)
+		}
+	}
+	if err != nil {
+		fmt.Fprintf(c.errOut, "enh cite-rewrite: %v\n", err)
+		return ExitUsage
+	}
+	return ExitOK
+}
+
+func writeWorklist(name string, rep *citerewrite.Report) (err error) {
+	f, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+	}()
+	return rep.WriteWorklist(f)
+}
+
+// pathArgs returns the positional paths plus the paths of --files-from. On an
+// error it has printed the message.
+func (c *call) pathArgs(name string) ([]string, error) {
+	paths := c.args
+	if c.o.filesFrom == "" {
+		return paths, nil
+	}
+	r := c.d.Stdin
+	if c.o.filesFrom != "-" {
+		f, err := os.Open(c.o.filesFrom)
+		if err != nil {
+			fmt.Fprintf(c.errOut, "enh %s: %v\n", name, err)
+			return nil, err
+		}
+		defer f.Close() // read-only
+		r = f
+	}
+	list, err := citelint.ReadFileList(r)
+	if err != nil {
+		fmt.Fprintf(c.errOut, "enh %s: %v\n", name, err)
+		return nil, err
+	}
+	return append(paths, list...), nil
 }
