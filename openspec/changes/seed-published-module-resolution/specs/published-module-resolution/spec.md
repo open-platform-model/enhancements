@@ -95,11 +95,6 @@ Without a selector, the command SHALL list the published versions across all maj
 - **WHEN** no major of the module depends on the CLI's core major
 - **THEN** the command exits 2 and lists every major with its reason
 
-#### Scenario: A module with no published version is refused
-
-- **WHEN** the registry lists no version of the module path
-- **THEN** the command exits 2 stating that the module has no published versions, naming the registry
-
 ### Requirement: Resolution reports its choice on standard error
 
 After resolving, the command SHALL report the module path, the selected major and version, and how it was chosen: pinned, newest in the named major, or highest major on the CLI's core major. It SHALL add one line for each higher major it skipped, with the reason. The report SHALL go to standard error, so manifests or other data a command writes to standard output stay parseable.
@@ -116,7 +111,7 @@ After resolving, the command SHALL report the module path, the selected major an
 
 ### Requirement: Unreachable registry exits 3, refusal exits 2
 
-Resolution SHALL use the registry that the CLI configuration routes the module path to. When that registry cannot be reached, whether while listing versions or while reading a release's module file, the command SHALL exit 3 naming the module path and the registry, and SHALL stop before the command's other work. A registry that answers but lacks what the selector asks for is a refusal, exit code 2, never exit code 3.
+Resolution SHALL use the registry that the CLI configuration routes the module path to. When that registry cannot be reached, whether while listing versions or while reading a release's module file, the command SHALL exit 3 naming the module path and the registry, and SHALL stop before the command's other work. A registry that answers but lacks the module, or what the selector asks for, is a refusal, exit code 2, never exit code 3.
 
 #### Scenario: An unreachable registry exits 3
 
@@ -125,5 +120,5 @@ Resolution SHALL use the registry that the CLI configuration routes the module p
 
 #### Scenario: A registry that answers without the module is a refusal
 
-- **WHEN** the registry is reachable and holds no version of the module path
-- **THEN** the command exits 2, not 3
+- **WHEN** the registry is reachable and holds no version of the module path, whatever the selector
+- **THEN** the command exits 2, not 3, stating that the module has no published versions and naming the registry

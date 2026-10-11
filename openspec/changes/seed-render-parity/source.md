@@ -2,7 +2,7 @@
 
 This is a seed. It records behaviour `library` ships today so that later entries can modify it. It is not an enhancement and has no number.
 
-Capability: `render-parity`. Full seed (10 requirements). Written 2026-10-11 from `library` at commit `a87fdda` (the 10 requirements of its main spec, and the harness code and fixtures they describe). Origin: enhancement 0019, decisions 0019:D1 and 0019:D14.
+Capability: `render-parity`. Full seed (11 requirements). Written 2026-10-11 from `library` at commit `a87fdda` (the 10 requirements of its main spec, with the kernel-refusal rule split out as its own requirement, and the harness code and fixtures they describe). Origin: enhancement 0019, decisions 0019:D1 and 0019:D14.
 
 ## Sources
 
@@ -12,13 +12,14 @@ All read at the commit named. The requirement text is rewritten at intent level:
 
 | Requirement here | Spec requirement | Code read |
 | --- | --- | --- |
-| Pure-CUE unification is the render oracle | "Pure-CUE unification is the render oracle" | compare: `checkParity` ("kernel failed to render", "kernel diverges from pure-CUE unification"), `compareRendered`; oracle: `#Render` |
+| Pure-CUE unification is the render oracle | "Pure-CUE unification is the render oracle" | compare: `checkParity` (`parity_compare_test.go:185-214`; the report is `compareRendered`, `:151-177`: both object counts when the counts differ, `:152-153`, else the first differing path, `firstDiffPath`; it applies in the no-divergence branch, `:202-207`); oracle: `#Render` |
+| A kernel refusal is a disagreement | "Pure-CUE unification is the render oracle" (its sentence "a kernel failure is a disagreement", split out) | compare: `checkParity` `:195-198` ("kernel failed to render: <error>", no path), `:202-207` (the case fails when no divergence is expected) |
 | The oracle must render | none (the spec is silent) | compare: `checkParity` (oracle error checked first); `TestParityCheck_Contract` "oracle error is a fixture failure" |
-| Both renderers resolve identical inputs | "Both renderers resolve identical inputs" | harness: `TestParity_ShippedCatalog` (instance by directory, platform from `opm_platform`), `loadOracle`; `testdata/parity/opm_platform/platform.cue:1-12`; `testdata/parity/shipped/shipped.cue` |
+| Both renderers resolve identical inputs | "Both renderers resolve identical inputs" | compare: `parityCase` `parity_compare_test.go:41-54` (a row holds name, instance, component, transformer, equality and expected divergence, and no other input); the probe rows are not in the shipped case table and take their instance and transformer at run time (probe: `parity_probe_test.go:47-53, 66-72, 173-174`); harness: `TestParity_ShippedCatalog` (instance by directory, platform from `opm_platform`), `loadOracle`; `testdata/parity/opm_platform/platform.cue:1-12`; `testdata/parity/shipped/shipped.cue` |
 | Both sides resolve one catalog build | "The shipped case table names the catalog build the parity module pins" | harness: `shippedCatalogVersion`, `resolveShippedCases`, the version checks in `TestParity_ShippedCatalog` |
 | The case table covers every matched pair | "Matched pair sets agree"; the third scenario of the pin requirement | harness: `assertPairSetsAgree`, `assertRowsCoverPairs`; probe: `runParityProbe` |
 | Equality is structural and order-sensitive | "Equality is structural and order-sensitive" | compare: `encodeOrdered`, `firstDiffPath`, `compareRendered`, `checkParity`; unit test `TestParityEncoder_ReportsReordering` |
-| Known divergences are recorded and asserted to reproduce | "Known divergences are recorded and asserted to reproduce" | compare: `checkParity`, `assertParity` |
+| Known divergences are recorded and asserted to reproduce | "Known divergences are recorded and asserted to reproduce" | compare: `checkParity` `:202-213` (with a divergence set, a kernel error or any difference passes; the recorded text is never compared with the difference; agreement fails), `assertParity` `:268-278` (logs the reproduced divergence) |
 | A divergence closes by removing kernel behaviour | the Purpose of the spec; no requirement states it. Only the failure message is stated here (see "Dropped") | compare: header comment and the message of `checkParity`; 0019:D1 |
 | Probe transformers expose definition and instance inputs | "Probe transformers expose definition and instance inputs" | probe: `parityProbes`, `runParityProbe` |
 | The shipped catalog stays discriminated | "The shipped catalog stays discriminated", without its gating sentence | harness: `TestParity_ShippedCatalogDiscriminated` |
@@ -27,7 +28,8 @@ All read at the commit named. The requirement text is rewritten at intent level:
 
 - The spec says the instance and the platform both enter the kernel side from the on-disk packages the oracle build imports. In the code only the instance is the package the oracle imports. The platform is a nested module of its own that imports the same catalog build; the oracle never imports it, and the harness checks that both resolve one build (`platform.cue:1-12`). The requirement states the code.
 - The spec has the harness check the oracle's catalog build against the pin. The code also checks that the build the kernel's render resolved is that build (`parity_harness_test.go`, the `ResolvedVersions` assertion). The requirement states both.
-- The spec says a failure names "the first differing path". That holds when both sides render. When the kernel's render fails, the message carries the refusal and no path. The first scenario says so.
+- The spec says a failure names "the first differing path". That holds when both sides render. When the kernel's render fails, the message carries the refusal and no path (`parity_compare_test.go:195-198`). The requirement "A kernel refusal is a disagreement" and its scenario say so.
+- The spec says a case with an expected divergence is asserted to diverge in the named way. The code never compares the recorded text with the difference: any kernel error or difference passes (`parity_compare_test.go:202-215`). The requirement states the code.
 - The spec says the probe group has no expected divergence. The probe file notes both rows recorded one on landing and both were retired; the table holds none now. No difference in the requirement.
 
 ## Left out

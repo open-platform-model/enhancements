@@ -20,7 +20,7 @@ The module build and module vet commands SHALL render against the platform direc
 
 #### Scenario: The cluster is never read
 
-- **WHEN** a module build or vet runs with a reachable cluster in the kubeconfig
+- **WHEN** a module build or vet runs with a reachable cluster configured
 - **THEN** the CLI makes no cluster read to find a platform
 
 ### Requirement: Deploying renders try flag, cluster, then deps
@@ -105,7 +105,7 @@ When the Platform's status records a resolved registry, the CLI SHALL generate f
 #### Scenario: No recorded registry, the spec
 
 - **WHEN** the status records no registry
-- **THEN** the generated module carries the spec's subscriptions and the report says the spec was used because no operator generation is recorded
+- **THEN** the generated module carries the spec's subscriptions and the report says the spec was used
 
 #### Scenario: An entry with no flag is disabled
 
@@ -161,11 +161,11 @@ With no platform option and no readable cluster Platform (the resource is absent
 
 ### Requirement: Instance build and vet never fail on cluster
 
-Instance build and vet SHALL try the cluster's Platform before the deps and SHALL NOT fail because of the cluster. With the offline switch or a platform option the CLI SHALL NOT resolve a kubeconfig or contact a server. With no resolvable context it SHALL use the deps without a warning. On any other failure, including no answer within 10 seconds for the whole lookup, it SHALL warn naming the error and use the deps.
+Instance build and vet SHALL try the cluster's Platform before the deps and SHALL NOT fail because of the cluster. With the offline switch or a platform option the CLI SHALL NOT look for a cluster or contact a server. With no cluster configured it SHALL use the deps without a warning. On any other failure, including no answer within 10 seconds for the whole lookup, it SHALL warn naming the error and use the deps.
 
 #### Scenario: Offline never contacts the cluster
 
-- **WHEN** an instance build runs offline with a kubeconfig context for an unreachable server
+- **WHEN** an instance build runs offline with a cluster configured whose server is unreachable
 - **THEN** it renders against the deps with no delay and no cluster warning
 
 #### Scenario: A silent server degrades to the deps
@@ -173,10 +173,10 @@ Instance build and vet SHALL try the cluster's Platform before the deps and SHAL
 - **WHEN** an instance vet runs and the server does not answer
 - **THEN** within the bound it warns that the cluster could not be reached and renders against the deps, and the exit code is the render's
 
-#### Scenario: A context flag selects the cluster
+#### Scenario: No cluster configured, the deps without a warning
 
-- **WHEN** an instance build runs with a context named
-- **THEN** the Platform is read from that context
+- **WHEN** an instance build runs with no platform option on a machine with no cluster configured
+- **THEN** it renders against the deps and prints no cluster warning
 
 ### Requirement: Deps become one catalog entry each, core floored
 
@@ -231,17 +231,17 @@ Each local replacement of the render's source whose path the generated platform 
 
 ### Requirement: Deps are read from the render's own source
 
-For module commands the pins SHALL be read from the module's acquired source, so a module acquired from a directory and one acquired from the registry follow one rule. For instance commands they SHALL be read from the instance package's own module file at its module root, with its own local replacements. A pin that is not published SHALL fail at generation, naming the module path and version.
+For module commands the pins SHALL be read from the module's acquired source, so a module acquired from a directory and one acquired from the registry follow one rule. For instance commands they SHALL be read from the instance package's own module file at its module root, with its own local replacements.
 
 #### Scenario: An instance renders against its own pins
 
-- **WHEN** an instance build runs with no platform option and no kubeconfig context, and the package pins a catalog at 4.4.0
+- **WHEN** an instance build runs with no platform option and no cluster configured, and the package pins a catalog at 4.4.0
 - **THEN** the render uses a generated platform with one entry for that catalog at 4.4.0
 
-#### Scenario: An unpublished pin fails
+#### Scenario: A directory and a registry source follow one rule
 
-- **WHEN** a pinned catalog version is not published
-- **THEN** generation fails naming the module path and version
+- **WHEN** the same module, with no local replacements, is built once from its directory and once acquired from the registry, with no platform option
+- **THEN** both renders use generated platforms with the same catalog entries
 
 ### Requirement: A generated platform is cached by content
 
@@ -292,8 +292,8 @@ The CLI SHALL resolve the catalog version a Platform subscription pins by listin
 
 #### Scenario: Prerelease mode skips development builds
 
-- **WHEN** the major has published 2.0.0-alpha.3 and a later development build
-- **THEN** the prerelease mode resolves 2.0.0-alpha.3
+- **WHEN** the major has published `2.0.0-alpha.3` and `2.0.1-0.dev.4.gabc1234`, whose first prerelease identifier is numeric
+- **THEN** the prerelease mode resolves `2.0.0-alpha.3`
 
 ### Requirement: Resolution refuses rather than guesses a version
 

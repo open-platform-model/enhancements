@@ -6,22 +6,26 @@ The differential contract between the kernel's render and pure-CUE unification o
 
 ### Requirement: Pure-CUE unification is the render oracle
 
-The harness SHALL render each parity case twice: once through the kernel's render, and once by plain CUE unification of the transformer's `#transform` with its declared inputs in a single build. The CUE result is the reference. When the two disagree, the harness SHALL report the kernel as the defective side, naming the case, the component and transformer pair, and the first differing path. A kernel render that fails counts as a disagreement.
+The harness SHALL render each parity case twice: once through the kernel's render, and once by plain CUE unification of the transformer's `#transform` with its declared inputs in a single build. The CUE result is the reference. In a case with no expected divergence, when both sides render and disagree, the harness SHALL report the kernel as the defective side, naming the case, the component and transformer pair, and the first differing path, or both object counts when the counts differ.
 
 #### Scenario: Agreement on a shipped transformer
 
 - **WHEN** a case pairs a fixture component with a published catalog transformer
 - **THEN** the kernel's object for that pair and the oracle's output for the same pair compare equal, and the case passes
 
-#### Scenario: Disagreement is attributed to the kernel
+#### Scenario: Disagreement names the pair and the path
 
-- **WHEN** the kernel's value for a pair differs from the oracle's at any path
-- **THEN** the failure names the case, the pair and the first differing path, and describes the difference as a kernel divergence from unification
+- **WHEN** a case with no expected divergence is rendered, both sides render the same number of objects for a pair, and the kernel's value differs from the oracle's at some path
+- **THEN** the case fails, naming the case, the pair and the first differing path
+
+### Requirement: A kernel refusal is a disagreement
+
+A kernel render that fails SHALL count as a disagreement with the oracle. In a case with no expected divergence its report SHALL carry the kernel's refusal in place of a differing path.
 
 #### Scenario: A kernel refusal is a disagreement
 
-- **WHEN** the oracle renders a pair that the kernel's render refuses
-- **THEN** the case fails, and the failure carries the kernel's refusal
+- **WHEN** the oracle renders a pair that the kernel's render refuses, in a case with no expected divergence
+- **THEN** the case fails, and the failure carries the kernel's refusal and names no differing path
 
 ### Requirement: The oracle must render
 
@@ -39,7 +43,7 @@ Every case SHALL have an oracle that renders. An oracle that fails SHALL be repo
 
 ### Requirement: Both renderers resolve identical inputs
 
-Every parity case SHALL name its instance, component and transformer by fixture. The instance SHALL enter the kernel side as a source-carrying artifact acquired from the on-disk package the oracle build imports, never rebuilt by extracting and re-filling values from a separately compiled parent. The two renderers SHALL share nothing but the fixture bytes. The harness carries no per-case input-construction override.
+Every row of the shipped case table SHALL name its instance, component and transformer by fixture. The instance SHALL enter the kernel side as a source-carrying artifact acquired from the on-disk package the oracle build imports, never rebuilt by extracting and re-filling values from a separately compiled parent. The two renderers SHALL share nothing but the fixture bytes. The harness carries no per-case input-construction override.
 
 #### Scenario: The instance enters both sides by import
 
@@ -51,10 +55,10 @@ Every parity case SHALL name its instance, component and transformer by fixture.
 - **WHEN** a case is rendered
 - **THEN** the kernel side acquires the platform as a module of its own that imports the same published catalog build the oracle imports, and the oracle never imports that platform
 
-#### Scenario: Divergent inputs are refused
+#### Scenario: A case names fixtures only
 
-- **WHEN** a case would need the kernel side and the oracle side to construct an input differently
-- **THEN** the case is not admitted to the table
+- **WHEN** the shipped case table is read
+- **THEN** every row names its instance, component and transformer by fixture, and no row carries a value that builds an input for one side only
 
 ### Requirement: Both sides resolve one catalog build
 
@@ -120,12 +124,12 @@ Each case SHALL compare the whole rendered value, and structural SHALL be the on
 
 ### Requirement: Known divergences are recorded and asserted to reproduce
 
-A case MAY carry an expected divergence that names the kernel behaviour causing it. Such a case SHALL be asserted to diverge in the named way, and the suite SHALL fail when it unexpectedly agrees, so that a change closing the divergence must also retire the entry. A case without an expected divergence SHALL be asserted to agree.
+A case MAY carry an expected divergence that names the kernel behaviour causing it. Such a case SHALL pass when the kernel side fails or differs from the oracle in any way, and the suite SHALL fail when it unexpectedly agrees, so that a change closing the divergence must also retire the entry. A case without an expected divergence SHALL be asserted to agree.
 
 #### Scenario: An expected divergence reproduces
 
-- **WHEN** a case that expects a divergence is rendered and the kernel side fails or differs
-- **THEN** the case passes, and the recorded divergence is logged
+- **WHEN** a case that expects a divergence is rendered and the kernel side fails or differs from the oracle at any path
+- **THEN** the case passes whatever the difference is, and the recorded divergence is logged
 
 #### Scenario: An expected divergence stops reproducing
 
