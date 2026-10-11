@@ -73,6 +73,7 @@
 | [render-parity](./openspec/specs/render-parity/spec.md) | 11 | The differential contract between the kernel's render and pure-CUE unification of the same inputs: what a parity case names, when the two rendered values agree, how a known divergence is recorded and retired, and the rule that a divergence closes by removing kernel behaviour, never by weakening the comparison. |
 | [resource-naming](./openspec/specs/resource-naming/spec.md) | 13 | State how a component computes the name of the resource it renders and its DNS variants, and how a primitive declares the name rule of the Kubernetes kind it renders. |
 | [single-build-render](./openspec/specs/single-build-render/spec.md) | 21 | Render an instance against a platform as one build. |
+| [transformer-inputs](./openspec/specs/transformer-inputs/spec.md) | 8 | What the runtime owes each declared input of a transformer's transform: the instance and the component arrive whole, the context's metadata blocks are projections of those two inputs, and the runtime fills the runtime name alone. |
 
 ## Status legend
 
