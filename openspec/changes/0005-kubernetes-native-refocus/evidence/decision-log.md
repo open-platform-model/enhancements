@@ -1,0 +1,63 @@
+# Design Decisions: Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
+
+This document records every significant design choice with its reasoning and the alternatives ruled out. **Numbers are permanent**, never reused, never renumbered, because other repos cite them from commit messages and OpenSpec changes. The *text* under a number states what is true now: a reversal is recorded as its own `DN` while the design is in motion, then woven into the decision it changes at the next compaction pass: the merged decision keeps the lower number, and the vacated number keeps a one-line tombstone. See the `enhancement-compaction` skill.
+
+Each decision uses the four-field shape: Decision, Alternatives considered, Rationale, Source.
+
+---
+
+## Decisions
+
+### D1: Kubernetes is the first-class lowest common denominator; one generated type source feeds both catalogs
+
+**Kind:** policy
+
+**Decision:** The Kubernetes OpenAPI is the single source of Kubernetes type truth. Generation tooling derives all downstream type schemas from it, and both `catalog_kubernetes` and `catalog_opm` consume the generated output rather than independently-maintained schemas. The project targets Kubernetes only.
+
+**Requirements:** none (posture: Kubernetes-only target and one generated type source; the observable shapes rest on OQ1 to OQ5, none of which has a decision yet)
+
+**Alternatives considered:**
+
+- Keep hand-written schemas in `catalog_kubernetes` and independently-vendored `cue.dev/x/k8s.io` in `catalog_opm` (status quo), rejected: two sources drift silently, and hand-authoring does not scale to all kinds/versions or to CRDs.
+- Keep a platform-neutral abstraction spanning Kubernetes and other runtimes, rejected: the project has refocused on Kubernetes; a neutral abstraction pays generality cost for runtimes no longer in scope.
+
+**Rationale:** With Kubernetes as the permanent lowest common denominator, both catalogs target it anyway. A single generated source removes the only duplication that actually hurts (divergent schema foundations) without forcing structural coupling between the catalogs.
+
+**Source:** User decision 2026-06-20.
+
+**Measured (2026-09-29):** the two type foundations still diverge. In `catalog_opm` at `dc33389`, the raw passthrough module (`opmodel.dev/catalogs/k8s@v1`, the successor of `catalog_kubernetes`) pins no `cue.dev/x/k8s.io` dependency: `grep -rl 'cue.dev/x/k8s.io' --include=*.cue k8s | grep -vc cue.mod/` counts 0 of its 69 CUE files outside `cue.mod/`, and its Kubernetes shapes are 9 hand-written files under `k8s/schemas/` (786 lines). The opinionated module (`opmodel.dev/catalogs/opm@v4`) pins `cue.dev/x/k8s.io@v0` at `v0.11.0`, and the same count over `opm` gives 7 of its 85 CUE files outside `cue.mod/`.
+
+### D2: Catalog-on-catalog composition is supported, not forced
+
+**Kind:** policy
+
+**Decision:** Composition between catalogs is an available capability for layering abstractions *on top* of a lower catalog (notably third-party / provider golden-path catalogs). The base catalogs are not required to compose each other: `catalog_opm` keeps its own constructing transformers, re-pointed at the strict generated types, and does not flow through `catalog_kubernetes`.
+
+**Requirements:** none (posture on catalog layering; composition already works in pure CUE today and the base catalogs are left as they are)
+
+**Alternatives considered:**
+
+- Force `catalog_opm` to project onto `catalog_kubernetes` resources so the pass-through mirror does all rendering (the earlier "Model B as mandate"), rejected: pass-through and construction are different jobs, so routing one through the other adds indirection without removing real duplication, which D1's shared type source already handles.
+
+**Rationale:** Composition's value is open-ended extensibility (golden paths), which happens *above* the base catalogs. Mandating internal composition buys nothing once types are shared and costs indirection and a harder trapdoor.
+
+**Source:** User decision 2026-06-20.
+
+### D3: No core change in this enhancement; multi-phase lowering is a staged, evidence-gated follow-on
+
+**Kind:** scope
+
+**Decision:** This enhancement makes no change to `opmodel.dev/core@v0`; the transformation model stays single-pass. A separate `core` enhancement for multi-phase / fixpoint lowering (transformer outputs that re-enter matching) is opened only when a concrete case demonstrates that pure-CUE schema projection cannot express it. As cheap insurance, the transformer-output convention is kept compatible with typed outputs later, without adopting fixpoint lowering now.
+
+**Requirements:** none (boundary: no core change, follow-on gated on OQ6 evidence)
+
+**Alternatives considered:**
+
+- Widen this umbrella to deliver multi-phase lowering now, rejected: largest risk to the kernel, and D1's shared type source plus D2's optional composition already remove most of the pressure for it, since golden paths ship on projection alone.
+- Design a sibling `core` enhancement in parallel from the start, deferred, not rejected: revisit if a sequential-lowering / cross-resource-wiring case emerges (tracked as OQ6).
+
+**Rationale:** The fixpoint model earns its risk only for genuinely sequential lowering, of which no concrete instance exists yet. Gating on evidence keeps the riskiest change off the critical path and makes its eventual design sharper.
+
+**Source:** User decision 2026-06-20.
+
+Open Questions live in [`questions.md`](questions.md), the entry's question register.
