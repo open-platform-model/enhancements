@@ -61,6 +61,7 @@
 | [operator-lifecycle](./openspec/specs/operator-lifecycle/spec.md) | 26 | How the CLI installs, upgrades and removes the operator, and how the operator reports its own version. |
 | [platform-artifact](./openspec/specs/platform-artifact/spec.md) | 9 | State the platform as a typed artifact. |
 | [platform-contract-gates](./openspec/specs/platform-contract-gates/spec.md) | 16 | Decide what a platform's contract inventory does to the tools that read it. |
+| [platform-contract-inventory](./openspec/specs/platform-contract-inventory/spec.md) | 12 | State what a platform derives about the contracts its enabled catalogs define and its enabled transformers require: which contracts exist, who requires and who provides them, which keys collide, and which transformers cannot be told apart. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
