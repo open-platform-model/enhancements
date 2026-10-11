@@ -41,3 +41,5 @@ The code wins; the seed follows it.
 - The map names 0010:D14 and D26 beside D36. D14 (a subscription names one catalog build) is gone with the subscription; D26 (provenance excluded from the match comparison before unification) is kernel behaviour held by `seed-single-build-render`. Only 0010:D36 traces to this capability.
 - Aspects and module traits, which carry matching labels too: owned by live 0025 (0025:D11 R4 derives an aspect's labels from its traits; 0025:D12 gives module traits the same field; 0025:D13 matches module transformers on them) and 0027:D11 R2 (the offering trait declares none). Stated nowhere here.
 - The name rule of rendered kinds, the fulfilment of contracts and the keying of primitives, which sit beside matching in the same files: other capabilities (`resource-naming`, `contract-fulfilment`, `primitive-keying`).
+
+sampled: 2026-10-11 18705155
