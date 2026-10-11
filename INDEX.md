@@ -63,6 +63,7 @@
 | [platform-contract-gates](./openspec/specs/platform-contract-gates/spec.md) | 16 | Decide what a platform's contract inventory does to the tools that read it. |
 | [platform-contract-inventory](./openspec/specs/platform-contract-inventory/spec.md) | 12 | State what a platform derives about the contracts its enabled catalogs define and its enabled transformers require: which contracts exist, who requires and who provides them, which keys collide, and which transformers cannot be told apart. |
 | [platform-module-generation](./openspec/specs/platform-module-generation/spec.md) | 13 | Generate the platform module from the platform's catalog subscriptions and the active provider claims, and keep it current. |
+| [platform-pull](./openspec/specs/platform-pull/spec.md) | 4 | Reproduce a cluster's platform package on the laptop from the Platform resource's effective inputs, so that a local build renders what the cluster renders. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
