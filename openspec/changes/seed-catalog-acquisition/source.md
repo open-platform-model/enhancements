@@ -52,3 +52,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - "A catalog reports its provider-fulfilled contracts" keeps the kernel's read (from the catalog, else derived, and the empty list without an error). The properties of the list (sorted, without duplicates, which demands count) are `catalog-contracts`'s; the sentence and the scenario "Two reads of one catalog are equal" are gone, and the first scenario says the list equals the one core derives.
 - Not a duplicate, kept: the module-root rule of "A catalog is acquired from a directory" and the platform seed's rule for a platform directory read the same way, but each source spec states it for its own artifact kind (catalog, platform). The same holds for the registry mapping and the wrong-kind refusal, stated in `platform-artifact` for platforms.
+
+sampled: 2026-10-11 18705155
