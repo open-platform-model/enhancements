@@ -15,17 +15,12 @@ Scaffolding a module SHALL seed the block in the same step that seeds the identi
 
 ### Requirement: A version write updates the block
 
-Every write of a new version to the identity package, by a version command or by the version option of publish, SHALL write the same version to the block's identity in the same operation, so the two never differ after a write.
+Writing a new version to the identity package SHALL write the same version to the block's identity in the same operation, so the two never differ after a write.
 
 #### Scenario: A version bump
 
 - **WHEN** an author sets version 2.1.0
 - **THEN** the identity package and the block both read 2.1.0
-
-#### Scenario: A publish fill
-
-- **WHEN** publish fills an open identity version from its version option
-- **THEN** the identity package and the block both read that version
 
 ### Requirement: A block write keeps comments and is idempotent
 
@@ -40,7 +35,7 @@ A block write SHALL preserve comments and SHALL be a no-op when the value alread
 
 A block write SHALL preserve every key in the block that it does not itself write, including a key that a later entry defines.
 
-#### Scenario: A listing key
+#### Scenario: An unowned key
 
-- **WHEN** the writer updates the version in a block that holds a listing key
-- **THEN** the listing key is unchanged
+- **WHEN** the writer updates the version in a block that holds a key it does not write
+- **THEN** that key is unchanged

@@ -61,7 +61,7 @@ The operator SHALL generate the package once per distinct resolution, from exact
 
 #### Scenario: An active claim's catalog reaches the package
 
-- **WHEN** a claim becomes active
+- **WHEN** a claim becomes active and no consumer pins its catalog's path
 - **THEN** the regenerated package carries that provider's catalog as a registry entry at the claim's version
 
 #### Scenario: The waking event is ignored

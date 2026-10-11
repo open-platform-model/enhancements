@@ -1,6 +1,6 @@
 ## Purpose
 
-What the conformance suite records for a case and when it reports drift: the rendered output for an accepted input, the message lines for a refused one, and a failure when a message changes between version cells.
+What the conformance suite records for a case and when it reports drift: the rendered output for an accepted input, the message lines for a refused one, and drift when a message changes between version cells.
 
 ## ADDED Requirements
 
@@ -34,7 +34,7 @@ A change in the message of a refusal between two version cells SHALL be reported
 #### Scenario: A message changes at a new cell
 
 - **WHEN** a new version cell refuses an input with a message that differs from its predecessor
-- **THEN** the suite reports drift and shows both messages
+- **THEN** the suite reports drift
 
 #### Scenario: A changed output is also drift
 

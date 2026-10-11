@@ -11,7 +11,7 @@ An authored platform SHALL import nothing and carry no dependency list of its ow
 #### Scenario: A platform that imports a catalog is rejected
 
 - **WHEN** a platform value imports a catalog
-- **THEN** platform validation rejects it
+- **THEN** it is not a valid authored platform
 
 #### Scenario: A minimal entry is valid
 
@@ -39,7 +39,7 @@ With prereleases off, a render SHALL refuse a pin that carries a prerelease suff
 #### Scenario: A development tag inside the range is refused
 
 - **WHEN** the floor is 4.2.0, prereleases are off, and a module pins 4.3.0-dev.2
-- **THEN** the render is refused as not admitted
+- **THEN** the render is refused
 
 #### Scenario: A prerelease bound without opt-in is rejected
 

@@ -36,11 +36,10 @@ The CLI and the operator SHALL reach the same verdict for the same artifact and 
 
 A failing verdict SHALL be enforced by the operator and reported by the CLI.
 
-#### Scenario: A subscription fails a refusing policy
+#### Scenario: The operator meets a failing artifact
 
-- **WHEN** a subscription fails a policy that refuses on failure
-- **THEN** the operator does not reconcile the platform
-- **AND** its status names the failing subscription and the reason
+- **WHEN** an artifact of a subscription fails the platform's trust policy in the operator
+- **THEN** the operator enforces the failing verdict and does not use the artifact's content
 
 #### Scenario: The CLI meets a failing artifact
 

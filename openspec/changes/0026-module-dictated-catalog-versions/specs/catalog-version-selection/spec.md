@@ -38,7 +38,7 @@ A render SHALL refuse a module that imports a catalog path with no enabled admis
 
 #### Scenario: No entry for the path
 
-- **WHEN** a module imports a catalog major the platform has no entry for
+- **WHEN** a module imports a catalog major that has no enabled entry on the platform and no accepted registration
 - **THEN** the render is refused as not admitted
 
 #### Scenario: A disabled entry admits nothing
@@ -69,9 +69,9 @@ An entry with no ceiling SHALL admit every release of its path's major at or abo
 - **WHEN** the floor is 4.0.0, there is no ceiling, and a module pins 4.9.0
 - **THEN** the render holds 4.9.0
 
-### Requirement: The resolved platform is generated, never authored
+### Requirement: The resolved platform is never an authored input
 
-The render-time registry SHALL keep the shape it has today, under the name `#ResolvedPlatform`, and SHALL be generated, never authored. `#Platform` SHALL name the authored platform. A render given a platform SHALL take that authored platform and a module, and SHALL NOT take a resolved platform as input.
+The render-time registry SHALL keep the shape it has today, under the name `#ResolvedPlatform`, and SHALL NOT be an authored input. A render given a platform SHALL take that authored platform and a module, and SHALL NOT take a resolved platform as input.
 
 #### Scenario: The registry keeps its shape under a new name
 

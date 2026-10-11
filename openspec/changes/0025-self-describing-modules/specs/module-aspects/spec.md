@@ -20,7 +20,7 @@ An aspect SHALL attach at least one module trait. A module with an aspect that a
 #### Scenario: An empty aspect
 
 - **WHEN** a module declares an aspect with no module trait
-- **THEN** module validation fails, naming the module and the aspect
+- **THEN** module validation fails
 
 #### Scenario: An aspect with one trait
 
@@ -29,7 +29,7 @@ An aspect SHALL attach at least one module trait. A module with an aspect that a
 
 ### Requirement: An aspect carries no resource or blueprint
 
-An aspect SHALL describe the module and SHALL NOT demand a workload. A module whose aspect declares a resource or a blueprint SHALL be rejected at module validation.
+An aspect SHALL NOT declare a resource or a blueprint. A module whose aspect declares one SHALL be rejected at module validation.
 
 #### Scenario: A resource on an aspect
 
@@ -43,17 +43,17 @@ An aspect SHALL describe the module and SHALL NOT demand a workload. A module wh
 
 ### Requirement: An aspect's matching labels are derived
 
-An aspect's matching labels SHALL come wholesale from its attached module traits. A module whose aspect sets a matching label of its own that differs from the derived set SHALL be rejected at module validation.
+An aspect's matching labels SHALL be derived from its attached module traits. A module whose aspect sets a matching label of its own that differs from the derived set SHALL be rejected at module validation.
 
 #### Scenario: A self-contributed label
 
 - **WHEN** an aspect authors a matching label that no attached trait declares
-- **THEN** module validation fails, naming the aspect
+- **THEN** module validation fails
 
 #### Scenario: Labels follow the traits
 
 - **WHEN** an aspect attaches two module traits that each declare a matching label
-- **THEN** the aspect's matching labels are the union of the two
+- **THEN** the aspect's matching labels are derived from the labels of the two traits
 
 ### Requirement: An aspect renders under an instance-qualified name
 
@@ -71,7 +71,7 @@ An aspect's rendered object name SHALL default to the instance-qualified name, a
 
 ### Requirement: An aspect spec may read module configuration
 
-An aspect's spec SHALL be authored inside the module, so it MAY read the module configuration and the computed names of the module's components, as a component spec does.
+An aspect's spec SHALL be allowed to read the module configuration and the computed names of the module's components, as a component spec does.
 
 #### Scenario: A spec reads configuration
 
@@ -85,4 +85,4 @@ A key in an aspect's spec that no attached module trait declares SHALL be reject
 #### Scenario: An undeclared key
 
 - **WHEN** an aspect spec sets a key that none of its traits declares
-- **THEN** module validation fails, naming the aspect and the key
+- **THEN** module validation fails

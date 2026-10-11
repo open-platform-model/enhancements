@@ -20,16 +20,16 @@ A module trait SHALL NOT attach to a component, and a component trait SHALL NOT 
 #### Scenario: A module trait on a component
 
 - **WHEN** a component attaches a module trait
-- **THEN** module validation fails
+- **THEN** the attachment is rejected
 
 #### Scenario: A component trait on an aspect
 
 - **WHEN** an aspect attaches a component trait
-- **THEN** module validation fails
+- **THEN** the attachment is rejected
 
 ### Requirement: An attachment may narrow optionality
 
-A catalog SHALL state a module trait's optionality as a default. An attachment SHALL be allowed to narrow it from optional to required and SHALL NOT widen or pin it.
+An attachment SHALL be allowed to narrow a module trait's optionality from optional to required. A widening attachment SHALL be rejected.
 
 #### Scenario: Narrowing to required
 
@@ -39,4 +39,4 @@ A catalog SHALL state a module trait's optionality as a default. An attachment S
 #### Scenario: Widening to optional
 
 - **WHEN** an aspect attaches a required module trait and marks it optional
-- **THEN** module validation fails
+- **THEN** the attachment is rejected

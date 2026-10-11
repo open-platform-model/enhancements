@@ -1,6 +1,6 @@
 ## Purpose
 
-How rendered Kubernetes objects are held to the upstream definitions, and how the suite checks that conformance across upstream snapshots in addition to the catalog's own check.
+How rendered Kubernetes objects are held to the upstream definitions, and that the suite also exercises the catalog's own check.
 
 ## ADDED Requirements
 
@@ -18,16 +18,11 @@ Every object a catalog transformer renders SHALL satisfy the upstream Kubernetes
 - **WHEN** a transformer renders an object with a field its upstream definition does not allow
 - **THEN** the object does not conform and the check reports it
 
-### Requirement: The suite checks upstream conformance across snapshots
+### Requirement: The suite exercises the catalog's upstream unification
 
-The conformance suite SHALL check the upstream conformance of rendered objects at each upstream snapshot in its version matrix, in addition to the check the catalog runs in its own module. A field that a snapshot drops or tightens SHALL appear as drift on the transformer that emits it.
+The conformance suite SHALL also exercise the catalog's in-module unification with the upstream definitions.
 
-#### Scenario: A snapshot drops a field
-
-- **WHEN** a newer upstream snapshot drops a field that a transformer still emits
-- **THEN** the suite reports drift at that snapshot, naming that transformer
-
-#### Scenario: The catalog check stays
+#### Scenario: The suite runs
 
 - **WHEN** the suite runs
-- **THEN** the catalog still runs its own upstream check as before, and the suite repeats it across snapshots
+- **THEN** it exercises the catalog's in-module unification with the upstream definitions

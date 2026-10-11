@@ -43,7 +43,7 @@ A refusal SHALL name the conflicting field with both values and SHALL name the w
 #### Scenario: A readable refusal
 
 - **WHEN** publish refuses a stale block
-- **THEN** the message shows the block's value, the implied value and the command that fixes the tree
+- **THEN** the message names the conflicting field with both values and names the command that fixes the tree
 
 ### Requirement: A missing block warns first
 
@@ -79,4 +79,4 @@ An artifact already published without the block SHALL NOT be affected by the war
 #### Scenario: An old release
 
 - **WHEN** the refusal date has passed
-- **THEN** every artifact published earlier still resolves and installs
+- **THEN** an artifact published earlier without the block is not affected

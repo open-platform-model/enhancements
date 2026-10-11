@@ -61,7 +61,7 @@ The block SHALL carry the kind, the identity, the core line and the catalogs. A 
 #### Scenario: A missing fact
 
 - **WHEN** a block has no core line
-- **THEN** validation fails and names the missing fact
+- **THEN** validation fails
 
 ### Requirement: The kind is module, catalog or template
 
@@ -112,7 +112,7 @@ The block SHALL carry no fact about the toolchain that authored it.
 
 A block that carries a key this entry does not define SHALL pass this entry's validation. Only the entry that defines the key SHALL validate it.
 
-#### Scenario: A reserved listing key
+#### Scenario: An undefined key
 
-- **WHEN** a block carries a listing key beside the four required facts
-- **THEN** validation of the four facts passes and the listing key is not checked
+- **WHEN** a block carries a key this entry does not define beside the four required facts
+- **THEN** validation of the four facts passes and that key is not checked

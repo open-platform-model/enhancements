@@ -25,7 +25,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0022:D4:R3 | kept | block-publish-gate/Publish refuses a wrong catalog list |  |
 | 0022:D4:R4 | kept | block-publish-gate/A refusal names both values and the repair | the writer command is named in the message |
 | 0022:D5:R1 | kept | block-authoring/Scaffolding seeds the block |  |
-| 0022:D5:R2 | kept | block-authoring/A version write updates the block; module-authoring/Version set changes only the version value | the first is the general rule for every version write, publish's fill included; the second is a MODIFIED of the seeded requirement of that name, whose "nothing else" clause the first would otherwise contradict |
+| 0022:D5:R2 | kept | block-authoring/A version write updates the block; module-authoring/Version set changes only the version value | the first is the general rule for every version write; the second is a MODIFIED of the seeded requirement of that name, whose "nothing else" clause the first would otherwise contradict |
 | 0022:D5:R3 | kept | module-authoring/Init scaffolds by fetch and re-identification | a MODIFIED of the seeded requirement of that name: the re-identified items gain the block's identity module path; the old requirement's scenario is its last scenario |
 | 0022:D5:R4 | kept | block-authoring/A block write keeps comments and is idempotent |  |
 | 0022:D5:R5 | kept | block-authoring/A block write keeps unowned keys | added 2026-10-04 with the open tail |

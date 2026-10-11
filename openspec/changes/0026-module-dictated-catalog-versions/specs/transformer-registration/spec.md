@@ -12,7 +12,7 @@ A provider module MAY state a floor and a ceiling on its registration, the compa
 #### Scenario: A window stated
 
 - **WHEN** a provider states floor 1.4.0 and ceiling 1.8.0 around version 1.6.0
-- **THEN** the effective window is 1.4.0 to 1.8.0
+- **THEN** its registration carries floor 1.4.0 and ceiling 1.8.0
 
 ## MODIFIED Requirements
 

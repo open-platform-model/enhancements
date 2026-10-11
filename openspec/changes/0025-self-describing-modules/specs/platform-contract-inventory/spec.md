@@ -22,4 +22,4 @@ The inventory SHALL hold every resource, trait and blueprint that exactly one en
 #### Scenario: A trait nobody requires
 
 - **WHEN** an enabled catalog defines a module trait that no enabled module transformer requires
-- **THEN** the platform reports it without any module in hand
+- **THEN** the inventory lists the module trait and lists no transformer that requires it

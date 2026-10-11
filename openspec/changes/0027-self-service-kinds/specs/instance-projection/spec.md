@@ -1,6 +1,6 @@
 ## Purpose
 
-How a definition and a consumer's values become an ordinary module instance, and why the render needs no knowledge of definitions or kinds.
+How a definition and a consumer's values become an ordinary module instance.
 
 ## ADDED Requirements
 

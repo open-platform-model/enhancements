@@ -14,7 +14,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0024:D4:R1 | kept | upstream-conformance/Rendered objects satisfy their upstream definition | |
 | 0024:D4:R2 | cut | cut-requirements.md: 0024:D4:R2 | tombstone: the raw Kubernetes catalog family is retired |
 | 0024:D4:R3 | cut | cut-requirements.md: 0024:D4:R3 | tombstone: the raw Kubernetes catalog family is retired |
-| 0024:D4:R4 | kept | upstream-conformance/The suite checks upstream conformance across snapshots | |
+| 0024:D4:R4 | kept | upstream-conformance/The suite exercises the catalog's upstream unification | |
 
 Totals: kept 5, cut 2, repo 0, moved 0 (merged 0). Sum 7, equal to the 7 old ids (D2 3, D4 4; D1, D3, D5 and D6 have none). The new entry has 5 requirements, because two of the old 7 lines are tombstones with no behaviour.
 

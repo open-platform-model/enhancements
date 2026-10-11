@@ -77,7 +77,7 @@ An instance of a served kind SHALL be namespaced, and no cluster-scoped object S
 #### Scenario: One object per instance
 
 - **WHEN** a consumer creates an instance in a namespace
-- **THEN** no cluster-scoped composite object exists for it
+- **THEN** no cluster-scoped object is created on its behalf
 
 ### Requirement: The consumer's object mirrors status
 

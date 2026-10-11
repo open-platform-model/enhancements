@@ -42,3 +42,10 @@ No old requirement line states a change to them, so none is modified.
 ## The old text of OQ13
 
 The old text says the operator's shared-path check answers arbitrarily on a platform with two majors of one catalog. The old text of OQ17 says that change shipped. The proposal does not repeat the claim.
+
+## Clashes that the old text itself holds
+
+The conversion does not rewrite these. The owner decides at accept which line wins.
+
+- **Admission by entry, or by registration.** The old line 0026:D2:R2 says a module importing a catalog path with no enabled admission entry is refused as not admitted. The old line 0026:D6:R1 says a provider catalog is admitted by its accepted registration alone, with no entry. A module that imports a provider catalog with an accepted registration and no entry meets both lines. The requirement "An unadmitted catalog is refused" keeps the text of D2:R2. Its scenario "No entry for the path" names the case of no entry and no accepted registration, so the scenarios agree with each other. The requirement text does not yet carry the registration case. The same gap holds for a provider catalog that has a disabled entry.
+- **Version held, or registration's version.** The old line 0026:D5:R1 says a consumer module renders at its own pin on a provider catalog's path. The old line 0026:D5:R2 says the render holds the registration's version when no consumer pins the path. The seed scenario "An active claim's catalog reaches the package" of `platform-module-generation` says the package carries the provider's catalog at the claim's version without the condition of D5:R2. The delta adds the condition "and no consumer pins its catalog's path". The sync must carry that condition into the seed.

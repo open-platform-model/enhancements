@@ -29,12 +29,17 @@ A module transformer's output SHALL be rendered resources and nothing else. A ca
 
 ### Requirement: A module transformer never reads rendered output
 
-Rendered component output SHALL NOT be an input to any module transformer. The render SHALL stay one build, and aspects SHALL join it.
+Rendered component output SHALL NOT be an input to any module transformer. The render SHALL be one build.
 
 #### Scenario: Aspects and components in one build
 
 - **WHEN** a module with components and an aspect is rendered
-- **THEN** the render builds the module once and the aspect output comes from the same build
+- **THEN** the render builds the module once
+
+#### Scenario: The transformer sees no component output
+
+- **WHEN** a module with a component and a matched aspect is rendered
+- **THEN** no object the component transformers rendered is among the module transformer's inputs
 
 ### Requirement: A render is component and aspect output
 
