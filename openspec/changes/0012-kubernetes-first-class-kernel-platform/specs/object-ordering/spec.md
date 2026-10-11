@@ -8,10 +8,10 @@ In what order OPM applies and deletes the objects of an instance: one kind-class
 
 The CLI and the operator SHALL order the same set of objects by kind class identically, for apply and for delete, and each SHALL submit objects in the library's order. An engine's own staging MAY refine the order within a stage and SHALL NOT contradict it.
 
-#### Scenario: A CRD before its resources
+#### Scenario: One apply order
 
-- **WHEN** a render holds a CustomResourceDefinition and resources of its kind
-- **THEN** both frontends apply the definition before the resources
+- **WHEN** the CLI and the operator apply the same set of objects
+- **THEN** both submit them in the same kind-class order
 
 #### Scenario: One delete order
 

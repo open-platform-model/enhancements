@@ -122,7 +122,7 @@ The instance SHALL NOT apply or delete an object refused as adopted elsewhere, S
 
 ### Requirement: An unknown identity counts every annotation as foreign
 
-When the instance's identity is unknown, an object in its inventory SHALL NOT be refused for ownership. Outside the inventory, any adopt annotation SHALL count as naming another instance, because an unknown identity is never the one an annotation names.
+When the instance's identity is unknown, an object in its inventory SHALL NOT be refused for ownership. Outside the inventory, any adopt annotation SHALL count as naming another instance.
 
 #### Scenario: Identity not yet known
 

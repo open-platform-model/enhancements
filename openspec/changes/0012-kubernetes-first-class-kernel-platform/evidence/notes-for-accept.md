@@ -1,0 +1,5 @@
+# Notes for the owner at accept
+
+This note comes from the delivered seeds. The old entry did not hold it as an open question, so it is not in the proposal.
+
+- **A seed and `deletion-protocol` overlap on a failed delete.** The seed `instance-deploy`, requirement "A failed resource delete keeps the record", says that for a CLI-owned instance a failed delete of one tracked resource leaves the others processed, keeps the record, says re-running is safe and exits 1. The requirement "A frontend deletes only what the plan names" of `deletion-protocol` says a frontend releases an instance's hold only on a release verdict, and "The hold verdict follows policy and outcome" says the verdict follows the policy and the plan's outcome (0012:D1:R5). Both speak of what a failed delete does to the hold or the record. The entry has no scenario for a failed delete now: the "A partial failure" scenario came from `02-design.md` and was removed in T4.10. The owner decides at accept which text owns the rule and whether 0012 keeps its side.

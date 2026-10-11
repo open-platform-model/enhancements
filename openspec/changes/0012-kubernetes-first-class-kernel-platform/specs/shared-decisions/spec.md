@@ -15,5 +15,5 @@ For the same rendered output, inventory, instance identity, deletion policy and 
 
 #### Scenario: Same render, same inventory decisions
 
-- **WHEN** the CLI and the operator are given the same render, inventory and identity
+- **WHEN** the CLI and the operator are given the same render, inventory, identity and live state
 - **THEN** both compute the same inventory entries, the same stale set and the same digest
