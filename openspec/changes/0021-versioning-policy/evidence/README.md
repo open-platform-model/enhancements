@@ -3,6 +3,7 @@
 Proof and source material. Outside the word total. The converted text of the entry is `../proposal.md`, `../design.md` and `../specs/`. The old documents are kept here where they hold detail the design leaves out. The whole old entry stays in git at commit `18705155d2c7312029132c30d2b106ca59e57125` of `enhancements` (path `0021/`), including its `config.yaml` with the old change history.
 
 - [migration-map.md](migration-map.md): where each of the 57 requirements, 11 decisions and 17 open questions of the old entry went.
+- [notes-for-accept.md](notes-for-accept.md): the owner's points at accept: `breaking`, `opm` in `affects`, and the detail that three delivered seeds held back from 0021.
 - [cut-requirements.md](cut-requirements.md): the 1 old requirement that is not kept, a tombstone, with its old text.
 - [decision-log.md](decision-log.md): the old `03-decisions.md`, moved word for word. Every alternative, rationale and measurement is here.
 - [problem.md](problem.md): the old `01-problem.md`, moved word for word. What each artifact class promises today, measured per repo, and the four gaps.

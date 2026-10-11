@@ -3,7 +3,7 @@
 Proof and source material. Outside the word total. The converted text of the entry is `../proposal.md`, `../design.md` and `../specs/`. The old documents are kept here where they hold detail the design leaves out. The whole old entry stays in git at commit `18705155d2c7312029132c30d2b106ca59e57125` of `enhancements` (path `0012/`), including its `config.yaml` with the old change history and its `depends_on` and `amends` fields.
 
 - [migration-map.md](migration-map.md): where each of the 39 requirements, 8 decisions and 11 open questions of the old entry went.
-- [notes-for-accept.md](notes-for-accept.md): one open point from the delivered seeds, for the owner at accept.
+- [notes-for-accept.md](notes-for-accept.md): three points for the owner at accept: the overlaps with the delivered seeds, and the class of `0012:D3:R8`.
 - [cut-requirements.md](cut-requirements.md): the 11 old requirements that are not carried as requirements of their own: 9 name Go packages or hold a library-internal rule and go to the owning repo, 2 are tombstones of lines the owner withdrew. Each has its old text. The owner samples these lines before the cut binds.
 - [delivery-log.md](delivery-log.md): the old `delivery.yaml`, as a table, and the list of shipped repo changes that the tasks tick beyond it.
 - [decision-log.md](decision-log.md): the old `03-decisions.md`, moved word for word. Every alternative, rationale, source and revision note is here.

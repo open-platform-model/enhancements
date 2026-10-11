@@ -12,7 +12,7 @@ Proof and source material. Outside the word total. The converted text of the ent
 - [graduation.md](graduation.md): the old `04-graduation.md`, moved word for word. The criteria to move from draft to accepted, including the experiment and the fixture matrix the open questions need.
 - [old-readme.md](old-readme.md): the old `README.md`, moved word for word. It holds the per-repo scope, the out-of-scope list and the cross-reference table of files and issues.
 - [schemas/](schemas/): the old `schemas/`, moved with its `cue.mod`. Compilable CUE for the core delta (the optionality-aware component projection), six assertion pins, and the specification delta. CI runs `cue vet` here as a warning.
-- [notes-for-accept.md](notes-for-accept.md): one open point of the alignment with the seeds, for the owner at accept.
+- [notes-for-accept.md](notes-for-accept.md): two points for the owner at accept: the parity divergence, and `breaking`.
 - [contracts/](contracts/): the old `contracts/`, moved with its `cue.mod`. The layer contract L1 to L6 as rule data, and the blueprint narrowing idiom. CI runs `cue vet` here as a warning.
 
 The old entry had no `delivery.yaml`, `experiments/` or `research/` folder, so there is no delivery log. The two repo changes that shipped are ticked in `../tasks.md` by commit, because neither had an OpenSpec change or a pull request number that the repos record.

@@ -12,7 +12,7 @@ Proof and source material. Outside the word total. The converted text of the ent
 - [graduation.md](graduation.md): the old `04-graduation.md`, moved word for word. The criteria to move from draft to accepted.
 - [old-readme.md](old-readme.md): the old `README.md`, moved word for word. It holds the scope lists and the cross-reference table.
 - [delivery-log.md](delivery-log.md): the old `delivery.yaml`, as a table. No repo change had landed, so no task line is ticked.
-- [notes-for-accept.md](notes-for-accept.md): one clash that the old requirement lines hold, for the owner at accept.
+- [notes-for-accept.md](notes-for-accept.md): points for the owner at accept: clashes in the old requirement lines, the origin-level binding, and `breaking`.
 - [schemas/](schemas/): the old `schemas/`, moved with its `cue.mod`. Compilable CUE for the tombstone, the catalog map and the promotion field, the worked examples and the specification delta. CI runs `cue vet` here as a warning.
 - [experiments/](experiments/): the old `experiments/`, one planned experiment (cross-level promotion). It was never run; the old text makes it a graduation gate.
 

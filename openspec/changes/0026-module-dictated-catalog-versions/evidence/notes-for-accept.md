@@ -16,20 +16,20 @@ These wait on the blocking questions above. Each needs a MODIFIED or a REMOVED a
 
 ## Seed requirements of platform-artifact that 0026 may touch
 
-The seed writer of `platform-artifact` guessed these two from 0026:D3, which gives the name `#Platform` to the authored value (`reports/T4.3-platform-artifact.md`; `seed-platform-artifact/source.md`, last line). No old requirement line decides them, so this conversion modifies neither. The owner decides at accept whether each needs a MODIFIED.
+The seed writer of `platform-artifact` guessed these two from 0026:D3, which gives the name `#Platform` to the authored value (the archived `seed-platform-artifact/source.md`, last paragraph). No old requirement line decides them, so this conversion modifies neither. The owner decides at accept whether each needs a MODIFIED.
 
 - "Acquisition refuses a package that is no platform": its kind check says "one struct of kind Platform". Whether acquisition checks the authored platform, the resolved platform or both is open.
 - "A platform holds its package, metadata and source": the wording may need the name of the value.
 
 ## Purpose lines that a delta cannot change
 
-The `## Purpose` of the seed `platform-module-generation` says the generated module "embeds `#Platform`". A delta cannot change a Purpose, so the delivery of 0026 needs a Purpose-only PR to correct it (DECISIONS 2026-10-10 19:00 Q2).
+The `## Purpose` of the seed `platform-module-generation` says the generated module "embeds `#Platform`". A delta cannot change a Purpose, so the delivery of 0026 needs a Purpose-only PR to correct it. `AGENTS.md` allows that: a PR that corrects a `## Purpose` and nothing else may change `openspec/specs/`.
 
 ## Seed requirements the seed writers named that this conversion leaves unchanged
 
 No old requirement line states a change to them, so none is modified.
 
-- `single-build-render`: "Render inputs are source-carrying artifacts", "Local replacements are promoted under dependency precedence", "Version skew follows a caller-chosen policy", "A render refuses colliding contract keys". The first and third read as platform-wins rules or as inputs of a render, and 0026 states the module-wins rule only for the dependency list.
+- `single-build-render`: "Render inputs are source-carrying artifacts", "Local replacements are promoted under dependency precedence", "Version skew follows a caller-chosen policy". The first and third read as platform-wins rules or as inputs of a render, and 0026 states the module-wins rule only for the dependency list.
 - `platform-registry`: "Catalog selection depends on committed source only". It stays true of the generated registry.
 - `platform-module-generation`: "An entry's expected version is stamped bare", "The dependency closure comes from published module files".
 - The collision rules and the CLI half of the colliding-platform refusal are in no seed. 0026 adds no collision requirement. The collision reports shipped ahead of this entry, as the old text of OQ17 says.

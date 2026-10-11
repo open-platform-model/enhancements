@@ -3,6 +3,7 @@
 Proof and source material. Outside the word total. The converted text of the entry is `../proposal.md`, `../design.md` and `../specs/`. The old documents are kept here where they hold detail the design leaves out. The whole old entry stays in git at commit `18705155d2c7312029132c30d2b106ca59e57125` of `enhancements` (path `0008/`), including its `config.yaml` with the old change history.
 
 - [migration-map.md](migration-map.md): where each of the 9 requirements, 8 decisions and 5 open questions of the old entry went.
+- [notes-for-accept.md](notes-for-accept.md): one point for the owner at accept: the singleton rule that a seed states too.
 - [decision-log.md](decision-log.md): the old `03-decisions.md`, moved word for word. Every alternative, rationale and source is here.
 - [problem.md](problem.md): the old `01-problem.md`, moved word for word. The file evidence for the pain and the worked `values` example.
 - [design-notes.md](design-notes.md): the old `02-design.md`, moved word for word. It holds the design goals, the affected surfaces per repo and the before and after workflow.

@@ -3,6 +3,7 @@
 Proof and source material. Outside the word total. The converted text of the entry is `../proposal.md` and `../design.md`. It has no `specs/` folder: the entry states a posture and no requirement. The old documents are kept here where they hold detail the design leaves out. The whole old entry stays in git at commit `18705155d2c7312029132c30d2b106ca59e57125` of `enhancements` (path `0005/`), including its `config.yaml` with the old change history.
 
 - [migration-map.md](migration-map.md): where each of the 0 requirements, 3 decisions and 6 open questions of the old entry went, and where the rest of the old text went.
+- [notes-for-accept.md](notes-for-accept.md): two points for the owner at accept: the retired mirror premise, and `breaking`.
 - [decision-log.md](decision-log.md): the old `03-decisions.md`, moved word for word. Every alternative, rationale and the measurement of 2026-09-29 is here.
 - [problem.md](problem.md): the old `01-problem.md`, moved word for word. The current state, the pain and the worked examples.
 - [design-notes.md](design-notes.md): the old `02-design.md`, moved word for word. The goals, the integration points per repo and the before and after examples.

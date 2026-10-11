@@ -3,7 +3,7 @@
 Proof and source material. Outside the word total. The converted text of the entry is `../proposal.md`, `../design.md` and `../specs/`. The old documents are kept here where they hold detail the design leaves out. The whole old entry stays in git at commit `18705155d2c7312029132c30d2b106ca59e57125` of `enhancements` (path `0022/`), including its `config.yaml` with the old change history and its owner decisions.
 
 - [migration-map.md](migration-map.md): where each of the 28 requirements, 8 decisions and 6 open questions of the old entry went. No requirement is cut, so the entry has no cut list.
-- [notes-for-accept.md](notes-for-accept.md): open points of the alignment with the seeds, for the owner at accept.
+- [notes-for-accept.md](notes-for-accept.md): open points of the alignment with the seeds, and the wording that amends archived 0011, for the owner at accept.
 - [decision-log.md](decision-log.md): the old `03-decisions.md`, moved word for word. Every alternative, rationale, measurement and source is here.
 - [problem.md](problem.md): the old `01-problem.md`, moved word for word. The current state, the pain, the cert_manager example and the user stories.
 - [design-notes.md](design-notes.md): the old `02-design.md`, moved word for word. It holds the design goals, the channel diagram, the module file as authored and the before and after of the reader.
