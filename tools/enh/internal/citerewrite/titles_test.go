@@ -55,13 +55,21 @@ func TestQuoted(t *testing.T) {
 	}
 }
 
+var anyIDRe = regexp.MustCompile(`(^|[^0-9A-Za-z_])0[0-9]{3}([^0-9A-Za-z_]|$)`)
+
 // Every title the tool can write passes the lint by itself (ruling 2026-10-11
-// 23:45): no citation inside it, so a rewrite never adds a decision number.
+// 23:45) and holds no enhancement id in any form (ruling 23:59): a rewrite
+// never adds a decision number or a stray id. A long title is written in full:
+// a short form exists only for a heading that holds an id.
 func TestEveryEffectiveTitlePassesTheLint(t *testing.T) {
 	tt := DefaultTitles()
-	checked := 0
+	checked, retracted := 0, 0
 	for id, byN := range tt.title {
 		for n, heading := range byN {
+			if tt.Retracted(id, n) {
+				retracted++
+				continue
+			}
 			rid, title, ok := tt.Effective(id, n)
 			if !ok {
 				t.Errorf("%s D%d has no effective title", id, n)
@@ -71,47 +79,64 @@ func TestEveryEffectiveTitlePassesTheLint(t *testing.T) {
 			if cs := cites.Scan(title); len(cs) > 0 {
 				t.Errorf("%s D%d (%s): the title %q holds the citation %q", id, n, rid, title, cs[0].Text)
 			}
-			if strings.Contains(title, "\n") || strings.Contains(title, "\t") {
+			if anyIDRe.MatchString(title) {
+				t.Errorf("%s D%d (%s): the title %q holds an enhancement id", id, n, rid, title)
+			}
+			if strings.ContainsAny(title, "\n\t") {
 				t.Errorf("%s D%d: the title holds a tab or a newline", id, n)
 			}
-			// A heading that is no tombstone and is long or holds a citation needs a short form.
-			if _, _, moved := tombstone(heading); moved {
+			_, hasShort := tt.short[id][n]
+			if tombstone(heading) {
+				if hasShort {
+					t.Errorf("%s D%d: a tombstone needs no short form", id, n)
+				}
 				continue
 			}
-			_, hasShort := tt.short[id][n]
-			if (len(heading) > 110 || len(cites.Scan(heading)) > 0) && !hasShort {
-				t.Errorf("%s D%d: the heading (%d characters) needs a short form", id, n, len(heading))
+			// A heading that holds an id has a short form; no other heading has one.
+			holdsID := anyIDRe.MatchString(heading) || len(cites.Scan(heading)) > 0
+			if holdsID && !hasShort {
+				t.Errorf("%s D%d: the heading holds an id and needs a short form: %q", id, n, heading)
+			}
+			if !holdsID && hasShort {
+				t.Errorf("%s D%d: a short form for a heading with no id (length is no reason): %q", id, n, heading)
 			}
 		}
 	}
-	if checked != 419 {
-		t.Errorf("checked %d titles, want 419", checked)
-	}
-	// A short form is a hand-written file: it names real decisions, holds no id, and is shorter.
-	for id, byN := range tt.short {
-		for n, s := range byN {
-			if len(s) >= len(tt.title[id][n]) {
-				t.Errorf("%s D%d: the short form is not shorter than the heading", id, n)
-			}
-			if regexp.MustCompile(`\b0[0-9]{3}\b`).MatchString(s) {
-				t.Errorf("%s D%d: the short form holds an id: %q", id, n, s)
-			}
-		}
+	if checked+retracted != 419 || retracted != 1 {
+		t.Errorf("checked %d titles and %d retracted, want 418 and 1", checked, retracted)
 	}
 }
 
-func tombstone(heading string) (string, int, bool) {
-	if mergedRe.MatchString(heading) || movedRe.MatchString(heading) {
-		return heading, 0, true
+func tombstone(heading string) bool {
+	return mergedRe.MatchString(heading) || movedRe.MatchString(heading)
+}
+
+func TestRetractedDecisionIsAWorklistRow(t *testing.T) {
+	tt := DefaultTitles()
+	if !tt.Retracted("0018", 12) {
+		t.Fatal("0018 D12 is retracted")
 	}
-	return "", 0, false
+	got, sites := rewrite(t, "a.md", "Retracted per 0018:D12.\n")
+	if got != "Retracted per 0018:D12.\n" || len(sites) != 1 || sites[0] != "1:retracted" {
+		t.Errorf("got %q %v", got, sites)
+	}
+	got, sites = rewrite(t, "a.go", "package a\n\n// Retracted (0018:D12).\nvar x = 1\n")
+	if len(sites) != 1 || sites[0] != "3:retracted" {
+		t.Errorf("code: got %q %v", got, sites)
+	}
+}
+
+func TestWorklistTitleNamesTheTarget(t *testing.T) {
+	tt := DefaultTitles()
+	res := Process("a.md", []byte("The rule 0025:D3's scope holds.\n"), tt)
+	if len(res.Sites) != 1 || !strings.Contains(res.Sites[0].Title, "0025 D3 is 0027 D3: ") {
+		t.Errorf("sites %+v", res.Sites)
+	}
 }
 
 func TestResolveTombstones(t *testing.T) {
 	tt := DefaultTitles()
 	rid, title, ok := tt.Effective("0025", 3)
-	want, _, _ := tt.Effective("0027", 3)
-	_ = want
 	if !ok || rid != "0027" {
 		t.Fatalf("0025 D3 resolves to %s, %v", rid, ok)
 	}

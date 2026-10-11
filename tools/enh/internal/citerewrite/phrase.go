@@ -100,8 +100,13 @@ func titleLine(tt *Titles, cs []cites.Cite) string {
 	for _, c := range cs {
 		for _, n := range c.Decisions {
 			if rid, t, ok := tt.Effective(c.ID, n); ok {
-				_ = rid
-				parts = append(parts, c.ID+" D"+itoa(n)+": "+t)
+				// the target of a moved or merged decision, so that an agent
+				// writes the id that took its place
+				if rn, _ := tt.resolvedNumber(c.ID, n); rid != c.ID || rn != n {
+					parts = append(parts, c.ID+" D"+itoa(n)+" is "+rid+" D"+itoa(rn)+": "+t)
+				} else {
+					parts = append(parts, c.ID+" D"+itoa(n)+": "+t)
+				}
 			}
 		}
 	}
@@ -124,6 +129,9 @@ func textForm(tt *Titles, cs []cites.Cite, compact bool) (string, string) {
 			return "", KindUnknownID
 		}
 		for _, n := range c.Decisions {
+			if tt.Retracted(c.ID, n) {
+				return "", KindRetracted
+			}
 			rid, title, ok := tt.Effective(c.ID, n)
 			if !ok {
 				return "", KindUnknownDec
@@ -240,6 +248,9 @@ func resolvedIDs(tt *Titles, cs []cites.Cite) ([]string, string) {
 			return nil, KindUnknownID
 		}
 		for _, n := range c.Decisions {
+			if tt.Retracted(c.ID, n) {
+				return nil, KindRetracted
+			}
 			rid, _, ok := tt.Resolve(c.ID, n)
 			if !ok {
 				return nil, KindUnknownDec

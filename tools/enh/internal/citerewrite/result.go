@@ -30,6 +30,7 @@ const (
 	KindCodeSpan       = "code-span"  // inside a longer inline code span
 	KindWrapped        = "wrapped"    // the edit would cross a line
 	KindUnknownID      = "unknown-id" // an id that is not one of the 27 entries
+	KindRetracted      = "retracted"  // a decision whose heading is a retraction date
 	KindUnknownDec     = "unknown-decision"
 	KindEntryFile      = "entry-file"      // a path to a file inside an entry
 	KindPathRef        = "path-ref"        // enhancements/NNNN in a code comment

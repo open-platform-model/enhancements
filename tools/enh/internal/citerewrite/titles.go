@@ -18,8 +18,9 @@ import (
 var titlesTSV string
 
 // short-titles.tsv is written by hand (id, decision number, short form). It
-// holds a short form for every title over 110 characters and for every title
-// that holds an id; titles.tsv itself stays exactly what titlegen writes.
+// holds a short form for every heading that holds an enhancement id, and for
+// no other heading (a long title is written in full); titles.tsv itself stays
+// exactly what titlegen writes.
 //
 //go:embed short-titles.tsv
 var shortTSV string
@@ -109,9 +110,16 @@ func (t *Titles) Title(id string, n int) (string, bool) {
 }
 
 var (
-	mergedRe = regexp.MustCompile(`^\(merged into D([0-9]+), `)
-	movedRe  = regexp.MustCompile(`^\(moved to ([0-9]{4}):D([0-9]+), `)
+	retractedRe = regexp.MustCompile(`^\(retracted, `)
+	mergedRe    = regexp.MustCompile(`^\(merged into D([0-9]+), `)
+	movedRe     = regexp.MustCompile(`^\(moved to ([0-9]{4}):D([0-9]+), `)
 )
+
+// Retracted reports whether the decision was retracted: its heading is a
+// date, not a title, so no citation of it can be written.
+func (t *Titles) Retracted(id string, n int) bool {
+	return retractedRe.MatchString(t.title[id][n])
+}
 
 // Resolve follows a tombstone heading to the decision that took its place:
 // "(merged into D10, ...)" stays in the entry, "(moved to 0027:D3, ...)"
@@ -171,4 +179,10 @@ func (t *Titles) IDs() []string {
 // double quote inside becomes a single quote.
 func Quoted(title string) string {
 	return `"` + strings.ReplaceAll(title, `"`, "'") + `"`
+}
+
+// resolvedNumber returns the decision number that Resolve ends on.
+func (t *Titles) resolvedNumber(id string, n int) (int, bool) {
+	_, rn, ok := t.Resolve(id, n)
+	return rn, ok
 }
