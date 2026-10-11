@@ -228,3 +228,86 @@ func TestLoneIDParagraph(t *testing.T) {
 		})
 	}
 }
+
+// The spoken forms are decision numbers too (ruling 2026-10-11 22:40).
+func TestSpokenForms(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		n    int
+	}{
+		{"// Tightens the gate (enhancement 0010 D4).", 1},
+		{"// Tightens the gate (0010 D49).", 1},
+		{"// Tightens the gate, per 0011 D3/D15.", 1},
+		{"// Rules, enhancement 0010 D4 and D7 apply.", 1},
+		{"// Enhancement 0015, D9 holds.", 1},
+		{"// Tightens the gate (enhancements 0010 and 0026).", 0},
+		{"// Tightens the gate (enhancement 0010).", 0},
+		{"// Released 2026 D4 and v1.0010 D3.", 0},
+		{"// The portal head portal:D4 is not an enhancement.", 0},
+		{"var s = \"retired (enhancement 0006 D21)\"", 1},
+	} {
+		src := []byte("package p\n" + tc.text + "\nvar _ = 1\n")
+		n := 0
+		for _, f := range LintSource("a.go", src, Options{}) {
+			if f.Rule == RuleDecisionNumber {
+				n++
+			}
+		}
+		if n != tc.n {
+			t.Errorf("%q: %d decision-number findings, want %d", tc.text, n, tc.n)
+		}
+	}
+}
+
+// A spoken id alone in a paragraph is a lone id as well.
+func TestSpokenLoneID(t *testing.T) {
+	src := []byte("package p\n\n// (0010 D49)\nfunc f() {}\n")
+	rules := map[string]bool{}
+	for _, f := range LintSource("a.go", src, Options{}) {
+		rules[f.Rule] = true
+	}
+	if !rules[RuleDecisionNumber] || !rules[RuleLoneID] {
+		t.Fatalf("rules: %v", rules)
+	}
+}
+
+func TestCUETemplate(t *testing.T) {
+	src := []byte("// Renders the thing (enhancement 0019 D5).\nx: 1\n")
+	if f := LintSource("opm/internal/renderstage/render.cue.tmpl", src, Options{}); len(f) != 1 {
+		t.Fatalf("a .cue.tmpl is CUE: %v", f)
+	}
+}
+
+func TestBuiltInSkips(t *testing.T) {
+	root := t.TempDir()
+	bad := "package a\n\n// 0010" + ":D1\nvar _ = 1\n"
+	write(t, root, "vendor/x/v.go", bad)
+	write(t, root, "sub/vendor/v.go", bad)
+	write(t, root, "agent-swarm/a/b.go", bad)
+	write(t, root, ".claude/worktrees/w/b.go", bad)
+	write(t, root, "ok/b.go", bad)
+	// Files named one by one are skipped the same way as a walk skips them.
+	res, err := LintFiles(root, []string{"vendor/x/v.go", "sub/vendor/v.go", "agent-swarm/a/b.go", ".claude/worktrees/w/b.go"}, Options{})
+	if err != nil || len(res.Findings) != 0 || res.Checked != 0 {
+		t.Fatalf("named files: res=%+v err=%v", res, err)
+	}
+	res, err = LintFiles(root, []string{"."}, Options{})
+	if err != nil || res.Checked != 1 || res.Findings[0].Path != "ok/b.go" {
+		t.Fatalf("walk: res=%+v err=%v", res, err)
+	}
+	for _, p := range []string{"CHANGELOG.md", "sub/CHANGELOG.md", "vendor/a.go", "agent-swarm/x.go"} {
+		if !Skipped(p) {
+			t.Errorf("Skipped(%q) is false", p)
+		}
+	}
+	for _, p := range []string{"README.md", "src/a.go", "docs/changelog-notes.md"} {
+		if Skipped(p) {
+			t.Errorf("Skipped(%q) is true", p)
+		}
+	}
+	// An absolute path counts from the root: a swarm folder above the root is no reason to skip.
+	abs := filepath.Join(root, "ok/b.go")
+	if Skipped(UnderRoot(root, abs)) {
+		t.Errorf("an absolute path inside the root is skipped")
+	}
+}
