@@ -48,6 +48,7 @@
 | [catalog-compatibility](./openspec/specs/catalog-compatibility/spec.md) | 8 | State when a catalog's contracts stay compatible with the ones it already published: the additive-only comparison, the levels it binds, and the standalone check that repeats the comparison on a published build. |
 | [catalog-contracts](./openspec/specs/catalog-contracts/spec.md) | 6 | State what a catalog publishes about the contracts it defines. |
 | [catalog-member-gate](./openspec/specs/catalog-member-gate/spec.md) | 6 | State what a catalog member must declare relative to its catalog identity: where it is filed, which build it names, how its key is built and which API version it carries. |
+| [cli-kernel-render](./openspec/specs/cli-kernel-render/spec.md) | 8 | Describe what the CLI adds around the kernel render. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
