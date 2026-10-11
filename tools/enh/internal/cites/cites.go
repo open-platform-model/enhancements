@@ -32,6 +32,11 @@ type Cite struct {
 	Possessive bool
 	// Path is true when the citation reads "enhancements/NNNN" plus decisions.
 	Path bool
+	// Glued is true when the citation sits in a longer token: a letter, a
+	// digit or an underscore follows it (0010:D4x), or a hyphen, dot or slash
+	// joins it to the word before (PRE-0010:D41). It is a decision number
+	// for the lint, and no safe rewrite exists.
+	Glued bool
 	// Text is text[Start:End].
 	Text string
 }
@@ -40,7 +45,7 @@ type Cite struct {
 func (c Cite) Lead(text string) string { return strings.TrimRight(text[c.LeadStart:c.Start], " \t") }
 
 var (
-	idRe = regexp.MustCompile("0[0-9]{3}")
+	idRe = regexp.MustCompile("[0-9]{4}")
 
 	// partRe reads one decision or question: D4, D4:R1/R2, OQ2.
 	partRe = regexp.MustCompile(`^(?:D([0-9]+)(?::R[0-9]+(?:(?:/|-)R?[0-9]+|,[ \t]*R[0-9]+)*)*|OQ([0-9]+))`)
@@ -84,6 +89,7 @@ func wordEnd(s string, i int) bool {
 func Scan(text string) []Cite {
 	var out []Cite
 	next := 0
+	prevEnd := -1 // end of the last citation: a slash right after it joins two citations
 	for _, loc := range idRe.FindAllStringIndex(text, -1) {
 		s, e := loc[0], loc[1]
 		if s < next {
@@ -111,11 +117,18 @@ func Scan(text string) []Cite {
 		// The colon form keeps the old rule (a hyphen or a dot before it is
 		// fine: PRE-0010:D41). The spoken form must not sit in a longer token
 		// such as a version or a date.
-		if c.Spoken && s > 0 && !path && !idStartOK(text[s-1]) {
+		if c.Spoken && !path && (c.ID[0] != '0' || s > 0 && !idStartOK(text[s-1])) {
 			continue
+		}
+		if !c.Spoken && end < len(text) && !wordEnd(text, end) {
+			c.Glued = true
+		}
+		if !path && s > 0 && (text[s-1] == '-' || text[s-1] == '.' || text[s-1] == '/' && s-1 != prevEnd || text[s-1] == '@' || text[s-1] == '$' || text[s-1] == '%') {
+			c.Glued = true
 		}
 		out = append(out, c)
 		next = end
+		prevEnd = end
 	}
 	return out
 }
@@ -187,7 +200,7 @@ parts:
 		if m == nil {
 			break
 		}
-		if first && !wordEnd(text, i+len(m[0])) {
+		if first && c.Spoken && !wordEnd(text, i+len(m[0])) {
 			// "D4x" is not a decision.
 			break
 		}

@@ -91,6 +91,13 @@ func TestDecisionNumberForms(t *testing.T) {
 		{"// (enhancement 0010)", 0},
 		{"// at 10:30 and 20260" + ":D1", 0},
 		{"// 0010:Dx", 0},
+		// the old colon rule is the floor: each of these failed before the spoken forms came in
+		{"// 1234" + ":D5", 1},
+		{"// 0010" + ":D4x", 1},
+		{"// 0010" + ":D4_a", 1},
+		{"// 0010" + ":D4:R1x", 1},
+		{"// 0010" + ":OQ2b", 1},
+		{"// PRE-0010" + ":D41 formula", 1},
 	} {
 		src := []byte("package p\n" + tc.text + "\nvar _ = 1\n")
 		n := 0

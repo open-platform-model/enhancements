@@ -32,13 +32,20 @@ func TestScan(t *testing.T) {
 		{"path dash", "`enhancements/0010` — D14, D28", []string{"0010` — D14, D28|0010|[14 28]|[]|sP"}},
 		{"duplicates collapse", "0010:D4 and D4", []string{"0010:D4 and D4|0010|[4]|[]|"}},
 		{"hyphen before a colon form", "PRE-0010:D41 and a/0010:D4", []string{"0010:D41|0010|[41]|[]|", "0010:D4|0010|[4]|[]|"}},
+		// The old colon rule is the floor (the base lint matched all of these).
+		{"colon floor: any four digits", "1234:D5", []string{"1234:D5|1234|[5]|[]|"}},
+		{"colon floor: letter after D4", "0010:D4x", []string{"0010:D4|0010|[4]|[]|"}},
+		{"colon floor: underscore after D4", "0010:D4_a", []string{"0010:D4|0010|[4]|[]|"}},
+		{"colon floor: letter after the requirement", "0010:D4:R1x", []string{"0010:D4:R1|0010|[4]|[]|"}},
+		{"colon floor: letter after OQ", "0010:OQ2b", []string{"0010:OQ2|0010|[]|[2]|"}},
 		// not citations
 		{"year and D", "released 2026 D4 here", nil},
 		{"date", "on 2026-10-11 D4", nil},
 		{"version", "v1.0010 D3 and v0.0010 D3", nil},
 		{"no decision", "enhancement 0010 and (enhancements 0010 and 0026)", nil},
 		{"id inside number", "10010 D4 and 00100 D4", nil},
-		{"D with letters", "0010 Dx and 0010:D4x", nil},
+		{"spoken D with letters", "0010 Dx and 0010 D4x", nil},
+		{"spoken id that does not start with zero", "1234 D5", nil},
 		{"portal head", "portal:D4 and portal:D12:R1", nil},
 		{"hex-like word", "abc0010 D4", nil},
 		{"path only", "enhancements/0010/ and enhancements/0019/schemas/target.cue", nil},
@@ -94,5 +101,25 @@ func TestScanParenthesisedDecisions(t *testing.T) {
 	}
 	if got := Scan("see 0019 (D20 and more)"); len(got) != 0 {
 		t.Errorf("an unclosed list is not a citation: %+v", got)
+	}
+}
+
+func TestGlued(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want bool
+	}{
+		{"x 0010:D4x y", true},
+		{"x 0010:D4_a y", true},
+		{"x PRE-0010:D41 y", true},
+		{"x a/0010:D4 y", true},
+		{"x (0010:D4) y", false},
+		{"x 0010:D4's y", false},
+		{"x 0010:D4. y", false},
+	} {
+		cs := Scan(tc.text)
+		if len(cs) != 1 || cs[0].Glued != tc.want {
+			t.Errorf("%q: %+v, want Glued=%v", tc.text, cs, tc.want)
+		}
 	}
 }
