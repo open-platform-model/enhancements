@@ -80,3 +80,5 @@ The code wins in each case.
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - "Transformers and alpha members SHALL be exempt" and the sentence that the alpha exemption belongs to this gate alone no longer name the level rule; they say that transformers are exempt and that a member the comparison does not bind passes. The level rule is `primitive-keying`'s, applied by `catalog-compatibility`. The scenario "An alpha member is exempt only here" stays: it is the interplay of the gates in one publish.
+
+sampled: 2026-10-11 18705155
