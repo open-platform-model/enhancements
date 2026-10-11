@@ -1,0 +1,23 @@
+# Facts only. History is `git log`.
+id: "0026"
+slug: module-dictated-catalog-versions
+title: Module-Dictated Catalog Versions and the Generated Platform
+summary: >-
+  Let a platform admit a catalog path with a version range, and let each module's own pin pick the
+  version inside it.
+status: draft
+category: schema
+breaking: true
+affects:
+  - core
+  - library
+  - cli
+  - opm-operator
+  - catalog_opm
+authors:
+  - emil@jacero.se
+created: "2026-09-08"
+after:
+  - "0010"
+  - "0015"
+  - "0019"

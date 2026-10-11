@@ -1,0 +1,109 @@
+diff --git a/src/catalog.cue b/src/catalog.cue
+index 0b3aeb8..de33b81 100644
+--- a/src/catalog.cue
++++ b/src/catalog.cue
+@@ -1,5 +1,7 @@
+ package core
+ 
++import "strings"
++
+ // WHY it is authored this way. The full authoring shape:
+ //
+ //
+@@ -155,6 +157,18 @@ package core
+ 		}
+ 	}
+ 
++	// LINEAGE PROBE: every contract this catalog lists is ITS OWN: keyed
++	// under its module path (module scope) or its registry path (legacy
++	// registry scope). Another catalog's key, and another major's
++	// module-scoped key, is refused here, so no two enabled entries can
++	// list one module-scoped key.
++	_ownsKeys: {
++		for k, _ in #resources {(k): strings.HasPrefix(k, M.modulePath+"/") || strings.HasPrefix(k, M._ref.registryPath+"/")}
++		for k, _ in #traits {(k): strings.HasPrefix(k, M.modulePath+"/") || strings.HasPrefix(k, M._ref.registryPath+"/")}
++		for k, _ in #blueprints {(k): strings.HasPrefix(k, M.modulePath+"/") || strings.HasPrefix(k, M._ref.registryPath+"/")}
++	}
++	_ownsKeys: [string]: true
++
+ 	#transformers: [#ImplFQNType]: #ComponentTransformer & {
+ 		metadata: {
+ 			// The major is split out and NOT re-appended: a transformer
+diff --git a/src/identity_package.cue b/src/identity_package.cue
+index e51597b..39f4ada 100644
+--- a/src/identity_package.cue
++++ b/src/identity_package.cue
+@@ -137,6 +137,23 @@ import (
+ 		blueprints:   RegistryPath + "/blueprints"
+ 		transformers: RegistryPath + "/transformers"
+ 	}
++	// LINEAGE PROBE: which prefix a CONTRACT key hangs off. "module" (the
++	// default for every new catalog major): the complete ModulePath, so two
++	// majors of one catalog never share a contract key. "registry": the
++	// major-free RegistryPath, the pre-change shape, kept ONLY so an already
++	// published major (opm@v4) keeps its keys for its remaining releases.
++	ContractScope: *"module" | "registry"
++	_keyBase: [
++		if ContractScope == "module" {ModulePath},
++		RegistryPath,
++	][0]
++	// keyPrefix: what a contract key is built on. Filing (kindPrefix) stays
++	// major-free: it is the on-disk package path.
++	keyPrefix: {
++		resources:  _keyBase + "/resources"
++		traits:     _keyBase + "/traits"
++		blueprints: _keyBase + "/blueprints"
++	}
+ }
+ 
+ // WHY #CatalogMemberFQNGate exists and is shaped this way. It is the
+@@ -230,7 +247,10 @@ import (
+ 	// The KEY does not carry the filing segment: the apiVersion reaches a
+ 	// contract key once, as its "@vN" suffix, never as a path component. Filing
+ 	// is versioned; the key space stays flat.
+-	declaredFQN: identity.kindPrefix[kind] + "/" + name + "@" + _keyVersion
++	declaredFQN: [
++		if kind == "transformers" {identity.kindPrefix[kind] + "/" + name + "@" + _keyVersion},
++		identity.keyPrefix[kind] + "/" + name + "@" + _keyVersion,
++	][0]
+ 
+ 	// NOTE what is absent: apiVersion is NOT checked against identity. Nothing
+ 	// implies it. A primitive's contract level is a judgement its author makes
+diff --git a/src/types.cue b/src/types.cue
+index 5091cf7..0cc993c 100644
+--- a/src/types.cue
++++ b/src/types.cue
+@@ -1,6 +1,7 @@
+ package core
+ 
+ import (
++	"regexp"
+ 	"strings"
+ )
+ 
+@@ -197,7 +198,24 @@ import (
+ // carries. A catalog release does not move it. Example:
+ // "opmodel.dev/catalogs/opm/traits/scaling@v1beta1" Example:
+ // "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1"
+-#ContractFQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+((alpha|beta)[0-9]+)?$"
++#ContractFQNType: string & =~"^[a-z0-9._-]+(/[a-z0-9._-]+)*(@v[0-9]+/[a-z0-9._-]+(/[a-z0-9._-]+)*)?/[a-z0-9]([a-z0-9-]*[a-z0-9])?@v[0-9]+((alpha|beta)[0-9]+)?$"
++
++// LINEAGE PROBE: #ContractRef decomposes a contract key. A module-qualified
++// key ("<path>@vN/<kind>/<name>@<apiVersion>") names its declaring catalog
++// entry (the #registry key) and its lineage (the major-free path); a
++// registry-scoped (legacy) key names neither.
++#ContractRef: {
++	fqn!:      #ContractFQNType
++	_m:        regexp.FindSubmatch("^([a-z0-9._-]+(/[a-z0-9._-]+)*)(@v[0-9]+)?(/[a-z0-9._-]+)*/([a-z0-9]([a-z0-9-]*[a-z0-9])?)@(v[0-9]+((alpha|beta)[0-9]+)?)$", fqn)
++	qualified: _m[3] != ""
++	if qualified {
++		declaringModule: _m[1] + _m[3]
++		lineage:         _m[1]
++		// the key with the major removed: equal across majors of one lineage
++		lineageKey: _m[1] + strings.TrimPrefix(fqn, _m[1]+_m[3])
++	}
++	apiVersion: _m[7]
++}
+ 
+ // WHY the build stays in the key: unchanged from the form this type had
+ // under the name #FQNType before 0010:D4 split it, so no transformer value moves.

@@ -1,0 +1,60 @@
+diff --git a/src/platform.cue b/src/platform.cue
+index 2de313c..1ccd071 100644
+--- a/src/platform.cue
++++ b/src/platform.cue
+@@ -116,9 +116,16 @@ import (
+ 	// True exactly when nothing is unfulfilled. A report, never a gate.
+ 	fulfilled: bool & (len(unfulfilled) == 0)
+ 
++	// FOLD PROBE: contract keys that more than one enabled entry defines,
++	// sorted, and the entries defining each. Such a key is left out of
++	// defined and definedBy instead of conflicting there.
++	collisions: [...#ContractFQNType]
++	collidingEntries: [#ContractFQNType]: [...#ModulePathType]
++
+ 	// True exactly when nothing is over-subscribed. The gate the generation
+ 	// step (operator, CLI) reads; `core` itself refuses nothing on it.
+-	routable: bool & (len(overSubscribed) == 0)
++	// FOLD PROBE: and nothing collides.
++	routable: bool & (len(overSubscribed) == 0 && len(collisions) == 0)
+ 
+ 	// True exactly when nothing is comparable. The second gate the
+ 	// generation step (operator, CLI) reads; `core` itself refuses
+@@ -215,20 +222,31 @@ import (
+ 	// An over-subscribed platform still evaluates; refusing it is the
+ 	// generation step's act. See SPEC.md § 3.4.
+ 	#contracts: #ContractInventory & {
++		// FOLD PROBE: fold only keys with exactly one definer; report the
++		// rest as collisions rather than conflicting on them.
++		_definers: {
++			for path, entry in #registry if entry.enable {
++				for fqn, _ in entry.#catalog.#resources {(fqn): (path): true}
++				for fqn, _ in entry.#catalog.#traits {(fqn): (path): true}
++				for fqn, _ in entry.#catalog.#blueprints {(fqn): (path): true}
++			}
++		}
+ 		defined: {
+ 			for _, entry in #registry if entry.enable {
+-				for fqn, r in entry.#catalog.#resources {(fqn): r}
+-				for fqn, t in entry.#catalog.#traits {(fqn): t}
+-				for fqn, b in entry.#catalog.#blueprints {(fqn): b}
++				for fqn, r in entry.#catalog.#resources if len(_definers[fqn]) == 1 {(fqn): r}
++				for fqn, t in entry.#catalog.#traits if len(_definers[fqn]) == 1 {(fqn): t}
++				for fqn, b in entry.#catalog.#blueprints if len(_definers[fqn]) == 1 {(fqn): b}
+ 			}
+ 		}
+ 		definedBy: {
+ 			for path, entry in #registry if entry.enable {
+-				for fqn, _ in entry.#catalog.#resources {(fqn): path}
+-				for fqn, _ in entry.#catalog.#traits {(fqn): path}
+-				for fqn, _ in entry.#catalog.#blueprints {(fqn): path}
++				for fqn, _ in entry.#catalog.#resources if len(_definers[fqn]) == 1 {(fqn): path}
++				for fqn, _ in entry.#catalog.#traits if len(_definers[fqn]) == 1 {(fqn): path}
++				for fqn, _ in entry.#catalog.#blueprints if len(_definers[fqn]) == 1 {(fqn): path}
+ 			}
+ 		}
++		collisions: list.Sort([for fqn, ds in _definers if len(ds) > 1 {fqn}], list.Ascending)
++		collidingEntries: {for fqn, ds in _definers if len(ds) > 1 {(fqn): list.Sort([for p, _ in ds {p}], list.Ascending)}}
+ 
+ 		// The demand maps are optional on #ComponentTransformer, and an
+ 		// unguarded `for` over an absent one fails the whole platform; the
