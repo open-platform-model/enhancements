@@ -50,8 +50,13 @@ func removal(text string, ps, pe int) (rs, re int, repl string, ok, lone bool) {
 		if ls != ps || sentenceStart(text, ps) {
 			rs, re = ls, pe+len(m)
 			if rs > 0 && !sentenceStart(text, rs) {
-				// "foo, per X, bar": keep the comma that precedes the phrase.
-				return rs, re, "", true, false
+				before := strings.TrimRight(text[:rs], " \t")
+				if strings.HasSuffix(before, ",") {
+					// "foo, per X, bar": keep the comma that precedes the phrase.
+					return rs, re, "", true, false
+				}
+				// "foo per X; bar": the clause break stays, only the phrase goes.
+				return trimBackSpaces(text, ls), pe, "", true, false
 			}
 			return capitalise(text, rs, re)
 		}

@@ -118,3 +118,38 @@ func TestWorklistFile(t *testing.T) {
 		t.Errorf("got %q want %q", b.String(), want)
 	}
 }
+
+// --generated marks paths as generated: only listed, never written.
+func TestGeneratedPaths(t *testing.T) {
+	root := t.TempDir()
+	body := "# there is no range (0010:D14)\nkey: value\n"
+	for _, rel := range []string{"config/crd/bases/a.yaml", "dist/install.yaml", "docs/b.yaml"} {
+		p := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rep, err := Run(Options{Root: root, Write: true, Generated: []string{"config/crd/bases/", "dist/"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Changed) != 1 || rep.Changed[0] != "docs/b.yaml" {
+		t.Errorf("changed %v, want only docs/b.yaml", rep.Changed)
+	}
+	kinds := map[string]string{}
+	for _, s := range rep.Sites {
+		kinds[s.Path] = s.Kind
+	}
+	if kinds["config/crd/bases/a.yaml"] != KindGenerated || kinds["dist/install.yaml"] != KindGenerated || len(rep.Sites) != 2 {
+		t.Errorf("sites %+v", rep.Sites)
+	}
+	for _, rel := range []string{"config/crd/bases/a.yaml", "dist/install.yaml"} {
+		b, _ := os.ReadFile(filepath.Join(root, rel))
+		if string(b) != body {
+			t.Errorf("%s was written: %q", rel, b)
+		}
+	}
+}

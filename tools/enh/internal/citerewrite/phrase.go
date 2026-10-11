@@ -17,6 +17,7 @@ type phrase struct {
 	possessive bool
 	path       bool
 	oq         bool
+	glued      bool
 }
 
 var joinRe = regexp.MustCompile(`^(?:[ \t]*,[ \t]*and[ \t]+|[ \t]*[,;/&][ \t]*|[ \t]+and[ \t]+|[ \t]+or[ \t]+)$`)
@@ -32,10 +33,11 @@ func groupPhrases(text string, cs []cites.Cite) []phrase {
 				p.end = c.End
 				p.possessive = c.Possessive
 				p.oq = p.oq || len(c.OQ) > 0
+				p.glued = p.glued || c.Glued
 				continue
 			}
 		}
-		out = append(out, phrase{cites: []cites.Cite{c}, start: c.LeadStart, end: c.End, possessive: c.Possessive, path: c.Path, oq: len(c.OQ) > 0})
+		out = append(out, phrase{cites: []cites.Cite{c}, start: c.LeadStart, end: c.End, possessive: c.Possessive, path: c.Path, oq: len(c.OQ) > 0, glued: c.Glued})
 	}
 	return out
 }
@@ -225,4 +227,28 @@ func skipSpaces(text string, i int) int {
 		i++
 	}
 	return i
+}
+
+// resolvedIDs returns the ids that citations of live entries name once their
+// tombstones are followed (0025 D3 names 0027). The second result is the kind
+// of the failure when an id or a decision is not in the table.
+func resolvedIDs(tt *Titles, cs []cites.Cite) ([]string, string) {
+	var ids []string
+	seen := map[string]bool{}
+	for _, c := range cs {
+		if !tt.Known(c.ID) {
+			return nil, KindUnknownID
+		}
+		for _, n := range c.Decisions {
+			rid, _, ok := tt.Resolve(c.ID, n)
+			if !ok {
+				return nil, KindUnknownDec
+			}
+			if !seen[rid] {
+				seen[rid] = true
+				ids = append(ids, rid)
+			}
+		}
+	}
+	return ids, ""
 }

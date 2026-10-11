@@ -26,6 +26,7 @@ const (
 	KindString         = "string"     // a string literal, a test name, a message
 	KindGenerated      = "generated"  // regenerate the file instead
 	KindFenced         = "fenced"     // inside a Markdown code fence
+	KindHeading        = "heading"    // a Markdown heading that holds a citation
 	KindCodeSpan       = "code-span"  // inside a longer inline code span
 	KindWrapped        = "wrapped"    // the edit would cross a line
 	KindUnknownID      = "unknown-id" // an id that is not one of the 27 entries

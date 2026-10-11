@@ -414,6 +414,12 @@ func TestCiteRewrite(t *testing.T) {
 	if code != ExitError || strings.Count(out, "decision-number") != 1 || !strings.Contains(out, "pkg/b.go:3") {
 		t.Errorf("cite-lint after write: exit %d\n%s", code, out)
 	}
+	r.put("gen/g.md", "The key decides (0010:D4).\n")
+	code, out, errOut = r.do("cite-rewrite", "--root", r.root, "--generated", "gen/,other/", "--write")
+	wantCode(t, "generated", code, ExitOK, out, errOut)
+	if g, _ := os.ReadFile(filepath.Join(r.root, "gen/g.md")); !strings.Contains(string(g), "0010:D4") || !strings.Contains(out, "generated") {
+		t.Errorf("--generated: file %q, output:\n%s", g, out)
+	}
 	if code, _, _ = r.do("cite-rewrite", "--root", r.root, "--write", "--dry-run"); code != ExitUsage {
 		t.Errorf("--write with --dry-run: exit %d", code)
 	}

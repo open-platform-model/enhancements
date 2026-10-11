@@ -101,13 +101,19 @@ func (c *ctx) codeParagraph(p citelint.Paragraph) {
 
 func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phrase) {
 	at := m.abs(ph.cites[0].Start)
-	live, retired := splitRetired(ph.cites)
+	live, _ := splitRetired(ph.cites)
 	switch {
 	case ph.path:
 		c.codeSite(m, ph, KindPathDecisions)
 		return
 	case ph.oq:
 		c.codeSite(m, ph, KindOQ)
+		return
+	case ph.glued && len(live) == 0:
+		c.codeSite(m, ph, KindRetiredInline)
+		return
+	case ph.glued:
+		c.codeSite(m, ph, KindInline)
 		return
 	case p.Lone && len(live) == 0:
 		c.codeSite(m, ph, KindRetiredLone)
@@ -123,10 +129,14 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 		c.retiredEdit(m, joined, ph, at)
 		return
 	}
-	_ = retired
 	// Kind 2: the phrase is a whole parenthesis, or it ends the sentence after
 	// a comma or "per".
-	canon := canonicalIDs(distinctIDs(live))
+	ids, bad := resolvedIDs(c.tt, live)
+	if bad != "" {
+		c.codeSite(m, ph, bad)
+		return
+	}
+	canon := canonicalIDs(ids)
 	ls := extendLeadin(joined, ph.start)
 	b := trimBackSpaces(joined, ls)
 	a := skipSpaces(joined, ph.end)
@@ -141,8 +151,12 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 	case endsSentence(joined[ph.end:]) && b > 0 && hasLetter(joined[:b]) &&
 		(joined[b-1] == ',' || joined[b-1] == ';' || ls < ph.start):
 		rs := b
-		if joined[b-1] == ',' || joined[b-1] == ';' {
+		switch {
+		case joined[b-1] == ',' || joined[b-1] == ';':
 			rs = trimBackSpaces(joined, b-1)
+		case strings.HasSuffix(joined[:b], "-") || strings.HasSuffix(joined[:b], "\u2014") || strings.HasSuffix(joined[:b], "\u2013"):
+			// "case - see X." keeps no dash of its own.
+			rs = trimBackSpaces(joined, b-dashLen(joined[:b]))
 		}
 		e = Edit{Start: rs, End: ph.end, New: " (" + canon + ")", Form: FormCodeComment}
 	default:
@@ -152,7 +166,7 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 	// A lead word on the line above ("(enhancement" then "0015:D1)"): keep the
 	// word, replace only the citation with its id.
 	var alt *Edit
-	if ids := distinctIDs(live); len(ids) == 1 && len(live) == len(ph.cites) && ph.cites[0].LeadStart < ph.cites[0].Start && e.Start <= ph.start {
+	if len(ids) == 1 && len(live) == len(ph.cites) && ph.cites[0].LeadStart < ph.cites[0].Start && e.Start <= ph.start {
 		alt = &Edit{Start: ph.cites[0].Start, End: ph.end, New: ids[0], Form: FormCodeComment}
 	}
 	c.commit(m, e, at, ph, alt)
@@ -162,8 +176,11 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 // ends with a dash, comma or semicolon.
 func sepBefore(text string, b int) bool {
 	switch {
-	case text[b-1] == ',' || text[b-1] == ';' || text[b-1] == '-':
+	case text[b-1] == ',' || text[b-1] == ';':
 		return true
+	case text[b-1] == '-':
+		// a spaced hyphen only: "x - 0010 D4", not "x-0010 D4"
+		return b >= 2 && text[b-2] == ' '
 	}
 	return strings.HasSuffix(text[:b], "\u2014") || strings.HasSuffix(text[:b], "\u2013")
 }
@@ -209,4 +226,12 @@ func (c *ctx) commit(m paraMap, e Edit, at int, ph phrase, alt *Edit) {
 	if strings.Contains(c.src[abs.Start:abs.End], "\n") || !c.edit(abs) {
 		c.codeSite(m, ph, KindWrapped)
 	}
+}
+
+// dashLen returns the byte length of the dash that ends text.
+func dashLen(text string) int {
+	if strings.HasSuffix(text, "-") {
+		return 1
+	}
+	return 3
 }

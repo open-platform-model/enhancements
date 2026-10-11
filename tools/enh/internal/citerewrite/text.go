@@ -18,6 +18,7 @@ const (
 var leadWordRe = regexp.MustCompile(`(?i)enhancements?[ \t]+$`)
 
 var (
+	headingRe   = regexp.MustCompile(`^ {0,3}#{1,6}([ \t]|$)`)
 	fenceRe     = regexp.MustCompile("^\\s{0,3}(`{3,}|~{3,})")
 	linkRe      = regexp.MustCompile(`\[([^\]\n]*)\]\(([^)\s]*)(?:\s+"[^"]*")?\)`)
 	yamlKeyRe   = regexp.MustCompile(`^(\s*(?:-\s+)*)(?:"[^"]*"|'[^']*'|[^\s#'"\-][^:#]*?|-[^\s:][^:#]*?):(\s+|$)`)
@@ -48,6 +49,12 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 			}
 			if fence != "" {
 				c.lineSites(line, base, KindFenced)
+				continue
+			}
+			if headingRe.MatchString(line) {
+				// A heading is an anchor: a longer heading would move it
+				// without a word, so an agent rewrites it and checks the links.
+				c.lineSites(line, base, KindHeading)
 				continue
 			}
 		}
@@ -135,8 +142,10 @@ func classifyYAML(line string, blockIndent int) (yamlInfo, int) {
 	switch {
 	case strings.HasPrefix(v, `"`):
 		info.quote = '"'
+		info.commentAt = commentAfterQuote(line, rest)
 	case strings.HasPrefix(v, "'"):
 		info.quote = '\''
+		info.commentAt = commentAfterQuote(line, rest)
 	case strings.HasPrefix(v, "[") || strings.HasPrefix(v, "{"):
 		info.flow = true
 	default:
@@ -199,6 +208,10 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 			done = append(done, [2]int{ph.start, ph.end})
 		case ph.oq:
 			c.site(at, KindOQ, ph.cites)
+		case ph.glued && len(live) == 0:
+			c.site(at, KindRetiredInline, ph.cites)
+		case ph.glued:
+			c.site(at, KindInline, ph.cites)
 		case insideSpan(spans, ph.start, ph.end):
 			c.site(at, KindCodeSpan, ph.cites)
 		case ph.possessive:
@@ -409,4 +422,24 @@ func (c *ctx) pathsInLine(line string, base int, lc lineCtx, done *[][2]int, spa
 			c.edit(Edit{Start: base + s, End: base + e, New: out, Form: FormPath})
 		}
 	}
+}
+
+// commentAfterQuote returns the offset of a " #" comment after the closing
+// quote of the quoted scalar that starts at line[start], or -1.
+func commentAfterQuote(line string, start int) int {
+	q := line[start]
+	for i := start + 1; i < len(line); i++ {
+		switch {
+		case q == '"' && line[i] == '\\':
+			i++
+		case line[i] == q && q == '\'' && i+1 < len(line) && line[i+1] == '\'':
+			i++
+		case line[i] == q:
+			if j := strings.Index(line[i+1:], " #"); j >= 0 {
+				return i + 1 + j
+			}
+			return -1
+		}
+	}
+	return -1
 }
