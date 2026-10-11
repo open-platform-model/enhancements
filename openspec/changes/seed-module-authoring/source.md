@@ -68,3 +68,5 @@ Decisions in the archived entry 0011 behind these rules: D3 and D8 (version comm
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - The premises that publish never skips a published version and that published versions are immutable are `artifact-publishing`'s ("A published version is never replaced"). They are gone from "A failing template stops the release" and "A template is exactly its published module"; the rules that follow from them stay.
+
+sampled: 2026-10-11 18705155
