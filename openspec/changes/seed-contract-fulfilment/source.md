@@ -41,3 +41,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - The reports of the provider count (the providers named per contract, the over-subscribed list, the not-routable verdict) are `platform-contract-inventory`'s (DECISIONS.md 11:20). "A provider-fulfilled contract admits exactly one provider" keeps the admission rule and the counting unit (an entry keyed by catalog path with its major: two majors are two providers, several transformers of one entry are one). Its four report scenarios and the optional-demand sentence are gone: the inventory seed holds them, and `catalog-contracts` holds that an optional demand is not provision.
 - "Every declared resource is a required demand" keeps the demand and the ban on rendering the satisfied part of a partly satisfied component. That a render fails on an unsupplied demand is `single-build-render`'s; the scenario "An unsupplied resource fails the render" is gone. The caller's skip request is out of this seed (see "Left out"): no archived entry backs it.
+
+sampled: 2026-10-11 18705155
