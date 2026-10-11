@@ -13,9 +13,9 @@ All read at the commit named. The requirement text is rewritten at intent level:
 | An instance declares its own FQN | `core` `openspec/specs/instance-identity/spec.md` at `f3b7ecd`, "An instance declares its own FQN" | `src/module_instance.cue:50` (the FQN), `src/module.cue:45` (the module's registry path) |
 | Instance identity derives from the instance FQN | same file, "Instance identity derives from the instance FQN" | `src/module_instance.cue:57` (the UUID), `:63-64` (the labels), `src/pins/identity_pins.cue:179` |
 | The identity formula is fixed | none; the spec does not state it | `src/types.cue:255` and the comment above it ("must remain immutable across all versions"); `src/pins/identity_pins.cue:208`, the absolute UUID pin `b6a249c2-6d12-5422-ae0b-ecf44cbbf8bf` |
-| Instance identity survives every module upgrade | same file, "Instance identity survives every upgrade of the module it deploys" | `src/pins/identity_pins.cue:175-176` (release and major bump), `:95-96`; third scenario: the 0010:D41 consequence list, see below |
+| Instance identity survives every module upgrade | same file, "Instance identity survives every upgrade of the module it deploys" | `src/pins/identity_pins.cue:175-176` (release and major bump), `:95-96`; the release scenario is a minor release (2.4.1 to 2.9.9, the pins' own `_pinModuleV2Later`, `:69-74, :150-158, :175`), not a patch release; third scenario: the 0010:D41 consequence list, see below |
 | Instance identity still separates what it must | same file, "Instance identity still separates modules and namespaces" | `src/pins/identity_pins.cue:257-262` |
-| An instance FQN cannot take a module path | same file, "An instance FQN cannot be built from a module path" | `src/types.cue:165` (`#PackagePathType & _p[0]`), `src/pins/identity_pins.cue:516-535` (the refusal, kept as a comment case) |
+| An instance FQN cannot take a module path | same file, "An instance FQN cannot be built from a module path" | `src/types.cue:165` (`#PackagePathType & _p[0]`), `src/pins/identity_pins.cue:516-535` (the refusal, kept as a comment case: a module with path `...postgres@v2` given the registry path `...postgres@v2`, `:521-522, :530-537`) |
 
 The spec's first requirement, "A module exposes its major-free registry path", is not in this seed. See "Left out".
 

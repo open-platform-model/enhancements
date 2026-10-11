@@ -40,8 +40,8 @@ An instance that the CLI creates SHALL carry the owner `cli` explicitly. When th
 
 #### Scenario: No command moves an instance
 
-- **WHEN** a user looks for a CLI command that moves an instance between CLI and operator ownership
-- **THEN** none exists; the owner is set at creation and changed only outside the CLI
+- **WHEN** any CLI command that writes a ModuleInstance runs against an existing instance
+- **THEN** the stored owner after the command equals the owner before it
 
 ### Requirement: The CLI reads ownership from the owner field
 
@@ -66,11 +66,10 @@ The CLI SHALL treat an instance as CLI-owned when no instance exists yet or its 
 
 Apply SHALL, for an operator-owned instance, write only the module reference and the values, restating the owner the instance holds. It SHALL then wait a bounded time for the operator to reconcile that edit and report the operator's Ready outcome. The CLI SHALL NOT render and apply resources, prune or write status in this mode.
 
-#### Scenario: A values edit leaves the owner alone
+#### Scenario: A values edit writes only the values
 
-- **WHEN** apply updates the values of an instance whose owner is `operator`
-- **THEN** the owner is still `operator` afterwards
-- **AND** the module reference is unchanged unless the apply changed it
+- **WHEN** apply updates only the values of an operator-owned instance and the module is the one it already references
+- **THEN** only the values in its spec change, and its module reference, its other spec fields and its owner are as before
 
 #### Scenario: The operator's outcome is reported
 
@@ -78,10 +77,19 @@ Apply SHALL, for an operator-owned instance, write only the module reference and
 - **THEN** the CLI waits for the operator's reconcile and reports its Ready outcome
 - **AND** it applies and prunes no resource and writes no status field
 
+### Requirement: An unconfirmed operator edit fails the apply
+
+When the operator does not report the edit Ready within the bound, or reports it not Ready, the apply SHALL exit 1. It SHALL say that the spec change is written and the operator will retry, and SHALL name how to investigate. When no read during the wait returns the instance and one failed other than by not being found, the apply SHALL instead exit 1 with the read error.
+
 #### Scenario: An edit the operator does not confirm in time
 
 - **WHEN** the operator does not report the edit Ready within the bound
-- **THEN** the command fails, says the spec change is written and the operator will retry, and names how to investigate
+- **THEN** the command exits 1, says the spec change is written and the operator will retry, and names how to investigate
+
+#### Scenario: An edit the operator reports not Ready
+
+- **WHEN** the operator reports Ready False for the edited generation
+- **THEN** the command exits 1 with the same statement and names the operator's outcome
 
 ### Requirement: Apply refuses modules the operator cannot fetch
 
@@ -178,7 +186,7 @@ On a CLI-owned instance that is not being deleted, the operator SHALL set Ready 
 
 #### Scenario: The acknowledgement is set
 
-- **WHEN** the operator reconciles a CLI-owned instance
+- **WHEN** the operator reconciles a CLI-owned instance that is not being deleted
 - **THEN** Ready is Unknown with reason `ManagedExternally`
 - **AND** the Reconciling, Stalled and Healthy conditions are absent
 
@@ -249,7 +257,7 @@ A dry run SHALL read the same resources and reach the same verdicts as the real 
 
 ### Requirement: A first-apply refusal explains earlier identities
 
-When an instance has no record and a resource is refused because it carries another instance's identity, the refusal SHALL add one line. It says that when the resources are the instance's own under an earlier identity (its module path, name or namespace changed, its record was deleted, or an old release recorded it elsewhere), the user annotates each resource as shown, and that nothing has to be removed first.
+When an instance has no record and a resource is refused because it carries another instance's identity, the refusal SHALL add one line. It says that when the resources are the instance's own under an earlier identity (the line names a changed module path, name or namespace, a deleted record, or an old release that recorded it elsewhere), the user annotates each resource as shown, and that nothing has to be removed first.
 
 #### Scenario: Resources under an earlier identity
 
@@ -327,7 +335,7 @@ When the user asks the CLI to create the namespace and it does not exist, the ap
 
 ### Requirement: An empty render needs force to prune
 
-When the render yields no resources and the previous inventory is not empty, the apply SHALL fail with an error saying that all resources would be pruned, unless the user forces it. When forced, every previous resource SHALL be pruned after the apply.
+When the render yields no resources and the previous inventory is not empty, the apply SHALL fail with an error saying that all resources would be pruned, unless the user forces it. When forced, the prune SHALL run over every previous resource under its usual rules.
 
 #### Scenario: An empty render without force
 
@@ -336,8 +344,8 @@ When the render yields no resources and the previous inventory is not empty, the
 
 #### Scenario: An empty render with force
 
-- **WHEN** the same render runs forced
-- **THEN** all five previous resources are pruned after the apply
+- **WHEN** the render yields no resources, the previous inventory holds five ConfigMaps the instance owns, and the apply is forced
+- **THEN** all five ConfigMaps are pruned after the apply
 
 ### Requirement: Pruning can be switched off
 
@@ -347,6 +355,11 @@ When the user switches pruning off, the apply SHALL delete no stale resource, SH
 
 - **WHEN** the stale set holds two resources and pruning is off
 - **THEN** none is deleted and the record is written with the current entries
+
+#### Scenario: A dry run with pruning off
+
+- **WHEN** a dry run runs with pruning off and the stale set holds two resources
+- **THEN** it prints no prune preview and reads no stale resource
 
 ### Requirement: A stale claim is kept by default
 
@@ -372,6 +385,16 @@ The prune SHALL NOT delete a stale PersistentVolumeClaim of the core group unles
 
 - **WHEN** both are asked
 - **THEN** the command exits 1 and names both options
+
+### Requirement: An unreadable stale claim is kept
+
+Without data deletion, a stale PersistentVolumeClaim whose read fails other than by not being found SHALL be kept, as a claim that may still hold data. The apply SHALL keep it in the written inventory, list it as `kept` and SHALL NOT fail because of it.
+
+#### Scenario: An unreadable claim is kept
+
+- **WHEN** data deletion is not asked and the read of a stale claim fails with Forbidden
+- **THEN** the claim is not deleted, stays in the written inventory and is listed as `kept`
+- **AND** the command exits 0
 
 ### Requirement: Data deletion does not change an operator-owned instance
 
@@ -403,11 +426,11 @@ A stale resource that the prune does not delete because the ownership verdict re
 
 ### Requirement: The prune judges with the recorded identity
 
-An instance's identity changes when its module path changes. On the first apply after such a change the prune SHALL still delete the stale resources the instance owned under the recorded identity, and the record SHALL take the rendered identity only in the write that follows the prune.
+An instance's identity changes when the registry path of its module changes; a major bump alone does not change it. On the first apply after such a change the prune SHALL still delete the stale resources the instance owned under the recorded identity, and the record SHALL take the rendered identity only in the write that follows the prune.
 
 #### Scenario: A stale resource after the module moved
 
-- **WHEN** the module's path changed and a stale resource's live object carries the recorded identity
+- **WHEN** the module's registry path changed from `opmodel.dev/modules/postgres` to `example.com/postgres` and a stale resource's live object carries the recorded identity
 - **THEN** it is deleted, and the written record holds the rendered identity and not that resource
 
 #### Scenario: A stale resource with neither identity
@@ -467,11 +490,6 @@ A dry run with pruning on SHALL read each stale resource and ask the same verdic
 
 - **WHEN** a dry run meets a stale claim and data deletion is not asked
 - **THEN** the claim is listed as `kept`, and with data deletion asked as `would prune`
-
-#### Scenario: Pruning off
-
-- **WHEN** a dry run runs with pruning off
-- **THEN** it prints none of these lists and reads no stale resource
 
 ### Requirement: A dry run explains kept stale resources
 

@@ -45,7 +45,7 @@ The OPM namespace UUID SHALL stay the same in every version of the core schema, 
 
 For one registry path, instance name and namespace, the instance FQN and UUID SHALL NOT change when the module's version changes or when the major of its path changes. The ownership label depends on it: a UUID that moved on upgrade would orphan live objects the new render no longer emits.
 
-#### Scenario: A patch release does not move the UUID
+#### Scenario: A release within a major does not move the UUID
 
 - **WHEN** the deployed module's version changes from `2.4.1` to `2.9.9` and the name and namespace stay
 - **THEN** the instance FQN and UUID are unchanged
@@ -85,5 +85,5 @@ The instance FQN SHALL read the module's major-free registry path only. A full m
 
 #### Scenario: A module path in the registry path position is refused
 
-- **WHEN** the value supplied as the module's registry path is `opmodel.dev/modules/postgres@v2`
+- **WHEN** a module whose path is `opmodel.dev/modules/postgres@v2` is given the registry path `opmodel.dev/modules/postgres@v2`
 - **THEN** validation fails with a conflict between `opmodel.dev/modules/postgres` and `opmodel.dev/modules/postgres@v2`, and the instance FQN is not built from it

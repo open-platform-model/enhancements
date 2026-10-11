@@ -28,6 +28,11 @@ The package's module file SHALL pin the deployed module at the exact resolved ve
 - **WHEN** init writes a package for cert_manager `2.0.1` named `cert-manager`
 - **THEN** the module file declares the module `instance.local/cert-manager@v0`, pins `opmodel.dev/modules/cert_manager@v2` at `v2.0.1`, pins `opmodel.dev/core@v2` at the version cert_manager `2.0.1` declares, and lists the rest of the closure
 
+#### Scenario: The written package is tidy
+
+- **WHEN** init has written a package
+- **THEN** running `opm module tidy` in it changes no file
+
 #### Scenario: The user names the package module
 
 - **WHEN** the user gives the package module path `example.com/deploy/cert-manager@v0`
@@ -112,7 +117,8 @@ The values file SHALL open with a comment naming its source, and the report SHAL
 #### Scenario: debugValues flagged
 
 - **WHEN** init fills the values file from `debugValues`
-- **THEN** the report names `debugValues` and warns to review the file before deploying
+- **THEN** the values file opens with a comment naming `debugValues`
+- **AND** the report names `debugValues` and warns to review the file before deploying
 
 #### Scenario: No usable source
 
@@ -126,7 +132,7 @@ The values file SHALL open with a comment naming its source, and the report SHAL
 
 ### Requirement: Init writes all or nothing
 
-Init SHALL refuse with exit 2, before any registry access, when the target directory already exists or would sit inside an existing CUE module. It SHALL write the package completely or not at all: after any failure nothing is left at the target path or beside it, so a retry into the same directory is never refused because of init's own leftovers.
+Init SHALL refuse with exit 2, before any registry access, when the target directory already exists or would sit inside an existing CUE module, and in the second case SHALL name the enclosing module root and suggest a target directory outside it. It SHALL write the package completely or not at all: after any failure nothing is left at the target path or beside it, so a retry into the same directory is never refused because of init's own leftovers.
 
 #### Scenario: Existing directory refused
 
