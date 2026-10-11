@@ -45,3 +45,5 @@ All read at the commit named. The requirement text is rewritten at intent level:
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - The transformer map is not bound to the transformer's key: `primitive-keying` holds that rule ("Demand and transformer keys are form-checked"). The clause and its scenario are gone from "A member's key equals its fully qualified name".
+
+sampled: 2026-10-11 18705155
