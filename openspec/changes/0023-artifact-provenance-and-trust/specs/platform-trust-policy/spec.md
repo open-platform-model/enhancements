@@ -30,7 +30,7 @@ The CLI and the operator SHALL reach the same verdict for the same artifact and 
 #### Scenario: One artifact, two frontends
 
 - **WHEN** the CLI and the operator verify the same artifact against the same policy
-- **THEN** both report the same outcome and the same reason
+- **THEN** both report the same verdict
 
 ### Requirement: The operator enforces and the CLI reports
 
@@ -44,4 +44,4 @@ A failing verdict SHALL be enforced by the operator and reported by the CLI.
 #### Scenario: The CLI meets a failing artifact
 
 - **WHEN** the CLI verifies an artifact that fails the policy
-- **THEN** it reports the verdict and the reason
+- **THEN** it reports the failing verdict

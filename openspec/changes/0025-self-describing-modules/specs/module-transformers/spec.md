@@ -11,7 +11,7 @@ A module transformer SHALL run once for each matched pair of an aspect and a tra
 #### Scenario: Three components, one aspect
 
 - **WHEN** a module with three components and one matched aspect is rendered
-- **THEN** the module transformer runs once and renders one object
+- **THEN** the module transformer runs once
 
 #### Scenario: Two aspects of one kind
 

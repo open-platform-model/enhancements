@@ -1,6 +1,6 @@
 ## Purpose
 
-What the API server sees of an offered module: a kind with the module's own configuration schema, versioned by the module's major, one namespaced object per instance.
+What the API server sees of an offered module: a kind with the module's own configuration schema, versioned by the module's major, a namespaced object with no cluster-scoped object on its behalf.
 
 ## ADDED Requirements
 
@@ -74,7 +74,7 @@ Rebinding a definition to another release inside the same major SHALL regenerate
 
 An instance of a served kind SHALL be namespaced, and no cluster-scoped object SHALL be created on its behalf.
 
-#### Scenario: One object per instance
+#### Scenario: No cluster-scoped object
 
 - **WHEN** a consumer creates an instance in a namespace
 - **THEN** no cluster-scoped object is created on its behalf
