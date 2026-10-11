@@ -67,3 +67,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 - "An unreadable inventory fails naming its cause": the re-pin hint for a directory the user named is `cli-kernel-render`'s (DECISIONS.md 11:45); the missing field and the first core release are the refusal `platform-artifact` states. This seed keeps the check's validation exit code and "no partial report". The hint scenario now lives in `cli-kernel-render`.
 - "The report states which platform it describes": a directory that is not a platform module is refused as `platform-resolution` states; this seed keeps the not-found exit of the check.
 - Counting rules and the reconciler's failure path were removed earlier (`fbb6c7b`); the provider map and the reports stay in `platform-contract-inventory`.
+
+sampled: 2026-10-11 18705155
