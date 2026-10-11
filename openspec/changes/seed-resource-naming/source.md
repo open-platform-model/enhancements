@@ -47,3 +47,5 @@ All read at the commits named. The requirement text is rewritten at intent level
 ## Overlap with other seeds
 
 I read the specs of every seed on a branch `refactoring-enhancements/p4-seed-*` that has a `spec.md`. None states a naming rule. `single-build-render` mentions that returned objects name their instance, component and transformer (provenance); that is not an object name. `component-matching` holds the matching labels this seed reads (the workload-type key) and `contract-fulfilment` the trait optionality that the expose trait sets; this seed names neither rule. `instance-identity` holds the instance name and FQN; this seed uses the instance name as an input only.
+
+sampled: 2026-10-11 18705155
