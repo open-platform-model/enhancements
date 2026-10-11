@@ -49,3 +49,5 @@ The CLI spec does not say these two. They rest on code and are marked here so th
 - The content digest on Platform status that 0015 D6 names as an operator follow-up. It is not shipped.
 - The kubeconfig and context options and the exit code for a kubeconfig that cannot be resolved. Standard cluster options, not a rule of this capability.
 - No live entry owns this capability. A search of the live entry folders in the base for "platform pull" finds only the verb in two vendored CUE copies under 0013's experiments, never the command. Entry 0026 (platform generation) changes the platform type the generator embeds. The requirements here name no type, so a rename does not make any of them wrong.
+
+sampled: 2026-10-11 18705155
