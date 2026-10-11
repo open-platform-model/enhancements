@@ -50,3 +50,5 @@ None of the six sibling seeds states a rule about naming or selecting a publishe
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - Scope: the major-free path rule is for a command that takes a published module as its subject. The template reference of `opm module init` (which floats within a major, for example `standard@v1`) is not such a module and is `module-authoring`'s grammar (T4.R16).
+
+sampled: 2026-10-11 18705155
