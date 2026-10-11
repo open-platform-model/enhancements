@@ -66,6 +66,12 @@ func idStartOK(b byte) bool {
 	return true
 }
 
+// lenientStartOK is the old lint rule: only a letter, a digit or an
+// underscore in front makes the number part of a longer token.
+func lenientStartOK(b byte) bool {
+	return !(b >= '0' && b <= '9' || b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b == '_')
+}
+
 func wordEnd(s string, i int) bool {
 	if i >= len(s) {
 		return true
@@ -88,7 +94,7 @@ func Scan(text string) []Cite {
 			p := text[s-1]
 			if p == '/' && strings.HasSuffix(text[:s], "enhancements/") {
 				path = true
-			} else if !idStartOK(p) {
+			} else if !lenientStartOK(p) {
 				continue
 			}
 		}
@@ -100,6 +106,12 @@ func Scan(text string) []Cite {
 		}
 		c, end, ok := parse(text, s, e, path)
 		if !ok {
+			continue
+		}
+		// The colon form keeps the old rule (a hyphen or a dot before it is
+		// fine: PRE-0010:D41). The spoken form must not sit in a longer token
+		// such as a version or a date.
+		if c.Spoken && s > 0 && !path && !idStartOK(text[s-1]) {
 			continue
 		}
 		out = append(out, c)

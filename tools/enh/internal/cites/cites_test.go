@@ -31,10 +31,11 @@ func TestScan(t *testing.T) {
 		{"path with decisions", "in `enhancements/0010` D1, D6 and D8", []string{"0010` D1, D6 and D8|0010|[1 6 8]|[]|sP"}},
 		{"path dash", "`enhancements/0010` — D14, D28", []string{"0010` — D14, D28|0010|[14 28]|[]|sP"}},
 		{"duplicates collapse", "0010:D4 and D4", []string{"0010:D4 and D4|0010|[4]|[]|"}},
+		{"hyphen before a colon form", "PRE-0010:D41 and a/0010:D4", []string{"0010:D41|0010|[41]|[]|", "0010:D4|0010|[4]|[]|"}},
 		// not citations
 		{"year and D", "released 2026 D4 here", nil},
 		{"date", "on 2026-10-11 D4", nil},
-		{"version", "v1.0010 D3 and v0.0010:D3", nil},
+		{"version", "v1.0010 D3 and v0.0010 D3", nil},
 		{"no decision", "enhancement 0010 and (enhancements 0010 and 0026)", nil},
 		{"id inside number", "10010 D4 and 00100 D4", nil},
 		{"D with letters", "0010 Dx and 0010:D4x", nil},
