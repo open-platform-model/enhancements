@@ -68,6 +68,7 @@
 | [platform-registry](./openspec/specs/platform-registry/spec.md) | 7 | Define how a platform carries the catalogs it admits. |
 | [platform-resolution](./openspec/specs/platform-resolution/spec.md) | 23 | State which platform a CLI command renders against, in what order the sources are tried, how a missing or stale cluster Platform degrades, how a platform is generated from the cluster or from a render's own dependency pins, and what the CLI reports about its choice. |
 | [primitive-keying](./openspec/specs/primitive-keying/spec.md) | 12 | Define what a `#Resource`, a `#Trait`, a `#Blueprint` and a `#ComponentTransformer` declare as their key, and why the four do not share one. |
+| [published-module-resolution](./openspec/specs/published-module-resolution/spec.md) | 6 | Define how a command that takes a published OPM module turns a major-free module path and an optional version selector into one exact published version, and how it reports that choice. |
 | [registration-acceptance](./openspec/specs/registration-acceptance/spec.md) | 8 | Decide whether a provider's claim to supply contracts to a platform is accepted. |
 
 ## Status legend
