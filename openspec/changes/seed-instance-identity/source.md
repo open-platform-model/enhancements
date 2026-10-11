@@ -43,3 +43,5 @@ The spec's first requirement, "A module exposes its major-free registry path", i
 One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave up, and where each rule now lives:
 
 - The clause "while the module's own UUID changes" is gone from the scenario "A major bump does not move the UUID": `artifact-identity` holds the module identity ("Module identity distinguishes majors and nothing finer").
+
+sampled: 2026-10-11 18705155
