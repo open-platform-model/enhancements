@@ -31,7 +31,7 @@ A generated CRD SHALL carry no CEL rule that was not authored on its core value,
 
 The generated `Platform` CRD SHALL carry, unchanged, the rule that the only permitted name of a Platform is `cluster`.
 
-#### Scenario: A second Platform is refused
+#### Scenario: A Platform with another name is refused
 
 - **WHEN** a Platform with any name other than `cluster` is applied
 - **THEN** the API server rejects it at admission

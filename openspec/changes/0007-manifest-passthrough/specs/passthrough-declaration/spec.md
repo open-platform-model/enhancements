@@ -10,8 +10,8 @@ The core schema SHALL gain no side-manifest surface, and a module SHALL have no 
 
 #### Scenario: An existing module is unchanged
 
-- **WHEN** a module valid before passthrough exists is rendered with no side manifests declared
-- **THEN** it renders the same objects as before
+- **WHEN** a module that was valid before passthrough exists is checked after it
+- **THEN** it is still valid and renders the same objects as before
 
 #### Scenario: A module cannot carry a side manifest
 
@@ -30,7 +30,7 @@ An instance SHALL declare side manifests as an optional list of sources on its o
 #### Scenario: A list is declared
 
 - **WHEN** an instance declares one raw source and one Kustomize source
-- **THEN** the objects of both sources are part of the instance
+- **THEN** the instance's object set holds the objects of both sources
 
 ### Requirement: A source is either raw or Kustomize
 
@@ -48,9 +48,9 @@ Each declared source SHALL be exactly one of a raw manifest path or a Kustomize 
 
 ### Requirement: A source path stays inside the source tree
 
-A source path SHALL resolve inside the instance's own source tree and SHALL NOT resolve outside it. A path that escapes the tree SHALL be rejected before anything is read from it.
+A source path SHALL resolve inside the instance's own source tree and SHALL NOT resolve outside it.
 
 #### Scenario: A path climbs out of the tree
 
 - **WHEN** a source path uses parent segments to leave the source tree
-- **THEN** the instance is rejected and nothing outside the tree is read
+- **THEN** the path does not resolve outside the source tree

@@ -15,8 +15,8 @@ A `#Catalog` SHALL carry `#ops` and `#actions` maps beside `#transformers`, keye
 
 #### Scenario: An existing catalog
 
-- **WHEN** a catalog that predates the maps is read
-- **THEN** it means what it meant before
+- **WHEN** a catalog that omits `#ops` and `#actions` is read
+- **THEN** its `#transformers` and every other field are the same as before the maps existed
 
 ### Requirement: An actions entry is keyed by action identity
 
@@ -57,4 +57,4 @@ The `http` operation SHALL output the raw status, headers and body. The executor
 #### Scenario: A JSON response
 
 - **WHEN** an http step receives a JSON body
-- **THEN** its output holds the body as received, and any parsing happens later in CUE
+- **THEN** its output holds the body as received, with no parsing or shaping

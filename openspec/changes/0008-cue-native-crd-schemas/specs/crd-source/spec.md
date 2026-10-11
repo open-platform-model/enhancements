@@ -41,7 +41,7 @@ A resource SHALL serialise identically before and after generation replaces the 
 - **WHEN** an object that the shipped CRD admits is applied under the generated CRD
 - **THEN** it is admitted unchanged
 
-#### Scenario: Unchanged fields keep their schema
+#### Scenario: The generated manifest matches the shipped one
 
-- **WHEN** a generated manifest is compared with the shipped one
-- **THEN** every unchanged field has the same schema, apart from formatting
+- **WHEN** a generated manifest is compared with the hand-written manifest it replaces
+- **THEN** every field has the same shape and validations, and every version the same API version, apart from formatting

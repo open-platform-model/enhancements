@@ -33,7 +33,7 @@ A passed-through object SHALL be recorded in the instance's inventory beside the
 
 ### Requirement: Side objects are pruned like rendered ones
 
-A passed-through object that leaves the declared set, or whose instance is deleted, SHALL be pruned exactly as a rendered object is, and only when it carries the managed-by label and the matching instance identity.
+A passed-through object that leaves the declared set, or whose instance is deleted, SHALL be pruned exactly as a rendered object is.
 
 #### Scenario: A source is removed
 

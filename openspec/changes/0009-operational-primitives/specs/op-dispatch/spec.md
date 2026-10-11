@@ -31,10 +31,10 @@ A plan holding a step whose protocol has no registered backend SHALL be refused 
 
 Every concrete `#Op` kind SHALL carry an `@op(...)` attribute naming the backend protocol and the artifact locator. The attribute SHALL sit on the field after its value.
 
-#### Scenario: A kind without the attribute
+#### Scenario: Each kind names its backend
 
-- **WHEN** a concrete operation kind carries no `@op` attribute
-- **THEN** it is not accepted as an operation kind
+- **WHEN** any concrete operation kind is read
+- **THEN** it carries an `@op` attribute on its field, after the value, that names a backend protocol and an artifact locator
 
 ### Requirement: The dispatch attribute does not change the value
 

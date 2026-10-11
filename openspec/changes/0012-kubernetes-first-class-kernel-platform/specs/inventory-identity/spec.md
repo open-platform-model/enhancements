@@ -42,8 +42,8 @@ The release of each frontend that first records the new inventory digest SHALL s
 
 #### Scenario: Upgrade
 
-- **WHEN** a user upgrades a frontend to the release that records the new digest
-- **THEN** the release notes say the stored digest changes once, with no change to the inventory
+- **WHEN** a user upgrades a frontend to the release that first records the new inventory digest
+- **THEN** that release's migration note says the stored inventory digest changes once
 
 ### Requirement: Labels are stamped by the CUE render
 

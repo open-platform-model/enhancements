@@ -31,7 +31,7 @@ The steps of one lifecycle phase SHALL run in the order the author wrote them.
 
 A phase that is absent or empty SHALL be a no-op, and the transition SHALL proceed with nothing to run.
 
-#### Scenario: A module with no upgrade phase
+#### Scenario: A module with no upgrade phases
 
-- **WHEN** a module with a lifecycle but no upgrade phase is upgraded
-- **THEN** the upgrade proceeds and no step runs
+- **WHEN** a module whose lifecycle binds steps only to the install phases is upgraded
+- **THEN** the upgrade proceeds and no lifecycle step runs

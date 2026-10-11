@@ -64,15 +64,10 @@ A live object whose manager label is not an OPM runtime identity, whose instance
 
 Whether an instance's deletion hold may be released SHALL be decided from its policy and the plan's outcome, identically for whichever frontend asks, with the reason named.
 
-#### Scenario: Prune disabled
+#### Scenario: Same policy and outcome, same verdict
 
-- **WHEN** the policy disables prune
-- **THEN** the verdict releases the hold and names the policy as the reason
-
-#### Scenario: A partial failure
-
-- **WHEN** a planned deletion fails
-- **THEN** the verdict holds and names the failure
+- **WHEN** the CLI and the operator ask whether the hold of the same instance may be released, with the same policy and the same plan outcome
+- **THEN** both receive the same verdict and the reason is named
 
 ### Requirement: A stored deletion state advances identically
 

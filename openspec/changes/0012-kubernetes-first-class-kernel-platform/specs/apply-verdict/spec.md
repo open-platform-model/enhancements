@@ -27,11 +27,6 @@ The verdict SHALL refuse an existing object outside the instance's recorded inve
 - **WHEN** an existing object outside the inventory carries another instance's identity
 - **THEN** the verdict refuses it
 
-#### Scenario: An annotated inventory object
-
-- **WHEN** the identity is known and an inventory object's adopt annotation names another instance
-- **THEN** the verdict refuses it
-
 ### Requirement: A foreign object is refused on every apply
 
 An existing live object that is not in the instance's recorded inventory, and that OPM does not manage or that carries another instance's identity, SHALL be refused on every apply with a reason, not only the first, unless it carries the adopt annotation naming this instance's identity. Creating an object that does not exist SHALL never be refused by this guard.
@@ -57,8 +52,8 @@ An object carrying the adopt annotation that names this instance's identity SHAL
 
 #### Scenario: An annotation for another instance
 
-- **WHEN** the annotation names a different instance
-- **THEN** this instance still refuses the object
+- **WHEN** an existing object outside the inventory carries another instance's identity label and an adopt annotation that names a third instance
+- **THEN** this instance refuses the object
 
 ### Requirement: No other override exists
 
@@ -68,6 +63,11 @@ Neither frontend SHALL offer another override of the ownership refusals. No refu
 
 - **WHEN** an apply refuses a foreign object
 - **THEN** the message names no flag that overrides the refusal
+
+#### Scenario: No annotation set for the user
+
+- **WHEN** either frontend, or installing the operator, refuses an existing object for ownership
+- **THEN** the object's adopt annotation is the same after the run as before it
 
 ### Requirement: An object being deleted is never applied
 
@@ -89,7 +89,7 @@ A ModulePackage SHALL carry its instance identity in its status across reconcile
 
 ### Requirement: An annotation for another instance is refused
 
-When the instance's identity is known, an existing object whose adopt annotation names another instance SHALL be refused, inside the inventory or outside it. An inventory object SHALL be refused as adopted elsewhere. An object outside the inventory SHALL be refused as foreign when OPM does not manage it or its identity label names neither this instance nor the annotated one, and as adopted elsewhere otherwise.
+When the instance's identity is known, an existing object whose adopt annotation names another instance SHALL be refused, inside the inventory or outside it. An inventory object SHALL be refused as adopted elsewhere, and its identity label alone SHALL never refuse it. An object outside the inventory SHALL be refused as foreign when OPM does not manage it or its identity label names neither this instance nor the annotated one, and as adopted elsewhere otherwise.
 
 #### Scenario: An inventory object adopted by another instance
 
@@ -108,7 +108,7 @@ When the instance's identity is known, an existing object whose adopt annotation
 
 ### Requirement: An object adopted elsewhere is let go
 
-The instance SHALL NOT apply or delete an object refused as adopted elsewhere, SHALL drop it from the inventory it records next, and SHALL go on applying its other objects and report the reason. Installing the operator SHALL refuse before it changes anything when it needs such an object.
+The instance SHALL NOT apply or delete an object refused as adopted elsewhere, SHALL drop it from the inventory it records next, and SHALL go on applying its other objects and report the reason. Installing the operator SHALL refuse before it changes anything when it needs such an object, and SHALL name the object and the instance its annotation names.
 
 #### Scenario: A hand-over between two instances
 
@@ -131,5 +131,5 @@ When the instance's identity is unknown, an object in its inventory SHALL NOT be
 
 #### Scenario: An inventory object with an unknown identity
 
-- **WHEN** the instance's identity is unknown and an object in its inventory carries another instance's identity label
+- **WHEN** the instance's identity is unknown and an object in its inventory carries an adopt annotation that names another instance
 - **THEN** the apply does not refuse it for ownership

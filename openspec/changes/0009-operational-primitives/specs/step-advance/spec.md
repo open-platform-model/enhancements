@@ -38,8 +38,8 @@ The library SHALL decide which steps are eligible, in what order, what satisfies
 
 #### Scenario: A step fails
 
-- **WHEN** a caller reports a failed result for a step
-- **THEN** the library, not the caller, decides what the failure does to the plan
+- **WHEN** a caller reports a failed result for a step and advances the plan
+- **THEN** the returned state and action say what happens next, and the advance takes no failure policy from the caller
 
 ### Requirement: The library keeps no run state between calls
 

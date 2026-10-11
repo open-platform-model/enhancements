@@ -56,8 +56,8 @@ An automatic update SHALL NOT change a dependency's major. The version chosen SH
 
 #### Scenario: A newer minor exists
 
-- **WHEN** a dependency pinned to major 0 has a newer release in major 0
-- **THEN** the updater chooses that release
+- **WHEN** a dependency pinned to major 0 has two newer releases in major 0
+- **THEN** the updater chooses the newest of them
 
 #### Scenario: Only a newer major exists
 

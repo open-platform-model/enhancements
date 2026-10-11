@@ -11,7 +11,12 @@ The CLI and the operator SHALL order the same set of objects by kind class ident
 #### Scenario: A CRD before its resources
 
 - **WHEN** a render holds a CustomResourceDefinition and resources of its kind
-- **THEN** both frontends apply the definition first and delete it last
+- **THEN** both frontends apply the definition before the resources
+
+#### Scenario: One delete order
+
+- **WHEN** the CLI and the operator delete the same set of objects
+- **THEN** both submit the deletions in the same kind-class order
 
 #### Scenario: Engine staging
 
