@@ -1,6 +1,8 @@
 package vet
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -16,10 +18,37 @@ func (r *run) openspecValidate(e *ent) {
 		}
 	}
 	if r.opts.Strict {
-		if out, err := r.opts.OpenSpec(r.store.Root, "openspec", "validate", e.Folder, "--strict"); err != nil {
-			r.add(e, "V35", Error, e.rel, 0, "openspec validate %s --strict failed: %s", e.Folder, summary(out, err))
-		}
+		r.strictValidate(e)
 	}
+}
+
+// strictValidate runs V35 for one entry: `openspec validate <change> --strict`.
+func (r *run) strictValidate(e *ent) {
+	if out, err := r.opts.OpenSpec(r.store.Root, "openspec", "validate", e.Folder, "--strict"); err != nil {
+		r.add(e, "V35", Error, e.rel, 0, "openspec validate %s --strict failed: %s", e.Folder, summary(out, err))
+	}
+}
+
+// v35Only is the whole run of Options.V35Only: V35 for each selected live
+// entry and seed, then for openspec/specs. Archived folders are not validated
+// (OpenSpec has archived them), and a legacy folder is not converted yet.
+func (r *run) v35Only() (*Result, error) {
+	if r.opts.OpenSpec == nil {
+		return nil, fmt.Errorf("vet: V35 needs the openspec runner")
+	}
+	for _, e := range r.store.All() {
+		if !r.selected(e) || e.Archived {
+			continue
+		}
+		r.res.Checked = append(r.res.Checked, e.Folder)
+		r.strictValidate(&ent{Entry: e, rel: relSlash(r.store.Root, e.Dir)})
+	}
+	r.validateSpecsStrict()
+	sort.SliceStable(r.res.Findings, func(i, j int) bool {
+		a, b := r.res.Findings[i], r.res.Findings[j]
+		return a.Entry+"|"+a.Path < b.Entry+"|"+b.Path
+	})
+	return r.res, nil
 }
 
 // validateSpecsStrict runs `openspec validate --specs --strict` once.

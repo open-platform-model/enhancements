@@ -61,7 +61,23 @@ func (r *run) mapRules(e *ent) {
 	}
 	oldEntry, commit := src[1], src[2]
 
-	reqs, decs, oqs := parseMap(text)
+	allReqs, decs, oqs := parseMap(text)
+	// A "moved in" row names a requirement of another entry that this entry
+	// receives. It is no old id of this entry's source, so the id comparison
+	// and the dispositions below leave it out; it has a check of its own.
+	var reqs, movedIn []mapRow
+	seenIn := map[string]bool{}
+	for _, row := range allReqs {
+		if isMovedIn(row.disp) {
+			if seenIn[row.id] {
+				r.add(e, "V25", Error, mapPath, row.line, "moved in row %s appears twice in the map", row.id)
+			}
+			seenIn[row.id] = true
+			movedIn = append(movedIn, row)
+		} else {
+			reqs = append(reqs, row)
+		}
+	}
 
 	// The old ids, from git at the source commit.
 	oldDec, err := r.opts.GitShow(r.store.Root, commit, oldEntry+"/03-decisions.md")
@@ -110,6 +126,9 @@ func (r *run) mapRules(e *ent) {
 		}
 	}
 	r.checkCutList(e, cuts, reqs)
+	for _, row := range movedIn {
+		r.movedInRow(e, mapPath, oldEntry, row)
+	}
 	for _, row := range decs {
 		r.checkDocRow(e, mapPath, row, designHeads, proposalHeads, []string{"design", "proposal", "evidence", "dropped"})
 	}
@@ -125,6 +144,82 @@ func (r *run) mapRules(e *ent) {
 	if proposalRows > len(e.Questions) {
 		r.add(e, "V25", Error, mapPath, 0, "%d open question rows say proposal but proposal.md lists %d questions; update the rows of the questions that moved to design.md", proposalRows, len(e.Questions))
 	}
+}
+
+// isMovedIn reports whether a disposition is "moved in": the row of a
+// requirement that another entry's map moved into this entry (its source id is
+// the row id). It is not "moved", which is a requirement of this entry's
+// source that left for another entry.
+func isMovedIn(disp string) bool {
+	f := strings.Fields(strings.ToLower(disp))
+	return len(f) >= 2 && strings.Trim(f[0], "(),;:") == "moved" && strings.Trim(f[1], "(),;:") == "in"
+}
+
+// movedInRow checks one "moved in" row. The row id is the source id
+// (NNNN:Dn:Rm); the target is capability/Requirement name in this entry's
+// deltas; the map of the source entry must hold a "moved" row for the same id
+// whose target is this entry and that same name. A requirement is counted once,
+// at its source as moved: the closing sum of rows leaves moved in rows out.
+func (r *run) movedInRow(e *ent, mapPath, oldEntry string, row mapRow) {
+	src := row.id[:4]
+	if src == e.FolderID || src == oldEntry {
+		r.add(e, "V25", Error, mapPath, row.line, "%s: a moved in row names a requirement of another entry, not of %s", row.id, src)
+		return
+	}
+	targets := splitTargets(row.target)
+	if len(targets) != 1 {
+		r.add(e, "V25", Error, mapPath, row.line, "%s: a moved in row has one target, capability/Requirement name", row.id)
+		return
+	}
+	target := targets[0]
+	if ok, why := r.deltaTarget(e, target); !ok {
+		r.add(e, "V25", Error, mapPath, row.line, "%s: target %q: %s", row.id, target, why)
+		return
+	}
+	se := r.store.Find(src)
+	if se == nil {
+		if containsStr(r.store.LegacyLive, src) {
+			r.add(e, "V25", Warning, mapPath, row.line, "%s: the source entry %s is not converted yet; the row is checked against its map when it is", row.id, src)
+			return
+		}
+		r.add(e, "V25", Error, mapPath, row.line, "%s: the source entry %s does not exist", row.id, src)
+		return
+	}
+	b, err := os.ReadFile(filepath.Join(se.Dir, "evidence", "migration-map.md"))
+	if err != nil {
+		r.add(e, "V25", Error, mapPath, row.line, "%s: entry %s has no migration map, so it cannot have moved this requirement here", row.id, src)
+		return
+	}
+	srcReqs, _, _ := parseMap(strings.ReplaceAll(string(b), "\r\n", "\n"))
+	var found bool
+	for _, sr := range srcReqs {
+		if sr.id != row.id || isMovedIn(sr.disp) || firstWord(sr.disp) != "moved" {
+			continue
+		}
+		found = true
+		for _, t := range splitTargets(sr.target) {
+			if sameMovedTarget(t, e.FolderID, target) {
+				return
+			}
+		}
+		r.add(e, "V25", Error, mapPath, row.line, "%s: the map of %s moves it to %q, which does not name %s %s", row.id, src, sr.target, e.FolderID, target)
+		return
+	}
+	if !found {
+		r.add(e, "V25", Error, mapPath, row.line, "%s: the map of %s has no moved row for it", row.id, src)
+	}
+}
+
+// sameMovedTarget reports whether the target "NNNN capability/Name" of a
+// moved row names the requirement capability/Name of entry id.
+func sameMovedTarget(moved, id, target string) bool {
+	idPart, rest, ok := strings.Cut(moved, " ")
+	if !ok || idPart != id {
+		return false
+	}
+	c1, n1, ok1 := strings.Cut(rest, "/")
+	c2, n2, ok2 := strings.Cut(target, "/")
+	return ok1 && ok2 && c1 == c2 && delta.NormalizeName(n1) == delta.NormalizeName(n2)
 }
 
 func (r *run) sameIDs(e *ent, path, kind string, old []string, rows []mapRow) {

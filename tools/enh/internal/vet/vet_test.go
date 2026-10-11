@@ -113,7 +113,7 @@ func TestRules(t *testing.T) {
 		{rule: "V21", level: Error, invalid: []invalidCase{{"invalid", "no **Migration**"}, {"invalid-2", "exactly"}, {"invalid-3", "no ADDED requirement of that name"}, {"invalid-4", "list item"}}},
 		{rule: "V22", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", "blocking question"}, {"invalid-2", "must move into design.md"}, {"invalid-3", "a blocking question is still open"}, {"invalid-4", "a blocking question is still open"}}},
 		{rule: "V23", mode: Accept, level: Error, invalid: []invalidCase{{"invalid", `"cli" is in affects`}, {"invalid-2", "does not match"}}},
-		{rule: "V24", mode: Deliver, level: Error, invalid: []invalidCase{{"invalid", "not ticked"}, {"invalid-2", "does not end with"}}},
+		{rule: "V24", mode: Deliver, level: Error, invalid: []invalidCase{{"invalid", "not ticked"}, {"invalid-2", "does not end with"}, {"invalid-3", "task 1.2 is ticked but does not end with"}, {"invalid-4", "task 1.1 is ticked but does not end with"}}},
 		{rule: "V25", level: Error, invalid: []invalidCase{
 			{"invalid", "0100:D1:R3 has no row"},
 			{"invalid-2", "say proposal but proposal.md lists"},
@@ -131,6 +131,18 @@ func TestRules(t *testing.T) {
 			{"invalid-14", "write the target as cut-requirements.md"},
 		}, tune: func(o *Options) { o.GitShow = fixtureGit }},
 		{rule: "V25", level: Warning, invalid: []invalidCase{{"invalid-legacy", "is not converted yet"}}, tune: func(o *Options) { o.GitShow = fixtureGit }},
+		// a "moved in" row: the requirement another entry's map moved here
+		{rule: "V25", level: Error, valid: "valid-moved-in", invalid: []invalidCase{
+			{"invalid-11-unlisted-at-source", "has no moved row for it"},
+			{"invalid-12-other-receiver", "which does not name 0002"},
+			{"invalid-13-other-name", "which does not name 0002 other-cap/Second thing"},
+			{"invalid-14-no-such-target", "no such requirement in this entry's delta specs"},
+			{"invalid-15-no-source", "the source entry 0999 does not exist"},
+			{"invalid-16-own-entry", "names a requirement of another entry"},
+			{"invalid-17-source-has-no-map", "has no migration map"},
+			{"invalid-19-moved-in-twice", "appears twice in the map"},
+		}, tune: func(o *Options) { o.GitShow = fixtureGit }},
+		{rule: "V25", level: Warning, valid: "valid-moved-in", invalid: []invalidCase{{"invalid-18-not-converted", "is not converted yet"}}, tune: func(o *Options) { o.GitShow = fixtureGit }},
 		{rule: "V28", level: Error, invalid: []invalidCase{{"invalid", "leads into 0014-other"}}},
 		{rule: "V29", level: Warning, invalid: []invalidCase{{"invalid", "lost.md"}}},
 		{rule: "V30", level: Warning, invalid: []invalidCase{{"invalid", "legacy live folders"}}},
@@ -494,5 +506,61 @@ func TestV29CueVetOfEvidenceModules(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("no skipped line for V29 without a runner: %v", res.Skipped)
+	}
+}
+
+// V35Only runs V35 and nothing else: strict validate of each live entry and of
+// openspec/specs, whatever the other rules say, and an error when a run fails.
+func TestV35Only(t *testing.T) {
+	root := materialize(t, "V1", "invalid") // an entry that breaks V1
+	var calls []string
+	failOn := ""
+	runner := func(dir, name string, args ...string) ([]byte, error) {
+		joined := strings.Join(args, " ")
+		calls = append(calls, joined)
+		if failOn != "" && strings.Contains(joined, failOn) {
+			return []byte("Change has issues"), errors.New("exit status 1")
+		}
+		return []byte("ok"), nil
+	}
+	run := func() *Result {
+		t.Helper()
+		calls = nil
+		res, err := Run(Options{Root: root, Today: "2026-10-11", SchemaPath: schemaPath, V35Only: true, OpenSpec: runner})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+
+	res := run()
+	if len(res.Findings) != 0 {
+		t.Errorf("V35Only reported another rule: %v", res.Findings)
+	}
+	want := "validate --specs --strict"
+	var perEntry bool
+	for _, c := range calls {
+		perEntry = perEntry || (strings.HasPrefix(c, "validate 0") && strings.HasSuffix(c, " --strict"))
+	}
+	if !perEntry || calls[len(calls)-1] != want {
+		t.Errorf("calls = %v; want a strict validate per entry, then %q", calls, want)
+	}
+	for _, c := range calls {
+		if c != want && !strings.HasSuffix(c, " --strict") {
+			t.Errorf("a validate ran without --strict: %q", c)
+		}
+	}
+
+	failOn = "--specs"
+	if res = run(); len(res.Findings) != 1 || res.Findings[0].Rule != "V35" || res.Findings[0].Level != Error || !res.HasErrors() {
+		t.Errorf("failing specs run: %v", res.Findings)
+	}
+	failOn = "validate 0"
+	if res = run(); len(res.Findings) == 0 || res.Findings[0].Rule != "V35" || !strings.Contains(res.Findings[0].Msg, "--strict failed") {
+		t.Errorf("failing entry run: %v", res.Findings)
+	}
+
+	if _, err := Run(Options{Root: root, SchemaPath: schemaPath, V35Only: true}); err == nil {
+		t.Error("V35Only without a runner did not fail")
 	}
 }

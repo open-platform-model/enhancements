@@ -109,6 +109,10 @@ type Options struct {
 	Cue Runner
 	// Strict adds `openspec validate --strict` runs (V35).
 	Strict bool
+	// V35Only runs V35 and nothing else: `openspec validate <name> --strict`
+	// for each selected live entry and seed, and `openspec validate --specs
+	// --strict`. It needs OpenSpec, ignores Mode, and reads no git history.
+	V35Only bool
 	// Final makes V30 an error: the migration is over (ENH_FINAL=1).
 	Final bool
 	// GitShow reads a file at a commit for V25. The default runs `git show`.
@@ -230,6 +234,9 @@ func Run(opts Options) (*Result, error) {
 		return nil, fmt.Errorf("vet: base ref %q is not a plain ref name", opts.Base)
 	}
 	r := &run{opts: opts, store: st, schema: sch, today: opts.Today, res: &Result{}}
+	if opts.V35Only {
+		return r.v35Only()
+	}
 	if opts.Base != "" {
 		mb, err := opts.GitMergeBase(st.Root, opts.Base, "HEAD")
 		if err != nil {

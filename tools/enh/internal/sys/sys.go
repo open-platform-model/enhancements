@@ -56,6 +56,20 @@ func (g Git) MergeBase(ref string) (string, error) {
 	return g.run("rev-parse", "--short", full)
 }
 
+// IsTopLevel reports whether Root is the top level of its repository.
+func (g Git) IsTopLevel() bool {
+	s, err := g.run("rev-parse", "--show-toplevel")
+	if err != nil {
+		return false
+	}
+	a, err := filepath.EvalSymlinks(s)
+	if err != nil {
+		return false
+	}
+	b, err := filepath.EvalSymlinks(g.Root)
+	return err == nil && a == b
+}
+
 // Head returns the full commit that HEAD names.
 func (g Git) Head() (string, error) {
 	return g.run("rev-parse", "HEAD")

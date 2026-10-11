@@ -29,6 +29,7 @@ var (
 	otherEntryRe = regexp.MustCompile(`^(\d{4}(-[a-z0-9-]+)?|archive|seed-[a-z0-9-]+)$`)
 	changeRefRe  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 	prRefRe      = regexp.MustCompile(`^PR \d+$`)
+	commitRefRe  = regexp.MustCompile(`^commit [0-9a-f]{7,40}$`)
 	samplingRe   = regexp.MustCompile(`(?m)^sampled:[ \t]*(.*)$`)
 	codeSpanRe   = regexp.MustCompile("`[^`\n]+`")
 )
@@ -198,8 +199,8 @@ func (r *run) taskRules(e *ent) {
 			switch {
 			case !t.Done:
 				r.add(e, "V24", Error, path, t.Line, "task %d.%d is not ticked", t.Section, t.Index)
-			case !(prRefRe.MatchString(t.Ref) || changeRefRe.MatchString(t.Ref)):
-				r.add(e, "V24", Error, path, t.Line, "task %d.%d is ticked but does not end with (<change-name>) or (PR <n>)", t.Section, t.Index)
+			case !(prRefRe.MatchString(t.Ref) || commitRefRe.MatchString(t.Ref) || changeRefRe.MatchString(t.Ref)):
+				r.add(e, "V24", Error, path, t.Line, "task %d.%d is ticked but does not end with (<change-name>), (PR <n>) or (commit <sha>)", t.Section, t.Index)
 			}
 		}
 	}

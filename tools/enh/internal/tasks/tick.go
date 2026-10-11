@@ -12,10 +12,12 @@ import (
 var (
 	changeRefRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 	prRefRe     = regexp.MustCompile(`^PR [0-9]+$`)
+	commitRefRe = regexp.MustCompile(`^commit [0-9a-f]{7,40}$`)
 )
 
 // Tick ticks the line "n.m" of the entry's tasks.md and appends "(ref)": the
-// change name without date, or "PR <n>" for a repo with no OpenSpec change.
+// change name without date, "PR <n>" for a repo with no OpenSpec change, or
+// "commit <sha>" for the commit that delivers the line.
 func (e *Env) Tick(key, line, ref string) error {
 	st, err := e.load()
 	if err != nil {
@@ -28,8 +30,8 @@ func (e *Env) Tick(key, line, ref string) error {
 	if en.Kind == entry.Seed {
 		return usage("%s is a seed and has no tasks.md", en.Base)
 	}
-	if !changeRefRe.MatchString(ref) && !prRefRe.MatchString(ref) {
-		return usage("REF %q must be a change name (lower-case, hyphens) or \"PR <n>\"", ref)
+	if !changeRefRe.MatchString(ref) && !prRefRe.MatchString(ref) && !commitRefRe.MatchString(ref) {
+		return usage("REF %q must be a change name (lower-case, hyphens), \"PR <n>\" or \"commit <sha>\"", ref)
 	}
 	path := filepath.Join(en.Dir, "tasks.md")
 	src, err := os.ReadFile(path)

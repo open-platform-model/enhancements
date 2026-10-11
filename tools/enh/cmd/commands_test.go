@@ -238,6 +238,45 @@ func TestAcceptDeliverExitCodes(t *testing.T) {
 	wantCode(t, "history unknown", code, ExitUsage, out, errOut)
 }
 
+// accept and deliver take --base and give it to the git rules (V7, V27, V31):
+// the skipped line of vet is gone, and a base that does not exist is named.
+func TestAcceptAndDeliverTakeBase(t *testing.T) {
+	skipped := "no base ref"
+	r := newRepo(t)
+	testrepo.Git(t, r.root, "branch", "trunk")
+	testrepo.Git(t, r.root, "checkout", "-q", "-b", "work")
+
+	code, out, errOut := r.do("accept", "0100", "--seed", "4", "--base", "trunk")
+	wantCode(t, "accept --base", code, ExitOK, out, errOut)
+	if strings.Contains(out, skipped) || !strings.Contains(out, "base: trunk") {
+		t.Errorf("accept --base trunk:\n%s", out)
+	}
+	code, out, errOut = r.do("accept", "0100", "--base", "no-such-branch")
+	wantCode(t, "accept bad base", code, ExitUsage, out, errOut)
+	if !strings.Contains(errOut, "no-such-branch") {
+		t.Errorf("accept bad base: %s", errOut)
+	}
+
+	code, out, errOut = r.do("accept", "0100", "--confirm", "--base", "trunk")
+	wantCode(t, "confirm", code, ExitOK, out, errOut)
+	for _, line := range []string{"1.1", "1.2"} {
+		code, out, errOut = r.do("tick", "0100", line, "done-"+strings.ReplaceAll(line, ".", "-"))
+		wantCode(t, "tick "+line, code, ExitOK, out, errOut)
+	}
+	testrepo.Commit(t, r.root, "docs: accept and tick")
+
+	code, out, errOut = r.do("deliver", "0100", "--base", "no-such-branch")
+	wantCode(t, "deliver bad base", code, ExitUsage, out, errOut)
+	if !strings.Contains(errOut, "no-such-branch") {
+		t.Errorf("deliver bad base: %s", errOut)
+	}
+	code, out, errOut = r.do("deliver", "0100", "--base", "trunk", "--no-commit")
+	wantCode(t, "deliver --base", code, ExitOK, out, errOut)
+	if strings.Contains(out, skipped) {
+		t.Errorf("deliver --base trunk:\n%s", out)
+	}
+}
+
 func TestVetAtDeliverModeRunsV26(t *testing.T) {
 	r := newRepo(t)
 	r.put("openspec/specs/other-cap/spec.md", r.file("openspec/specs/other-cap/spec.md"))
@@ -416,5 +455,42 @@ func TestSpecsRuleCommand(t *testing.T) {
 	wantCode(t, "chain", code, ExitError, out, errOut)
 	if !strings.Contains(out, "1 commit(s) after") {
 		t.Errorf("out: %s", out)
+	}
+}
+
+// vet --v35 runs the strict validations and no other rule, with one command.
+func TestVetV35(t *testing.T) {
+	r := newRepo(t)
+	code, out, errOut := r.do("vet", "--v35")
+	wantCode(t, "vet --v35", code, ExitOK, out, errOut)
+	joined := "|" + strings.Join(r.calls, "|") + "|"
+	for _, want := range []string{"|validate 0100-demo-entry --strict|", "|validate --specs --strict|"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("calls %s lack %q", joined, want)
+		}
+	}
+	if !strings.Contains(out, "0 errors") {
+		t.Errorf("output:\n%s", out)
+	}
+
+	// a failing run is an error finding and exit 1
+	var o, e bytes.Buffer
+	d := Deps{
+		Runner: func(dir, name string, args ...string) ([]byte, error) {
+			if name == "git" {
+				return sys.Exec(dir, name, args...)
+			}
+			return []byte("Specs have issues"), os.ErrInvalid
+		},
+		Cwd: func() (string, error) { return r.root, nil },
+	}
+	if code := RunWith(d, []string{"vet", "--v35"}, &o, &e); code != ExitError || !strings.Contains(o.String(), "V35") {
+		t.Errorf("failing v35: exit %d\n%s\n%s", code, o.String(), e.String())
+	}
+
+	for _, args := range [][]string{{"vet", "--v35", "--strict"}, {"vet", "--v35", "--openspec"}, {"vet", "--v35", "--mode", "deliver"}} {
+		if code, out, errOut := r.do(args...); code != ExitUsage || !strings.Contains(errOut, "V35 alone") {
+			t.Errorf("%v: exit %d\n%s\n%s", args, code, out, errOut)
+		}
 	}
 }

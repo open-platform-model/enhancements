@@ -18,7 +18,7 @@ type options struct {
 	mode, today, seed, id, author           string
 	workspace, filesFrom                    string
 	confirm, noCommit, noValidate, archived bool
-	openspec, strict, chain, cue            bool
+	openspec, strict, chain, cue, v35       bool
 	exclude                                 stringList
 }
 
@@ -190,7 +190,7 @@ func rootFlags(fs *flag.FlagSet, o *options) {
 
 func gitFlags(fs *flag.FlagSet, o *options) {
 	rootFlags(fs, o)
-	fs.StringVar(&o.base, "base", "main", "the local branch the accept PR starts from")
+	fs.StringVar(&o.base, "base", "main", "the local branch the PR starts from; the base ref of V7, V27 and V31")
 }
 
 func confirmFlags(fs *flag.FlagSet, o *options) {

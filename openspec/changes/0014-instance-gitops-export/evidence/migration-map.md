@@ -22,16 +22,13 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0014:D3:R2 | kept | instance-export/Every export that writes values warns |  |
 | 0014:D4:R1 | kept | instance-export/The live instance is the only input |  |
 | 0014:D4:R2 | kept | instance-export/A bulk export writes one directory per instance |  |
+| 0013:D14:R4 | moved in | instance-export/Secret-bearing export output can be SOPS-encrypted | from 0013; the old text is `0013/03-decisions.md` at the source commit of 0013's map |
+| 0013:D26:R1 | moved in | instance-export/Exported secret values are encrypted | from 0013 |
+| 0013:D26:R2 | moved in | instance-export/An exported instance renders as the original | from 0013 |
 
 Totals: kept 14, merged 0, cut 0, repo 0, moved 0. Sum 14, equal to the 14 old ids (D1 6, D2 4, D3 2, D4 2).
 
-Moved in from 0013. Three requirements of 0013 moved into this entry, as 0013's own map records (the rows for D14 R4, D26 R1 and D26 R2, each `moved`, target `0014 instance-export/<name>`). They are written in `specs/instance-export/spec.md` under exactly those names, from 0013's old text (`0013/03-decisions.md` at the source commit above), and they are not rows of this table because they have no old id in 0014:
-
-- 0013's D14 R4 is now "Secret-bearing export output can be SOPS-encrypted". Old text: "When an instance is exported for GitOps consumption, its Secret-bearing output can be SOPS-encrypted on write for cluster-side decryption."
-- 0013's D26 R1 is now "Exported secret values are encrypted". Old text: "An exported instance carries no plaintext secret value, and every other field of it stays readable and diffable."
-- 0013's D26 R2 is now "An exported instance renders as the original". Old text: "The exported instance, once decrypted by the GitOps tool, renders exactly as the unexported one."
-
-0013 decision D26 amends its own D14 and the old verbatim-values decision of this entry ("Amends: D14, 0014:D3"). The design says so, and all three requirements stay ADDED. The new count of this entry is 14 + 3 = 17 requirements.
+The three `moved in` rows are requirements of 0013 that moved into this entry, as 0013's own map records (its rows for D14 R4, D26 R1 and D26 R2, each `moved`, target `0014 instance-export/<name>`). The row id is the source id, and the checker reads 0013's map to confirm that it moves the id to this entry under the same name. They are not old ids of 0014, so they are outside the 14 and outside the sum above: the closing count over all maps counts each of them once, at 0013 as `moved`, and never again here. They are written in `specs/instance-export/spec.md` under exactly those names, from 0013's old text. 0013 decision D26 amends its own D14 and the old verbatim-values decision of this entry ("Amends: D14, 0014:D3"). The design says so, and all three requirements stay ADDED. The new count of this entry is 14 + 3 = 17 requirements.
 
 ## Decisions
 

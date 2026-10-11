@@ -154,8 +154,19 @@ func (e *Env) vet(mode vet.Mode, keys ...string) (*vet.Result, error) {
 	return vet.Run(vet.Options{
 		Root: e.Root, Mode: mode, Keys: keys, Today: e.today(),
 		SchemaPath: e.schemaPath(), OpenSpec: vet.Runner(e.Run),
-		Final: os.Getenv("ENH_FINAL") == "1",
+		Final: os.Getenv("ENH_FINAL") == "1", Base: e.vetBase(),
 	})
+}
+
+// vetBase is the base ref for V7, V27 and V31: the branch of --base (default
+// main), so the git rules run at accept and deliver. The rules read paths from
+// the top level of the repository, so a Root that is not that top level gets
+// no base and vet prints its skipped line.
+func (e *Env) vetBase() string {
+	if !e.git().IsTopLevel() {
+		return ""
+	}
+	return e.base()
 }
 
 // printFindings writes the findings of a result and a summary line, and

@@ -19,12 +19,13 @@ import (
 var commands = []command{
 	{
 		name: "vet", synopsis: "vet [flags] [ID|FOLDER ...]", summary: "check every entry, or the named ones",
-		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).\nV7, V27 and V31 compare with a base ref and run only when one exists; a CI run passes the base of the pull\nrequest with --base. Without a ref they print a skipped line.\n--cue runs `cue vet ./...` in each evidence module (a folder with cue.mod/module.cue under evidence/); a\nfailure is a V29 warning, never an error. Without --cue the rule prints a skipped line.",
+		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).\nV7, V27 and V31 compare with a base ref and run only when one exists; a CI run passes the base of the pull\nrequest with --base. Without a ref they print a skipped line.\n--cue runs `cue vet ./...` in each evidence module (a folder with cue.mod/module.cue under evidence/); a\nfailure is a V29 warning, never an error. Without --cue the rule prints a skipped line.\n--v35 is the migration closing check (design part two, section 2, V35): it runs only that rule and needs the\nopenspec CLI (1.14.1). It is not part of the daily check.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.mode, "mode", "draft", "draft, accept or deliver")
 			fs.BoolVar(&o.openspec, "openspec", false, "also run the openspec CLI: validate at accept and deliver (V32)")
 			fs.BoolVar(&o.strict, "strict", false, "with --openspec, run validate --strict (V35)")
+			fs.BoolVar(&o.v35, "v35", false, "run only V35: openspec validate NAME --strict for each live entry and seed, and openspec validate --specs --strict; not part of task check")
 			fs.BoolVar(&o.cue, "cue", false, "also run cue vet in each evidence/**/cue.mod module (V29, a warning)")
 			fs.StringVar(&o.today, "today", "", "the date that bounds \"created\" (default: today, UTC)")
 			fs.StringVar(&o.base, "base", "", "the base ref of the pull request, for V7, V27 and V31 (default: origin/main when it exists, else main)")
@@ -74,7 +75,7 @@ var commands = []command{
 		name: "deliver", synopsis: "deliver [flags] ID", summary: "check, set status: delivered, archive, index and commit",
 		help: "Refuses an unticked task line, a stale flag, and any error of the checker at deliver mode (V20, V21 and the\nrest). Runs `openspec archive <n> --yes`, then index, then makes one commit. ID=seed-CAP skips the entry\nfields and needs the sampled: line. Needs a clean working tree unless --no-commit.",
 		flags: func(fs *flag.FlagSet, o *options) {
-			rootFlags(fs, o)
+			gitFlags(fs, o)
 			fs.BoolVar(&o.noCommit, "no-commit", false, "leave the change in the working tree instead of making the commit")
 		},
 		min: 1, max: 1, run: func(c *call) int {
@@ -95,7 +96,7 @@ var commands = []command{
 	},
 	{
 		name: "tick", synopsis: "tick [flags] ID LINE REF", summary: "tick the task line n.m of tasks.md and append (REF)",
-		help:  "REF is the change name without date, or \"PR <n>\" for a repo with no OpenSpec change.",
+		help:  "REF is the change name without date, \"PR <n>\" for a repo with no OpenSpec change, or \"commit <sha>\"\nfor the commit that delivers the line (a hexadecimal sha of 7 to 40 characters).",
 		flags: rootFlags, min: 3, max: 3, run: func(c *call) int {
 			return c.withEnv(func(e *tasks.Env) error { return e.Tick(c.args[0], c.args[1], c.args[2]) })
 		},
@@ -205,6 +206,10 @@ func runVet(c *call) int {
 		fmt.Fprintf(c.errOut, "enh vet: %v\n", err)
 		return ExitUsage
 	}
+	if c.o.v35 && (c.o.strict || c.o.openspec || c.o.cue || m != vet.Draft) {
+		fmt.Fprintln(c.errOut, "enh vet: --v35 runs V35 alone; it takes no --openspec, --strict, --cue or --mode")
+		return ExitUsage
+	}
 	if c.o.strict && !c.o.openspec {
 		fmt.Fprintln(c.errOut, "enh vet: --strict needs --openspec")
 		return ExitUsage
@@ -219,9 +224,10 @@ func runVet(c *call) int {
 		Strict: c.o.strict, Final: c.d.Getenv("ENH_FINAL") == "1",
 		Base: c.vetBase(env.Root),
 	}
-	if c.o.openspec {
+	if c.o.openspec || c.o.v35 {
 		opts.OpenSpec = vet.Runner(c.d.Runner)
 	}
+	opts.V35Only = c.o.v35
 	if c.o.cue {
 		opts.Cue = vet.Runner(c.d.Runner)
 	}

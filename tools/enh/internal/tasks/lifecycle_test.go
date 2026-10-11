@@ -338,13 +338,20 @@ func TestTick(t *testing.T) {
 	if err := f.env.Tick("0100", "7.7", "x-y"); !IsRefusal(err) {
 		t.Errorf("unknown line: %v", err)
 	}
-	for _, bad := range []string{"Bad Ref", "PR", "PR x", "-x"} {
+	for _, bad := range []string{"Bad Ref", "PR", "PR x", "-x", "commit abc12", "commit XYZ1234", "commit 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1"} {
 		if err := f.env.Tick("0100", "1.2", bad); !IsUsage(err) {
 			t.Errorf("ref %q: %v", bad, err)
 		}
 	}
 	if err := f.env.Tick("0100", "1.2", "PR 12"); err != nil {
 		t.Errorf("PR ref: %v", err)
+	}
+	g := newFx(t)
+	if err := g.env.Tick("0100", "1.1", "commit 1a2b3c4"); err != nil {
+		t.Errorf("commit ref: %v", err)
+	}
+	if !strings.Contains(g.read(demo+"/tasks.md"), "(commit 1a2b3c4)\n") {
+		t.Errorf("tasks.md:\n%s", g.read(demo+"/tasks.md"))
 	}
 	f.seed(2)
 	if err := f.env.Tick("seed-new-cap", "1.1", "x"); !IsUsage(err) {

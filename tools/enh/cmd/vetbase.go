@@ -1,9 +1,6 @@
 package cmd
 
-import (
-	"path/filepath"
-	"strings"
-)
+import "github.com/open-platform-model/enhancements/tools/enh/internal/sys"
 
 // defaultBases are the refs `enh vet` tries when --base is not given: the
 // remote branch first, since a local main can lag behind it.
@@ -18,8 +15,7 @@ func (c *call) vetBase(root string) string {
 	if c.o.base != "" {
 		return c.o.base
 	}
-	out, err := c.d.Runner(root, "git", "rev-parse", "--show-toplevel")
-	if err != nil || !sameDir(strings.TrimSpace(string(out)), root) {
+	if !(sys.Git{Root: root, Run: c.d.Runner}).IsTopLevel() {
 		return ""
 	}
 	for _, ref := range defaultBases {
@@ -28,16 +24,4 @@ func (c *call) vetBase(root string) string {
 		}
 	}
 	return ""
-}
-
-func sameDir(a, b string) bool {
-	ra, err := filepath.EvalSymlinks(a)
-	if err != nil {
-		return false
-	}
-	rb, err := filepath.EvalSymlinks(b)
-	if err != nil {
-		return false
-	}
-	return ra == rb
 }
