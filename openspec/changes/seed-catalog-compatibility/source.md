@@ -61,3 +61,5 @@ One rule lives in one seed (DECISIONS.md 2026-10-11 10:00). What this seed gave 
 
 - The alpha exemption (decided here, the rule of thumb did not decide): which levels the additive-only promise binds is `primitive-keying`'s ("The additive-only promise is readable off the level", core's `#APIVersionGated`). This seed keeps what the comparison adds: the level is read from the contract's own API version, a contract the promise does not bind is not evaluated, an off-ladder API version is an error. The requirement is renamed "The comparison binds only what the promise binds" and the scenario "Beta and a bare major are compared" is gone. `artifact-publishing` says only that its gate skips a member the comparison does not bind.
 - "The check judges a build as publish would": the dev-build and prerelease exemptions and the choice of predecessor are `artifact-publishing`'s (DECISIONS.md 10:15). The scenarios "A dev build reports exempt" and "A release prerelease reports exempt members" are gone; one scenario states that a violating build exits 2.
+
+sampled: 2026-10-11 18705155
