@@ -47,3 +47,5 @@ The code wins. Each point is stated once here and the requirement follows the co
 - A blocked claim staying in the active set that generates the platform package: `registration-driven-regeneration`, a later seed (`platform-module-generation`).
 - The mechanism that counts dependents: the source spec states the guarantee and not the machinery, and this seed does the same.
 - The viewer role (read-only) and the printer columns of the resource: not stated by any source requirement.
+
+sampled: 2026-10-11 18705155
