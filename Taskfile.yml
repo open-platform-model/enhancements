@@ -266,17 +266,6 @@ tasks:
     cmds:
       - go -C tools/enh run . specs-rule --base {{.BASE | default "origin/main" | shellQuote}} {{.CLI_ARGS}}
 
-  specs-rule:chain:
-    desc: "Check each commit after SINCE that touches openspec/specs/ (the migration branch)"
-    summary: |
-      Usage:
-        task specs-rule:chain SINCE=69475cb
-      Extra flags of the enh command go after `--`. See `enh help specs-rule`.
-    requires:
-      vars: [SINCE]
-    cmds:
-      - go -C tools/enh run . specs-rule --chain --since {{.SINCE | shellQuote}} {{.CLI_ARGS}}
-
   check:
     desc: "The gate of this repo: enh vet (with --cue and ENH_FINAL=1), links and fresh"
     summary: |

@@ -170,13 +170,11 @@ var commands = []command{
 	},
 	{
 		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction",
-		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered or schema seed; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.\n--chain is for the migration branch: each commit after --since that touches openspec/specs/ is checked on its\nown against its parent, in commit order.",
+		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered or schema seed; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.base, "base", "", "the base ref of the pull request (an all-zero id means the parent of HEAD)")
 			fs.StringVar(&o.head, "head", "HEAD", "the commit to check")
-			fs.BoolVar(&o.chain, "chain", false, "check every commit after --since on its own, in order (the migration branch)")
-			fs.StringVar(&o.since, "since", "", "with --chain: start after this commit")
 		},
 		min: 0, max: 0, run: runSpecsRule,
 	},
@@ -378,19 +376,7 @@ func runSpecsRule(c *call) int {
 		return ExitUsage
 	}
 	opts := specsrule.Options{Root: env.Root, Base: c.o.base, Head: c.o.head, OpenSpec: c.d.Runner}
-	var res *specsrule.Result
-	switch {
-	case c.o.chain && c.o.base != "":
-		fmt.Fprintln(c.errOut, "enh specs-rule: --chain starts after --since; it takes no --base")
-		return ExitUsage
-	case c.o.chain:
-		res, err = specsrule.Chain(opts, c.o.since)
-	case c.o.since != "":
-		fmt.Fprintln(c.errOut, "enh specs-rule: --since belongs to --chain")
-		return ExitUsage
-	default:
-		res, err = specsrule.Check(opts)
-	}
+	res, err := specsrule.Check(opts)
 	if err != nil {
 		fmt.Fprintf(c.errOut, "enh specs-rule: %v\n", err)
 		return ExitUsage

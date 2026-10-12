@@ -39,15 +39,6 @@ env:
   # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
   # replay refuses another version.
   OPENSPEC_VERSION: '1.14.1'
-  # The migration branch delivers about ten seeds in one pull request, so the
-  # one-delivery step of specs-rule would fail it. For a PR from this branch of
-  # this repository the job runs `enh specs-rule --chain` instead, which checks
-  # each commit after CHAIN_SINCE on its own. 69475cb emptied the mock specs.
-  # The migration phase sets its own branch name here: the owner pushes the
-  # swarm branch as openspec-store-design (PR 107). No later PR has this
-  # branch name; the first later PR deletes these two lines and the chain step.
-  CHAIN_BRANCH: 'openspec-store-design'
-  CHAIN_SINCE: '69475cb'
 
 jobs:
   vet:
@@ -148,7 +139,6 @@ jobs:
     timeout-minutes: 15
     env:
       BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     # Pull requests only. The steps below carry the condition, not the job, so
     # the job still reports success on the push run to main and ci-ok keeps
     # its rule that no gate may skip.
@@ -157,7 +147,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The rule reads the merge base and, in chain mode, every commit.
+          # The rule reads the merge base, so it needs the full history.
           fetch-depth: 0
           persist-credentials: false
 
@@ -196,30 +186,9 @@ jobs:
           go version
           openspec --version
 
-      - name: Pick the mode
-        if: ${{ github.event_name == 'pull_request' }}
-        id: mode
-        # Chain mode only for a PR from this repository on the migration
-        # branch: a fork cannot name its branch to dodge the one-delivery step.
-        env:
-          EVENT: ${{ github.event_name }}
-          HEAD_REF: ${{ github.head_ref }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          THIS_REPO: ${{ github.repository }}
-        run: |
-          if [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$THIS_REPO" ] && [ "$HEAD_REF" = "$CHAIN_BRANCH" ]; then
-            echo "chain=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "chain=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Check openspec/specs against the replayed archive
-        if: ${{ github.event_name == 'pull_request' && steps.mode.outputs.chain != 'true' }}
+        if: ${{ github.event_name == 'pull_request' }}
         run: task specs-rule BASE="$BASE_REF"
-
-      - name: Check each commit of the migration branch (chain mode)
-        if: ${{ github.event_name == 'pull_request' && steps.mode.outputs.chain == 'true' }}
-        run: task specs-rule:chain SINCE="$CHAIN_SINCE" -- --head "$HEAD_SHA"
 
   docs-pins:
     name: docs:pins:check

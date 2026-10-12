@@ -30,18 +30,6 @@ func (c *checker) git(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// gitAllowFail is git for a command whose exit code 1 still prints a result
-// (merge-tree with a conflict). Any other failure is an error.
-func (c *checker) gitAllowFail(args ...string) ([]byte, error) {
-	cmd := exec.Command("git", append([]string{"-C", c.opts.Root}, args...)...)
-	out, err := cmd.Output()
-	var ee *exec.ExitError
-	if err != nil && !(errors.As(err, &ee) && ee.ExitCode() == 1) {
-		return nil, fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
-	}
-	return out, nil
-}
-
 func (c *checker) gitString(args ...string) (string, error) {
 	out, err := c.git(args...)
 	return strings.TrimSpace(string(out)), err

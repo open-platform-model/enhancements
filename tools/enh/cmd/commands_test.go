@@ -519,22 +519,12 @@ func TestSpecsRuleCommand(t *testing.T) {
 	// usage errors: exit 2
 	for name, args := range map[string][]string{
 		"no base":          {"specs-rule"},
-		"chain with base":  {"specs-rule", "--chain", "--base", base},
-		"chain no since":   {"specs-rule", "--chain"},
-		"since not chain":  {"specs-rule", "--since", base, "--base", base},
 		"base with a dash": {"specs-rule", "--base=-x"},
 	} {
 		code, out, errOut := r.do(args...)
 		if code != ExitUsage {
 			t.Errorf("%s: exit %d\n%s\n%s", name, code, out, errOut)
 		}
-	}
-
-	// chain mode: the hand-written commit is not an archive
-	code, out, errOut = r.do("specs-rule", "--chain", "--since", base)
-	wantCode(t, "chain", code, ExitError, out, errOut)
-	if !strings.Contains(out, "1 commit(s) after") {
-		t.Errorf("out: %s", out)
 	}
 }
 
