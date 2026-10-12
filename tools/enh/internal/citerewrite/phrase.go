@@ -241,11 +241,14 @@ func sentenceStart(text string, pos int) bool {
 // start begins a sentence only when the line above does not go on (prevCont is
 // false).
 func sentenceStartAt(text string, pos int, prevCont bool) bool {
-	if strings.TrimSpace(text[:pos]) == "" {
+	if lineStartOnly(text[:pos]) {
 		return !prevCont
 	}
 	return sentenceStart(text, pos)
 }
+
+// lineStartOnly reports whether before holds only blanks and quote marks.
+func lineStartOnly(before string) bool { return strings.Trim(before, " \t>") == "" }
 
 func startsUpper(s string) bool { return s != "" && s[0] >= 'A' && s[0] <= 'Z' }
 

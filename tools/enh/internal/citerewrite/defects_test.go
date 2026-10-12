@@ -79,6 +79,8 @@ func TestOldLayoutPaths(t *testing.T) {
 			in: "```\ncat enhancements/0010/03-decisions.md\n```\n", sites: []string{"2:path"}},
 		{name: "other file", file: "Makefile",
 			in: "# enhancements/0010/03-decisions.md\n", sites: []string{"1:path"}},
+		{name: "github blob URL", file: "a.md",
+			in: "See https://github.com/open-platform-model/enhancements/blob/main/0010/03-decisions.md now.\n", sites: []string{"1:path"}},
 		{name: "not an entry: a year folder, a longer path", file: "a.md",
 			in: "Open 2026/README.md and docs/0010/README.md and 0010/README.mdx.\n"},
 		{name: "new layout page is no old path", file: "a.md",
@@ -357,5 +359,49 @@ func TestSiteURLInCodeSpan(t *testing.T) {
 		{name: "link still maps", file: "a.md",
 			in:   "Read [the rules](/enhancements/0021/decisions/) now.\n",
 			want: "Read [the rules](/enhancements/0021/requirements/) now.\n"},
+	})
+}
+
+// The review of T5.9a (blocking 1 and 2): the same defects in a sentence that
+// crosses a line edge, in a blockquote and in a YAML scalar of several lines.
+func TestWrappedParagraphs(t *testing.T) {
+	runCases(t, []rewriteCase{
+		// defect 1 across a line edge
+		{name: "repeat on the line above", file: "a.md",
+			in: "Introduced by enhancement 0010\n(0010:D4) and fixed.\n", sites: []string{"2:repeat-id"}},
+		{name: "repeat two lines up", file: "a.md",
+			in: "Each names enhancement 0010 as the key, and it names the\nown key (0010:D4).\n", sites: []string{"2:repeat-id"}},
+		{name: "repeat in a quote", file: "a.md",
+			in: "> Each names enhancement 0010 as the key, and it names the\n> own key (0010:D4).\n", sites: []string{"2:repeat-id"}},
+		{name: "repeat in a yaml scalar", file: "a.yaml",
+			in: "doc: Each names enhancement 0010 as the key, and it names the\n  own key (0010:D4).\n", sites: []string{"2:repeat-id"}},
+		// defect 7 across a line edge
+		{name: "range split by the wrap", file: "a.md",
+			in: "Use 0013:D2:R3 to\nR14 here.\n", sites: []string{"1:wrapped"}},
+		// defects 3 and 4 in a quote and in a YAML scalar
+		{name: "quote: line start after an open parenthesis", file: "a.md",
+			in:    "> a long-lived holder (the change stream of\n> 0030:D2:R5, a log stream) could read it.\n",
+			sites: []string{"2:retired-inline"}},
+		{name: "yaml scalar: line start after an open parenthesis", file: "a.yaml",
+			in:    "doc: a long-lived holder (the change stream of\n  0030:D2:R5, a log stream) could read it.\n",
+			sites: []string{"2:retired-inline"}},
+		{name: "yaml scalar: trailing list item", file: "a.yaml",
+			in:    "doc: Sources 0030:D9 (events feed), 0030:D10\n  (logs). Owner: the user.\n",
+			sites: []string{"1:retired-inline", "1:retired-inline"}},
+		{name: "quote: trailing list item", file: "a.md",
+			in:    "> Sources 0030:D9 (events feed), 0030:D10\n> (logs). Owner: the user.\n",
+			sites: []string{"1:retired-inline", "1:retired-inline"}},
+		{name: "quote after a full stop still removes", file: "a.md",
+			in: "> It holds.\n> Per 0030:D4, it is then filled.\n", want: "> It holds.\n> It is then filled.\n"},
+		// defect 2 in a quote and in a YAML scalar
+		{name: "quote: rule keyword on the line above", file: "a.md",
+			in:   "> The system SHALL\n> reject a write (0010:D4).\n",
+			want: "> The system SHALL\n> reject a write (enhancement 0010).\n"},
+		{name: "yaml scalar: rule keyword on the line above", file: "a.yaml",
+			in:   "doc: The system SHALL\n  reject a write (0010:D4).\n",
+			want: "doc: The system SHALL\n  reject a write (enhancement 0010).\n"},
+		{name: "yaml: a deeper key is no continuation", file: "a.yaml",
+			in:   "a:\n  b: Note (0010:D4)\nc: The system SHALL x\n",
+			want: "a:\n  b: Note (enhancement 0010, " + Quoted(titleOf("0010", 4)) + ")\nc: The system SHALL x\n"},
 	})
 }

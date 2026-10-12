@@ -279,6 +279,10 @@ type OldPath struct {
 
 var oldPathRe = regexp.MustCompile(`(?:enhancements/)?(?:archive/)?(0[0-9]{3})/(?:0[1-9]-[A-Za-z0-9-]+\.md|README\.md)\b`)
 
+// repoURLRe ends a GitHub URL of a file in the enhancements repo, up to the ref:
+// .../enhancements/blob/main/0010/03-decisions.md.
+var repoURLRe = regexp.MustCompile(`enhancements/(?:blob|tree)/[^/\s]+/$`)
+
 // OldPaths returns the paths to old-layout entry files in text, in order. A
 // path that starts with the folder name enhancements/ may follow a slash or
 // dots (../enhancements/0010/README.md); a shorter one must not sit inside a
@@ -290,7 +294,7 @@ func OldPaths(text string) []OldPath {
 		if s > 0 {
 			p := text[s-1]
 			word := p >= '0' && p <= '9' || p >= 'a' && p <= 'z' || p >= 'A' && p <= 'Z' || p == '_' || p == '-'
-			if word || !strings.HasPrefix(text[s:], "enhancements/") && (p == '/' || p == '.') {
+			if word || !strings.HasPrefix(text[s:], "enhancements/") && (p == '/' || p == '.') && !repoURLRe.MatchString(text[:s]) {
 				continue
 			}
 		}

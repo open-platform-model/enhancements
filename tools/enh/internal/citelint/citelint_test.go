@@ -359,6 +359,7 @@ func TestOldPathRule(t *testing.T) {
 		{"readme path", "package a\n\n// Read 0010/README.md for the reason.\nvar _ = 1\n", 1},
 		{"string literal", "package a\n\nvar _ = \"enhancements/0010/03-decisions.md\"\n", 1},
 		{"two paths", "package a\n\n// Read 0010/README.md and 0011/README.md here.\nvar _ = 1\n", 2},
+		{"github blob URL", "package a\n\n// See https://github.com/open-platform-model/enhancements/blob/main/0010/03-decisions.md here.\nvar _ = 1\n", 1},
 		{"year folder", "package a\n\n// Read 2026/README.md here.\nvar _ = 1\n", 0},
 		{"a longer path", "package a\n\n// Read docs/0010/README.md here.\nvar _ = 1\n", 0},
 		{"a folder name only", "package a\n\n// Read the folder enhancements/0010 for the reason.\nvar _ = 1\n", 0},

@@ -36,7 +36,7 @@ func removal(text string, ps, pe int, prevCont, nextCont bool) (rs, re int, repl
 	// P1: the phrase is the whole content of a parenthesis.
 	if b > 0 && text[b-1] == '(' && a < len(text) && text[a] == ')' {
 		open, closeAt := b-1, a
-		if strings.TrimSpace(text[:open]) == "" && prevCont {
+		if lineStartOnly(text[:open]) && prevCont {
 			// The parenthesis opens a line that goes on from the line above.
 			return 0, 0, "", false, false
 		}

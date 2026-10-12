@@ -35,16 +35,11 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 	c := newCtx(name, src, tt)
 	fence := ""
 	blockIndent := -1
-	// prevProse and prevEnds say whether the line above is prose of the same
-	// paragraph and whether it ends a sentence.
-	prevProse, prevEnds := false, true
-	rules := c.ruleLines(kind)
+	fl := c.flows(kind)
 	var cm commentRun
 	for ln := 1; ln <= len(c.li.starts); ln++ {
 		line := c.li.text(ln)
 		base := c.li.starts[ln-1]
-		wasProse, wasEnds := prevProse, prevEnds
-		prevProse = false
 		if kind == textMarkdown {
 			if m := fenceRe.FindStringSubmatch(line); m != nil {
 				switch {
@@ -66,15 +61,20 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 				continue
 			}
 		}
-		lc := lineCtx{kind: kind, rule: rules[ln]}
+		lc := lineCtx{kind: kind, rule: fl.rule[ln]}
 		if kind == textYAML {
 			lc.yaml, blockIndent = classifyYAML(line, blockIndent)
 		}
-		if kind == textMarkdown || kind == textYAML && lc.yaml.block {
-			lc.prevCont = wasProse && !wasEnds && !startsBlock(line)
-			lc.nextCont = c.nextContinues(ln, line)
-			prevProse = strings.TrimSpace(line) != ""
-			prevEnds = endsSentenceLine(line)
+		if kind == textYAML && fl.cont[ln] && !lc.yaml.block {
+			// A line of a plain or quoted scalar that goes on: a "key:" look is
+			// text. A title cannot be fitted to it (fitYAML refuses); form 1 can.
+			lc.yaml.valueStart, lc.yaml.none, lc.yaml.commentAt = -1, true, -1
+			lc.yamlCont = true
+		}
+		if kind == textMarkdown || kind == textYAML {
+			lc.prevCont = fl.cont[ln] && !endsSentenceLine(c.li.text(ln-1))
+			lc.nextCont = ln < len(c.li.starts) && fl.cont[ln+1] && !endsSentenceLine(line)
+			lc.paraText, lc.paraOff = fl.paraText(c, ln)
 		}
 		// A comment of a YAML or shell file is a comment, as in Go: the words
 		// around the citation state the reason, so it takes form 1 only. The
@@ -136,6 +136,13 @@ type lineCtx struct {
 	// rule is true when the paragraph holds a rule keyword (SHALL, MUST): the
 	// sentence states a rule and no title goes into it.
 	rule bool
+	// paraText is the text of the whole paragraph of the line when it has
+	// more than one line, and paraOff the offset of the line in it. A sentence
+	// can cross a line edge, so the repeat check reads the paragraph.
+	paraText string
+	paraOff  int
+	// yamlCont is true on a line that continues a plain or quoted YAML scalar.
+	yamlCont bool
 }
 
 // commentRun collects the lines of one comment of a YAML or shell file.
@@ -175,40 +182,140 @@ func commentLine(line string, hash, base, ln int) citelint.Line {
 
 var ruleKeywordRe = regexp.MustCompile(`\b(?:SHALL|MUST|SHOULD|REQUIRED)\b`)
 
-// ruleLines marks the lines whose paragraph holds a rule keyword. A paragraph
-// is a run of lines up to a blank line, a heading, a fence, a list item or a
-// table row; in YAML a line is a paragraph of its own unless it belongs to a
-// block scalar.
-func (c *ctx) ruleLines(kind textKind) []bool {
+// flowInfo says how the lines of a Markdown or YAML file join into
+// paragraphs: cont[ln] is true when line ln goes on from line ln-1; para is the
+// paragraph number of each line; rule is true on the lines of a paragraph that
+// holds a rule keyword.
+type flowInfo struct {
+	cont  []bool
+	para  []int
+	rule  []bool
+	first map[int]int // paragraph number to its first line
+	last  map[int]int
+}
+
+// quoteBody reports whether a line is a Markdown quote line, and gives what
+// follows the quote marks.
+func quoteBody(line string) (bool, string) {
+	t := strings.TrimLeft(line, " \t")
+	if strings.HasPrefix(t, ">") {
+		return true, strings.TrimLeft(t, "> \t")
+	}
+	return false, line
+}
+
+// flows reads the paragraphs of a Markdown or YAML file. A paragraph is a run
+// of prose lines up to a blank line, a heading, a fence, a list item or a table
+// row. A quote line follows a quote line. In YAML a line is a paragraph of its
+// own, except the lines of a block scalar and the lines that continue a plain
+// or quoted scalar (deeper than its key and without a key of their own).
+func (c *ctx) flows(kind textKind) *flowInfo {
 	n := len(c.li.starts)
-	para := make([]int, n+1)
+	f := &flowInfo{cont: make([]bool, n+2), para: make([]int, n+2), rule: make([]bool, n+2), first: map[int]int{}, last: map[int]int{}}
 	kw := map[int]bool{}
-	id, blockIndent := 0, -1
+	id, blockIndent, scalarIndent := 0, -1, -1
+	fence := ""
+	prevProse, prevQuote := false, false
 	for ln := 1; ln <= n; ln++ {
 		line := c.li.text(ln)
-		switch {
-		case kind == textYAML:
+		prose, cont := false, false
+		switch kind {
+		case textYAML:
 			var info yamlInfo
 			info, blockIndent = classifyYAML(line, blockIndent)
-			if !info.block {
-				id++
+			t := strings.TrimSpace(line)
+			indent := len(line) - len(strings.TrimLeft(line, " \t"))
+			switch {
+			case info.block:
+				prose, cont = true, prevProse
+				scalarIndent = -1
+			case t == "" || info.comment:
+				scalarIndent = -1
+			case scalarIndent >= 0 && indent > scalarIndent:
+				prose, cont = true, true
+			default:
+				scalarIndent = -1
+				prose = true
+				if info.valueStart >= 0 && info.valueStart < len(line) && !info.flow && !yamlBlockRe.MatchString(line) {
+					scalarIndent = indent
+				}
 			}
-		case strings.TrimSpace(line) == "" || fenceRe.MatchString(line) || startsBlock(line):
-			id++
+		default:
+			if m := fenceRe.FindStringSubmatch(line); m != nil {
+				switch {
+				case fence == "":
+					fence = m[1]
+				case m[1][0] == fence[0] && len(m[1]) >= len(fence) && strings.TrimSpace(line) == m[1]:
+					fence = ""
+				}
+				break
+			}
+			if fence != "" || strings.TrimSpace(line) == "" || headingRe.MatchString(line) {
+				break
+			}
+			quote, body := quoteBody(line)
+			prose = strings.TrimSpace(body) != ""
+			if quote {
+				cont = prose && prevProse && prevQuote && !startsBlock(body)
+			} else {
+				cont = prose && prevProse && !prevQuote && !startsBlock(line)
+			}
+			prevQuote = quote
 		}
-		para[ln] = id
+		prevProse = prose
+		f.cont[ln] = cont
+		if !cont {
+			id++
+			f.first[id] = ln
+		}
+		f.last[id] = ln
+		f.para[ln] = id
 		if ruleKeywordRe.MatchString(line) {
 			kw[id] = true
 		}
 	}
-	out := make([]bool, n+1)
 	for ln := 1; ln <= n; ln++ {
-		out[ln] = kw[para[ln]]
+		f.rule[ln] = kw[f.para[ln]]
 	}
-	return out
+	return f
 }
 
-var blockStartRe = regexp.MustCompile(`^\s*(?:[-*+]\s|\d+[.)]\s|\||>|#)`)
+// paraText returns the text of the paragraph of line ln, lines joined by a
+// newline, and the offset of the line in it; "" when the paragraph is one line.
+func (f *flowInfo) paraText(c *ctx, ln int) (string, int) {
+	p := f.para[ln]
+	if f.first[p] == f.last[p] {
+		return "", 0
+	}
+	var b strings.Builder
+	off := 0
+	for l := f.first[p]; l <= f.last[p]; l++ {
+		if l == ln {
+			off = b.Len()
+		}
+		b.WriteString(c.li.text(l))
+		b.WriteByte('\n')
+	}
+	return b.String(), off
+}
+
+// repeatsIn is repeats for the paragraph of a line: a sentence can cross a line
+// edge, and the id may sit on the other line.
+func (c *ctx) repeatsIn(line string, phs []phrase, idx int, ids []string, lc lineCtx) (named []bool, any, all bool) {
+	if lc.paraText == "" {
+		return repeats(line, phs, idx, ids)
+	}
+	pt := lc.paraText
+	pp := groupPhrases(pt, cites.Scan(pt))
+	for k, p := range pp {
+		if p.start == phs[idx].start+lc.paraOff {
+			return repeats(pt, pp, k, ids)
+		}
+	}
+	return repeats(line, phs, idx, ids)
+}
+
+var blockStartRe = regexp.MustCompile(`^\s*(?:[-*+]\s|\d+[.)]\s|\||#)`)
 
 // startsBlock reports whether a line opens a new block (a list item, a table
 // row, a quote, a heading) and so does not continue the line above.
@@ -219,19 +326,6 @@ func startsBlock(line string) bool { return blockStartRe.MatchString(line) }
 func endsSentenceLine(line string) bool {
 	t := strings.TrimRight(line, " \t")
 	return t == "" || strings.ContainsRune(".!?:", rune(t[len(t)-1]))
-}
-
-// nextContinues reports whether the sentence of line ln goes on in the next
-// line: that line is prose of the same paragraph.
-func (c *ctx) nextContinues(ln int, line string) bool {
-	if ln >= len(c.li.starts) {
-		return false
-	}
-	next := c.li.text(ln + 1)
-	if strings.TrimSpace(next) == "" || fenceRe.MatchString(next) || headingRe.MatchString(next) || startsBlock(next) {
-		return false
-	}
-	return !endsSentenceLine(line)
 }
 
 // yamlInfo says what a YAML line is, so that an inserted title keeps the
@@ -378,10 +472,17 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 	c.pathsInLine(line, base, lc, &done, spans)
 }
 
+var wrapRangeRe = regexp.MustCompile(`^[ \t]*(?:,[ \t]*)?(?:to|through|not|and|or)[ \t]*$`)
+
 // proseEdit writes form 2 for a phrase of live citations.
 func (c *ctx) proseEdit(line string, base int, lc lineCtx, phs []phrase, idx int, live []cites.Cite, table bool) {
 	ph := phs[idx]
 	at := base + ph.cites[0].Start
+	if lc.nextCont && wrapRangeRe.MatchString(line[ph.end:]) {
+		// "R3 to" at a line end: the other end of the range is on the next line.
+		c.site(at, KindWrapped, ph.cites)
+		return
+	}
 	if lc.rule {
 		c.ruleEdit(line, base, lc, phs, idx, live)
 		return
@@ -396,7 +497,7 @@ func (c *ctx) proseEdit(line string, base int, lc lineCtx, phs []phrase, idx int
 	}
 	text, bad := textForm(c.tt, live, compact)
 	if ids, rbad := resolvedIDs(c.tt, live); bad == "" && rbad == "" {
-		if named, any, _ := repeats(line, phs, idx, ids); any {
+		if named, any, _ := c.repeatsIn(line, phs, idx, ids, lc); any {
 			// The sentence names the enhancement already. "enhancement 0001
 			// (0001:D3)" keeps its id and gains the title; any other repeat is
 			// for an agent.
@@ -447,7 +548,7 @@ func (c *ctx) ruleEdit(line string, base int, lc lineCtx, phs []phrase, idx int,
 		c.site(at, KindRuleSentence, ph.cites)
 		return
 	}
-	if _, any, all := repeats(line, phs, idx, ids); any {
+	if _, any, all := c.repeatsIn(line, phs, idx, ids, lc); any {
 		d, ok := dropEdit(line, e)
 		if !all || !ok {
 			c.site(at, KindRepeatID, ph.cites)
@@ -455,7 +556,7 @@ func (c *ctx) ruleEdit(line string, base int, lc lineCtx, phs []phrase, idx int,
 		}
 		e = d
 	}
-	if lc.kind == textYAML {
+	if lc.kind == textYAML && !lc.yamlCont {
 		if _, ok := fitYAML(lc.yaml, ph.start, e.New); !ok {
 			c.site(at, KindUnsafeYAML, ph.cites)
 			return
