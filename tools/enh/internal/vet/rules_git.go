@@ -27,7 +27,7 @@ import (
 //   - V27: an accepted entry (or a sampled seed) whose requirement text
 //     differs from Base while `accepted:` (`sampled:`) is unchanged.
 //   - V31: an archived folder that differs from Base, except the generated
-//     README.md and the one-time link fix of migration step M4.
+//     README.md.
 //
 // The paths given to the hooks are relative to the repository top level, so
 // Options.Root must be that folder (as it is for the V25 hook).
@@ -331,7 +331,7 @@ func (r *run) closedFolder(dir string, baseFiles []string, generatedMD bool) {
 			problems = append(problems, fmt.Sprintf("%s cannot be read at %s: %s", f, r.opts.Base, firstLine(err.Error())))
 			continue
 		}
-		if bytes.Equal(old, head) || linkFixOnly(string(old), string(head)) {
+		if bytes.Equal(old, head) {
 			continue
 		}
 		problems = append(problems, fmt.Sprintf("%s was changed", f))
@@ -357,58 +357,6 @@ func (r *run) closedFolder(dir string, baseFiles []string, generatedMD bool) {
 			r.add(nil, "V31", Error, dir, 0, "and %d more changes in %s", len(problems)-maxPerFolder, dir)
 			break
 		}
-		r.add(nil, "V31", Error, dir, 0, "%s since %s: an archived folder is closed (only README.md regeneration and the one-time link fix are allowed)", p, r.opts.Base)
+		r.add(nil, "V31", Error, dir, 0, "%s since %s: an archived folder is closed (only README.md regeneration is allowed)", p, r.opts.Base)
 	}
-}
-
-// outLinkRe finds an inline link whose target leaves the folder.
-var outLinkRe = regexp.MustCompile(`\[([^\]]*)\]\((\.\./[^)\s]*)\)`)
-
-var idInTargetRe = regexp.MustCompile(`\b(\d{4})\b`)
-
-// linkFixOnly reports whether head differs from old only by the M4 rewrite:
-// the same lines, and on each changed line every link that pointed out of the
-// folder became its label or the words "enhancement NNNN" (NNNN is the id in
-// the target). Any other word that changed fails.
-func linkFixOnly(old, head string) bool {
-	ol := strings.Split(strings.ReplaceAll(old, "\r\n", "\n"), "\n")
-	hl := strings.Split(strings.ReplaceAll(head, "\r\n", "\n"), "\n")
-	if len(ol) != len(hl) {
-		return false
-	}
-	for i := range ol {
-		if ol[i] == hl[i] {
-			continue
-		}
-		if !lineLinkFixed(ol[i], hl[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// lineLinkFixed builds a pattern from the old line, with each out-of-folder
-// link replaced by the spellings the fix allows, and matches the new line.
-func lineLinkFixed(old, head string) bool {
-	locs := outLinkRe.FindAllStringSubmatchIndex(old, -1)
-	if len(locs) == 0 {
-		return false
-	}
-	var pat strings.Builder
-	pat.WriteString("^")
-	last := 0
-	for _, m := range locs {
-		pat.WriteString(regexp.QuoteMeta(old[last:m[0]]))
-		label, target := old[m[2]:m[3]], old[m[4]:m[5]]
-		alts := []string{regexp.QuoteMeta(label), regexp.QuoteMeta("enhancement " + label)}
-		if id := idInTargetRe.FindString(target); id != "" {
-			alts = append(alts, regexp.QuoteMeta("enhancement "+id))
-		}
-		pat.WriteString("(?:" + strings.Join(alts, "|") + ")")
-		last = m[1]
-	}
-	pat.WriteString(regexp.QuoteMeta(old[last:]))
-	pat.WriteString("$")
-	re, err := regexp.Compile(pat.String())
-	return err == nil && re.MatchString(head)
 }
