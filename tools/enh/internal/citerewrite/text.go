@@ -34,9 +34,14 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 	c := newCtx(name, src, tt)
 	fence := ""
 	blockIndent := -1
+	// prevProse and prevEnds say whether the line above is prose of the same
+	// paragraph and whether it ends a sentence.
+	prevProse, prevEnds := false, true
 	for ln := 1; ln <= len(c.li.starts); ln++ {
 		line := c.li.text(ln)
 		base := c.li.starts[ln-1]
+		wasProse, wasEnds := prevProse, prevEnds
+		prevProse = false
 		if kind == textMarkdown {
 			if m := fenceRe.FindStringSubmatch(line); m != nil {
 				switch {
@@ -61,6 +66,15 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 		lc := lineCtx{kind: kind}
 		if kind == textYAML {
 			lc.yaml, blockIndent = classifyYAML(line, blockIndent)
+		}
+		if kind == textMarkdown || kind == textYAML && lc.yaml.block {
+			lc.prevCont = wasProse && !wasEnds && !startsBlock(line)
+			lc.nextCont = c.nextContinues(ln, line)
+			prevProse = strings.TrimSpace(line) != ""
+			prevEnds = endsSentenceLine(line)
+		}
+		if kind == textYAML {
+			// classified above
 		} else if kind == textHash {
 			lc.yaml = yamlInfo{comment: strings.HasPrefix(strings.TrimSpace(line), "#")}
 			if !lc.yaml.comment {
@@ -93,6 +107,35 @@ func (c *ctx) lineSites(line string, base int, kind string) {
 type lineCtx struct {
 	kind textKind
 	yaml yamlInfo
+	// prevCont is true when the line goes on from the sentence of the line
+	// above, nextCont when its sentence goes on in the line below.
+	prevCont, nextCont bool
+}
+
+var blockStartRe = regexp.MustCompile(`^\s*(?:[-*+]\s|\d+[.)]\s|\||>|#)`)
+
+// startsBlock reports whether a line opens a new block (a list item, a table
+// row, a quote, a heading) and so does not continue the line above.
+func startsBlock(line string) bool { return blockStartRe.MatchString(line) }
+
+// endsSentenceLine reports whether a line ends with a mark that closes a
+// sentence or introduces a list.
+func endsSentenceLine(line string) bool {
+	t := strings.TrimRight(line, " \t")
+	return t == "" || strings.ContainsRune(".!?:", rune(t[len(t)-1]))
+}
+
+// nextContinues reports whether the sentence of line ln goes on in the next
+// line: that line is prose of the same paragraph.
+func (c *ctx) nextContinues(ln int, line string) bool {
+	if ln >= len(c.li.starts) {
+		return false
+	}
+	next := c.li.text(ln + 1)
+	if strings.TrimSpace(next) == "" || fenceRe.MatchString(next) || headingRe.MatchString(next) || startsBlock(next) {
+		return false
+	}
+	return !endsSentenceLine(line)
 }
 
 // yamlInfo says what a YAML line is, so that an inserted title keeps the
@@ -221,7 +264,7 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 		case ph.possessive:
 			c.site(at, KindPossessive, ph.cites)
 		case len(live) == 0:
-			rs, re, repl, ok, lone := removal(line, ph.start, ph.end)
+			rs, re, repl, ok, lone := removal(line, ph.start, ph.end, lc.prevCont, lc.nextCont)
 			switch {
 			case lone:
 				c.site(at, KindRetiredLone, ph.cites)
@@ -254,7 +297,7 @@ func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cit
 		c.site(at, bad, ph.cites)
 		return
 	}
-	if !compact && (startsUpper(line[ph.start:]) || ls == ph.start && sentenceStart(line, ph.start)) {
+	if !compact && (startsUpper(line[ph.start:]) || ls == ph.start && sentenceStartAt(line, ph.start, lc.prevCont)) {
 		text = upperFirst(text)
 	}
 	if table {

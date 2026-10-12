@@ -19,17 +19,33 @@ var (
 // removal is the edit that deletes the phrase text[ps:pe] from text. ok is
 // false when no safe deletion exists; lone is true when nothing readable
 // would be left.
-func removal(text string, ps, pe int) (rs, re int, repl string, ok, lone bool) {
+//
+// A source line is not always a whole sentence: in a wrapped Markdown
+// paragraph the line start follows a sentence that goes on from the line above
+// (prevCont) and the line end goes on below (nextCont). Neither edge is then a
+// sentence edge, and a deletion that needs one is not safe.
+func removal(text string, ps, pe int, prevCont, nextCont bool) (rs, re int, repl string, ok, lone bool) {
 	ls := extendLeadin(text, ps)
 	b := trimBackSpaces(text, ls)
 	a := skipSpaces(text, pe)
+	ss := func(pos int) bool { return sentenceStartAt(text, pos, prevCont) }
+	atEnd := func(rest string) bool {
+		if endSentRe.MatchString(rest) {
+			return true
+		}
+		return endRe.MatchString(rest) && (!nextCont || strings.Contains(rest, "."))
+	}
 
 	left := func(rs, re int) string { return text[:rs] + text[re:] }
 
 	// P1: the phrase is the whole content of a parenthesis.
 	if b > 0 && text[b-1] == '(' && a < len(text) && text[a] == ')' {
 		open, closeAt := b-1, a
-		if sentenceStart(text, open) {
+		if strings.TrimSpace(text[:open]) == "" && prevCont {
+			// The parenthesis opens a line that goes on from the line above.
+			return 0, 0, "", false, false
+		}
+		if ss(open) {
 			if closeAt+1 < len(text) && strings.ContainsRune(".,;:)", rune(text[closeAt+1])) {
 				// A wrapped line that opens with the parenthesis: the sentence
 				// it ends is on the line above.
@@ -47,9 +63,9 @@ func removal(text string, ps, pe int) (rs, re int, repl string, ok, lone bool) {
 
 	// P2: a lead word or a label, then a comma, colon or semicolon.
 	if m := afterLabelRe.FindString(text[pe:]); m != "" && pe+len(m) < len(text) {
-		if ls != ps || sentenceStart(text, ps) {
+		if ls != ps || ss(ps) {
 			rs, re = ls, pe+len(m)
-			if rs > 0 && !sentenceStart(text, rs) {
+			if rs > 0 && !ss(rs) {
 				before := strings.TrimRight(text[:rs], " \t")
 				if strings.HasSuffix(before, ",") {
 					// "foo, per X, bar": keep the comma that precedes the phrase.
@@ -63,7 +79,7 @@ func removal(text string, ps, pe int) (rs, re int, repl string, ok, lone bool) {
 	}
 
 	// P3: the phrase ends the sentence.
-	if endRe.MatchString(text[pe:]) || endSentRe.MatchString(text[pe:]) {
+	if atEnd(text[pe:]) {
 		if loc := sourceRe.FindStringIndex(text[:ls]); loc != nil && loc[1] == len(text[:ls]) {
 			rs = trimBackSpaces(text, loc[0])
 			if !hasLetter(left(rs, pe)) {

@@ -157,3 +157,42 @@ func TestRequirementRange(t *testing.T) {
 			want: "package a\n\n// Reads the limit (enhancement 0013).\nvar x = 1\n"},
 	})
 }
+
+// Defects 3 and 4: a wrapped Markdown paragraph is read line by line, but a
+// line edge is a sentence edge only when the paragraph says so. Without that,
+// "0030:D2:R5, a log stream)" at a line start lost its head, and a trailing
+// ", 0030:D10" at a line end was cut off a list that went on below.
+func TestWrappedLines(t *testing.T) {
+	d4 := titleOf("0010", 4)
+	runCases(t, []rewriteCase{
+		{name: "line start after an open parenthesis stays", file: "a.md",
+			in:    "a long-lived holder (the change stream of\n0030:D2:R5, a log stream) could read it.\n",
+			sites: []string{"2:retired-inline"}},
+		{name: "line start after an open clause stays", file: "a.md",
+			in:    "The holder reads the stream of\n0030:D2:R5, a log stream, at once.\n",
+			sites: []string{"2:retired-inline"}},
+		{name: "list item at the line end stays", file: "a.md",
+			in:    "Sources: 0030:D9 (events feed), 0030:D10\n(logs). Owner: the user.\n",
+			sites: []string{"1:retired-inline", "1:retired-inline"}},
+		{name: "phrase at a wrapped line end stays", file: "a.md",
+			in: "The cache is read, per 0030:D4\nand then it is filled.\n", sites: []string{"1:retired-inline"}},
+		{name: "parenthesis at a line start stays", file: "a.md",
+			in: "The cache is read\n(0030:D4) and then it is filled.\n", sites: []string{"2:retired-inline"}},
+		{name: "yaml block scalar, line end", file: "a.yaml",
+			in: "doc: |\n  The cache is read, per 0030:D4\n  and then it is filled.\n", sites: []string{"2:retired-inline"}},
+		{name: "full stop at the line end still removes", file: "a.md",
+			in: "The cache is read, per 0030:D4.\nThen it is filled.\n", want: "The cache is read.\nThen it is filled.\n"},
+		{name: "new sentence after a full stop still removes", file: "a.md",
+			in: "The cache is read.\nPer 0030:D4, it is then filled.\n", want: "The cache is read.\nIt is then filled.\n"},
+		{name: "list item line still removes", file: "a.md",
+			in: "- The cache is read (0030:D4)\n- Then it is filled\n", want: "- The cache is read\n- Then it is filled\n"},
+		{name: "blank line ends the paragraph", file: "a.md",
+			in: "The cache is read, per 0030:D4\n\nThen it is filled.\n", want: "The cache is read\n\nThen it is filled.\n"},
+		{name: "no capital on a continuation line", file: "a.md",
+			in:   "The rule is stated in\n0010:D4 and holds.\n",
+			want: "The rule is stated in\nenhancement 0010 (" + Quoted(d4) + ") and holds.\n"},
+		{name: "capital after a full stop", file: "a.md",
+			in:   "It holds.\n0010:D4 says so.\n",
+			want: "It holds.\nEnhancement 0010 (" + Quoted(d4) + ") says so.\n"},
+	})
+}

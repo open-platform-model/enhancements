@@ -237,6 +237,16 @@ func sentenceStart(text string, pos int) bool {
 	return last == '.' || last == '!' || last == '?'
 }
 
+// sentenceStartAt is sentenceStart for a line of a wrapped paragraph: the line
+// start begins a sentence only when the line above does not go on (prevCont is
+// false).
+func sentenceStartAt(text string, pos int, prevCont bool) bool {
+	if strings.TrimSpace(text[:pos]) == "" {
+		return !prevCont
+	}
+	return sentenceStart(text, pos)
+}
+
 func startsUpper(s string) bool { return s != "" && s[0] >= 'A' && s[0] <= 'Z' }
 
 func upperFirst(s string) string {

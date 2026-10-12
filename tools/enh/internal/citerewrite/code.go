@@ -203,7 +203,7 @@ func (c *ctx) codeSite(m paraMap, ph phrase, kind string) {
 }
 
 func (c *ctx) retiredEdit(m paraMap, joined string, ph phrase, at int) {
-	rs, re, repl, ok, lone := removal(joined, ph.start, ph.end)
+	rs, re, repl, ok, lone := removal(joined, ph.start, ph.end, false, false)
 	switch {
 	case lone:
 		c.codeSite(m, ph, KindRetiredLone)
