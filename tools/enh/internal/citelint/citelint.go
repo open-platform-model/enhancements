@@ -5,7 +5,9 @@
 //     NNNN Dn, "enhancement NNNN D4 and D7", NNNN D3/D15), in a comment or in
 //     a string literal;
 //   - no comment that is only an id;
-//   - no "WHY name: id" label.
+//   - no "WHY name: id" label;
+//   - no path to a file inside an entry of the old layout
+//     (enhancements/archive/0010/03-decisions.md, 0010/README.md).
 //
 // An id beside a reason in words passes, for one id or for several written
 // "(enhancements 0010 and 0026)".
@@ -32,6 +34,7 @@ const (
 	RuleDecisionNumber = "decision-number"
 	RuleLoneID         = "lone-id"
 	RuleWhyLabel       = "why-label"
+	RuleOldPath        = "old-path"
 )
 
 // Finding is one violation.
@@ -253,6 +256,10 @@ func LintSource(name string, src []byte, opts Options) []Finding {
 			shown := strings.Trim(ct.Text, "`")
 			add(line, RuleDecisionNumber, shown,
 				fmt.Sprintf("decision number %s: write the reason in words and name the enhancement (enhancement NNNN)", shown))
+		}
+		for _, op := range cites.OldPaths(text) {
+			add(line, RuleOldPath, op.Text,
+				fmt.Sprintf("path %s names a file of the old entry layout: name the enhancement in words (enhancement %s)", op.Text, op.ID))
 		}
 	}
 	for _, s := range spans {

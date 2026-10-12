@@ -3,6 +3,8 @@ package citerewrite
 import (
 	"regexp"
 	"strings"
+
+	"github.com/open-platform-model/enhancements/tools/enh/internal/cites"
 )
 
 // pathRef is a reference to an entry by path or by site URL:
@@ -44,6 +46,10 @@ func findPaths(text string) []pathRef {
 		if end < len(text) && text[end] >= '0' && text[end] <= '9' {
 			continue
 		}
+		if inOldPath(text, i, end) {
+			from = end
+			continue // the old-layout path matcher reports it
+		}
 		ref := pathRef{id: id, rest: rest, start: i, end: end}
 		if i > 0 {
 			p := text[i-1]
@@ -70,6 +76,16 @@ func findPaths(text string) []pathRef {
 		out = append(out, ref)
 		from = end
 	}
+}
+
+// inOldPath reports whether [s, e) lies in a path to an old-layout entry file.
+func inOldPath(text string, s, e int) bool {
+	for _, op := range cites.OldPaths(text) {
+		if s >= op.Start && e <= op.End {
+			return true
+		}
+	}
+	return false
 }
 
 func isDigits(s string) bool {

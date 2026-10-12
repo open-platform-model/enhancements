@@ -347,3 +347,32 @@ func TestClaudeFolder(t *testing.T) {
 		})
 	}
 }
+
+// Old-layout entry paths fail the lint in comments and strings.
+func TestOldPathRule(t *testing.T) {
+	for _, tc := range []struct {
+		name, src string
+		want      int
+	}{
+		{"archive path in a comment", "package a\n\n// Read enhancements/archive/0010/03-decisions.md for the reason.\nvar _ = 1\n", 1},
+		{"live path in a comment", "package a\n\n// Read enhancements/0010/04-design.md for the reason.\nvar _ = 1\n", 1},
+		{"readme path", "package a\n\n// Read 0010/README.md for the reason.\nvar _ = 1\n", 1},
+		{"string literal", "package a\n\nvar _ = \"enhancements/0010/03-decisions.md\"\n", 1},
+		{"two paths", "package a\n\n// Read 0010/README.md and 0011/README.md here.\nvar _ = 1\n", 2},
+		{"year folder", "package a\n\n// Read 2026/README.md here.\nvar _ = 1\n", 0},
+		{"a longer path", "package a\n\n// Read docs/0010/README.md here.\nvar _ = 1\n", 0},
+		{"a folder name only", "package a\n\n// Read the folder enhancements/0010 for the reason.\nvar _ = 1\n", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := 0
+			for _, f := range LintSource("a.go", []byte(tc.src), Options{}) {
+				if f.Rule == RuleOldPath {
+					n++
+				}
+			}
+			if n != tc.want {
+				t.Errorf("old-path findings = %d, want %d", n, tc.want)
+			}
+		})
+	}
+}

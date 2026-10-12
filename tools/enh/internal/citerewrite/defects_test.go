@@ -52,3 +52,36 @@ func TestClaudeFolder(t *testing.T) {
 		})
 	}
 }
+
+// Defect 8: a path to a file of the old entry layout is a worklist row of kind
+// path, in every file type, and never an edit.
+func TestOldLayoutPaths(t *testing.T) {
+	runCases(t, []rewriteCase{
+		{name: "archive path in prose", file: "a.md",
+			in: "See `enhancements/archive/0010/03-decisions.md` for it.\n", sites: []string{"1:path"}},
+		{name: "live path in prose", file: "a.md",
+			in: "See enhancements/0010/04-design.md for it.\n", sites: []string{"1:path"}},
+		{name: "readme path", file: "a.md",
+			in: "See enhancements/0010/README.md and archive/0011/README.md.\n", sites: []string{"1:path", "1:path"}},
+		{name: "bare id readme", file: "a.md",
+			in: "See (0010/README.md) now.\n", sites: []string{"1:path"}},
+		{name: "relative path", file: "a.md",
+			in: "See [x](../enhancements/archive/0010/02-problem.md).\n", sites: []string{"1:path"}},
+		{name: "code comment", file: "a.go",
+			in: "package a\n\n// The text is in enhancements/archive/0010/03-decisions.md here.\nvar x = 1\n", sites: []string{"3:path"}},
+		{name: "string literal", file: "a.go",
+			in: "package a\n\nvar x = \"enhancements/0010/03-decisions.md\"\n", sites: []string{"3:path"}},
+		{name: "yaml value", file: "a.yaml",
+			in: "ref: enhancements/archive/0010/03-decisions.md\n", sites: []string{"1:path"}},
+		{name: "shell comment", file: "a.sh",
+			in: "# see enhancements/0010/03-decisions.md\n", sites: []string{"1:path"}},
+		{name: "fence", file: "a.md",
+			in: "```\ncat enhancements/0010/03-decisions.md\n```\n", sites: []string{"2:path"}},
+		{name: "other file", file: "Makefile",
+			in: "# enhancements/0010/03-decisions.md\n", sites: []string{"1:path"}},
+		{name: "not an entry: a year folder, a longer path", file: "a.md",
+			in: "Open 2026/README.md and docs/0010/README.md and 0010/README.mdx.\n"},
+		{name: "new layout page is no old path", file: "a.md",
+			in: "See enhancements/0010/design.md now.\n", sites: []string{"1:entry-file"}},
+	})
+}

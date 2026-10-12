@@ -22,6 +22,7 @@ func processCode(name string, src []byte, tt *Titles) FileResult {
 			c.site(s.Off+p.start, KindString, p.cites)
 		}
 		c.bareRetired(s.Text, cs, func(i int) int { return s.Off + i })
+		c.oldPathSites(s.Text, func(i int) int { return s.Off + i })
 	}
 	for _, p := range paras {
 		c.codeParagraph(p)
@@ -72,6 +73,7 @@ func (c *ctx) codeParagraph(p citelint.Paragraph) {
 	cs := cites.Scan(joined)
 	m := newParaMap(p)
 	c.bareRetired(joined, cs, m.abs)
+	c.oldPathSites(joined, m.abs)
 	phs := groupPhrases(joined, cs)
 	for _, ph := range phs {
 		c.codePhrase(p, m, joined, ph)

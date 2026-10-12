@@ -80,6 +80,9 @@ func (c *ctx) lineSites(line string, base int, kind string) {
 		c.site(base+ph.start, kind, ph.cites)
 	}
 	c.bareRetired(line, cs, func(i int) int { return base + i })
+	if kind != KindGenerated {
+		c.oldPathSites(line, func(i int) int { return base + i })
+	}
 	for _, p := range findPaths(line) {
 		if p.rest != "" && p.rest != "/" {
 			c.site(base+p.start, KindEntryFile, nil)
@@ -189,6 +192,7 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 		return false
 	}
 	table := strings.HasPrefix(strings.TrimSpace(line), "|")
+	c.oldPathSites(line, func(i int) int { return base + i })
 
 	if lc.kind == textMarkdown {
 		c.linksInLine(line, base, &done, table)

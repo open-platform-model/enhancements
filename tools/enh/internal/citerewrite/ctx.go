@@ -61,6 +61,18 @@ func (c *ctx) edit(e Edit) bool {
 	return true
 }
 
+// oldPathSites adds a worklist row of kind path for each path to a file of the
+// old entry layout in text. offOf maps an offset in text to a source offset.
+// The tool never rewrites such a path: the agent chooses the page of the new
+// layout that holds the words.
+func (c *ctx) oldPathSites(text string, offOf func(int) int) {
+	for _, op := range cites.OldPaths(text) {
+		c.res.Sites = append(c.res.Sites, Site{
+			Path: c.name, Line: c.li.line(offOf(op.Start)), Kind: KindPath, Text: c.li.text(c.li.line(offOf(op.Start))),
+		})
+	}
+}
+
 var bareRetiredRe = regexp.MustCompile(`\b003[01]\b`)
 
 // bareRetired lists the worklist rows for a bare 0030 or 0031 in text (a

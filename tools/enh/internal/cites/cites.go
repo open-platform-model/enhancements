@@ -263,3 +263,37 @@ func appendOnce(xs []int, n int) []int {
 	}
 	return append(xs, n)
 }
+
+// OldPath is a path to a file inside an entry of the old layout:
+// enhancements/archive/0010/03-decisions.md, enhancements/0010/04-design.md,
+// 0010/README.md. Those files are gone in the store layout.
+type OldPath struct {
+	// Start and End are byte offsets in the scanned text.
+	Start, End int
+	// ID is the four-digit id in the path.
+	ID string
+	// Text is text[Start:End].
+	Text string
+}
+
+var oldPathRe = regexp.MustCompile(`(?:enhancements/)?(?:archive/)?(0[0-9]{3})/(?:0[1-9]-[A-Za-z0-9-]+\.md|README\.md)\b`)
+
+// OldPaths returns the paths to old-layout entry files in text, in order. A
+// path that starts with the folder name enhancements/ may follow a slash or
+// dots (../enhancements/0010/README.md); a shorter one must not sit inside a
+// longer path or word (docs/0010/README.md is no entry).
+func OldPaths(text string) []OldPath {
+	var out []OldPath
+	for _, m := range oldPathRe.FindAllStringSubmatchIndex(text, -1) {
+		s, e := m[0], m[1]
+		if s > 0 {
+			p := text[s-1]
+			word := p >= '0' && p <= '9' || p >= 'a' && p <= 'z' || p >= 'A' && p <= 'Z' || p == '_' || p == '-'
+			if word || !strings.HasPrefix(text[s:], "enhancements/") && (p == '/' || p == '.') {
+				continue
+			}
+		}
+		out = append(out, OldPath{Start: s, End: e, ID: text[m[2]:m[3]], Text: text[s:e]})
+	}
+	return out
+}

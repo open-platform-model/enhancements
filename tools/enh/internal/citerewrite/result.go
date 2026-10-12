@@ -33,6 +33,7 @@ const (
 	KindRetracted      = "retracted"  // a decision whose heading is a retraction date
 	KindUnknownDec     = "unknown-decision"
 	KindEntryFile      = "entry-file"      // a path to a file inside an entry
+	KindPath           = "path"            // a path to a file of the old entry layout
 	KindPathRef        = "path-ref"        // enhancements/NNNN in a code comment
 	KindPathDecisions  = "path-decisions"  // enhancements/0010 D1, D6
 	KindLink           = "link"            // a link to an entry that needs words
