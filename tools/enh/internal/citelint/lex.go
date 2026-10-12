@@ -24,6 +24,8 @@ type span struct {
 	// text is the content: for a comment without its markers, for a string
 	// the raw source between the quotes.
 	text string
+	// pos is the byte offset of text in the source.
+	pos int
 }
 
 // lex returns the comments and string literals of src, in source order.
@@ -54,7 +56,7 @@ func lex(src string, lang language) []span {
 			}
 			out = append(out, span{
 				isComment: true, line: line, col: i - lineStart,
-				ownLine: blankBefore(i), text: src[i+2 : i+end],
+				ownLine: blankBefore(i), text: src[i+2 : i+end], pos: i + 2,
 			})
 			i += end
 		case c == '/' && i+1 < n && src[i+1] == '*' && lang == langGo:
@@ -67,7 +69,7 @@ func lex(src string, lang language) []span {
 			}
 			out = append(out, span{
 				isComment: true, line: line, col: i - lineStart,
-				ownLine: blankBefore(i), block: true, text: body,
+				ownLine: blankBefore(i), block: true, text: body, pos: i + 2,
 			})
 			for j := i; j < stop; j++ {
 				if src[j] == '\n' {
@@ -84,7 +86,7 @@ func lex(src string, lang language) []span {
 				stop = i + 1 + end + 1
 				body = src[i+1 : i+1+end]
 			}
-			out = append(out, span{line: line, col: i - lineStart, text: body})
+			out = append(out, span{line: line, col: i - lineStart, text: body, pos: i + 1})
 			for j := i; j < stop; j++ {
 				if src[j] == '\n' {
 					line++
@@ -99,6 +101,7 @@ func lex(src string, lang language) []span {
 				continue
 			}
 			s.line, s.col = line, i-lineStart
+			s.pos += i
 			out = append(out, s)
 			for j := i; j < stop; j++ {
 				if src[j] == '\n' {
@@ -145,13 +148,13 @@ func lexQuoted(src string, i int, lang language) (span, int, bool) {
 		case strings.HasPrefix(src[k:], escape) && k+len(escape) < len(src):
 			k += len(escape) + 1
 		case strings.HasPrefix(src[k:], closer):
-			return span{text: src[start:k]}, k + len(closer), true
+			return span{text: src[start:k], pos: start - i}, k + len(closer), true
 		case src[k] == '\n' && !multi:
 			// An unterminated line literal: stop at the line end.
-			return span{text: src[start:k]}, k, true
+			return span{text: src[start:k], pos: start - i}, k, true
 		default:
 			k++
 		}
 	}
-	return span{text: src[start:]}, len(src), true
+	return span{text: src[start:], pos: start - i}, len(src), true
 }

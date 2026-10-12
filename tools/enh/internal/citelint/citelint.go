@@ -1,10 +1,13 @@
 // Package citelint checks the comments of Go and CUE files for the citation
 // rules of the enhancement format (T2.2 section 5, T2.3 sections 6 and 9):
 //
-//   - no decision number (NNNN:Dn, NNNN:Dn:Rn, NNNN:OQn), in a comment or in
+//   - no decision number (NNNN:Dn, NNNN:Dn:Rn, NNNN:OQn, and the spoken forms
+//     NNNN Dn, "enhancement NNNN D4 and D7", NNNN D3/D15), in a comment or in
 //     a string literal;
 //   - no comment that is only an id;
-//   - no "WHY name: id" label.
+//   - no "WHY name: id" label;
+//   - no path to a file inside an entry of the old layout
+//     (enhancements/archive/0010/03-decisions.md, 0010/README.md).
 //
 // An id beside a reason in words passes, for one id or for several written
 // "(enhancements 0010 and 0026)".
@@ -22,6 +25,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/open-platform-model/enhancements/tools/enh/internal/cites"
 )
 
 // Rule names.
@@ -29,6 +34,7 @@ const (
 	RuleDecisionNumber = "decision-number"
 	RuleLoneID         = "lone-id"
 	RuleWhyLabel       = "why-label"
+	RuleOldPath        = "old-path"
 )
 
 // Finding is one violation.
@@ -64,9 +70,6 @@ type Result struct {
 }
 
 var (
-	// A decision number. The character before it is not part of a longer token.
-	decisionRe = regexp.MustCompile(`(?:^|[^0-9A-Za-z_])(\d{4}:(?:D\d+(?::R\d+)?|OQ\d+))`)
-
 	// An id with an optional decision suffix and slash continuations
 	// (NNNN:Dn/OQn). Ids start with 0 (0001 to 0999), so a year or a
 	// port number is not an id.
@@ -83,6 +86,7 @@ var (
 // onlyIDs reports whether text holds at least one id and nothing else but
 // linking words and punctuation.
 func onlyIDs(text string) bool {
+	text = collapseCites(text)
 	if !idRe.MatchString(text) {
 		return false
 	}
@@ -96,9 +100,29 @@ func onlyIDs(text string) bool {
 	return true
 }
 
+// collapseCites replaces every citation, spoken ones included, by its bare
+// id, so that "(0010 D49)" counts as an id like "(0010)".
+func collapseCites(text string) string {
+	cs := cites.Scan(text)
+	if len(cs) == 0 {
+		return text
+	}
+	var b strings.Builder
+	last := 0
+	for _, c := range cs {
+		b.WriteString(text[last:c.Start])
+		b.WriteString(c.ID)
+		last = c.End
+	}
+	b.WriteString(text[last:])
+	return b.String()
+}
+
 type textLine struct {
 	line int
 	text string
+	// off is the byte offset of text in the source file.
+	off int
 }
 
 // group is one comment as a reader sees it: consecutive own-line // comments
@@ -138,6 +162,21 @@ func (g group) paragraphs() []group {
 	return out
 }
 
+// trimStar strips the blanks and one leading star of a block comment line,
+// and returns the text and the count of bytes cut from its start.
+func trimStar(raw string) (string, int) {
+	cut := len(raw) - len(strings.TrimLeft(raw, " \t"))
+	rest := raw[cut:]
+	if strings.HasPrefix(rest, "*") {
+		rest = rest[1:]
+		cut++
+		n := len(rest) - len(strings.TrimLeft(rest, " \t"))
+		cut += n
+		rest = rest[n:]
+	}
+	return strings.TrimSpace(rest), cut
+}
+
 func buildGroups(spans []span) []group {
 	var groups []group
 	var cur *group
@@ -156,15 +195,16 @@ func buildGroups(spans []span) []group {
 		if s.block {
 			flush()
 			g := group{}
-			for i, l := range strings.Split(s.text, "\n") {
-				l = strings.TrimSpace(l)
-				l = strings.TrimSpace(strings.TrimPrefix(l, "*"))
-				g.lines = append(g.lines, textLine{s.line + i, l})
+			off := s.pos
+			for i, raw := range strings.Split(s.text, "\n") {
+				l, skip := trimStar(raw)
+				g.lines = append(g.lines, textLine{s.line + i, l, off + skip})
+				off += len(raw) + 1
 			}
 			groups = append(groups, g)
 			continue
 		}
-		tl := textLine{s.line, strings.TrimSpace(s.text)}
+		tl := textLine{s.line, strings.TrimSpace(s.text), s.pos + len(s.text) - len(strings.TrimLeft(s.text, " \t"))}
 		if s.ownLine && cur != nil && s.line == lastLine+1 && s.col == lastCol {
 			cur.lines = append(cur.lines, tl)
 		} else {
@@ -184,7 +224,12 @@ func buildGroups(spans []span) []group {
 }
 
 func languageOf(name string) (language, bool) {
-	switch strings.ToLower(path.Ext(filepath.ToSlash(name))) {
+	lower := strings.ToLower(filepath.ToSlash(name))
+	if strings.HasSuffix(lower, ".cue.tmpl") {
+		// A CUE template (library render.cue.tmpl) holds // comments.
+		return langCUE, true
+	}
+	switch path.Ext(lower) {
 	case ".go":
 		return langGo, true
 	case ".cue":
@@ -207,9 +252,14 @@ func LintSource(name string, src []byte, opts Options) []Finding {
 	}
 
 	decisions := func(line int, text string) {
-		for _, m := range decisionRe.FindAllStringSubmatch(text, -1) {
-			add(line, RuleDecisionNumber, m[1],
-				fmt.Sprintf("decision number %s: write the reason in words and name the enhancement (enhancement NNNN)", m[1]))
+		for _, ct := range cites.Scan(text) {
+			shown := strings.Trim(ct.Text, "`")
+			add(line, RuleDecisionNumber, shown,
+				fmt.Sprintf("decision number %s: write the reason in words and name the enhancement (enhancement NNNN)", shown))
+		}
+		for _, op := range cites.OldPaths(text) {
+			add(line, RuleOldPath, op.Text,
+				fmt.Sprintf("path %s names a file of the old entry layout: name the enhancement in words (enhancement %s)", op.Text, op.ID))
 		}
 	}
 	for _, s := range spans {
@@ -281,12 +331,24 @@ func excluded(p string, pats []string) bool {
 	return false
 }
 
-// skipDir names the directories a walk never enters: version control, vendored
-// code, the CUE caches and agent worktrees.
-func skipDir(rel string) bool {
+// skipDirAt names the directories a walk never enters: version control, vendored
+// code, the CUE caches, agent worktrees, the swarm folder and, unless the
+// caller named it as the root of the walk (named true), a folder .claude. That
+// folder holds the agent skills of a repo and their text is not source; a path
+// named on the command line is processed.
+func skipDirAt(rel string, named bool) bool {
+	base := path.Base(rel)
+	if base == ".claude" {
+		return !named
+	}
+	return skipAlways(rel)
+}
+
+// skipAlways holds the directories that even a named path does not enter.
+func skipAlways(rel string) bool {
 	base := path.Base(rel)
 	switch base {
-	case ".git", "node_modules", "vendor", ".cue-cache":
+	case ".git", "node_modules", "vendor", ".cue-cache", "agent-swarm":
 		return true
 	}
 	if strings.HasPrefix(rel, ".claude/worktrees") {
@@ -297,6 +359,39 @@ func skipDir(rel string) bool {
 		strings.Contains(rel, "/cue.mod/gen") || strings.Contains(rel, "/cue.mod/usr")
 }
 
+// Skipped reports whether a file path (slash-separated, relative to the repo
+// root) is outside every citation tool: release-please history (CHANGELOG.md)
+// and anything under a directory that skipAlways names (vendor/**, agent-swarm/,
+// .claude/worktrees/, the CUE caches). A walk never enters such a directory;
+// this check covers a file named in a path list. A file under .claude/ that a
+// list names is not skipped: the list is explicit.
+func Skipped(rel string) bool {
+	rel = filepath.ToSlash(rel)
+	if path.Base(rel) == "CHANGELOG.md" {
+		return true
+	}
+	parts := strings.Split(rel, "/")
+	for i := range parts[:len(parts)-1] {
+		if skipAlways(strings.Join(parts[:i+1], "/")) {
+			return true
+		}
+	}
+	return false
+}
+
+// underRoot returns p relative to root when p is an absolute path inside it,
+// so that a directory name above the root (the swarm folder) never counts.
+func underRoot(root, p string) string {
+	if !filepath.IsAbs(p) {
+		return p
+	}
+	r, err := filepath.Rel(root, p)
+	if err != nil || r == ".." || strings.HasPrefix(r, "../") {
+		return p
+	}
+	return r
+}
+
 // LintFiles lints a list of paths relative to root (or absolute). A path
 // that names a directory is walked. A path that cannot be read is an error:
 // a lint that skips a file in silence passes what it did not see.
@@ -305,7 +400,7 @@ func LintFiles(root string, paths []string, opts Options) (Result, error) {
 	var errs []error
 
 	lintOne := func(rel string) {
-		if excluded(rel, opts.Exclude) {
+		if excluded(rel, opts.Exclude) || Skipped(underRoot(root, rel)) {
 			res.Skipped++
 			return
 		}
@@ -358,7 +453,7 @@ func LintFiles(root string, paths []string, opts Options) (Result, error) {
 			}
 			rel = filepath.ToSlash(rel)
 			if d.IsDir() {
-				if skipDir(rel) || excluded(rel+"/", opts.Exclude) {
+				if skipDirAt(rel, fp == full) || excluded(rel+"/", opts.Exclude) {
 					return filepath.SkipDir
 				}
 				return nil

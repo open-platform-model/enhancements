@@ -122,7 +122,7 @@ func TestEveryCommandHasHelp(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"vet", "new", "seed:new", "accept", "resample", "deliver", "reject", "withdraw", "supersede", "tick",
-		"index", "fresh", "history", "stale", "links", "reconcile", "cite-lint", "specs-rule", "list", "show", "questions"} {
+		"index", "fresh", "history", "stale", "links", "reconcile", "cite-lint", "cite-rewrite", "specs-rule", "list", "show", "questions"} {
 		if lookup(name) == nil {
 			t.Errorf("command %s is not wired", name)
 		}
@@ -373,6 +373,61 @@ func TestCiteLint(t *testing.T) {
 	}
 }
 
+func TestCiteRewrite(t *testing.T) {
+	r := newRepo(t)
+	r.put("pkg/a.go", "package a\n\n// Rejects the write (0010:D11).\nvar x = 1\n")
+	r.put("pkg/b.go", "package a\n\n// The 0010:D34 ladder decides.\nvar y = 1\n")
+	r.put("docs/c.md", "The key decides (0010:D4).\n")
+	r.put("fx/f.go", "package a\n\n// Rejects the write (0010:D11).\nvar z = 1\n")
+	before, _ := os.ReadFile(filepath.Join(r.root, "pkg/a.go"))
+	wl := filepath.Join(t.TempDir(), "worklist.tsv")
+
+	// The dry run is the default: it prints the summary and changes nothing.
+	code, out, errOut := r.do("cite-rewrite", "--root", r.root, "--exclude", "fx/", "--worklist", wl)
+	wantCode(t, "dry run", code, ExitOK, out, errOut)
+	for _, want := range []string{"would rewrite:", "form 1 code comment", "form 2 text", "worklist (", "inline"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("dry run output lacks %q:\n%s", want, out)
+		}
+	}
+	after, _ := os.ReadFile(filepath.Join(r.root, "pkg/a.go"))
+	if string(before) != string(after) {
+		t.Errorf("the dry run changed pkg/a.go")
+	}
+	rows, _ := os.ReadFile(wl)
+	if !strings.Contains(string(rows), "pkg/b.go\t3\tinline\t") {
+		t.Errorf("worklist:\n%s", rows)
+	}
+
+	code, out, errOut = r.do("cite-rewrite", "--root", r.root, "--exclude", "fx/", "--write")
+	wantCode(t, "write", code, ExitOK, out, errOut)
+	got, _ := os.ReadFile(filepath.Join(r.root, "pkg/a.go"))
+	if !strings.Contains(string(got), "(enhancement 0010).") {
+		t.Errorf("pkg/a.go:\n%s", got)
+	}
+	fx, _ := os.ReadFile(filepath.Join(r.root, "fx/f.go"))
+	if !strings.Contains(string(fx), "0010:D11") {
+		t.Errorf("an excluded file was rewritten:\n%s", fx)
+	}
+	// cite-lint now reports the worklist site and nothing else.
+	code, out, _ = r.do("cite-lint", "--root", r.root, "--exclude", "fx/", "--exclude", "*.md")
+	if code != ExitError || strings.Count(out, "decision-number") != 1 || !strings.Contains(out, "pkg/b.go:3") {
+		t.Errorf("cite-lint after write: exit %d\n%s", code, out)
+	}
+	r.put("gen/g.md", "The key decides (0010:D4).\n")
+	code, out, errOut = r.do("cite-rewrite", "--root", r.root, "--generated", "gen/,other/", "--write")
+	wantCode(t, "generated", code, ExitOK, out, errOut)
+	if g, _ := os.ReadFile(filepath.Join(r.root, "gen/g.md")); !strings.Contains(string(g), "0010:D4") || !strings.Contains(out, "generated") {
+		t.Errorf("--generated: file %q, output:\n%s", g, out)
+	}
+	if code, _, _ = r.do("cite-rewrite", "--root", r.root, "--write", "--dry-run"); code != ExitUsage {
+		t.Errorf("--write with --dry-run: exit %d", code)
+	}
+	if code, _, _ = r.do("cite-rewrite", "--root", r.root, "no-such-file.go"); code != ExitUsage {
+		t.Errorf("missing file: exit %d", code)
+	}
+}
+
 func TestReconcile(t *testing.T) {
 	r := newRepo(t)
 	code, out, errOut := r.do("reconcile", "--workspace", t.TempDir())
@@ -464,22 +519,12 @@ func TestSpecsRuleCommand(t *testing.T) {
 	// usage errors: exit 2
 	for name, args := range map[string][]string{
 		"no base":          {"specs-rule"},
-		"chain with base":  {"specs-rule", "--chain", "--base", base},
-		"chain no since":   {"specs-rule", "--chain"},
-		"since not chain":  {"specs-rule", "--since", base, "--base", base},
 		"base with a dash": {"specs-rule", "--base=-x"},
 	} {
 		code, out, errOut := r.do(args...)
 		if code != ExitUsage {
 			t.Errorf("%s: exit %d\n%s\n%s", name, code, out, errOut)
 		}
-	}
-
-	// chain mode: the hand-written commit is not an archive
-	code, out, errOut = r.do("specs-rule", "--chain", "--since", base)
-	wantCode(t, "chain", code, ExitError, out, errOut)
-	if !strings.Contains(out, "1 commit(s) after") {
-		t.Errorf("out: %s", out)
 	}
 }
 

@@ -57,12 +57,11 @@ import (
 //
 // reservedIds: 0000 was the template folder and is never reused; 0028 and 0029
 // are held for entries parked elsewhere.
-// blockedIds: 0030 and 0031 stay out of use until the last phase has stripped
-// every `0030:` citation from the other repos. That commit empties this list,
-// and the next two entries then take 0030 and 0031. An archived id is never
-// handed out either; that check reads the folders, not this file.
+// blockedIds: ids held back for a time. The list is empty; an id is added here
+// only for a stated reason. An archived id is never handed out either; that
+// check reads the folders, not this file.
 reservedIds: ["0000", "0028", "0029"]
-blockedIds: ["0030", "0031"]
+blockedIds: []
 
 // `accepted` is "<date> <commit>": the date and the `main` commit the accept
 // PR started from, whose specs/ the checks read.

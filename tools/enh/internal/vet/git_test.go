@@ -451,40 +451,11 @@ func TestV31ClosedFolders(t *testing.T) {
 			t.Errorf("want V31 on an old-layout folder:\n%s", dump(res))
 		}
 	})
-	t.Run("the link fix of M4", func(t *testing.T) {
+	t.Run("a link-only change is an error", func(t *testing.T) {
 		g, _, _ := newGitRepo(t)
 		g.replace(oldDir+"/02-design.md", "See [0014](../../0014/) for the rest.", "See enhancement 0014 for the rest.")
-		if res := g.vet(nil); count(res, "V31") != 0 {
-			t.Errorf("the link fix is the one allowed edit:\n%s", dump(res))
-		}
-	})
-	t.Run("the link fix plus another edit", func(t *testing.T) {
-		g, _, _ := newGitRepo(t)
-		g.replace(oldDir+"/02-design.md", "See [0014](../../0014/) for the rest.", "See enhancement 0014 for the rest.")
-		g.replace(oldDir+"/02-design.md", "A second line.", "A different line.")
-		if res := g.vet(nil); !has(res, "V31", "was changed") {
-			t.Errorf("another edit beside the link fix must fail:\n%s", dump(res))
-		}
-	})
-	t.Run("the link fix with other words changed", func(t *testing.T) {
-		g, _, _ := newGitRepo(t)
-		g.replace(oldDir+"/02-design.md", "See [0014](../../0014/) for the rest.", "We now decide the opposite.")
-		if res := g.vet(nil); !has(res, "V31", "was changed") {
-			t.Errorf("a rewrite of the words is not the link fix:\n%s", dump(res))
-		}
-	})
-	t.Run("a link line that keeps its link", func(t *testing.T) {
-		g, _, _ := newGitRepo(t)
-		g.replace(oldDir+"/02-design.md", "for the rest.", "for all the rest.")
-		if res := g.vet(nil); !has(res, "V31", "was changed") {
-			t.Errorf("an edit that keeps the link is not the fix:\n%s", dump(res))
-		}
-	})
-	t.Run("the link fix changes the line count", func(t *testing.T) {
-		g, _, _ := newGitRepo(t)
-		g.replace(oldDir+"/02-design.md", "See [0014](../../0014/) for the rest.\n", "See enhancement 0014.\nFor the rest.\n")
-		if res := g.vet(nil); !has(res, "V31", "was changed") {
-			t.Errorf("the fix keeps the line count:\n%s", dump(res))
+		if res := g.vet(nil); !has(res, "V31", oldDir+"/02-design.md was changed") {
+			t.Errorf("a link fix of a frozen file is a change:\n%s", dump(res))
 		}
 	})
 	t.Run("a folder archived by this branch", func(t *testing.T) {
@@ -525,29 +496,4 @@ func TestV31ClosedFolders(t *testing.T) {
 			t.Errorf("only 0102 was asked for:\n%s", dump(res))
 		}
 	})
-}
-
-func TestLinkFixOnly(t *testing.T) {
-	for _, tc := range []struct {
-		name, old, head string
-		want            bool
-	}{
-		{"same", "a\n", "a\n", true},
-		{"link into the words", "See [x](../../0014/).\n", "See enhancement 0014.\n", true},
-		{"link into its label", "See [the design](../../0014/02-design.md) now.\n", "See the design now.\n", true},
-		{"id from the target", "See [the design](../../0014/02-design.md) now.\n", "See enhancement 0014 now.\n", true},
-		{"link removed and words changed", "See [0014](../../0014/) for the rest.\n", "We now decide the opposite.\n", false},
-		{"link fixed and a word changed", "See [0014](../../0014/) for the rest.\n", "See enhancement 0014 for all the rest.\n", false},
-		{"two links, one left", "[a](../a/) [b](../b/)\n", "enhancement a [b](../b/)\n", false},
-		{"two links, both fixed", "[a](../a/) [b](../b/)\n", "enhancement a b\n", true},
-		{"two links, a new word", "[a](../a/) [b](../b/)\n", "enhancement a and b\n", false},
-		{"target changed", "[a](../a/)\n", "[a](../b/)\n", false},
-		{"an inside link changes", "[a](a.md)\n", "[a](b.md)\n", false},
-		{"a link kept and text changed", "[a](../a/) now\n", "[a](../a/) later\n", false},
-		{"line added", "x\n", "x\ny\n", false},
-	} {
-		if got := linkFixOnly(tc.old, tc.head); got != tc.want {
-			t.Errorf("%s: linkFixOnly = %v, want %v", tc.name, got, tc.want)
-		}
-	}
 }

@@ -91,6 +91,13 @@ func TestDecisionNumberForms(t *testing.T) {
 		{"// (enhancement 0010)", 0},
 		{"// at 10:30 and 20260" + ":D1", 0},
 		{"// 0010:Dx", 0},
+		// the old colon rule is the floor: each of these failed before the spoken forms came in
+		{"// 1234" + ":D5", 1},
+		{"// 0010" + ":D4x", 1},
+		{"// 0010" + ":D4_a", 1},
+		{"// 0010" + ":D4:R1x", 1},
+		{"// 0010" + ":OQ2b", 1},
+		{"// PRE-0010" + ":D41 formula", 1},
 	} {
 		src := []byte("package p\n" + tc.text + "\nvar _ = 1\n")
 		n := 0
@@ -224,6 +231,148 @@ func TestLoneIDParagraph(t *testing.T) {
 			}
 			if line != tc.want {
 				t.Errorf("lone-id at line %d, want %d", line, tc.want)
+			}
+		})
+	}
+}
+
+// The spoken forms are decision numbers too (ruling 2026-10-11 22:40).
+func TestSpokenForms(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		n    int
+	}{
+		{"// Tightens the gate (enhancement 0010 D4).", 1},
+		{"// Tightens the gate (0010 D49).", 1},
+		{"// Tightens the gate, per 0011 D3/D15.", 1},
+		{"// Rules, enhancement 0010 D4 and D7 apply.", 1},
+		{"// Enhancement 0015, D9 holds.", 1},
+		{"// Tightens the gate (enhancements 0010 and 0026).", 0},
+		{"// Tightens the gate (enhancement 0010).", 0},
+		{"// Released 2026 D4 and v1.0010 D3.", 0},
+		{"// The portal head portal:D4 is not an enhancement.", 0},
+		{"var s = \"retired (enhancement 0006 D21)\"", 1},
+	} {
+		src := []byte("package p\n" + tc.text + "\nvar _ = 1\n")
+		n := 0
+		for _, f := range LintSource("a.go", src, Options{}) {
+			if f.Rule == RuleDecisionNumber {
+				n++
+			}
+		}
+		if n != tc.n {
+			t.Errorf("%q: %d decision-number findings, want %d", tc.text, n, tc.n)
+		}
+	}
+}
+
+// A spoken id alone in a paragraph is a lone id as well.
+func TestSpokenLoneID(t *testing.T) {
+	src := []byte("package p\n\n// (0010 D49)\nfunc f() {}\n")
+	rules := map[string]bool{}
+	for _, f := range LintSource("a.go", src, Options{}) {
+		rules[f.Rule] = true
+	}
+	if !rules[RuleDecisionNumber] || !rules[RuleLoneID] {
+		t.Fatalf("rules: %v", rules)
+	}
+}
+
+func TestCUETemplate(t *testing.T) {
+	src := []byte("// Renders the thing (enhancement 0019 D5).\nx: 1\n")
+	if f := LintSource("opm/internal/renderstage/render.cue.tmpl", src, Options{}); len(f) != 1 {
+		t.Fatalf("a .cue.tmpl is CUE: %v", f)
+	}
+}
+
+func TestBuiltInSkips(t *testing.T) {
+	root := t.TempDir()
+	bad := "package a\n\n// 0010" + ":D1\nvar _ = 1\n"
+	write(t, root, "vendor/x/v.go", bad)
+	write(t, root, "sub/vendor/v.go", bad)
+	write(t, root, "agent-swarm/a/b.go", bad)
+	write(t, root, ".claude/worktrees/w/b.go", bad)
+	write(t, root, "ok/b.go", bad)
+	// Files named one by one are skipped the same way as a walk skips them.
+	res, err := LintFiles(root, []string{"vendor/x/v.go", "sub/vendor/v.go", "agent-swarm/a/b.go", ".claude/worktrees/w/b.go"}, Options{})
+	if err != nil || len(res.Findings) != 0 || res.Checked != 0 {
+		t.Fatalf("named files: res=%+v err=%v", res, err)
+	}
+	res, err = LintFiles(root, []string{"."}, Options{})
+	if err != nil || res.Checked != 1 || res.Findings[0].Path != "ok/b.go" {
+		t.Fatalf("walk: res=%+v err=%v", res, err)
+	}
+	for _, p := range []string{"CHANGELOG.md", "sub/CHANGELOG.md", "vendor/a.go", "agent-swarm/x.go"} {
+		if !Skipped(p) {
+			t.Errorf("Skipped(%q) is false", p)
+		}
+	}
+	for _, p := range []string{"README.md", "src/a.go", "docs/changelog-notes.md"} {
+		if Skipped(p) {
+			t.Errorf("Skipped(%q) is true", p)
+		}
+	}
+	// An absolute path counts from the root: a swarm folder above the root is no reason to skip.
+	abs := filepath.Join(root, "ok/b.go")
+	if Skipped(UnderRoot(root, abs)) {
+		t.Errorf("an absolute path inside the root is skipped")
+	}
+}
+
+// A walk skips a folder .claude (agent skills); a path that names it is linted.
+func TestClaudeFolder(t *testing.T) {
+	root := t.TempDir()
+	bad := "package a\n\n// 0010" + ":D1\nvar _ = 1\n"
+	write(t, root, ".claude/skills/s/x.go", bad)
+	write(t, root, "sub/.claude/y.go", bad)
+	write(t, root, ".claude/worktrees/w/z.go", bad)
+	write(t, root, "ok/b.go", bad)
+	for _, tc := range []struct {
+		name  string
+		paths []string
+		files int
+	}{
+		{"walk of the root", []string{"."}, 1},
+		{"a named file", []string{".claude/skills/s/x.go"}, 1},
+		{"a named folder", []string{".claude"}, 1},
+		{"a named inner folder", []string{".claude/skills"}, 1},
+		{"a nested folder in a walk", []string{"sub"}, 0},
+		{"a named worktree stays skipped", []string{".claude/worktrees/w/z.go"}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := LintFiles(root, tc.paths, Options{})
+			if err != nil || res.Checked != tc.files || (len(res.Findings) > 0) != (tc.files > 0) {
+				t.Fatalf("res=%+v err=%v", res, err)
+			}
+		})
+	}
+}
+
+// Old-layout entry paths fail the lint in comments and strings.
+func TestOldPathRule(t *testing.T) {
+	for _, tc := range []struct {
+		name, src string
+		want      int
+	}{
+		{"archive path in a comment", "package a\n\n// Read enhancements/archive/0010/03-decisions.md for the reason.\nvar _ = 1\n", 1},
+		{"live path in a comment", "package a\n\n// Read enhancements/0010/04-design.md for the reason.\nvar _ = 1\n", 1},
+		{"readme path", "package a\n\n// Read 0010/README.md for the reason.\nvar _ = 1\n", 1},
+		{"string literal", "package a\n\nvar _ = \"enhancements/0010/03-decisions.md\"\n", 1},
+		{"two paths", "package a\n\n// Read 0010/README.md and 0011/README.md here.\nvar _ = 1\n", 2},
+		{"github blob URL", "package a\n\n// See https://github.com/open-platform-model/enhancements/blob/main/0010/03-decisions.md here.\nvar _ = 1\n", 1},
+		{"year folder", "package a\n\n// Read 2026/README.md here.\nvar _ = 1\n", 0},
+		{"a longer path", "package a\n\n// Read docs/0010/README.md here.\nvar _ = 1\n", 0},
+		{"a folder name only", "package a\n\n// Read the folder enhancements/0010 for the reason.\nvar _ = 1\n", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := 0
+			for _, f := range LintSource("a.go", []byte(tc.src), Options{}) {
+				if f.Rule == RuleOldPath {
+					n++
+				}
+			}
+			if n != tc.want {
+				t.Errorf("old-path findings = %d, want %d", n, tc.want)
 			}
 		})
 	}

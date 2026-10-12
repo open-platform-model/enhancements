@@ -320,7 +320,7 @@ func (r *run) idRules(e *ent) {
 	if containsStr(r.schema.Reserved, id) {
 		r.addField(e, "V10", Error, "id", "id %s is reserved", id)
 	} else if containsStr(r.schema.Blocked, id) {
-		r.addField(e, "V10", Error, "id", "id %s is blocked until the last phase has stripped every 0030: citation", id)
+		r.addField(e, "V10", Error, "id", "id %s is blocked (blockedIds in schema.cue)", id)
 	}
 	var others []string
 	for _, o := range r.store.All() {

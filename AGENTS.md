@@ -99,7 +99,7 @@ The repo is an OpenSpec store. One entry is one OpenSpec change, `openspec/chang
 
 Violations fail PR review, even where `task vet` does not catch them. The `enhancements` skill carries the workflow and the reasons.
 
-- **One feature, one id, one folder.** The id has four digits. It is never reused and never renumbered. The ids 0000, 0028 and 0029 are reserved. The ids 0030 and 0031 are blocked until the last phase has stripped every `0030:` citation from the other repos (`reservedIds` and `blockedIds` in `schema.cue`).
+- **One feature, one id, one folder.** The id has four digits. It is never reused and never renumbered. The ids 0000, 0028 and 0029 are reserved (`reservedIds` in `schema.cue`). `blockedIds` in `schema.cue` is empty.
 - **`config.yaml` holds facts only.** Id, slug, title, summary, status, category, breaking, affects, authors, created, after, and the end-state records (`accepted`, `rejected`, `withdrawn`, `superseded_by`). There is no history field: history is `git log`. `status` is stored, and the checker refuses a value that disagrees with the folder.
 - **`openspec/specs/` holds delivered work only.** It changes in exactly three cases: an entry is delivered, a seed is delivered, or a PR corrects a `## Purpose` and nothing else. Until then, the requirements of an entry live in its own delta specs. CI enforces this (`task specs-rule`).
 - **Nothing is implemented here.** `tasks.md` lists which repo still has work. The repo delivers its line in its own OpenSpec change, whose proposal says `Delivers NNNN, task X.Y.`. A tick is a PR on this repo.

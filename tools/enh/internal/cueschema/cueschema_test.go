@@ -23,7 +23,7 @@ func TestLists(t *testing.T) {
 	if strings.Join(s.Reserved, ",") != "0000,0028,0029" {
 		t.Errorf("reserved = %v", s.Reserved)
 	}
-	if strings.Join(s.Blocked, ",") != "0030,0031" {
+	if len(s.Blocked) != 0 {
 		t.Errorf("blocked = %v", s.Blocked)
 	}
 }
