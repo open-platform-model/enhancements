@@ -340,3 +340,22 @@ func TestDoubledID(t *testing.T) {
 			want: "The system SHALL follow enhancement 0010.\n"},
 	})
 }
+
+// Found by the dry run on opmodel.dev (T5.9a): a site URL in an inline code
+// span is an example, often of the retired slug itself ("its pages link
+// `/enhancements/0021/decisions/#d3`"). The tool left it alone only by luck of
+// the table; now the site is a worklist row and the text is not edited.
+func TestSiteURLInCodeSpan(t *testing.T) {
+	runCases(t, []rewriteCase{
+		{name: "code span with a retired slug", file: "a.md",
+			in: "Its pages link `/enhancements/0021/decisions/#d3` today.\n", sites: []string{"1:code-span"}},
+		{name: "code span in parentheses", file: "a.md",
+			in: "A retired slug (`/enhancements/0013/problem/`), which the data lists.\n", sites: []string{"1:code-span"}},
+		{name: "plain URL in prose still maps", file: "a.md",
+			in:   "Read /enhancements/0021/decisions/ now.\n",
+			want: "Read /enhancements/0021/requirements/ now.\n"},
+		{name: "link still maps", file: "a.md",
+			in:   "Read [the rules](/enhancements/0021/decisions/) now.\n",
+			want: "Read [the rules](/enhancements/0021/requirements/) now.\n"},
+	})
+}

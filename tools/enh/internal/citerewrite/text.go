@@ -596,6 +596,12 @@ func (c *ctx) pathsInLine(line string, base int, lc lineCtx, done *[][2]int, spa
 		switch {
 		case ref.site:
 			if rest, ok := slugEdit(c.tt, ref); ok {
+				if insideSpan(spans, ref.start, ref.end) {
+					// A URL in code is an example (often of the retired slug
+					// itself): the words around it decide, not the table.
+					c.site(at, KindCodeSpan, nil)
+					continue
+				}
 				from := ref.end - len(ref.rest)
 				c.edit(Edit{Start: base + from, End: base + ref.end, New: rest, Form: FormPath})
 			}
