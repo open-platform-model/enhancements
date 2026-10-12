@@ -273,7 +273,6 @@ var formNames = []struct {
 }{
 	{FormCodeComment, "1 code comment (enhancement NNNN)"},
 	{FormText, "2 text (enhancement NNNN (\"title\"))"},
-	{FormRetired, "3 retired id removed"},
 	{FormPath, "4 path or site URL"},
 	{FormDelete, "5 enhancement.yaml deleted"},
 }

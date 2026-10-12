@@ -405,7 +405,6 @@ A dry run is the default and changes nothing. --write applies these forms:
      ", per 0010:D4." becomes " (enhancement 0010)." A title never goes into a comment or a rule.
   2  Markdown and YAML text: 0010:D11 becomes enhancement 0010 ("<decision title>"). A range or a
      contrast of requirements (R3 to R5, R3, not R4) gives the title once.
-  3  0030 and 0031: the token goes, the text and punctuation stay valid
   4  enhancements/NNNN paths become enhancement NNNN; the old site slugs of the 17 converted entries
      map to the new pages (decisions to requirements, and so on)
   5  enhancement.yaml files are deleted
@@ -415,7 +414,9 @@ Everything else is only listed: a lone id or WHY label, an id inside a sentence,
 literals, generated files, code fences, a Markdown heading that holds a citation, a path to a file
 inside an entry, a path to a file of the old entry layout (kind path), a title that names a CUE
 definition (cue-definition), an id that repeats in its sentence (repeat-id), a rule sentence that
-form 1 does not fit (rule-sentence). A line edge of a wrapped paragraph counts as a sentence edge only
+form 1 does not fit (rule-sentence), a citation of 0030 or 0031 (retired-inline: both ids are free for new
+entries, so the tool never removes one; a bare 0030 or 0031 is retired-id), a requirement range or contrast
+that a line break cuts in two (wrapped). A line edge of a wrapped paragraph counts as a sentence edge only
 when the paragraph says so. Titles come from titles.tsv (generated) and short-titles.tsv (by hand); a citation of a
 merged or moved decision is written as the decision that took its place. --worklist FILE writes one
 tab-separated row per site: path, line, kind, line text, decision title. After --write and an empty

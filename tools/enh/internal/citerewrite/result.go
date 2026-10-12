@@ -12,7 +12,6 @@ type Form int
 const (
 	FormCodeComment Form = 1 // (0010:D11) -> (enhancement 0010)
 	FormText        Form = 2 // 0010:D11 -> enhancement 0010 ("title")
-	FormRetired     Form = 3 // 0030:D4 -> the token goes
 	FormPath        Form = 4 // enhancements/0010 -> enhancement 0010; site slugs
 	FormDelete      Form = 5 // enhancement.yaml is deleted
 )
@@ -40,8 +39,7 @@ const (
 	KindPathRef        = "path-ref"        // enhancements/NNNN in a code comment
 	KindPathDecisions  = "path-decisions"  // enhancements/0010 D1, D6
 	KindLink           = "link"            // a link to an entry that needs words
-	KindRetiredInline  = "retired-inline"  // 0030:Dn inside a sentence
-	KindRetiredLone    = "retired-lone"    // nothing else is left once 0030:Dn goes
+	KindRetiredInline  = "retired-inline"  // a citation of 0030 or 0031, never edited
 	KindRetiredID      = "retired-id"      // a bare 0030 or 0031
 	KindUnsafeYAML     = "unsafe-yaml"     // a title would break the YAML scalar
 	KindOtherFile      = "other-file"      // a file type the tool does not edit

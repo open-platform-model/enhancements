@@ -112,24 +112,17 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, phs []p
 	case ph.oq:
 		c.codeSite(m, ph, KindOQ)
 		return
-	case ph.glued && len(live) == 0:
+	case len(live) < len(ph.cites):
 		c.codeSite(m, ph, KindRetiredInline)
 		return
 	case ph.glued:
 		c.codeSite(m, ph, KindInline)
-		return
-	case p.Lone && len(live) == 0:
-		c.codeSite(m, ph, KindRetiredLone)
 		return
 	case p.Lone:
 		c.codeSite(m, ph, KindLoneID)
 		return
 	case ph.possessive:
 		c.codeSite(m, ph, KindPossessive)
-		return
-	}
-	if len(live) == 0 {
-		c.retiredEdit(m, joined, ph, at)
 		return
 	}
 	// Kind 2: the phrase is a whole parenthesis, or it ends the sentence after
@@ -228,18 +221,6 @@ func (c *ctx) codeSite(m paraMap, ph phrase, kind string) {
 		offs[i] = m.abs(ct.Start)
 	}
 	c.siteEach(offs, kind, ph.cites)
-}
-
-func (c *ctx) retiredEdit(m paraMap, joined string, ph phrase, at int) {
-	rs, re, repl, ok, lone := removal(joined, ph.start, ph.end, false, false)
-	switch {
-	case lone:
-		c.codeSite(m, ph, KindRetiredLone)
-	case !ok:
-		c.codeSite(m, ph, KindRetiredInline)
-	default:
-		c.commit(m, Edit{Start: rs, End: re, New: repl, Form: FormRetired}, at, ph, nil)
-	}
 }
 
 // commit maps an edit of the joined text to the source and adds it, or adds

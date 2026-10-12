@@ -28,7 +28,7 @@ var (
 )
 
 // processText rewrites the citations of a Markdown, YAML or shell file. Text
-// takes form 2; the retired ids form 3; paths and site URLs form 4. A
+// takes form 2; paths and site URLs form 4. A
 // citation that sits in code (a fence, a longer code span, a string) is a
 // worklist row.
 func processText(name string, src []byte, tt *Titles, kind textKind) FileResult {
@@ -194,10 +194,19 @@ type flowInfo struct {
 	last  map[int]int
 }
 
+var listMarkRe = regexp.MustCompile(`^(?:[-*+]|\d+[.)])[ \t]+`)
+
 // quoteBody reports whether a line is a Markdown quote line, and gives what
-// follows the quote marks.
+// follows the quote marks. A quote can sit in a list item ("- > text").
 func quoteBody(line string) (bool, string) {
 	t := strings.TrimLeft(line, " \t")
+	for {
+		m := listMarkRe.FindString(t)
+		if m == "" {
+			break
+		}
+		t = strings.TrimLeft(t[len(m):], " \t")
+	}
 	if strings.HasPrefix(t, ">") {
 		return true, strings.TrimLeft(t, "> \t")
 	}
@@ -214,6 +223,7 @@ func (c *ctx) flows(kind textKind) *flowInfo {
 	f := &flowInfo{cont: make([]bool, n+2), para: make([]int, n+2), rule: make([]bool, n+2), first: map[int]int{}, last: map[int]int{}}
 	kw := map[int]bool{}
 	id, blockIndent, scalarIndent := 0, -1, -1
+	var quoteOpen byte
 	fence := ""
 	prevProse, prevQuote := false, false
 	for ln := 1; ln <= n; ln++ {
@@ -228,16 +238,23 @@ func (c *ctx) flows(kind textKind) *flowInfo {
 			switch {
 			case info.block:
 				prose, cont = true, prevProse
-				scalarIndent = -1
+				scalarIndent, quoteOpen = -1, 0
 			case t == "" || info.comment:
-				scalarIndent = -1
-			case scalarIndent >= 0 && indent > scalarIndent:
+				scalarIndent, quoteOpen = -1, 0
+			case quoteOpen != 0 && scalarIndent >= 0:
+				// A quoted scalar that is still open: the line is its text, whatever it looks like.
+				prose, cont = true, true
+				if scanQuote(line, quoteOpen) {
+					scalarIndent, quoteOpen = -1, 0
+				}
+			case scalarIndent >= 0 && indent > scalarIndent && info.valueStart < 0 && info.none:
+				// Deeper than the key and without a key of its own: the scalar goes on.
 				prose, cont = true, true
 			default:
-				scalarIndent = -1
+				scalarIndent, quoteOpen = -1, 0
 				prose = true
-				if info.valueStart >= 0 && info.valueStart < len(line) && !info.flow && !yamlBlockRe.MatchString(line) {
-					scalarIndent = indent
+				if col, q, ok := yamlScalar(line, info); ok {
+					scalarIndent, quoteOpen = col, q
 				}
 			}
 		default:
@@ -248,19 +265,24 @@ func (c *ctx) flows(kind textKind) *flowInfo {
 				case m[1][0] == fence[0] && len(m[1]) >= len(fence) && strings.TrimSpace(line) == m[1]:
 					fence = ""
 				}
+				prevQuote = false
 				break
 			}
 			if fence != "" || strings.TrimSpace(line) == "" || headingRe.MatchString(line) {
+				prevQuote = false
 				break
 			}
 			quote, body := quoteBody(line)
 			prose = strings.TrimSpace(body) != ""
-			if quote {
-				cont = prose && prevProse && prevQuote && !startsBlock(body)
-			} else {
-				cont = prose && prevProse && !prevQuote && !startsBlock(line)
+			switch {
+			case quote:
+				// A quote line follows a quote line; a quote mark ends a plain paragraph.
+				cont = prose && prevProse && prevQuote && !startsBlock(body) && !listMarkRe.MatchString(strings.TrimLeft(line, " \t"))
+			default:
+				// A prose line after a quote line is a lazy continuation of the quote.
+				cont = prose && prevProse && !startsBlock(line)
 			}
-			prevQuote = quote
+			prevQuote = quote || cont && prevQuote
 		}
 		prevProse = prose
 		f.cont[ln] = cont
@@ -326,6 +348,55 @@ func startsBlock(line string) bool { return blockStartRe.MatchString(line) }
 func endsSentenceLine(line string) bool {
 	t := strings.TrimRight(line, " \t")
 	return t == "" || strings.ContainsRune(".!?:", rune(t[len(t)-1]))
+}
+
+// yamlScalar says whether the line opens a plain or quoted scalar that can go
+// on in the lines below. col is the column of its key (after any "- "): a
+// continuation line is deeper than that. quote is the quote mark of a quoted
+// scalar that the line leaves open, or 0. An empty value, an anchor, a tag or an
+// alias alone opens no scalar: the lines below are its children or its siblings.
+func yamlScalar(line string, info yamlInfo) (col int, quote byte, ok bool) {
+	if info.valueStart < 0 || info.valueStart >= len(line) || info.flow || yamlBlockRe.MatchString(line) {
+		return 0, 0, false
+	}
+	indent := len(line) - len(strings.TrimLeft(line, " \t"))
+	col = indent
+	if m := yamlKeyRe.FindStringSubmatchIndex(line); m != nil {
+		col = m[3]
+	}
+	v := strings.TrimSpace(line[info.valueStart:])
+	for {
+		m := yamlPropRe.FindString(v)
+		if m == "" {
+			break
+		}
+		v = strings.TrimSpace(v[len(m):])
+	}
+	if v == "" || strings.HasPrefix(v, "#") {
+		return 0, 0, false
+	}
+	if info.quote != 0 && !scanQuote(line[info.valueStart+1:], info.quote) {
+		return col, info.quote, true
+	}
+	return col, 0, true
+}
+
+var yamlPropRe = regexp.MustCompile(`^[&!*][^\s]*(?:\s+|$)`)
+
+// scanQuote reports whether the quoted scalar closes in s, the text after the
+// opening quote (or a continuation line).
+func scanQuote(s string, q byte) bool {
+	for i := 0; i < len(s); i++ {
+		switch {
+		case q == '"' && s[i] == '\\':
+			i++
+		case s[i] == q && q == '\'' && i+1 < len(s) && s[i+1] == q:
+			i++
+		case s[i] == q:
+			return true
+		}
+	}
+	return false
 }
 
 // yamlInfo says what a YAML line is, so that an inserted title keeps the
@@ -446,7 +517,9 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 			done = append(done, [2]int{ph.start, ph.end})
 		case ph.oq:
 			c.site(at, KindOQ, ph.cites)
-		case ph.glued && len(live) == 0:
+		case len(live) < len(ph.cites):
+			// A citation of 0030 or 0031 is never removed: either id may name a
+			// new entry. An agent reads the sentence.
 			c.site(at, KindRetiredInline, ph.cites)
 		case ph.glued:
 			c.site(at, KindInline, ph.cites)
@@ -454,16 +527,6 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 			c.site(at, KindCodeSpan, ph.cites)
 		case ph.possessive:
 			c.site(at, KindPossessive, ph.cites)
-		case len(live) == 0:
-			rs, re, repl, ok, lone := removal(line, ph.start, ph.end, lc.prevCont, lc.nextCont)
-			switch {
-			case lone:
-				c.site(at, KindRetiredLone, ph.cites)
-			case !ok:
-				c.site(at, KindRetiredInline, ph.cites)
-			default:
-				c.edit(Edit{Start: base + rs, End: base + re, New: repl, Form: FormRetired})
-			}
 		default:
 			c.proseEdit(line, base, lc, phs, idx, live, table)
 		}
@@ -472,14 +535,59 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 	c.pathsInLine(line, base, lc, &done, spans)
 }
 
-var wrapRangeRe = regexp.MustCompile(`^[ \t]*(?:,[ \t]*)?(?:to|through|not|and|or)[ \t]*$`)
+// A requirement range or contrast ("R3 to R5", "R3, not R4") gives its title
+// once. When a line break falls inside it the tool cannot tell the two ends
+// from two sentences, so the site is a worklist row.
+var (
+	// wrapTailRe matches what may follow a phrase at the end of a line: nothing,
+	// a comma, or a connector word.
+	wrapTailRe = regexp.MustCompile(`^[ \t]*(?:,[ \t]*)?(to|through|not|and|or|up to|rather than|rather|-|\x{2013})?[ \t]*$`)
+	// wrapHeadRe matches the start of the next line: a connector and an end of
+	// the range, or an end of the range alone.
+	wrapHeadRe = regexp.MustCompile(`^(?:(?:to|through|not|up to|rather than|than|and|or|-|\x{2013})[ \t]+)?(?:R[0-9]+|[0-9]{4}:)`)
+	wrapEndRe  = regexp.MustCompile(`^(?:R[0-9]+|[0-9]{4}:)`)
+)
+
+// rangeSplit reports whether a line break separates the phrase that ends at
+// ph.end from the other end of a range.
+func rangeSplit(line string, ph phrase, lc lineCtx) bool {
+	if !lc.nextCont {
+		return false
+	}
+	m := wrapTailRe.FindStringSubmatch(line[ph.end:])
+	if m == nil {
+		return false
+	}
+	next := nextLineBody(lc)
+	switch m[1] {
+	case "":
+		return wrapHeadRe.MatchString(next)
+	case "and", "or":
+		return wrapEndRe.MatchString(next)
+	}
+	return true // "to", "-", "not", "up to", "rather", ...: a connector ends the line
+}
+
+// nextLineBody returns the line below the line in the paragraph, without quote
+// marks.
+func nextLineBody(lc lineCtx) string {
+	i := strings.IndexByte(lc.paraText[lc.paraOff:], '\n')
+	if lc.paraText == "" || i < 0 {
+		return ""
+	}
+	rest := lc.paraText[lc.paraOff+i+1:]
+	if j := strings.IndexByte(rest, '\n'); j >= 0 {
+		rest = rest[:j]
+	}
+	_, body := quoteBody(rest)
+	return strings.TrimLeft(body, " \t")
+}
 
 // proseEdit writes form 2 for a phrase of live citations.
 func (c *ctx) proseEdit(line string, base int, lc lineCtx, phs []phrase, idx int, live []cites.Cite, table bool) {
 	ph := phs[idx]
 	at := base + ph.cites[0].Start
-	if lc.nextCont && wrapRangeRe.MatchString(line[ph.end:]) {
-		// "R3 to" at a line end: the other end of the range is on the next line.
+	if rangeSplit(line, ph, lc) {
 		c.site(at, KindWrapped, ph.cites)
 		return
 	}

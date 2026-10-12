@@ -83,7 +83,7 @@ func TestWriteThenLint(t *testing.T) {
 		t.Errorf("src/c.go:\n%s", c)
 	}
 	md, _ := os.ReadFile(filepath.Join(root, "docs/a.md"))
-	if strings.Contains(string(md), "0030") || !strings.Contains(string(md), "The graph is read only.") {
+	if !strings.Contains(string(md), "Per 0030:D4, the graph is read only.") {
 		t.Errorf("docs/a.md:\n%s", md)
 	}
 	// Excluded and skipped files are as they were.
