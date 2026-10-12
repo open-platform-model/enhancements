@@ -1,0 +1,67 @@
+name: seed
+version: 1
+description: OPM seed - a source note and ADDED requirements that record behaviour already shipped (not an enhancement)
+# A seed fills openspec/specs/ with behaviour OPM already ships, so that a later enhancement
+# can MODIFY it. specs/ holds delivered work only, and a seed is the one way in other than a
+# delivered enhancement. A seed takes no number, never shows on the site as an enhancement, and
+# has two files: `specs/<capability>/spec.md` (ADDED only) and `source.md`.
+#
+# Name: `seed-<capability>`, made by `task seed:new <capability>`.
+#
+# Lifecycle:
+#   draft      in changes/. The requirements are written from the source.
+#   sampled    `task accept ID=seed-<cap>` prints the sample (`max(3, 10 percent)` of the
+#              requirements, drawn at random, with the random seed printed); with CONFIRM=1
+#              it writes the `sampled: <date> <commit>` line of source.md. An edit of a
+#              requirement after that line needs a new sample.
+#   delivered  `task deliver ID=seed-<cap>` archives it. It refuses a seed with no `sampled:`
+#              line. Only then does the capability reach openspec/specs/.
+#
+# A seed has no proposal and no design, so the word caps do not apply.
+artifacts:
+  - id: source
+    generates: source.md
+    description: Where the requirements come from - the repo specs and code read, what was left out, and the sample line
+    template: source.md
+    instruction: |
+      Write the source note. It names what the requirements were taken from, so a reviewer can
+      check them against it.
+
+      - The capability and the repo or repos whose behaviour it records.
+      - A table: each requirement of this seed, the source requirement or spec file in the repo
+        (with the commit it was read at), and the code read where the spec was not enough.
+      - What was left out and why. Behaviour that a live enhancement owns stays out: the seed
+        holds the shipped behaviour only.
+      - The last line is `sampled: <date> <commit>`. Do not write it yourself. `task accept
+        ID=seed-<cap>` with CONFIRM=1 writes it after the owner has read the sample.
+
+      Keep it short: a seed is a record of what is, not a design.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: The shipped behaviour as ADDED requirements, at intent level
+    template: spec.md
+    instruction: |
+      Write the capability as ADDED requirements, in `specs/<capability>/spec.md`. A seed has
+      no MODIFIED, REMOVED or RENAMED section: the capability does not exist yet.
+
+      Open the file with a real `## Purpose` of one or two sentences, at least 50 characters,
+      never starting with `TBD` or `TODO`. `openspec archive` reads it when the capability is
+      created and never changes it later.
+
+      Requirements:
+      - The name is a short plain statement of what holds, at most 8 words.
+      - One SHALL (or MUST) statement that a consumer can observe from outside one repo's
+        code, in at most 500 characters. The admission test: no Go symbol, no CLI flag, no
+        file path. A published CUE definition may be named; an internal definition stays out.
+      - Write what the repo does today, not what it should do. Take the intent of each source
+        requirement; do not copy its mechanism.
+      - At least one scenario, written with the requirement: `#### Scenario:` with WHEN and
+        THEN.
+      - Leave out behaviour that a live enhancement owns.
+      - After `sampled:` is written, an edit to a requirement needs a new sample: run
+        `task accept ID=seed-<cap>`, review it, then confirm. The checker refuses the edit
+        in a pull request until the `sampled:` line is rewritten.
+    requires:
+      - source

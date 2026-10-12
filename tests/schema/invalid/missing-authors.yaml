@@ -1,0 +1,9 @@
+# expect: authors: field is required
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+created: "2026-10-10"

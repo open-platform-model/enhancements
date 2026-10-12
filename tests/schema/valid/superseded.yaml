@@ -1,0 +1,14 @@
+id: "0037"
+slug: example-superseded
+title: An example superseded entry
+summary: One line.
+status: superseded
+category: distribution
+breaking: true
+affects: [modules, opm-portal, opm-suite-installer]
+authors: [emil@jacero.se]
+created: "2026-09-08"
+superseded_by:
+  date: "2026-10-20"
+  ids: ["0010", "0011"]
+  reason: Two later entries cover it in parts.

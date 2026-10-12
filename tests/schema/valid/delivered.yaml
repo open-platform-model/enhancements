@@ -1,0 +1,11 @@
+id: "0034"
+slug: example-delivered
+title: An example delivered entry
+summary: One line.
+status: delivered
+category: tooling
+breaking: true
+affects: [cli]
+authors: [emil@jacero.se]
+created: "2026-09-08"
+accepted: "2026-10-16 4be19d0a1b2c"

@@ -1,0 +1,16 @@
+# Facts only. History is `git log`.
+id: "0007"
+slug: manifest-passthrough
+title: "Manifest Passthrough: Side-Channel Raw and Kustomize Manifests"
+summary: >-
+  Let an instance declare extra raw YAML or a Kustomize directory, and have OPM label, record,
+  apply and prune it exactly like the objects it rendered itself.
+status: draft
+category: runtime
+breaking: false
+affects:
+  - cli
+  - opm-operator
+authors:
+  - emil@jacero.se
+created: "2026-06-23"

@@ -1,0 +1,17 @@
+# Facts only. History is `git log`.
+id: "0014"
+slug: instance-gitops-export
+title: Export a Deployed Instance as GitOps Manifests
+summary: >-
+  Write a live ModuleInstance out as a directory you can commit, after checking that the published
+  module still renders exactly what is running.
+status: draft
+category: runtime
+breaking: false
+affects:
+  - cli
+authors:
+  - emil@jacero.se
+created: "2026-07-29"
+after:
+  - "0006"

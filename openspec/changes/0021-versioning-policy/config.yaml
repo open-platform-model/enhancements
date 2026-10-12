@@ -1,0 +1,27 @@
+# Facts only. History is `git log`.
+id: "0021"
+slug: versioning-policy
+title: OPM Versioning Policy
+summary: >-
+  One versioning policy naming every kind of published OPM artifact: what a version promises, which
+  change moves which number, and what enforces the rule.
+status: draft
+category: distribution
+breaking: false
+affects:
+  - core
+  - catalog_opm
+  - modules
+  - cli
+  - library
+  - opm-operator
+  - opmodel.dev
+  - opm
+authors:
+  - emil@jacero.se
+created: "2026-08-24"
+after:
+  - "0006"
+  - "0010"
+  - "0011"
+  - "0020"

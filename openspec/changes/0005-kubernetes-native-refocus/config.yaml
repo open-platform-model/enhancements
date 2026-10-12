@@ -1,0 +1,18 @@
+# Facts only. History is `git log`.
+id: "0005"
+slug: kubernetes-native-refocus
+title: 'Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions'
+summary: >-
+  Generate both the raw Kubernetes mirror and the opinionated abstractions from one Kubernetes
+  OpenAPI source, so the two catalogs stop drifting apart.
+status: draft
+category: tooling
+breaking: false
+affects:
+  - catalog_opm
+  - library
+  - opm-operator
+  - opmodel.dev
+authors:
+  - emil@jacero.se
+created: "2026-06-20"

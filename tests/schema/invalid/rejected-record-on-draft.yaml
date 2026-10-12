@@ -1,0 +1,13 @@
+# expect: rejected: field not allowed
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"
+rejected:
+  date: "2026-10-11"
+  reason: x

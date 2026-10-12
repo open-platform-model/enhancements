@@ -1,0 +1,23 @@
+# Facts only. History is `git log`.
+id: "0022"
+slug: module-file-custom-block
+title: Machine-Readable Artifact Metadata in cue.mod/module.cue
+summary: >-
+  Let OPM tooling read an artifact's kind, identity and compatibility from the small module file
+  alone, without downloading the zip.
+status: draft
+category: distribution
+breaking: false
+affects:
+  - core
+  - cli
+  - catalog_opm
+  - modules
+  - opmodel.dev
+authors:
+  - emil@jacero.se
+created: "2026-08-24"
+after:
+  - "0010"
+  - "0011"
+  - "0016"

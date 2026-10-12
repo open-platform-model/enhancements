@@ -1,0 +1,10 @@
+# expect: superseded_by: field is required
+id: "0032"
+status: superseded
+slug: example
+title: An example
+summary: One line.
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

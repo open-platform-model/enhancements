@@ -1,0 +1,10 @@
+# expect: authors: incompatible list lengths
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: []
+created: "2026-10-10"

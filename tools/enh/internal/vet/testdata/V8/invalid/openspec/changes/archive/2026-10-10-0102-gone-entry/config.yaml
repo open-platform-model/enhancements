@@ -1,0 +1,18 @@
+id: "0102"
+slug: gone-entry
+title: Demo Entry
+summary: One line that says what OPM gains.
+status: superseded
+category: tooling
+breaking: false
+affects: 
+  - enhancements
+  - cli
+authors: 
+  - dev@example.com
+created: 2026-10-10
+superseded_by: 
+  date: 2026-10-10
+  ids:
+    - "9999"
+  reason: Replaced by the demo entry.

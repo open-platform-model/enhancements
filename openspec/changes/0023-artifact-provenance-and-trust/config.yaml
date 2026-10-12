@@ -1,0 +1,22 @@
+# Facts only. History is `git log`.
+id: "0023"
+slug: artifact-provenance-and-trust
+title: Artifact Provenance, Signatures and Platform Trust Policy
+summary: >-
+  Attach signed build records and signatures to every release, and let a platform say whose
+  signatures it trusts before it uses anything.
+status: draft
+category: distribution
+breaking: false
+affects:
+  - cli
+  - library
+  - opm-operator
+  - catalog_opm
+  - modules
+  - core
+authors:
+  - emil@jacero.se
+created: "2026-08-25"
+after:
+  - "0019"

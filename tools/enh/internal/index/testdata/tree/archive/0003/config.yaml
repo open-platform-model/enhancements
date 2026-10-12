@@ -1,0 +1,13 @@
+id: "0003"
+slug: module-publishing
+title: OPM Module Publishing Workflow
+summary: >-
+  Bind a module's four separately-set identity fields to one registry path,
+  checked where modules are consumed.
+status: superseded
+category: distribution
+affects: [cli]
+created: "2026-06-17"
+updated: "2026-09-19"
+authors: [emil@jacero.se]
+superseded_by: "0010"

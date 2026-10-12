@@ -1,0 +1,17 @@
+# Facts only. History is `git log`.
+id: "0008"
+slug: cue-native-crd-schemas
+title: CUE-Native CRD Schemas as Single Source of Truth
+summary: >-
+  Write each Kubernetes custom resource once in CUE and generate the CRD YAML and the Go types from
+  it, so the three copies cannot disagree.
+status: draft
+category: tooling
+breaking: false
+affects:
+  - core
+  - opm-operator
+  - cli
+authors:
+  - emil@jacero.se
+created: "2026-06-25"

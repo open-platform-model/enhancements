@@ -1,0 +1,89 @@
+schema: enhancement
+
+context: |
+  This repo is the OpenSpec store `opm-enhancements`: the design record of the Open Platform
+  Model (OPM), read by every OPM repo through `references:`. Its rules live here, never in a
+  patch to an OpenSpec skill file.
+
+  - An enhancement is one OpenSpec change: `openspec/changes/<id>-<slug>/`. One feature is one
+    id and one folder, however large. The id has four digits and is never reused or renumbered.
+  - Files of an entry: `.openspec.yaml` (OpenSpec reads it), `config.yaml` (facts only: id, slug,
+    title, summary, status, category, breaking, affects, authors, created, after, accepted and
+    the end-state records; history is `git log`), `README.md` (generated), `proposal.md`,
+    `design.md`, `specs/<capability>/spec.md`, `tasks.md`, and `evidence/` (proof, outside every
+    cap). A human owns the intent; an agent writes the detail; a checker refuses what a rule
+    forbids.
+  - Lifecycle: draft, then accepted (both in `changes/`), then archived as delivered, rejected,
+    superseded or withdrawn. `status` is stored in `config.yaml`.
+  - `openspec/specs/<capability>/spec.md` holds DELIVERED work only: what OPM ships and has agreed.
+    It changes only when an entry is delivered (archive), when a seed is delivered, or in a pull
+    request that corrects a `## Purpose` and nothing else. Until an entry is archived, its
+    requirements live in its own delta specs. A seed change
+    (`seed-<capability>`, schema `seed`) records behaviour that already ships so that an entry can
+    modify it; it has no number.
+  - `tasks.md` says which repo still has work. Each repo delivers its line in its own OpenSpec
+    change, whose proposal says `Delivers NNNN, task X.Y.`. Nothing is implemented in this repo.
+  - Caps are advice, counted without Markdown markup: proposal about 300 words (its `Open
+    questions` section is outside the cap and outside the 3,000 total), design about 1,500, all three of proposal, design and
+    requirement text about 3,000. The checker warns on them and never refuses.
+  - An enhancement states what consumers can rely on. It never tells a repo how to name a file,
+    spell an identifier or structure its code.
+  - Code comments in other repos may name an enhancement id only beside the reason in words:
+    "// Rewrite each secret to a reference, so plaintext never reaches the render (enhancement
+    0013)." Never an id alone, never a decision number such as `0013:D9`. Several ids in one
+    sentence are written `(enhancements 0010 and 0026)`. A link between entries uses the id in
+    words, not a path.
+  - Reserved ids: 0000, 0028, 0029. Blocked ids until the last phase has stripped every `0030:`
+    citation: 0030, 0031. Both lists are in `schema.cue`.
+
+rules:
+  proposal:
+    - Advice, not a refusal - about 300 words, not counting the `Open questions` section. Plain words.
+    - No decision numbers and no requirement ids. A type name the reader cannot know goes to the design.
+    - Open questions are one line each, marked `- Blocking:` or `- Not blocking:`. An answered one is
+      marked `- Answered:` and moves into the design theme it settles. Accept refuses a `- Blocking:`
+      line and an `- Answered:` line left in the proposal.
+    - A revived idea, or the successor of a superseded entry, is a new entry that names the old id in its Why.
+  design:
+    - Advice, not a refusal - about 1,500 words, rejected options included. One diagram of at most 7 boxes.
+    - About 7 themes of about 120 words. A theme is a lasting area, never a phase. Stances live in a theme.
+    - No numbered decisions. Point at a theme by its heading.
+    - Rejected options are one line each in `Considered and rejected`, at most 10. Long comparisons and
+      measurements go to `evidence/`.
+  specs:
+    - A requirement name is a short plain statement of at most 8 words (the checker warns above). No numbers, no ids.
+    - Each requirement has a SHALL or MUST sentence of at most 500 characters (the checker warns above) and
+      at least one `#### Scenario:`, written with the requirement.
+    - Admission test (the checker refuses) - no Go symbol, no CLI flag, no file path in a requirement.
+      A published CUE definition, which is part of a module's public schema, may be named. An internal
+      definition stays out.
+    - No `- Design:` line and no `- Changed by:` line. Provenance comes from `task history`.
+    - A delta that creates a capability opens with a real `## Purpose` of at least 50 characters that does not
+      start with `TBD` or `TODO`.
+    - A MODIFIED requirement keeps its name and every scenario of the main spec that still holds. To reverse a
+      shipped scenario, write a REMOVED whose `**Migration**` line has the fixed form `Replaced by "<new name>"`,
+      and an ADDED under the new name.
+    - A REMOVED requirement has `**Reason**` and `**Migration**`. A requirement is ADDED, MODIFIED, REMOVED or
+      RENAMED against `openspec/specs/` only. An entry that needs an undelivered entry stays a draft.
+    - "An entry with no requirements has no `specs/` folder and sets `skip_specs: true` in `.openspec.yaml`. An
+      entry with a `specs/` folder does not. The checker warns in a draft and refuses from accept."
+    - "A REMOVED that takes the last requirement of a capability needs `retire_capabilities: true` in
+      `.openspec.yaml`. Without it `openspec archive` aborts, and the checker refuses at delivery."
+    - "After accept, an edit to a requirement needs a re-sample. Run `task resample`, review what it prints, then
+      confirm. The confirmation rewrites the `accepted:` line. The checker refuses the edit in a pull request
+      until then. A seed follows the same rule after its `sampled:` line."
+  tasks:
+    - "One line per repo change, written `- [ ] <n>.<m> <repo>: <outcome>`, under `## <n>. <Theme>`. Name the outcome, never the method."
+    - The sections run in order - section 1 is done before section 2. This is advice; no field or check holds it.
+    - At accept, every repo in `affects` has a line.
+    - A ticked line ends with the change name without its date, `(<change-name>)`, or `(PR <n>)` for a repo with
+      no OpenSpec change. The tick is a pull request on this repo.
+
+operations:
+  apply:
+    guidance:
+      - Nothing is implemented in this repo. A task line is delivered by an OpenSpec change in the repo it names.
+  archive:
+    guidance:
+      - Archive an entry only through `task deliver`, `task reject`, `task withdraw` or `task supersede`. Only a
+        delivery, a seed or a Purpose-only correction changes `openspec/specs/`.

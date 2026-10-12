@@ -1,0 +1,14 @@
+id: "0100"
+slug: demo-entry
+title: Demo Entry
+summary: One line that says what OPM gains.
+status: accepted
+category: tooling
+breaking: false
+affects: 
+  - enhancements
+  - cli
+authors: 
+  - dev@example.com
+created: 2026-10-10
+accepted: "2026-10-10 abcdef1"

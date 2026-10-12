@@ -1,0 +1,14 @@
+# Withdrawn after accept: accepted may stay, a withdrawn record is required.
+id: "0036"
+slug: example-withdrawn
+title: An example withdrawn entry
+summary: One line.
+status: withdrawn
+category: misc
+affects: [opmodel.dev, docs-kit]
+authors: [emil@jacero.se]
+created: "2026-09-08"
+accepted: "2026-10-16 4be19d0"
+withdrawn:
+  date: "2026-10-20"
+  reason: The owner dropped the plan.

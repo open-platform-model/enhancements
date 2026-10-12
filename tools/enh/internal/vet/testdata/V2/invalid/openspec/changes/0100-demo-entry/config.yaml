@@ -1,0 +1,13 @@
+id: "0100"
+slug: demo-entry
+title: TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+summary: One line that says what OPM gains.
+status: draft
+category: tooling
+breaking: false
+affects: 
+  - enhancements
+  - cli
+authors: 
+  - dev@example.com
+created: 2026-10-10

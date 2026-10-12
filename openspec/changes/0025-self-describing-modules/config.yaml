@@ -1,0 +1,20 @@
+# Facts only. History is `git log`.
+id: "0025"
+slug: self-describing-modules
+title: Self-Describing Modules
+summary: >-
+  Let a module state facts about itself as a whole, as named bundles of catalog-published traits that
+  the kernel matches and renders the way it already does components.
+status: draft
+category: schema
+breaking: false
+affects:
+  - core
+  - library
+authors:
+  - emil@jacero.se
+created: "2026-09-08"
+after:
+  - "0010"
+  - "0015"
+  - "0019"

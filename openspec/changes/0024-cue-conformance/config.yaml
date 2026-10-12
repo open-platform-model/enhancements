@@ -1,0 +1,19 @@
+# Facts only. History is `git log`.
+id: "0024"
+slug: cue-conformance
+title: CUE Testing and Conformance
+summary: >-
+  Verify CUE behaviour two ways: assertions beside each definition, and an outside suite replaying
+  fixtures across CUE, core, catalog and Kubernetes versions.
+status: draft
+category: tooling
+breaking: false
+affects:
+  - core
+  - catalog_opm
+  - library
+authors:
+  - emil@jacero.se
+created: "2026-08-25"
+after:
+  - "0019"

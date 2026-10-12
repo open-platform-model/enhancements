@@ -1,0 +1,14 @@
+# expect: superseded_by.ids: incompatible list lengths
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: superseded
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"
+superseded_by:
+  date: "2026-10-11"
+  ids: []
+  reason: x

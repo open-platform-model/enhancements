@@ -1,0 +1,24 @@
+# Facts only. History is `git log`.
+id: "0027"
+slug: self-service-kinds
+title: Self-Service Kinds from Published Modules
+summary: >-
+  Let a platform team bind a published module to a kind consumers can create, so a consumer supplies
+  values and never names a module or a version.
+status: draft
+category: runtime
+breaking: false
+affects:
+  - core
+  - library
+  - catalog_opm
+  - cli
+  - opm-operator
+authors:
+  - emil@jacero.se
+created: "2026-09-20"
+after:
+  - "0010"
+  - "0015"
+  - "0021"
+  - "0025"

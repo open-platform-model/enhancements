@@ -1,0 +1,12 @@
+id: "0033"
+slug: delivered-thing
+title: Delivered Thing
+summary: A thing that shipped.
+status: delivered
+category: tooling
+breaking: false
+affects: [enhancements]
+authors: [emil@jacero.se]
+created: "2026-09-20"
+accepted: "2026-09-21 1234567"
+after: ["0003"]

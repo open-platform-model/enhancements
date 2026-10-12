@@ -1,0 +1,10 @@
+id: "0019"
+slug: kernel-render-parity
+title: Kernel render path parity with pure CUE
+summary: Make the Go kernel render exactly what plain CUE does.
+status: delivered
+category: runtime
+affects: [library]
+created: "2026-08-01"
+updated: "2026-09-04"
+authors: [emil@jacero.se]

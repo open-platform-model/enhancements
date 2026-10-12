@@ -1,0 +1,17 @@
+# Accepted: `accepted` and `breaking` are required.
+id: "0033"
+slug: example-accepted
+title: An example accepted entry
+summary: One line.
+status: accepted
+category: runtime
+breaking: false
+affects:
+  - opm-operator
+  - library
+  - enhancements
+  - .github
+authors:
+  - emil@jacero.se
+created: "2026-09-08"
+accepted: "2026-10-16 4be19d0"

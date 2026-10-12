@@ -1,0 +1,10 @@
+# The old folder of an entry that has converted: the converted entry stands for it.
+id: "0027"
+slug: self-service-kinds
+title: Self-Service Kinds (old layout)
+summary: This text must not reach INDEX.md or GRAPH.md.
+status: draft
+category: runtime
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-07-01"

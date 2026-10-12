@@ -1,0 +1,10 @@
+# expect: affects.0: conflicting values "catalog_opm" and "catalog"
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [catalog]
+authors: [emil@jacero.se]
+created: "2026-10-10"

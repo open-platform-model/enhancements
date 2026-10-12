@@ -1,0 +1,23 @@
+package core
+
+// WHY modulePath: 0010:D42 as amended by 0010:D49.
+#Module: {
+	// WHY apiVersion: 0010:D4; 0010:D44.
+	apiVersion: string
+
+	// WHY labels: enhancement 0010.
+	labels: _
+
+	// WHY fqn: enhancements 0010 and 0026
+	fqn: string
+
+	// COMMITTED `identity/identity.cue` (0010:D5): it holds the real
+	// version.
+	identity: _
+
+	// 0010:D36 sets the label.
+	other: _
+
+	msg: "see 0019:D21" // 0019:D23
+	raw: #"a "quoted" 0019:OQ3 string"#
+}

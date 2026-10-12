@@ -1,0 +1,12 @@
+id: "0035"
+slug: withdrawn-idea
+title: Withdrawn Idea
+summary: An idea the author dropped.
+status: withdrawn
+category: misc
+affects: [opm]
+authors: [emil@jacero.se]
+created: "2026-09-20"
+withdrawn:
+  date: "2026-10-15"
+  reason: The author moved on.

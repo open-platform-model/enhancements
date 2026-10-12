@@ -1,0 +1,10 @@
+# expect: summary: invalid value
+id: "0032"
+slug: example
+title: An example
+summary: "One line.\nTwo."
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

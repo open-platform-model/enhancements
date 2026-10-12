@@ -1,0 +1,11 @@
+# expect: depends_on: field not allowed
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"
+depends_on: []

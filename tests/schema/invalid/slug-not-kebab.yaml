@@ -1,0 +1,10 @@
+# expect: slug: invalid value "Not_Kebab"
+id: "0032"
+slug: Not_Kebab
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"

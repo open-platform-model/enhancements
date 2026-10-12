@@ -1,0 +1,23 @@
+# Facts only. History is `git log`.
+id: "0013"
+slug: secret-field-attributes
+title: Attribute-Declared Secret Fields
+summary: >-
+  Let an author mark which Kubernetes Secret a field belongs in with a CUE attribute, so the field
+  itself holds only the value the deployer supplies.
+status: draft
+category: schema
+breaking: true
+affects:
+  - core
+  - library
+  - catalog_opm
+  - modules
+  - cli
+  - opm-operator
+  - opmodel.dev
+authors:
+  - emil@jacero.se
+created: "2026-07-27"
+after:
+  - "0014"

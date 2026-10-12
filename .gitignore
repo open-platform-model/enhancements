@@ -1,12 +1,3 @@
-# Local-only flow diagrams.
-#
-# NNNN/diagrams/ holds long-form Mermaid renderings of an enhancement's process
-# flows: a viewing aid for walking a design or its implementation slices,
-# regenerable and personal. The committed diagrams are the one Mermaid block in
-# README.md ## How it works, plus any Mermaid or ASCII inside 01-problem.md /
-# 02-design.md / 05-risks.md, per .claude/skills/enhancement-diagrams/SKILL.md.
-[0-9][0-9][0-9][0-9]/diagrams/
-
 # docs bundle preview (task docs:bundle) and the pinned opm-docs binary
 /out/
 /.bin/

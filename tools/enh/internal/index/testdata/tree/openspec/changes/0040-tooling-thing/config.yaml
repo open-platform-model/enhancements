@@ -1,0 +1,12 @@
+id: "0040"
+slug: tooling-thing
+title: A Tooling Thing With a Rather Long Title That Needs Cutting Short For The Graph Label
+summary: Do a tooling thing.
+status: accepted
+category: tooling
+breaking: false
+affects: [enhancements]
+authors: [emil@jacero.se]
+created: "2026-10-01"
+accepted: "2026-10-02 abcdef1"
+after: ["0033"]

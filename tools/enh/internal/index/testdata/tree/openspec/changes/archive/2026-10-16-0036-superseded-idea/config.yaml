@@ -1,0 +1,13 @@
+id: "0036"
+slug: superseded-idea
+title: Superseded Idea
+summary: An idea two later entries replace.
+status: superseded
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-09-01"
+superseded_by:
+  date: "2026-10-16"
+  ids: ["0026", "0027"]
+  reason: Split in two.

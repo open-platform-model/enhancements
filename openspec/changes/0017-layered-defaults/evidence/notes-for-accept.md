@@ -1,0 +1,6 @@
+# Notes for the owner at accept
+
+These notes come from the alignment of 0017 with the seeds and the conversion. The old entry did not hold them as open questions, so they are not in the proposal.
+
+- **How the parity harness records the two accepted divergences.** The requirement "A divergence closes by removing kernel behaviour" of `render-parity` now says that the two accepted divergences are not kernel defects. The seed rules around it are unchanged. "Known divergences are recorded and asserted to reproduce" lets a case expect a divergence. "The oracle must render" makes a case with a failing oracle a broken fixture, also for a case that expects a divergence. Plain CUE reports the config-versus-blueprint collision as incomplete, so the oracle cannot render that case. The old text does not say whether that divergence has a parity case, is an expected-divergence case or has none. The owner decides, and whether "The oracle must render" changes with it.
+- **`breaking` is `true` without an old `semver` key.** The old `config.yaml` has no `semver` key. The old `operational.md` says "Enhancement `semver: major` overall", and the old graduation text asks for `semver` set to `major`. The conversion read that as `breaking: true`. The owner settles `breaking` at accept.

@@ -1,0 +1,10 @@
+id: "0027"
+slug: self-service-kinds
+title: Self-Service Kinds from Published Modules
+summary: Let a platform team bind a published module to a kind consumers can create | with no module name.
+status: draft
+category: runtime
+affects: [core, library]
+authors: [emil@jacero.se]
+created: 2026-10-07
+after: ["0026"]

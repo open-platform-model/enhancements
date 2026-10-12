@@ -1,0 +1,10 @@
+# expect: affects: incompatible list lengths (0 and 1)
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: draft
+category: schema
+affects: []
+authors: [emil@jacero.se]
+created: "2026-10-10"

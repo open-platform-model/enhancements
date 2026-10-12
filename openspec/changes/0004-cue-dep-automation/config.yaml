@@ -1,0 +1,21 @@
+# Facts only. History is `git log`.
+id: "0004"
+slug: cue-dep-automation
+title: Automated CUE Dependency Updates via Dagger
+summary: >-
+  One Dagger function bumps every CUE dependency it finds, staying inside the major already pinned,
+  run by hand or by a daily CI job that opens one pull request per repo.
+status: draft
+category: tooling
+breaking: false
+affects:
+  - core
+  - library
+  - catalog_opm
+  - cli
+  - opm-operator
+  - modules
+  - .github
+authors:
+  - emil@jacero.se
+created: "2026-06-17"

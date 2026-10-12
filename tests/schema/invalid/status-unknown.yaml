@@ -1,0 +1,10 @@
+# expect: status: conflicting values "draft" and "implemented"
+id: "0032"
+slug: example
+title: An example
+summary: One line.
+status: implemented
+category: schema
+affects: [core]
+authors: [emil@jacero.se]
+created: "2026-10-10"
