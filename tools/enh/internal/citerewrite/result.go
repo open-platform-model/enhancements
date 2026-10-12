@@ -32,6 +32,7 @@ const (
 	KindUnknownID      = "unknown-id" // an id that is not one of the 27 entries
 	KindRetracted      = "retracted"  // a decision whose heading is a retraction date
 	KindUnknownDec     = "unknown-decision"
+	KindCUEDef         = "cue-definition" // the title names a CUE definition (#Name)
 	KindEntryFile      = "entry-file"      // a path to a file inside an entry
 	KindPath           = "path"            // a path to a file of the old entry layout
 	KindPathRef        = "path-ref"        // enhancements/NNNN in a code comment

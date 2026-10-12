@@ -85,3 +85,40 @@ func TestOldLayoutPaths(t *testing.T) {
 			in: "See enhancements/0010/design.md now.\n", sites: []string{"1:entry-file"}},
 	})
 }
+
+// Defect 5: a title that holds a CUE definition token is not written into the
+// text. The site goes to the worklist with the title in its row.
+func TestCUEDefinitionTitle(t *testing.T) {
+	d1, _ := DefaultTitles().Title("0001", 3)
+	if !cueDefRe.MatchString(d1) {
+		t.Fatalf("the title table changed: 0001 D3 = %q holds no definition token", d1)
+	}
+	d4, _ := DefaultTitles().Title("0010", 4)
+	runCases(t, []rewriteCase{
+		{name: "markdown sentence", file: "a.md",
+			in: "The slot is injected (0001:D3) by the module.\n", sites: []string{"1:cue-definition"}},
+		{name: "spoken form", file: "a.md",
+			in: "Per enhancement 0001 D3 the slot is injected.\n", sites: []string{"1:cue-definition"}},
+		{name: "yaml value", file: "a.yaml",
+			in: "rule: the slot is injected (0001:D3)\n", sites: []string{"1:cue-definition"}},
+		{name: "one bad title holds back the phrase", file: "a.md",
+			in: "x 0010:D4 and 0001:D3 y\n", sites: []string{"1:cue-definition"}},
+		{name: "link text", file: "a.md",
+			in: "x [0001:D3](/enhancements/0001/decisions/) y\n", sites: []string{"1:cue-definition"}},
+		{name: "a title without a token is written", file: "a.md",
+			in: "x 0010:D4 y\n", want: "x enhancement 0010 (" + Quoted(d4) + ") y\n"},
+	})
+	if got, bad := textForm(DefaultTitles(), nil, false); got != "" || bad != "" {
+		t.Errorf("no citation: %q %q", got, bad)
+	}
+	for _, s := range []string{"C# is fine", "issue #12", "no token"} {
+		if cueDefRe.MatchString(s) {
+			t.Errorf("%q is no definition token", s)
+		}
+	}
+	for _, s := range []string{"the #Module wires it", "#Component.#release slot", "(#Foo)"} {
+		if !cueDefRe.MatchString(s) {
+			t.Errorf("%q holds a definition token", s)
+		}
+	}
+}

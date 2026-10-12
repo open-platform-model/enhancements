@@ -411,8 +411,8 @@ func TestReviewCases(t *testing.T) {
 			in:   "| b | 0012:D1 |\n",
 			want: "| b | enhancement 0012 (" + Quoted(effTitle("0012", 1)) + ") |\n"},
 		{name: "0025 D3 resolves to its moved target", file: "a.md",
-			in:   "Moved: 0025:D3.\n",
-			want: "Moved: enhancement 0027 (" + Quoted(effTitle("0027", 3)) + ").\n"},
+			// the moved target's title names #ModuleInstance: a worklist row since T5.9a
+			in: "Moved: 0025:D3.\n", sites: []string{"1:cue-definition"}},
 		{name: "0025 D3 in a code comment names 0027", file: "a.go",
 			in:   "package a\n\n// Reads the limit (0025:D3).\nvar x = 1\n",
 			want: "package a\n\n// Reads the limit (enhancement 0027).\nvar x = 1\n"},
@@ -487,8 +487,8 @@ func TestReviewCases(t *testing.T) {
 			in: "Retracted per 0018:D12.\n", sites: []string{"1:retracted"}},
 		// ruling 23:59: a long title is written in full
 		{name: "long title in full", file: "a.md",
-			in:   "x 0026:D2 y\n",
-			want: "x enhancement 0026 (" + Quoted(titleOf("0026", 2)) + ") y\n"},
+			// the title names #Platform: a worklist row since T5.9a
+			in: "x 0026:D2 y\n", sites: []string{"1:cue-definition"}},
 		{name: "heading id gets its short form", file: "a.md",
 			in:   "x 0015:D17 y\n",
 			want: "x enhancement 0015 (\"The generated-platform record survives the render-parity enhancement and is held per package identity, not per Platform CR generation\") y\n"},

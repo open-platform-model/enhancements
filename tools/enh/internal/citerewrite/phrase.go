@@ -113,6 +113,11 @@ func titleLine(tt *Titles, cs []cites.Cite) string {
 	return strings.Join(parts, " | ")
 }
 
+// cueDefRe finds a CUE definition token (#Module, #Component.#release) in a
+// title. A repo that checks its text against its CUE definitions (core's
+// spec:check) reads the token as a reference, and the definition may be retired.
+var cueDefRe = regexp.MustCompile(`(^|[^A-Za-z0-9_])#[A-Za-z_]`)
+
 // textForm renders live citations as prose (form 2): enhancement 0010
 // ("title"), enhancement 0010 ("a" and "b"), enhancement 0010 ("a"), and so on.
 // compact writes the single-id form for a parenthesis, without nested
@@ -138,6 +143,9 @@ func textForm(tt *Titles, cs []cites.Cite, compact bool) (string, string) {
 			}
 			if _, seen := byID[rid]; !seen {
 				ids = append(ids, rid)
+			}
+			if cueDefRe.MatchString(title) {
+				return "", KindCUEDef
 			}
 			q := Quoted(title)
 			dup := false
