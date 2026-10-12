@@ -67,7 +67,7 @@ func TestNewRefusals(t *testing.T) {
 
 func TestNewWithAGivenIDRefusesTakenIDs(t *testing.T) {
 	f := newFx(t)
-	for _, id := range []string{"0001", "0100", "0028", "0000", "0030"} {
+	for _, id := range []string{"0001", "0100", "0028", "0000", "0029"} {
 		f.env.ID = id
 		if _, err := f.env.New(goodArgs()); !IsRefusal(err) {
 			t.Errorf("id %s: err = %v, want a refusal", id, err)
