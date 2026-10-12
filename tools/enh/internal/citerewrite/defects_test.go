@@ -122,3 +122,38 @@ func TestCUEDefinitionTitle(t *testing.T) {
 		}
 	}
 }
+
+// Defect 7: a range or a contrast between requirements of one decision gives
+// the title once, and the sentence stays valid.
+func TestRequirementRange(t *testing.T) {
+	d2, _ := DefaultTitles().Title("0013", 2)
+	d3, _ := DefaultTitles().Title("0013", 1)
+	one := "enhancement 0013 (" + Quoted(d2) + ")"
+	runCases(t, []rewriteCase{
+		{name: "R11 to R14", file: "a.md",
+			in: "Use 0013:D2:R11 to R14 here.\n", want: "Use " + one + " here.\n"},
+		{name: "R3 through R5", file: "a.md",
+			in: "Use 0013:D2:R3 through R5 here.\n", want: "Use " + one + " here.\n"},
+		{name: "R3 and R4", file: "a.md",
+			in: "Use 0013:D2:R3 and R4 here.\n", want: "Use " + one + " here.\n"},
+		{name: "R3, not R4", file: "a.md",
+			in: "Use 0013:D2:R3, not R4, here.\n", want: "Use " + one + ", here.\n"},
+		{name: "two full citations with to", file: "a.md",
+			in: "Use 0013:D2:R3 to 0013:D2:R4 here.\n", want: "Use " + one + " here.\n"},
+		{name: "two full citations with not", file: "a.md",
+			in: "Use 0013:D2:R3, not 0013:D2:R4, here.\n", want: "Use " + one + ", here.\n"},
+		{name: "two full citations with a dash", file: "a.md",
+			in: "Use 0013:D2:R3 - 0013:D2:R4 here.\n", want: "Use " + one + " here.\n"},
+		{name: "spoken pair", file: "a.md",
+			in: "Use enhancement 0013 D2 or enhancement 0013 D2 here.\n", want: "Use " + one + " here.\n"},
+		{name: "different decisions stay apart", file: "a.md",
+			in:   "Use 0013:D2:R3 to 0013:D1:R1 here.\n",
+			want: "Use " + one + " to enhancement 0013 (" + Quoted(d3) + ") here.\n"},
+		{name: "code comment, parenthesis", file: "a.go",
+			in:   "package a\n\n// Reads the limit (0013:D2:R3 to 0013:D2:R4).\nvar x = 1\n",
+			want: "package a\n\n// Reads the limit (enhancement 0013).\nvar x = 1\n"},
+		{name: "code comment, contrast at the end", file: "a.go",
+			in:   "package a\n\n// Reads the limit, per 0013:D2:R3, not R4.\nvar x = 1\n",
+			want: "package a\n\n// Reads the limit (enhancement 0013).\nvar x = 1\n"},
+	})
+}

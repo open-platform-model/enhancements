@@ -22,12 +22,36 @@ type phrase struct {
 
 var joinRe = regexp.MustCompile(`^(?:[ \t]*,[ \t]*and[ \t]+|[ \t]*[,;/&][ \t]*|[ \t]+and[ \t]+|[ \t]+or[ \t]+)$`)
 
+// rangeRe is the gap of a range or a contrast between two citations of the
+// same decision: "R11 to R14", "R3, not R4", "R3 or R4", "R3 - R4".
+var rangeRe = regexp.MustCompile(`^(?:[ \t]*,)?[ \t]+(?:to|through|not|but not|and not|or|vs\.?|versus|and)[ \t]+$|^[ \t]*[-\x{2013}\x{2014}][ \t]*$`)
+
+// sameDecisions reports whether two citations name the same decisions of one
+// entry. After a rewrite they would read as the same title twice ("X to X"),
+// so they form one phrase and the title is written once.
+func sameDecisions(a, b cites.Cite) bool {
+	if a.ID != b.ID || len(a.Decisions) == 0 || len(a.OQ)+len(b.OQ) > 0 || len(a.Decisions) != len(b.Decisions) {
+		return false
+	}
+	for _, n := range a.Decisions {
+		found := false
+		for _, m := range b.Decisions {
+			found = found || n == m
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func groupPhrases(text string, cs []cites.Cite) []phrase {
 	var out []phrase
 	for _, c := range cs {
 		if n := len(out); n > 0 && !c.Path && !out[n-1].path {
 			gap := text[out[n-1].end:c.LeadStart]
-			if joinRe.MatchString(gap) {
+			last := out[n-1].cites[len(out[n-1].cites)-1]
+			if joinRe.MatchString(gap) || sameDecisions(last, c) && rangeRe.MatchString(gap) {
 				p := &out[n-1]
 				p.cites = append(p.cites, c)
 				p.end = c.End

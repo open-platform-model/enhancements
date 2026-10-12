@@ -48,7 +48,8 @@ var (
 	idRe = regexp.MustCompile("[0-9]{4}")
 
 	// partRe reads one decision or question: D4, D4:R1/R2, OQ2.
-	partRe = regexp.MustCompile(`^(?:D([0-9]+)(?::R[0-9]+(?:(?:/|-)R?[0-9]+|,[ \t]*R[0-9]+)*)*|OQ([0-9]+))`)
+	// A requirement list also reads in words: R11 to R14, R3 and R4, R3, not R4.
+	partRe = regexp.MustCompile(`^(?:D([0-9]+)(?::R[0-9]+(?:(?:/|-)R?[0-9]+|,[ \t]*R[0-9]+|[ \t]+(?:to|through|and|or)[ \t]+R[0-9]+|,[ \t]+not[ \t]+R[0-9]+)*)*|OQ([0-9]+))`)
 
 	// moreRe reads the joiner of a further decision of the same id.
 	moreRe = regexp.MustCompile(`^(?:,[ \t]+and[ \t]+|,[ \t]*|[ \t]+and[ \t]+|[ \t]*&[ \t]*|/)`)
