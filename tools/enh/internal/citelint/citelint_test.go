@@ -318,3 +318,32 @@ func TestBuiltInSkips(t *testing.T) {
 		t.Errorf("an absolute path inside the root is skipped")
 	}
 }
+
+// A walk skips a folder .claude (agent skills); a path that names it is linted.
+func TestClaudeFolder(t *testing.T) {
+	root := t.TempDir()
+	bad := "package a\n\n// 0010" + ":D1\nvar _ = 1\n"
+	write(t, root, ".claude/skills/s/x.go", bad)
+	write(t, root, "sub/.claude/y.go", bad)
+	write(t, root, ".claude/worktrees/w/z.go", bad)
+	write(t, root, "ok/b.go", bad)
+	for _, tc := range []struct {
+		name  string
+		paths []string
+		files int
+	}{
+		{"walk of the root", []string{"."}, 1},
+		{"a named file", []string{".claude/skills/s/x.go"}, 1},
+		{"a named folder", []string{".claude"}, 1},
+		{"a named inner folder", []string{".claude/skills"}, 1},
+		{"a nested folder in a walk", []string{"sub"}, 0},
+		{"a named worktree stays skipped", []string{".claude/worktrees/w/z.go"}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := LintFiles(root, tc.paths, Options{})
+			if err != nil || res.Checked != tc.files || (len(res.Findings) > 0) != (tc.files > 0) {
+				t.Fatalf("res=%+v err=%v", res, err)
+			}
+		})
+	}
+}

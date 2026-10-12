@@ -233,7 +233,7 @@ func Run(opts Options) (*Report, error) {
 			}
 			rel = citelint.UnderRoot(opts.Root, filepath.ToSlash(rel))
 			if d.IsDir() {
-				if citelint.SkipDir(rel) || citelint.Excluded(rel+"/", opts.Exclude) {
+				if citelint.SkipDir(rel, fp == full) || citelint.Excluded(rel+"/", opts.Exclude) {
 					return filepath.SkipDir
 				}
 				return nil

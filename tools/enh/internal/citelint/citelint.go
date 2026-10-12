@@ -324,9 +324,21 @@ func excluded(p string, pats []string) bool {
 	return false
 }
 
-// skipDir names the directories a walk never enters: version control, vendored
-// code, the CUE caches, agent worktrees and the swarm folder.
-func skipDir(rel string) bool {
+// skipDirAt names the directories a walk never enters: version control, vendored
+// code, the CUE caches, agent worktrees, the swarm folder and, unless the
+// caller named it as the root of the walk (named true), a folder .claude. That
+// folder holds the agent skills of a repo and their text is not source; a path
+// named on the command line is processed.
+func skipDirAt(rel string, named bool) bool {
+	base := path.Base(rel)
+	if base == ".claude" {
+		return !named
+	}
+	return skipAlways(rel)
+}
+
+// skipAlways holds the directories that even a named path does not enter.
+func skipAlways(rel string) bool {
 	base := path.Base(rel)
 	switch base {
 	case ".git", "node_modules", "vendor", ".cue-cache", "agent-swarm":
@@ -342,9 +354,10 @@ func skipDir(rel string) bool {
 
 // Skipped reports whether a file path (slash-separated, relative to the repo
 // root) is outside every citation tool: release-please history (CHANGELOG.md)
-// and anything under a directory that skipDir names (vendor/**, agent-swarm/,
+// and anything under a directory that skipAlways names (vendor/**, agent-swarm/,
 // .claude/worktrees/, the CUE caches). A walk never enters such a directory;
-// this check covers a file named in a path list.
+// this check covers a file named in a path list. A file under .claude/ that a
+// list names is not skipped: the list is explicit.
 func Skipped(rel string) bool {
 	rel = filepath.ToSlash(rel)
 	if path.Base(rel) == "CHANGELOG.md" {
@@ -352,7 +365,7 @@ func Skipped(rel string) bool {
 	}
 	parts := strings.Split(rel, "/")
 	for i := range parts[:len(parts)-1] {
-		if skipDir(strings.Join(parts[:i+1], "/")) {
+		if skipAlways(strings.Join(parts[:i+1], "/")) {
 			return true
 		}
 	}
@@ -433,7 +446,7 @@ func LintFiles(root string, paths []string, opts Options) (Result, error) {
 			}
 			rel = filepath.ToSlash(rel)
 			if d.IsDir() {
-				if skipDir(rel) || excluded(rel+"/", opts.Exclude) {
+				if skipDirAt(rel, fp == full) || excluded(rel+"/", opts.Exclude) {
 					return filepath.SkipDir
 				}
 				return nil

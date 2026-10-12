@@ -97,8 +97,9 @@ func UnderRoot(root, p string) string { return underRoot(root, p) }
 // semantics of the --exclude flag.
 func Excluded(p string, pats []string) bool { return excluded(p, pats) }
 
-// SkipDir reports whether a walk never enters the directory.
-func SkipDir(rel string) bool { return skipDir(rel) }
+// SkipDir reports whether a walk never enters the directory. named is true for
+// the root of a walk that the caller named: a folder .claude is entered then.
+func SkipDir(rel string, named bool) bool { return skipDirAt(rel, named) }
 
 // OnlyIDs reports whether text holds at least one id and nothing else but
 // linking words and punctuation: the lint's lone-id test.
