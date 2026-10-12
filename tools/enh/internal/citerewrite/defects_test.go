@@ -127,7 +127,6 @@ func TestCUEDefinitionTitle(t *testing.T) {
 // the title once, and the sentence stays valid.
 func TestRequirementRange(t *testing.T) {
 	d2, _ := DefaultTitles().Title("0013", 2)
-	d3, _ := DefaultTitles().Title("0013", 1)
 	one := "enhancement 0013 (" + Quoted(d2) + ")"
 	runCases(t, []rewriteCase{
 		{name: "R11 to R14", file: "a.md",
@@ -146,9 +145,9 @@ func TestRequirementRange(t *testing.T) {
 			in: "Use 0013:D2:R3 - 0013:D2:R4 here.\n", want: "Use " + one + " here.\n"},
 		{name: "spoken pair", file: "a.md",
 			in: "Use enhancement 0013 D2 or enhancement 0013 D2 here.\n", want: "Use " + one + " here.\n"},
-		{name: "different decisions stay apart", file: "a.md",
+		{name: "different decisions of one id: the second repeats the id", file: "a.md",
 			in:   "Use 0013:D2:R3 to 0013:D1:R1 here.\n",
-			want: "Use " + one + " to enhancement 0013 (" + Quoted(d3) + ") here.\n"},
+			want: "Use " + one + " to 0013:D1:R1 here.\n", sites: []string{"1:repeat-id"}},
 		{name: "code comment, parenthesis", file: "a.go",
 			in:   "package a\n\n// Reads the limit (0013:D2:R3 to 0013:D2:R4).\nvar x = 1\n",
 			want: "package a\n\n// Reads the limit (enhancement 0013).\nvar x = 1\n"},
@@ -287,5 +286,57 @@ func TestRuleSentence(t *testing.T) {
 			want: "a: The system SHALL reject it\nb: Note (enhancement 0010, " + Quoted(d4) + ")\n"},
 		{name: "unknown decision in a rule", file: "a.md",
 			in: "The system SHALL reject it (0010:D999).\n", sites: []string{"1:unknown-decision"}},
+	})
+}
+
+// Defect 1: an id that the sentence names already is not written again. The
+// first mention keeps the id; the repeat is dropped, or goes on the worklist.
+func TestDoubledID(t *testing.T) {
+	d4 := titleOf("0010", 4)
+	runCases(t, []rewriteCase{
+		// Go and CUE comments (form 1)
+		{name: "code: id named just before the parenthesis", file: "a.go",
+			in:   "package a\n\n// Introduced by enhancement 0001 (0001:D5).\nvar x = 1\n",
+			want: "package a\n\n// Introduced by enhancement 0001.\nvar x = 1\n"},
+		{name: "code: id named earlier in the sentence", file: "a.go",
+			in:   "package a\n\n// Measured in enhancement 0010 experiment 04 (0010:D2).\nvar x = 1\n",
+			want: "package a\n\n// Measured in enhancement 0010 experiment 04.\nvar x = 1\n"},
+		{name: "code: bare id named earlier", file: "a.cue",
+			in:   "// The key of 0010 is fixed (0010:D4).\nx: 1\n",
+			want: "// The key of 0010 is fixed.\nx: 1\n"},
+		{name: "code: per at the end", file: "a.go",
+			in:   "package a\n\n// The limit of enhancement 0010 is read, per 0010:D4.\nvar x = 1\n",
+			want: "package a\n\n// The limit of enhancement 0010 is read.\nvar x = 1\n"},
+		{name: "code: two parentheses of one id in one sentence", file: "a.go",
+			in:   "package a\n\n// The key (0010:D4) and the level (0010:D7) are fixed.\nvar x = 1\n",
+			want: "package a\n\n// The key (enhancement 0010) and the level are fixed.\nvar x = 1\n"},
+		{name: "code: next sentence names it again", file: "a.go",
+			in:   "package a\n\n// The key is fixed (0010:D4). The level is fixed (0010:D7).\nvar x = 1\n",
+			want: "package a\n\n// The key is fixed (enhancement 0010). The level is fixed (enhancement 0010).\nvar x = 1\n"},
+		{name: "code: other id is no repeat", file: "a.go",
+			in:   "package a\n\n// Introduced by enhancement 0001 (0010:D4).\nvar x = 1\n",
+			want: "package a\n\n// Introduced by enhancement 0001 (enhancement 0010).\nvar x = 1\n"},
+		{name: "code: one of two ids repeats", file: "a.go",
+			in: "package a\n\n// Introduced by enhancement 0001 (0001:D5, 0010:D4).\nvar x = 1\n", sites: []string{"3:repeat-id"}},
+		{name: "code: parenthesis at the sentence start", file: "a.go",
+			in: "package a\n\n// (0001:D5) is the rule of enhancement 0001.\nvar x = 1\n", sites: []string{"3:repeat-id"}},
+		// Markdown and YAML (form 2)
+		{name: "text: id named just before the parenthesis", file: "a.md",
+			in:   "Introduced by enhancement 0010 (0010:D4) and fixed.\n",
+			want: "Introduced by enhancement 0010 (" + Quoted(d4) + ") and fixed.\n"},
+		{name: "text: id named earlier, not adjacent", file: "a.md",
+			in: "Measured in enhancement 0010 experiment 04 (0010:D4).\n", sites: []string{"1:repeat-id"}},
+		{name: "text: two citations of one id in one sentence", file: "a.md",
+			in:   "The key (0010:D4) and the level (0010:D7) are fixed.\n",
+			want: "The key (enhancement 0010, " + Quoted(d4) + ") and the level (0010:D7) are fixed.\n", sites: []string{"1:repeat-id"}},
+		{name: "text: next sentence names it again", file: "a.md",
+			in:   "The key is fixed (0010:D4). The key is read (0010:D4).\n",
+			want: "The key is fixed (enhancement 0010, " + Quoted(d4) + "). The key is read (enhancement 0010, " + Quoted(d4) + ").\n"},
+		{name: "text: yaml value, id just before", file: "a.yaml",
+			in:   "note: from enhancement 0010 (0010:D4)\n",
+			want: "note: from enhancement 0010 (" + Quoted(d4) + ")\n"},
+		{name: "text: rule sentence repeats the id", file: "a.md",
+			in:   "The system SHALL follow enhancement 0010 (0010:D4).\n",
+			want: "The system SHALL follow enhancement 0010.\n"},
 	})
 }

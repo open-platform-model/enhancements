@@ -75,8 +75,8 @@ func (c *ctx) codeParagraph(p citelint.Paragraph) {
 	c.bareRetired(joined, cs, m.abs)
 	c.oldPathSites(joined, m.abs)
 	phs := groupPhrases(joined, cs)
-	for _, ph := range phs {
-		c.codePhrase(p, m, joined, ph)
+	for i := range phs {
+		c.codePhrase(p, m, joined, phs, i)
 	}
 	// A path to an entry in a comment is for an agent: the words around it
 	// decide what the comment should say.
@@ -101,7 +101,8 @@ func (c *ctx) codeParagraph(p citelint.Paragraph) {
 	}
 }
 
-func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phrase) {
+func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, phs []phrase, idx int) {
+	ph := phs[idx]
 	at := m.abs(ph.cites[0].Start)
 	live, _ := splitRetired(ph.cites)
 	switch {
@@ -142,6 +143,15 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 	e, ok := formOneEdit(joined, ph, canon, false)
 	if !ok {
 		c.codeSite(m, ph, KindInline)
+		return
+	}
+	// The sentence names the enhancement already: do not write it twice.
+	if _, any, all := repeats(joined, phs, idx, ids); any {
+		if d, ok := dropEdit(joined, e); all && ok {
+			c.commit(m, d, at, ph, nil)
+		} else {
+			c.codeSite(m, ph, KindRepeatID)
+		}
 		return
 	}
 	// A lead word on the line above ("(enhancement" then "0015:D1)"): keep the

@@ -32,6 +32,7 @@ const (
 	KindUnknownID      = "unknown-id" // an id that is not one of the 27 entries
 	KindRetracted      = "retracted"  // a decision whose heading is a retraction date
 	KindUnknownDec     = "unknown-decision"
+	KindRepeatID       = "repeat-id"       // the sentence names the enhancement already
 	KindRuleSentence   = "rule-sentence"   // the sentence states a rule; no title goes in
 	KindCUEDef         = "cue-definition"  // the title names a CUE definition (#Name)
 	KindEntryFile      = "entry-file"      // a path to a file inside an entry

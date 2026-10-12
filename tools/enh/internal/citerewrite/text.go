@@ -339,7 +339,8 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 
 	spans := codeSpans(line, lc.kind == textMarkdown)
 	cs := cites.Scan(line)
-	for _, ph := range groupPhrases(line, cs) {
+	phs := groupPhrases(line, cs)
+	for idx, ph := range phs {
 		if inDone(ph.start, ph.end) {
 			continue
 		}
@@ -370,7 +371,7 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 				c.edit(Edit{Start: base + rs, End: base + re, New: repl, Form: FormRetired})
 			}
 		default:
-			c.proseEdit(line, base, lc, ph, live, table)
+			c.proseEdit(line, base, lc, phs, idx, live, table)
 		}
 	}
 	c.bareRetired(line, cs, func(i int) int { return base + i })
@@ -378,10 +379,11 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 }
 
 // proseEdit writes form 2 for a phrase of live citations.
-func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cites.Cite, table bool) {
+func (c *ctx) proseEdit(line string, base int, lc lineCtx, phs []phrase, idx int, live []cites.Cite, table bool) {
+	ph := phs[idx]
 	at := base + ph.cites[0].Start
 	if lc.rule {
-		c.ruleEdit(line, base, lc, ph, live)
+		c.ruleEdit(line, base, lc, phs, idx, live)
 		return
 	}
 	ls := extendLeadin(line, ph.start)
@@ -393,6 +395,20 @@ func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cit
 		start, end, compact = b, a, true
 	}
 	text, bad := textForm(c.tt, live, compact)
+	if ids, rbad := resolvedIDs(c.tt, live); bad == "" && rbad == "" {
+		if named, any, _ := repeats(line, phs, idx, ids); any {
+			// The sentence names the enhancement already. "enhancement 0001
+			// (0001:D3)" keeps its id and gains the title; any other repeat is
+			// for an agent.
+			open := strings.TrimRight(line[:b-btoi(compact)], " \t")
+			if compact && len(ids) == 1 && named[0] && strings.HasSuffix(open, ids[0]) {
+				text = strings.TrimPrefix(text, "enhancement "+ids[0]+", ")
+			} else {
+				c.site(at, KindRepeatID, ph.cites)
+				return
+			}
+		}
+	}
 	if bad != "" {
 		c.site(at, bad, ph.cites)
 		return
@@ -418,7 +434,8 @@ func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cit
 // ruleEdit writes form 1 for a citation in a sentence that states a rule: the
 // sentence already says what the rule is, so a decision title does not go in.
 // When no safe shape fits, the site is a worklist row.
-func (c *ctx) ruleEdit(line string, base int, lc lineCtx, ph phrase, live []cites.Cite) {
+func (c *ctx) ruleEdit(line string, base int, lc lineCtx, phs []phrase, idx int, live []cites.Cite) {
+	ph := phs[idx]
 	at := base + ph.cites[0].Start
 	ids, bad := resolvedIDs(c.tt, live)
 	if bad != "" {
@@ -429,6 +446,14 @@ func (c *ctx) ruleEdit(line string, base int, lc lineCtx, ph phrase, live []cite
 	if !ok {
 		c.site(at, KindRuleSentence, ph.cites)
 		return
+	}
+	if _, any, all := repeats(line, phs, idx, ids); any {
+		d, ok := dropEdit(line, e)
+		if !all || !ok {
+			c.site(at, KindRepeatID, ph.cites)
+			return
+		}
+		e = d
 	}
 	if lc.kind == textYAML {
 		if _, ok := fitYAML(lc.yaml, ph.start, e.New); !ok {
@@ -615,4 +640,11 @@ func commentAfterQuote(line string, start int) int {
 		}
 	}
 	return -1
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
