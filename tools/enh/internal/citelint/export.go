@@ -72,14 +72,12 @@ func Parse(name string, src []byte) (paras []Paragraph, strs []String, ok bool) 
 	for _, g := range buildGroups(spans) {
 		for _, para := range g.paragraphs() {
 			p := Paragraph{}
-			why := false
+			var texts []string
 			for _, l := range para.lines {
 				p.Lines = append(p.Lines, Line{Line: l.line, Text: l.text, Off: l.off})
-				if m := whyRe.FindStringSubmatch(l.text); m != nil && onlyIDs(m[2]) {
-					why = true
-				}
+				texts = append(texts, l.text)
 			}
-			p.Lone = why || onlyIDs(para.joined())
+			p.Lone = LoneParagraph(texts)
 			paras = append(paras, p)
 		}
 	}
@@ -104,3 +102,14 @@ func SkipDir(rel string, named bool) bool { return skipDirAt(rel, named) }
 // OnlyIDs reports whether text holds at least one id and nothing else but
 // linking words and punctuation: the lint's lone-id test.
 func OnlyIDs(text string) bool { return onlyIDs(text) }
+
+// LoneParagraph reports whether the lines of one comment paragraph hold only
+// ids and linking words, or a "WHY name: id" label (the lint fails both).
+func LoneParagraph(lines []string) bool {
+	for _, l := range lines {
+		if m := whyRe.FindStringSubmatch(l); m != nil && onlyIDs(m[2]) {
+			return true
+		}
+	}
+	return onlyIDs(strings.Join(lines, " "))
+}

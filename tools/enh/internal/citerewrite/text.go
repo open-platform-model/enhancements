@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/open-platform-model/enhancements/tools/enh/internal/citelint"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/cites"
 )
 
@@ -37,6 +38,8 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 	// prevProse and prevEnds say whether the line above is prose of the same
 	// paragraph and whether it ends a sentence.
 	prevProse, prevEnds := false, true
+	rules := c.ruleLines(kind)
+	var cm commentRun
 	for ln := 1; ln <= len(c.li.starts); ln++ {
 		line := c.li.text(ln)
 		base := c.li.starts[ln-1]
@@ -63,7 +66,7 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 				continue
 			}
 		}
-		lc := lineCtx{kind: kind}
+		lc := lineCtx{kind: kind, rule: rules[ln]}
 		if kind == textYAML {
 			lc.yaml, blockIndent = classifyYAML(line, blockIndent)
 		}
@@ -73,17 +76,37 @@ func processText(name string, src []byte, tt *Titles, kind textKind) FileResult 
 			prevProse = strings.TrimSpace(line) != ""
 			prevEnds = endsSentenceLine(line)
 		}
-		if kind == textYAML {
-			// classified above
-		} else if kind == textHash {
-			lc.yaml = yamlInfo{comment: strings.HasPrefix(strings.TrimSpace(line), "#")}
-			if !lc.yaml.comment {
-				c.lineSites(line, base, KindString)
-				continue
+		// A comment of a YAML or shell file is a comment, as in Go: the words
+		// around the citation state the reason, so it takes form 1 only. The
+		// engine of the Go comments reads it.
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case kind == textYAML && !lc.yaml.block && strings.HasPrefix(trimmed, "#"),
+			kind == textHash && strings.HasPrefix(trimmed, "#"):
+			if ln == 1 && strings.HasPrefix(trimmed, "#!") {
+				cm.flush(c)
+				continue // the interpreter line
 			}
+			cm.add(commentLine(line, strings.Index(line, "#"), base, ln))
+			continue
+		case kind == textYAML && !lc.yaml.block && trimmed == "", kind == textHash && trimmed == "":
+			cm.flush(c)
+			continue
+		case kind == textHash:
+			cm.flush(c)
+			c.lineSites(line, base, KindString)
+			continue
+		}
+		cm.flush(c)
+		if kind == textYAML && lc.yaml.commentAt >= 0 && lc.yaml.commentAt+1 < len(line) && line[lc.yaml.commentAt+1] == '#' {
+			// A trailing comment after a value is a paragraph of its own.
+			cm.add(commentLine(line, lc.yaml.commentAt+1, base, ln))
+			cm.flush(c)
+			line = line[:lc.yaml.commentAt]
 		}
 		c.textLine(line, base, lc)
 	}
+	cm.flush(c)
 	return c.res
 }
 
@@ -110,6 +133,79 @@ type lineCtx struct {
 	// prevCont is true when the line goes on from the sentence of the line
 	// above, nextCont when its sentence goes on in the line below.
 	prevCont, nextCont bool
+	// rule is true when the paragraph holds a rule keyword (SHALL, MUST): the
+	// sentence states a rule and no title goes into it.
+	rule bool
+}
+
+// commentRun collects the lines of one comment of a YAML or shell file.
+type commentRun struct{ lines []citelint.Line }
+
+func (r *commentRun) add(l citelint.Line) {
+	if l.Text == "" {
+		return // an empty comment line ends the paragraph at the next flush
+	}
+	r.lines = append(r.lines, l)
+}
+
+// flush hands the collected lines to the engine of code comments.
+func (r *commentRun) flush(c *ctx) {
+	if len(r.lines) == 0 {
+		return
+	}
+	texts := make([]string, len(r.lines))
+	for i, l := range r.lines {
+		texts[i] = l.Text
+	}
+	c.codeParagraph(citelint.Paragraph{Lines: r.lines, Lone: citelint.LoneParagraph(texts)})
+	r.lines = nil
+}
+
+// commentLine reads a comment that starts with the # at index hash of line.
+func commentLine(line string, hash, base, ln int) citelint.Line {
+	i := hash
+	for i < len(line) && line[i] == '#' {
+		i++
+	}
+	for i < len(line) && (line[i] == ' ' || line[i] == '\t') {
+		i++
+	}
+	return citelint.Line{Line: ln, Text: strings.TrimRight(line[i:], " \t\r"), Off: base + i}
+}
+
+var ruleKeywordRe = regexp.MustCompile(`\b(?:SHALL|MUST|SHOULD|REQUIRED)\b`)
+
+// ruleLines marks the lines whose paragraph holds a rule keyword. A paragraph
+// is a run of lines up to a blank line, a heading, a fence, a list item or a
+// table row; in YAML a line is a paragraph of its own unless it belongs to a
+// block scalar.
+func (c *ctx) ruleLines(kind textKind) []bool {
+	n := len(c.li.starts)
+	para := make([]int, n+1)
+	kw := map[int]bool{}
+	id, blockIndent := 0, -1
+	for ln := 1; ln <= n; ln++ {
+		line := c.li.text(ln)
+		switch {
+		case kind == textYAML:
+			var info yamlInfo
+			info, blockIndent = classifyYAML(line, blockIndent)
+			if !info.block {
+				id++
+			}
+		case strings.TrimSpace(line) == "" || fenceRe.MatchString(line) || startsBlock(line):
+			id++
+		}
+		para[ln] = id
+		if ruleKeywordRe.MatchString(line) {
+			kw[id] = true
+		}
+	}
+	out := make([]bool, n+1)
+	for ln := 1; ln <= n; ln++ {
+		out[ln] = kw[para[ln]]
+	}
+	return out
 }
 
 var blockStartRe = regexp.MustCompile(`^\s*(?:[-*+]\s|\d+[.)]\s|\||>|#)`)
@@ -284,6 +380,10 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 // proseEdit writes form 2 for a phrase of live citations.
 func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cites.Cite, table bool) {
 	at := base + ph.cites[0].Start
+	if lc.rule {
+		c.ruleEdit(line, base, lc, ph, live)
+		return
+	}
 	ls := extendLeadin(line, ph.start)
 	b := trimBackSpaces(line, ls)
 	a := skipSpaces(line, ph.end)
@@ -311,6 +411,32 @@ func (c *ctx) proseEdit(line string, base int, lc lineCtx, ph phrase, live []cit
 		}
 	}
 	if !c.edit(Edit{Start: base + start, End: base + end, New: text, Form: FormText}) {
+		c.site(at, KindWrapped, ph.cites)
+	}
+}
+
+// ruleEdit writes form 1 for a citation in a sentence that states a rule: the
+// sentence already says what the rule is, so a decision title does not go in.
+// When no safe shape fits, the site is a worklist row.
+func (c *ctx) ruleEdit(line string, base int, lc lineCtx, ph phrase, live []cites.Cite) {
+	at := base + ph.cites[0].Start
+	ids, bad := resolvedIDs(c.tt, live)
+	if bad != "" {
+		c.site(at, bad, ph.cites)
+		return
+	}
+	e, ok := formOneEdit(line, ph, canonicalIDs(ids), lc.nextCont)
+	if !ok {
+		c.site(at, KindRuleSentence, ph.cites)
+		return
+	}
+	if lc.kind == textYAML {
+		if _, ok := fitYAML(lc.yaml, ph.start, e.New); !ok {
+			c.site(at, KindUnsafeYAML, ph.cites)
+			return
+		}
+	}
+	if !c.edit(Edit{Start: base + e.Start, End: base + e.End, New: e.New, Form: FormCodeComment}) {
 		c.site(at, KindWrapped, ph.cites)
 	}
 }

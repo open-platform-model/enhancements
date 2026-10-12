@@ -139,29 +139,8 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 		return
 	}
 	canon := canonicalIDs(ids)
-	ls := extendLeadin(joined, ph.start)
-	b := trimBackSpaces(joined, ls)
-	a := skipSpaces(joined, ph.end)
-	var e Edit
-	switch {
-	case b > 0 && joined[b-1] == '(' && a < len(joined) && joined[a] == ')':
-		e = Edit{Start: b, End: a, New: canon, Form: FormCodeComment}
-	case a < len(joined) && joined[a] == ')' && b > 0 && hasLetter(joined[:b]) && sepBefore(joined, b):
-		// A phrase that closes a parenthesis after a dash, comma or semicolon:
-		// "(experimental, see 0010 D47)" keeps its words.
-		e = Edit{Start: ph.start, End: ph.end, New: canon, Form: FormCodeComment}
-	case endsSentence(joined[ph.end:]) && b > 0 && hasLetter(joined[:b]) &&
-		(joined[b-1] == ',' || joined[b-1] == ';' || ls < ph.start):
-		rs := b
-		switch {
-		case joined[b-1] == ',' || joined[b-1] == ';':
-			rs = trimBackSpaces(joined, b-1)
-		case strings.HasSuffix(joined[:b], "-") || strings.HasSuffix(joined[:b], "\u2014") || strings.HasSuffix(joined[:b], "\u2013"):
-			// "case - see X." keeps no dash of its own.
-			rs = trimBackSpaces(joined, b-dashLen(joined[:b]))
-		}
-		e = Edit{Start: rs, End: ph.end, New: " (" + canon + ")", Form: FormCodeComment}
-	default:
+	e, ok := formOneEdit(joined, ph, canon, false)
+	if !ok {
 		c.codeSite(m, ph, KindInline)
 		return
 	}
@@ -172,6 +151,37 @@ func (c *ctx) codePhrase(p citelint.Paragraph, m paraMap, joined string, ph phra
 		alt = &Edit{Start: ph.cites[0].Start, End: ph.end, New: ids[0], Form: FormCodeComment}
 	}
 	c.commit(m, e, at, ph, alt)
+}
+
+// formOneEdit is the edit of form 1 for a phrase of live citations in text: the
+// phrase is a whole parenthesis, or it ends the sentence after a comma, a dash
+// or "per", or it closes a parenthesis. canon is the replacement ("enhancement
+// 0010"). nextCont is true when the text goes on in the line below. ok is false
+// when no safe shape fits.
+func formOneEdit(joined string, ph phrase, canon string, nextCont bool) (Edit, bool) {
+	ls := extendLeadin(joined, ph.start)
+	b := trimBackSpaces(joined, ls)
+	a := skipSpaces(joined, ph.end)
+	switch {
+	case b > 0 && joined[b-1] == '(' && a < len(joined) && joined[a] == ')':
+		return Edit{Start: b, End: a, New: canon, Form: FormCodeComment}, true
+	case a < len(joined) && joined[a] == ')' && b > 0 && hasLetter(joined[:b]) && sepBefore(joined, b):
+		// A phrase that closes a parenthesis after a dash, comma or semicolon:
+		// "(experimental, see 0010 D47)" keeps its words.
+		return Edit{Start: ph.start, End: ph.end, New: canon, Form: FormCodeComment}, true
+	case endsAt(joined[ph.end:], nextCont) && b > 0 && hasLetter(joined[:b]) &&
+		(joined[b-1] == ',' || joined[b-1] == ';' || ls < ph.start):
+		rs := b
+		switch {
+		case joined[b-1] == ',' || joined[b-1] == ';':
+			rs = trimBackSpaces(joined, b-1)
+		case strings.HasSuffix(joined[:b], "-") || strings.HasSuffix(joined[:b], "\u2014") || strings.HasSuffix(joined[:b], "\u2013"):
+			// "case - see X." keeps no dash of its own.
+			rs = trimBackSpaces(joined, b-dashLen(joined[:b]))
+		}
+		return Edit{Start: rs, End: ph.end, New: " (" + canon + ")", Form: FormCodeComment}, true
+	}
+	return Edit{}, false
 }
 
 // sepBefore reports whether the text before position b (after the blanks)
@@ -189,8 +199,16 @@ func sepBefore(text string, b int) bool {
 
 // endsSentence reports whether rest closes the sentence: the end of the
 // paragraph, or a full stop and a new sentence.
-func endsSentence(rest string) bool {
-	return endRe.MatchString(rest) || endSentRe.MatchString(rest)
+func endsSentence(rest string) bool { return endsAt(rest, false) }
+
+// endsAt is endsSentence for a line of a wrapped paragraph: when the text goes
+// on in the line below (nextCont), the end of the line closes the sentence only
+// after a full stop.
+func endsAt(rest string, nextCont bool) bool {
+	if endSentRe.MatchString(rest) {
+		return true
+	}
+	return endRe.MatchString(rest) && (!nextCont || strings.Contains(rest, "."))
 }
 
 // codeSite adds the worklist rows of a phrase of a comment paragraph.

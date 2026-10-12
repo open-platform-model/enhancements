@@ -201,8 +201,9 @@ func TestFormText(t *testing.T) {
 			in:   "<!-- see 0010:D4 -->\n",
 			want: "<!-- see enhancement 0010 (" + q(d4) + ") -->\n"},
 		{name: "yaml comment", file: "a.yaml",
-			in:   "# keep the key (0010:D4)\nkey: value\n",
-			want: "# keep the key (enhancement 0010, " + q(d4) + ")\nkey: value\n"},
+			in: "# keep the key (0010:D4)\nkey: value\n",
+			// a comment takes form 1 only (T5.9a defect 2)
+			want: "# keep the key (enhancement 0010)\nkey: value\n"},
 		{name: "possessive stays", file: "a.md",
 			in: "x 0010:D4's rule\n", sites: []string{"1:possessive"}},
 		{name: "open question stays", file: "a.md",
@@ -247,10 +248,10 @@ func TestFormTextYAML(t *testing.T) {
 			in: "rules: [keep the key (0010:D4)]\n", sites: []string{"1:unsafe-yaml"}},
 		{name: "trailing comment", file: "a.yaml",
 			in:   "key: value # keep it (0010:D4)\n",
-			want: "key: value # keep it (enhancement 0010, " + Quoted(d4) + ")\n"},
+			want: "key: value # keep it (enhancement 0010)\n"},
 		{name: "shell comment", file: "a.sh",
 			in:   "#!/bin/sh\n# keep it (0010:D4)\necho \"0010:D4\"\n",
-			want: "#!/bin/sh\n# keep it (enhancement 0010, " + Quoted(d4) + ")\necho \"0010:D4\"\n", sites: []string{"3:string"}},
+			want: "#!/bin/sh\n# keep it (enhancement 0010)\necho \"0010:D4\"\n", sites: []string{"3:string"}},
 	})
 }
 
@@ -322,8 +323,8 @@ func TestFormPath(t *testing.T) {
 		{name: "archived entry keeps its slug", file: "a.md",
 			in: "[the rules](/enhancements/0010/decisions/#d3) [c](/enhancements/0010/)\n"},
 		{name: "yaml", file: "a.yaml",
-			in:   "# see enhancements/0010 for it\nkey: value\n",
-			want: "# see enhancement 0010 for it\nkey: value\n"},
+			// a # comment is a comment as in Go: a path in it is for the agent
+			in: "# see enhancements/0010 for it\nkey: value\n", sites: []string{"1:path-ref"}},
 		{name: "not a path: other directory", file: "a.md",
 			in: "x library/enhancements/001 y\n"},
 	})
@@ -450,8 +451,8 @@ func TestReviewCases(t *testing.T) {
 			want: "package a\n\n// Reads the limit (enhancements 0010 and 0011).\nvar x = 1\n"},
 		// T5.10a should-fix 3: a comment after a quoted YAML value
 		{name: "comment after a double-quoted value", file: "a.yaml",
-			in:   "key: \"value per 0010:D4\" # see 0011:D5\n",
-			want: "key: \"value per enhancement 0010 (\\\"" + effTitle("0010", 4) + "\\\")\" # see enhancement 0011 (" + d5 + ")\n"},
+			in:   "key: \"value per 0010:D4\" # the registry rule (0011:D5)\n",
+			want: "key: \"value per enhancement 0010 (\\\"" + effTitle("0010", 4) + "\\\")\" # the registry rule (enhancement 0011)\n"},
 		// T5.10a should-fix 5: form 1 checks the table
 		{name: "unknown id and decision in a comment", file: "a.go",
 			in: "package a\n\n// Unknown (0099:D1) and (0010:D999).\nvar x = 1\n", sites: []string{"3:unknown-id", "3:unknown-decision"}},

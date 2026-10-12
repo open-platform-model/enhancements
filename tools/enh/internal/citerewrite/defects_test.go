@@ -196,3 +196,96 @@ func TestWrappedLines(t *testing.T) {
 			want: "It holds.\nEnhancement 0010 (" + Quoted(d4) + ") says so.\n"},
 	})
 }
+
+// Defect 2, comments: a # comment of a shell or YAML file is a comment, as a
+// // comment of Go is. It takes form 1 only (an id beside the words that are
+// there), never a decision title.
+func TestCommentForms(t *testing.T) {
+	d4 := titleOf("0010", 4)
+	runCases(t, []rewriteCase{
+		{name: "shell comment, parenthesis", file: "run.sh",
+			in:   "#!/bin/sh\n# Keep the filter (0002:D12).\necho hi\n",
+			want: "#!/bin/sh\n# Keep the filter (enhancement 0002).\necho hi\n"},
+		{name: "shell comment, per at the end", file: "run.sh",
+			in:   "# Keep the filter, per 0002:D12.\n",
+			want: "# Keep the filter (enhancement 0002).\n"},
+		{name: "shell comment, wrapped paragraph", file: "run.sh",
+			in:   "# Keep the filter, which\n# the check reads (0002:D12).\n",
+			want: "# Keep the filter, which\n# the check reads (enhancement 0002).\n"},
+		{name: "shell comment, two comments", file: "run.sh",
+			in:   "# One (0002:D12).\n\n# Two (0010:D4).\n",
+			want: "# One (enhancement 0002).\n\n# Two (enhancement 0010).\n"},
+		{name: "shell comment, lone id", file: "run.sh",
+			in: "# 0002:D12\n", sites: []string{"1:lone-id"}},
+		{name: "shell comment, id inside the sentence", file: "run.sh",
+			in: "# The 0002:D12 rule holds\n", sites: []string{"1:inline"}},
+		{name: "shell code line is a string", file: "run.sh",
+			in: "echo \"0010:D4\"\n", sites: []string{"1:string"}},
+		{name: "shell comment, retired id", file: "run.sh",
+			in:   "# Keep the filter (0030:D4).\n",
+			want: "# Keep the filter.\n"},
+		{name: "yaml full-line comment", file: "a.yaml",
+			in:   "# Keep the filter (0002:D12).\nkey: value\n",
+			want: "# Keep the filter (enhancement 0002).\nkey: value\n"},
+		{name: "yaml trailing comment", file: "a.yaml",
+			in:   "key: value # keep the filter (0002:D12)\n",
+			want: "key: value # keep the filter (enhancement 0002)\n"},
+		{name: "yaml value and comment on one line", file: "a.yaml",
+			in:   "key: \"rule per 0010:D4\" # keep it (0002:D12)\n",
+			want: "key: \"rule per enhancement 0010 (\\\"" + d4 + "\\\")\" # keep it (enhancement 0002)\n"},
+		{name: "yaml hash inside a quoted value is no comment", file: "a.yaml",
+			in:   "key: \"a # b (0010:D4)\"\n",
+			want: "key: \"a # b (enhancement 0010, \\\"" + d4 + "\\\")\"\n"},
+		{name: "yaml hash in a block scalar is text", file: "a.yaml",
+			in:   "doc: |\n  # not a comment (0010:D4)\n",
+			want: "doc: |\n  # not a comment (enhancement 0010, " + Quoted(d4) + ")\n"},
+		{name: "go comment is unchanged", file: "a.go",
+			in:   "package a\n\n// Keep it (0010:D4).\nvar x = 1\n",
+			want: "package a\n\n// Keep it (enhancement 0010).\nvar x = 1\n"},
+	})
+}
+
+// Defect 2, rule sentences: a paragraph with a rule keyword (SHALL, MUST,
+// SHOULD, REQUIRED) in capitals already states the rule. A title does not go
+// into it: the citation takes the shape of form 1, or the site is a worklist row.
+func TestRuleSentence(t *testing.T) {
+	d4 := titleOf("0010", 4)
+	runCases(t, []rewriteCase{
+		{name: "parenthesis", file: "a.md",
+			in:   "The system SHALL reject a second write (0010:D4).\n",
+			want: "The system SHALL reject a second write (enhancement 0010).\n"},
+		{name: "per at the end", file: "a.md",
+			in:   "The system MUST NOT write, per 0010:D4.\n",
+			want: "The system MUST NOT write (enhancement 0010).\n"},
+		{name: "keyword on the line above", file: "a.md",
+			in:   "The system SHALL reject\na second write (0010:D4).\n",
+			want: "The system SHALL reject\na second write (enhancement 0010).\n"},
+		{name: "several ids", file: "a.md",
+			in:   "The system SHOULD log it (0010:D4, 0011:D3).\n",
+			want: "The system SHOULD log it (enhancements 0010 and 0011).\n"},
+		{name: "shape does not fit: the id opens the sentence", file: "a.md",
+			in: "Per 0010:D4 the system MUST reject it.\n", sites: []string{"1:rule-sentence"}},
+		{name: "list item is its own paragraph", file: "a.md",
+			in:   "- The system SHALL reject it (0010:D4)\n- Another note 0010:D4 holds.\n",
+			want: "- The system SHALL reject it (enhancement 0010)\n- Another note enhancement 0010 (" + Quoted(d4) + ") holds.\n"},
+		{name: "blank line ends the paragraph", file: "a.md",
+			in:   "The system SHALL reject it.\n\nNote (0010:D4).\n",
+			want: "The system SHALL reject it.\n\nNote (enhancement 0010, " + Quoted(d4) + ").\n"},
+		{name: "lowercase must is no keyword", file: "a.md",
+			in:   "A write must hold (0010:D4).\n",
+			want: "A write must hold (enhancement 0010, " + Quoted(d4) + ").\n"},
+		{name: "yaml value", file: "a.yaml",
+			in:   "rule: The system SHALL reject it (0010:D4)\n",
+			want: "rule: The system SHALL reject it (enhancement 0010)\n"},
+		{name: "yaml flow sequence", file: "a.yaml",
+			in: "rules: [The system SHALL reject it (0010:D4)]\n", sites: []string{"1:unsafe-yaml"}},
+		{name: "yaml block scalar, keyword on another line", file: "a.yaml",
+			in:   "rule: |\n  The system SHALL reject\n  a second write (0010:D4).\n",
+			want: "rule: |\n  The system SHALL reject\n  a second write (enhancement 0010).\n"},
+		{name: "yaml neighbour lines are separate", file: "a.yaml",
+			in:   "a: The system SHALL reject it\nb: Note (0010:D4)\n",
+			want: "a: The system SHALL reject it\nb: Note (enhancement 0010, " + Quoted(d4) + ")\n"},
+		{name: "unknown decision in a rule", file: "a.md",
+			in: "The system SHALL reject it (0010:D999).\n", sites: []string{"1:unknown-decision"}},
+	})
+}

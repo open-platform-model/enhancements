@@ -29,12 +29,7 @@ func removal(text string, ps, pe int, prevCont, nextCont bool) (rs, re int, repl
 	b := trimBackSpaces(text, ls)
 	a := skipSpaces(text, pe)
 	ss := func(pos int) bool { return sentenceStartAt(text, pos, prevCont) }
-	atEnd := func(rest string) bool {
-		if endSentRe.MatchString(rest) {
-			return true
-		}
-		return endRe.MatchString(rest) && (!nextCont || strings.Contains(rest, "."))
-	}
+	atEnd := func(rest string) bool { return endsAt(rest, nextCont) }
 
 	left := func(rs, re int) string { return text[:rs] + text[re:] }
 
