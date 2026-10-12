@@ -1,4 +1,3 @@
-# expect: id: invalid value "0030"
 id: "0030"
 slug: example
 title: An example
