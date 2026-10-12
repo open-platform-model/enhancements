@@ -1,6 +1,7 @@
 package citerewrite
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/citelint"
@@ -202,6 +203,11 @@ func sepBefore(text string, b int) bool {
 
 // endsSentence reports whether rest closes the sentence: the end of the
 // paragraph, or a full stop and a new sentence.
+var (
+	endRe     = regexp.MustCompile(`^[ \t]*\.?[ \t]*$`)
+	endSentRe = regexp.MustCompile(`^[ \t]*\.[ \t]+\S`)
+)
+
 func endsSentence(rest string) bool { return endsAt(rest, false) }
 
 // endsAt is endsSentence for a line of a wrapped paragraph: when the text goes

@@ -1,6 +1,9 @@
 package citerewrite
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // T5.9a fix-check, blocking 1: a Markdown quote paragraph, a lazy
 // continuation line and a quote inside a list item are read as one paragraph,
@@ -71,6 +74,8 @@ func TestSplitRange(t *testing.T) {
 		{name: "connector rather than, on the next line", file: "a.md", in: "Use 0013:D2:R3\nrather than R4 here.\n", sites: w},
 		{name: "connector through, on the next line", file: "a.md", in: "Use 0013:D2:R3\nthrough R5 here.\n", sites: w},
 		{name: "connector to, at the line end", file: "a.md", in: "Use 0013:D2:R3 to\nR14 here.\n", sites: w},
+		{name: "connector but not, at the line end", file: "a.md", in: "Use 0013:D2:R3 but not\nR4 here.\n", sites: w},
+		{name: "connector vs, on the next line", file: "a.md", in: "Use 0013:D2:R3\nvs R4 here.\n", sites: w},
 		{name: "connector and, then R", file: "a.md", in: "Use 0013:D2:R3 and\nR4 here.\n", sites: w},
 		{name: "connector and, on the next line", file: "a.md", in: "Use 0013:D2:R3\nand R4 here.\n", sites: w},
 		{name: "second end is a full citation", file: "a.md", in: "Use 0013:D2:R3\nto 0013:D2:R4 here.\n", sites: []string{"1:wrapped", "2:repeat-id"}},
@@ -110,6 +115,10 @@ func TestYAMLSiblingKeys(t *testing.T) {
 		{name: "sibling key after a plain value", file: "a.yaml",
 			in:   "- name: Build it\n  run: make all (0010:D4)\n",
 			want: "- name: Build it\n  run: make all (enhancement 0010, " + d4 + ")\n"},
+		{name: "quoted scalar after an anchor", file: "a.yaml",
+			in: "doc: &a \"Keep it (0010:D4) here.\"\n", want: "doc: &a \"Keep it (enhancement 0010, " + strings.ReplaceAll(d4, `"`, `\"`) + ") here.\"\n"},
+		{name: "quoted scalar after a tag, several lines", file: "a.yaml",
+			in: "doc: !!str \"It is read here,\n  note: keep it (0010:D4).\"\n", sites: []string{"2:unsafe-yaml"}},
 		{name: "a plain scalar still goes on", file: "a.yaml",
 			in: "doc: Each names enhancement 0010 as the key, and it names the\n  own key (0010:D4).\n", sites: []string{"2:repeat-id"}},
 		{name: "a list-item scalar still goes on", file: "a.yaml",

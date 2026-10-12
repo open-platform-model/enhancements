@@ -441,6 +441,14 @@ func classifyYAML(line string, blockIndent int) (yamlInfo, int) {
 		info.none = true
 		return info, blockIndent
 	}
+	// An anchor, a tag or an alias before the value is not the value.
+	for {
+		m := yamlPropRe.FindString(line[rest:])
+		if m == "" {
+			break
+		}
+		rest += len(m)
+	}
 	info.valueStart = rest
 	if yamlBlockRe.MatchString(line) {
 		return info, indent
@@ -541,10 +549,10 @@ func (c *ctx) textLine(line string, base int, lc lineCtx) {
 var (
 	// wrapTailRe matches what may follow a phrase at the end of a line: nothing,
 	// a comma, or a connector word.
-	wrapTailRe = regexp.MustCompile(`^[ \t]*(?:,[ \t]*)?(to|through|not|and|or|up to|rather than|rather|-|\x{2013})?[ \t]*$`)
+	wrapTailRe = regexp.MustCompile(`^[ \t]*(?:,[ \t]*)?(to|through|not|but not|and not|and|or|up to|rather than|rather|vs\.?|versus|-|\x{2013}|\x{2014})?[ \t]*$`)
 	// wrapHeadRe matches the start of the next line: a connector and an end of
 	// the range, or an end of the range alone.
-	wrapHeadRe = regexp.MustCompile(`^(?:(?:to|through|not|up to|rather than|than|and|or|-|\x{2013})[ \t]+)?(?:R[0-9]+|[0-9]{4}:)`)
+	wrapHeadRe = regexp.MustCompile(`^(?:(?:to|through|not|but not|and not|up to|rather than|than|and|or|vs\.?|versus|-|\x{2013}|\x{2014})[ \t]+)?(?:R[0-9]+|[0-9]{4}:)`)
 	wrapEndRe  = regexp.MustCompile(`^(?:R[0-9]+|[0-9]{4}:)`)
 )
 
