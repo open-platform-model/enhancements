@@ -280,8 +280,10 @@ type OldPath struct {
 var oldPathRe = regexp.MustCompile(`(?:enhancements/)?(?:archive/)?(0[0-9]{3})/(?:0[1-9]-[A-Za-z0-9-]+\.md|README\.md)\b`)
 
 // repoURLRe ends a GitHub URL of a file in the enhancements repo, up to the ref:
-// .../enhancements/blob/main/0010/03-decisions.md.
-var repoURLRe = regexp.MustCompile(`enhancements/(?:blob|tree)/[^/\s]+/$`)
+// .../enhancements/blob/main/0010/03-decisions.md, or the raw form
+// raw.githubusercontent.com/<org>/enhancements/main/0010/03-decisions.md. A
+// ref with a slash (feature/x) is a known gap.
+var repoURLRe = regexp.MustCompile(`(?:enhancements/(?:blob|tree)|githubusercontent\.com/[^/\s]+/enhancements)/[^/\s]+/$`)
 
 // OldPaths returns the paths to old-layout entry files in text, in order. A
 // path that starts with the folder name enhancements/ may follow a slash or
