@@ -32,6 +32,6 @@ Give the kernel a second half that turns a module into an ordered plan of steps,
 | library | 4 |
 | catalog_opm | 1 |
 | cli | 1 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 
 The list is [tasks.md](tasks.md).

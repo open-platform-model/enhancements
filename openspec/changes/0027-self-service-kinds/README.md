@@ -31,7 +31,7 @@ Let a platform team bind a published module to a kind consumers can create, so a
 | core | 1 |
 | library | 1 |
 | catalog_opm | 1 |
-| opm-operator | 2 |
+| opm-controller | 2 |
 | cli | 1 |
 
 The list is [tasks.md](tasks.md).

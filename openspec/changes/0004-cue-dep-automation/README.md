@@ -34,7 +34,7 @@ One Dagger function bumps every CUE dependency it finds, staying inside the majo
 | core | 1 |
 | library | 1 |
 | cli | 1 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 | modules | 1 |
 
 The list is [tasks.md](tasks.md).

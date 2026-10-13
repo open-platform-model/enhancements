@@ -28,7 +28,7 @@ Write each Kubernetes custom resource once in CUE and generate the CRD YAML and 
 | Repo | Open tasks |
 | --- | --- |
 | core | 1 |
-| opm-operator | 2 |
+| opm-controller | 2 |
 | cli | 1 |
 
 The list is [tasks.md](tasks.md).

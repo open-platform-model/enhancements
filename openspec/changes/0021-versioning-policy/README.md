@@ -22,7 +22,7 @@ One versioning policy naming every kind of published OPM artifact: what a versio
 | 1. Release immutability | 3 of 5 |
 | 2. Release branches | 0 of 5 |
 | 3. Beta line and GA | 9 of 12 |
-| 4. Operator install module | 2 of 2 |
+| 4. Controller install module | 2 of 2 |
 | 5. Policy publication | 0 of 4 |
 
 ## Still to do
@@ -33,7 +33,7 @@ One versioning policy naming every kind of published OPM artifact: what a versio
 | catalog_opm | 3 |
 | core | 2 |
 | cli | 2 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 | opmodel.dev | 2 |
 | modules | 1 |
 
