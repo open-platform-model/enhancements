@@ -96,7 +96,7 @@ A render SHALL refuse a module that imports a catalog with no admission entry.
 
 ### Requirement: Readiness is reported
 
-The operator SHALL report readiness of every platform.
+The controller SHALL report readiness of every platform.
 
 #### Scenario: Reported
 

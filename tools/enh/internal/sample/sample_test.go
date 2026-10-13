@@ -87,7 +87,7 @@ func TestNearest(t *testing.T) {
 	target := Req{"new", "Render records versions", "A render records the versions of every catalog path it held."}
 	universe := []Req{
 		{"a", "Render records versions", "Same words: a render records the versions of every catalog path it held."},
-		{"a", "Unrelated", "The operator reports readiness."},
+		{"a", "Unrelated", "The controller reports readiness."},
 		{"b", "Catalog path versions", "Every catalog path has versions the render held."},
 		{"c", "Third", "A render records something."},
 		{"d", "Fourth", "Catalog path."},
