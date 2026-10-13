@@ -18,7 +18,7 @@ All `task` commands run from this directory. From the workspace root, prefix the
 
 ## What an enhancement is
 
-- One significant change to OPM: schema, kernel, catalog, operator, CLI, docs, or several of those together.
+- One significant change to OPM: schema, kernel, catalog, controller, CLI, docs, or several of those together.
 - One feature, one id, one folder, however large. The id has four digits and is never reused.
 - An OpenSpec change in `openspec/changes/<id>-<slug>/`. The title lives in its `config.yaml`.
 - A contract, not a build plan. It states what consumers can rely on. It never tells a repo how to name files or structure code.
@@ -208,7 +208,7 @@ The `affects` values map to workspace repos:
 | `library` | `library/` | The Go kernel that implements the schema |
 | `catalog_opm` | `catalog_opm/` | Resources, traits, blueprints and transformers |
 | `cli` | `cli/` | The `opm` command |
-| `opm-operator` | `opm-operator/` | The Kubernetes controller |
+| `opm-controller` | `opm-controller/` | The Kubernetes controller |
 | `opmodel.dev` | `opmodel.dev/` | The public docs site |
 | `modules` | `modules/` | Workspace OPM module definitions |
 | `opm` | `opm/` | The meta repo: authored documentation prose, internal specs, benchmarks |
@@ -218,6 +218,6 @@ The `affects` values map to workspace repos:
 | `opm-suite-installer` | `opm-suite-installer/` | A proof of concept that installs a suite of applications from one container image |
 | `.github` | `.github/` | The org meta repo |
 
-`opm-controller` is also accepted. It is the name the `opm-operator` repo takes when it is renamed. Until then no checkout has that name and no entry lists it.
+`opm-operator` is the former name of the `opm-controller` repo. The schema still accepts it, because closed entries cannot be edited and nine of them list it. A new entry lists `opm-controller`.
 
 Delivery crosses several of these. The design of an entry states what must land before what.

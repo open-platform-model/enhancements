@@ -91,7 +91,7 @@ can reword them.
 
 ## Purpose
 
-This repo holds OPM enhancement entries. An entry is the design of one feature that lands in one or more OPM repos: core, library, catalog_opm, cli, opm-operator, opmodel.dev, opm, opm-portal and others. It states what consumers can rely on. It does not tell a repo how to build it.
+This repo holds OPM enhancement entries. An entry is the design of one feature that lands in one or more OPM repos: core, library, catalog_opm, cli, opm-controller, opmodel.dev, opm, opm-portal and others. It states what consumers can rely on. It does not tell a repo how to build it.
 
 The repo is an OpenSpec store. One entry is one OpenSpec change, `openspec/changes/<id>-<slug>/`. The delivered behaviour of OPM is `openspec/specs/`. A Go program, `enh` (`tools/enh/`), and a thin `Taskfile.yml` check the rules below.
 
