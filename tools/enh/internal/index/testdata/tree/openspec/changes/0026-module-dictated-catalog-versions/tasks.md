@@ -11,5 +11,5 @@
 
 ## 3. Frontends
 
-- [ ] 3.1 opm-operator: take the range-form Platform and judge registrations by window and by declaring major
+- [ ] 3.1 opm-controller: take the range-form Platform and judge registrations by window and by declaring major
 - [ ] 3.2 cli: render from an authored platform file and drop the CLI's own platform-less generation

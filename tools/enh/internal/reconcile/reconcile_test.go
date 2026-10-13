@@ -79,7 +79,7 @@ func TestParseTasks(t *testing.T) {
 		"- [ ] 1.1 core: open\n" +
 		"- [x] 1.2 library: done (add-thing)\n" +
 		"- [x] 1.3 cli: two changes (one-change, two-change)\n" +
-		"- [x] 1.4 opm-operator: by pr (PR 12)\n" +
+		"- [x] 1.4 opm-controller: by pr (PR 12)\n" +
 		"- [x] 1.5 catalog_opm: no ref (see below)\n" +
 		"- [X] 1.6 modules: plain\n" +
 		"- [x] 1.7 core: backticks (`add-field`).\n" +
@@ -122,7 +122,7 @@ const tasks13 = `## 1. Core
 - [x] 2.2 library: lost (renamed-away)
 - [x] 2.3 cli: unverifiable repo (some-change)
 - [x] 2.4 catalog_opm: by name (publish-catalog)
-- [ ] 2.5 opm-operator: archived, unticked
+- [ ] 2.5 opm-controller: archived, unticked
 - [ ] 2.6 library: in flight
 `
 
@@ -144,10 +144,10 @@ func fixture(t *testing.T) (enh string, repos []Repo) {
 		"library/openspec/changes/live-one/proposal.md":                "Delivers 0013, task 2.6.\n",
 
 		"catalog_opm/openspec/changes/archive/2026-09-05-publish-catalog/proposal.md": "Delivers 0013, task 2.4.\n",
-		"opm-operator/openspec/changes/archive/2026-09-06-operate/proposal.md":        "Delivers 0013, task 2.5.\n",
+		"opm-controller/openspec/changes/archive/2026-09-06-operate/proposal.md":        "Delivers 0013, task 2.5.\n",
 		"opm/README.md": "a repo without OpenSpec\n",
 	})
-	for _, n := range []string{"core", "library", "catalog_opm", "opm-operator", "opm"} {
+	for _, n := range []string{"core", "library", "catalog_opm", "opm-controller", "opm"} {
 		repos = append(repos, Repo{Name: n, Root: filepath.Join(ws, n)})
 	}
 	return enh, repos
@@ -167,7 +167,7 @@ func TestRun(t *testing.T) {
 	want := []string{
 		// case 1: archived change declares task 1.2, the line is open
 		"unticked tasks.md:4",
-		// case 1 again: the archived operator change declares 2.5
+		// case 1 again: the archived controller change declares 2.5
 		"unticked tasks.md:12",
 		// case 2: a tick names a change the repo does not have
 		"missing-change tasks.md:9",

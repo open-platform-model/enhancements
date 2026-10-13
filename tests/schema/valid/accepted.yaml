@@ -7,7 +7,7 @@ status: accepted
 category: runtime
 breaking: false
 affects:
-  - opm-operator
+  - opm-controller
   - library
   - enhancements
   - .github

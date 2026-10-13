@@ -1,9 +1,9 @@
-# A draft that affects the renamed controller repo beside the operator repo.
+# A draft that lists the former repo name beside the renamed one. Both stay valid.
 id: "0033"
 slug: example-controller
-title: An example that affects the controller
+title: An example that lists both repo names
 summary: >-
-  Let a platform team run the controller beside the operator during the rename.
+  Let a platform team keep the former repo name on a closed record.
 status: draft
 category: runtime
 affects:

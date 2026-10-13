@@ -4,7 +4,7 @@
 
 | ID | Category | Affects | Status | Progress | Breaking | Title | Summary |
 | -- | -------- | ------- | ------ | -------- | -------- | ----- | ------- |
-| [0026](./openspec/changes/0026-module-dictated-catalog-versions/) | schema | core, library, cli, opm-operator, catalog_opm | accepted | 0 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
+| [0026](./openspec/changes/0026-module-dictated-catalog-versions/) | schema | core, library, cli, opm-controller, catalog_opm | accepted | 0 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
 | [0027](./openspec/changes/0027-self-service-kinds/) | runtime | core, library | draft | - | - | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create \| with no module name. |
 | [0040](./openspec/changes/0040-tooling-thing/) | tooling | enhancements | accepted | 2 of 4 | no | A Tooling Thing With a Rather Long Title That Needs Cutting Short For The Graph Label | Do a tooling thing. |
 | [0041](./openspec/changes/0041-all-shipped/) | tooling | enhancements | accepted | 1 of 1 | no | All Shipped | Every task is ticked. |
