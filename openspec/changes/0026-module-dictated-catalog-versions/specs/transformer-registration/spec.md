@@ -46,7 +46,7 @@ A claim's status SHALL carry conditions, an accepted flag, an active flag and th
 
 #### Scenario: Status records the generation reconciled
 
-- **WHEN** a valid claim is applied and the operator is running
+- **WHEN** a valid claim is applied and the controller is running
 - **THEN** the generation recorded in its status matches the claim's generation
 
 #### Scenario: An accepted claim can be inactive

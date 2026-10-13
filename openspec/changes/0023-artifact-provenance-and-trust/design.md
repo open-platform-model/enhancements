@@ -12,10 +12,10 @@ flowchart LR
     verify --> ok["Proceed: fetch and render"]
     verify --> no["Refuse or warn: names the subscription and the reason"]
     cli["CLI, acquiring a module"] -.-> verify
-    op["Operator, materializing a platform"] -.-> verify
+    op["Controller, materializing a platform"] -.-> verify
 ```
 
-The release workflow publishes, then attaches two signed claims to the manifest digest. The platform states whom it trusts once. One kernel function checks the claims against that policy before an artifact's content is used, so the CLI and the operator never disagree.
+The release workflow publishes, then attaches two signed claims to the manifest digest. The platform states whom it trusts once. One kernel function checks the claims against that policy before an artifact's content is used, so the CLI and the controller never disagree.
 
 ## Design
 
@@ -41,7 +41,7 @@ Where the policy lives, core's platform or a sibling in the generated platform p
 
 One kernel function takes a resolved manifest digest, the artifact's claims and a policy, and returns a verdict. A verdict holds the digest, the claims found, the identities checked, the policy applied, the outcome and whether the transparency log was consulted. The checks are that the signer is in the policy, the builder is in the policy and the claim's subject equals the digest that was resolved.
 
-The function runs when a platform's subscriptions are materialized and when the CLI acquires a module. The operator refuses to reconcile a platform whose subscriptions fail a refusing policy, and says so in a condition that names the subscription and the reason. The CLI reports the same verdict and may refuse on request. A command checks one artifact against a policy on demand, so a too-strict policy fails in a way a person can read.
+The function runs when a platform's subscriptions are materialized and when the CLI acquires a module. The controller refuses to reconcile a platform whose subscriptions fail a refusing policy, and says so in a condition that names the subscription and the reason. The CLI reports the same verdict and may refuse on request. A command checks one artifact against a policy on demand, so a too-strict policy fails in a way a person can read.
 
 Before: resolve the tag, fetch, render. Trust is the registry's word. After: resolve the tag, list the claims, verify against the policy, fetch, render.
 
@@ -59,7 +59,7 @@ A capability manifest and signed advisories share the attachment channel and the
 
 ### Rollout and rollback
 
-Release workflows attest and sign first, because no consumer depends on it yet. Core gains the policy surface after the platform reshape of enhancement 0019. Library adds verification. The CLI and the operator land together. The entry lands after 0019 and beside or after 0022, whose catalog list may become the list a verifier walks.
+Release workflows attest and sign first, because no consumer depends on it yet. Core gains the policy surface after the platform reshape of enhancement 0019. Library adds verification. The CLI and the controller land together. The entry lands after 0019 and beside or after 0022, whose catalog list may become the list a verifier walks.
 
 Attachments are inert, so rollback stops writing them. With no policy, verification is off and a platform behaves as it does today. Nothing already published changes. A claim already in a transparency log stays there, by design.
 
@@ -71,7 +71,7 @@ Attachments are inert, so rollback stops writing them. With no policy, verificat
 - **The assurance level is overstated.** The level is stated per artifact family from what the tooling produces.
 - **Two truths about a commit.** The unsigned commit annotation of enhancement 0022 and the signed provenance can disagree. The verifier treats the annotation as a hint and reports a disagreement.
 - **Scope creep from the optional claims.** They stay open questions until decided or split.
-- **A signing outage blocks releases, and verification adds a step to every render.** The step is one claim listing and one signature check, and it runs in the operator's reconcile loop.
+- **A signing outage blocks releases, and verification adds a step to every render.** The step is one claim listing and one signature check, and it runs in the controller's reconcile loop.
 
 ## Considered and rejected
 
@@ -79,7 +79,7 @@ Attachments are inert, so rollback stops writing them. With no policy, verificat
 - Considered manifest annotations for signed claims; rejected because whoever pushes writes them and they carry no signature. They suit unsigned hints.
 - Considered a parallel tag such as `v2.0.1.sig` as the primary form; rejected because the fallback tag keyed by digest is what makes a claim follow the artifact and not the tag name.
 - Considered a transparency log with nothing in the registry; rejected because a consumer that resolves a tag holds the registry and may not hold the log.
-- Considered policy in the CLI's configuration; rejected because a laptop setting never travels to the operator.
+- Considered policy in the CLI's configuration; rejected because a laptop setting never travels to the controller.
 - Considered policy on the artifact; rejected because an artifact cannot vouch for itself.
 - Considered a cluster-wide admission policy as the primary check; not chosen because it sees rendered objects and not the artifact that produced them. It stays a complementary layer.
 - Considered doing nothing beyond registry immutability; rejected because a push with a valid token then looks like a release.

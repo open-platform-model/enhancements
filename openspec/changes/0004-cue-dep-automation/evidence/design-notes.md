@@ -45,7 +45,7 @@ The full contract is in [`contracts/contracts.cue`](contracts/contracts.cue). It
 
 - **`open-platform-model/daggerverse` (D12):** the Dagger module at subpath `cue-deps/` (its own `dagger.json`, exposing `update`/`#UpdateFn`), following the daggerverse catalog convention and independently versioned via subpath-prefixed tags (`cue-deps/vX.Y.Z`).
 - **`open-platform-model/.github` (D12):** the reusable `workflow_call` workflow (`.github/workflows/cue-deps.yml`) that invokes the daggerverse module and opens the PR, authored once.
-- **Each affected repo (`core`, `library`, `catalog`, `cli`, `opm-operator`, `modules`):** a ~10-line `.github/workflows/cue-deps.yml` caller, with a daily `schedule` trigger, `uses: open-platform-model/.github/.github/workflows/cue-deps.yml@…`, passing `CUE_REGISTRY` and the GHCR token. No per-repo module-dir list: discovery is path-driven.
+- **Each affected repo (`core`, `library`, `catalog`, `cli`, `opm-controller`, `modules`):** a ~10-line `.github/workflows/cue-deps.yml` caller, with a daily `schedule` trigger, `uses: open-platform-model/.github/.github/workflows/cue-deps.yml@…`, passing `CUE_REGISTRY` and the GHCR token. No per-repo module-dir list: discovery is path-driven.
 - **`/Taskfile.yml`:** `task update-deps` (`deps:update*`) is reimplemented to call the Dagger function so the local sweep and CI share one implementation (D9). The CLI's `module.cue.tmpl` templates are a discovery sub-case the function must handle (render-to-scratch, as the current task does). They are not valid CUE modules until rendered.
 - **`library` note:** ~63 `module.cue` files, most under `testdata/` fixtures, are included: keeping them on current deps avoids bit-rot, accepting some PR churn (D11).
 

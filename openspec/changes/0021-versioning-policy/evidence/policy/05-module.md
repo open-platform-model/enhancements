@@ -35,7 +35,7 @@ uuid: #UUIDType & cue_uuid.SHA1(OPMNamespace, fqn)
 The two values answer different questions, and deriving one from the other forced them to agree when they should not:
 
 - `module.uuid` is **artifact** identity: *which module is this*. `@v2` and `@v3` are genuinely distinct modules under both CUE and Go semantics (D1), so it must move across a major.
-- `instance.uuid` is **ownership** identity: *which live resources does this manage*. It is the `module-instance.opmodel.dev/uuid` label `opm-operator/internal/apply/prune.go:107` reads, so it must survive every upgrade of the same deployment, a major bump included.
+- `instance.uuid` is **ownership** identity: *which live resources does this manage*. It is the `module-instance.opmodel.dev/uuid` label `opm-controller/internal/apply/prune.go:107` reads, so it must survive every upgrade of the same deployment, a major bump included.
 
 Both labels already ship on every rendered resource. The names promised they were different facts; this makes them so.
 

@@ -47,7 +47,7 @@ Two layers replace one file.
 
 **The resolved platform is generated per resolution.** The kernel writes a platform module whose `cue.mod` carries the catalog versions the build will hold and whose value is a `#ResolvedPlatform`, the registry 0019 shipped as `#Platform`: one import per catalog, one `#registry` entry per path, `#composedTransformers` folded as now. Two renders with the same resolved set share one resolved platform. A fleet clusters on a handful of catalog releases, so the set of resolved platforms stays small.
 
-**Provider catalogs join the same rule.** The provider module pins its own catalog, and 0015 D11 already derives the registration's `version` from that pin. That version is the pick for any render that does not pin the provider catalog itself. The registration gains a window, `floor` and `ceiling` defaulting to `version`, that the provider author sets beside the operator release the module deploys. An admission entry for the provider catalog's path is optional; when present, its range replaces the author's window, and the registration's status reports which one is in effect.
+**Provider catalogs join the same rule.** The provider module pins its own catalog, and 0015 D11 already derives the registration's `version` from that pin. That version is the pick for any render that does not pin the provider catalog itself. The registration gains a window, `floor` and `ceiling` defaulting to `version`, that the provider author sets beside the controller release the module deploys. An admission entry for the provider catalog's path is optional; when present, its range replaces the author's window, and the registration's status reports which one is in effect.
 
 **Refusal replaces promotion.** A consumer pin below the floor is refused. Raising the floor is therefore the platform's fleet-wide lever, and it is a lever that names every instance it stops rather than moving them.
 
@@ -84,7 +84,7 @@ What changes is everything that looks at more than one resolution:
 
 **Migration is per module.** A module whose own dependencies import two majors of one catalog is refused at resolution, naming the module, the catalog and both majors (D9 R6), and the platform-less path follows the same rule (OQ18). Whether a module may instead move component by component is OQ10. A provider's own major upgrade stays an atomic swap (OQ14), a new major ships no bridge to the old one's contracts in this entry (OQ15), and draining a major before disabling it rests on the held-version record of D1 R3 (OQ16).
 
-**The alternatives measured and not taken.** Carrying the catalog major in every contract key works end to end but re-keys every contract on every catalog major and changes the publish gates (experiments 03, 04 and 08). Keeping shared keys and scoping matching by the major also works but reshapes every consumer type and two operator CRD fields and puts provenance into matching (experiments 05 and 09). Both are recorded under D9.
+**The alternatives measured and not taken.** Carrying the catalog major in every contract key works end to end but re-keys every contract on every catalog major and changes the publish gates (experiments 03, 04 and 08). Keeping shared keys and scoping matching by the major also works but reshapes every consumer type and two controller CRD fields and puts provenance into matching (experiments 05 and 09). Both are recorded under D9.
 
 ## Schema / API Surface
 
@@ -102,7 +102,7 @@ Full shapes in [`schemas/target.cue`](schemas/target.cue).
 
 **library.** The render-module derivation of 0019 D13 changes its source on catalog paths: the module's committed list, bounded by the authored platform, instead of the resolved platform's. The kernel gains the resolved-platform generation, keyed by the resolved catalog set. Four refusals become kernel diagnostics: catalog not admitted, pin outside range, prerelease pin without opt-in, and a provider catalog whose shared-path requirement exceeds the consumer's pin. A fifth refuses a module importing two majors of one catalog (D9). Every render records the catalog versions it held. Each resolution holds one major per catalog and includes only the providers built against that major, and the module-less build for readiness and the inventory is split so no build holds two majors of one catalog (D9).
 
-**opm-operator.** The Platform CRD's spec takes the authored `#Platform` shape: a map of catalogs with floor, optional ceiling, prerelease opt-in and optional registry, replacing an exact version per path. Registration acceptance reads the admission entry for the claimed catalog, if any, and writes the effective window and its source to the registration's status. A warning condition marks a platform range that exceeds the provider's declared window. Platform-package generation becomes per-resolution. Acceptance judges contract conflicts and the shared-path comparison per major of the declaring catalog, so providers serving different majors of one catalog are both accepted (D9), and readiness reports per slice of the split module-less build (OQ11).
+**opm-controller.** The Platform CRD's spec takes the authored `#Platform` shape: a map of catalogs with floor, optional ceiling, prerelease opt-in and optional registry, replacing an exact version per path. Registration acceptance reads the admission entry for the claimed catalog, if any, and writes the effective window and its source to the registration's status. A warning condition marks a platform range that exceeds the provider's declared window. Platform-package generation becomes per-resolution. Acceptance judges contract conflicts and the shared-path comparison per major of the declaring catalog, so providers serving different majors of one catalog are both accepted (D9), and readiness reports per slice of the split module-less build (OQ11).
 
 **cli.** A render given a platform, by an explicit directory or by the cluster Platform, starts from an authored `#Platform` instead of a platform module, and its catalog versions come from the render's pins inside that platform's ranges rather than from the platform. A render given none stays platform-less (D3): it holds its own pins as today, but the resolved platform for it is generated by the kernel rather than by the CLI, so the CLI's own generation from the render's pins goes away. `opm platform check` evaluates against the static floors and the registration versions as reference versions, per slice when several majors of one catalog are admitted (OQ11).
 
@@ -163,7 +163,7 @@ platform: core.#Platform & {
 }
 ```
 
-**The same platform as the operator's CR.** Same fields, one nesting level down.
+**The same platform as the controller's CR.** Same fields, one nesting level down.
 
 ```yaml
 apiVersion: opmodel.dev/v1alpha1

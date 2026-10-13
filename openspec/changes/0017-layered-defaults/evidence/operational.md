@@ -18,7 +18,7 @@ OPM's Production Readiness Review (PRR-lite): five fixed prompts, each answered 
 
 - **core**: `feat!` on the v2 alpha line (`opmodel.dev/core@v2`, advances `v2.0.0-alpha.N`; no major crossing). Behavior change: optional-trait fields become absent-by-default; unstated posture becomes an error. The v1 branch is untouched.
 - **catalog**: `feat!` on the v2 alpha line: narrowing tightens published acceptance (kind-invalid values now rejected); blueprint defaults change rendered output for silent authors. The v1 branches are untouched.
-- **library**: kernel behavior change (finalize-before-fill); Go API surface unchanged. Consumers of the library (`cli`, `opm-operator`) pick it up by dependency bump.
+- **library**: kernel behavior change (finalize-before-fill); Go API surface unchanged. Consumers of the library (`cli`, `opm-controller`) pick it up by dependency bump.
 - **modules / cli templates**: consumers of the above; their changes are cleanups, not breaks.
 - Enhancement `semver: major` overall: the projection and narrowing changes alter what published schemas accept and produce.
 
@@ -46,7 +46,7 @@ Pending OQ4, the default sequence minimizes observable output shifts:
 
 1. **core**: D5 projection + SPEC co-updates → `v2.0.0-alpha.N` release. Produces: the published core the catalog builds against.
 2. **catalog**: deps bump to the new core; blueprint narrowing + defaults (per OQ1); blueprint-path transformer fixtures → catalog alpha release. Produces: the published catalog templates and modules consume.
-3. **library**: finalize-before-fill (independent of 1–2; can land in parallel, gated by the full-fleet render pass). Produces: the kernel `cli`/`opm-operator` embed.
+3. **library**: finalize-before-fill (independent of 1–2; can land in parallel, gated by the full-fleet render pass). Produces: the kernel `cli`/`opm-controller` embed.
 4. **cli**: deps/library bump; template cleanup; template render smoke test in CI. Produces: templates that render out of the box.
 5. **modules** (`main`): deps bump; boilerplate deletion; render-diff verification.
 

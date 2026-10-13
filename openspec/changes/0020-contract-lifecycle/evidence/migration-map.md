@@ -50,7 +50,7 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | D9: `replacedBy` is optional; `reason` is required | design | A removal is declared, never blocked | the optional replacement and required reason are in its second paragraph |
 | D10: A key may not be withdrawn until its replacement has been published for a minimum seasoning | design | The clock is a floor on the producer |  |
 | D11: Alpha members are never tombstoned, and transformers cannot be | design | A removal is declared, never blocked | no requirement: the alpha and transformer carve-outs are its last paragraph; the alpha refusal is a requirement of the retirement capability |
-| D12: Blocking a withdrawal that would strand live instances is out of scope and belongs to the operator | evidence; design | evidence: delivery-log.md; design: The operator owns the stranding guard | the old `delivery.yaml` recorded D12 as no work; the note is in delivery-log.md |
+| D12: Blocking a withdrawal that would strand live instances is out of scope and belongs to the controller | evidence; design | evidence: delivery-log.md; design: The controller owns the stranding guard | the old `delivery.yaml` recorded D12 as no work; the note is in delivery-log.md |
 
 ## Open questions
 

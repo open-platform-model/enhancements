@@ -1,18 +1,18 @@
 # Enhancement 0005: Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-OPM ships two catalogs, libraries of building blocks a Module draws on. One hides Kubernetes detail behind blueprints; the other passes native objects through unchanged. Both hand-maintain their own copy of the Kubernetes type schemas, and the copies drift. This entry generates both from the Kubernetes OpenAPI, and stamps each kind with the lifecycle facts the operator needs.
+OPM ships two catalogs, libraries of building blocks a Module draws on. One hides Kubernetes detail behind blueprints; the other passes native objects through unchanged. Both hand-maintain their own copy of the Kubernetes type schemas, and the copies drift. This entry generates both from the Kubernetes OpenAPI, and stamps each kind with the lifecycle facts the controller needs.
 
 All entries: `INDEX.md`. How this one relates to others: `GRAPH.md`. Metadata: `config.yaml`.
 
 ## Summary
 
-**The Kubernetes OpenAPI is the one source of Kubernetes types (D1).** Both catalogs consume generated output instead of schemas they maintain themselves. Point the generator at a set of custom resource definitions and it emits a typed catalog for that operator too.
+**The Kubernetes OpenAPI is the one source of Kubernetes types (D1).** Both catalogs consume generated output instead of schemas they maintain themselves. Point the generator at a set of custom resource definitions and it emits a typed catalog for that controller too.
 
 **One source, two renderings.** The strict one closes the types and backs the opinionated catalog. The open one leaves every field open, so the mirror accepts any valid native field.
 
 **An abstraction keeps an escape hatch.** Because the full generated type sits behind it, you can always set a native field the shorthand hides.
 
-**Each generated kind carries lifecycle metadata.** Scope, apply phase, how to tell it is ready, how it is pruned. Today's hardcoded apply-order list becomes data the operator reads.
+**Each generated kind carries lifecycle metadata.** Scope, apply phase, how to tell it is ready, how it is pruned. Today's hardcoded apply-order list becomes data the controller reads.
 
 **Composition is allowed, never required (D2).** One catalog can build abstractions on another's resources in pure CUE. It is for golden-path catalogs layered on top.
 
@@ -29,7 +29,7 @@ flowchart LR
     gen --> meta["Lifecycle metadata per kind: scope, apply order, readiness, prune policy"]
     strict --> abstractions["Opinionated abstractions, with an escape hatch down to any native field"]
     loose --> mirror["Raw mirror: typed resource plus pass-through transformer per kind"]
-    meta --> reconcile["Operator reconcile: ordering, readiness, pruning"]
+    meta --> reconcile["Controller reconcile: ordering, readiness, pruning"]
     abstractions --> golden["Third-party golden-path catalog composed on top"]
     mirror --> golden
 ```
@@ -55,7 +55,7 @@ The entry carries [`contracts/`](contracts/): compilable CUE sketching the gener
 - Generation tooling that ingests the Kubernetes OpenAPI and CRD schemas and emits CUE types, resources, pass-through transformers, catalog manifests and lifecycle metadata.
 - Two renderings from the one source: strict for the opinionated catalog, open for the mirror.
 - Regenerating the mirror catalog as generated output; re-pointing the opinionated catalog at the shared strict types and adding the escape hatch.
-- Per-resource lifecycle metadata, plus the library and operator changes that consume it.
+- Per-resource lifecycle metadata, plus the library and controller changes that consume it.
 - Documentation of the generation workflow and of the provider golden-path composition pattern.
 
 ### Out of scope
@@ -63,7 +63,7 @@ The entry carries [`contracts/`](contracts/): compilable CUE sketching the gener
 - Any change to core (D3, which keeps the transformation model single-pass).
 - Multi-phase lowering, where transformer outputs go back through matching. It is staged as a separate evidence-gated core entry, and OQ6 asks what case would trigger it.
 - Non-Kubernetes platforms: Nomad, Docker Compose, Swarm.
-- A runtime reconcile engine. This entry produces the lifecycle metadata; consuming it is operator work.
+- A runtime reconcile engine. This entry produces the lifecycle metadata; consuming it is controller work.
 
 ## Deviations from Design
 
@@ -79,4 +79,4 @@ None at this stage. Update this section when implementation lands and any delibe
 | `catalog_kubernetes/src/transformers/deployment_transformer.cue` | The pass-through transformer shape the generator templates |
 | `core/src/transformer.cue` | The transformer contract, unchanged here, kept friendly to typed outputs later |
 | `library/` (`pkg/resourceorder`) | Today's hardcoded apply order, to be generalized onto the generated metadata |
-| `opm-operator/CLAUDE.md` | The reconcile loop that consumes the generated lifecycle metadata |
+| `opm-controller/CLAUDE.md` | The reconcile loop that consumes the generated lifecycle metadata |

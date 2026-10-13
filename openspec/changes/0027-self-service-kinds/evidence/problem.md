@@ -4,11 +4,11 @@ A platform team cannot offer a module to the rest of the organisation without ha
 
 ## Current State
 
-**A deployment binds its own module.** Core's `#ModuleInstance` takes the module as a value and supplies `values` against its `#config`. The operator's `ModuleInstance` CR carries the same two facts as `spec.module` and `spec.values`. Whoever writes the instance decides which module and which version render. Enhancement 0016 scaffolds that package from a published module so the coordinate does not have to be typed by hand, and the consumer still owns it.
+**A deployment binds its own module.** Core's `#ModuleInstance` takes the module as a value and supplies `values` against its `#config`. The controller's `ModuleInstance` CR carries the same two facts as `spec.module` and `spec.values`. Whoever writes the instance decides which module and which version render. Enhancement 0016 scaffolds that package from a published module so the coordinate does not have to be typed by hand, and the consumer still owns it.
 
 **Values are validated at render.** The kernel unifies `#module & {#config: values}` and the failure surfaces as a render diagnostic on the instance. Core's module schema declares `#config` as OpenAPIv3-compatible, with no templating, and nothing enforces the declaration: a `#config` carrying a comprehension renders fine and is simply not encodable as a schema.
 
-**Tenancy is per instance, not per module.** The operator applies rendered output under a per-tenant ServiceAccount (the RBAC gate 0015 D3 rests on). A tenant permitted to create `ModuleInstance` objects may reference any module the registry serves. There is no vocabulary for "this team may deploy the platform's PostgreSQL offering and nothing else".
+**Tenancy is per instance, not per module.** The controller applies rendered output under a per-tenant ServiceAccount (the RBAC gate 0015 D3 rests on). A tenant permitted to create `ModuleInstance` objects may reference any module the registry serves. There is no vocabulary for "this team may deploy the platform's PostgreSQL offering and nothing else".
 
 **Registration exists for transformers, not for modules.** Enhancement 0015 lets a provider module ship a cluster-scoped registration CR that the Platform reconciler accepts or rejects, RBAC-gated because the CR is rendered output applied under tenant impersonation. That pattern binds a catalog's transformers into a cluster. Nothing binds a module into a cluster as something others may instantiate.
 

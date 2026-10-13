@@ -15,11 +15,11 @@ An export SHALL write one directory per instance. The directory SHALL hold the i
 
 ### Requirement: The exported directory applies on its own
 
-The exported directory SHALL apply into a cluster that holds only the operator. It SHALL produce the same instance under the same applier identity with the same deletion behaviour. It SHALL NOT assume anything outside the directory.
+The exported directory SHALL apply into a cluster that holds only the controller. It SHALL produce the same instance under the same applier identity with the same deletion behaviour. It SHALL NOT assume anything outside the directory.
 
 #### Scenario: Apply into an empty cluster
 
-- **WHEN** the directory is applied into a cluster that holds only the operator
+- **WHEN** the directory is applied into a cluster that holds only the controller
 - **THEN** the instance runs under the applier account named in the directory and deleting it has the deletion behaviour the directory states
 
 ### Requirement: No repo-level Flux wiring is exported
@@ -42,7 +42,7 @@ Exporting an unchanged instance twice SHALL produce byte-identical output.
 
 ### Requirement: The exported module version keeps its v prefix
 
-The exported module version SHALL carry its `v` prefix, so the operator can resolve the document without a second actor correcting it.
+The exported module version SHALL carry its `v` prefix, so the controller can resolve the document without a second actor correcting it.
 
 #### Scenario: Version with prefix
 

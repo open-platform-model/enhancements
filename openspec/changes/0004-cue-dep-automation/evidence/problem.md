@@ -2,11 +2,11 @@
 
 ## Current State
 
-CUE dependencies across the workspace are updated by one workspace-root task, `task deps:update` (aliased `task update-deps`), defined in `/Taskfile.yml`. It walks every `cue.mod` directory under `catalog`, `cli`, `opm-operator`, `modules`, and `$HOME/.opm`, parses the `deps:` block out of each `cue.mod/module.cue`, runs a single `cue mod get <all-deps>` resolution pass followed by `cue mod tidy`, and prints a per-dep old→new diff. A second pass (`deps:update:templates`) does the same for the CLI's `cue.mod/module.cue.tmpl` template files by rendering them into a scratch module first. The root `CLAUDE.md` documents the convention and explicitly forbids hand-editing version pins: "Never manually edit version pins in `cue.mod/module.cue`; use `task update-deps`."
+CUE dependencies across the workspace are updated by one workspace-root task, `task deps:update` (aliased `task update-deps`), defined in `/Taskfile.yml`. It walks every `cue.mod` directory under `catalog`, `cli`, `opm-controller`, `modules`, and `$HOME/.opm`, parses the `deps:` block out of each `cue.mod/module.cue`, runs a single `cue mod get <all-deps>` resolution pass followed by `cue mod tidy`, and prints a per-dep old→new diff. A second pass (`deps:update:templates`) does the same for the CLI's `cue.mod/module.cue.tmpl` template files by rendering them into a scratch module first. The root `CLAUDE.md` documents the convention and explicitly forbids hand-editing version pins: "Never manually edit version pins in `cue.mod/module.cue`; use `task update-deps`."
 
 The dependency graph has two populations. Internal OPM modules (`opmodel.dev/core@v0`, `opmodel.dev/catalogs/opm@v0`, `opmodel.dev/modules/*`) are published by release-please to `ghcr.io/open-platform-model` (the `opmodel.dev=ghcr.io/open-platform-model` mapping in `GHCR_CUE_REGISTRY`). External CUE modules (`cue.dev/x/k8s.io@v0`) resolve through `registry.cue.works`. Both are OCI registries; CUE stores each module version as an OCI tag, and those tags list as clean semver (verified 2026-06-17: `registry.cue.works/v2/cue.dev/x/k8s.io/tags/list` returns `["v0.0.0","v0.3.0",…,"v0.7.0"]`).
 
-The workspace is not a monorepo. `core`, `library`, `catalog*`, `cli`, `opm-operator`, `modules` are each a separate git repository with its own `.github/workflows/`. There is no shared CI surface: each repo runs its own `ci.yml` / `release.yml`.
+The workspace is not a monorepo. `core`, `library`, `catalog*`, `cli`, `opm-controller`, `modules` are each a separate git repository with its own `.github/workflows/`. There is no shared CI surface: each repo runs its own `ci.yml` / `release.yml`.
 
 ## Gap / Pain
 

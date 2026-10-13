@@ -33,7 +33,7 @@ Routing moves to an inert field attribute; fulfilment stays a narrowed `#Secret`
 
 **Explicitly out of this design:**
 
-- **Protecting supplied-arm values inside a `ModuleInstance` CR.** A literal in a CR is plaintext in etcd: accepted and documented, with the referenced arm as the production posture on the operator path; no `valuesFrom` mechanism is added (D15).
+- **Protecting supplied-arm values inside a `ModuleInstance` CR.** A literal in a CR is plaintext in etcd: accepted and documented, with the referenced arm as the production posture on the controller path; no `valuesFrom` mechanism is added (D15).
 - **Rotation, leasing, or dynamic secrets.** A secret is resolved once per render.
 - **Retiring `#SecretSchema` / the secrets resource.** Modules that compute a whole file and want it stored as Secret data keep writing it by hand; that path is unaffected.
 - **A general-purpose `@opm(...)` marker framework.** This entry defines the `secret` marker and reuses the existing namespace.

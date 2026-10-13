@@ -38,7 +38,7 @@ package contracts
 
 // ----------------------------------------------------------------------------
 // Lifecycle metadata - stamped onto every generated resource's metadata so the
-// library/operator reconcile loop can act without re-deriving from the GVK.
+// library/controller reconcile loop can act without re-deriving from the GVK.
 // ----------------------------------------------------------------------------
 
 #LifecycleMetadata: {

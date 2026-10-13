@@ -12,7 +12,7 @@
 ## 3. Lifecycle consumers
 
 - [ ] 3.1 library: read the generated apply phase in place of the hardcoded order list, and expose readiness and prune metadata
-- [ ] 3.2 opm-operator: reconcile on the lifecycle metadata for ordering, readiness reports and pruning, and degrade gracefully when it is absent
+- [ ] 3.2 opm-controller: reconcile on the lifecycle metadata for ordering, readiness reports and pruning, and degrade gracefully when it is absent
 
 ## 4. Documentation
 

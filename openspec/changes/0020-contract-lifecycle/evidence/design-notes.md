@@ -32,7 +32,7 @@ Two movements along enhancement 0010 D34's ladder get rules, and they turn out t
 **Deferred within this design.**
 
 - **Forcing any consumer to migrate, ever.** Nothing here expires a module, a pin, or a platform subscription.
-- **Blocking a provider removal that would strand live instances.** That needs cluster-side knowledge of dependents, which no publish gate has. It belongs to the operator, alongside 0015 D3's finalizer and D16's shrink refusal.
+- **Blocking a provider removal that would strand live instances.** That needs cluster-side knowledge of dependents, which no publish gate has. It belongs to the controller, alongside 0015 D3's finalizer and D16's shrink refusal.
 
 ## The distinction D34 did not draw
 
@@ -108,7 +108,7 @@ Rules that need a second build cannot live in CUE and do not. The absent-and-not
 
 Its own comment states why the value walk was rejected: `#Catalog` exposes only `#transformers`, which reach about half the contract members and no blueprints. So D6's absent-and-not-tombstoned check can see a predecessor build's members today, including the `fulfilment: "provider"` contracts no transformer demands.
 
-What 0015 D1 is required for is a **value-level inventory a consumer can read**: the lifecycle report of OQ8, and anything the operator or a platform check needs to answer without a filesystem. Those are aids under enhancement 0010 D35's posture, not gates, so this entry can ship its enforcement before 0015 D1 lands and gain its reporting afterwards.
+What 0015 D1 is required for is a **value-level inventory a consumer can read**: the lifecycle report of OQ8, and anything the controller or a platform check needs to answer without a filesystem. Those are aids under enhancement 0010 D35's posture, not gates, so this entry can ship its enforcement before 0015 D1 lands and gain its reporting afterwards.
 
 ## Before / After
 

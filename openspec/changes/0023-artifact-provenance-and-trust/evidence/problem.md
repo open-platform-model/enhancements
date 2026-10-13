@@ -8,7 +8,7 @@ A published OPM artifact, as fetched from GHCR on 2026-08-25 (`opmodel.dev/modul
 - **no annotations** on the manifest;
 - **no referrers**: the OCI 1.1 referrers endpoint answers 404, and the fallback `sha256-<digest>` tag does not exist.
 
-So nothing signed travels with the artifact. Who published it, from which commit, on which builder, is unrecorded; and no consumer asks. The CLI's publish pipeline calls the plain `PutModule` (0011, `cli/internal/publish/registry.go`) and stops. The kernel's acquire path resolves a tag to a manifest and trusts what it gets. The operator materializes a platform's subscriptions the same way.
+So nothing signed travels with the artifact. Who published it, from which commit, on which builder, is unrecorded; and no consumer asks. The CLI's publish pipeline calls the plain `PutModule` (0011, `cli/internal/publish/registry.go`) and stops. The kernel's acquire path resolves a tag to a manifest and trusts what it gets. The controller materializes a platform's subscriptions the same way.
 
 CUE's package manager adds no protection of its own here: `cue.mod/module.cue` records versions, not digests (no sum field exists in the module-file schema, and the module cache verifies nothing beyond OCI content addressing). A pin names whatever manifest the tag points at when fetched. Immutability is a registry promise (enhancement 0011), not something a consumer can check.
 
@@ -19,7 +19,7 @@ What CUE does do is useful: its registry client mirrors **referrers** along with
 1. **No provenance.** A malformed or malicious artifact cannot be traced to a build. A consumer cannot tell a release-CI build from something pushed with a stolen token.
 2. **No authenticity.** Nothing distinguishes a first-party catalog from a look-alike on another registry except the path the consumer typed.
 3. **No policy surface.** Even if signatures existed, a platform has no way to say "I accept artifacts signed by these identities, built by these workflows". The platform pins exact versions (0019 D5) but not who may have produced them.
-4. **No verification point.** Neither the kernel nor the operator has a step between "resolved a manifest" and "trusted its blobs".
+4. **No verification point.** Neither the kernel nor the controller has a step between "resolved a manifest" and "trusted its blobs".
 
 The two optional gaps this entry may also take on (OQ1, OQ2): a platform operator cannot learn what cluster-level power a module demands without rendering it, and there is no signed way to withdraw or flag a published version.
 

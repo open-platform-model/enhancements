@@ -1,6 +1,6 @@
 # 0005: Kubernetes-Native Refocus: Generated Mirror and Composed Abstractions
 
-OPM ships two Kubernetes catalogs, and each keeps its own hand-made copy of the Kubernetes type schemas. The copies drift. This entry generates both from the Kubernetes OpenAPI and stamps each kind with the lifecycle facts the operator needs.
+OPM ships two Kubernetes catalogs, and each keeps its own hand-made copy of the Kubernetes type schemas. The copies drift. This entry generates both from the Kubernetes OpenAPI and stamps each kind with the lifecycle facts the controller needs.
 
 ## Why
 
@@ -10,10 +10,10 @@ A CRD such as cert-manager's `Certificate` has no typed path. Apply order is a h
 
 ## What Changes
 
-- The Kubernetes OpenAPI is the one source of Kubernetes types. Both catalogs consume generated output. Pointed at a CRD bundle, it emits a typed catalog for that operator.
+- The Kubernetes OpenAPI is the one source of Kubernetes types. Both catalogs consume generated output. Pointed at a CRD bundle, it emits a typed catalog for that controller.
 - One source gives two renderings. The strict one closes the types. The open one leaves every field open for the mirror.
 - An abstraction keeps an escape hatch to any native field.
-- Each generated kind carries lifecycle metadata: scope, apply phase, readiness and prune policy. The operator reads it.
+- Each generated kind carries lifecycle metadata: scope, apply phase, readiness and prune policy. The controller reads it.
 - A catalog may build on another catalog in pure CUE. Nothing requires it.
 
 ## What this is not
@@ -21,7 +21,7 @@ A CRD such as cert-manager's `Certificate` has no typed path. Apply order is a h
 - Not a change to core. The transformation model stays single-pass.
 - Not multi-phase lowering. That needs its own entry, and only when a real case needs it.
 - Not support for other platforms.
-- Not a reconcile engine. The operator consumes the metadata.
+- Not a reconcile engine. The controller consumes the metadata.
 
 ## Example
 
@@ -41,7 +41,7 @@ A typed `Certificate` resource drops out, with lifecycle metadata.
 
 - **Module authors** keep the blueprint and override any native field. Schemas may tighten or rename.
 - **Catalog authors** patch the generator or its inputs, not the generated CUE.
-- **Four repos** change: catalog_opm, library, opm-operator and opmodel.dev.
+- **Four repos** change: catalog_opm, library, opm-controller and opmodel.dev.
 
 ## Open questions
 

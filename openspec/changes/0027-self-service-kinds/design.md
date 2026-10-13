@@ -12,7 +12,7 @@ flowchart TB
     proj --> render["The render that exists today"]
 ```
 
-The platform team writes one definition per offered module. The definition and a consumer's values project, in pure CUE, to an ordinary module instance, and the render takes over. Where the definition names a group and kind, the operator also serves a kind whose schema is the module's own configuration schema.
+The platform team writes one definition per offered module. The definition and a consumer's values project, in pure CUE, to an ordinary module instance, and the render takes over. Where the definition names a group and kind, the controller also serves a kind whose schema is the module's own configuration schema.
 
 ## Design
 
@@ -42,7 +42,7 @@ A reader takes the trait spec and not the whole aspect, because on a bare artifa
 
 Core defines the projection. Given a definition, an instance and the resolved module, it yields a complete module instance. The name and namespace are the instance's, the module is the bound one, and the values are the unification of bound and consumer values. A clash is refused. Neither side overrides, because a bound value is the platform's decision. A module other than the bound one is refused.
 
-The kernel reads the projection, the CLI computes it offline, and the operator applies it. No frontend writes it again in Go. The render never learns that definitions or kinds exist. A projected instance renders and fails exactly as a hand-written one with the same module, name, namespace and values. The operational primitives of enhancement 0009 attach to module-instance transitions, so they fire for projected instances. This entry adds no hook vocabulary.
+The kernel reads the projection, the CLI computes it offline, and the controller applies it. No frontend writes it again in Go. The render never learns that definitions or kinds exist. A projected instance renders and fails exactly as a hand-written one with the same module, name, namespace and values. The operational primitives of enhancement 0009 attach to module-instance transitions, so they fire for projected instances. This entry adds no hook vocabulary.
 
 ### The served schema is the module's own
 
@@ -83,8 +83,8 @@ The instance is namespaced, with no cluster-scoped composite behind it. The proj
 - Considered an offered module that does not know it is offered; replaced by the declaration, because the same need recurs across entries.
 - Considered the offered module emitting its own definition; rejected on lifecycle.
 - Considered an authored field on the module for the intended kind; rejected because it bakes an operator CR shape into core.
-- Considered operator-synthesised definitions from module metadata; rejected because it needs privilege on a namespaced object and adds a second emission path.
-- Considered projection in the operator only; rejected because the CLI could not reproduce a render offline.
+- Considered controller-synthesised definitions from module metadata; rejected because it needs privilege on a namespaced object and adds a second emission path.
+- Considered projection in the controller only; rejected because the CLI could not reproduce a render offline.
 - Considered consumer values overriding bound values; rejected because the override is what the platform bound the value to prevent.
 - Considered a CRD version from the full release; rejected because every patch would be a new API version with no conversion.
 - Considered one fixed `v1alpha1`; rejected because it hides a breaking schema change behind an unchanged version.

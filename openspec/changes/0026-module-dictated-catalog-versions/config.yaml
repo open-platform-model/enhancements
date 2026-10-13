@@ -12,7 +12,7 @@ affects:
   - core
   - library
   - cli
-  - opm-operator
+  - opm-controller
   - catalog_opm
 authors:
   - emil@jacero.se

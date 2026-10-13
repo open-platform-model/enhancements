@@ -12,7 +12,7 @@ All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: confi
 
 **The library plans, then advances one step per call (D3).** Given a plan and a state it returns the next state and the one thing the caller should do. It runs no loop and causes no side effect; the caller owns the state, which must survive serialization so a controller can carry it across reconciles.
 
-**Backends are opt-in (D4).** A frontend registers only the ones it wants, and the plan is checked against that registry before the first step. That is how the operator declines ad-hoc container builds.
+**Backends are opt-in (D4).** A frontend registers only the ones it wants, and the plan is checked against that registry before the first step. That is how the controller declines ad-hoc container builds.
 
 **Dispatch is by CUE attribute (D5).** It is inert metadata that evaluation ignores and the Go SDK reads. It names a protocol, which picks a backend, and where to fetch the executable, which comes from a catalog rather than being compiled in and travels the same rails transformers do (D6).
 
@@ -30,14 +30,14 @@ flowchart TD
     action["Action: a reusable composition, publishable in a catalog"] --> prim["Op: one of a closed set of primitives, carrying a protocol and an artifact locator"]
     prim --> planner["Planner: pure, builds an ordered plan"]
     planner --> advance["Advance: given the plan and the state, names the next action"]
-    advance --> caller["Caller loop: CLI one-shot, or operator once per reconcile"]
+    advance --> caller["Caller loop: CLI one-shot, or controller once per reconcile"]
     caller --> registry["Backend registry: only the backends this frontend chose, checked before the first step"]
     registry --> backend["Executor backend: wasm, container or Job, http, cue eval"]
     backend --> caller
     catalog["Catalog supplies the op artifacts"] -.-> backend
 ```
 
-Read the top as authoring and the bottom as execution. One plan behaves differently per frontend without changing the module: a step that runs a local container on the CLI renders a Job and watches it under the operator, purely by swapping the backend.
+Read the top as authoring and the bottom as execution. One plan behaves differently per frontend without changing the module: a step that runs a local container on the CLI renders a Job and watches it under the controller, purely by swapping the backend.
 
 ## Documents
 
@@ -58,7 +58,7 @@ The core-schema delta lives under [`schemas/`](schemas/) as compilable CUE with 
 - The four constructs in core, plus the dispatch-attribute convention and additive op and action maps on the catalog.
 - The execution half of the kernel: a pure planner and a one-step-per-call advance (D3), with the opt-in backend layer, its registry and its fail-fast behaviour.
 - The initial Op vocabulary, `exec`, full-CRUD `http`, `wait`, `cue.eval` and Kubernetes get and apply, as catalog definitions.
-- Frontend wiring: the CLI and operator each composing their own backend set, the operator driving lifecycle phases from its reconcile loop.
+- Frontend wiring: the CLI and controller each composing their own backend set, the controller driving lifecycle phases from its reconcile loop.
 - The kernel's cancellation path inside a stage, designed and wired here and untouched by any other change until it lands (D9). Checks of the caller's context at a kernel verb's entry and between its stages may land standalone before it. It also introduces the injection point surface the planner needs, with its first reader, now that the kernel's write-only logger, tracer and clock slots are gone (revised D9).
 
 ### Out of scope

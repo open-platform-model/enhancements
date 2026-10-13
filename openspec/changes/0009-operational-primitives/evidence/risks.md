@@ -10,7 +10,7 @@ Risks describe what could go wrong; Drawbacks describe what definitely costs som
 
 - **Kernel neutrality erosion.** Pressure to "just run it here" could leak side effects into the planner. **Mitigation:** the planner and the advance verb must stay I/O-free with the `Executor` interface the only egress; enforced by the same review discipline as the render half, by Principle I, and by library ADR-008.
 
-- **Lifecycle hooks behave non-convergently under reconcile.** If phase steps are treated as fire-and-forget, the operator re-runs them every reconcile. **Mitigation:** lean on convergent executors and completion records (OQ3 design); `#Workflow` (the genuinely non-idempotent case) is on-demand and separated from the reconcile path.
+- **Lifecycle hooks behave non-convergently under reconcile.** If phase steps are treated as fire-and-forget, the controller re-runs them every reconcile. **Mitigation:** lean on convergent executors and completion records (OQ3 design); `#Workflow` (the genuinely non-idempotent case) is on-demand and separated from the reconcile path.
 
 - **Attribute drift between schema and SDK.** The `@op(...)` grammar is a contract between `core` definitions and the library planner; a mismatch fails silently (attribute ignored) rather than loudly. **Mitigation:** validate the attribute grammar in the planner and add fixtures asserting every shipped Op's attribute parses to a registered protocol.
 

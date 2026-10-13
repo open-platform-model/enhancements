@@ -82,7 +82,7 @@ gateChain: #GateChain & [
 	},
 	{
 		id: "provenance", order: 3, class: "provenance"
-		refusal: "the instance was last applied from local module bytes; the operator resolves modules from the registry only, so this instance has no GitOps form"
+		refusal: "the instance was last applied from local module bytes; the controller resolves modules from the registry only, so this instance has no GitOps form"
 	},
 	{
 		id: "resolvable", order: 4, class: "resolvability"
@@ -104,7 +104,7 @@ gateChain: #GateChain & [
 
 // #FieldClass is the partition that makes completion safe.
 //
-//   render-bearing - decides what the operator produces. Verified by the
+//   render-bearing - decides what the controller produces. Verified by the
 //                    digest gate; the export copies it and must never alter it.
 //   apply-bearing  - decides who applies the instance and what happens on
 //                    delete. Absent from a CLI-written CR, absent from the
@@ -169,7 +169,7 @@ fieldPolicies: #Policies & [
 
 // The emitted ModuleInstance. `version` carries its `v` prefix: 0006's live
 // verification found that a bare version made a CLI-written CR unresolvable
-// by the operator, and an exported document has no second actor to catch it.
+// by the controller, and an exported document has no second actor to catch it.
 #ExportedModuleInstance: {
 	apiVersion: "opmodel.dev/v1alpha1"
 	kind:       "ModuleInstance"
@@ -179,7 +179,7 @@ fieldPolicies: #Policies & [
 		labels?: [string]: string // OQ5
 	}
 	spec: {
-		owner: "operator" // OQ3
+		owner: "controller" // OQ3
 		module: {
 			path:    string & !=""
 			version: string & =~"^v"
@@ -293,7 +293,7 @@ fieldPolicies: #Policies & [
 
 // #AdoptionProperty is the claim the e2e case asserts.
 // It restates 0006 D40's inventory-stable criterion for a GitOps applier
-// rather than for the operator's first post-handoff reconcile.
+// rather than for the controller's first post-handoff reconcile.
 //
 // OQ4 is exactly the question of whether `then` holds under a real Flux
 // apply, given that the exported CR's fields are owned by other field
@@ -302,13 +302,13 @@ fieldPolicies: #Policies & [
 #AdoptionProperty: {
 	given: {
 		gatesPassed:      true
-		operatorManaged:  true
+		controllerManaged:  true
 		sameNameAndSpace: true
 	}
 	then: {
 		// The instance's resource set is unchanged as a set.
 		entrySetDrift: ""
-		// The operator records a new inventory revision.
+		// The controller records a new inventory revision.
 		revisionIncremented: true
 		// No workload is replaced, recreated, or deleted.
 		workloadsUntouched: true

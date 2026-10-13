@@ -26,7 +26,7 @@
 
   D21 needs platform defaults per installed source with no core field. The platform already unifies into each enabled catalog entry's transformers. What would settle it: a source transformer declaring a settings definition, a platform filling it through its catalog entry, and a render reading the filled value.
 
-  Measured: the fill reaches the render with no core, kernel or glue change; keyed by the exported transformer definition and wrapped in the source's schema it survives version bumps and refuses a misspelled or mistyped setting; a misspelled key is caught only for required settings. The operator and CLI need a carrier. See `research/2026-09-30-feasibility-experiments.md`.
+  Measured: the fill reaches the render with no core, kernel or glue change; keyed by the exported transformer definition and wrapped in the source's schema it survives version bumps and refuses a misspelled or mistyped setting; a misspelled key is caught only for required settings. The controller and CLI need a carrier. See `research/2026-09-30-feasibility-experiments.md`.
 
 - **OQ5: Does a synthesised component carrying a source's contract type-check the source's entries at render?** Status: resolved-by-D35.
 
@@ -36,7 +36,7 @@
 
 - **OQ6: Does a component key outside the author key space survive every tool that addresses components?** Status: resolved-by-D35.
 
-  D23's key cannot be written by an author. What would settle it: a render carrying such a key, then the inventory, the operator's recorded status and CLI component selection each handling it without error.
+  D23's key cannot be written by an author. What would settle it: a render carrying such a key, then the inventory, the controller's recorded status and CLI component selection each handling it without error.
 
   Measured: a quoted dotted key survives every tool; the kernel must stamp the component-name label, refuse name collisions and refuse extra instance component keys. See `research/2026-09-30-feasibility-experiments.md`.
 

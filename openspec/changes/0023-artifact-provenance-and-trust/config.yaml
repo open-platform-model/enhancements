@@ -11,7 +11,7 @@ breaking: false
 affects:
   - cli
   - library
-  - opm-operator
+  - opm-controller
   - catalog_opm
   - modules
   - core

@@ -58,7 +58,7 @@ The same definition, instance and module SHALL project to the same module instan
 #### Scenario: Offline equals in-cluster
 
 - **WHEN** the CLI projects a definition and an instance with no cluster
-- **THEN** the result equals the operator's projection of the same inputs
+- **THEN** the result equals the controller's projection of the same inputs
 
 ### Requirement: A config default reaches the values
 

@@ -64,7 +64,7 @@ package schema
 }
 
 #Subresources: {
-	// OQ2: status field ownership (core-defined vs operator-owned) is unresolved;
+	// OQ2: status field ownership (core-defined vs controller-owned) is unresolved;
 	// the toggle here only says "this version has a /status subresource".
 	status?: bool | *true
 }

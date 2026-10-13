@@ -20,7 +20,7 @@
 ## Drawbacks
 
 - **Release workflows gain steps and a dependency on external services.** Publishing is CI-only already (0011), so no author's flow changes, but a signing outage blocks releases.
-- **One more kernel step before every render.** Cheap (one referrers listing and a signature check) but not free, and it runs in the operator's reconcile loop.
+- **One more kernel step before every render.** Cheap (one referrers listing and a signature check) but not free, and it runs in the controller's reconcile loop.
 - **Policy is one more thing a platform author must get right.** A too-strict policy refuses everything; the CLI's verification command exists to make the failure legible.
 
 ## Alternatives

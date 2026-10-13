@@ -60,7 +60,7 @@ Only the organization's release app SHALL create tags in an in-scope repository.
 
 ### Requirement: Immutable releases are staged
 
-GitHub immutable releases SHALL be enabled for core, the kernel library and the catalog repository. The CLI and the operator SHALL be added only after each has shipped a release that was created as a draft, received every asset while a draft, and was published last.
+GitHub immutable releases SHALL be enabled for core, the kernel library and the catalog repository. The CLI and the controller SHALL be added only after each has shipped a release that was created as a draft, received every asset while a draft, and was published last.
 
 #### Scenario: The CLI before its draft-first release
 

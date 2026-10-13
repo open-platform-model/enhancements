@@ -11,6 +11,6 @@ Eight gates must all hold before promoting this design from draft to accepted:
 - Every decision recorded in `03-decisions.md` (D1..DN) is locked. No open trade-offs in the design.
 - `contracts/contracts.cue` compiles (`cue vet ./...` from `schemas/` passes) and captures the `extraManifests` spec surface plus the provenance marker, tightened to match the resolved OQs.
 - `depends_on`, `supersedes`, `superseded_by` in `config.yaml` are final and resolve; every `depends_on` id is carried by a `**Depends:**` line in a live decision.
-- `semver` in `config.yaml` is set: expected `none` for `opmodel.dev/core` (D1: core untouched); the operator CRD addition is an additive, optional field.
+- `semver` in `config.yaml` is set: expected `none` for `opmodel.dev/core` (D1: core untouched); the controller CRD addition is an additive, optional field.
 - No `{Capitalised}` placeholder strings remain in any markdown file.
 - The Cross-References table in `README.md` lists every file path the implementation will touch, and each path exists today.

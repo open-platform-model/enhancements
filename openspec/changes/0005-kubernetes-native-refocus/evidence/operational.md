@@ -6,7 +6,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-The generated lifecycle metadata becomes the operator's source for new reconcile signals: apply-order phase (sequencing), per-resource readiness (status reporting), and prune actions (resources removed between releases). The operator surfaces readiness and prune decisions per resource; exact metric/diagnostic shapes are operator-slice detail. Generation itself is build-time. Its diagnostics (unmapped kinds, schema-emit failures) surface in the generator's output and CI, not at runtime. The catalogs remain observability-neutral as CUE artifacts.
+The generated lifecycle metadata becomes the controller's source for new reconcile signals: apply-order phase (sequencing), per-resource readiness (status reporting), and prune actions (resources removed between releases). The controller surfaces readiness and prune decisions per resource; exact metric/diagnostic shapes are controller-slice detail. Generation itself is build-time. Its diagnostics (unmapped kinds, schema-emit failures) surface in the generator's output and CI, not at runtime. The catalogs remain observability-neutral as CUE artifacts.
 
 ## Semver Impact
 
@@ -24,7 +24,7 @@ Hand-written `catalog_kubernetes` resources/schemas/transformers are replaced by
 
 **If this lands and proves bad, what's the rollback story?**
 
-Catalogs are versioned OCI artifacts; consumers pin versions, so rollback is re-pinning to the last hand-written release. Because core is untouched, the library/operator continue to work against prior catalog versions. The generator is build-time, so reverting it has no data-plane effect. Operator changes that consume lifecycle metadata must degrade gracefully when metadata is absent (older catalog versions), which is a requirement on the operator slice.
+Catalogs are versioned OCI artifacts; consumers pin versions, so rollback is re-pinning to the last hand-written release. Because core is untouched, the library/controller continue to work against prior catalog versions. The generator is build-time, so reverting it has no data-plane effect. Controller changes that consume lifecycle metadata must degrade gracefully when metadata is absent (older catalog versions), which is a requirement on the controller slice.
 
 ## Cross-Repo Coordination
 
@@ -36,7 +36,7 @@ Sequence:
 2. `catalog_kubernetes` regenerates and publishes (open projection, OCI tag).
 3. `catalog_opm` re-points at the shared strict types and publishes.
 4. `library` consumes `applyPhase`/readiness metadata.
-5. `opm-operator` reconciles against the metadata.
+5. `opm-controller` reconciles against the metadata.
 6. `opmodel.dev` documents the workflow.
 
 Each hand-off is a published OCI catalog tag the downstream pins. The generator's home (OQ2) determines where step 1 lives.

@@ -98,7 +98,7 @@ From `target.cue` (supporting types `#Step`, `#StepMap`, `#ActionMap` included):
 
 ### Definition
 
-`#Lifecycle` binds steps to a fixed vocabulary of state-transition phases. It is the state-transition-triggered consumer of Ops and Actions: the kernel's execution half plans a phase into an ordered DAG, and the frontend (operator reconcile loop, CLI) drives it at the matching transition. Absent phases are no-ops.
+`#Lifecycle` binds steps to a fixed vocabulary of state-transition phases. It is the state-transition-triggered consumer of Ops and Actions: the kernel's execution half plans a phase into an ordered DAG, and the frontend (controller reconcile loop, CLI) drives it at the matching transition. Absent phases are no-ops.
 
 ### Shape
 
@@ -123,7 +123,7 @@ From `target.cue` (supporting type `#Phase` included):
 
 ### Rationale
 
-- Why a fixed vocabulary. A closed, well-known phase set keyed to install/upgrade/uninstall is what lets the operator reason about and drive transitions from its reconcile loop; author-defined phases would re-import Helm's hook sprawl (D7).
+- Why a fixed vocabulary. A closed, well-known phase set keyed to install/upgrade/uninstall is what lets the controller reason about and drive transitions from its reconcile loop; author-defined phases would re-import Helm's hook sprawl (D7).
 - Why a separate construct from `#Workflow`. Phase-triggered and on-demand flows have genuinely different trigger and state semantics; collapsing them into one construct with a mode flag hides that (D2).
 
 ## `#Workflow` (NEW)
@@ -158,7 +158,7 @@ From `target.cue` (supporting type `#WorkflowMap` included):
 ### Rationale
 
 - Why name identity but no FQN. A Workflow is addressed within its module by the invoker ("run seed-demo"), not published and imported across modules the way an Action is (design-notes.md).
-- Why the run-state model is deferred. `#Lifecycle` is tractable inside the operator reconcile loop (re-plan each reconcile, convergent executors); on-demand invocation may be non-idempotent and needs its own design pass before it is specified (OQ3).
+- Why the run-state model is deferred. `#Lifecycle` is tractable inside the controller reconcile loop (re-plan each reconcile, convergent executors); on-demand invocation may be non-idempotent and needs its own design pass before it is specified (OQ3).
 
 ## `#Module` (CHANGED vs SPEC.md §3.2)
 

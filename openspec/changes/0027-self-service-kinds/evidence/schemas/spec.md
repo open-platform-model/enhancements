@@ -82,7 +82,7 @@ What a consumer creates in the kind layer: a namespaced object of the served kin
 
 ### Definition
 
-The pure projection from a definition, an instance and the resolved module to a `#ModuleInstance`. It is the contract every frontend computes: the kernel reads it off a built value, the CLI computes it offline, the operator's controller applies it. No frontend implements the projection in its own language.
+The pure projection from a definition, an instance and the resolved module to a `#ModuleInstance`. It is the contract every frontend computes: the kernel reads it off a built value, the CLI computes it offline, the controller's controller applies it. No frontend implements the projection in its own language.
 
 ### Shape
 
@@ -112,7 +112,7 @@ The pure projection from a definition, an instance and the resolved module to a 
 - **Why a conflict refuses.** A bound value is the platform's decision; an override is what the platform bound it to prevent. Unification refusing the conflict is CUE's native answer and needs no policy field.
 ## #ModuleInstance (UNCHANGED)
 
-`#ModuleInstance` is what the projection produces, unchanged. The operator's `ModuleInstance` CR gains an optional definition reference as an alternative to its module reference; that is operator API surface and lives outside core SPEC.md.
+`#ModuleInstance` is what the projection produces, unchanged. The controller's `ModuleInstance` CR gains an optional definition reference as an alternative to its module reference; that is controller API surface and lives outside core SPEC.md.
 
 ## Not this entry's
 

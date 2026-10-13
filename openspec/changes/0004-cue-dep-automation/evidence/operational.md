@@ -46,6 +46,6 @@ No data-plane or runtime state survives a rollback because there is none.
 
 1. **`daggerverse` then `.github` (D12)** land first: `open-platform-model/daggerverse//cue-deps` ships the module (`#UpdateFn`, tagged `cue-deps/vX.Y.Z`); `open-platform-model/.github` ships the reusable `workflow_call` that invokes it and that every caller `uses:`. Until both exist, the per-repo caller has nothing to point at.
 2. **`/Taskfile.yml`** is rewired to call the function (D9), independent of the per-repo rollout, but a good early validation that the function reproduces the old bash behavior locally.
-3. **Each affected repo** (`core`, `library`, `catalog`, `cli`, `opm-operator`, `modules`) then adds its caller workflow independently. There is no ordering between them. A repo can be onboarded one at a time; a good rollout sequence is one pilot repo (e.g. `catalog`) to validate discovery/tidy/auth end-to-end before fanning out.
+3. **Each affected repo** (`core`, `library`, `catalog`, `cli`, `opm-controller`, `modules`) then adds its caller workflow independently. There is no ordering between them. A repo can be onboarded one at a time; a good rollout sequence is one pilot repo (e.g. `catalog`) to validate discovery/tidy/auth end-to-end before fanning out.
 
 The hand-off artifact is the published Dagger module ref + the reusable workflow; downstream repos consume them via `uses:`. No published OCI tag or regenerated fixture gates the rollout.

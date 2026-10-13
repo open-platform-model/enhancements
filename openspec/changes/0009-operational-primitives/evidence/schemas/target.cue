@@ -154,7 +154,7 @@ package schema
 
 // ---------------------------------------------------------------------------
 // #Lifecycle - binds Actions/Ops to fixed state-transition phases (D7).
-// State-transition-triggered; tractable inside the operator reconcile loop.
+// State-transition-triggered; tractable inside the controller reconcile loop.
 // ---------------------------------------------------------------------------
 
 #Phase: "pre-install" | "install" | "post-install" |

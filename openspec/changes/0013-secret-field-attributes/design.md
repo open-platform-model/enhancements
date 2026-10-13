@@ -68,14 +68,14 @@ No diagnostic carries a value at a declared path or at a synthesised path. Every
 
 OPM implements no cryptography. The CLI accepts a SOPS-encrypted values file and decrypts it before the values become CUE, so the kernel receives plain values. The CLI writes a skeleton values file from the module alone, and its module check reports unfulfilled secrets as one grouped message.
 
-A literal inside an instance resource is accepted and documented as plaintext at rest in etcd, on the operator path and on the CLI apply path alike. A reference or a named source is the production answer. Encrypting the secret values of an exported instance for GitOps belongs to enhancement 0014's export surface.
+A literal inside an instance resource is accepted and documented as plaintext at rest in etcd, on the controller path and on the CLI apply path alike. A reference or a named source is the production answer. Encrypting the secret values of an exported instance for GitOps belongs to enhancement 0014's export surface.
 
 ## Risks
 
 - **A mistyped attribute is invisible.** Discovery keys on the type as well as the attribute, and an unknown marker kind warns.
 - **A module reads a resolved secret's value.** The kernel re-reports the error against the config path it wrote.
 - **Migration touches a live cluster.** One rendered object name changes, and RBAC scoped by that name moves with it.
-- **The platform settings carrier in the operator and the CLI is unmeasured.** The first delivery measures it.
+- **The platform settings carrier in the controller and the CLI is unmeasured.** The first delivery measures it.
 - **Plaintext at rest in a resource.** Documented, with the reference as the production answer.
 
 ## Considered and rejected

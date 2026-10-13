@@ -37,7 +37,7 @@ platform sets floor 4.2.0    gotify is refused by name; the others do not move
 ## Impact
 
 - **Breaking, before GA:** a shipped core definition is renamed, and the Platform resource spec changes shape.
-- **Five repos** change: core, library, cli, opm-operator and catalog_opm.
+- **Five repos** change: core, library, cli, opm-controller and catalog_opm.
 - **Platform teams** write ranges instead of exact pins. **Module authors** gain the version they tested.
 
 ## Open questions

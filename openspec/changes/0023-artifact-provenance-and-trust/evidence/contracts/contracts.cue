@@ -3,7 +3,7 @@
 //
 // Non-core contracts: the claim kinds this entry attaches (#ClaimKind), the
 // attachment contract (#Attachment, D1), and the verification verdict
-// (#Verdict) the kernel returns and the CLI and operator surface. All
+// (#Verdict) the kernel returns and the CLI and controller surface. All
 // provisional while the entry is open; fields gated on an Open Question
 // carry an `// OQN:` marker pointing at ../07-questions.md.
 package contracts

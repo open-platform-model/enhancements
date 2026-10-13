@@ -6,9 +6,9 @@
 
 ## 2. Generator
 
-- [ ] 2.1 opm-operator: build the generator that reads the published core module, emits the CRD manifests and the Go API types, and runs deepcopy over them
-- [ ] 2.2 opm-operator: replace the hand-written types and the controller-gen manifest target with the generated ones, and add the regenerate-and-diff check to CI
+- [ ] 2.1 opm-controller: build the generator that reads the published core module, emits the CRD manifests and the Go API types, and runs deepcopy over them
+- [ ] 2.2 opm-controller: replace the hand-written types and the controller-gen manifest target with the generated ones, and add the regenerate-and-diff check to CI
 
 ## 3. Consumers
 
-- [ ] 3.1 cli: bump the operator dependency and rebuild against the generated types with no source change
+- [ ] 3.1 cli: bump the controller dependency and rebuild against the generated types with no source change

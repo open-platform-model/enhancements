@@ -10,7 +10,7 @@ category: tooling
 breaking: false
 affects:
   - core
-  - opm-operator
+  - opm-controller
   - cli
 authors:
   - emil@jacero.se

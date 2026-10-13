@@ -5,7 +5,7 @@
 //
 //   - #TrustPolicy - NEW (SKETCH, OQ3): the statement of whom a platform
 //     trusts. Modeled standalone; whether it lands on #Platform in core or
-//     in the platform package the operator generates is OQ3, and every
+//     in the platform package the controller generates is OQ3, and every
 //     field below is provisional until the research and experiments in
 //     07-questions.md conclude.
 //   - #PlatformTrustSurface - the slice of #Platform this entry would touch

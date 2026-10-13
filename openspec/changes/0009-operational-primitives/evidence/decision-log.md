@@ -24,7 +24,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 **Alternatives considered:**
 
 - Render operations as resources through the existing transformer pipeline (operations as Jobs emitted by the render half): rejected: it overloads the render half with sequencing/ordering semantics it has no model for, and conflates "what must exist" with "what must happen."
-- A separate tool outside the kernel: rejected: the CLI and operator both need it, and the kernel is the shared runtime they embed.
+- A separate tool outside the kernel: rejected: the CLI and controller both need it, and the kernel is the shared runtime they embed.
 
 **Rationale:** Mirrors the clean separation already in the codebase. Rendering stays untouched; execution is additive and reuses the same parsed `#Module`.
 
@@ -68,7 +68,7 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Alternatives considered:**
 
-- The library sequences the flow itself, walking the graph to completion behind an injected executor port (previously adopted, 2026-06-29). Reversed on revision: a loop that blocks on a wait step is a process model, which Principle I forbids the library to assume, and a controller reconcile is level-triggered and must return promptly, so it could never call that loop. The operator would have kept the plan, ignored the sequencer and written its own resumable walk, reproducing below the plan the duplication this entry exists to prevent above it.
+- The library sequences the flow itself, walking the graph to completion behind an injected executor port (previously adopted, 2026-06-29). Reversed on revision: a loop that blocks on a wait step is a process model, which Principle I forbids the library to assume, and a controller reconcile is level-triggered and must return promptly, so it could never call that loop. The controller would have kept the plan, ignored the sequencer and written its own resumable walk, reproducing below the plan the duplication this entry exists to prevent above it.
 - An imperative engine in the kernel that runs containers / shells out directly: rejected: violates Principle I (kernel neutrality forbids shell invocation, `os.Exit`, non-determinism) and couples the kernel to a runtime environment.
 - A plan the library emits once, leaving each frontend to write its own walk: rejected: it puts the sequencing rules in two places, and a rule with two homes drifts silently. The render half already shows the pattern, where apply ordering was lost in one frontend and nothing failed.
 
@@ -91,10 +91,10 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Alternatives considered:**
 
-- Backends as kernel-core, always present: rejected: forces every frontend to carry every runtime (container, wasm, …) and removes the clean "operator declines workflows" path.
+- Backends as kernel-core, always present: rejected: forces every frontend to carry every runtime (container, wasm, …) and removes the clean "controller declines workflows" path.
 - Backends entirely outside the library: rejected: the user wants the executors to be part of the library (kernel or opt-in layer), just not hardcoded into the planner.
 
-**Rationale:** Matches the existing kernel-vs-helper boundary; gives CLI and operator independent backend sets; same `#Op` runs differently per frontend by swapping the backend.
+**Rationale:** Matches the existing kernel-vs-helper boundary; gives CLI and controller independent backend sets; same `#Op` runs differently per frontend by swapping the backend.
 
 **Source:** User decision 2026-06-29.
 
@@ -153,9 +153,9 @@ Decisions are numbered sequentially (D1, D2, …) and recorded as they are made.
 
 **Alternatives considered:**
 
-- Author-defined arbitrary phase names: rejected: a closed vocabulary is what lets the operator reason about and drive transitions from its reconcile loop.
+- Author-defined arbitrary phase names: rejected: a closed vocabulary is what lets the controller reason about and drive transitions from its reconcile loop.
 
-**Rationale:** A small, well-known phase set keyed to the install/upgrade/uninstall lifecycle is tractable for the operator and familiar to authors, without re-importing Helm's hook sprawl.
+**Rationale:** A small, well-known phase set keyed to the install/upgrade/uninstall lifecycle is tractable for the controller and familiar to authors, without re-importing Helm's hook sprawl.
 
 **Source:** User decision 2026-06-29.
 

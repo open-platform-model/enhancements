@@ -1,16 +1,16 @@
 ## Purpose
 
-That the CLI and the operator give the same result for the same declared side manifests, so an instance behaves alike from a laptop and from a controller.
+That the CLI and the controller give the same result for the same declared side manifests, so an instance behaves alike from a laptop and from a controller.
 
 ## ADDED Requirements
 
 ### Requirement: Both drivers produce the same object set
 
-The same instance declaration with the same side manifests SHALL yield the same object set whether the CLI builds and applies it or the operator reconciles it.
+The same instance declaration with the same side manifests SHALL yield the same object set whether the CLI builds and applies it or the controller reconciles it.
 
 #### Scenario: Laptop then controller
 
-- **WHEN** an instance with side manifests is applied from the CLI and later reconciled by the operator
+- **WHEN** an instance with side manifests is applied from the CLI and later reconciled by the controller
 - **THEN** both produce the same object set
 
 ### Requirement: A CLI build shows the side objects

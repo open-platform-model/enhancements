@@ -13,7 +13,7 @@ affects:
   - library
   - catalog_opm
   - cli
-  - opm-operator
+  - opm-controller
 authors:
   - emil@jacero.se
 created: "2026-06-29"

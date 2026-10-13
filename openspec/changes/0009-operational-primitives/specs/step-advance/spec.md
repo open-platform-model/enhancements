@@ -33,7 +33,7 @@ The library SHALL decide which steps are eligible, in what order, what satisfies
 
 #### Scenario: Two frontends, one answer
 
-- **WHEN** the CLI and the operator advance the same plan with the same state and result
+- **WHEN** the CLI and the controller advance the same plan with the same state and result
 - **THEN** both receive the same next action
 
 #### Scenario: A step fails

@@ -32,7 +32,7 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | D1: Passthrough lives at the apply layer, not in core or the kernel | design | design: Passthrough lives in the apply layer | the two rejected options are in Considered and rejected |
 | D2: Kustomize is rendered by an embedded library, not by shelling out | design | design: Kustomize runs as a library | it has no requirement; the 2026-09-29 measurement of the dependency is in the theme |
 | D3: Side manifests reuse the existing ownership, inventory, and prune machinery | design | design: Side objects join the rendered set | |
-| D4: Available in both the CLI and the operator with identical semantics | design | design: Both drivers, one result | |
+| D4: Available in both the CLI and the controller with identical semantics | design | design: Both drivers, one result | |
 | D5: Passthrough is declared via a release-spec side-channel, not woven into the component model | design | design: The declaration is a side field | |
 
 ## Open questions

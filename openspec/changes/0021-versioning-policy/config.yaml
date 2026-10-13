@@ -14,7 +14,7 @@ affects:
   - modules
   - cli
   - library
-  - opm-operator
+  - opm-controller
   - opmodel.dev
   - opm
 authors:

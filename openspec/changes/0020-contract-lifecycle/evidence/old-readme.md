@@ -93,7 +93,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core delta, example instance
 
 **Deferred within this entry.**
 
-- Blocking a withdrawal that would strand live instances (D12). That needs cluster-side knowledge of dependents, so it belongs to the operator, beside 0015:D3 and 0015:D16.
+- Blocking a withdrawal that would strand live instances (D12). That needs cluster-side knowledge of dependents, so it belongs to the controller, beside 0015:D3 and 0015:D16.
 - A matcher-following supersession edge, held in reserve by D4 rather than rejected. The tombstone records the edge as data, so adopting it later is additive.
 
 ## Deviations from Design

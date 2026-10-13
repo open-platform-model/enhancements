@@ -41,7 +41,7 @@ values: db: password: {ref: "existing-db-creds", key: "password"}
 
 - **Module authors** replace the hand-written secret map with one attribute. Instance files that supply a literal do not change.
 - **Platform teams** enable one catalog for each secret source they want.
-- **Seven repos** change: core, library, catalog_opm, cli, opm-operator, modules and opmodel.dev. The change is breaking: core withdraws published definitions.
+- **Seven repos** change: core, library, catalog_opm, cli, opm-controller, modules and opmodel.dev. The change is breaking: core withdraws published definitions.
 
 ## Open questions
 

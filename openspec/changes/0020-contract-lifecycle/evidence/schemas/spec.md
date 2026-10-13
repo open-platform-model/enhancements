@@ -69,7 +69,7 @@ A `#Tombstone` is the published record that a contract key has stopped shipping.
 
 ### Rationale
 
-**Why removal is recorded rather than refused.** A publish gate has no knowledge of who consumes a catalog, so a hard refusal would be arbitrary if it blocked always and useless if it blocked never. The cluster-side rule that *does* know its dependents lives in the operator. What publish can do is convert a silent disappearance into a deliberate statement, at a cost of one record, so a legitimate removal is never blocked and an accidental one is never quiet.
+**Why removal is recorded rather than refused.** A publish gate has no knowledge of who consumes a catalog, so a hard refusal would be arbitrary if it blocked always and useless if it blocked never. The cluster-side rule that *does* know its dependents lives in the controller. What publish can do is convert a silent disappearance into a deliberate statement, at a cost of one record, so a legitimate removal is never blocked and an accidental one is never quiet.
 
 **Why `reason` is required and `replacedBy` is not.** They answer different questions and only one always has an answer. A contract retired as a mistake has no successor, and requiring one would force the author to invent a pointer, which would make the field's presence uninformative everywhere else. Requiring `reason` keeps the record useful in exactly the case where there is nothing to point at.
 

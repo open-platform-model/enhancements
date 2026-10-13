@@ -1,6 +1,6 @@
 ## Purpose
 
-What the CLI and the operator offer around secrets: encrypted values files, a skeleton values file, grouped reports of unfulfilled secrets, and the stated limit of plaintext in an instance resource.
+What the CLI and the controller offer around secrets: encrypted values files, a skeleton values file, grouped reports of unfulfilled secrets, and the stated limit of plaintext in an instance resource.
 
 ## ADDED Requirements
 
@@ -29,14 +29,14 @@ From a module alone, with no values present, the CLI SHALL emit a skeleton value
 
 ### Requirement: An instance resource may carry a literal
 
-An instance resource, applied by the operator or by the CLI, SHALL be accepted with a literal secret in its values and SHALL render as the same values given to the CLI do. The documentation SHALL state that such a literal is plaintext at rest in etcd on both paths, and SHALL direct production use to a reference or a named source.
+An instance resource, applied by the controller or by the CLI, SHALL be accepted with a literal secret in its values and SHALL render as the same values given to the CLI do. The documentation SHALL state that such a literal is plaintext at rest in etcd on both paths, and SHALL direct production use to a reference or a named source.
 
 #### Scenario: A literal in a resource
 
 - **WHEN** a resource carries a literal secret in its values
-- **THEN** the operator renders the same output as the CLI does for the same values
+- **THEN** the controller renders the same output as the CLI does for the same values
 
 #### Scenario: The documentation states the limit
 
 - **WHEN** a reader looks up literals in an instance resource
-- **THEN** the documentation names plaintext at rest on both the operator path and the CLI apply path
+- **THEN** the documentation names plaintext at rest on both the controller path and the CLI apply path

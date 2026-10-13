@@ -23,7 +23,7 @@ import "strings"
 // ─── Ownership vocabulary ────────────────────────────────────────────────────
 //
 // Today this exists three times: composed in core/src/transformer.cue, and read
-// back by opm-operator/pkg/core/labels.go and cli/pkg/core/labels.go (identical
+// back by opm-controller/pkg/core/labels.go and cli/pkg/core/labels.go (identical
 // but for three comment lines). The library's opm/k8s tier owns the one Go
 // definition that reads it; stamping stays in core CUE (0012:D6).
 
@@ -90,7 +90,7 @@ import "strings"
 //
 // Two relations over entries, and they are NOT interchangeable. The divergence
 // recorded in problem.md is precisely that the CLI computes its stale set
-// over one and the operator over the other.
+// over one and the controller over the other.
 
 // The apiserver's view: one live object per group+kind+namespace+name.
 #K8sIdentity: {
@@ -113,7 +113,7 @@ import "strings"
 }
 
 // The stale-set base relation is component-blind (0012:D7, resolving OQ7):
-// #K8sIdentity, the operator's K8sIdentityEqual, so a component rename never
+// #K8sIdentity, the controller's K8sIdentityEqual, so a component rename never
 // produces a stale entry at all. The component-aware relation (the CLI's
 // IdentityEqual), which produced one and removed it again with a separate
 // post-filter, is not shipped.
@@ -138,7 +138,7 @@ import "strings"
 // Kinds OPM never deletes automatically, because deleting one destroys objects
 // far outside the instance that owns the entry. Hard-coded, not configurable.
 //
-// The CLI presently excludes only Namespace; the operator excludes both. This
+// The CLI presently excludes only Namespace; the controller excludes both. This
 // list is the contract that ends that divergence.
 
 #SafetyExcludedKind: "Namespace" | "CustomResourceDefinition"
@@ -166,7 +166,7 @@ import "strings"
 	// an open decision with an operational migration attached.
 	prune: bool | *false
 
-	// Operator escape hatch: release the hold and abandon the inventory even
+	// Controller escape hatch: release the hold and abandon the inventory even
 	// though cleanup could not run. Surfaces today as the force-delete-orphan
 	// annotation on the CR.
 	forceOrphan: bool | *false
@@ -189,7 +189,7 @@ import "strings"
 // OQ6: does a CLI-owned instance carry the hold? Today it does not, so
 // `kubectl delete moduleinstance` on one removes the only inventory record and
 // orphans every workload with nothing left to find them by.
-#HoldBearer: "operator-owned" | "cli-owned" | "both"
+#HoldBearer: "controller-owned" | "cli-owned" | "both"
 
 // ─── Plan and verdicts ───────────────────────────────────────────────────────
 //
@@ -228,12 +228,12 @@ import "strings"
 
 	// Ordered. Reverse apply-weight: the things that guard other things go
 	// first. Ordering is a Go concern; that it is DEFINED rather than
-	// incidental is the contract - the CLI orders today and the operator
+	// incidental is the contract - the CLI orders today and the controller
 	// does not.
 	actions: [...#PlannedAction]
 }
 
-// Whether the hold may be released. Every branch the operator's handleDeletion
+// Whether the hold may be released. Every branch the controller's handleDeletion
 // takes today is a case here.
 #HoldVerdict: {
 	verdict: "release"
@@ -245,9 +245,9 @@ import "strings"
 
 // ─── Apply-side verdict ──────────────────────────────────────────────────────
 //
-// The kernel decides; the frontend applies with its own engine (the operator's
+// The kernel decides; the frontend applies with its own engine (the controller's
 // Flux SSA staging must not become a CLI dependency). This is 0006 OQ16's
-// missing operator guard, expressed once.
+// missing controller guard, expressed once.
 //
 // It lands in this entry and evaluates on every apply (0012:D8, resolving
 // OQ8). An object that does not exist is never refused.

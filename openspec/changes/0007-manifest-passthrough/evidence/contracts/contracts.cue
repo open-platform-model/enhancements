@@ -1,7 +1,7 @@
 // Target schema for enhancement 0007 - Manifest Passthrough.
 //
 // This models the APPLY-LAYER surface only. There is intentionally NO
-// definition under opmodel.dev/core here: passthrough is an operator-CRD +
+// definition under opmodel.dev/core here: passthrough is a controller-CRD +
 // CLI feature (D1), so the canonical shape is the ModuleInstance/ModulePackage spec
 // addition plus a provenance marker - not a core-schema primitive.
 //
@@ -31,7 +31,7 @@ package contracts
 	// keep the CRD openAPI shape simple; documented as an invariant.
 }
 
-// #ExtraManifestsSpec - the new optional field on the operator's
+// #ExtraManifestsSpec - the new optional field on the controller's
 // ModuleInstance and ModulePackage CRD specs (and the CLI instance-file equivalent).
 //
 //   spec.extraManifests: [...#ExtraManifestSource]
@@ -43,12 +43,12 @@ package contracts
 }
 
 // #PassthroughProvenance - NOT a new inventory/label schema. Side objects
-// reuse the operator's existing label set (pkg/core/labels.go) and inventory
+// reuse the controller's existing label set (pkg/core/labels.go) and inventory
 // entry (api/v1alpha1/common_types.go). This documents only the additional
 // provenance marker distinguishing passed-through objects from rendered ones.
 //
 // The marker rides on the existing component-provenance label/annotation
-// slot; exact key is an implementation detail of the operator slice.
+// slot; exact key is an implementation detail of the controller slice.
 #PassthroughProvenance: {
 	// Sentinel recorded on every side-channel object so diffing and
 	// observability can separate passthrough from rendered output.

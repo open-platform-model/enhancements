@@ -57,7 +57,7 @@ The generator SHALL produce a platform module from typed input alone: the platfo
 
 ### Requirement: The package depends on spec and active claims
 
-The operator SHALL generate the package once per distinct resolution, from exactly three inputs: the resolved catalog set, the Platform's spec and the set of accepted and active claims, computed from their current state and never from the event that woke it. With no active claim it SHALL generate what the spec alone implies. A claim whose deletion is blocked SHALL stay in the active set until the block releases; a deletion timestamp alone SHALL NOT drop its catalog.
+The controller SHALL generate the package once per distinct resolution, from exactly three inputs: the resolved catalog set, the Platform's spec and the set of accepted and active claims, computed from their current state and never from the event that woke it. With no active claim it SHALL generate what the spec alone implies. A claim whose deletion is blocked SHALL stay in the active set until the block releases; a deletion timestamp alone SHALL NOT drop its catalog.
 
 #### Scenario: An active claim's catalog reaches the package
 

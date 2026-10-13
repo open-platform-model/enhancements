@@ -6,16 +6,16 @@ In what order OPM applies and deletes the objects of an instance: one kind-class
 
 ### Requirement: Frontends order objects by kind class
 
-The CLI and the operator SHALL order the same set of objects by kind class identically, for apply and for delete, and each SHALL submit objects in the library's order. An engine's own staging MAY refine the order within a stage and SHALL NOT contradict it.
+The CLI and the controller SHALL order the same set of objects by kind class identically, for apply and for delete, and each SHALL submit objects in the library's order. An engine's own staging MAY refine the order within a stage and SHALL NOT contradict it.
 
 #### Scenario: One apply order
 
-- **WHEN** the CLI and the operator apply the same set of objects
+- **WHEN** the CLI and the controller apply the same set of objects
 - **THEN** both submit them in the same kind-class order
 
 #### Scenario: One delete order
 
-- **WHEN** the CLI and the operator delete the same set of objects
+- **WHEN** the CLI and the controller delete the same set of objects
 - **THEN** both submit the deletions in the same kind-class order
 
 #### Scenario: Engine staging

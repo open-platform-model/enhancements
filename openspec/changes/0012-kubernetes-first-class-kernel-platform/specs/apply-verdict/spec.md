@@ -15,7 +15,7 @@ Before applying, each object SHALL receive the same verdict on both frontends. A
 
 #### Scenario: One verdict for both
 
-- **WHEN** the CLI and the operator judge the same object in the same state
+- **WHEN** the CLI and the controller judge the same object in the same state
 - **THEN** they reach the same verdict
 
 ### Requirement: Ownership refusals follow the inventory
@@ -57,7 +57,7 @@ An object carrying the adopt annotation that names this instance's identity SHAL
 
 ### Requirement: No other override exists
 
-Neither frontend SHALL offer another override of the ownership refusals. No refusal message SHALL name one, and neither frontend SHALL set the adopt annotation on the user's behalf. Installing the operator SHALL be no exception.
+Neither frontend SHALL offer another override of the ownership refusals. No refusal message SHALL name one, and neither frontend SHALL set the adopt annotation on the user's behalf. Installing the controller SHALL be no exception.
 
 #### Scenario: A refusal message
 
@@ -66,7 +66,7 @@ Neither frontend SHALL offer another override of the ownership refusals. No refu
 
 #### Scenario: No annotation set for the user
 
-- **WHEN** either frontend, or installing the operator, refuses an existing object for ownership
+- **WHEN** either frontend, or installing the controller, refuses an existing object for ownership
 - **THEN** the object's adopt annotation is the same after the run as before it
 
 ### Requirement: An object being deleted is never applied
@@ -84,7 +84,7 @@ A ModulePackage SHALL carry its instance identity in its status across reconcile
 
 #### Scenario: An older ModulePackage
 
-- **WHEN** the operator reconciles a ModulePackage that has no recorded identity
+- **WHEN** the controller reconciles a ModulePackage that has no recorded identity
 - **THEN** it records the identity in status and leaves the spec unchanged
 
 ### Requirement: An annotation for another instance is refused
@@ -108,7 +108,7 @@ When the instance's identity is known, an existing object whose adopt annotation
 
 ### Requirement: An object adopted elsewhere is let go
 
-The instance SHALL NOT apply or delete an object refused as adopted elsewhere, SHALL drop it from the inventory it records next, and SHALL go on applying its other objects and report the reason. Installing the operator SHALL refuse before it changes anything when it needs such an object, and SHALL name the object and the instance its annotation names.
+The instance SHALL NOT apply or delete an object refused as adopted elsewhere, SHALL drop it from the inventory it records next, and SHALL go on applying its other objects and report the reason. Installing the controller SHALL refuse before it changes anything when it needs such an object, and SHALL name the object and the instance its annotation names.
 
 #### Scenario: A hand-over between two instances
 
@@ -117,7 +117,7 @@ The instance SHALL NOT apply or delete an object refused as adopted elsewhere, S
 
 #### Scenario: A needed object on install
 
-- **WHEN** installing the operator needs an object annotated for another instance
+- **WHEN** installing the controller needs an object annotated for another instance
 - **THEN** the install refuses and changes nothing
 
 ### Requirement: An unknown identity counts every annotation as foreign

@@ -39,7 +39,7 @@ workflows: "seed-demo": steps: run: ops.#ExecOp & {image: "myorg/seeder:1", comm
 
 - **Module authors** gain a typed place for operations. Modules without them behave as before.
 - **Platform teams** choose which backends and catalogs supply operations.
-- **Five repos** change: core, library, catalog_opm, cli and opm-operator. The change is additive. It builds on the aspects of enhancement 0025.
+- **Five repos** change: core, library, catalog_opm, cli and opm-controller. The change is additive. It builds on the aspects of enhancement 0025.
 
 ## Open questions
 

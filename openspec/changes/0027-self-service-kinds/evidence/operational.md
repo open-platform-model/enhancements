@@ -16,7 +16,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Five fixed prom
 
 **Is this a breaking change for any consumer? If so, what's the backwards-compatibility plan?**
 
-Additive throughout. Core gains three definitions: the definition shape, the served-instance shape and the projection. The operator gains a CRD, an optional field on `ModuleInstance`, and served kinds that exist only where a definition asks for them. Catalog_opm gains one module trait, a resource contract and a transformer. The library gains a projection read and the structural check. The CLI gains commands. A module that is never bound as an offering observes nothing. The one new refusal, a non-structural `#config` as a definition target, applies to a module only at the moment someone binds it. `semver` is set at promotion; the expected value is `minor`.
+Additive throughout. Core gains three definitions: the definition shape, the served-instance shape and the projection. The controller gains a CRD, an optional field on `ModuleInstance`, and served kinds that exist only where a definition asks for them. Catalog_opm gains one module trait, a resource contract and a transformer. The library gains a projection read and the structural check. The CLI gains commands. A module that is never bound as an offering observes nothing. The one new refusal, a non-structural `#config` as a definition target, applies to a module only at the moment someone binds it. `semver` is set at promotion; the expected value is `minor`.
 
 ## Deprecation
 
@@ -40,7 +40,7 @@ Constraints only; landings are logged in this entry's `delivery.yaml`.
 
 - **Entry 0025's aspect definitions before catalog_opm's `offering` trait.** A module trait is published against `#ModuleTrait`, and a module attaches one only once a catalog publishes it, so nothing here can ship ahead of that entry's core delta.
 - **Core before everything.** The definition shape, the served-instance shape and the projection are core definitions every other repo reads. The kernel cannot read a projection core does not define.
-- **Library before the operator and the CLI.** The kernel's projection read and its "is this `#config` structural" answer are the single implementation both frontends share; each frontend implementing its own would be the drift D6 exists to prevent.
+- **Library before the controller and the CLI.** The kernel's projection read and its "is this `#config` structural" answer are the single implementation both frontends share; each frontend implementing its own would be the drift D6 exists to prevent.
 - **Catalog_opm's definition pair before rendered definitions.** A platform product module can attach the definition resource contract only once catalog_opm publishes it and the transformer that renders it. Hand-authored definitions do not wait for this.
-- **The kind layer depends on one encoder.** CRD generation from `#config` has a single implementation the CLI pre-flight and the operator share, so the encoder's behaviour is one thing, not two. It need not be the encoder 0008 chose for core's own CRDs (D2, measured); no release of the kind layer waits on 0008.
+- **The kind layer depends on one encoder.** CRD generation from `#config` has a single implementation the CLI pre-flight and the controller share, so the encoder's behaviour is one thing, not two. It need not be the encoder 0008 chose for core's own CRDs (D2, measured); no release of the kind layer waits on 0008.
 - **The offered module's `#config` must be structural.** A platform team wanting to offer a module whose `#config` uses templating must first change that module. That is a constraint on module authors, and the CLI pre-flight is how they learn it before binding.

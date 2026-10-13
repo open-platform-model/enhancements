@@ -16,7 +16,7 @@ Moving a contract from beta to stable changes the key every consumer depends on,
 ## What this is not
 
 - Not a deadline for consumers. Nothing expires a module or a pin.
-- Not a guard against stranding live instances. The operator owns that.
+- Not a guard against stranding live instances. The controller owns that.
 - Not a matcher that follows a promotion.
 - Not a rule for alpha contracts or transformers.
 
@@ -47,7 +47,7 @@ build 20   container at v1
 - Blocking: What is the value of the floor? It depends on the unit. The first-party catalog publishes only `1.0.0-alpha` builds today, so a release count clears in days and a time count cannot clear at all. The value must hold against that fleet. One outside critique proposes twelve months for a comparable window.
 - Not blocking: Are tombstones ever prunable? The record grows without bound. The value sits in the long tail, which argues for never pruning. Candidates: never, prune at a major bump, or prune when no build in the major still carries a member that could have depended on the key. The old register also calls this contract-level.
 - Blocking: Does the raw Kubernetes family take part in promotion at all? Its levels mirror upstream and are not OPM's to move. Candidates: exempt from promotion and its check, exempt from promotion but still tombstoned, or the whole ladder does not apply to the family.
-- Not blocking: What does a consumer see at render when it demands a tombstoned key? Today it is a missing key. The tombstone could say when the key went and what replaced it, but the match step is offline and deterministic. Does the match step read the record, or does only the platform check and the operator?
+- Not blocking: What does a consumer see at render when it demands a tombstoned key? Today it is a missing key. The tombstone could say when the key went and what replaced it, but the match step is offline and deterministic. Does the match step read the record, or does only the platform check and the controller?
 - Blocking: Does the promotion field take part in the match key or in any comparison other than the promotion check? It must or must not join the list of provenance fields that the operand filter removes before unification. A new metadata field that reaches the match changes matching.
 - Not blocking: What happens when a catalog is published outside the OPM publish command? Every rule here sits on that gate and inherits the exposure. Does a missing tombstone in a bypassed build poison the record for good, or does the record degrade gracefully, as the within-level scan does?
 - Not blocking: Does the registry check command gain a lifecycle mode? The report would be the level census plus the seasoning state of each outstanding tombstone. It needs the contract inventory of enhancement 0015, and it is an aid, not a guarantee.

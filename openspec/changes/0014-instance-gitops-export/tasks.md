@@ -14,4 +14,4 @@
 
 ## 4. Proof
 
-- [ ] 4.1 cli: add an end-to-end case that applies with the CLI, hands the instance to the operator, exports, applies the directory, and asserts that the inventory is unchanged
+- [ ] 4.1 cli: add an end-to-end case that applies with the CLI, hands the instance to the controller, exports, applies the directory, and asserts that the inventory is unchanged

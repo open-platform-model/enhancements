@@ -19,21 +19,21 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 **Requirements:**
 
 - R1: `opm instance export` writes one directory per instance containing the `ModuleInstance`, its `Namespace`, the applier `ServiceAccount`, that account's RBAC binding, and a kustomization listing exactly those four documents in apply-safe order.
-- R2: The exported directory applies into a cluster holding only the operator and produces the same instance under the same applier identity with the same deletion behaviour; nothing outside the directory is assumed.
+- R2: The exported directory applies into a cluster holding only the controller and produces the same instance under the same applier identity with the same deletion behaviour; nothing outside the directory is assumed.
 - R3: No repo-level Flux wiring (`OCIRepository`, Flux `Kustomization`) is emitted, and no bare-CR output mode exists.
 - R4: Exporting an unchanged instance twice produces byte-identical output.
-- R5: The exported `spec.module.version` carries its `v` prefix, so the operator can resolve the document without a second actor correcting it.
+- R5: The exported `spec.module.version` carries its `v` prefix, so the controller can resolve the document without a second actor correcting it.
 - R6: A field the export writes that the live CR did not carry is named in the command output together with its behavioural consequence; a render-bearing field is only ever copied, never completed or altered.
 
 **Alternatives considered:**
 
-- **Bare `ModuleInstance` only.** Rejected: the CR references a `ServiceAccount` by name for impersonated apply, and neither that account nor its authorization nor the namespace exists as a file anywhere. A repo containing only the CR either fails to reconcile or silently applies under the controller's own identity, which is what the operator does when `spec.serviceAccountName` is empty and no default account is configured. It is also barely more than `kubectl get -o yaml`, which is the workaround this enhancement exists to replace.
+- **Bare `ModuleInstance` only.** Rejected: the CR references a `ServiceAccount` by name for impersonated apply, and neither that account nor its authorization nor the namespace exists as a file anywhere. A repo containing only the CR either fails to reconcile or silently applies under the controller's own identity, which is what the controller does when `spec.serviceAccountName` is empty and no default account is configured. It is also barely more than `kubectl get -o yaml`, which is the workaround this enhancement exists to replace.
 - **Envelope plus Flux wiring.** Rejected as the default: the `OCIRepository` and Flux `Kustomization` are one per repository, not one per instance. `opm-kind-demo/bootstrap/flux/` holds exactly one of each for the entire demo bundle. Emitting them per instance produces N copies of a singleton that conflict on the first apply. Repo bootstrapping is a separate command's job.
-- **CUE-native (`instance.cue` plus `ModulePackage`).** Deferred, not rejected. It keeps CUE typing instead of flattening values to YAML, but it targets a different operator path (fetch a CUE package from a Flux source, rather than resolve a published module by coordinate) and it is not the model the demo or the existing CRs use. Revisit as a second output mode once the YAML mode has landed.
+- **CUE-native (`instance.cue` plus `ModulePackage`).** Deferred, not rejected. It keeps CUE typing instead of flattening values to YAML, but it targets a different controller path (fetch a CUE package from a Flux source, rather than resolve a published module by coordinate) and it is not the model the demo or the existing CRs use. Revisit as a second output mode once the YAML mode has landed.
 
 **Rationale:** The exported set must be applicable with nothing else present. The envelope is exactly the boundary at which that becomes true, and exactly the shape the hand-written reference (`opm-kind-demo/jellyfin/moduleinstance.yaml`) already has, so the export produces what an experienced user would have written, rather than a new dialect.
 
-**Measured 2026-09-29:** a CLI-written CR names no applier account and sets no `spec.prune`, so a dump of it cannot supply the envelope's apply identity. In `cli/internal/inventory/store.go`, `ApplySpec` sets only `spec.module`, `spec.owner` and `spec.values` (`awk '/^func ApplySpec/,/^}/' cli/internal/inventory/store.go | grep -oE 'spec\["[a-z]+"\]|"spec", "[a-z]+"'` prints `spec["owner"]` and `"spec", "values"`; `module` is the map literal). `grep -rn '"serviceAccountName"\|"prune"' cli --include=*.go | grep -v _test.go` returns one hit, a read of `spec.prune`, and no writer of either field. On the operator side, `--default-service-account` defaults to empty, and its help text in `opm-operator/cmd/main.go` states that empty means falling back to the controller's own identity. Read at cli e9a9e4e and opm-operator 8529e00.
+**Measured 2026-09-29:** a CLI-written CR names no applier account and sets no `spec.prune`, so a dump of it cannot supply the envelope's apply identity. In `cli/internal/inventory/store.go`, `ApplySpec` sets only `spec.module`, `spec.owner` and `spec.values` (`awk '/^func ApplySpec/,/^}/' cli/internal/inventory/store.go | grep -oE 'spec\["[a-z]+"\]|"spec", "[a-z]+"'` prints `spec["owner"]` and `"spec", "values"`; `module` is the map literal). `grep -rn '"serviceAccountName"\|"prune"' cli --include=*.go | grep -v _test.go` returns one hit, a read of `spec.prune`, and no writer of either field. On the controller side, `--default-service-account` defaults to empty, and its help text in `opm-controller/cmd/main.go` states that empty means falling back to the controller's own identity. Read at cli e9a9e4e and opm-controller 8529e00.
 
 **Source:** User decision 2026-07-29.
 
@@ -97,7 +97,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 - **Export from a local instance file (no cluster).** Rejected as the source of truth: the file may have drifted from what is deployed (an apply with `-f` overrides leaves the file describing something else), and the guarantee in D2 is a statement about what is *running*, which only the cluster can answer.
 - **Cluster CR with local-file overlay.** Rejected: reintroduces the transcription question the enhancement removes, and creates a document whose provenance is split between two sources.
 
-**Rationale:** The CR is what handoff verified, what the operator reconciles, and what `status.lastAppliedRenderDigest` describes. Any other input would be an unverified second opinion about the same instance.
+**Rationale:** The CR is what handoff verified, what the controller reconciles, and what `status.lastAppliedRenderDigest` describes. Any other input would be an unverified second opinion about the same instance.
 
 **Source:** User request 2026-07-29 ("target a module instance in the cluster and output the manifests").
 

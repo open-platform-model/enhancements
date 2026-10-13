@@ -6,7 +6,7 @@ This document is the OPM Production Readiness Review (PRR-lite). Answers are pro
 
 **What new signals, metrics, diagnostics, or error types does this enhancement introduce, and how are they surfaced?**
 
-A verification verdict per artifact (`contracts/contracts.cue` `#Verdict`): the resolved digest, the claims found, the identities checked, the policy applied and the outcome. Surfaced in the CLI's build and apply reports, in `opm registry verify`, and as an operator status condition on the Platform naming the failing subscription and reason. Release workflows gain an attest and sign step whose failure fails the release.
+A verification verdict per artifact (`contracts/contracts.cue` `#Verdict`): the resolved digest, the claims found, the identities checked, the policy applied and the outcome. Surfaced in the CLI's build and apply reports, in `opm registry verify`, and as a controller status condition on the Platform naming the failing subscription and reason. Release workflows gain an attest and sign step whose failure fails the release.
 
 ## Semver Impact
 
@@ -35,6 +35,6 @@ Provisional ordering:
 1. Release workflows (`catalog_opm`, `modules`, `core`, cli templates) attest and sign on publish. No consumer depends on this yet.
 2. `core` gains the policy surface, if OQ3 lands it there, after 0019's platform reshape.
 3. `library` adds verification in materialize and acquire.
-4. `cli` (verify command, reporting, publish-side helpers) and `opm-operator` (enforcement) land together.
+4. `cli` (verify command, reporting, publish-side helpers) and `opm-controller` (enforcement) land together.
 
 This entry lands after 0019 (the subscription shape the policy attaches to) and alongside or after 0022 (whose `catalogs` map is the recursive verification list, OQ6). Landings are logged in `delivery.yaml` as they happen.

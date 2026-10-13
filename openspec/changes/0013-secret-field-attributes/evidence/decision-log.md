@@ -171,7 +171,7 @@ Several decisions below cite `experiments/01-attribute-propagation` and `experim
 - **Ship an ESO / external-secret-store kind now.** Deferred: RFC-0002 sketched `#SecretEsoRef` and it was never built. D8 makes it a catalog concern rather than a schema concern, so shipping it here would prejudge an extension the mechanism now supports properly.
 - **Ship only the supplied kind** and treat existing objects as out of scope. Rejected: referencing a cluster-managed Secret (a wildcard TLS certificate, a shared pull credential) is the common case in every real deployment.
 
-**Rationale:** These are the two kinds the current design already implements, so the enhancement can be judged on the redesign rather than on new capability. They are also genuinely distinct in a way a backend is not: they differ in *who owns the data*, which changes what the operator must supply.
+**Rationale:** These are the two kinds the current design already implements, so the enhancement can be judged on the redesign rather than on new capability. They are also genuinely distinct in a way a backend is not: they differ in *who owns the data*, which changes what the controller must supply.
 
 **Source:** User decision 2026-07-27 ("The two first ones i want are what the current solution already does: 1. plain string … 2. k8s secret path and key reference").
 
@@ -389,23 +389,23 @@ The `#SecretRef` arm's fields are named `ref` and `key`.
 
 ---
 
-### D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection
+### D15: The controller path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection
 
 **Kind:** contract
 
-**Decision:** A `ModuleInstance` CR may carry supplied-arm secrets (`{value: …}`) in its values, and that is accepted as-is: the plaintext sits in the CR object in etcd. Documentation states this plainly and directs production deployments on the operator path to the referenced arm (`{ref, key}` against an existing Secret). No `valuesFrom` mechanism (merging values from Kubernetes Secrets, as Flux HelmRelease does) is added.
+**Decision:** A `ModuleInstance` CR may carry supplied-arm secrets (`{value: …}`) in its values, and that is accepted as-is: the plaintext sits in the CR object in etcd. Documentation states this plainly and directs production deployments on the controller path to the referenced arm (`{ref, key}` against an existing Secret). No `valuesFrom` mechanism (merging values from Kubernetes Secrets, as Flux HelmRelease does) is added.
 
 **Requirements:**
 
 - R1: A `ModuleInstance` CR carrying supplied-arm secrets (`{value: …}`) in its values is accepted and renders exactly as the same values given to the CLI would.
-- R2: The operator documentation states that a supplied-arm literal in a CR is plaintext at rest in etcd and directs production deployments to the referenced arm.
+- R2: The controller documentation states that a supplied-arm literal in a CR is plaintext at rest in etcd and directs production deployments to the referenced arm.
 
 **Alternatives considered:**
 
 - **`valuesFrom: [{secretRef: …}]` on the CR**, Flux HelmRelease's shape. Rejected by user decision: not wanted. It stays purely additive if ever revisited, so declining it now costs nothing structurally. The etcd caveat it would have addressed is real and is documented instead: CR read access is typically broader than `get secrets`, and etcd encryption-at-rest usually covers only the `secrets` resource, so a literal in a CR is readable by personas who deliberately cannot read Secrets. The referenced arm is the answer for that posture.
-- **Rejecting the supplied arm on the operator path.** Rejected: it would fork the values contract per frontend (the same instance values would be valid for the CLI and invalid as a CR) breaking the "same module, same values, any frontend" property.
+- **Rejecting the supplied arm on the controller path.** Rejected: it would fork the values contract per frontend (the same instance values would be valid for the CLI and invalid as a CR) breaking the "same module, same values, any frontend" property.
 
-**Rationale:** The design's security property is scoped to the render pipeline: plaintext never enters the component graph. How values *reach* the kernel is a frontend seam: the CLI's seam gets SOPS (D14); the operator's seam is the Kubernetes API, where the referenced arm already provides the secure posture with zero new mechanism. Guidance over machinery.
+**Rationale:** The design's security property is scoped to the render pipeline: plaintext never enters the component graph. How values *reach* the kernel is a frontend seam: the CLI's seam gets SOPS (D14); the controller's seam is the Kubernetes API, where the referenced arm already provides the secure posture with zero new mechanism. Guidance over machinery.
 
 **Source:** User decision 2026-08-13 ("I don't want to add ValuesFrom"; documentation-first posture).
 
@@ -634,7 +634,7 @@ The kernel synthesises one component per group carrying the chosen source's cont
 
 **Alternatives considered:**
 
-- **The operator recomputes the demand itself.** Rejected: it duplicates kernel knowledge in a frontend, and the CLI would need it too.
+- **The controller recomputes the demand itself.** Rejected: it duplicates kernel knowledge in a frontend, and the CLI would need it too.
 - **Accept the gap.** Rejected: removing a source would break every dependent instance at its next render.
 
 **Rationale:** A component that exists only inside the render is invisible to any frontend that reads the instance; the kernel is the one party that sees it.
@@ -705,15 +705,15 @@ What survives of D16: the render is assembled without the deployer's original va
 
 **Requirements:**
 
-- R1: An instance applied by the CLI and then rendered by the operator produces the same output as the CLI's own render.
-- R2: The documentation of plaintext at rest names both the operator path and the CLI apply path.
+- R1: An instance applied by the CLI and then rendered by the controller produces the same output as the CLI's own render.
+- R2: The documentation of plaintext at rest names both the controller path and the CLI apply path.
 
 **Alternatives considered:**
 
-- **Refuse literals on apply.** Rejected: CLI and operator paths would accept different inputs, and a developer on a real cluster would have to pre-create every Secret.
-- **The CLI creates the Secrets itself and writes references.** Rejected: the operator would materialise nothing, the handoff's output identity would break, and the Secrets would sit outside the inventory.
+- **Refuse literals on apply.** Rejected: CLI and controller paths would accept different inputs, and a developer on a real cluster would have to pre-create every Secret.
+- **The CLI creates the Secrets itself and writes references.** Rejected: the controller would materialise nothing, the handoff's output identity would break, and the Secrets would sit outside the inventory.
 
-**Rationale:** The operator re-renders what the CLI applied; it can only reproduce the Secret if it receives the literal the CLI received.
+**Rationale:** The controller re-renders what the CLI applied; it can only reproduce the Secret if it receives the literal the CLI received.
 
 **Source:** User decision 2026-09-30.
 
@@ -734,10 +734,10 @@ What survives of D16: the render is assembled without the deployer's original va
 
 **Alternatives considered:**
 
-- **The operator redacts its own findings.** Rejected: every other frontend would need the same code, and CLI output in CI logs would still leak.
+- **The controller redacts its own findings.** Rejected: every other frontend would need the same code, and CLI output in CI logs would still leak.
 - **Document the echo.** Rejected: the leak is on the most common mistake, a bare string where a secret is expected.
 
-**Rationale:** Measured in the feasibility review: that mistake produces a conflict error quoting the value, which the operator writes to Events, often readable by people who cannot read Secrets.
+**Rationale:** Measured in the feasibility review: that mistake produces a conflict error quoting the value, which the controller writes to Events, often readable by people who cannot read Secrets.
 
 **Source:** User decision 2026-09-30; the echo measured in the 2026-09-30 feasibility review.
 
@@ -825,20 +825,20 @@ What survives of D18: core adds the arm and the envelope once and they never gro
 
 ---
 
-### D32: A platform fills a source's settings through its catalog entry, and the operator and CLI carry that fill
+### D32: A platform fills a source's settings through its catalog entry, and the controller and CLI carry that fill
 
 **Kind:** contract
 
 **Amends:** D21
 
-**Decision:** A source catalog exports its transformer and its settings schema as named definitions. The transformer declares its settings as a closed definition, with every setting the platform must provide required. A platform fills it through the enabling catalog entry's transformers, keyed by a reference to the catalog's exported transformer definition and wrapped in the source's own settings schema. Core's specification states that a catalog entry's transformers may carry such a fill, which it currently calls a derived readout. The operator's platform subscription gains a field carrying a source's settings, named by that exported definition rather than by a pattern, and the CLI's platform generator emits it, so the fill is not limited to hand-authored platforms. The carrier's round trip is not yet measured. None of this is a core schema field.
+**Decision:** A source catalog exports its transformer and its settings schema as named definitions. The transformer declares its settings as a closed definition, with every setting the platform must provide required. A platform fills it through the enabling catalog entry's transformers, keyed by a reference to the catalog's exported transformer definition and wrapped in the source's own settings schema. Core's specification states that a catalog entry's transformers may carry such a fill, which it currently calls a derived readout. The controller's platform subscription gains a field carrying a source's settings, named by that exported definition rather than by a pattern, and the CLI's platform generator emits it, so the fill is not limited to hand-authored platforms. The carrier's round trip is not yet measured. None of this is a core schema field.
 
 **Requirements:**
 
 - R1: A platform's settings for a source reach every object that source renders.
 - R2: A catalog version bump neither loses the platform's settings nor applies them to the wrong transformer.
 - R3: A misspelled or wrongly typed setting fails rather than falling back to a default, wherever the setting is required.
-- R4: A platform declared through the operator or generated by the CLI can carry a source's settings, not only one written by hand.
+- R4: A platform declared through the controller or generated by the CLI can carry a source's settings, not only one written by hand.
 
 **Alternatives considered:**
 

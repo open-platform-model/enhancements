@@ -76,21 +76,21 @@ So the mechanism OQ10 asked for mostly exists, on one side. What does not exist 
 This is the generative problem; the rest are symptoms. There is no place to put a Kubernetes behaviour such that both implementors get it. Enhancement 0006 recorded exactly this outcome twice and deferred both:
 
 - **OQ15** (stale-set comparator divergence): classified "product-consistency, not safety", left open at graduation.
-- **OQ16** (operator's missing apply-time collision guard): classified "a real, presently-shipping exposure", left open at graduation.
+- **OQ16** (controller's missing apply-time collision guard): classified "a real, presently-shipping exposure", left open at graduation.
 
 Both were recorded on 2026-07-01 during D31's investigation, were still open when 0006 graduated on 2026-07-20, and are still unimplemented in either repo on 2026-07-27. Neither was implemented because implementing either means writing a component that already exists, a second time, in a second repo. A documented convention was the alternative on offer, and OQ16 *is* that documented convention.
 
 **2. The CLI deletes CustomResourceDefinitions.**
 
-`PruneStaleResources` excludes only `Namespace`. A stale inventory entry naming a CRD (a component removed from a module that shipped one) is deleted, and with it every custom resource of that type in the cluster. The operator refuses the same delete at `internal/apply/prune.go:136`. This is not a consistency wrinkle; it is unbounded collateral damage available through one of the two supported tools.
+`PruneStaleResources` excludes only `Namespace`. A stale inventory entry naming a CRD (a component removed from a module that shipped one) is deleted, and with it every custom resource of that type in the cluster. The controller refuses the same delete at `internal/apply/prune.go:136`. This is not a consistency wrinkle; it is unbounded collateral damage available through one of the two supported tools.
 
 **3. The CLI prunes without checking what it is deleting.**
 
-The operator's `Prune` GETs each object and skips it when `app.kubernetes.io/managed-by` is not an OPM value, or when the live `module-instance.opmodel.dev/uuid` disagrees with the owner. The CLI has no equivalent at delete time. A resource that OPM once managed and something else has since adopted is deleted by the CLI and preserved by the operator.
+The controller's `Prune` GETs each object and skips it when `app.kubernetes.io/managed-by` is not an OPM value, or when the live `module-instance.opmodel.dev/uuid` disagrees with the owner. The CLI has no equivalent at delete time. A resource that OPM once managed and something else has since adopted is deleted by the CLI and preserved by the controller.
 
 **4. Deleting a CLI-owned instance orphans everything, silently.**
 
-`handleCLIOwned` (`internal/reconcile/moduleinstance.go:519`) is hands-off by design: no render, no apply, no prune, and (deliberately) no finalizer, so the operator never prunes resources the CLI owns. The consequence is stated in its own comment: for a deleting instance it "returns immediately: no finalizer was ever added, so there is nothing to clean up or unblock."
+`handleCLIOwned` (`internal/reconcile/moduleinstance.go:519`) is hands-off by design: no render, no apply, no prune, and (deliberately) no finalizer, so the controller never prunes resources the CLI owns. The consequence is stated in its own comment: for a deleting instance it "returns immediately: no finalizer was ever added, so there is nothing to clean up or unblock."
 
 A `kubectl delete moduleinstance` against a CLI-owned instance therefore removes the CR, which is the only record of what that instance deployed, and leaves every workload running with no inventory to find it by. Nothing warns. `opm instance delete` handles this correctly; the API server does not.
 
@@ -112,23 +112,23 @@ A platform team runs `postgres` in namespace `prod`. The module ships a `Deploym
 
 The module author removes the backup feature and republishes. The CRD is no longer rendered, so it becomes a stale inventory entry.
 
-**Under the operator:** `pruneStaleResources` calls `apply.Prune`, which hits `isSafeToDelete` and refuses. The CRD stays. A warning is logged and counted in `PruneResult.Skipped`. Every `Backup` custom resource in the cluster survives.
+**Under the controller:** `pruneStaleResources` calls `apply.Prune`, which hits `isSafeToDelete` and refuses. The CRD stays. A warning is logged and counted in `PruneResult.Skipped`. Every `Backup` custom resource in the cluster survives.
 
 **Under the CLI:** `PruneStaleResources` checks the entry against one exclusion, `Kind == "Namespace"`, which does not match. It issues a foreground delete against the CRD. Kubernetes cascades: every `Backup` object in every namespace, belonging to every team, is deleted with it.
 
 Same module, same upgrade, same stale entry. One tool logs a skip; the other takes out a cluster-wide resource type. Nothing in the module, the platform, or the CR expresses which behaviour the user gets: only which binary they happened to run.
 
-Now the same instance, deleted. If it is operator-owned and nobody set `spec.prune`, the finalizer runs, finds prune disabled, removes itself, and all four resources keep running. If it is CLI-owned and someone runs `kubectl delete moduleinstance postgres -n prod` instead of `opm instance delete`, the CR is removed with no finalizer to stop it, and the four resources keep running with the only record of their existence deleted.
+Now the same instance, deleted. If it is controller-owned and nobody set `spec.prune`, the finalizer runs, finds prune disabled, removes itself, and all four resources keep running. If it is CLI-owned and someone runs `kubectl delete moduleinstance postgres -n prod` instead of `opm instance delete`, the CR is removed with no finalizer to stop it, and the four resources keep running with the only record of their existence deleted.
 
 ## User Stories
 
 - As a **platform team operator**, I want deleting an instance to have one defined meaning, so that I can predict what survives. Today: the outcome depends on which of two tools I use, on a `spec.prune` field with no default and no prompt, and on whether I deleted the CR or asked the CLI to.
 - As a **kernel contributor**, I want to add a Kubernetes behaviour once and have every implementor get it, so that a safety check is not a per-frontend project. Today: `library/opm/` may not contain Kubernetes code, so the work is two PRs in two repos with a hand-maintained parity comment between them, which is why 0006's OQ15 and OQ16 are still open.
-- As an **application module author**, I want removing a component from my module to be safe, so that an upgrade cannot destroy state I never owned. Today: removing a component that shipped a CRD is safe under the operator and cluster-destroying under the CLI.
+- As an **application module author**, I want removing a component from my module to be safe, so that an upgrade cannot destroy state I never owned. Today: removing a component that shipped a CRD is safe under the controller and cluster-destroying under the CLI.
 
 ## Why Existing Workarounds Fail
 
-**The shared package was tried, and reverted.** Enhancement 0006 D13.1 decided the shared logic "homes in `library` … consumed by both the CLI and the operator", calling it "required for correctness, not just tidiness". It shipped as slice A3 (`library/opm/inventory` existed) and D31 deleted it on 2026-07-01.
+**The shared package was tried, and reverted.** Enhancement 0006 D13.1 decided the shared logic "homes in `library` … consumed by both the CLI and the controller", calling it "required for correctness, not just tidiness". It shipped as slice A3 (`library/opm/inventory` existed) and D31 deleted it on 2026-07-01.
 
 D31's reasoning is narrowly correct and remains so. It asked whether shared code is *required for cross-actor handoff safety*, traced the data flow, and found that only the `InventoryEntry` wire shape crosses the boundary unmediated (anchored by the CRD's OpenAPI schema rather than by a Go package) while the handoff instant is independently gated by D7.4's render-digest check. Nothing in this entry disputes that.
 

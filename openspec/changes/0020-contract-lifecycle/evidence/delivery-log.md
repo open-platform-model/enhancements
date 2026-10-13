@@ -8,4 +8,4 @@ The old `delivery.yaml` of 0020, kept as a record. Source: `delivery.yaml` of `0
 
 ## No work
 
-- D12: A scope decision that places the cluster-side guard against stranding live dependents outside this design entirely. It is delivered, if at all, in opm-operator beside enhancement 0015's registration finalizer, and needs a dependent-side data shape that does not exist yet.
+- D12: A scope decision that places the cluster-side guard against stranding live dependents outside this design entirely. It is delivered, if at all, in opm-controller beside enhancement 0015's registration finalizer, and needs a dependent-side data shape that does not exist yet.

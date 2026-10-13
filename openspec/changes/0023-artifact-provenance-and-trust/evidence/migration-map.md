@@ -14,8 +14,8 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0023:D1:R4 | kept | artifact-claims/A claim declares its kind |  |
 | 0023:D2:R1 | kept | platform-trust-policy/A platform declares whom it trusts |  |
 | 0023:D2:R2 | kept | platform-trust-policy/Every materialized artifact is verified first |  |
-| 0023:D2:R3 | kept | platform-trust-policy/The CLI and operator reach one verdict |  |
-| 0023:D2:R4 | kept | platform-trust-policy/The operator enforces and the CLI reports |  |
+| 0023:D2:R3 | kept | platform-trust-policy/The CLI and controller reach one verdict |  |
+| 0023:D2:R4 | kept | platform-trust-policy/The controller enforces and the CLI reports |  |
 
 Totals: kept 8, cut 0, repo 0, moved 0 (merged 0). Sum 8, equal to the 8 old ids (D1 4, D2 4). Check: kept + moved + cut + repo = 8. Each of the 8 new requirements has one `kept` row.
 

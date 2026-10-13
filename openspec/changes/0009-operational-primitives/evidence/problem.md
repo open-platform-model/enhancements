@@ -25,7 +25,7 @@ The trap to avoid is **Helm's model**: a hook is an arbitrary template that rend
 
 A module author ships an app that needs a schema migration applied after the database is reachable but before the app rolls out, and wants a one-shot "seed demo data" operation an operator can run on demand.
 
-Today, this is not expressible in OPM. The author writes a `migrate-job.yaml` by hand (pinned to one cluster's shape), documents the seed step as a `kubectl exec` runbook in the README, and hopes the next operator runs them in the right order. None of it is validated, none of it is reusable by the next module, and the platform team cannot see or constrain what these steps do.
+Today, this is not expressible in OPM. The author writes a `migrate-job.yaml` by hand (pinned to one cluster's shape), documents the seed step as a `kubectl exec` runbook in the README, and hopes the next controller runs them in the right order. None of it is validated, none of it is reusable by the next module, and the platform team cannot see or constrain what these steps do.
 
 What the author *should* be able to write is a typed flow composed from primitives OPM controls (a `wait` Op, then a migration `Action`, bound to the `pre-upgrade` lifecycle phase) and a separate on-demand `Workflow` for the seed step. The same `#Module` that renders to Kubernetes would also carry its operational intent, and the kernel would plan it the same way it already plans and renders resources.
 
@@ -40,4 +40,4 @@ What the author *should* be able to write is a typed flow composed from primitiv
 - **Shell scripts beside the module.** No schema, no composition, no reuse, no platform-level control. A migration in one module cannot be adapted by another without copy-paste.
 - **Hand-written Kubernetes Jobs / Helm hooks.** Pinned to one resource shape and one platform; fire-and-forget rather than convergent under reconciliation; and they re-import exactly the "arbitrary script as a hook" pattern OPM exists to replace.
 - **Manual `kubectl` runbooks.** Unvalidated prose. Ordering and preconditions live in a human's head; nothing enforces them.
-- **CUE's own `tool/exec` (`cue cmd`).** Tied to the CUE CLI, not to OPM's runtime. OPM needs operations its own kernel (embedded by the CLI and the operator) can plan and execute, not operations that require the `cue` binary.
+- **CUE's own `tool/exec` (`cue cmd`).** Tied to the CUE CLI, not to OPM's runtime. OPM needs operations its own kernel (embedded by the CLI and the controller) can plan and execute, not operations that require the `cue` binary.
