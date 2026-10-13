@@ -33,8 +33,8 @@
 
 ## 4. Controller install module
 
-- [x] 4.1 opm-controller: publish the controller module on its own version train, one controller version per module version (release-controller-module)
-- [x] 4.2 cli: install the controller from the module in a registry, check the target module's controller version, and uninstall from the recorded inventory (install-controller-from-module)
+- [x] 4.1 opm-controller: publish the controller module on its own version train, one controller version per module version (release-operator-module)
+- [x] 4.2 cli: install the controller from the module in a registry, check the target module's controller version, and uninstall from the recorded inventory (install-operator-from-module)
 
 ## 5. Policy publication
 

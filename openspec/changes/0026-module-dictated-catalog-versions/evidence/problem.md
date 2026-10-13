@@ -18,7 +18,7 @@ The kernel's promotion is unchanged on that path, so the platform still wins eve
 
 ## Gap / Pain
 
-All three gaps are about renders against a platform, which is every operator render and every CLI render given a platform directory or a cluster Platform. A render with no platform holds its own pins already, and has no admission to relax.
+All three gaps are about renders against a platform, which is every controller render and every CLI render given a platform directory or a cluster Platform. A render with no platform holds its own pins already, and has no admission to relax.
 
 **Gap 1: a module cannot use a catalog definition the platform has not pinned yet.** A module tidied against catalog release 4.6.0 that uses a trait added in 4.5.0 renders on a platform pinned at 4.3.0 with an unknown-key failure. The module author did nothing wrong, the platform team did nothing wrong, and the fix is a platform edit that touches every other instance on the cluster. Catalog evolution is throttled to the slowest platform.
 

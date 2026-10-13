@@ -128,7 +128,7 @@ Now the same instance, deleted. If it is controller-owned and nobody set `spec.p
 
 ## Why Existing Workarounds Fail
 
-**The shared package was tried, and reverted.** Enhancement 0006 D13.1 decided the shared logic "homes in `library` … consumed by both the CLI and the controller", calling it "required for correctness, not just tidiness". It shipped as slice A3 (`library/opm/inventory` existed) and D31 deleted it on 2026-07-01.
+**The shared package was tried, and reverted.** Enhancement 0006 D13.1 decided the shared logic "homes in `library` … consumed by both the CLI and the operator", calling it "required for correctness, not just tidiness". It shipped as slice A3 (`library/opm/inventory` existed) and D31 deleted it on 2026-07-01.
 
 D31's reasoning is narrowly correct and remains so. It asked whether shared code is *required for cross-actor handoff safety*, traced the data flow, and found that only the `InventoryEntry` wire shape crosses the boundary unmediated (anchored by the CRD's OpenAPI schema rather than by a Go package) while the handoff instant is independently gated by D7.4's render-digest check. Nothing in this entry disputes that.
 

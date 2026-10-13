@@ -4,12 +4,12 @@ These points come from the conversion and from the delivered seeds. The old entr
 
 ## The entry itself
 
-- **`breaking` is `false`, and a shipped change was marked BREAKING.** The old `config.yaml` had no `semver` key, so the conversion set `breaking: false`. The cli change `install-controller-from-module`, which task 4.2 ticks, calls itself BREAKING in its own proposal. The owner settles `breaking` at accept.
+- **`breaking` is `false`, and a shipped change was marked BREAKING.** The old `config.yaml` had no `semver` key, so the conversion set `breaking: false`. The cli change `install-operator-from-module`, which task 4.2 ticks, calls itself BREAKING in its own proposal. The owner settles `breaking` at accept.
 - **`opm` is in `affects` and has no task line.** The old config lists `opm`. The conversion kept it. The vet rule V23 reports an error at accept for a repo in `affects` with no task line. The owner adds a task line for `opm` or drops it from `affects`.
 
 ## Detail that the seeds hold and 0021 does not
 
-Three delivered seeds held more detail than the rule 0021 states. The detail was taken out of the seeds so that 0021 and the seeds do not state one rule twice. The full text of each list is in the `source.md` of the archived seed, under "For the owner at 0021's accept": `seed-instance-ownership`, `seed-platform-resolution` and `seed-controller-lifecycle`. At accept the owner decides for each item whether it joins 0021 as a requirement or a scenario, or is dropped.
+Three delivered seeds held more detail than the rule 0021 states. The detail was taken out of the seeds so that 0021 and the seeds do not state one rule twice. The full text of each list is in the `source.md` of the archived seed, under "For the owner at 0021's accept": `seed-instance-ownership`, `seed-platform-resolution` and `seed-operator-lifecycle`. At accept the owner decides for each item whether it joins 0021 as a requirement or a scenario, or is dropped.
 
 ### From the seed `instance-ownership`, for "The controller never touches its own instance" (old 0021:D11:R9)
 
@@ -25,7 +25,7 @@ Three delivered seeds held more detail than the rule 0021 states. The detail was
 - **The reason.** Repairing the controller never depends on the Platform it serves (old 0021:D11:R10).
 - **Where the code does it.** Controller install sets the render that reads only the dependency pins, so neither a platform directory nor the cluster is consulted (cli `internal/cmd/controller/install.go`, `internal/workflow/render/module.go`).
 
-### From the seed `controller-lifecycle`, for the controller install and uninstall rules (old 0021:D11:R1 to R12)
+### From the seed `operator-lifecycle`, for the controller install and uninstall rules (old 0021:D11:R1 to R12)
 
 Install:
 

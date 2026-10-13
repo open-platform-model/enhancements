@@ -18,7 +18,7 @@ The old `delivery.yaml` of 0021, kept as a record. The landed repo changes are t
 
 Five lines of `../tasks.md` are ticked from the repos, not from the old log. They were found on 2026-10-11 by reading the archived changes in the sibling checkouts.
 
-- `install-controller-from-module` (cli) and `release-controller-module` (opm-controller) each carry an `enhancement.yaml` that declares 0021 (decision D11, and D9 for the CLI one). The old log did not hold them.
+- `install-operator-from-module` (cli) and `release-operator-module` (opm-controller) each carry an `enhancement.yaml` that declares 0021 (decision D11, and D9 for the CLI one). The old log did not hold them.
 - `adopt-beta-release-line` (core, cli and opm-controller) states in its proposal that it moves the line to beta and, for the CLI, compares only `MAJOR.MINOR` in the ceiling. None of the three declares 0021 in an `enhancement.yaml`.
 
-Not ticked and found in the same read: `add-controller-module` (opm-controller, authors the module, no declaration of 0021) and `stop-controller-install-manifest` (opm-controller, open, marked blocked in its own proposal).
+Not ticked and found in the same read: `add-operator-module` (opm-controller, authors the module, no declaration of 0021) and `stop-operator-install-manifest` (opm-controller, open, marked blocked in its own proposal).

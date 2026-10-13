@@ -144,7 +144,7 @@ func fixture(t *testing.T) (enh string, repos []Repo) {
 		"library/openspec/changes/live-one/proposal.md":                "Delivers 0013, task 2.6.\n",
 
 		"catalog_opm/openspec/changes/archive/2026-09-05-publish-catalog/proposal.md": "Delivers 0013, task 2.4.\n",
-		"opm-controller/openspec/changes/archive/2026-09-06-operate/proposal.md":        "Delivers 0013, task 2.5.\n",
+		"opm-controller/openspec/changes/archive/2026-09-06-operate/proposal.md":      "Delivers 0013, task 2.5.\n",
 		"opm/README.md": "a repo without OpenSpec\n",
 	})
 	for _, n := range []string{"core", "library", "catalog_opm", "opm-controller", "opm"} {

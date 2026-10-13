@@ -113,7 +113,7 @@ Deletion becomes a state machine owned by the Kubernetes tier, over inputs the l
 
 Everything the controller's `handleDeletion` branches on today becomes a case in the tier's hold verdict: prune disabled, empty inventory, partial failure, the force-orphan annotation. The controller keeps the finalizer patch (a `client.Patch`, which needs its client) and keeps the impersonation setup (credentials). It stops owning the decision of *when* the hold may be released.
 
-The CLI runs the same protocol for its own delete, and the question of whether CLI-owned CRs should carry a hold at all becomes answerable separately (as OQ6), because "what would clean up" now has one definition rather than being an operator-private code path.
+The CLI runs the same protocol for its own delete, and the question of whether CLI-owned CRs should carry a hold at all becomes answerable separately (as OQ6), because "what would clean up" now has one definition rather than being a controller-private code path.
 
 ### `ownerReferences`
 
