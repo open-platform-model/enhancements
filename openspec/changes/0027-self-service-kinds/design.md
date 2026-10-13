@@ -82,7 +82,7 @@ The instance is namespaced, with no cluster-scoped composite behind it. The proj
 - Considered binding with no kinds; rejected because it leaves the API server without a schema or per-kind RBAC.
 - Considered an offered module that does not know it is offered; replaced by the declaration, because the same need recurs across entries.
 - Considered the offered module emitting its own definition; rejected on lifecycle.
-- Considered an authored field on the module for the intended kind; rejected because it bakes an operator CR shape into core.
+- Considered an authored field on the module for the intended kind; rejected because it bakes a controller CR shape into core.
 - Considered controller-synthesised definitions from module metadata; rejected because it needs privilege on a namespaced object and adds a second emission path.
 - Considered projection in the controller only; rejected because the CLI could not reproduce a render offline.
 - Considered consumer values overriding bound values; rejected because the override is what the platform bound the value to prevent.
