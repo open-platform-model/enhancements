@@ -180,11 +180,12 @@ task deliver ID=seed-registration-acceptance  # refuses a seed with no sampled: 
 
 ## Source of truth precedence
 
-When guidance conflicts, the most specific source wins: target-repo skill, then this skill, then target-repo `AGENTS.md`, then `enhancements/AGENTS.md`, then the workspace root `AGENTS.md`. Each target repo's own `AGENTS.md` governs its source code.
+When guidance conflicts, the most specific source wins: target-repo skill, then this skill, then target-repo `AGENTS.md`, then `enhancements/AGENTS.md`, then the workspace root `AGENTS.md`. The workspace root `CONTEXT.md` governs cross-repo routing. Each target repo's own `AGENTS.md` governs its source code.
 
 ## Cross-references
 
-- `AGENTS.md`: the rules and the full task table.
+- `AGENTS.md`: the rules.
+- `references/tasks.md`: the full task table.
 - `openspec/config.yaml`: the rules of the store, by artifact.
 - `openspec/schemas/enhancement/` and `openspec/schemas/seed/`: the schemas and templates.
 - `schema.cue`: the schema of `config.yaml`, the repo list, the reserved and blocked ids.

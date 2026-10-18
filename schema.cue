@@ -45,7 +45,7 @@ import (
 #EntryStatus: "draft" | "accepted" | "delivered" | "rejected" | "superseded" | "withdrawn"
 
 // Closed list of repos an entry may affect: the directory names of the
-// workspace AGENTS.md "Repos" table, so `catalog_opm`, not `catalog`. It lists
+// workspace root AGENTS.md, so `catalog_opm`, not `catalog`. It lists
 // `opm-controller` beside `opm-operator`. Add a value here when a repo joins
 // the workspace; do not allow free text.
 #EntryRepo: "core" | "library" | "catalog_opm" | "cli" | "opm-operator" |
