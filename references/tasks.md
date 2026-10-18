@@ -1,6 +1,6 @@
 # Tasks: the commands of the enhancements store
 
-Covers the `task` commands of this repo and the lifecycle step each one serves. Every task is a one-line call to `enh`, the Go program in `tools/enh/`. `enh help` and `enh help <command>` list every flag. The `enhancements` skill gives the steps and the checklist of each lifecycle row.
+Covers the `task` commands of this repo and the lifecycle step each one serves. Most tasks are a one-line call to `enh`, the Go program in `tools/enh/`. `enh help` and `enh help <command>` list every flag. The `enhancements` skill gives the steps and the checklist of each lifecycle row.
 
 ## Run a task
 

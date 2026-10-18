@@ -4,10 +4,6 @@ This repo holds OPM enhancement entries. An entry is the design of one feature t
 
 The repo is an OpenSpec store. One entry is one OpenSpec change, `openspec/changes/<id>-<slug>/`. The delivered behaviour of OPM is `openspec/specs/`. A Go program, `enh` (in `tools/enh/`), and a thin `Taskfile.yml` check the rules below.
 
-## Branch model
-
-Work lands on `main` by pull request.
-
 ## Repository rules
 
 Violations fail PR review, even where `task vet` does not catch them. The `enhancements` skill carries the workflow and the reasons for the steps.
@@ -33,7 +29,7 @@ Violations fail PR review, even where `task vet` does not catch them. The `enhan
 
 ## Source of truth precedence
 
-When guidance conflicts, the most specific source wins: target-repo skill, then the `enhancements` skill, then target-repo `AGENTS.md`, then this `AGENTS.md`, then the workspace root `AGENTS.md`. The workspace root `CONTEXT.md` governs cross-repo routing, and its layout lists the repos that the `affects` list may use. Each target repo's own `AGENTS.md` governs its source code. When a change touches `core/`, the `core-schema-edit` skill of that repo is the binding protocol for SPEC.md co-updates.
+When guidance conflicts, the most specific source wins: target-repo skill, then the `enhancements` skill, then target-repo `AGENTS.md`, then this `AGENTS.md`, then the workspace root `AGENTS.md`. The workspace hard rules in the root `AGENTS.md` always hold, whatever the order. Routing is in the root `CONTEXT.md`, and the repo list that `affects` may use is in the root `AGENTS.md`. Each target repo's own `AGENTS.md` governs its source code. When a change touches `core/`, the `core-schema-edit` skill of that repo is the binding protocol for SPEC.md co-updates.
 
 ## Layout
 
@@ -57,7 +53,7 @@ The docs bundle `enhancements` is published to `ghcr.io/open-platform-model/docs
 
 ## Commands
 
-All tasks run from `enhancements/` (`cd enhancements && task <name>`) or from the workspace root (`task enhancements:<name>`). Each is a one-line call to `enh`. `enh help` lists every flag.
+All tasks run from `enhancements/` (`cd enhancements && task <name>`) or from the workspace root (`task enhancements:<name>`). Most are a one-line call to `enh`. `enh help` lists every flag.
 
 | Command | What it does | When |
 | --- | --- | --- |
