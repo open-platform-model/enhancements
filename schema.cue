@@ -46,8 +46,9 @@ import (
 
 // Closed list of repos an entry may affect: the directory names of the
 // workspace root AGENTS.md, so `catalog_opm`, not `catalog`. It lists
-// `opm-controller` beside `opm-operator`. Add a value here when a repo joins
-// the workspace; do not allow free text.
+// `opm-controller` beside the former name `opm-operator`, because closed
+// entries cannot be edited and some of them list it. Add a value here when a
+// repo joins the workspace; do not allow free text.
 #EntryRepo: "core" | "library" | "catalog_opm" | "cli" | "opm-operator" |
 	"opm-controller" | "opm-portal" | "opm" | "opmodel.dev" | "docs-kit" |
 	"enhancements" | "modules" | "opm-suite-installer" | ".github"
