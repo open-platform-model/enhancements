@@ -141,7 +141,7 @@ Run `task check` before you open a PR. Run `task index` after any edit under an 
 | `task index`, `task fresh`, `task links` | Write the generated files; check them; check links |
 | `task questions ID=NNNN`, `task stale ID=NNNN`, `task history REQ="Name"` | Open questions; stale-base flags; the history of a requirement |
 
-`task --list` shows the rest. `AGENTS.md` has the full table.
+`task --list` shows the rest. `references/tasks.md` has the full table.
 
 ## Layout
 
@@ -149,6 +149,8 @@ Run `task check` before you open a PR. Run `task index` after any edit under an 
 enhancements/
 ├── README.md               this file
 ├── AGENTS.md               repository rules and agent orientation
+├── CONTEXT.md              router: which file to read for which task
+├── references/             detail files (the task table)
 ├── INDEX.md                generated: every entry with status and summary
 ├── GRAPH.md                generated: Mermaid diagrams of how entries relate, one per category
 ├── schema.cue              what config.yaml may contain; the repo list; reserved ids
