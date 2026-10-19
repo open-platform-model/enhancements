@@ -16,8 +16,8 @@ Six probes run to settle OQ3 to OQ8 after the secret-source redesign (D18 to D28
 - **Measured.** A source transformer declaring a closed settings definition, filled by the platform through its catalog entry's transformers, carries the filled value into every object that transformer renders, through the real render, with no change to core, the kernel or the render glue.
 - **Measured.** A fill keyed by the transformer's version-bearing FQN is silently lost after a catalog version bump. A fill keyed by a reference to the catalog's exported transformer definition survives the bump, and a misspelled definition reference fails at render.
 - **Measured.** Platform files embed `#Platform` at file root, which leaves fields written beside the embedding open: a misspelled setting is accepted and the default used. Wrapping the fill in the source's own settings schema refuses it. A defaulted setting can still be lost through a misspelled key; only a required setting guards against that.
-- **Not measured.** The round trip of a settings fill through an operator or CLI carrier; none was built.
-- **Measured.** The operator's Platform subscription carries only enable and version, and the CLI's platform generator emits only those; neither can carry a settings fill today. Core documents a catalog entry's transformers as derived readouts, never authored.
+- **Not measured.** The round trip of a settings fill through a controller or CLI carrier; none was built.
+- **Measured.** The controller's Platform subscription carries only enable and version, and the CLI's platform generator emits only those; neither can carry a settings fill today. Core documents a catalog entry's transformers as derived readouts, never authored.
 - **Measured.** Under a closed input envelope, a per-secret override can only live inside an entry, where the kernel cannot tell it apart from data.
 
 ## OQ5: typing a source's entries at render

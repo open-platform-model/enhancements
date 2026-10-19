@@ -21,7 +21,7 @@ Everything runs against **published, pinned artifacts** - no local `replace`, no
   - **M4 bake-style** - bake the resolved values at load time via `BuildInstanceOverlayAt` (the same overlay mechanism `synth.Instance` uses), then `ProcessModuleInstance` with no fill. Must build clean and concrete.
   - **M5 absence** (asserted inside M3 and M4) - on each render artifact: the literal resolved to `{ref: "myapp-secrets", key: "db_password"}`, the deployer-written ref passed through as itself, `values.db.password.value` does **not exist**, and the plaintext string is absent from the exported values subtree.
 
-The `ModuleInstance` CR door maps onto M3: an operator decodes CR values into data and hands them to the kernel as a parameter - the same seam, values never baked into a loaded package.
+The `ModuleInstance` CR door maps onto M3: the controller decodes CR values into data and hands them to the kernel as a parameter - the same seam, values never baked into a loaded package.
 
 ## Run
 
