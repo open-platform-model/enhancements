@@ -99,7 +99,7 @@ The same annotation hands an object between live instances. The instance it does
 - Considered component-aware identity or JSON hashing; rejected because each needs a rescue rule or ties the digest to a serialisation.
 - Considered a guard on the first apply only; rejected because later releases add objects.
 - Considered a command-wide force flag or no override; rejected because the first takes objects the user did not mean and the second forces a delete first.
-- Considered install admission and an controller-namespace override; rejected, one withdrawn and one too broad.
+- Considered install admission and a controller-namespace override; rejected, one withdrawn and one too broad.
 - Considered refusing in-inventory objects by UUID label alone; rejected because a registry path move would refuse every object.
 - Considered stopping the whole apply on adopted-elsewhere; rejected because the inventory would never drop the object.
 - Considered a cross-repo conformance suite, folding the CLI into the controller, or CUE-generated logic; rejected as symptom fixes, a lost workflow and the wrong home for logic.
