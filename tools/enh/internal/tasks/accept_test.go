@@ -224,7 +224,7 @@ func TestCollisionListKeepsARenamedRequirement(t *testing.T) {
 	f := newFx(t)
 	f.addedDelta(1, "")
 	d := f.read(demo + "/specs/demo-cap/spec.md")
-	f.write(demo+"/specs/demo-cap/spec.md", d+"### Requirement: Readiness of every platform is reported\n\nThe operator SHALL report readiness of every platform.\n\n#### Scenario: S\n\n- **WHEN** a\n- **THEN** b\n\n")
+	f.write(demo+"/specs/demo-cap/spec.md", d+"### Requirement: Readiness of every platform is reported\n\nThe controller SHALL report readiness of every platform.\n\n#### Scenario: S\n\n- **WHEN** a\n- **THEN** b\n\n")
 	f.write(demo+"/specs/existing-cap/spec.md", "## RENAMED Requirements\n\n- FROM: `### Requirement: Readiness is reported`\n- TO: `### Requirement: Readiness is shown`\n")
 	f.mustNil(f.env.Accept("0100"))
 	out := f.out.String()

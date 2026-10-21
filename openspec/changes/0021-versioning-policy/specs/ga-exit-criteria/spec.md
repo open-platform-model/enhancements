@@ -22,13 +22,13 @@ Before GA, the policy SHALL name each draft entry whose delivery would break a G
 - **WHEN** a draft entry would break a line that is nearing GA
 - **THEN** the policy names it, and it lands before GA or waits for the next major
 
-### Requirement: The operator's CRD version is decided before GA
+### Requirement: The controller's CRD version is decided before GA
 
-Before the operator reaches GA, the CRD version it serves SHALL be decided. A move to a new version SHALL be served with conversion, and every first-party artifact that names the version SHALL name the served one. For the first GA the operator SHALL serve `v1alpha1` with no conversion.
+Before the controller reaches GA, the CRD version it serves SHALL be decided. A move to a new version SHALL be served with conversion, and every first-party artifact that names the version SHALL name the served one. For the first GA the controller SHALL serve `v1alpha1` with no conversion.
 
 #### Scenario: The first GA
 
-- **WHEN** the operator reaches its first GA
+- **WHEN** the controller reaches its first GA
 - **THEN** it serves `v1alpha1` and all first-party artifacts name `v1alpha1`
 
 ### Requirement: The library records a migration note per break
@@ -42,7 +42,7 @@ From GA on, the kernel library SHALL record a migration note for every breaking 
 
 ### Requirement: Latest resolves to the GA release
 
-After GA, the GitHub "latest" release of the core, kernel library, CLI and operator repositories, the operator image's `latest` tag, and Go's latest-version query for the library and the CLI SHALL each resolve the GA release. No `0.x` release or prerelease SHALL be advertised as latest.
+After GA, the GitHub "latest" release of the core, kernel library, CLI and controller repositories, the controller image's `latest` tag, and Go's latest-version query for the library and the CLI SHALL each resolve the GA release. No `0.x` release or prerelease SHALL be advertised as latest.
 
 #### Scenario: A consumer asks for latest
 
@@ -69,11 +69,11 @@ At GA, the CLI's module templates and the quickstart SHALL be republished agains
 
 ### Requirement: GA releases are cut in dependency order
 
-GA releases SHALL be cut in this order: core, the kernel library, the operator, the operator module's first `v1` release, deploying the GA operator, then the CLI pinning that module. No GA release SHALL pin a prerelease dependency, and a `v0` operator module counts as one. A CI tool pin is not a dependency.
+GA releases SHALL be cut in this order: core, the kernel library, the controller, the controller module's first `v1` release, deploying the GA controller, then the CLI pinning that module. No GA release SHALL pin a prerelease dependency, and a `v0` controller module counts as one. A CI tool pin is not a dependency.
 
-#### Scenario: The CLI before the operator module
+#### Scenario: The CLI before the controller module
 
-- **WHEN** the operator module has no `v1` release
+- **WHEN** the controller module has no `v1` release
 - **THEN** the CLI does not reach GA
 
 ### Requirement: A GA line can cut a release branch

@@ -10,7 +10,7 @@ The kernel grows a second half, a pure planner over four new primitives, layered
 - Two consumers of those compositions: **`#Lifecycle`** (steps bound to fixed state-transition phases) and **`#Workflow`** (on-demand, explicitly invoked flows).
 - The library is a **pure planner**: it resolves flows into an ordered plan and decides what comes next, one step per call, but runs no loop and performs no side effects (Principle I, kernel neutrality). The caller drives the loop; all side effects live behind injected executor backends.
 - The **executable code is not hardcoded in the library**. It is pluggable and catalog-sourced, located by metadata embedded in the CUE definitions, distributed over the same `#Catalog` and `#Platform.#registry` rails the render half already uses.
-- Each frontend (CLI, operator) composes the executor backends it wants; an unsupported operation is rejected cleanly *before* anything runs.
+- Each frontend (CLI, controller) composes the executor backends it wants; an unsupported operation is rejected cleanly *before* anything runs.
 
 ## Non-Goals
 
@@ -34,13 +34,13 @@ The library splits along the neutrality boundary in three parts, and the split i
 
 - **Plan types and the planner**, in the kernel tier. A phase of a `#Lifecycle` or a named `#Workflow` becomes an ordered graph of steps, as pure data.
 - **The advance function**, in the kernel tier. Given a plan and a state value it returns the next state and the one action the caller is to perform. It decides eligibility, order, satisfaction, failure handling and completion; it runs nothing and keeps nothing.
-- **Executor backend hosts**, in the opt-in tier where the I/O lives. A wasm host, a container host (whose operator variant renders a Job rather than running locally), a thin HTTP host, and a pure `cue.eval` host.
+- **Executor backend hosts**, in the opt-in tier where the I/O lives. A wasm host, a container host (whose controller variant renders a Job rather than running locally), a thin HTTP host, and a pure `cue.eval` host.
 
 The caller supplies the loop. A one-shot CLI invocation calls advance until the plan reports completion; a controller calls it once per reconcile and carries the state in the instance it owns.
 
 **Dispatch is attribute-driven.** The planner reads each step's `@op(protocol=…, ref=…)` attribute. `protocol` selects an executor **backend** from a registry; `ref` is a locator for the pluggable executable artifact. The library ships the generic backend *hosts* (a wasm runtime, an OCI runner, …): these are runtimes, not operation logic, so neutrality holds and nothing op-specific is compiled in. The actual operation behavior is a catalog-sourced artifact the backend loads at runtime.
 
-**Opt-in by registry.** A frontend builds a `Registry` from only the backends it wants, then drives the plan. The whole plan is checked against that registry before the first action: a step whose `protocol` has no registered backend fails fast with a clear error *before* execution begins. This is how the operator cleanly declines, say, ad-hoc container builds: it simply never registers that backend. The same `#Op` and the same plan run differently per frontend: `exec` runs a local container on the CLI and renders-a-Job-and-watches on the operator, just by swapping the backend.
+**Opt-in by registry.** A frontend builds a `Registry` from only the backends it wants, then drives the plan. The whole plan is checked against that registry before the first action: a step whose `protocol` has no registered backend fails fast with a clear error *before* execution begins. This is how the controller cleanly declines, say, ad-hoc container builds: it simply never registers that backend. The same `#Op` and the same plan run differently per frontend: `exec` runs a local container on the CLI and renders-a-Job-and-watches on the controller, just by swapping the backend.
 
 **Catalog-sourced, over existing rails.** Op definitions and their artifacts are distributed through the `#Catalog` manifest the render half already uses. `core`'s `#Catalog` gains additive sibling maps (`#ops`, `#actions`) alongside `#transformers`; the comment in `core/src/catalog.cue` already anticipates exactly this extension. A platform's `#registry` resolves them the way it already resolves transformers: no parallel distribution pipeline.
 
@@ -66,11 +66,11 @@ The `@op(...)` attribute is the load-bearing new convention. It is hof.io-inspir
 
 **`cli/`**: register the backend set (incl. workflow execution); surface `opm workflow run <name>` and lifecycle invocation.
 
-**`opm-operator/`**: register the operator's backend set (k8s-flavored `exec` → Job; likely no ad-hoc workflow backend); drive `#Lifecycle` phases from the reconcile loop.
+**`opm-controller/`**: register the controller's backend set (k8s-flavored `exec` → Job; likely no ad-hoc workflow backend); drive `#Lifecycle` phases from the reconcile loop.
 
 ## Before / After
 
-**Before**: the migration scenario from `problem.md` lives outside OPM: a hand-written `migrate-job.yaml` pinned to one cluster, a `kubectl exec` seed step documented in prose, ordering left to the operator.
+**Before**: the migration scenario from `problem.md` lives outside OPM: a hand-written `migrate-job.yaml` pinned to one cluster, a `kubectl exec` seed step documented in prose, ordering left to the controller.
 
 **After**: it is typed and composed from controlled primitives, carried on the same `#Module` that renders the app:
 
@@ -82,4 +82,4 @@ lifecycle: phases: "pre-upgrade": [
 workflows: "seed-demo": steps: run: ops.#ExecOp & {image: "myorg/seeder:1", command: ["seed"]}
 ```
 
-The kernel plans the `pre-upgrade` phase into an ordered DAG and the operator orchestrates it through its registered backends; `seed-demo` runs only when an operator invokes it. Nothing is pinned to a cluster shape, and the platform team controls which Op kinds and backends exist.
+The kernel plans the `pre-upgrade` phase into an ordered DAG and the controller orchestrates it through its registered backends; `seed-demo` runs only when an operator invokes it. Nothing is pinned to a cluster shape, and the platform team controls which Op kinds and backends exist.

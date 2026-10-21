@@ -34,7 +34,7 @@ While a question is open, its bullet is a working surface: edit the wording, sha
 
 - **OQ11: What happens to a definition's deletion, and to its instances, when instances exist?** Status: deferred-to-0027, same number.
 
-- **OQ12: Who installs the served CRD: the operator at runtime, or rendered output the platform applies?** Status: deferred-to-0027, same number.
+- **OQ12: Who installs the served CRD: the controller at runtime, or rendered output the platform applies?** Status: deferred-to-0027, same number.
 
 - **OQ13: How does a declaration-only module trait state its fulfilment?** Status: open. Blocking: acceptance: `fulfilment` is contract on the trait and the inventory (D14) reads it. The offering declaration in entry 0027 and the lifecycle trait in entry 0009 are consumed outside the render path, by the CLI, a reconciler and the execution half, and no transformer ever handles them. `"catalog"` claims the declaring catalog implements it, which is false; `"provider"` demands exactly one platform transformer, which is worse. Candidates: a third value naming a non-render consumer, or `optional: bool | *true` with `"catalog"` and a rule that the inventory does not count a trait no module transformer in the same catalog requires. The first is honest and adds a value to a vocabulary 0010 D32 fixed; the second reuses what exists and leaves the falsehood in the field.
 

@@ -10,7 +10,7 @@ category: runtime
 breaking: false
 affects:
   - library
-  - opm-operator
+  - opm-controller
   - cli
 authors:
   - emil@jacero.se

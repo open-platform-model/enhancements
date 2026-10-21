@@ -53,7 +53,7 @@ With prereleases off, a render SHALL refuse a pin that carries a prerelease suff
 
 ### Requirement: One platform value serves cluster and offline
 
-For a render given a platform, one authored platform value, with the same fields, SHALL serve as the operator's Platform resource spec and as the offline file the render starts from. A hand-written platform module SHALL NOT be an input.
+For a render given a platform, one authored platform value, with the same fields, SHALL serve as the controller's Platform resource spec and as the offline file the render starts from. A hand-written platform module SHALL NOT be an input.
 
 #### Scenario: The same fields in both places
 

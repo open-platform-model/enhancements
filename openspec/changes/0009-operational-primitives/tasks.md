@@ -20,4 +20,4 @@
 ## 4. Frontends
 
 - [ ] 4.1 cli: register the backend set, and run workflows and lifecycle phases
-- [ ] 4.2 opm-operator: register the operator backend set, and drive lifecycle phases from the reconcile loop
+- [ ] 4.2 opm-controller: register the controller backend set, and drive lifecycle phases from the reconcile loop

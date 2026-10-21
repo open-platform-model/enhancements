@@ -35,7 +35,7 @@ package schema
 	values?: {...}       // OQ5: must stay an object to match the core contract
 	prune?:              bool
 	serviceAccountName?: string
-	owner?:              "cli" | "operator" // from 0006
+	owner?:              "cli" | "controller" // from 0006
 }
 
 #ModuleInstanceStatus: {

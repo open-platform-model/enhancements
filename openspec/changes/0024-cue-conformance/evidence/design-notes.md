@@ -12,7 +12,7 @@ Trade-off reasoning lives in `decision-log.md`.
 
 ## Non-Goals
 
-- Testing the kernel's Go behaviour, the CLI, or the operator. The pure-CUE oracle is the renderer here; whether the kernel also joins the version axis is an open question, not a goal.
+- Testing the kernel's Go behaviour, the CLI, or the controller. The pure-CUE oracle is the renderer here; whether the kernel also joins the version axis is an open question, not a goal.
 - Admission or runtime validity of rendered objects beyond upstream type conformance.
 - A single golden per case across all versions. Behaviour legitimately changes between releases; the suite records per cell and objects to *unexplained* change.
 - Migrating the catalog's existing in-module assertions anywhere; they are the in-package layer already.

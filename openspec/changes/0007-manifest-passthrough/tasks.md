@@ -1,8 +1,8 @@
 <!-- The sections run in order: section 1 is done before section 2, and so on. The order is advice: no field, no check. -->
 
-## 1. Operator
+## 1. Controller
 
-- [ ] 1.1 opm-operator: accept a list of side manifest sources on an instance and fold their objects into labelling, inventory, staged apply and prune, with a provenance marker and a hardened Kustomize build
+- [ ] 1.1 opm-controller: accept a list of side manifest sources on an instance and fold their objects into labelling, inventory, staged apply and prune, with a provenance marker and a hardened Kustomize build
 
 ## 2. CLI
 

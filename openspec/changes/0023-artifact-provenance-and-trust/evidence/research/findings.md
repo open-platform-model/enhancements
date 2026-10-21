@@ -36,7 +36,7 @@ Gathered 2026-08-24 and 2026-08-25. Verified facts are marked **measured**; ever
 ## 5. Adjacent OPM facts
 
 - 0011 D7: `opm catalog registry check` verifies a published catalog out of band; the natural home of a verification command.
-- 0019 D5/D6: a platform subscription imports its catalog and pins an exact version; the operator generates the platform package. The trust policy attaches there (D2).
+- 0019 D5/D6: a platform subscription imports its catalog and pins an exact version; the controller generates the platform package. The trust policy attaches there (D2).
 - 0022: unsigned metadata (kind, identity, pins) in `module.cue`; `org.cuelang.vcs-*` and `dev.opmodel.*` annotations. Hints, not evidence.
 
 ## Sources

@@ -25,7 +25,7 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0021:D7:R7 | kept | beta-release-line/The first GA drops only the suffix | |
 | 0021:D8:R1 | kept | ga-exit-criteria/The announced breaking change lands before GA | |
 | 0021:D8:R2 | kept | ga-exit-criteria/Draft entries that would break GA are named | |
-| 0021:D8:R3 | kept | ga-exit-criteria/The operator's CRD version is decided before GA | |
+| 0021:D8:R3 | kept | ga-exit-criteria/The controller's CRD version is decided before GA | |
 | 0021:D8:R4 | kept | ga-exit-criteria/The library records a migration note per break | |
 | 0021:D8:R5 | cut | cut-requirements.md: 0021:D8:R5 | tombstone: the raw Kubernetes catalog is retired, no behaviour to carry |
 | 0021:D8:R6 | kept | ga-exit-criteria/Latest resolves to the GA release | |
@@ -37,10 +37,10 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0021:D8:R12 | kept | library-ga-bar/Fetch and resolution failures are typed | |
 | 0021:D8:R13 | kept | library-ga-bar/Specs and documents match the code | |
 | 0021:D8:R14 | kept | library-ga-bar/Three quiet betas are a guideline | |
-| 0021:D9:R1 | kept | operator-version-ceiling/The ceiling compares MAJOR.MINOR only | |
-| 0021:D9:R2 | kept | operator-version-ceiling/No operator release needs a newer CLI | |
-| 0021:D9:R3 | kept | operator-version-ceiling/Install is not refused by the running operator | |
-| 0021:D9:R4 | kept | operator-version-ceiling/Install refuses a module with a newer operator | |
+| 0021:D9:R1 | kept | controller-version-ceiling/The ceiling compares MAJOR.MINOR only | |
+| 0021:D9:R2 | kept | controller-version-ceiling/No controller release needs a newer CLI | |
+| 0021:D9:R3 | kept | controller-version-ceiling/Install is not refused by the running controller | |
+| 0021:D9:R4 | kept | controller-version-ceiling/Install refuses a module with a newer controller | |
 | 0021:D10:R1 | kept | immutable-release-tags/A tag keeps its commit | |
 | 0021:D10:R2 | kept | immutable-release-tags/A broken release is fixed forward | |
 | 0021:D10:R3 | kept | immutable-release-tags/A version-named registry tag keeps its content | |
@@ -53,18 +53,18 @@ The old text stays in git at that commit: `git show 18705155d2c7312029132c30d2b1
 | 0021:D10:R10 | kept | release-branches/No cut before the automation is proven | |
 | 0021:D10:R11 | kept | release-branches/A branch pull request runs main's checks | |
 | 0021:D10:R12 | kept | release-branches/A failed cut never strands a branch | |
-| 0021:D11:R1 | kept | operator-install-module/Install resolves the operator module from a registry | |
-| 0021:D11:R2 | kept | operator-install-module/A mirror gives the same install | |
-| 0021:D11:R3 | kept | operator-install-module/The module has its own version train | |
-| 0021:D11:R4 | kept | operator-install-module/The module major stays v0 until operator GA | |
-| 0021:D11:R5 | kept | operator-install-module/One module version deploys one operator version | |
-| 0021:D11:R6 | kept | operator-install-module/Each CLI release names its module and operator | |
-| 0021:D11:R7 | kept | operator-install-module/The CRDs-only form uses the same render | |
-| 0021:D11:R8 | kept | operator-install-module/Install leaves an existing Platform alone | |
-| 0021:D11:R9 | kept | operator-install-module/The operator never touches its own instance | |
-| 0021:D11:R10 | kept | operator-install-module/Install does not depend on the cluster Platform | |
-| 0021:D11:R11 | kept | operator-install-module/Uninstall removes what the inventory holds | |
-| 0021:D11:R12 | kept | operator-install-module/No module release is marked latest | |
+| 0021:D11:R1 | kept | controller-install-module/Install resolves the controller module from a registry | |
+| 0021:D11:R2 | kept | controller-install-module/A mirror gives the same install | |
+| 0021:D11:R3 | kept | controller-install-module/The module has its own version train | |
+| 0021:D11:R4 | kept | controller-install-module/The module major stays v0 until controller GA | |
+| 0021:D11:R5 | kept | controller-install-module/One module version deploys one controller version | |
+| 0021:D11:R6 | kept | controller-install-module/Each CLI release names its module and controller | |
+| 0021:D11:R7 | kept | controller-install-module/The CRDs-only form uses the same render | |
+| 0021:D11:R8 | kept | controller-install-module/Install leaves an existing Platform alone | |
+| 0021:D11:R9 | kept | controller-install-module/The controller never touches its own instance | |
+| 0021:D11:R10 | kept | controller-install-module/Install does not depend on the cluster Platform | |
+| 0021:D11:R11 | kept | controller-install-module/Uninstall removes what the inventory holds | |
+| 0021:D11:R12 | kept | controller-install-module/No module release is marked latest | |
 
 Totals: kept 56, cut 1, repo 0, moved 0 (merged 0). Sum 57, equal to the 57 old ids (D2 5, D6 3, D7 7, D8 14, D9 4, D10 12, D11 12; D1, D3, D4 and D5 have none). The new entry has 56 requirements, because the old D8 R5 is a tombstone with no behaviour. The old D10 R3 holds two promises (a version-named registry tag keeps its content, and a branch release never moves the latest pointers). Both stay in one requirement.
 
@@ -77,14 +77,14 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | D1: One versioning policy names every published artifact class | design | One policy covers every published artifact |  |
 | D2: A module's compatibility surface is its `#config` schema | design | A module's surface is its config schema |  |
 | D3: Settled rulings are copied verbatim into the policy, each under its source | design | Settled rules are copied word for word | the copied text moved to evidence/policy/ |
-| D4: The classes the policy covers | design | One policy covers every published artifact | the class list and the exclusions; the operator module in the module class |
+| D4: The classes the policy covers | design | One policy covers every published artifact | the class list and the exclusions; the controller module in the module class |
 | D5: An alpha contract is encouraged, not required, to bump its alpha number on a break | design | An alpha contract is encouraged to bump |  |
 | D6: A transformer serves a contract level by naming it: one registration per level, one shared body | design | A transformer serves a level by naming it |  |
 | D7: A `-beta.N` release line is pre-stable on the path to GA, and breaks only as a declared, migrated change | design | A beta line promises a path to GA | the kernel library bar is in the next theme |
 | D8: A beta line reaches GA only when its exit criteria hold | design | GA has written exit criteria | the library bar has its own theme, The kernel library has an API-quality bar |
-| D9: The CLI's ceiling on operator versions compares `MAJOR.MINOR` only | design | The CLI ceiling compares MAJOR.MINOR | amends 0006; written ADDED, no seed |
+| D9: The CLI's ceiling on controller versions compares `MAJOR.MINOR` only | design | The CLI ceiling compares MAJOR.MINOR | amends 0006; written ADDED, no seed |
 | D10: Release tags are immutable | design | Release tags are immutable | the maintenance branches have their own theme, A released minor gets a lazy maintenance branch |
-| D11: The operator's install artifact is a registry module on its own version train | design | The operator installs from a registry module | amends six decisions of 0006; written ADDED, no seed |
+| D11: The controller's install artifact is a registry module on its own version train | design | The controller installs from a registry module | amends six decisions of 0006; written ADDED, no seed |
 
 ## Open questions
 
@@ -98,7 +98,7 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | OQ6 | proposal | Open questions | |
 | OQ7 | proposal | Open questions | |
 | OQ8 | proposal | Open questions | |
-| OQ9 | design | GA has written exit criteria | answered: the operator serves the first CRD version with no conversion at GA |
+| OQ9 | design | GA has written exit criteria | answered: the controller serves the first CRD version with no conversion at GA |
 | OQ10 | proposal | Open questions | |
 | OQ11 | proposal | Open questions | |
 | OQ12 | proposal | Open questions | |

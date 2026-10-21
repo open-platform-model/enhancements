@@ -14,7 +14,7 @@ Every published OPM artifact carries a SemVer, and every one is released by tool
 
 **Platforms**. `#Platform` names each catalog build it materializes as a scalar `version` (`core/src/platform.cue`); the `platforms` registry prefix is reserved and nothing is published under it. Platforms are consumers of versions today, not versioned artifacts.
 
-**Kernel, CLI, operator** (`library`, `cli`, `opm-operator`, Go modules). All three run release-please in `prerelease: alpha` mode with `bump-minor-pre-major: false`; all three Go module paths carry no major suffix. The CLI's compatibility surface (commands, flags, exit codes, machine-readable output) and the kernel's (its exported Go API, which `cli` and `opm-operator` embed) are stated nowhere. The operator serves one CRD group version, `v1alpha1`, with no storage-version or conversion policy written down.
+**Kernel, CLI, controller** (`library`, `cli`, `opm-controller`, Go modules). All three run release-please in `prerelease: alpha` mode with `bump-minor-pre-major: false`; all three Go module paths carry no major suffix. The CLI's compatibility surface (commands, flags, exit codes, machine-readable output) and the kernel's (its exported Go API, which `cli` and `opm-controller` embed) are stated nowhere. The controller serves one CRD group version, `v1alpha1`, with no storage-version or conversion policy written down.
 
 **Module instances**. Not versioned. An instance is values against a module's `#config` at a resolved module version.
 

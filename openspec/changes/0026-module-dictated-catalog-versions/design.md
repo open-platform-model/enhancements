@@ -45,7 +45,7 @@ A render given no platform stays platform-less. The kernel generates its resolve
 
 ### Providers follow the same rule
 
-A provider module pins its own catalog. That version is the pick for any render that does not pin the catalog itself. The registration gains a window, a floor and a ceiling that default to its version. The provider author states it beside the operator release the module deploys. A platform admission entry for the path is optional. When present it replaces the window whole, and the registration's status reports which window is in effect and where it came from. A platform range wider than the author's window is accepted with a warning that names both bounds. A range that excludes the registration's version is refused.
+A provider module pins its own catalog. That version is the pick for any render that does not pin the catalog itself. The registration gains a window, a floor and a ceiling that default to its version. The provider author states it beside the controller release the module deploys. A platform admission entry for the path is optional. When present it replaces the window whole, and the registration's status reports which window is in effect and where it came from. A platform range wider than the author's window is accepted with a warning that names both bounds. A range that excludes the registration's version is refused.
 
 ### The checks run twice
 
@@ -68,10 +68,10 @@ Four seeded rules change. The render list is promoted from the module's pins, no
 
 - A fleet can fragment across many catalog releases, and the platform cannot push a fix. A transformer fix reaches an instance only when its module re-releases. The floor stops laggards by name and never delivers the fix.
 - Readiness weakens. A module above the floor may demand a contract the inventory at the floor never listed.
-- A platform that widens past the provider's claim may get its output rejected by the operator the provider deploys. The warning names both bounds, and the claim survives as the baseline.
+- A platform that widens past the provider's claim may get its output rejected by the controller the provider deploys. The warning names both bounds, and the claim survives as the baseline.
 - A newer catalog's output may not suit the cluster it lands on. The additive promise covers input only. The provider window covers providers. Static catalogs have only the ceiling.
 - A render with no platform can pass where a cluster platform would refuse it. The CLI names which source it rendered against.
-- Until this ships, a major upgrade moves every module at once. The collision-tolerant fold and the operator's per-major index shipped ahead of this entry, so a platform with two majors reports its collisions instead of failing to evaluate.
+- Until this ships, a major upgrade moves every module at once. The collision-tolerant fold and the controller's per-major index shipped ahead of this entry, so a platform with two majors reports its collisions instead of failing to evaluate.
 - The per-major readiness split, if chosen, has a hole. A catalog at its floor may depend on one major of another catalog, and then fails the shared-path check in the slice of the other major.
 
 ## Considered and rejected

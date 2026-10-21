@@ -17,4 +17,4 @@
 ## 4. Frontends
 
 - [ ] 4.1 cli: attest and sign in the release path and its templates, check one artifact on demand, and report the verdict
-- [ ] 4.2 opm-operator: enforce the policy when reconciling a platform and report a failing subscription in its status
+- [ ] 4.2 opm-controller: enforce the policy when reconciling a platform and report a failing subscription in its status

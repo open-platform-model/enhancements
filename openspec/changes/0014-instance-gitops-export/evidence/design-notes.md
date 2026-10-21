@@ -5,7 +5,7 @@
 ## Design Goals
 
 - **One command turns a deployed instance into a committable directory.** `opm instance export <name> -n <ns>` reads the live `ModuleInstance` and writes a directory of YAML documents. No hand-transcription step remains between "it runs" and "it is in git".
-- **The exported set is complete for apply.** Applying the directory into an empty cluster, with the operator installed and nothing else, produces the same instance under the same identity with the same deletion behaviour. The namespace, the applier `ServiceAccount`, and its authorization are part of the output, not assumed.
+- **The exported set is complete for apply.** Applying the directory into an empty cluster, with the controller installed and nothing else, produces the same instance under the same identity with the same deletion behaviour. The namespace, the applier `ServiceAccount`, and its authorization are part of the output, not assumed.
 - **Adoption, not recreation.** The exported CR carries the live object's name and namespace, so the first GitOps apply adopts the running instance. Success is 0006 D40's criterion: a reconcile that leaves the entry set unchanged and touches no workload.
 - **Nothing is written unless the published module reproduces the deployed render.** The export runs handoff's verification before it writes a file, and refuses rather than emitting a directory that describes something other than what is running.
 - **Every field is either copied or reported.** A field the export completes (one the CLI never wrote) is named in the command output. Nothing about the instance's behaviour changes silently between the cluster and the repo.
@@ -14,7 +14,7 @@
 ## Non-Goals
 
 - **Repo-level Flux wiring.** The `OCIRepository` and the Flux `Kustomization` that pull a bundle are one per repository, not one per instance (`opm-kind-demo/bootstrap/flux/` holds exactly one of each for the whole demo). Emitting them per exported instance would produce N conflicting copies of a singleton. Bootstrapping a GitOps repo is a separate concern and a candidate follow-on.
-- **CUE-native emission.** Reconstructing an `instance.cue` plus a `ModulePackage` CR pointing at it is a different GitOps model: the operator fetches a CUE package from a Flux source rather than resolving a published module by coordinate. It is a legitimate second target and it is deferred, not rejected; see `risks.md` `## Alternatives`.
+- **CUE-native emission.** Reconstructing an `instance.cue` plus a `ModulePackage` CR pointing at it is a different GitOps model: the controller fetches a CUE package from a Flux source rather than resolving a published module by coordinate. It is a legitimate second target and it is deferred, not rejected; see `risks.md` `## Alternatives`.
 - **The import direction.** Nothing here reads a repo and applies it, and nothing continuously compares git against the cluster. Once the directory is committed, Flux is the applier and Flux reports the drift.
 - **Secret detection and redaction.** `spec.values` is emitted verbatim (D3). OPM cannot yet tell which values are secret; enhancement 0013 is the design that would make it possible, and until it lands the export warns rather than guesses.
 - **`ModulePackage` export.** This entry covers `ModuleInstance` only, matching 0006's scope boundary.
@@ -29,7 +29,7 @@ Five steps, in order. The first three happen entirely in memory; nothing touches
 
 1. Cluster gates (CRDs present, version skew within ceiling), shared with every cluster-touching command.
 2. The CR exists.
-3. The render-provenance annotation is not `local`. The operator resolves modules from the registry only, so an instance last applied from local bytes has no expressible GitOps form, exactly as it has no expressible handoff (0006 D38).
+3. The render-provenance annotation is not `local`. The controller resolves modules from the registry only, so an instance last applied from local bytes has no expressible GitOps form, exactly as it has no expressible handoff (0006 D38).
 4. `spec.module.path` and `spec.module.version` are both concrete.
 5. `status.lastAppliedRenderDigest` is recorded.
 6. The strict-registry verification render of that published module against those values reproduces that digest.
@@ -42,13 +42,13 @@ The last gate is the guarantee. It is the same `VerificationDigest` call handoff
 | --- | --- | --- |
 | `spec.module.path`, `spec.module.version` | render-bearing | copied verbatim, verified by the digest gate |
 | `spec.values` | render-bearing | copied verbatim, verified by the digest gate |
-| `spec.owner` | apply-bearing | set to operator management |
+| `spec.owner` | apply-bearing | set to controller management |
 | `spec.serviceAccountName` | apply-bearing | completed when absent (OQ1) |
 | `spec.prune` | apply-bearing | completed when absent (OQ1) |
 | `Namespace`, `ServiceAccount`, RBAC | apply-bearing | synthesized (OQ2) |
 | `status`, `metadata.managedFields`, `uid`, `resourceVersion`, `generation`, `creationTimestamp` | cluster-side | dropped |
 
-Render-bearing fields decide what the operator produces; the digest gate proves they are right, and the export must not touch them. Apply-bearing fields decide who applies the instance and what happens when the CR is deleted. They are absent from a CLI-written CR and do not enter the render digest, so completing them strengthens the exported document without weakening the guarantee. Every completion is reported in the command output, so the difference between the live CR and the exported one is visible rather than inferred.
+Render-bearing fields decide what the controller produces; the digest gate proves they are right, and the export must not touch them. Apply-bearing fields decide who applies the instance and what happens when the CR is deleted. They are absent from a CLI-written CR and do not enter the render digest, so completing them strengthens the exported document without weakening the guarantee. Every completion is reported in the command output, so the difference between the live CR and the exported one is visible rather than inferred.
 
 **4. Compose.** One directory per instance, one document per file, plus a kustomize resource list:
 
@@ -63,7 +63,7 @@ Render-bearing fields decide what the operator produces; the digest gate proves 
 
 The demo packs all four objects into a single `moduleinstance.yaml`. The export splits them because a generated tree is read as diffs, and a one-line RBAC change should not appear as a change to the file that also holds the values block.
 
-**5. Write and report.** The command prints what it verified, what it completed, and the warning that `spec.values` was written verbatim to disk. Exporting several instances is the same operation repeated: `--all` walks every operator-manageable instance in the namespace (or the cluster) and writes one directory each under the same out-dir, with no shared or merged output between them.
+**5. Write and report.** The command prints what it verified, what it completed, and the warning that `spec.values` was written verbatim to disk. Exporting several instances is the same operation repeated: `--all` walks every controller-manageable instance in the namespace (or the cluster) and writes one directory each under the same out-dir, with no shared or merged output between them.
 
 ## Schema / API Surface
 
@@ -80,7 +80,7 @@ Unresolved fields carry `// OQN:` markers pointing at the corresponding Open Que
 
 ## Integration Points
 
-All in `cli/`. No `core/`, `library/`, or `opm-operator/` change is required: the export reads an existing CR through an existing read path and writes files.
+All in `cli/`. No `core/`, `library/`, or `opm-controller/` change is required: the export reads an existing CR through an existing read path and writes files.
 
 **`cli/internal/cmd/instance/export.go`** (new): the Cobra command. Thin, per the repo's command/orchestration split: flag parsing and delegation.
 
@@ -114,7 +114,7 @@ $ opm instance export postgres -n prod --out-dir ./gitops
     opmodel.dev/modules/postgres@v2 v2.1.0
 [x] spec.module and spec.values copied verbatim from the live instance
  !  completed spec.serviceAccountName (absent on the live instance)
- !  completed spec.prune (absent on the live instance - the operator
+ !  completed spec.prune (absent on the live instance - the controller
     currently orphans this instance's resources on delete)
  !  spec.values written verbatim to disk; review before committing -
     OPM cannot yet tell which values are secret
@@ -127,4 +127,4 @@ and, for the whole cluster:
 $ opm instance export --all --out-dir ./gitops
 ```
 
-The resulting `moduleinstance.yaml` has the same shape as the hand-written `opm-kind-demo/jellyfin/moduleinstance.yaml`, with `spec.module` and `spec.values` taken from the object handoff verified rather than retyped. Committing the tree and pointing a Flux `Kustomization` at it adopts the running instances: the operator is already their manager, the names and namespaces match, and the first reconcile changes no workload.
+The resulting `moduleinstance.yaml` has the same shape as the hand-written `opm-kind-demo/jellyfin/moduleinstance.yaml`, with `spec.module` and `spec.values` taken from the object handoff verified rather than retyped. Committing the tree and pointing a Flux `Kustomization` at it adopts the running instances: the controller is already their manager, the names and namespaces match, and the first reconcile changes no workload.

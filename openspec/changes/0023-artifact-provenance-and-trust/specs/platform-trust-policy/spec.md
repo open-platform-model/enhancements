@@ -23,23 +23,23 @@ Every artifact that a platform with a declared trust policy materializes SHALL b
 - **THEN** the verdict reports that the signer is not accepted
 - **AND** the artifact's content has not been used when the verdict is reached
 
-### Requirement: The CLI and operator reach one verdict
+### Requirement: The CLI and controller reach one verdict
 
-The CLI and the operator SHALL reach the same verdict for the same artifact and the same policy.
+The CLI and the controller SHALL reach the same verdict for the same artifact and the same policy.
 
 #### Scenario: One artifact, two frontends
 
-- **WHEN** the CLI and the operator verify the same artifact against the same policy
+- **WHEN** the CLI and the controller verify the same artifact against the same policy
 - **THEN** both report the same verdict
 
-### Requirement: The operator enforces and the CLI reports
+### Requirement: The controller enforces and the CLI reports
 
-A failing verdict SHALL be enforced by the operator and reported by the CLI.
+A failing verdict SHALL be enforced by the controller and reported by the CLI.
 
-#### Scenario: The operator meets a failing artifact
+#### Scenario: The controller meets a failing artifact
 
-- **WHEN** an artifact of a subscription fails the platform's trust policy in the operator
-- **THEN** the operator enforces the failing verdict and does not use the artifact's content
+- **WHEN** an artifact of a subscription fails the platform's trust policy in the controller
+- **THEN** the controller enforces the failing verdict and does not use the artifact's content
 
 #### Scenario: The CLI meets a failing artifact
 

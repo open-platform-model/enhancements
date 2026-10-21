@@ -10,7 +10,7 @@ A team that wants a database types the module path and the exact release into it
 
 - A platform-owned, cluster-wide definition binds one module lineage, one major, one release and an update policy. It may pin values.
 - A consumer instantiates the definition with values alone. Platform and consumer values merge, and a clash is refused.
-- A definition may also name an API group and kind. The operator then serves a kind with the module's own configuration schema.
+- A definition may also name an API group and kind. The controller then serves a kind with the module's own configuration schema.
 - A module may declare what it is when offered, with a catalog trait. Only the platform writes the definition.
 - Every instance projects to an ordinary module instance and renders on today's path.
 
@@ -38,7 +38,7 @@ The platform moves the release to 1.4.3, and every instance re-renders under the
 
 - **Platform teams** write one definition per offered module and grant teams the served kinds.
 - **Module authors** keep the configuration schema encodable if the platform serves the module.
-- **Five repos** change: core, library, catalog_opm, cli and opm-operator. The change is additive.
+- **Five repos** change: core, library, catalog_opm, cli and opm-controller. The change is additive.
 
 ## Open questions
 
@@ -48,12 +48,12 @@ The platform moves the release to 1.4.3, and every instance re-renders under the
 - Blocking: May a definition serve two module majors at once? Two CRD versions with different schemas and no conversion would relabel objects wrongly. The candidate is one served major per definition. A major upgrade is then a new definition, or a rebind that is refused while instances of the old major exist.
 - Blocking: What is the status contract of a served-kind instance? The minimum is conditions mirrored from the projected instance and a reference to it. A module may later declare more, such as an endpoint or a credential Secret name, on the offering trait. The candidate is the fixed minimum now and a declared status schema later.
 - Not blocking: Is the structural schema also gated at publish time? Refusal at acceptance is the floor. A publish gate cannot be the only check, because older modules and modules never offered must keep publishing. A module that declares an offering and does not encode is worth a refusal. An undeclared one is at most a warning.
-- Blocking: Is the projected module instance a real object in the cluster, or in memory only? A real object, owned by the served-kind instance, reuses every reconcile, status and inventory path and gives enhancement 0014 something to export. The cost is one more object and a status in two places. The candidate is the real object. The answer decides ownership, deletion cascade and the CLI-to-operator handoff.
+- Blocking: Is the projected module instance a real object in the cluster, or in memory only? A real object, owned by the served-kind instance, reuses every reconcile, status and inventory path and gives enhancement 0014 something to export. The cost is one more object and a status in two places. The candidate is the real object. The answer decides ownership, deletion cascade and the CLI-to-controller handoff.
 - Blocking: What is the tenant guardrail, and how does tenancy map through the projection? First, a direct module reference under a tenant identity is refused, by an admission policy keyed on the identity or by RBAC that grants served kinds and never module instances. Second, the projected instance renders under the namespace's tenant ServiceAccount, so a served kind grants no new privilege.
 - Not blocking: Do config defaults become CRD defaults? The alternative keeps defaulting in the render, where enhancement 0017 places it. Emitting defaults means a default change on rebind rewrites the effective values of stored objects. Answer it against 0017.
 - Blocking: May a definition bind values the consumer never sees, and is the served schema the configuration schema minus the bound fields? The candidate is yes. The alternative exposes all fields and refuses overrides at admission, which is simpler to generate and worse to use.
 - Not blocking: What happens to instances when a definition is deleted? The candidate is a finalizer that refuses deletion and names the instance count. The alternative orphans the instances as plain module instances, as an explicit migration action.
-- Not blocking: Who installs the served CRD, the operator at runtime or rendered output the platform applies? Runtime installation keeps the definition self-contained. Rendered output puts the CRD under GitOps and the RBAC gate, with a two-step apply.
+- Not blocking: Who installs the served CRD, the controller at runtime or rendered output the platform applies? Runtime installation keeps the definition self-contained. Rendered output puts the CRD under GitOps and the RBAC gate, with a two-step apply.
 - Not blocking: May the offering trait carry suggested bound values for the definition? The candidate is suggest-only. The CLI copies them into the draft, and the definition carries them explicitly or not at all. It interacts with the question on bound values.
 - Not blocking: How do a module and an offering carry presentation, such as title, icon, field labels, help and presets, and which part does this entry own? Candidates are an optional presentation block on the definition, an author card in the module file, form hints as field attributes, and a publisher's index. All are optional and inert. Measured: cards of 471 to 585 bytes survive `cue mod tidy` on 20 of 20 fleet modules, and a CRD that carries a UI extension key is refused by strict decoding, so presentation stays out of the served schema. The measurements are in `evidence/experiments/06-presentation-metadata/`.
 - Blocking: Do the served CRD, the CLI pre-flight and every form agree on what is valid, binding-only definitions included? The candidate is one structural encoding of the configuration schema minus the bound fields, reported by digest in the definition status. Offline structural validation agreed with a live API server on 403 of 403 verdicts.

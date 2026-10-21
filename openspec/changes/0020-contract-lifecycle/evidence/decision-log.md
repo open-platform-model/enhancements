@@ -272,19 +272,19 @@ The tombstone is a published record carrying the `fqn` that went, the `since` bu
 
 **Source:** Inherited from enhancement 0010 D34 (alpha) and D44 (transformers); recorded here because an implementer reading D6 would otherwise apply it to every member.
 
-### D12: Blocking a withdrawal that would strand live instances is out of scope and belongs to the operator
+### D12: Blocking a withdrawal that would strand live instances is out of scope and belongs to the controller
 
 **Kind:** scope
 
-**Decision:** This entry stops at the published artifact. Refusing a provider change that would take a contract away from instances currently depending on it needs a live dependency graph, which no publish gate holds, and it lands in `opm-operator` beside enhancement 0015 D3's finalizer and D16's shrink refusal.
+**Decision:** This entry stops at the published artifact. Refusing a provider change that would take a contract away from instances currently depending on it needs a live dependency graph, which no publish gate holds, and it lands in `opm-controller` beside enhancement 0015 D3's finalizer and D16's shrink refusal.
 
-**Requirements:** none (defers the dependent-side guard to the operator beside 0015:D3 and 0015:D16; delivery.yaml already records no_work)
+**Requirements:** none (defers the dependent-side guard to the controller beside 0015:D3 and 0015:D16; delivery.yaml already records no_work)
 
 **Alternatives considered:**
 
 - **Extend D6's refusal with a dependent check.** Not available at the publish surface: a catalog author publishes to a registry with no knowledge of any cluster, and inventing one would mean the gate consulting deployments it has no relationship with.
 
-**Rationale:** The two halves of "do not abandon your dependents" live at different layers because only one layer has the knowledge. Enhancement 0015 D16 already states the cluster-side rule and the constraint it must satisfy; what it lacks is the dependent-side data, which is a separate investigation in the operator repo. Keeping the boundary explicit stops this entry from promising a protection it structurally cannot deliver.
+**Rationale:** The two halves of "do not abandon your dependents" live at different layers because only one layer has the knowledge. Enhancement 0015 D16 already states the cluster-side rule and the constraint it must satisfy; what it lacks is the dependent-side data, which is a separate investigation in the controller repo. Keeping the boundary explicit stops this entry from promising a protection it structurally cannot deliver.
 
 **Source:** User decision 2026-08-22, directing the dependent-side investigation to the operator repo.
 

@@ -66,7 +66,7 @@ Whether an instance's deletion hold may be released SHALL be decided from its po
 
 #### Scenario: Same policy and outcome, same verdict
 
-- **WHEN** the CLI and the operator ask whether the hold of the same instance may be released, with the same policy and the same plan outcome
+- **WHEN** the CLI and the controller ask whether the hold of the same instance may be released, with the same policy and the same plan outcome
 - **THEN** both receive the same verdict and the reason is named
 
 ### Requirement: A stored deletion state advances identically
@@ -75,7 +75,7 @@ A deletion state written out and read back SHALL advance identically to one held
 
 #### Scenario: State carried across reconciles
 
-- **WHEN** the operator stores the state and reads it back on the next reconcile
+- **WHEN** the controller stores the state and reads it back on the next reconcile
 - **THEN** the next action is the one an in-memory state would name
 
 ### Requirement: A deletion plan holds only deletions and skips

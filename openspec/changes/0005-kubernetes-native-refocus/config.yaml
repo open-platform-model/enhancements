@@ -11,7 +11,7 @@ breaking: false
 affects:
   - catalog_opm
   - library
-  - opm-operator
+  - opm-controller
   - opmodel.dev
 authors:
   - emil@jacero.se

@@ -133,7 +133,7 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | D12: `#Secret` lives in `core`, and `core` is its only definition | design | design: A secret is declared once | |
 | D13: Discovery keys on the type and the marker, and fails closed | design | design: The schema declares, discovery finds | |
 | D14: SOPS support lands at the file seams, decrypt on input, encrypt on export; never an arm, a backend, or kernel code | design | design: Encryption stays at the edge | the export half moved to 0014 (D14 R4) |
-| D15: The operator path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection | design | design: Encryption stays at the edge | |
+| D15: The controller path accepts literals in the CR, documented as plaintext at rest; no `valuesFrom` indirection | design | design: Encryption stays at the edge | |
 | D16: The rewrite is omission at build assembly, measured viable on the real kernel path, one graph build, no new kernel seams | design | design: Secrets resolve in place | |
 | D17: The Resolve rewrite mechanism is decode → splice → encode, on evaluated data, not AST, not FillPath-graft | design | design: Secrets resolve in place | |
 | D18: `#Secret` gains an open source arm; the literal stays as sugar; core defines the source input once | design | design: Sources are catalog resources | |
@@ -150,7 +150,7 @@ Every `### Dn:` heading of the old log. The full reasoning and the alternatives 
 | D29: A secret source is named by its exact contract FQN; the annotation only marks what is a source | design | design: Sources are catalog resources | |
 | D30: `#SecretLiteral` resolves to the one source marked `literal`; a platform with two is not routable | design | design: Sources are catalog resources | |
 | D31: A source's settings are their own field; a group agrees on source and settings | design | design: Sources are catalog resources | |
-| D32: A platform fills a source's settings through its catalog entry, and the operator and CLI carry that fill | design | design: Sources are catalog resources | |
+| D32: A platform fills a source's settings through its catalog entry, and the controller and CLI carry that fill | design | design: Sources are catalog resources | |
 | D33: Core tags each `#Secret` arm; discovery walks the schema for listing and the unified values for completeness | design | design: The schema declares, discovery finds | |
 | D34: A deployer's values are checked against `#config` on every path, without changing what the instance exports | design | design: Mistakes fail loudly | |
 | D35: A synthesised component is held to what an authored one is | design | design: Mistakes fail loudly | |

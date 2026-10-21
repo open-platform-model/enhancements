@@ -22,7 +22,7 @@ The two catalogs encode Kubernetes knowledge twice, by different mechanisms, and
 
 **Hand-authoring does not scale.** `catalog_kubernetes` is hand-written, one transformer at a time. It covers a curated subset of built-in kinds and punts everything else to the generic `#Objects` escape hatch, which gives no typing, no validation, and no per-kind lifecycle metadata. Supporting "every Kubernetes resource and version" and, critically, the CRDs that real clusters run (cert-manager, Flux, Gateway API, operators) is not reachable by continuing to hand-write transformers.
 
-**Lifecycle is implicit and ad hoc.** Apply ordering is a hardcoded list in `library/pkg/resourceorder`. Readiness, pruning of removed resources, and ownership are handled (where they are handled) outside the catalog, with no per-kind metadata to drive them. Because the catalog had to stay platform-neutral in spirit, none of this Kubernetes-specific lifecycle knowledge was ever encoded as data the operator could consume.
+**Lifecycle is implicit and ad hoc.** Apply ordering is a hardcoded list in `library/pkg/resourceorder`. Readiness, pruning of removed resources, and ownership are handled (where they are handled) outside the catalog, with no per-kind metadata to drive them. Because the catalog had to stay platform-neutral in spirit, none of this Kubernetes-specific lifecycle knowledge was ever encoded as data the controller could consume.
 
 **The abstraction layer cannot offer a trapdoor.** `catalog_opm`'s transformers emit only the fields they were written to emit, so a module author who outgrows a blueprint cannot reach in and override an arbitrary raw Kubernetes field. They fall off a cliff to the separate `catalog_kubernetes` and lose the abstraction entirely. This is the same failure mode that makes Helm charts brittle: the abstraction hides the resource instead of layering on it. An abstraction built on a complete, generated type surface can instead set defaults the author may freely override down to any native field.
 
@@ -38,7 +38,7 @@ Separately, the author needs a `cert-manager.io/v1` `Certificate`. `catalogs/kub
 
 - As an application module author, I want to start from a concise workload abstraction and still override any raw Kubernetes field when I need to, so that outgrowing the sugar does not mean rewriting the workload. Today: the abstraction emits a fixed field set; the escape hatch is a different catalog with no abstractions.
 - As a catalog author, I want the native-Kubernetes mirror to be generated from the Kubernetes OpenAPI (and from CRD schemas), so that new kinds, new API versions, and arbitrary CRDs become typed OPM resources without hand-writing a transformer each. Today: every kind is hand-authored, and anything uncovered degrades to an untyped `#Objects` blob.
-- As a platform operator, I want each rendered resource to carry Kubernetes lifecycle metadata (scope, apply order, readiness, prune policy), so that the operator reconciles in the right order and reports readiness honestly. Today: ordering is a hardcoded list and readiness/pruning have no per-kind data to act on.
+- As a platform operator, I want each rendered resource to carry Kubernetes lifecycle metadata (scope, apply order, readiness, prune policy), so that the controller reconciles in the right order and reports readiness honestly. Today: ordering is a hardcoded list and readiness/pruning have no per-kind data to act on.
 
 ## Why Existing Workarounds Fail
 

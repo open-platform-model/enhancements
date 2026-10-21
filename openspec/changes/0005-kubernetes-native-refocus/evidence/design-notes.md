@@ -9,26 +9,26 @@ Six goals, all necessary to close the schema drift and hand-authoring limits `01
 - A **single generated source of Kubernetes type truth**, derived from the Kubernetes OpenAPI, that both catalogs consume, so neither hand-maintains schemas and the two cannot drift.
 - A **generated native-Kubernetes mirror** (`catalog_kubernetes`): every built-in kind becomes a typed `#Resource` + pass-through `#ComponentTransformer` produced by tooling, not hand-authored, with the generic `#Objects` hatch retained for the untyped long tail.
 - The same generation pipeline produces a **typed catalog from any CRD bundle** (cert-manager, Flux, Gateway API, operators), so the CRD long tail becomes first-class without hand-writing transformers.
-- Each generated resource carries **Kubernetes lifecycle metadata** (scope, apply order, readiness, prune/ownership policy) that the operator's reconcile loop consumes.
+- Each generated resource carries **Kubernetes lifecycle metadata** (scope, apply order, readiness, prune/ownership policy) that the controller's reconcile loop consumes.
 - `catalog_opm` abstractions gain a **faithful trapdoor**: sugar sets defaults that an author may override down to any native field, because the abstraction is backed by the complete generated type surface.
 - **Catalog-on-catalog composition is a supported capability**, not a forced internal structure: third-party / provider "golden-path" catalogs can layer abstractions on top of `catalog_opm` or `catalog_kubernetes`.
 
 ## Non-Goals
 
-- **No change to `opmodel.dev/core@v0`.** The transformation model stays single-pass; this enhancement is achievable entirely in the catalogs, the generation tooling, and the library/operator adapter. Multi-phase / fixpoint lowering (transformer outputs that re-enter matching) is deliberately deferred. See Open Questions and the staged follow-on in `03-decisions.md`.
+- **No change to `opmodel.dev/core@v0`.** The transformation model stays single-pass; this enhancement is achievable entirely in the catalogs, the generation tooling, and the library/controller adapter. Multi-phase / fixpoint lowering (transformer outputs that re-enter matching) is deliberately deferred. See Open Questions and the staged follow-on in `03-decisions.md`.
 - **Not forcing `catalog_opm` to compose `catalog_kubernetes`.** With Kubernetes as the lowest common denominator, both catalogs target it directly and share the generated type source; `catalog_opm` keeps its own constructing transformers.
 - **No support for non-Kubernetes platforms.** Nomad / Compose / Swarm are out of scope by the project's refocus. Nothing here actively forbids them later, but no abstraction is shaped to accommodate them.
-- **No runtime/reconcile engine in this enhancement.** Lifecycle *metadata* is produced here; the reconcile loop that consumes it is operator work tracked via its own slice.
+- **No runtime/reconcile engine in this enhancement.** Lifecycle *metadata* is produced here; the reconcile loop that consumes it is controller work tracked via its own slice.
 
 ## High-Level Approach
 
 Make the **Kubernetes OpenAPI the single source of truth** and generate everything downstream from it.
 
-A generation tool ingests a target Kubernetes minor's OpenAPI (and, separately, any CRD's `openAPIV3Schema`) and emits, per GVK: the type schema, an OPM `#Resource`, and, for the mirror, a pass-through `#ComponentTransformer` whose `apiVersion`/`kind`/scope come from the GVK. Because the pass-through transformer is uniform across kinds, it is a template; this is what makes the mirror generatable rather than hand-authored. The same tool, pointed at a CRD bundle, emits a typed catalog for that operator.
+A generation tool ingests a target Kubernetes minor's OpenAPI (and, separately, any CRD's `openAPIV3Schema`) and emits, per GVK: the type schema, an OPM `#Resource`, and, for the mirror, a pass-through `#ComponentTransformer` whose `apiVersion`/`kind`/scope come from the GVK. Because the pass-through transformer is uniform across kinds, it is a template; this is what makes the mirror generatable rather than hand-authored. The same tool, pointed at a CRD bundle, emits a typed catalog for that controller.
 
 The generator emits **two projections from the one source**: a *strict* projection (closed types: what `catalog_opm` builds its constructing transformers on, or `cue.dev/x/k8s.io` used directly) and an *open* projection (leaves left `...`: what `catalog_kubernetes` uses to preserve pass-through fidelity and accept arbitrary valid native fields). Same source, two renderings, no hand-maintained drift.
 
-Each generated resource is stamped with **lifecycle metadata** the operator consumes:
+Each generated resource is stamped with **lifecycle metadata** the controller consumes:
 
 - **Scope**: namespaced or cluster, from discovery.
 - **Apply-order phase**: generalizes today's hardcoded `library/pkg/resourceorder` list into per-kind data.
@@ -42,7 +42,7 @@ Each generated resource is stamped with **lifecycle metadata** the operator cons
 Headline shapes only: full surface in `contracts/contracts.cue`.
 
 - **Generator manifest**: declarative config naming the inputs (a k8s minor's OpenAPI endpoint or a CRD bundle), the projection (strict | open), and output targets. Drives reproducible regeneration; the catalog source becomes a generation artifact rather than hand-written.
-- **Lifecycle metadata block**: the per-resource stamp (`scope`, `applyPhase`, `readiness`, `prune`/`ownership`) attached to each generated `#Resource`'s metadata, shaped so the library/operator can read it without re-deriving from the GVK.
+- **Lifecycle metadata block**: the per-resource stamp (`scope`, `applyPhase`, `readiness`, `prune`/`ownership`) attached to each generated `#Resource`'s metadata, shaped so the library/controller can read it without re-deriving from the GVK.
 - **Override / trapdoor field**: the convention by which a `catalog_opm` abstraction exposes the full underlying strict type for author overrides (defaults from sugar, overrides win).
 - **Transformer-output convention**: kept compatible with a possible future where outputs become typed resources (the cheap "don't be hostile to multi-phase later" insurance), without adopting fixpoint lowering now.
 
@@ -54,7 +54,7 @@ Six touch points, grouped by repo. File-level targets firm up as decisions land.
 - **`catalog_kubernetes`.** Replace hand-written `src/resources`, `src/schemas`, `src/transformers`, `src/catalog.cue` with generated output (open projection). Retain `#Objects` generic hatch. Wire generation into the Taskfile / release flow.
 - **`catalog_opm`.** Re-point transformers and `src/schemas/kubernetes` at the strict generated source (drop independently-vendored types). Add the override/trapdoor field to blueprints. Keep existing blueprints/traits.
 - **`library`.** Generalize `pkg/resourceorder` to read the generated `applyPhase` metadata; expose readiness/prune metadata to consumers.
-- **`opm-operator`.** Reconcile using the lifecycle metadata (ordering, readiness reporting, pruning via ownerReferences + SSA).
+- **`opm-controller`.** Reconcile using the lifecycle metadata (ordering, readiness reporting, pruning via ownerReferences + SSA).
 - **`opmodel.dev`.** Document the generated catalogs, the generation workflow, and the golden-path composition pattern.
 
 ## Before / After

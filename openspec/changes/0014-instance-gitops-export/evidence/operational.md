@@ -15,7 +15,7 @@ New surfaces, all in `cli/internal/workflow/export/` and rendered via `cli/inter
 - **The values warning**, unconditional, naming the file the values were written to (D3).
 - **The written-file summary**, listing the directory and the file count.
 
-There is no new operator-side or cluster-side signal: the export reads and writes nothing that a controller observes.
+There is no new controller-side or cluster-side signal: the export reads and writes nothing that a controller observes.
 
 The one diagnostic gap worth naming: a successful export tells the user the tree reproduces what is running *now*. Nothing re-checks that afterwards. If the instance changes between export and commit, the tree is stale and no OPM signal reports it: the user finds out from Flux applying it.
 
@@ -48,7 +48,7 @@ Clean, because the command has no cluster-side effect. Reverting the CLI to the 
 The state that survives a code rollback is the exported files themselves and whatever the user did with them. Those decompose into two cases:
 
 - **Exported but not applied.** The directory is inert YAML in a working tree. Deleting it is the whole rollback.
-- **Exported, committed, and applied by Flux.** The rollback is a GitOps rollback, not an OPM one: the CR is now owned by Flux's field manager, so removing the CLI changes nothing about who reconciles it. Returning that instance to CLI or plain-operator management means removing it from the Flux `Kustomization`'s path (with `prune` disabled, or the deletion cascades), which is the standard Flux disown procedure and is outside this enhancement's control. This asymmetry is worth stating plainly: **the command is reversible, its consequences are not.** That is a property of adopting GitOps, not of this design, but a user reading "rollback" deserves to see it named.
+- **Exported, committed, and applied by Flux.** The rollback is a GitOps rollback, not an OPM one: the CR is now owned by Flux's field manager, so removing the CLI changes nothing about who reconciles it. Returning that instance to CLI or plain-controller management means removing it from the Flux `Kustomization`'s path (with `prune` disabled, or the deletion cascades), which is the standard Flux disown procedure and is outside this enhancement's control. This asymmetry is worth stating plainly: **the command is reversible, its consequences are not.** That is a property of adopting GitOps, not of this design, but a user reading "rollback" deserves to see it named.
 
 There is no data-plane state change, no CRD change, and no stored format to migrate.
 
@@ -60,7 +60,7 @@ Only `cli/`. `config.yaml.affects` lists it alone, and the sequencing is interna
 
 Two soft dependencies, neither blocking:
 
-- **`opm-operator/`** ships no code for this, but its `ModuleInstanceSpec` is the contract the exported CR must satisfy. A future field on that spec that the export does not know about would silently drop out of exported documents, the same class of incompleteness `problem.md` documents for `serviceAccountName` and `prune` today. The field-class table in `design-notes.md` is the place that has to be updated when the spec grows.
+- **`opm-controller/`** ships no code for this, but its `ModuleInstanceSpec` is the contract the exported CR must satisfy. A future field on that spec that the export does not know about would silently drop out of exported documents, the same class of incompleteness `problem.md` documents for `serviceAccountName` and `prune` today. The field-class table in `design-notes.md` is the place that has to be updated when the spec grows.
 - **`opmodel.dev/`** regenerates its CLI reference from the Cobra definitions; mechanical, and it follows the CLI landing rather than gating it.
 
 `core/`, `library/`, `catalog/` and `modules/` are uninvolved.

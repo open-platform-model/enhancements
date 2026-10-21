@@ -33,7 +33,7 @@ Let an author mark which Kubernetes Secret a field belongs in with a CUE attribu
 | core | 1 |
 | library | 1 |
 | catalog_opm | 1 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 | cli | 1 |
 | modules | 1 |
 | opmodel.dev | 1 |

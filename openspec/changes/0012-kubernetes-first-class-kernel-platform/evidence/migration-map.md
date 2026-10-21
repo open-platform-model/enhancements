@@ -22,7 +22,7 @@ Totals: kept 25, merged 3, cut 2, repo 9, moved 0; together 39. The delta specs 
 | 0012:D3:R3 | repo | cut-requirements.md: 0012:D3:R3 | fence: what the tier imports |
 | 0012:D3:R4 | repo | cut-requirements.md: 0012:D3:R4 | fence: the library checks that refuse a bad import |
 | 0012:D3:R5 | repo | cut-requirements.md: 0012:D3:R5 | one module version for kernel and tier |
-| 0012:D3:R6 | repo | cut-requirements.md: 0012:D3:R6 | the frontends adopt a package and refuse a copy; cli and opm-operator |
+| 0012:D3:R6 | repo | cut-requirements.md: 0012:D3:R6 | the frontends adopt a package and refuse a copy; cli and opm-controller |
 | 0012:D3:R7 | repo | cut-requirements.md: 0012:D3:R7 | the apply identity check moves from the helper tier |
 | 0012:D3:R8 | repo | cut-requirements.md: 0012:D3:R8 | a library-internal rule, not a package name: no loop and no cluster action in the library |
 | 0012:D4:R1 | kept | deletion-protocol/A frontend deletes only what the plan names |  |

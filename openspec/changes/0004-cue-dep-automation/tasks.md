@@ -15,5 +15,5 @@
 - [ ] 3.2 core: add the daily caller workflow
 - [ ] 3.3 library: add the daily caller workflow, fixture modules included
 - [ ] 3.4 cli: add the daily caller workflow, module templates included
-- [ ] 3.5 opm-operator: add the daily caller workflow
+- [ ] 3.5 opm-controller: add the daily caller workflow
 - [ ] 3.6 modules: add the daily caller workflow

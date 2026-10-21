@@ -8,9 +8,9 @@ All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: confi
 
 **The platform binds the module; the consumer supplies values (D1, D6).** One cluster-wide object, owned by the platform team, records which module, which major version, which exact release, how it updates, and optionally values the platform pins so consumers cannot change them. Platform and consumer values merge, and a clash is rejected rather than silently resolved.
 
-**An instance becomes an ordinary ModuleInstance (D3).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the operator compute the same result. There is no second render path.
+**An instance becomes an ordinary ModuleInstance (D3).** The conversion is a pure CUE function in `core`, so the kernel, the CLI and the controller compute the same result. There is no second render path.
 
-**The consumer-facing schema is the module's own config schema (D2, D7).** The definition names an API group and kind, and the operator serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The CRD is served at the module's major, so `v1` of the kind is `v1` of the module.
+**The consumer-facing schema is the module's own config schema (D2, D7).** The definition names an API group and kind, and the controller serves a CRD whose schema is that config schema in structural form. A module whose config schema cannot be encoded that way is refused. The CRD is served at the module's major, so `v1` of the kind is `v1` of the module.
 
 **The module may declare what it offers; the platform decides to offer it (D5, D11).** The declaration is a module trait this entry publishes, attached on an aspect. The platform reads it when it writes the binding. The module never emits the binding itself. That would be a circular dependency: the binding is what makes the module deployable, so producing it from the module means deploying the module before anything is allowed to deploy it.
 
@@ -34,7 +34,7 @@ flowchart TB
     subgraph consumer["Consumer decides only the values"]
         inst["Instance of the served kind: values, nothing else"]
     end
-    subgraph runtime["Operator and kernel decide nothing new"]
+    subgraph runtime["Controller and kernel decide nothing new"]
         crd["Served kind: the module's configuration schema at the API server"]
         proj["Projection, pure CUE: definition plus instance becomes a ModuleInstance"]
         render["One render: the path a hand-written instance already takes"]
@@ -80,7 +80,7 @@ Compilable CUE lives in [`schemas/`](schemas/): the core-schema delta carrying t
 
 **Kind layer (D2, D4, D7, D9).**
 
-- The definition naming an API group and kind, with the operator serving a custom resource definition whose schema is the bound module's configuration schema in structural form, versioned by the module's major.
+- The definition naming an API group and kind, with the controller serving a custom resource definition whose schema is the bound module's configuration schema in structural form, versioned by the module's major.
 - The refusal of a definition whose module configuration schema does not encode to a structural schema.
 - One data-driven controller that converts instances of every served kind to a ModuleInstance and mirrors status back.
 - Refusing to delete a definition while instances exist, naming the count.
@@ -117,7 +117,7 @@ None at this stage. Update when implementation lands.
 | `enhancements/0014/` | GitOps export of a live instance; how it interacts with projected instances is OQ7 |
 | `core/src/module.cue` | The configuration schema and the comment declaring it OpenAPIv3-compatible, the constraint the kind layer depends on |
 | `core/src/module_instance.cue` | The ModuleInstance shape the conversion produces |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go` | The operator resource whose module reference the binding layer makes optional |
+| `opm-controller/api/v1alpha1/moduleinstance_types.go` | The controller resource whose module reference the binding layer makes optional |
 | https://docs.kratix.io/ | Closest prior art: a Promise installs a CRD from an API schema and fulfils requests through pipelines |
 | https://kro.run/ | ResourceGraphDefinition: schema-to-CRD plus a CEL resource graph, whose CEL half OPM's typed CUE replaces |
 | `CONSTITUTION.md` (per target repo) | Core design principles governing changes in each touched repo |

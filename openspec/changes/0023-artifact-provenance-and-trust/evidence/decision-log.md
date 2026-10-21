@@ -38,18 +38,18 @@ Only two decisions are recorded. The entry is held open on purpose: the question
 
 **Depends:** 0019:D5
 
-**Decision:** Whom to trust is declared on the platform, not on the artifact, the CLI or the cluster. A platform states the signer identities and builders it accepts, with a per-subscription override, and every artifact the platform materializes is verified against that statement before its content is used. The kernel performs the verification so that the CLI and the operator reach the same verdict; the operator enforces, the CLI reports.
+**Decision:** Whom to trust is declared on the platform, not on the artifact, the CLI or the cluster. A platform states the signer identities and builders it accepts, with a per-subscription override, and every artifact the platform materializes is verified against that statement before its content is used. The kernel performs the verification so that the CLI and the controller reach the same verdict; the controller enforces, the CLI reports.
 
 **Requirements:**
 
 - R1: A platform declares whom it trusts, the signer identities and builders it accepts, on the platform itself, platform-wide with a per-subscription override.
 - R2: Every artifact a platform with a declared trust policy materializes is verified against that policy before its content is used.
-- R3: The CLI and the operator reach the same verdict for the same artifact and policy.
-- R4: A failing verdict is enforced by the operator and reported by the CLI.
+- R3: The CLI and the controller reach the same verdict for the same artifact and policy.
+- R4: A failing verdict is enforced by the controller and reported by the CLI.
 
 **Alternatives considered:**
 
-- *Policy in the CLI's configuration.* Rejected: the actor deciding what runs in a cluster is the platform, and a laptop setting does not travel to the operator.
+- *Policy in the CLI's configuration.* Rejected: the actor deciding what runs in a cluster is the platform, and a laptop setting does not travel to the controller.
 - *Policy on the artifact (self-declared trust).* Rejected: an artifact cannot vouch for itself.
 - *Cluster-wide admission policy outside OPM (a policy engine on the rendered objects).* Not chosen as the primary form: it sees rendered Kubernetes objects, not the OPM artifact that produced them, so it cannot check provenance of the source. It remains a complementary layer.
 

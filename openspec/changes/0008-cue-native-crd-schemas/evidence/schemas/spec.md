@@ -6,7 +6,7 @@ Pre-draft of the core/SPEC.md co-update for the core slice of enhancement 0008 (
 
 The delta adds one new file, `core/src/crd.cue`, carrying a `#CRD` envelope and its sub-shapes, plus one `#CRD` instance per in-scope kind anchored next to its domain definition (`#ModuleInstanceCRD` in `core/src/module_instance.cue`, `#PlatformCRD` in `core/src/platform.cue`). The envelope pairs the Kubernetes object-metadata of a CRD with the OpenAPIv3-compatible schema body - reusing the existing `#ModuleInstance` / `#Platform` definitions, which are not re-authored - and with the non-schema facets controller-gen expresses as kubebuilder markers today, modelled as plain CUE data (D4). A downstream Go assembler consuming the published `opmodel.dev/core` module (D2) emits the CRD YAML and the Go API types from these values (D1, D3).
 
-Whether a `#ModulePackageCRD` instance is part of the delta is gated by OQ4 (does `ModulePackage` get a core domain definition, or is it operator-only?). The semver classification of the whole delta is gated by OQ5: the envelope and instances are additive (minor), but any change forced onto the existing `#ModuleInstance` / `#Platform` field shapes would be breaking.
+Whether a `#ModulePackageCRD` instance is part of the delta is gated by OQ4 (does `ModulePackage` get a core domain definition, or is it controller-only?). The semver classification of the whole delta is gated by OQ5: the envelope and instances are additive (minor), but any change forced onto the existing `#ModuleInstance` / `#Platform` field shapes would be breaking.
 
 ## #CRD (NEW)
 
@@ -195,7 +195,7 @@ Whether a `#ModulePackageCRD` instance is part of the delta is gated by OQ4 (doe
 ### Constraints
 
 - `status` defaults to `true`; a version MAY disable it.
-- The toggle only declares that the version has a `/status` subresource. Which fields the status body carries, and whether their ownership splits between core and operator-owned CUE, is unresolved - gated by OQ2.
+- The toggle only declares that the version has a `/status` subresource. Which fields the status body carries, and whether their ownership splits between core and controller-owned CUE, is unresolved - gated by OQ2.
 
 ### Rationale
 
@@ -232,9 +232,9 @@ The full values live in `examples.cue`.
 - Both instances MUST serialise to CRDs byte-compatible (modulo formatting) with the previously shipped manifests for unchanged fields - this is an authoring/generation change, not a schema change.
 - The schema bodies MUST reference the existing `#ModuleInstance` / `#Platform` definitions; the existing field shapes MUST be reused, not forked. If anchoring forces any change to those shapes, the semver classification escalates from minor to breaking (OQ5).
 - `#PlatformCRD` MUST carry the cluster-singleton CEL rule `self.metadata.name == 'cluster'` verbatim (D6).
-- The status body of each instance is provisional until OQ2 resolves which status fields core defines versus which the operator owns.
+- The status body of each instance is provisional until OQ2 resolves which status fields core defines versus which the controller owns.
 
 ### Rationale
 
-- **Why instances in core, not in the operator.** The instances are the contract; generating from the published core module guarantees the generated types match what the kernel evaluates, and keeps the generator downstream of the published artefact instead of inside core's build (D1, D2).
+- **Why instances in core, not in the controller.** The instances are the contract; generating from the published core module guarantees the generated types match what the kernel evaluates, and keeps the generator downstream of the published artefact instead of inside core's build (D1, D2).
 - **Why byte-compatibility is a constraint.** The enhancement's non-goal is explicit: no field shape, validation, or API version changes ride along. A silent schema change hidden in a generation change would be exactly the class of drift this design exists to eliminate.

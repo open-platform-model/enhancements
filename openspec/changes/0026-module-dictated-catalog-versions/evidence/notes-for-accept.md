@@ -37,11 +37,11 @@ No old requirement line states a change to them, so none is modified.
 ## Overlaps for the collision review
 
 - `catalog-version-selection` "A render without a platform holds its pins" overlaps the CLI rule of the seed `platform-resolution`, "Deps become one catalog entry each, core floored". The first states the kernel rule, the second the CLI frontend.
-- `registration-acceptance` "A build-incompatible provider is refused at acceptance": the operator change `index-build-compat-by-major` already compares a claim with the entry of the provider's own major. The seed text predates it. The MODIFIED restates the requirement with that rule and the platform floors of the old D7. Task 3.1 is ticked for that change.
+- `registration-acceptance` "A build-incompatible provider is refused at acceptance": the controller change `index-build-compat-by-major` already compares a claim with the entry of the provider's own major. The seed text predates it. The MODIFIED restates the requirement with that rule and the platform floors of the old D7. Task 3.1 is ticked for that change.
 
 ## The old text of OQ13
 
-The old text says the operator's shared-path check answers arbitrarily on a platform with two majors of one catalog. The old text of OQ17 says that change shipped. The proposal does not repeat the claim.
+The old text says the controller's shared-path check answers arbitrarily on a platform with two majors of one catalog. The old text of OQ17 says that change shipped. The proposal does not repeat the claim.
 
 ## Clashes that the old text itself holds
 

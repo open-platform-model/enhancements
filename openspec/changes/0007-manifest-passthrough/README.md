@@ -19,14 +19,14 @@ Let an instance declare extra raw YAML or a Kustomize directory, and have OPM la
 
 | Theme | Shipped |
 | --- | --- |
-| 1. Operator | 0 of 1 |
+| 1. Controller | 0 of 1 |
 | 2. CLI | 0 of 1 |
 
 ## Still to do
 
 | Repo | Open tasks |
 | --- | --- |
-| opm-operator | 1 |
+| opm-controller | 1 |
 | cli | 1 |
 
 The list is [tasks.md](tasks.md).

@@ -33,6 +33,6 @@ Attach signed build records and signatures to every release, and let a platform 
 | core | 2 |
 | library | 1 |
 | cli | 1 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 
 The list is [tasks.md](tasks.md).

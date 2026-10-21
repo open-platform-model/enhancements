@@ -6,7 +6,7 @@ Provisional. One NEW construct is sketched; whether it lands in core at all is O
 
 ### Definition
 
-`#TrustPolicy` is a platform's statement of whom it trusts for the artifacts it materializes: the signing identities it accepts, the builders whose provenance it accepts, the assurance level it requires and what it does on failure. It is declared platform-wide and may be overridden per subscription. It is consumed by the kernel's verification step and enforced by the operator; nothing in `core` evaluates it.
+`#TrustPolicy` is a platform's statement of whom it trusts for the artifacts it materializes: the signing identities it accepts, the builders whose provenance it accepts, the assurance level it requires and what it does on failure. It is declared platform-wide and may be overridden per subscription. It is consumed by the kernel's verification step and enforced by the controller; nothing in `core` evaluates it.
 
 ### Shape
 

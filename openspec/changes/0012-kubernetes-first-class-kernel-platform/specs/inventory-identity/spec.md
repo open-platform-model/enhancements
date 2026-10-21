@@ -56,11 +56,11 @@ Every OPM label on a rendered object SHALL be present in the output of the CUE r
 
 ### Requirement: The render digest ignores the runtime name
 
-For the same rendered objects, the CLI and the operator SHALL compute the same render digest, whichever runtime name each stamped.
+For the same rendered objects, the CLI and the controller SHALL compute the same render digest, whichever runtime name each stamped.
 
 #### Scenario: One render, two runtimes
 
-- **WHEN** the CLI and the operator render the same module and stamp their own runtime names
+- **WHEN** the CLI and the controller render the same module and stamp their own runtime names
 - **THEN** the render digests are equal
 
 ### Requirement: Any other difference changes the render digest

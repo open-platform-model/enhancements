@@ -6,7 +6,7 @@ This design is intentionally thin. D1 and D2 fix the attachment channel and the 
 
 - A consumer can establish, for any first-party catalog or module, who built it, from what, and who vouches for it, using only the registry.
 - A platform states whom it trusts, once, and every materialization checks against it.
-- Verification runs before an artifact's content is used, in the kernel, so the CLI and the operator behave identically.
+- Verification runs before an artifact's content is used, in the kernel, so the CLI and the controller behave identically.
 - CUE's package manager needs no change: everything attaches beside the manifest, never inside it.
 - The reachable assurance level is stated honestly per artifact, not assumed.
 
@@ -36,7 +36,7 @@ This design is intentionally thin. D1 and D2 fix the attachment channel and the 
    └──────────────────────────┘   │   subject == resolved digest               │
                                   └────────────────────────────────────────────┘
                                         ▲                       ▲
-                                   opm (CLI)               opm-operator
+                                   opm (CLI)               opm-controller
 ```
 
 **Attachment (D1).** Provenance and signatures are OCI referrers whose `subject` is the artifact's manifest digest. CUE's client ignores them and its mirror carries them. The registry's referrers support (API or fallback tag) is measured in experiment 01.
@@ -47,7 +47,7 @@ This design is intentionally thin. D1 and D2 fix the attachment channel and the 
 
 **Verification.** One kernel function: given a resolved manifest digest, the artifact's referrers and a policy, produce a verdict. It runs in `materialize` before a subscription's content is trusted and in the CLI's acquire path. Whether it must consult the transparency log online, or may verify an embedded bundle offline, is OQ5.
 
-**Enforcement.** The operator refuses to reconcile a platform whose subscriptions fail policy; the CLI reports and, under a flag, refuses. A verification command exists for one artifact on demand.
+**Enforcement.** The controller refuses to reconcile a platform whose subscriptions fail policy; the CLI reports and, under a flag, refuses. A verification command exists for one artifact on demand.
 
 ## Schema / API Surface
 
@@ -56,18 +56,18 @@ Sketch only; every field is OQ-marked in [`schemas/target.cue`](schemas/target.c
 - **Core (OQ3):** a trust-policy surface on `#Platform`: accepted signer identities (issuer plus subject pattern), accepted builder identities, a required assurance level, and a mode (`refuse | warn`). Per-subscription override of the platform default.
 - **Kernel:** `Verify(digest, referrers, policy) -> Verdict`, called from materialize and acquire.
 - **CLI:** attestation and signing in publish's release path (CI-only, as publishing is); `opm registry verify <path@version> [--platform]`; verdict reporting in `instance build`/`apply`.
-- **Operator:** policy enforcement in Platform reconciliation; a condition naming the failing subscription and reason.
+- **Controller:** policy enforcement in Platform reconciliation; a condition naming the failing subscription and reason.
 
 ## Integration Points
 
 - `cli/internal/publish/` (0011): the release path gains attest and sign; `registry check` gains verification.
 - `library/opm/materialize/` and `kernel.AcquireModuleFromRegistry`: the verification hook.
 - `core/src/platform.cue` (through 0019's reshape): the policy surface.
-- `opm-operator`: enforcement and status conditions.
+- `opm-controller`: enforcement and status conditions.
 - `catalog_opm`, `modules`, `core`, cli templates: release workflows produce attestations.
 
 ## Before / After
 
 **Before:** `resolve tag -> fetch -> render`. Trust is the registry's word.
 
-**After:** `resolve tag -> list referrers -> verify against the platform's policy -> fetch -> render`, with the verdict in the CLI's report and the operator's status, and a one-command check for any artifact.
+**After:** `resolve tag -> list referrers -> verify against the platform's policy -> fetch -> render`, with the verdict in the CLI's report and the controller's status, and a one-command check for any artifact.

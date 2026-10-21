@@ -1,6 +1,6 @@
 # Enhancement 0014: Export a Deployed Instance as GitOps Manifests
 
-OPM once had a command handing a CLI-deployed app to its operator (removed 2026-08-31, cli PR 196). That moved the manager, not the definition: the only record left is a live object in the cluster. Teams who want git as the source of truth transcribe it by hand, and get it wrong. This entry writes that directory for them.
+OPM once had a command handing a CLI-deployed app to its controller (removed 2026-08-31, cli PR 196). That moved the manager, not the definition: the only record left is a live object in the cluster. Teams who want git as the source of truth transcribe it by hand, and get it wrong. This entry writes that directory for them.
 
 All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: config.yaml.
 
@@ -14,7 +14,7 @@ All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: confi
 
 **Values are copied byte for byte, with a warning (D3).** OPM cannot yet tell which are secret, and a redacted document no longer renders to the deployed digest. The live record is the only input (D4).
 
-This is the third step of entry 0006's path: the inventory moved into the record (0006:D1), the manager moved to the operator (0006:D7 and 0006:D40), and this moves the definition into a repository. It reuses 0006's success criterion, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40), restated for a GitOps applier. The open risk sits where 0006 never had to go: a GitOps apply adds a third field manager, Flux's kustomize-controller, onto fields the CLI and the operator already own. That is answered by a runnable experiment, not by argument.
+This is the third step of entry 0006's path: the inventory moved into the record (0006:D1), the manager moved to the controller (0006:D7 and 0006:D40), and this moves the definition into a repository. It reuses 0006's success criterion, an inventory-stable reconcile in which the owned set is identical and nothing is pruned (0006:D40), restated for a GitOps applier. The open risk sits where 0006 never had to go: a GitOps apply adds a third field manager, Flux's kustomize-controller, onto fields the CLI and the controller already own. That is answered by a runnable experiment, not by argument.
 
 ## How it works
 
@@ -32,7 +32,7 @@ flowchart LR
     complete --> compose
     drop --> compose
     compose["Compose one directory: namespace, service account, RBAC, ModuleInstance, kustomization"] --> report["Write, then report what was verified, completed and warned about"]
-    report --> flux["Commit, Flux applies, the operator adopts the running instance unchanged"]
+    report --> flux["Commit, Flux applies, the controller adopts the running instance unchanged"]
 ```
 
 The cheap gates run first and the expensive one last, so a doomed export costs nothing. The digest comparison is the guarantee, and its failure message reports the same finding handoff reports: the cluster is running something the registry no longer describes. Only after it passes does anything reach the filesystem, and the report then names everything the export completed rather than copied.
@@ -77,14 +77,14 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 **Deferred, not rejected.**
 
 - Repo-level Flux wiring. The source and the Flux kustomization are one per repository, so emitting them per export would produce conflicting copies of a singleton. Bootstrapping a GitOps repository is a candidate follow-on.
-- A CUE-native export. Reconstructing an instance package plus a `ModulePackage` record targets a different operator path and waits as a possible second output mode.
+- A CUE-native export. Reconstructing an instance package plus a `ModulePackage` record targets a different controller path and waits as a possible second output mode.
 - Secret detection, redaction, and any SOPS or External Secrets integration. It depends on entry 0013; until that lands, the warning is the honest answer.
 
 **Hard boundaries of this entry.**
 
 - The import direction. Nothing reads a repository and applies it, and nothing compares git against the cluster. After the commit, Flux is the applier and Flux reports drift.
 - `ModulePackage` export. `ModuleInstance` only, matching 0006's boundary.
-- Any change to `core`, `library` or `opm-operator`. The export reads an existing record through an existing read path and writes files.
+- Any change to `core`, `library` or `opm-controller`. The export reads an existing record through an existing read path and writes files.
 
 ## Deviations from Design
 
@@ -106,8 +106,8 @@ None at this stage. Update when implementation lands.
 | `cli/internal/inventory/discover.go` | Instance listing, which is what `--all` walks |
 | `cli/internal/output/` | Where the report and the values warning are rendered |
 | `cli/tests/e2e/` | Home of the case asserting the adoption property end to end |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go` | The spec the exported record must satisfy |
-| `opm-operator/cmd/main.go` | The identity an empty service account field falls back to |
+| `opm-controller/api/v1alpha1/moduleinstance_types.go` | The spec the exported record must satisfy |
+| `opm-controller/cmd/main.go` | The identity an empty service account field falls back to |
 | `opm-kind-demo/jellyfin/moduleinstance.yaml` | The hand-written reference this export generates the equivalent of |
 | `opm-kind-demo/bootstrap/flux/` | The repo-level wiring deliberately left out |
 | `enhancements/0006/` | Handoff, the record-based inventory, and the criteria this entry reuses |

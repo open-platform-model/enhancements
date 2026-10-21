@@ -14,7 +14,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
-**Decision:** Manifest passthrough is implemented in the CLI and operator apply paths. `opmodel.dev/core@v0` and the library kernel are not modified. Side manifests never become `#Component`s, `#Resource`s, or transformer output.
+**Decision:** Manifest passthrough is implemented in the CLI and controller apply paths. `opmodel.dev/core@v0` and the library kernel are not modified. Side manifests never become `#Component`s, `#Resource`s, or transformer output.
 
 **Requirements:**
 
@@ -36,19 +36,19 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** policy
 
-**Decision:** Kustomize rendering uses the embedded `sigs.k8s.io/kustomize/api/krusty` Go API. The CLI and operator do not exec an external `kustomize` binary.
+**Decision:** Kustomize rendering uses the embedded `sigs.k8s.io/kustomize/api/krusty` Go API. The CLI and controller do not exec an external `kustomize` binary.
 
 **Requirements:** none (posture on how Kustomize is rendered; the determinism it buys is observable only as D4:R1)
 
 **Alternatives considered:**
 
-- *Shell out to a `kustomize` CLI on PATH.* Rejected: non-deterministic across environments (version skew), adds a runtime dependency to the operator image, and reintroduces process/exec surface the operator otherwise avoids.
+- *Shell out to a `kustomize` CLI on PATH.* Rejected: non-deterministic across environments (version skew), adds a runtime dependency to the controller image, and reintroduces process/exec surface the controller otherwise avoids.
 
-**Rationale:** Embedding pins the Kustomize version in the Go build, keeps rendering deterministic and reproducible between CLI and operator, and avoids a container/PATH dependency. It also lets us harden options (disable exec plugins) programmatically rather than trusting an external binary's defaults.
+**Rationale:** Embedding pins the Kustomize version in the Go build, keeps rendering deterministic and reproducible between CLI and controller, and avoids a container/PATH dependency. It also lets us harden options (disable exec plugins) programmatically rather than trusting an external binary's defaults.
 
 **Source:** Design review 2026-06-23.
 
-**Measured (2026-09-29):** embedding costs the operator no new module, and costs the CLI one. In `opm-operator` at `8529e00`, `go.mod` already lists `sigs.k8s.io/kustomize/api v0.21.1` as indirect, and `go mod why -m sigs.k8s.io/kustomize/api` shows the operator's apply package reaching `sigs.k8s.io/kustomize/api/krusty` through Flux `cli-utils` and `k8s.io/cli-runtime`. In `cli` at `e9a9e4e`, `go.mod` names no kustomize module and the same command reports that the main module does not need it.
+**Measured (2026-09-29):** embedding costs the controller no new module, and costs the CLI one. In `opm-controller` at `8529e00`, `go.mod` already lists `sigs.k8s.io/kustomize/api v0.21.1` as indirect, and `go mod why -m sigs.k8s.io/kustomize/api` shows the controller's apply package reaching `sigs.k8s.io/kustomize/api/krusty` through Flux `cli-utils` and `k8s.io/cli-runtime`. In `cli` at `e9a9e4e`, `go.mod` names no kustomize module and the same command reports that the main module does not need it.
 
 ---
 
@@ -71,26 +71,26 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 - *Track side manifests in a separate inventory / second ownership scheme.* Rejected: produces two disjoint ownership models on one cluster: exactly the orphan-and-drift problem (`01-problem.md`) the feature exists to solve.
 - *Apply side manifests but don't prune them (apply-only).* Rejected: leaks resources on release deletion; fails the platform-operator user story.
 
-**Rationale:** The operator's inventory (`opm-operator/internal/apply/prune.go`, `api/v1alpha1/common_types.go`) is already the authoritative prune source. Reusing it means side manifests get drift detection and garbage collection for free, and the integration cost is "stamp + record," not "new subsystem."
+**Rationale:** The controller's inventory (`opm-controller/internal/apply/prune.go`, `api/v1alpha1/common_types.go`) is already the authoritative prune source. Reusing it means side manifests get drift detection and garbage collection for free, and the integration cost is "stamp + record," not "new subsystem."
 
 **Source:** Design review 2026-06-23.
 
 ---
 
-### D4: Available in both the CLI and the operator with identical semantics
+### D4: Available in both the CLI and the controller with identical semantics
 
 **Kind:** contract
 
-**Decision:** Passthrough is wired into both `opm instance build`/`apply` and the operator reconcile, sharing one renderer so a release behaves identically whether driven from a laptop or a controller.
+**Decision:** Passthrough is wired into both `opm instance build`/`apply` and the controller reconcile, sharing one renderer so a release behaves identically whether driven from a laptop or a controller.
 
 **Requirements:**
 
-- R1: The same release declaration with the same side manifests yields the same object set whether built and applied by the CLI or reconciled by the operator.
+- R1: The same release declaration with the same side manifests yields the same object set whether built and applied by the CLI or reconciled by the controller.
 - R2: The CLI's build output includes passed-through objects alongside rendered ones.
 
 **Alternatives considered:**
 
-- *Operator-only.* Rejected: the CLI is a first-class apply path (`cli/internal/cmd/release/apply.go`); divergent behavior between `opm instance apply` and the operator would surprise users and break local-then-promote workflows.
+- *Controller-only.* Rejected: the CLI is a first-class apply path (`cli/internal/cmd/release/apply.go`); divergent behavior between `opm instance apply` and the controller would surprise users and break local-then-promote workflows.
 
 **Rationale:** Single source of truth for passthrough semantics; consistent UX across drivers.
 
@@ -102,7 +102,7 @@ Each decision uses the same four-field shape: Decision, Alternatives considered,
 
 **Kind:** contract
 
-**Decision:** Extra manifests are declared on the release surface as an explicit, labeled side-channel: an `extraManifests` field on the operator's `ModuleInstance`/`ModulePackage` CRD specs and an equivalent CLI input. They are not expressed through `#Component`/`#Trait`/transformer constructs.
+**Decision:** Extra manifests are declared on the release surface as an explicit, labeled side-channel: an `extraManifests` field on the controller's `ModuleInstance`/`ModulePackage` CRD specs and an equivalent CLI input. They are not expressed through `#Component`/`#Trait`/transformer constructs.
 
 **Requirements:**
 

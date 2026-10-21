@@ -1,6 +1,6 @@
 # Enhancement 0021: OPM Versioning Policy
 
-OPM publishes many versioned artifacts: the core schema, catalogs and their contracts, modules, the kernel library, the CLI and the operator. Each carries a SemVer. Only the catalog contract has a written rule for what a version promises, and a gate enforcing it. Everything else runs on unchecked convention. This entry writes the policy down for all of them.
+OPM publishes many versioned artifacts: the core schema, catalogs and their contracts, modules, the kernel library, the CLI and the controller. Each carries a SemVer. Only the catalog contract has a written rule for what a version promises, and a gate enforcing it. Everything else runs on unchecked convention. This entry writes the policy down for all of them.
 
 All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: config.yaml.
 
@@ -10,15 +10,15 @@ All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: confi
 
 **A module's version is bound to its config schema (D2).** That schema is already OpenAPIv3-shaped, so two releases compare mechanically. Accepting fewer values is a major, more is a minor, the same is a patch. Whether rendered output's stateful identity is a second surface is OQ1.
 
-**The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the operator on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-operator skew, and gives the documentation site one number to version against (OQ15).
+**The tooling releases as one train, if OQ14 holds.** That means the kernel library, the CLI and the controller on one version number instead of three. They have only each other as consumers, so one number removes the kernel's external Go API contract and CLI-to-controller skew, and gives the documentation site one number to version against (OQ15).
 
 **Enforcement is layered, and each rule names its layer.** Convention states the rule in writing. A claim is a change stating its own bump. A gate refuses an under-claimed bump at publish. An aid is a check anyone may run. Catalogs reach all four; modules reach the first two plus a gate that compares nothing; core and the Go artifacts reach the first two only. The module gate is scaffolded as design intent with its questions attached (OQ5, OQ6), not decided.
 
 **Two rulings the policy adds rather than collects (D5, D6).** Alpha promises nothing: an author who breaks an alpha contract is encouraged, not required, to bump its alpha number rather than reshape the key in place, and that reaches the convention layer only. A transformer serving several levels of a resource declares one registration per level, sharing one transform body.
 
-**A beta line promises a path to GA, and GA has written exit criteria (D7, D8, D9).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered and, for the kernel library, an API-quality bar: plain-data render output, typed fetch and resolution errors, documents that match the code, and three betas in a row without a break. The CLI's ceiling on operator versions compares MAJOR.MINOR only, which amends 0006:D24's full-version rule (D9, the OQ14 skew answer). A beta release line is not a `v1beta1` contract level; the two are independent.
+**A beta line promises a path to GA, and GA has written exit criteria (D7, D8, D9).** On a `-beta.N` release line a break is still allowed, but only as a declared breaking change with a migration note in the changelog. It advances the beta counter and never moves the module path to a new major. Stable lines keep the rule that a break is a new major. A beta line drops its suffix only once D8's criteria hold, including enhancement 0013 delivered and, for the kernel library, an API-quality bar: plain-data render output, typed fetch and resolution errors, documents that match the code, and three betas in a row without a break. The CLI's ceiling on controller versions compares MAJOR.MINOR only, which amends 0006:D24's full-version rule (D9, the OQ14 skew answer). A beta release line is not a `v1beta1` contract level; the two are independent.
 
-**Release tags never move (D10).** In the organization repositories that release (core, the kernel library, `catalog_opm`, the CLI and the operator), no git tag is moved, deleted or re-created, and a bad release is fixed by the next version. The reason is the documentation site, which pins its sources per version and names them by tag or full SHA once the CLI has tagged that version. A released minor that needs a fix, code or docs, gets a lazy `release/<tag-prefix>vX.Y` branch cut by an automated action, changed only by pull request and never deleted; it is cut only once `main` has moved past that minor, and `main` never releases it again. No branch is cut before the branch automation is proven, which is also a GA exit criterion; until then fixes go forward on `main`. Version-named registry tags are never re-pointed. Organization rulesets enforce it, only the release app creates tags, and immutable releases reach the CLI and the operator after their draft-first flow ships. The module fleet is excluded for now.
+**Release tags never move (D10).** In the organization repositories that release (core, the kernel library, `catalog_opm`, the CLI and the controller), no git tag is moved, deleted or re-created, and a bad release is fixed by the next version. The reason is the documentation site, which pins its sources per version and names them by tag or full SHA once the CLI has tagged that version. A released minor that needs a fix, code or docs, gets a lazy `release/<tag-prefix>vX.Y` branch cut by an automated action, changed only by pull request and never deleted; it is cut only once `main` has moved past that minor, and `main` never releases it again. No branch is cut before the branch automation is proven, which is also a GA exit criterion; until then fixes go forward on `main`. Version-named registry tags are never re-pointed. Organization rulesets enforce it, only the release app creates tags, and immutable releases reach the CLI and the controller after their draft-first flow ships. The module fleet is excluded for now.
 
 ## How it works
 
@@ -68,14 +68,14 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 | Transformer | its catalog build's version |
 | Module | the CUE module's SemVer |
 | CLI template | the CUE module's SemVer |
-| Tooling train: kernel library, CLI, operator | Go module SemVer, one version or three (OQ14) |
+| Tooling train: kernel library, CLI, controller | Go module SemVer, one version or three (OQ14) |
 | CRDs | the Kubernetes group and version |
 | Documentation | the tooling train's version (OQ15) |
 
 **The rest of the boundary.**
 
 - Verbatim carriage of every already-settled versioning rule, under its source (D3).
-- The `-beta.N` release line as a pre-stable form with its own promise (D7), the criteria a beta line meets before GA (D8), and the MAJOR.MINOR ceiling on operator versions (D9).
+- The `-beta.N` release line as a pre-stable form with its own promise (D7), the criteria a beta line meets before GA (D8), and the MAJOR.MINOR ceiling on controller versions (D9).
 - Immutable release tags in the releasing organization repositories, with roll-forward recovery, never re-pointed registry version tags, lazy `release/<tag-prefix>vX.Y` maintenance branches and docs pinned by tag or SHA (D10). The module fleet is excluded for now.
 - The tooling train as one release (OQ14), what replaces the kernel's record of breaking changes under it (OQ16), and documentation versioned against it (OQ15).
 - The universal rules that hold across classes: SemVer, authored versions, a major as an import rewrite, the enforcement rule, the deprecation rule.
@@ -89,7 +89,7 @@ Every class runs the same path. It names one compatibility surface, meaning the 
 - Not a consumer-facing support window. Entry 0010 rejected one (0010:D34) and entry 0020 constrains the producer instead (0020:D10, a key may not be withdrawn until its replacement has seasoned); both stand.
 - Not a maturity ladder for modules, unless OQ2 decides one.
 - Not the promotion and retirement mechanics of catalog contracts. Entry 0020 owns them and is cited, not copied, while it is a draft.
-- Not the `testing.opmodel.dev` fixture fleets, the CLI's importable Go packages, or the operator install manifest as classes of their own (D4).
+- Not the `testing.opmodel.dev` fixture fleets, the CLI's importable Go packages, or the controller install manifest as classes of their own (D4).
 - Not the version-set and publish command surfaces. Entry 0011 owns them, and this entry only adds refusals they may raise.
 
 ## Deviations from Design
@@ -101,7 +101,7 @@ None at this stage.
 | Document | Purpose |
 | -------- | ------- |
 | `core/docs/publishing.md` | The tag scheme and the branch-build ranking rule this policy inherits |
-| Enhancement 0006 (D24) | The CLI-not-older-than-the-cluster skew rule and its operator-version ceiling, which D9 narrows to `MAJOR.MINOR` |
+| Enhancement 0006 (D24) | The CLI-not-older-than-the-cluster skew rule and its controller-version ceiling, which D9 narrows to `MAJOR.MINOR` |
 | Enhancement 0010 (D4, D27, D34, D35, D41, D45) | Contract keys (D4), additive-only levels (D27), the ladder (D34), publish-side enforcement (D35), instance identity surviving a major (D41, D45) |
 | Enhancement 0011 (D9, D10, D15, D23) | The catalog compatibility gate (D9), registry tag immutability as a requirement (D10), authored not predicted versions and the already-published refusal (D15), predecessor selection by backward scan (D23) |
 | [research/immutable-tags.md](research/immutable-tags.md) | The GitHub ruleset, immutable-release and release-tool facts D10 rests on |

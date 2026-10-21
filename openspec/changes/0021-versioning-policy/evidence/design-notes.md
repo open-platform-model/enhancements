@@ -84,14 +84,14 @@ Two things the table does not settle, and both are the entry's blocking question
 
 ### The tooling train (OQ14)
 
-The kernel library has two consumers, the CLI and the operator, and both are first-party. The CLI installs the operator from a pinned version of the operator module, which names the operator it deploys, and refuses to apply when the operator is newer than itself. Three release trains for three binaries whose only compatibility relationships are with each other is where the sweep found the most unverified claims: a migration ledger asserting a gate that does not exist, a skew ceiling that is one-directional, a pinned manifest nothing checks. One train removes the relationships instead of gating them:
+The kernel library has two consumers, the CLI and the controller, and both are first-party. The CLI installs the controller from a pinned version of the controller module, which names the controller it deploys, and refuses to apply when the controller is newer than itself. Three release trains for three binaries whose only compatibility relationships are with each other is where the sweep found the most unverified claims: a migration ledger asserting a gate that does not exist, a skew ceiling that is one-directional, a pinned manifest nothing checks. One train removes the relationships instead of gating them:
 
 ```
 today                                       one train
 -----                                       ---------
-library  1.0.0-alpha.14 ──┐                 opm  X.Y.Z  =  library + cli + operator + CRDs served
+library  1.0.0-alpha.14 ──┐                 opm  X.Y.Z  =  library + cli + controller + CRDs served
 cli      1.0.0-alpha.13 ──┼─ three pins,         one version, one changelog, one release PR
-operator 1.0.0-alpha.12 ──┘  hand-synced         kernel API: internal to the train (OQ16)
+controller 1.0.0-alpha.12 ──┘  hand-synced         kernel API: internal to the train (OQ16)
                                                  skew ceiling: same number on both sides
 docs     v0.1 (flat)                             docs: versioned against X.Y (OQ15)
 ```
@@ -100,7 +100,7 @@ What it costs is coupling: a fix in one binary cuts a release of all three, and 
 
 ### Where the policy is authored (candidate, pending decision)
 
-The policy source lives beside the rule: one CUE file per class in the owning repo (`core` one, `catalog_opm` three, `modules` one, `cli` two, `library` one, `opm-operator` two, `opmodel.dev` one), each an instance of a shared `#Policy` schema whose universal rules and bump table are imported, never restated. Every rule is a struct carrying its strength (must/should/may), its enforcement layer, its source and, for a gate, its enforcer; the schema refuses a MUST nothing enforces unless the reason is stated. The Markdown page is generated from the CUE by `cue eval` with no generator binary, and kept fresh by regenerate-and-diff in `task check`, as `INDEX.md` already is. Repo `CLAUDE.md` files point at the CUE source and the generated page. Validated by `experiments/01-policy-as-cue/`, outcome 2026-08-25: renders, stays fresh, and all three label-overstates-enforcement invariants are refused at vet. Where the shared schema lives is open (a `core` subpackage is the candidate).
+The policy source lives beside the rule: one CUE file per class in the owning repo (`core` one, `catalog_opm` three, `modules` one, `cli` two, `library` one, `opm-controller` two, `opmodel.dev` one), each an instance of a shared `#Policy` schema whose universal rules and bump table are imported, never restated. Every rule is a struct carrying its strength (must/should/may), its enforcement layer, its source and, for a gate, its enforcer; the schema refuses a MUST nothing enforces unless the reason is stated. The Markdown page is generated from the CUE by `cue eval` with no generator binary, and kept fresh by regenerate-and-diff in `task check`, as `INDEX.md` already is. Repo `CLAUDE.md` files point at the CUE source and the generated page. Validated by `experiments/01-policy-as-cue/`, outcome 2026-08-25: renders, stays fresh, and all three label-overstates-enforcement invariants are refused at vet. Where the shared schema lives is open (a `core` subpackage is the candidate).
 
 ## Schema / API Surface
 
@@ -114,10 +114,10 @@ No core definition changes. The policy text lives in [`policy/`](policy/), one f
 - **`modules`**: module authors gain the `#config` rule (D2) and the answers to OQ1..OQ4; the fleet's release convention becomes a stated policy rather than a `CLAUDE.md` paragraph.
 - **`cli`**: `opm module publish` may gain a refusal, the module compatibility gate (OQ5, OQ6), following the catalog gate's shape: predecessor selected as 0011 D23 does, comparison against the declared surface, refusal naming the change and the level it demands. The check command may gain a module mode as an aid (0010 D35).
 - **`library`**: the compatibility comparison generalizes from catalog members to any declared surface; the kernel's own exported API gains a stated surface (OQ10).
-- **`opm-operator`**: gains a stated CRD versioning policy on the Kubernetes ladder (OQ9) and a stated surface for controller behaviour.
+- **`opm-controller`**: gains a stated CRD versioning policy on the Kubernetes ladder (OQ9) and a stated surface for controller behaviour.
 
 ## Before / After
 
 **Before.** `web_app` renames `#config.database` to `#config.db` under `feat(web_app):`. release-please cuts `1.4.0`; publish succeeds; the platform's `@v1` instance fails at its next render with `field not allowed`. The PVC rename ships as a patch and orphans a claim. Neither outcome violates any written rule.
 
-**After.** The policy says the rename is breaking on the module surface (D2), so the release is `2.0.0` on `opmodel.dev/modules/web_app@v2`; the instance keeps resolving `@v1` at `1.3.x` until its owner edits the import and migrates its values, and its identity survives the move because `registryPath` does not change. If OQ5/OQ6 land the gate, a `1.4.0` claimed over that change is refused at publish, naming `database` as removed and `major` as the level demanded. Whether the PVC rename is also a major is what OQ1 decides; either way the policy says so, and the author can read it before the commit rather than the operator after the apply.
+**After.** The policy says the rename is breaking on the module surface (D2), so the release is `2.0.0` on `opmodel.dev/modules/web_app@v2`; the instance keeps resolving `@v1` at `1.3.x` until its owner edits the import and migrates its values, and its identity survives the move because `registryPath` does not change. If OQ5/OQ6 land the gate, a `1.4.0` claimed over that change is refused at publish, naming `database` as removed and `major` as the level demanded. Whether the PVC rename is also a major is what OQ1 decides; either way the policy says so, and the author can read it before the commit rather than the controller after the apply.

@@ -1,6 +1,6 @@
 # Enhancement 0012: Kubernetes as a First-Class Library Tier
 
-The OPM kernel renders and then stops. Both frontends, the operator and the CLI, embed it and each decides what happens to a rendered object in a cluster. So the same Kubernetes decisions exist twice, and the two copies have already drifted in ways that decide whether a resource gets deleted. This entry moves those decisions into one library tier, `opm/k8s`, that sits beside the kernel and that every Kubernetes frontend must use.
+The OPM kernel renders and then stops. Both frontends, the controller and the CLI, embed it and each decides what happens to a rendered object in a cluster. So the same Kubernetes decisions exist twice, and the two copies have already drifted in ways that decide whether a resource gets deleted. This entry moves those decisions into one library tier, `opm/k8s`, that sits beside the kernel and that every Kubernetes frontend must use.
 
 All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: config.yaml.
 
@@ -14,11 +14,11 @@ All entries: INDEX.md. How this one relates to others: GRAPH.md. Metadata: confi
 
 **The inventory and the apply guard are pinned down (0012:D7, 0012:D8).** The stale set is component-blind, and the inventory digest hashes a canonical encoding rather than either frontend's JSON. On every apply, the apply guard refuses foreign objects outside the instance's inventory and any object whose adopt annotation names another instance; one already in its inventory is dropped from it and left in place. A per-object adopt annotation is its only override. The deletion protocol is this entry's and runs no hooks (0012:D4).
 
-**The duplication is measured, not assumed.** As of 2026-09-14 the two repos' object-conversion code is byte-identical, their label and resource helpers differ only in comments, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. The operator deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the operator orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
+**The duplication is measured, not assumed.** As of 2026-09-14 the two repos' object-conversion code is byte-identical, their label and resource helpers differ only in comments, and the render-digest function still exists twice with a comment telling maintainers to sync it by hand. The controller deleted its copy of the resource-order weights on 2026-09-13, so that table now lives only in the CLI and the controller orders through Flux instead. Where the copies decide rather than copy fields, they have diverged:
 
-- The CLI deletes CustomResourceDefinitions; the operator refuses to.
-- The operator checks live ownership before deleting; the CLI does not.
-- The CLI refuses to apply over a foreign object; the operator does not.
+- The CLI deletes CustomResourceDefinitions; the controller refuses to.
+- The controller checks live ownership before deleting; the CLI does not.
+- The CLI refuses to apply over a foreign object; the controller does not.
 
 Neither side holds both guards.
 
@@ -40,8 +40,8 @@ flowchart LR
         hold["Hold verdict: Release or Hold with a reason"]
     end
     subgraph frontend ["Frontend performs"]
-        actor["Operator or CLI performs the action with its own client"]
-        fin["Operator patches the finalizer, CLI reports the outcome"]
+        actor["Controller or CLI performs the action with its own client"]
+        fin["Controller patches the finalizer, CLI reports the outcome"]
     end
     inv --> plan
     ident --> plan
@@ -74,9 +74,9 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 **What the library decides**
 
-- The deletion protocol as a library contract: the hold, the ordered plan with typed skip reasons, and the verdict releasing the hold. Every branch the operator takes today becomes a library case; the operator keeps the finalizer patch and the impersonation setup.
+- The deletion protocol as a library contract: the hold, the ordered plan with typed skip reasons, and the verdict releasing the hold. Every branch the controller takes today becomes a library case; the controller keeps the finalizer patch and the impersonation setup.
 - Whether OPM stamps `ownerReferences` at all, resolved against the prune contradiction and the cluster-scope limitation together rather than either alone. The eligibility predicate is specified either way.
-- Both ownership guards: the delete-time managed-by and instance-UUID check the CLI lacks, and the apply-time refusal over a foreign or terminating object the operator lacks, which is 0006's deferred collision guard (0006:OQ16).
+- Both ownership guards: the delete-time managed-by and instance-UUID check the CLI lacks, and the apply-time refusal over a foreign or terminating object the controller lacks, which is 0006's deferred collision guard (0006:OQ16).
 - A conformance property asserting an implementor cannot execute a delete the plan marked as a skip. That mechanism is what separates this entry from documented conventions.
 
 **What moves into the Kubernetes tier, one definition each**
@@ -92,8 +92,8 @@ Compilable CUE lives in [`contracts/contracts.cue`](contracts/contracts.cue): th
 
 **Stays with the frontends**
 
-- A library apply engine. The operator keeps Flux server-side apply, the CLI keeps its own, and the library supplies apply verdicts and order only (0012:D4). A library apply executor should be refused if proposed during implementation.
-- The reconcile loop. Watches, requeues, backoff, conditions, events and metrics stay in the operator; command shape, output formatting and exit codes stay in the CLI.
+- A library apply engine. The controller keeps Flux server-side apply, the CLI keeps its own, and the library supplies apply verdicts and order only (0012:D4). A library apply executor should be refused if proposed during implementation.
+- The reconcile loop. Watches, requeues, backoff, conditions, events and metrics stay in the controller; command shape, output formatting and exit codes stay in the CLI.
 - Credentials. Kubeconfig resolution, REST config construction and ServiceAccount impersonation are the frontends'.
 
 **Belongs to another entry**
@@ -125,20 +125,20 @@ None at this stage. This entry is `draft`; deviations are recorded here when imp
 | `library/opm/kernel` | Where the Kubernetes-shaped render result comes out today |
 | `library/go.mod` | The version floor every embedder inherits |
 | `library/MIGRATIONS.md` | The repo's per-breaking-change migration contract |
-| `opm-operator/internal/reconcile/moduleinstance.go` | The finalizer and the deletion branches that become tier cases |
-| `opm-operator/internal/apply/prune.go` | The delete-time ownership guard the CLI lacks |
-| `opm-operator/internal/apply/apply.go` | The Flux staged apply that is kept, and why |
-| `opm-operator/internal/inventory/` | Entry construction, stale set and digest: what the tier replaces |
-| `opm-operator/pkg/core/` | The operator half of the byte-identical duplication |
-| `opm-operator/internal/render/module.go` | Inventory-entry construction, which becomes a tier call |
-| `opm-operator/api/v1alpha1/moduleinstance_types.go` | Where prune, owner and the inventory status fields are declared |
+| `opm-controller/internal/reconcile/moduleinstance.go` | The finalizer and the deletion branches that become tier cases |
+| `opm-controller/internal/apply/prune.go` | The delete-time ownership guard the CLI lacks |
+| `opm-controller/internal/apply/apply.go` | The Flux staged apply that is kept, and why |
+| `opm-controller/internal/inventory/` | Entry construction, stale set and digest: what the tier replaces |
+| `opm-controller/pkg/core/` | The controller half of the byte-identical duplication |
+| `opm-controller/internal/render/module.go` | Inventory-entry construction, which becomes a tier call |
+| `opm-controller/api/v1alpha1/moduleinstance_types.go` | Where prune, owner and the inventory status fields are declared |
 | `cli/internal/inventory/stale.go` | The narrow exclusion list that lets the CLI delete more |
 | `cli/internal/inventory/digest.go` | The digest function and the parity comment this entry deletes |
 | `cli/pkg/inventory/entry.go` | The CLI's component-aware stale-set relation |
 | `cli/pkg/core/`, `cli/pkg/resourceorder/` | The CLI half of the byte-identical duplication |
 | `cli/internal/kubernetes/delete.go` | The delete walk that becomes a tier plan |
 | `cli/internal/cmd/instance/delete.go` | The ownership branch and the prune warning a user sees |
-| `cli/go.mod`, `opm-operator/go.mod` | Evidence both frontends already pin the same library version |
+| `cli/go.mod`, `opm-controller/go.mod` | Evidence both frontends already pin the same library version |
 | `core/src/transformer.cue` | Where labels are composed and the runtime name is filled |
 | `core/src/module_instance.cue` | The instance UUID the ownership guard compares |
 | `catalog_opm/src/resources/crd.cue`, `role.cue` | Cluster-scoped renderables a namespaced owner cannot cover |

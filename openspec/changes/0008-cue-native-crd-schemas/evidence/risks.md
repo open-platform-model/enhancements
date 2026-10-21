@@ -16,7 +16,7 @@ per-decision detail lives in `03-decisions.md`.
 
 - **`gengotypes` is removed or changed upstream.** It is experimental. **Mitigation:** D8: do not depend on it as the sole mechanism; an in-tree emitter over the CUE Go API is the fallback.
 
-- **`core` and the generator version-skew.** The generator consumes the *published* `core`; if it pins an old version, generated types lag the contract. **Mitigation:** the generator pins the same `core` version the operator's kernel uses (single pin in `go.mod` / module config); CI runs `task update-deps` discipline.
+- **`core` and the generator version-skew.** The generator consumes the *published* `core`; if it pins an old version, generated types lag the contract. **Mitigation:** the generator pins the same `core` version the controller's kernel uses (single pin in `go.mod` / module config); CI runs `task update-deps` discipline.
 
 ## Drawbacks
 
@@ -28,7 +28,7 @@ per-decision detail lives in `03-decisions.md`.
 
 ## Alternatives
 
-- **Go stays the source of truth; derive CUE.** Keep hand-authored Go + controller-gen as today, and generate CUE for `core`/consumers via `cue get go` or `cue get crd` (both mature, well-supported; this is the direction the ecosystem actually goes). **Why not:** it formalises the inversion the problem statement names: `core/` becomes a derived artefact of `opm-operator/`, contradicting `core/`'s role as the published upstream contract. (D1.)
+- **Go stays the source of truth; derive CUE.** Keep hand-authored Go + controller-gen as today, and generate CUE for `core`/consumers via `cue get go` or `cue get crd` (both mature, well-supported; this is the direction the ecosystem actually goes). **Why not:** it formalises the inversion the problem statement names: `core/` becomes a derived artefact of `opm-controller/`, contradicting `core/`'s role as the published upstream contract. (D1.)
 
 - **CRD YAML as the pivot.** Author the CRD YAML once; derive CUE via `cue get crd` and Go via some CRD→Go path. **Why not:** there is no first-class CRD→Go generator, so the Go types end up orphaned or hand-maintained anyway, the worst of both worlds. (D1, `research/findings.md` §7.)
 

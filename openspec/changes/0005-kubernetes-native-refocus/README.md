@@ -29,7 +29,7 @@ Generate both the raw Kubernetes mirror and the opinionated abstractions from on
 | --- | --- |
 | catalog_opm | 3 |
 | library | 1 |
-| opm-operator | 1 |
+| opm-controller | 1 |
 | opmodel.dev | 1 |
 
 The list is [tasks.md](tasks.md).

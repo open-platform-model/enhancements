@@ -10,7 +10,7 @@ A frontend SHALL run a plan through only the backends it registered. The same pl
 
 #### Scenario: One plan, two frontends
 
-- **WHEN** the CLI and the operator register different backends for an exec step
+- **WHEN** the CLI and the controller register different backends for an exec step
 - **THEN** each runs the step through its own backend and the plan is unchanged
 
 ### Requirement: An unregistered protocol refuses the plan
@@ -19,7 +19,7 @@ A plan holding a step whose protocol has no registered backend SHALL be refused 
 
 #### Scenario: A frontend declines a backend
 
-- **WHEN** the operator has no backend for the container build protocol and receives a plan that needs it
+- **WHEN** the controller has no backend for the container build protocol and receives a plan that needs it
 - **THEN** the plan is refused before the first step and the error names the step and the protocol
 
 #### Scenario: All backends present

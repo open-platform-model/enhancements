@@ -44,4 +44,4 @@ This document records the honest costs of the proposed design. Risks describe wh
 
 - **Make secrets a first-class primitive in `core`**, with real metadata and versioned identity, as `SPEC.md` currently and wrongly claims. **Why not:** it forces core to name a catalog primitive's FQN, which is exactly what enhancement 0010 OQ9 established core cannot do, and what `7500c5d` removed. D12 keeps `#Secret` in core as a *type*, which carries no identity and so does not repeat that error.
 
-- **Handle secrets entirely outside OPM**: the module declares nothing, the operator wires Kubernetes Secrets by hand. **Why not:** it discards the one thing the module author knows and the operator does not, which is *which fields are sensitive*. That knowledge is what makes redaction, inspection, and fulfilment checking possible at all.
+- **Handle secrets entirely outside OPM**: the module declares nothing, the controller wires Kubernetes Secrets by hand. **Why not:** it discards the one thing the module author knows and the controller does not, which is *which fields are sensitive*. That knowledge is what makes redaction, inspection, and fulfilment checking possible at all.

@@ -1,10 +1,10 @@
 # 0008: CUE-Native CRD Schemas as Single Source of Truth
 
-OPM describes each custom resource three times: as CUE in core, as Go structs in the operator, and as the CRD YAML generated from those structs. Nothing keeps the three in agreement. This entry makes the CUE the only hand-written one and generates the other two from it.
+OPM describes each custom resource three times: as CUE in core, as Go structs in the controller, and as the CRD YAML generated from those structs. Nothing keeps the three in agreement. This entry makes the CUE the only hand-written one and generates the other two from it.
 
 ## Why
 
-A field added or tightened in core does not reach the operator's types or the CRD until someone edits the Go by hand. The API server then admits an object that the kernel rejects at render time. The error surfaces deep in a reconcile instead of at `kubectl apply`. The CLI now imports the operator's types, so one drift hurts two repos.
+A field added or tightened in core does not reach the controller's types or the CRD until someone edits the Go by hand. The API server then admits an object that the kernel rejects at render time. The error surfaces deep in a reconcile instead of at `kubectl apply`. The CLI now imports the controller's types, so one drift hurts two repos.
 
 ## What Changes
 
@@ -37,14 +37,14 @@ An object with `values: [1, 2, 3]` is rejected at admission, naming the field, n
 
 ## Impact
 
-- **Core authors** edit CUE once. The operator and the CLI follow by regeneration.
+- **Core authors** edit CUE once. The controller and the CLI follow by regeneration.
 - **Contributors** learn the CRD envelope in place of kubebuilder markers.
-- **Three repos** change: core, opm-operator and cli. The change is not breaking: resources serialise identically.
+- **Three repos** change: core, opm-controller and cli. The change is not breaking: resources serialise identically.
 
 ## Open questions
 
-- Not blocking: Does the generator stay in the operator, or move to a shared tool? The answer depends on whether the CLI ever regenerates on its own.
-- Blocking: Does core define the full status shape of a resource, or only the part with domain meaning, with the operator-owned rest in operator CUE? Map each status field to an owner to settle it.
+- Not blocking: Does the generator stay in the controller, or move to a shared tool? The answer depends on whether the CLI ever regenerates on its own.
+- Blocking: Does core define the full status shape of a resource, or only the part with domain meaning, with the controller-owned rest in controller CUE? Map each status field to an owner to settle it.
 - Not blocking: Are the generated files committed, or built on demand only? Committing is assumed, so the diff is reviewable and consumers build without the generator.
-- Blocking: Does `ModulePackage` have a core domain definition to anchor its CRD, or is it operator-only? Either add a minimal core definition or leave it out of the first slice.
+- Blocking: Does `ModulePackage` have a core domain definition to anchor its CRD, or is it controller-only? Either add a minimal core definition or leave it out of the first slice.
 - Blocking: Does anchoring the CRDs force a change to the existing `ModuleInstance` or `Platform` field shapes? A spike of the core slice shows the diff. If yes, that part is breaking and `breaking` changes.

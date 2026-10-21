@@ -49,7 +49,7 @@ The **schema** half rolls back by consumers pinning the previous `core` alpha. B
 
 The **gate** half rolls back by reverting the CLI: `opm catalog publish` stops running the new checks and nothing already published becomes invalid. Enhancement 0011 D10 makes published artifacts immutable, so a tombstone published under the rule stays published and stays truthful whether or not the rule is still enforced.
 
-No cluster state changes. Nothing in this entry reaches the operator, the render path, or a live instance; D12 puts the dependent-side protection explicitly out of scope.
+No cluster state changes. Nothing in this entry reaches the controller, the render path, or a live instance; D12 puts the dependent-side protection explicitly out of scope.
 
 The one thing that does not roll back is a **withdrawal**: if a catalog tombstones a key and the rule is later relaxed, the key is still gone. That is a property of enhancement 0011 D10's immutability rather than of this design, and it is the reason D10's floor exists.
 
@@ -59,7 +59,7 @@ The one thing that does not roll back is a **withdrawal**: if a catalog tombston
 
 Three ordering constraints, each a design fact rather than a schedule.
 
-1. **Enhancement 0015 D1 before a value-level inventory, and not before anything else.** Measured 2026-08-22, member enumeration for the publish gates is a filesystem walk over enhancement 0010 D49's `<kind>/<apiVersion>` filing, reading a fetched published build through the same interface as a working tree; the value walk was rejected precisely because `#Catalog` exposes only `#transformers`, which reach about half the members and no blueprints. So D2, D3, D6, D7 and D10 are all deliverable before 0015 D1 lands. What waits on it is a consumer-readable contract inventory: the lifecycle report of OQ8, and any answer the operator or `opm platform check` must give without a filesystem in hand.
+1. **Enhancement 0015 D1 before a value-level inventory, and not before anything else.** Measured 2026-08-22, member enumeration for the publish gates is a filesystem walk over enhancement 0010 D49's `<kind>/<apiVersion>` filing, reading a fetched published build through the same interface as a working tree; the value walk was rejected precisely because `#Catalog` exposes only `#transformers`, which reach about half the members and no blueprints. So D2, D3, D6, D7 and D10 are all deliverable before 0015 D1 lands. What waits on it is a consumer-readable contract inventory: the lifecycle report of OQ8, and any answer the controller or `opm platform check` must give without a filesystem in hand.
 
 2. **`core` before `cli`.** The gates and the `#Tombstone` shape are the contract the comparator compares against; it cannot be written against a schema that does not exist.
 

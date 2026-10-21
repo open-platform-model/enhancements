@@ -20,9 +20,9 @@ Core holds one envelope per custom resource. The envelope wraps a domain definit
 
 ### One authored definition, in core
 
-The `ModuleInstance`, `ModulePackage` and `Platform` types are written once, in CUE, in core. The operator's Go structs and its CRD manifests become generated output. This makes the running system match the stated model, in which core is the source of truth every consumer reads. Core already requires every `spec` surface to be OpenAPI-compatible, so non-CUE readers can use it.
+The `ModuleInstance`, `ModulePackage` and `Platform` types are written once, in CUE, in core. The controller's Go structs and its CRD manifests become generated output. This makes the running system match the stated model, in which core is the source of truth every consumer reads. Core already requires every `spec` surface to be OpenAPI-compatible, so non-CUE readers can use it.
 
-The generator is a Go tool in the operator. It imports the published core module, the same artefact the kernel loads, so the generated types match what the runtime evaluates. Core stays pure CUE, with no Go and no build-time codegen. A shared generator repository is deferred, not rejected: it waits on whether the CLI ever regenerates on its own.
+The generator is a Go tool in the controller. It imports the published core module, the same artefact the kernel loads, so the generated types match what the runtime evaluates. Core stays pure CUE, with no Go and no build-time codegen. A shared generator repository is deferred, not rejected: it waits on whether the CLI ever regenerates on its own.
 
 ### The schema body comes from the CUE encoder
 
@@ -50,27 +50,27 @@ CI regenerates the manifests and the types from core and fails on any difference
 
 ### What the author does
 
-Before, a change to a resource meant editing the CUE in core, editing the Go in the operator, running controller-gen, reviewing both and hoping they agreed. After, the author edits the CUE in core and publishes it. In the operator one task regenerates the manifests and the types, and the author commits the result. CI repeats the task and blocks the merge if the committed output is stale. Adding a new resource means writing an envelope value instead of Go structs with kubebuilder markers, which is the main thing a contributor has to learn.
+Before, a change to a resource meant editing the CUE in core, editing the Go in the controller, running controller-gen, reviewing both and hoping they agreed. After, the author edits the CUE in core and publishes it. In the controller one task regenerates the manifests and the types, and the author commits the result. CI repeats the task and blocks the merge if the committed output is stale. Adding a new resource means writing an envelope value instead of Go structs with kubebuilder markers, which is the main thing a contributor has to learn.
 
 ### What goes wrong is named at build time
 
-The runtime is unchanged: the same CRDs, the same operator conditions and events. The new signals are for developers. The generator names the CUE path of any construct it cannot express as a structural schema. The CI check prints the difference between the committed and the regenerated files. An admission test that applies each generated CRD to a real API server catches a schema rejection at generation time, not on a user's cluster. The one change a user sees is better: a bad spec fails at `kubectl apply` with a structural-schema message, not later as a CUE evaluation error in the reconcile.
+The runtime is unchanged: the same CRDs, the same controller conditions and events. The new signals are for developers. The generator names the CUE path of any construct it cannot express as a structural schema. The CI check prints the difference between the committed and the regenerated files. An admission test that applies each generated CRD to a real API server catches a schema rejection at generation time, not on a user's cluster. The one change a user sees is better: a bad spec fails at `kubectl apply` with a structural-schema message, not later as a CUE evaluation error in the reconcile.
 
 ### Rollout
 
-Core publishes the envelope first. The operator then bumps its core pin, adds the generator, regenerates the types and manifests, and wires the gate. The CLI bumps the operator dependency and rebuilds with no source change. Each hand-off is a published version pin, so each step is reviewed alone. The hand-written structs are deleted in the release that lands the generator, with no transition window. Rollback is a revert of the operator change. The regenerated manifests match the shipped ones for unchanged fields, so a cluster needs no change. Stored resources are untouched either way.
+Core publishes the envelope first. The controller then bumps its core pin, adds the generator, regenerates the types and manifests, and wires the gate. The CLI bumps the controller dependency and rebuilds with no source change. Each hand-off is a published version pin, so each step is reviewed alone. The hand-written structs are deleted in the release that lands the generator, with no transition window. Rollback is a revert of the controller change. The regenerated manifests match the shipped ones for unchanged fields, so a cluster needs no change. Stored resources are untouched either way.
 
 ## Risks
 
 - The encoder targets generic OpenAPI and the structural subset is stricter, so a CRD it emits could be rejected. A spike against the real core module and an admission test against a real API server answer this before accept.
 - Regeneration could silently change a live CRD: field order, descriptions or nullability. The unchanged fields must match the shipped manifests apart from formatting, and each deliberate difference is listed.
 - A union becomes an untyped value in generated Go, which weakens the type. The generator emits named types for enums and leaves an untyped value only for a true JSON passthrough such as `values`.
-- The generator and core can drift in version. The generator pins the core version the operator's kernel uses, in one place.
+- The generator and core can drift in version. The generator pins the core version the controller's kernel uses, in one place.
 - A new tool must be kept working across CUE and controller-tools upgrades, and authors must learn the envelope in place of kubebuilder markers.
 
 ## Considered and rejected
 
-- Considered Go as the source of truth with CUE derived from it; rejected because it makes core a derived artefact of the operator, which inverts its role as the published contract.
+- Considered Go as the source of truth with CUE derived from it; rejected because it makes core a derived artefact of the controller, which inverts its role as the published contract.
 - Considered the CRD YAML as the pivot with Go and CUE derived from it; rejected because there is no first-class path from a CRD to Go, so the types would be orphaned.
 - Considered codegen inside core; rejected because core is a pure-CUE module and a generator would break its rule and its publish workflow.
 - Considered a standalone shared generator repository; deferred until a second consumer needs to regenerate.

@@ -53,9 +53,9 @@ Enhancement 0010 rejected Kubernetes-style deprecation windows. Kubernetes needs
 
 Rules inside one artifact live in core as schema, checked by CUE: a promotion shape check and a tombstone shape check, unified into a non-hidden value because `cue vet -c` skips hidden fields. Rules that need a second build live in the cli beside the existing backward scan: absent-and-not-tombstoned, the promotion comparison and the seasoning floor. Enumeration there is a filesystem walk over the per-level filing, so these rules ship before the contract inventory of enhancement 0015. That inventory is needed only for a consumer-readable report. Core ships first, because the comparator needs the schema. The cli ships before the first real promotion in the first-party catalog, which is the proof case.
 
-### The operator owns the stranding guard
+### The controller owns the stranding guard
 
-This entry stops at the published artifact. Refusing a provider change that would take a contract from live instances needs a live dependency graph, which no publish gate holds. It belongs to the operator, beside the finalizer and shrink refusal of enhancement 0015.
+This entry stops at the published artifact. Refusing a provider change that would take a contract from live instances needs a live dependency graph, which no publish gate holds. It belongs to the controller, beside the finalizer and shrink refusal of enhancement 0015.
 
 ### Amendments and compatibility
 

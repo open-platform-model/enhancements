@@ -15,6 +15,6 @@
 
 ## 4. Frontends
 
-- [ ] 4.1 opm-operator: accept a definition by claim, verify and activate, refuse its deletion while instances exist, report disagreement with the module's declaration, and accept a definition reference on a module instance in place of a module
-- [ ] 4.2 opm-operator: serve the kind of a definition by generating the CRD from the module's configuration schema, run one data-driven controller that projects each instance and mirrors status, and apply the tenant guardrail
+- [ ] 4.1 opm-controller: accept a definition by claim, verify and activate, refuse its deletion while instances exist, report disagreement with the module's declaration, and accept a definition reference on a module instance in place of a module
+- [ ] 4.2 opm-controller: serve the kind of a definition by generating the CRD from the module's configuration schema, run one data-driven controller that projects each instance and mirrors status, and apply the tenant guardrail
 - [ ] 4.3 cli: draft a definition from a module's declaration, project and render a definition and an instance offline, and pre-flight a cluster's definitions before apply

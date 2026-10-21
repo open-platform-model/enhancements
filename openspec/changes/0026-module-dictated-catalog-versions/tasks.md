@@ -11,6 +11,6 @@
 
 ## 3. Frontends
 
-- [x] 3.1 opm-operator: judge a claim's shared-path requirements against the entry of the provider's own major (index-build-compat-by-major)
-- [ ] 3.2 opm-operator: take the range-form Platform and judge registrations by window and by declaring major
+- [x] 3.1 opm-controller: judge a claim's shared-path requirements against the entry of the provider's own major (index-build-compat-by-major)
+- [ ] 3.2 opm-controller: take the range-form Platform and judge registrations by window and by declaring major
 - [ ] 3.3 cli: render from an authored platform file and drop the CLI's own platform-less generation

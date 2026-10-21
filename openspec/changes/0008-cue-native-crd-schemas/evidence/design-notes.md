@@ -9,7 +9,7 @@ implementation knowledge. All trade-off reasoning lives in
 
 - One authored definition per CRD type. The `ModuleInstance`, `ModulePackage`, and `Platform` shapes are written once, in CUE, in `core/`; the Go API types and the CRD YAML are generated artefacts, never hand-edited.
 - The generated CRD's `openAPIV3Schema` reflects the CUE contract's validations, so the API server rejects at `kubectl apply` what the kernel would reject at evaluation time.
-- The operator and the CLI compile against generated Go types that are, by construction, consistent with the published `core` contract, closing the cross-repo drift enhancement 0006 introduced (the CLI importing the operator's hand-authored Go types).
+- The controller and the CLI compile against generated Go types that are, by construction, consistent with the published `core` contract, closing the cross-repo drift enhancement 0006 introduced (the CLI importing the controller's hand-authored Go types).
 - `core/` stays a pure-CUE module with no Go and no build-time codegen, honouring its constitution; all generation lives downstream and consumes the *published* `core`.
 - Drift is mechanically impossible to merge: CI regenerates from `core` and fails on any diff against the committed CRD YAML and Go types.
 - The facets CUE cannot own (deepcopy/`runtime.Object`, CEL transition logic) are handled by the existing tool that does own them (controller-gen for deepcopy) or carried verbatim (CEL), with no lossy translation attempted.
@@ -30,13 +30,13 @@ Define each CRD natively in `core/` as a `#CRD` value: a small envelope with thr
 - **The schema body**: the existing `#ModuleInstance` / `#Platform` domain definitions, whose `spec`/`status` are already OpenAPIv3-compatible.
 - **The non-schema facets that controller-gen expresses as markers today**: status subresource, printer columns, CEL validations.
 
-Generation happens **downstream of `core`**, in a Go tool that lives in `opm-operator` (or a shared `cmd/`), and imports `opmodel.dev/core` as a published module dependency. It never reaches into core's source tree. The tool runs three transforms over each `#CRD`:
+Generation happens **downstream of `core`**, in a Go tool that lives in `opm-controller` (or a shared `cmd/`), and imports `opmodel.dev/core` as a published module dependency. It never reaches into core's source tree. The tool runs three transforms over each `#CRD`:
 
 1. **Schema body → structural OpenAPI.** Use `cuelang.org/go/encoding/openapi` with `ExpandReferences: true` (CUE's documented "Structural OpenAPI form required by CRDs targeting Kubernetes 1.15+") to emit the `openAPIV3Schema` for each version's `spec`/`status`.
 2. **Assemble the CRD manifest.** Wrap the schema body with the `#CRD` metadata, splice in the status subresource, printer columns, short names, scope, and the verbatim CEL `x-kubernetes-validations` strings. Write `config/crd/bases/*.yaml`.
 3. **Schema body → Go structs.** Emit the `api/v1alpha1` Go types (with json tags and the `+kubebuilder:object:root=true` marker on the root types) from the same CUE. Then run controller-gen `object` over the result to produce `zz_generated.deepcopy.go`.
 
-A `task` target regenerates all three; a CI check re-runs it and fails on any diff, so drift cannot be merged. The kubebuilder/controller-runtime contract is preserved end-to-end: the operator still gets typed Go structs implementing `runtime.Object`, and the CRDs are still valid structural schemas.
+A `task` target regenerates all three; a CI check re-runs it and fails on any diff, so drift cannot be merged. The kubebuilder/controller-runtime contract is preserved end-to-end: the controller still gets typed Go structs implementing `runtime.Object`, and the CRDs are still valid structural schemas.
 
 ## Schema / API Surface
 
@@ -57,7 +57,7 @@ The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here:
 - `core/src/module_instance.cue`, `core/src/platform.cue`, `core/src/modulepackage.cue` *(ModulePackage CRD may need a domain definition if one does not yet exist)*: add the `#CRD` instances binding each kind's metadata + version + body. Existing field shapes are reused unchanged.
 - `core/SPEC.md`: new section documenting the `#CRD` envelope (co-update gate).
 
-**opm-operator/**:
+**opm-controller/**:
 
 - `cmd/crdgen/` *(new)*, the Go assembler that loads published `opmodel.dev/core`, runs the openapi encoder, assembles CRD YAML, emits Go API types, and invokes controller-gen `object`. Imports `cuelang.org/go/encoding/openapi`.
 - `api/v1alpha1/*_types.go`: become **generated** output of `cmd/crdgen` (the hand-authored structs are deleted; the `groupversion_info.go` registration and any helper methods that aren't pure type shape, such as `GetConditions`/`SetConditions` and `conditions.go`, stay hand-authored or move to a separate non-generated file).
@@ -66,7 +66,7 @@ The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here:
 
 **cli/**:
 
-- No source change required. It continues to import the operator's `api/v1alpha1` types (per 0006). It must build unchanged against the generated types; a build is part of the acceptance gate.
+- No source change required. It continues to import the controller's `api/v1alpha1` types (per 0006). It must build unchanged against the generated types; a build is part of the acceptance gate.
 
 ## Before / After
 
@@ -74,4 +74,4 @@ The schema *bodies* (`spec`/`status` field shapes) are **not** re-authored here:
 
 **After**: `values: {...}` is authored once in `core/src/module_instance.cue`. `cmd/crdgen` emits an `openAPIV3Schema` where `values` has `type: object`, and a Go `Values` field typed accordingly. `kubectl apply` of `values: [1,2,3]` is rejected at admission with a structural-schema error naming the field. The Go type, the CRD YAML, and the CUE contract cannot disagree, because two of the three are generated from the first. CI fails if anyone commits a stale copy.
 
-**Authoring workflow.** Before: edit CUE in `core/`, separately edit Go in `opm-operator/`, run controller-gen, review both, hope. After: edit CUE in `core/`, publish; in `opm-operator/` run `task crdgen`, commit the regenerated artefacts; CI re-runs `crdgen` and blocks the merge if the committed output is stale.
+**Authoring workflow.** Before: edit CUE in `core/`, separately edit Go in `opm-controller/`, run controller-gen, review both, hope. After: edit CUE in `core/`, publish; in `opm-controller/` run `task crdgen`, commit the regenerated artefacts; CI re-runs `crdgen` and blocks the merge if the committed output is stale.

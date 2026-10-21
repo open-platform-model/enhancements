@@ -16,8 +16,8 @@
 
 ## 4. Frontends
 
-- [x] 4.1 opm-operator: record an instance's contract demand from the kernel's render (read-demand-from-kernel)
-- [ ] 4.2 opm-operator: carry a platform's source settings, and state plaintext at rest for a literal in a resource
+- [x] 4.1 opm-controller: record an instance's contract demand from the kernel's render (read-demand-from-kernel)
+- [ ] 4.2 opm-controller: carry a platform's source settings, and state plaintext at rest for a literal in a resource
 - [ ] 4.3 cli: accept SOPS-encrypted values, write a skeleton values file, report unfulfilled secrets together and carry source settings in the generated platform
 
 ## 5. Modules

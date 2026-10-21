@@ -8,10 +8,10 @@ flowchart LR
     gen --> strict["Strict types back the opinionated catalog"]
     gen --> open["Open types back the raw mirror"]
     gen --> meta["Lifecycle metadata per kind"]
-    meta --> op["The library and the operator read it"]
+    meta --> op["The library and the controller read it"]
 ```
 
-One generator reads the OpenAPI of one Kubernetes minor, or a bundle of CRDs. It writes the same kinds twice, once with closed types and once with open ones, and stamps each kind with its lifecycle facts. The catalogs stop keeping their own schemas, and the operator gets its ordering as data.
+One generator reads the OpenAPI of one Kubernetes minor, or a bundle of CRDs. It writes the same kinds twice, once with closed types and once with open ones, and stamps each kind with its lifecycle facts. The catalogs stop keeping their own schemas, and the controller gets its ordering as data.
 
 The entry states stances and no requirement lines. The shapes a consumer would observe rest on five open questions in the proposal, and none has a decision yet.
 
@@ -37,7 +37,7 @@ Each generated resource carries a block with four facts: scope, apply phase, rea
 
 Readiness is the one fact the OpenAPI does not carry, because it encodes status conventions. It is curated per kind, with a generic fallback on a `Ready` condition. The curated table is data with its own review, not code. Who owns it is open.
 
-The block is shaped so the library and the operator read it without re-deriving anything from the group, version and kind. The operator uses it for ordering, readiness reports and pruning. An operator that finds no block, from an older catalog, must degrade gracefully.
+The block is shaped so the library and the controller read it without re-deriving anything from the group, version and kind. The controller uses it for ordering, readiness reports and pruning. A controller that finds no block, from an older catalog, must degrade gracefully.
 
 ### An abstraction keeps an escape hatch
 
@@ -53,13 +53,13 @@ The base catalogs are not required to compose each other. The opinionated catalo
 
 ### Core does not change
 
-This entry changes nothing in core. A transformation stays single-pass: a transformer matches on the resources and traits present in a component, and there is no chaining. The generated catalogs, the tooling and the adapter in the library and operator carry the whole change.
+This entry changes nothing in core. A transformation stays single-pass: a transformer matches on the resources and traits present in a component, and there is no chaining. The generated catalogs, the tooling and the adapter in the library and controller carry the whole change.
 
 A separate core entry for multi-phase lowering, where transformer outputs go back through matching, opens only when a concrete case shows that pure-CUE projection cannot express it. The transformer-output convention stays compatible with typed outputs later, so that case does not force a rework of the catalog APIs.
 
 ### Rollout in one order
 
-Each hand-off is a published catalog tag that the next repo pins. The order is: tooling that emits both renderings; the mirror regenerates and publishes; the opinionated catalog re-points at the shared strict types and publishes; the library reads the apply phase and readiness; the operator reconciles on the metadata; the site documents the workflow.
+Each hand-off is a published catalog tag that the next repo pins. The order is: tooling that emits both renderings; the mirror regenerates and publishes; the opinionated catalog re-points at the shared strict types and publishes; the library reads the apply phase and readiness; the controller reconciles on the metadata; the site documents the workflow.
 
 Old hand-written sources are deleted and not aliased. The library's order list is replaced by the per-kind phase. Rollback is a re-pin to the last hand-written release, since consumers pin catalog versions and core is untouched. The generator runs at build time, so reverting it has no data-plane effect.
 

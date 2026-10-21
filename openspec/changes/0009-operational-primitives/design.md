@@ -28,7 +28,7 @@ Core gains four constructs. An `#Op` is one step. An `#Action` composes steps an
 
 Composition is open and the vocabulary is closed. OPM owns the set of step kinds, and an author cannot invent one. That is the structural defence against the Helm failure, where the escape hatch becomes the front door. A step orders itself only against sibling steps in the same map.
 
-A lifecycle has nine fixed phases: before, during and after for install, upgrade and uninstall. A closed set lets the operator drive transitions from its reconcile loop. Steps in a phase run in authored order. An absent phase does nothing. Phase-triggered and on-demand flows differ in trigger and in state, so they stay two constructs.
+A lifecycle has nine fixed phases: before, during and after for install, upgrade and uninstall. A closed set lets the controller drive transitions from its reconcile loop. Steps in a phase run in authored order. An absent phase does nothing. Phase-triggered and on-demand flows differ in trigger and in state, so they stay two constructs.
 
 ### The library plans and advances, the caller acts
 
@@ -42,7 +42,7 @@ The shape also settles cancellation between steps. A caller cancels by not calli
 
 Each concrete step kind carries an `@op(...)` attribute on its discriminator field. It names a protocol, which picks a backend, and a locator for the executable artifact. CUE evaluation ignores the attribute, so the value stays clean, and the Go SDK reads it. CUE does not allow an attribute before a field, so the attribute sits after the value. The dated research in evidence finds no removal of attributes planned, and CUE's own custom functions use them.
 
-Backend hosts live in the library's opt-in tier, the boundary a frontend may skip. A frontend registers only the backends it wants. The whole plan is checked against that registry before the first action, so a step with no backend fails fast, naming the step and the protocol. That is how the operator declines ad-hoc container builds. The same plan runs differently per frontend: an exec step runs a local container on the CLI and renders and watches a Job under the operator.
+Backend hosts live in the library's opt-in tier, the boundary a frontend may skip. A frontend registers only the backends it wants. The whole plan is checked against that registry before the first action, so a step with no backend fails fast, naming the step and the protocol. That is how the controller declines ad-hoc container builds. The same plan runs differently per frontend: an exec step runs a local container on the CLI and renders and watches a Job under the controller.
 
 ### Operation code comes from the catalog
 
@@ -72,19 +72,19 @@ Cancellation inside a stage is also this entry's. A check of the caller's contex
 - Everything depends on CUE keeping attributes. The research finds this low risk.
 - A second execution model is real surface to learn and test. The payoff is pluggability without library releases.
 
-Order of landing: core, then library, then catalog_opm, then cli and opm-operator, which land independently. Rollback is cheap: a module without operations behaves as today, and a frontend with no backends cannot run flows. Side effects already performed are not undone.
+Order of landing: core, then library, then catalog_opm, then cli and opm-controller, which land independently. Rollback is cheap: a module without operations behaves as today, and a frontend with no backends cannot run flows. Side effects already performed are not undone.
 
 ## Considered and rejected
 
 - Considered rendering operations as Jobs through the transformer pipeline; rejected because the render half has no sequencing model.
-- Considered a separate tool outside the kernel; rejected because the CLI and operator embed the kernel.
+- Considered a separate tool outside the kernel; rejected because the CLI and controller embed the kernel.
 - Considered one operation construct with a mode flag; rejected because lifecycle and workflow differ in trigger and state.
 - Considered defining the constructs in a catalog; rejected because every consumer types against them, so core is their home.
 - Considered a library that walks the whole plan behind an injected executor; rejected because a blocking loop is a process model, and a controller reconcile must return promptly.
 - Considered a plan emitted once with each frontend writing its own walk; rejected because the sequencing rules would live in two places and drift.
 - Considered backends in the kernel core, or entirely outside the library; rejected because they would force every runtime on every frontend, or leave the executors outside the library.
 - Considered a regular CUE field for dispatch, or compiled-in implementations; rejected because dispatch is runtime metadata and every new operation would need a library release.
-- Considered author-defined phase names; rejected because a closed set lets the operator drive transitions.
+- Considered author-defined phase names; rejected because a closed set lets the controller drive transitions.
 - Considered a typed HTTP step that decodes JSON; rejected for now because shaping belongs in CUE.
 - Considered attaching per component, at both levels, or as a dedicated module field; rejected because a workflow spans components, and a field per feature is what aspects stop.
 - Considered Helm-style hooks; rejected because an arbitrary script as a hook is the failure this entry avoids.

@@ -9,7 +9,7 @@
 package contracts
 
 // Every class of artifact a consumer can pin. D1.
-#ArtifactClass: "core" | "catalog" | "contract" | "transformer" | "module" | "template" | "kernel" | "cli" | "operator" | "crd" | "documentation"
+#ArtifactClass: "core" | "catalog" | "contract" | "transformer" | "module" | "template" | "kernel" | "cli" | "controller" | "crd" | "documentation"
 
 // How a class carries its version.
 #Carrier: "cue-module-semver" | "api-version-ladder" | "go-module-semver" | "k8s-group-version" | "inherited" | "open"
@@ -165,7 +165,7 @@ policies: {
 		cites: ["U1", "U3", "U6", "D7", "D8", "D9", "D10"]
 		open: ["OQ8", "OQ14"]
 	}
-	operator: {
+	controller: {
 		carrier: "go-module-semver"
 		surface: ["controller behaviour over the served CRDs"]
 		bump: stableBump
@@ -197,7 +197,7 @@ policies: {
 // Completeness: every artifact class has a row. Unifying the list of
 // classes against the map's keys fails vet if one is missing.
 complete: {
-	for c in ["core", "catalog", "contract", "transformer", "module", "template", "kernel", "cli", "operator", "crd", "documentation"] {
+	for c in ["core", "catalog", "contract", "transformer", "module", "template", "kernel", "cli", "controller", "crd", "documentation"] {
 		(c): policies[c].class & c
 	}
 }

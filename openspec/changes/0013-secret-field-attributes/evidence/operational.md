@@ -19,7 +19,7 @@ Two more diagnostics come free from CUE and need no OPM code:
 - **Malformed secret value**: two arms at once, a bare string, an unknown field or a wrong type fails plain `cue vet -c` through `#ModuleInstance`'s values check, whether or not a component reads it (D34).
 - **Secret interpolated into a string**: a struct-in-string error at plain `cue vet` against `debugValues`, at authoring time.
 
-Structured surface: `#SecretsResolution.unfulfilled` and `declarations` are part of the kernel's return, so the CLI and the operator report from the same data rather than re-deriving it.
+Structured surface: `#SecretsResolution.unfulfilled` and `declarations` are part of the kernel's return, so the CLI and the controller report from the same data rather than re-deriving it.
 
 New CLI output: `opm module inspect` gains a secrets section listing each declared secret's config path, group, key, description, and fulfilment state, readable from a module alone, with no instance, because discovery reads the schema (D3).
 
@@ -33,7 +33,7 @@ Deliberately **not** introduced: any log line, metric label, or error message ca
 
 - **`opmodel.dev/core@v2`**: `#Secret`'s arms lose `$opm`, `$secretName` and `$dataKey` and gain core's hidden tag; `#SecretK8sRef` is replaced by `#SecretRef`; `#SecretSourceInput`, `#SecretKeyType`, `#SecretObjectType` and `#SecretTypeRequiredKeys` are added; `#ModuleInstance` gains the hidden values check; `#SecretSchema`, `#AutoSecrets`, `#DiscoverSecrets`, `#GroupSecrets`, `#SecretContentHash`, `#SecretImmutableName` are removed. Wave 2 adds `#SecretSource` to `#Secret`, which is additive. Tightening a published constraint and removing published definitions are both breaking. `#TransformerContext` is **unchanged**. Core ships on the `v2.0.0-alpha.N` prerelease line, so a `feat!:` advances the alpha counter rather than forcing a new major.
 - **`opmodel.dev/catalogs/opm`**: already removed its legacy secret block and narrowed `#SecretSchema.data` to `string`, crossing to a new major (Deviations from Design in the README). What remains is additive: the `literal` secret source and its transformer (D22, D30), and an env-from-secret path reading `.ref` / `.key`.
-- **`library`**: the kernel's public surface gains `opm/secret`. Breaking for direct callers, which are `cli` and `opm-operator`, both in this workspace.
+- **`library`**: the kernel's public surface gains `opm/secret`. Breaking for direct callers, which are `cli` and `opm-controller`, both in this workspace.
 - **`modules`**: every module whose sensitive fields are interim plain strings migrates: `apprise`, `gotify`, `k8up`, `metallb` and `ntfy` (the ones carrying a `0013:` placeholder).
 
 **Instance files change.** The fleet types its secrets as plain strings until core ships `#Secret`, so a supplied value moves from `password: "…"` to `password: {value: "…"}`; a reference is `{ref, key}`. `examples.cue` shows the migration on `gotify`.
@@ -98,7 +98,7 @@ Strict order: each step consumes a published artifact from the one before.
 1. **`core`**: add the tagged arms, `#SecretRef`, `#SecretSourceInput` and the `#ModuleInstance` values check; delete the dead machinery; update `SPEC.md` §1, §3.5 and the reserved annotation prefix; regenerate `INDEX.md`. Load `core-schema-edit` first; the SPEC co-update is gated by the pre-commit hook and CI. Publishes a new `v2.0.0-alpha.N`.
 2. **`library`**: implement `opm/secret` (Discover, Resolve), wire the phases, add the `.value` diagnostic. Consumes the new core alpha. Publishes a new library tag. The build shape is settled (D16, measured by experiment 03): raw values validate in the existing separate `Validate` evaluation, one component-graph build assembled from resolved values only, rewrite via decode → splice → encode (D17).
 3. **`catalog_opm`**: ship the `literal` secret-source resource and its transformer, which uses the target name verbatim (D22, D30); restore an env-from-secret path and read `.ref` / `.key` at both consumption sites. Consumes the new core alpha.
-4. **`cli`** and **`opm-operator`**: bump to the new library; port the `secrets-module` fixture; add the `opm module inspect` secrets section. These two can land in parallel.
+4. **`cli`** and **`opm-controller`**: bump to the new library; port the `secrets-module` fixture; add the `opm module inspect` secrets section. These two can land in parallel.
 5. **`modules`**: migrate the plain-string modules onto the new core + catalog pins, typing each sensitive field `#Secret` and wiring it by reference. Each instance's values change from a plain string to `{value: "…"}`. **Migration step, not only a code change:** rendered Secret names change, and `metallb`'s RBAC `resourceNames` scoping references the rendered object name. Both must change together, and each module must be re-rendered and diffed against the running cluster before apply.
 6. **`opmodel.dev`**: regenerate the schema reference; rewrite the secrets section of the authoring docs around the routing/fulfilment split.
 7. **`modules/DESIGN_PATTERNS.md`**: rewrite the `schemas.#Secret` pattern section (`:84-110`) and the summary-table row (`:630`).

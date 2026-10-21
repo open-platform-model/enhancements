@@ -18,7 +18,7 @@ choice never gets lost.
 
 **Kind:** contract
 
-**Decision:** The `ModuleInstance`, `ModulePackage`, and `Platform` type definitions are authored once in CUE in `core/`. The operator's `api/v1alpha1` Go structs and the `config/crd/bases/*.yaml` manifests become generated artefacts derived from that CUE.
+**Decision:** The `ModuleInstance`, `ModulePackage`, and `Platform` type definitions are authored once in CUE in `core/`. The controller's `api/v1alpha1` Go structs and the `config/crd/bases/*.yaml` manifests become generated artefacts derived from that CUE.
 
 **Requirements:**
 
@@ -28,7 +28,7 @@ choice never gets lost.
 
 **Alternatives considered:**
 
-- **Go stays source of truth, CUE derived** (via `cue get go` / `cue get crd`). Rejected: formalises the inversion the problem statement names: `core/` would become a *derived* artefact of `opm-operator/`, contradicting its role as the published upstream contract. (Examined as an alternative in `05-risks.md`.)
+- **Go stays source of truth, CUE derived** (via `cue get go` / `cue get crd`). Rejected: formalises the inversion the problem statement names: `core/` would become a *derived* artefact of `opm-controller/`, contradicting its role as the published upstream contract. (Examined as an alternative in `05-risks.md`.)
 - **CRD YAML as the pivot**, with both Go and CUE derived from it. Rejected: there is no first-class CRD→Go path, so the Go types would be orphaned; awkward and tool-poor (`research/findings.md` §7).
 
 **Rationale:** `/CLAUDE.md` already designates `core/` as "the source of truth every downstream consumes," and `core/SPEC.md` already constrains `spec` surfaces to OpenAPIv3 specifically so they can be projected to non-CUE consumers. Direction A makes the running system match the stated model.
@@ -39,14 +39,14 @@ choice never gets lost.
 
 **Kind:** policy
 
-**Decision:** The generator is a Go tool in `opm-operator` (`cmd/crdgen/`) that imports `opmodel.dev/core` as a published module dependency. `core/` itself gains no Go and no build-time codegen.
+**Decision:** The generator is a Go tool in `opm-controller` (`cmd/crdgen/`) that imports `opmodel.dev/core` as a published module dependency. `core/` itself gains no Go and no build-time codegen.
 
 **Requirements:** none (placement and purity posture for the generator; the observable half, that generation reads the published core module, is D1 R1)
 
 **Alternatives considered:**
 
 - **Codegen inside `core/`.** Rejected: `core/CLAUDE.md` mandates a pure-CUE module with no Go; adding a generator there violates the constitution and the release-please publish model.
-- **A standalone shared codegen repo.** Deferred, not rejected; see OQ1. Starting in `opm-operator` keeps the first consumer and the generator co-located.
+- **A standalone shared codegen repo.** Deferred, not rejected; see OQ1. Starting in `opm-controller` keeps the first consumer and the generator co-located.
 
 **Rationale:** Consuming the published OCI artefact (the same one the kernel loads) guarantees the generated types match what the runtime evaluates, and keeps `core/`'s purity and publish workflow intact.
 
