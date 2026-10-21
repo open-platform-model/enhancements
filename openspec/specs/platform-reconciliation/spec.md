@@ -1,7 +1,7 @@
 # platform-reconciliation Specification
 
 ## Purpose
-State how the operator reconciles the cluster-scoped Platform after its module is generated: which Platform it reconciles, how it retries a failure, which platform it holds for readers, how the skew policy travels with it, and how a ModuleInstance renders against it, waits without it and wakes when it changes.
+State how the controller reconciles the cluster-scoped Platform after its module is generated: which Platform it reconciles, how it retries a failure, which platform it holds for readers, how the skew policy travels with it, and how a ModuleInstance renders against it, waits without it and wakes when it changes.
 
 ## Requirements
 

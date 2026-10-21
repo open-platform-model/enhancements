@@ -1,7 +1,7 @@
 # operator-lifecycle Specification
 
 ## Purpose
-How the CLI installs, upgrades and removes the operator, and how the operator reports its own version. The CLI installs the operator from its published module as a CLI-owned instance, refuses before it writes when it cannot do the job safely, and removes only what the instance records.
+How the CLI installs, upgrades and removes the controller, and how the controller reports its own version. The CLI installs the controller from its published module as a CLI-owned instance, refuses before it writes when it cannot do the job safely, and removes only what the instance records.
 
 ## Requirements
 

@@ -1,7 +1,7 @@
 # instance-ownership Specification
 
 ## Purpose
-Define how a ModuleInstance records whether the CLI or the operator owns it, and what each side may do with an instance the other owns. One owner acts on an instance at a time: the CLI never reconciles an operator-owned instance, and the operator never reconciles a CLI-owned one. It also states how the CLI's apply and prune treat a resource the instance does not own: what stops the apply, what the dry run shows, and what the prune leaves behind.
+Define how a ModuleInstance records whether the CLI or the controller owns it, and what each side may do with an instance the other owns. One owner acts on an instance at a time: the CLI never reconciles a controller-owned instance, and the controller never reconciles a CLI-owned one. It also states how the CLI's apply and prune treat a resource the instance does not own: what stops the apply, what the dry run shows, and what the prune leaves behind.
 
 ## Requirements
 
