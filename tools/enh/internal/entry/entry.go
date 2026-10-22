@@ -21,14 +21,30 @@ import (
 	"github.com/open-platform-model/enhancements/tools/enh/internal/delta"
 )
 
-// Kind tells an enhancement from a seed change.
+// Kind tells an enhancement from a seed change or a correction.
 type Kind int
 
 // The kinds of change folder.
 const (
 	Enhancement Kind = iota
 	Seed
+	Correction
 )
+
+// The folder prefixes of the two unnumbered kinds. Every package that
+// recognises these folders builds its pattern from them.
+const (
+	SeedPrefix       = "seed-"
+	CorrectionPrefix = "correction-"
+)
+
+// Unnumbered reports whether the kind has no id, no config.yaml, no proposal
+// and no design: a seed or a correction.
+func (k Kind) Unnumbered() bool { return k == Seed || k == Correction }
+
+// UnnumberedNamePattern matches the start of an unnumbered folder name,
+// with the optional archive date in front.
+const UnnumberedNamePattern = `^(?:[0-9]{4}-[0-9]{2}-[0-9]{2}-)?(?:seed|correction)-`
 
 // Ending is the record of a rejection or a withdrawal.
 type Ending struct {
@@ -100,7 +116,8 @@ type Entry struct {
 	Date string
 	Kind Kind
 	// FolderID and FolderSlug come from the name: "0013" and "secret-field-attributes";
-	// for a seed FolderSlug is the capability and FolderID is empty.
+	// for a seed FolderSlug is the capability and FolderID is empty; a correction
+	// has an empty FolderID and its FolderSlug is the name of the fix.
 	FolderID, FolderSlug string
 
 	ConfigFile File
@@ -178,7 +195,8 @@ func (s *Store) Find(key string) *Entry {
 var (
 	liveRe     = regexp.MustCompile(`^(\d{4})-([a-z0-9][a-z0-9-]*)$`)
 	looseRe    = regexp.MustCompile(`^(\d{4})-(.+)$`)
-	seedRe     = regexp.MustCompile(`^seed-(.+)$`)
+	seedRe     = regexp.MustCompile("^" + regexp.QuoteMeta(SeedPrefix) + "(.+)$")
+	corrRe     = regexp.MustCompile("^" + regexp.QuoteMeta(CorrectionPrefix) + "(.+)$")
 	archiveRe  = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})-(.+)$`)
 	idDirRe    = regexp.MustCompile(`^\d{4}$`)
 	taskRe     = regexp.MustCompile(`^- \[( |x|X)\] (\d+)\.(\d+) ([^:]+): (.+)$`)
@@ -297,6 +315,9 @@ func Load(dir string, archived bool) (*Entry, error) {
 	case seedRe.MatchString(e.Base):
 		e.Kind = Seed
 		e.FolderSlug = seedRe.FindStringSubmatch(e.Base)[1]
+	case corrRe.MatchString(e.Base):
+		e.Kind = Correction
+		e.FolderSlug = corrRe.FindStringSubmatch(e.Base)[1]
 	case looseRe.MatchString(e.Base):
 		m := looseRe.FindStringSubmatch(e.Base)
 		e.FolderID, e.FolderSlug = m[1], m[2]

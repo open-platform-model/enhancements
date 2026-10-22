@@ -86,6 +86,14 @@ func TestNext_table(t *testing.T) {
 			sch:  schema, want: "0001",
 		},
 		{
+			name: "correction folders carry no id",
+			fs: fstest.MapFS{
+				"openspec/changes/correction-owner-value/x":                &keep,
+				"openspec/changes/archive/2026-10-16-correction-old-fix/x": &keep,
+			},
+			sch: schema, want: "0001",
+		},
+		{
 			name: "old archive and old live folders",
 			fs:   fstest.MapFS{"archive/0001/x": &keep, "0002/x": &keep, "archive/notes/x": &keep},
 			sch:  schema, want: "0003",

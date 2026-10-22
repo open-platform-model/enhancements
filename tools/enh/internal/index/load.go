@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 )
 
 const (
@@ -21,12 +23,12 @@ const (
 )
 
 var (
-	liveNameRe     = regexp.MustCompile(`^([0-9]{4})-([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$`)
-	archivedNameRe = regexp.MustCompile(`^([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]{4})-([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$`)
-	seedNameRe     = regexp.MustCompile(`^(?:[0-9]{4}-[0-9]{2}-[0-9]{2}-)?seed-`)
-	legacyNameRe   = regexp.MustCompile(`^[0-9]{4}$`)
-	idRe           = regexp.MustCompile(`^[0-9]{4}$`)
-	dateRe         = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
+	liveNameRe       = regexp.MustCompile(`^([0-9]{4})-([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$`)
+	archivedNameRe   = regexp.MustCompile(`^([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]{4})-([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$`)
+	unnumberedNameRe = regexp.MustCompile(entry.UnnumberedNamePattern)
+	legacyNameRe     = regexp.MustCompile(`^[0-9]{4}$`)
+	idRe             = regexp.MustCompile(`^[0-9]{4}$`)
+	dateRe           = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
 )
 
 // errMissing marks a config.yaml that does not exist.
@@ -87,7 +89,7 @@ func Load(fsys fs.FS) (*Tree, error) {
 			return nil, fmt.Errorf("index: read %s: %w", spec.dir, err)
 		}
 		for _, d := range entries {
-			if !d.IsDir() || (!spec.archived && d.Name() == "archive") || seedNameRe.MatchString(d.Name()) {
+			if !d.IsDir() || (!spec.archived && d.Name() == "archive") || unnumberedNameRe.MatchString(d.Name()) {
 				continue
 			}
 			e, err := loadOpenSpec(fsys, spec.dir, d.Name(), spec.archived)

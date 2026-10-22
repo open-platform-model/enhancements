@@ -3,6 +3,7 @@ package entry
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -30,6 +31,8 @@ func TestLoadStore(t *testing.T) {
 	write(t, root, c+"evidence/sub/a.md", "x")
 	write(t, root, "openspec/changes/seed-cap/source.md", "x")
 	write(t, root, "openspec/changes/archive/2026-10-14-seed-other/source.md", "x")
+	write(t, root, "openspec/changes/correction-fix-cap/source.md", "x")
+	write(t, root, "openspec/changes/archive/2026-10-15-correction-older/source.md", "x")
 	write(t, root, "openspec/specs/cap/spec.md", "## Requirements\n\n### Requirement: M\n\nIt SHALL.\n")
 	write(t, root, "archive/0001/config.yaml", "id: \"0001\"\n")
 	write(t, root, "0005/config.yaml", "id: \"0005\"\n")
@@ -38,7 +41,7 @@ func TestLoadStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st.Live) != 2 || len(st.Archived) != 1 || len(st.OldArchived) != 1 || len(st.LegacyLive) != 1 {
+	if len(st.Live) != 3 || len(st.Archived) != 2 || len(st.OldArchived) != 1 || len(st.LegacyLive) != 1 {
 		t.Fatalf("store = live %d archived %d old %v legacy %v", len(st.Live), len(st.Archived), st.OldArchived, st.LegacyLive)
 	}
 	e := st.Find("0100")
@@ -69,6 +72,13 @@ func TestLoadStore(t *testing.T) {
 	}
 	if a := st.Find("seed-other"); a == nil || !a.Archived || a.Date != "2026-10-14" {
 		t.Errorf("archived seed = %+v", a)
+	}
+	corr := st.Find("correction-fix-cap")
+	if corr == nil || corr.Kind != Correction || corr.FolderSlug != "fix-cap" || corr.FolderID != "" || !corr.Kind.Unnumbered() {
+		t.Errorf("correction = %+v", corr)
+	}
+	if a := st.Find("correction-older"); a == nil || !a.Archived || a.Date != "2026-10-15" || a.Kind != Correction {
+		t.Errorf("archived correction = %+v", a)
 	}
 	if st.Specs["cap"] == nil || len(st.Specs["cap"].By("MAIN")) != 1 {
 		t.Errorf("main spec = %+v", st.Specs)
@@ -127,5 +137,21 @@ func TestQuestionForms(t *testing.T) {
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("questions\n got: %q\nwant: %q", got, want)
+	}
+}
+
+// The two unnumbered prefixes and the shared name pattern agree.
+func TestUnnumberedPrefixes(t *testing.T) {
+	re := regexp.MustCompile(UnnumberedNamePattern)
+	for _, p := range []string{SeedPrefix, CorrectionPrefix, "2026-10-23-" + SeedPrefix, "2026-10-23-" + CorrectionPrefix} {
+		if !re.MatchString(p + "x") {
+			t.Errorf("pattern does not match %q", p+"x")
+		}
+	}
+	if re.MatchString("0013-correction-x") || re.MatchString("fix-x") {
+		t.Error("pattern matches a numbered or unknown folder")
+	}
+	if !Seed.Unnumbered() || !Correction.Unnumbered() || Enhancement.Unnumbered() {
+		t.Error("Unnumbered is wrong")
 	}
 }
