@@ -4,7 +4,7 @@
 
 The ModuleInstance owner field accepts cli and controller.
 
-**Accepted** 2026-10-22 · ready to implement · 0 of 2 tasks shipped · breaking
+**Accepted** 2026-10-22 · ready to deliver · 2 of 2 tasks shipped · breaking
 
 ## Read
 
@@ -18,13 +18,10 @@ The ModuleInstance owner field accepts cli and controller.
 
 | Theme | Shipped |
 | --- | --- |
-| 1. The owner value | 0 of 2 |
+| 1. The owner value | 2 of 2 |
 
 ## Still to do
 
-| Repo | Open tasks |
-| --- | --- |
-| opm-controller | 1 |
-| cli | 1 |
+Nothing. Every task is shipped.
 
 The list is [tasks.md](tasks.md).
