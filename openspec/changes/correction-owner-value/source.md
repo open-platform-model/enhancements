@@ -35,7 +35,7 @@ Corrects: `instance-ownership` and `platform-reconciliation`. The owner value a 
 | `platform-reconciliation` | An unchanged package is not rebuilt | MODIFIED | `opm-controller` PR 297 | `internal/controller/platform_controller.go:198-213` in `opm-controller` |
 | `platform-reconciliation` | A failure records the observed generation | MODIFIED | `opm-controller` PR 297 | `internal/controller/platform_controller.go:455` in `opm-controller` |
 | `platform-reconciliation` | A failed build requeues on a bounded interval | MODIFIED | `opm-controller` PR 297 | `internal/controller/platform_controller.go:430-467` in `opm-controller` |
-| `platform-reconciliation` | A registry failure does not outlive its reconcile | MODIFIED | `opm-controller` PR 297 | `internal/controller/platform_controller.go:65-71` in `opm-controller` |
+| `platform-reconciliation` | A registry failure does not outlive its reconcile | MODIFIED | `opm-controller` PR 189, `opm-controller` PR 297 | `internal/controller/platform_controller.go:109-111`, `internal/controller/platform_controller.go:409-427` in `opm-controller` |
 | `platform-reconciliation` | One generated platform is held for readers | MODIFIED | `opm-controller` PR 297 | `internal/platform/store.go:63-102` in `opm-controller` |
 | `platform-reconciliation` | The skew policy is recorded with the package | MODIFIED | `opm-controller` PR 297 | `internal/controller/moduleinstance_controller.go:386-392` in `opm-controller` |
 | `platform-reconciliation` | Deleting the Platform clears the held platform | MODIFIED | `opm-controller` PR 297 | `internal/controller/moduleinstance_controller.go:386-392` in `opm-controller` |
