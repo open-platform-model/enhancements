@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/testrepo"
 )
 
@@ -37,6 +38,12 @@ const otherThing = "### Requirement: Other is held\n\nThe system SHALL hold othe
 
 const purposeText = "Show the replay at work on one small capability so that every rule has a fixture."
 
+const correctionDelta = "## MODIFIED Requirements\n\n### Requirement: It exists\n\nThe system SHALL exist and say so.\n\n#### Scenario: Exists\n\n- **WHEN** a\n- **THEN** b\n"
+
+const correctionSource = "# Source note: correction-fix\n\n## Shipped by\n\n| Capability | Requirement | Change | Shipped by | Code read |\n| --- | --- | --- | --- | --- |\n| `existing` | It exists | MODIFIED | `core` PR 1 | `a.go:1` |\n\n<!-- sampled: not yet -->\n"
+
+const sampledLine = "\nsampled: 2026-10-10 abcdef1\n"
+
 // rig is a temporary repository with an OpenSpec store: a config, one
 // capability already in specs/ and two changes in changes/.
 type rig struct {
@@ -56,6 +63,11 @@ func newRig(t *testing.T) *rig {
 	r.write("openspec/schemas/seed/schema.yaml", "name: seed\nversion: 1\ndescription: test seed\nartifacts:\n  - id: specs\n    generates: \"specs/**/*.md\"\n    description: specs\n    template: spec.md\n    instruction: write\n    requires: []\n")
 	r.write("openspec/schemas/seed/templates/spec.md", "## Purpose\n")
 	r.write("openspec/changes/seed-shipped/specs/shipped/spec.md", spec(purposeText, thing))
+	r.write("openspec/schemas/correction/schema.yaml", "name: correction\nversion: 1\ndescription: test correction\nartifacts:\n  - id: specs\n    generates: \"specs/**/*.md\"\n    description: specs\n    template: spec.md\n    instruction: write\n    requires: []\n")
+	r.write("openspec/schemas/correction/templates/spec.md", "## MODIFIED Requirements\n")
+	r.write("openspec/changes/correction-fix/.openspec.yaml", "schema: correction\ncreated: 2026-10-10\n")
+	r.write("openspec/changes/correction-fix/specs/existing/spec.md", correctionDelta)
+	r.write("openspec/changes/correction-fix/source.md", correctionSource)
 	r.base = testrepo.Commit(t, r.root, "docs: base")
 	testrepo.Git(t, r.root, "checkout", "-q", "-b", "work")
 	return r
@@ -349,4 +361,119 @@ func TestASymlinkUnderSpecsIsADifference(t *testing.T) {
 	}
 	r.commit("feat: deliver with a symlink")
 	wantFail(t, r.check(r.base), "openspec/specs/alias")
+}
+
+// A sampled correction that equals the replay passes: the one more case.
+func TestACorrectionDeliveryPasses(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.write("openspec/changes/correction-fix/source.md", correctionSource+sampledLine)
+	r.deliver("correction-fix")
+	r.commit("docs: deliver correction fix")
+	res := r.check(r.base)
+	wantOK(t, res)
+	if !strings.Contains(strings.Join(res.Lines, "\n"), "delivered, seed or correction") {
+		t.Errorf("lines: %q", res.Lines)
+	}
+	if !strings.Contains(r.read("openspec/specs/existing/spec.md"), "SHALL exist and say so") {
+		t.Error("the correction did not reach specs/")
+	}
+}
+
+// A correction with no sampled: line is refused, however well the replay matches.
+func TestACorrectionWithoutSampledFails(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.deliver("correction-fix")
+	r.commit("docs: deliver an unsampled correction")
+	wantFail(t, r.check(r.base), "was never sampled")
+}
+
+// The sampled: line must be a line, not a word in a comment or in the middle of a sentence.
+func TestACorrectionSampledMustBeALine(t *testing.T) {
+	needOpenSpec(t)
+	for name, tail := range map[string]string{
+		"in a comment": "\n<!--\nsampled: 2026-10-10 abcdef1\n-->\n",
+		"mid sentence": "\nit was sampled: 2026-10-10 abcdef1 here\n",
+		"bad form":     "\nsampled: yesterday\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := newRig(t)
+			r.write("openspec/changes/correction-fix/source.md", correctionSource+tail)
+			r.deliver("correction-fix")
+			r.commit("docs: deliver")
+			wantFail(t, r.check(r.base), "was never sampled")
+		})
+	}
+}
+
+// A hand-made archive folder with no source.md is refused.
+func TestACorrectionWithoutSourceFails(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	if err := os.Remove(filepath.Join(r.root, "openspec/changes/correction-fix/source.md")); err != nil {
+		t.Fatal(err)
+	}
+	r.deliver("correction-fix")
+	r.commit("docs: deliver without a source")
+	wantFail(t, r.check(r.base), "needs its source.md")
+}
+
+// The schema name alone does not make a numbered folder a correction.
+func TestSchemaCorrectionNeedsTheCorrectionName(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.write("openspec/changes/0100-demo/.openspec.yaml", "schema: correction\ncreated: 2026-10-10\n")
+	r.write("openspec/changes/0100-demo/source.md", correctionSource+sampledLine)
+	r.deliver("0100-demo")
+	r.commit("feat: a numbered folder that claims the correction schema")
+	wantFail(t, r.check(r.base), "needs a folder named correction-")
+}
+
+// Entry, seed and Purpose cases still hold beside the correction case.
+func TestEarlierCasesStillPassWithTheCorrectionCase(t *testing.T) {
+	needOpenSpec(t)
+	r := newRig(t)
+	r.deliver("seed-shipped")
+	r.commit("feat: deliver the seed")
+	wantOK(t, r.check(r.base))
+}
+
+func TestFolderPrefixesAgreeWithTheEntryPackage(t *testing.T) {
+	for _, n := range []string{entry.SeedPrefix + "x", entry.CorrectionPrefix + "x", "0100-x"} {
+		if !undatedRe.MatchString(n) {
+			t.Errorf("undatedRe refuses %q", n)
+		}
+	}
+	if undatedRe.MatchString("fix-x") {
+		t.Error("undatedRe accepts an unknown prefix")
+	}
+}
+
+// The folder name decides the case: a correction folder cannot pass as a seed
+// or as a delivered entry, which would skip the sampled: check.
+func TestACorrectionFolderCannotPassAsAnotherCase(t *testing.T) {
+	needOpenSpec(t)
+	t.Run("schema seed", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/correction-fix/.openspec.yaml", "schema: seed\ncreated: 2026-10-10\n")
+		r.deliver("correction-fix")
+		r.commit("docs: a correction that claims the seed schema")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: correction")
+	})
+	t.Run("config.yaml with status delivered", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/correction-fix/.openspec.yaml", "schema: spec-driven\ncreated: 2026-10-10\n")
+		r.write("openspec/changes/correction-fix/config.yaml", strings.Replace(draftConfig, "%s", "delivered", 1))
+		r.deliver("correction-fix")
+		r.commit("docs: a correction that claims to be an entry")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: correction")
+	})
+	t.Run("seed folder with another schema", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/seed-shipped/.openspec.yaml", "schema: spec-driven\ncreated: 2026-10-10\n")
+		r.deliver("seed-shipped")
+		r.commit("docs: a seed folder with another schema")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: seed")
+	})
 }

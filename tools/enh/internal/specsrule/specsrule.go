@@ -1,6 +1,7 @@
 // Package specsrule is the CI rule for openspec/specs/ (design part two,
-// section 4.3): a change that touches specs/ must be one delivery, one seed or
-// a Purpose correction, and its specs/ must equal what OpenSpec produces.
+// section 4.3): a change that touches specs/ must be one delivery, one seed,
+// one correction or a Purpose correction, and its specs/ must equal what
+// OpenSpec produces.
 //
 // The rule reads git history and replays the archive with the pinned OpenSpec
 // CLI in a scratch copy. It never writes in the repository.
@@ -14,7 +15,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/sys"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/words"
 )
 
 // PinnedOpenSpec is the OpenSpec CLI version the replay needs (N20, DECISIONS.md
@@ -29,9 +32,12 @@ const (
 )
 
 var (
-	zeroRe      = regexp.MustCompile(`^0+$`)
-	datedRe     = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})-(.+)$`)
-	undatedRe   = regexp.MustCompile(`^(\d{4}-[a-z0-9][a-z0-9-]*|seed-[a-z0-9][a-z0-9-]*)$`)
+	zeroRe    = regexp.MustCompile(`^0+$`)
+	datedRe   = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})-(.+)$`)
+	undatedRe = regexp.MustCompile(`^(\d{4}-[a-z0-9][a-z0-9-]*|(?:` + entry.SeedPrefix + `|` + entry.CorrectionPrefix + `)[a-z0-9][a-z0-9-]*)$`)
+	// A correction is sampled before it is delivered: its source.md ends with
+	// the line that `enh accept` writes. Nothing else in an archive proves it.
+	sampledRe   = regexp.MustCompile(`(?m)^sampled:[ \t]*\d{4}-\d{2}-\d{2} [0-9a-f]{7,40}[ \t]*$`)
 	specFileRe  = regexp.MustCompile(`^openspec/specs/[^/]+/spec\.md$`)
 	refRe       = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/@{}~^-]*$`)
 	maxDiffRows = 10
@@ -178,7 +184,7 @@ func (c *checker) run(mb, head string) error {
 	if name == "" {
 		return nil // the failure is recorded
 	}
-	c.res.logf("step 2: one archived folder %s, delivered or seed, undated folder %s present at the base and gone at head", dated, name)
+	c.res.logf("step 2: one archived folder %s, delivered, seed or correction, undated folder %s present at the base and gone at head", dated, name)
 	return c.replay(mb, head, name, dated)
 }
 
@@ -234,7 +240,7 @@ func (c *checker) oneDelivery(mb, head string) (name, dated string, err error) {
 	dated = order[0]
 	m := datedRe.FindStringSubmatch(dated)
 	if m == nil || !undatedRe.MatchString(m[2]) {
-		c.res.failf("step 2: archived folder %q must be <date>-<id>-<slug> or <date>-seed-<capability>", dated)
+		c.res.failf("step 2: archived folder %q must be <date>-<id>-<slug>, <date>-seed-<capability> or <date>-correction-<slug>", dated)
 		return "", "", nil
 	}
 	name = m[2]
@@ -254,7 +260,7 @@ func (c *checker) oneDelivery(mb, head string) (name, dated string, err error) {
 		c.res.failf("step 2: %s/%s still exists at head: archiving moves the folder", changesDir, name)
 		return "", "", nil
 	}
-	kind, err := c.deliveredOrSeed(head, archiveDir+"/"+dated)
+	kind, err := c.deliveredOrUnnumbered(head, archiveDir+"/"+dated, name)
 	if err != nil {
 		return "", "", err
 	}
@@ -265,20 +271,38 @@ func (c *checker) oneDelivery(mb, head string) (name, dated string, err error) {
 	return name, dated, nil
 }
 
-// deliveredOrSeed returns "" when the archived folder is a seed or an entry
-// with status delivered, else the reason it is neither.
-func (c *checker) deliveredOrSeed(head, folder string) (string, error) {
+// deliveredOrUnnumbered returns "" when the archived folder is a seed, a
+// sampled correction or an entry with status delivered, else the reason it is
+// none of them. The folder name decides the case, never a value inside the
+// folder: a correction cannot pass as a seed or as an entry. name is the
+// undated folder name.
+func (c *checker) deliveredOrUnnumbered(head, folder, name string) (string, error) {
+	schema := ""
 	if b, err := c.show(head, folder+"/.openspec.yaml"); err == nil {
 		var meta struct {
 			Schema string `yaml:"schema"`
 		}
-		if yaml.Unmarshal(b, &meta) == nil && meta.Schema == "seed" {
-			return "", nil
+		if yaml.Unmarshal(b, &meta) == nil {
+			schema = meta.Schema
 		}
+	}
+	switch {
+	case strings.HasPrefix(name, entry.CorrectionPrefix):
+		if schema != "correction" {
+			return fmt.Sprintf("a folder named %s<slug> needs .openspec.yaml schema: correction, not %q", entry.CorrectionPrefix, schema), nil
+		}
+		return c.sampledCorrection(head, folder)
+	case strings.HasPrefix(name, entry.SeedPrefix):
+		if schema != "seed" {
+			return fmt.Sprintf("a folder named %s<capability> needs .openspec.yaml schema: seed, not %q", entry.SeedPrefix, schema), nil
+		}
+		return "", nil
+	case schema == "correction":
+		return fmt.Sprintf("schema correction needs a folder named %s<slug>, not %q", entry.CorrectionPrefix, name), nil
 	}
 	b, err := c.show(head, folder+"/config.yaml")
 	if err != nil {
-		return "neither a seed (.openspec.yaml schema: seed) nor an entry with a config.yaml", nil
+		return "not an entry with a config.yaml", nil
 	}
 	var cfg struct {
 		Status string `yaml:"status"`
@@ -287,7 +311,20 @@ func (c *checker) deliveredOrSeed(head, folder string) (string, error) {
 		return "", fmt.Errorf("%s/config.yaml: %w", folder, err)
 	}
 	if cfg.Status != "delivered" {
-		return fmt.Sprintf("status is %q, not delivered: only a delivery or a seed changes specs/", cfg.Status), nil
+		return fmt.Sprintf("status is %q, not delivered: only a delivery, a seed or a correction changes specs/", cfg.Status), nil
+	}
+	return "", nil
+}
+
+// sampledCorrection checks the folder of a correction: its source.md carries the sampled: line. The sample is
+// the human gate for "no new behaviour", and a hand-made archive has none.
+func (c *checker) sampledCorrection(head, folder string) (string, error) {
+	b, err := c.show(head, folder+"/source.md")
+	if err != nil {
+		return "a correction needs its source.md with a sampled: line; none is archived", nil
+	}
+	if !sampledRe.MatchString(words.BlankComments(strings.ReplaceAll(string(b), "\r\n", "\n"))) {
+		return "source.md of the correction has no \"sampled: <date> <commit>\" line: it was never sampled with `enh accept`", nil
 	}
 	return "", nil
 }

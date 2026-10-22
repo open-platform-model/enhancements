@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/record"
 )
 
@@ -27,8 +26,8 @@ func (e *Env) Tick(key, line, ref string) error {
 	if err != nil {
 		return err
 	}
-	if en.Kind == entry.Seed {
-		return usage("%s is a seed and has no tasks.md", en.Base)
+	if en.Kind.Unnumbered() {
+		return usage("%s is a %s and has no tasks.md", en.Base, kindWord(en))
 	}
 	if !changeRefRe.MatchString(ref) && !prRefRe.MatchString(ref) && !commitRefRe.MatchString(ref) {
 		return usage("REF %q must be a change name (lower-case, hyphens), \"PR <n>\" or \"commit <sha>\"", ref)

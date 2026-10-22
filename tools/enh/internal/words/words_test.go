@@ -1,6 +1,9 @@
 package words
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestCount(t *testing.T) {
 	tests := []struct {
@@ -63,5 +66,16 @@ func TestFenceMaskLongerCloser(t *testing.T) {
 	}
 	if mask[5] {
 		t.Error("line 5 should be outside")
+	}
+}
+
+func TestBlankCommentsKeepsLines(t *testing.T) {
+	in := "a\n<!-- x\ny -->\nb <!-- z --> c\n<!-- open\nend"
+	got := BlankComments(in)
+	if strings.Count(got, "\n") != strings.Count(in, "\n") {
+		t.Errorf("line count changed: %q", got)
+	}
+	if strings.Contains(got, "x") || strings.Contains(got, "z") || strings.Contains(got, "open") || !strings.Contains(got, "b  c") {
+		t.Errorf("got %q", got)
 	}
 }

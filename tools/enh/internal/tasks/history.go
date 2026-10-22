@@ -17,7 +17,7 @@ func (e *Env) History(req, capability string) error {
 	var srcs []history.Source
 	for _, en := range st.Archived {
 		label := en.FolderID
-		if en.Kind == entry.Seed {
+		if en.Kind.Unnumbered() {
 			label = en.Base
 		}
 		srcs = append(srcs, history.Source{Folder: en.Folder, Date: en.Date, Label: label, Status: en.Config.Status, Specs: en.Specs})
@@ -42,12 +42,21 @@ func (e *Env) Stale(key string) error {
 	if err != nil {
 		return err
 	}
-	if en.Kind == entry.Seed || en.Config.Status != "accepted" {
+	var commit string
+	var ok bool
+	rerun := "resample " + en.FolderID
+	switch {
+	case en.Kind == entry.Correction:
+		rerun = "accept " + en.Base
+		if commit, ok = sampledCommit(en); !ok {
+			return refuse("%s has no sampled: line; the stale base is checked once it is sampled", en.Base)
+		}
+	case en.Kind == entry.Seed || en.Config.Status != "accepted":
 		return refuse("%s has status %q; the stale base is checked on an accepted entry", en.Base, en.Config.Status)
-	}
-	_, commit, ok := accepted(en)
-	if !ok {
-		return refuse("%s: accepted %q must read \"<date> <commit>\"", en.Base, en.Config.Accepted)
+	default:
+		if _, commit, ok = accepted(en); !ok {
+			return refuse("%s: accepted %q must read \"<date> <commit>\"", en.Base, en.Config.Accepted)
+		}
 	}
 	g := e.git()
 	if !g.HasCommit(commit) {
@@ -59,7 +68,7 @@ func (e *Env) Stale(key string) error {
 	}
 	e.printStale(commit, flags)
 	if len(flags) > 0 {
-		return refuse("%d stale flags: run `enh resample %s`", len(flags), en.FolderID)
+		return refuse("%d stale flags: run `enh %s`", len(flags), rerun)
 	}
 	return nil
 }

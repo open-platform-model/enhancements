@@ -1,0 +1,76 @@
+name: correction
+version: 1
+description: OPM correction - a source note and delta specs that bring delivered requirements in line with behaviour OPM already ships (not an enhancement)
+# A correction repairs openspec/specs/ where a delivered requirement no longer matches shipped
+# behaviour. It may MODIFY, REMOVE, RENAME and ADD requirements of capabilities that already
+# exist, and every requirement it touches cites the change that shipped the behaviour. It never
+# carries new behaviour. A correction takes no number, never shows on the site as an
+# enhancement, and has two kinds of file: `source.md` and `specs/<capability>/spec.md`, one
+# delta for each capability it corrects. One correction may touch several capabilities.
+#
+# Name: `correction-<slug>`, made by `task correction:new SLUG=<slug>`. The slug names the fix,
+# not a capability.
+#
+# Lifecycle:
+#   draft      in changes/. The delta specs and the source note are written from the code.
+#   sampled    `task accept ID=correction-<slug>` prints every requirement of the delta, the
+#              text it replaces, and the evidence row; with CONFIRM=1 it writes the
+#              `sampled: <date> <commit>` line of source.md. An edit of a requirement or of a
+#              main requirement it touches after that line needs a new sample.
+#   delivered  `task deliver ID=correction-<slug>` archives it. It refuses a correction with no
+#              `sampled:` line. Only then do the main specs change.
+#
+# A correction has no proposal and no design, so the word caps do not apply.
+artifacts:
+  - id: source
+    generates: source.md
+    description: What shipped - for each requirement of each delta, the change that made it true and the code read
+    template: source.md
+    instruction: |
+      Write the source note. It proves that each requirement describes behaviour that ships
+      today, so a reviewer can check it against the code.
+
+      - The capabilities corrected, and one sentence on what had drifted.
+      - Under `## Shipped by`, a table with one row for each requirement of each delta spec
+        and nothing else. Columns: Capability, Requirement (the name exactly as in the delta;
+        for a RENAMED block the new name), Change (MODIFIED, REMOVED, ADDED or RENAMED),
+        Shipped by, Code read. Do not write the character `|` inside a cell.
+      - Shipped by: each reference is the repo name in a code span, then `PR <n>` or
+        `commit <sha>`, such as `cli` PR 123. The repo is a name from `#EntryRepo` in
+        `schema.cue`. A reference names a change that is merged.
+      - Code read: the code that shows the text is true, as `path:line` in a code span. Needed
+        for MODIFIED, and for ADDED unless the ADDED block replaces a REMOVED one.
+      - Under `## Left out`, behaviour that a live enhancement owns, or that is not shipped.
+      - The last line is `sampled: <date> <commit>`. Do not write it yourself. `task accept
+        ID=correction-<slug>` with CONFIRM=1 writes it after the owner has read the sample.
+
+      Keep it short: a correction is a record of what is.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: The shipped behaviour as MODIFIED, REMOVED, RENAMED and ADDED requirements, at intent level
+    template: spec.md
+    instruction: |
+      Write one `specs/<capability>/spec.md` for each capability you correct. Each capability
+      must already be in `openspec/specs/`. A new capability is a seed. Write no `## Purpose`.
+
+      Write what ships, never what you want to ship. If the code does not do it, it does not
+      belong here.
+
+      - MODIFIED keeps the name and every scenario of the main spec that still holds.
+      - To reverse a shipped scenario, write a REMOVED whose `**Migration**` line reads
+        `Replaced by "<new name>"`, and an ADDED under the new name. REMOVED has `**Reason**`
+        and `**Migration**`.
+      - RENAMED uses a FROM and a TO line, as OpenSpec defines it.
+      - An ADDED requirement records behaviour that ships and no delta spec names yet. It is
+        not a feature. Its source row needs code read.
+      - A REMOVED that takes every requirement of a capability is not a correction.
+      - The name is a short plain statement, at most 8 words. One SHALL (or MUST) statement
+        of at most 500 characters. At least one scenario with WHEN and THEN.
+      - The admission test: no Go symbol, no CLI flag, no file path. A published CUE
+        definition may be named.
+      - After `sampled:` is written, an edit to a requirement needs a new sample: run `task
+        accept ID=correction-<slug>`, review it, then confirm.
+    requires:
+      - source

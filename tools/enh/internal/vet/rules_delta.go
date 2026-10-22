@@ -70,6 +70,12 @@ func (r *run) deltaRules(e *ent) {
 			added[rn.To] = true
 		}
 	}
+	// A correction changes delivered requirements, so its targets are checked
+	// in every mode; an entry checks them from accept.
+	targetLevel := e.from(Accept, Error)
+	if e.isCorrection() {
+		targetLevel = Error
+	}
 	for _, sp := range e.Specs {
 		path := relSlash(r.store.Root, sp.Path)
 		main := r.store.Specs[sp.Capability]
@@ -81,7 +87,7 @@ func (r *run) deltaRules(e *ent) {
 		}
 		r.purposeRule(e, sp, path, main != nil)
 		for _, rn := range sp.UnpairedRenames {
-			r.add(e, "V20", e.from(Accept, Error), path, rn, "RENAMED line has no FROM and TO pair")
+			r.add(e, "V20", targetLevel, path, rn, "RENAMED line has no FROM and TO pair")
 		}
 
 		for _, q := range sp.Requirements {
@@ -95,11 +101,11 @@ func (r *run) deltaRules(e *ent) {
 			switch q.Op {
 			case delta.Modified, delta.Removed:
 				if !mainNames[q.Name] {
-					r.add(e, "V20", e.from(Accept, Error), path, q.Line, "%s target %q is not in openspec/specs/%s", q.Op, q.Name, sp.Capability)
+					r.add(e, "V20", targetLevel, path, q.Line, "%s target %q is not in openspec/specs/%s", q.Op, q.Name, sp.Capability)
 				}
 			case delta.Added:
 				if mainNames[q.Name] {
-					r.add(e, "V20", e.from(Accept, Error), path, q.Line, "ADDED requirement %q is already in openspec/specs/%s", q.Name, sp.Capability)
+					r.add(e, "V20", targetLevel, path, q.Line, "ADDED requirement %q is already in openspec/specs/%s", q.Name, sp.Capability)
 				}
 			}
 			if e.isSeed() && q.Op != delta.Added {
@@ -108,7 +114,7 @@ func (r *run) deltaRules(e *ent) {
 		}
 		for _, rn := range sp.Renames {
 			if !mainNames[rn.From] {
-				r.add(e, "V20", e.from(Accept, Error), path, rn.Line, "RENAMED source %q is not in openspec/specs/%s", rn.From, sp.Capability)
+				r.add(e, "V20", targetLevel, path, rn.Line, "RENAMED source %q is not in openspec/specs/%s", rn.From, sp.Capability)
 			}
 			if e.isSeed() {
 				r.add(e, "V33", Error, path, rn.Line, "a seed holds ADDED requirements only; found RENAMED")
@@ -189,7 +195,8 @@ func (r *run) purposeRule(e *ent, sp *delta.Spec, path string, mainExists bool) 
 // V13: a REMOVED that takes the last requirement of a capability needs
 // retire_capabilities: true.
 func (r *run) retireRule(e *ent, sp *delta.Spec, path string, main *delta.Spec) {
-	if main == nil || len(main.By(delta.Main)) == 0 || e.RetireCaps {
+	// A correction never retires a capability; V36 refuses it with its own message.
+	if e.isCorrection() || main == nil || len(main.By(delta.Main)) == 0 || e.RetireCaps {
 		return
 	}
 	removed := map[string]bool{}

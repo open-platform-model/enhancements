@@ -95,7 +95,8 @@ func Taken(in Inputs) (map[string][]string, error) {
 	for _, id := range blocked {
 		add(id, "blocked in schema.cue")
 	}
-	// Live entries and seeds. A seed folder starts with "seed-", so it has no id.
+	// Live entries, seeds and corrections. A seed folder starts with "seed-" and
+	// a correction folder with "correction-", so neither has an id.
 	if err := eachDir(in.FS, "openspec/changes", func(name string) {
 		if m := liveRe.FindStringSubmatch(name); m != nil {
 			add(m[1], "openspec/changes/"+name)

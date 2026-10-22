@@ -10,7 +10,7 @@ Violations fail PR review, even where `task vet` does not catch them. The `enhan
 
 - **One feature, one id, one folder.** The id has four digits. It is never reused and never renumbered. The ids 0000, 0028 and 0029 are reserved, and the CUE schema at the repo root lists them. The blocked list in that schema is empty.
 - **`config.yaml` holds facts only.** Id, slug, title, summary, status, category, breaking, affects, authors, created, after, and the end-state records (`accepted`, `rejected`, `withdrawn`, `superseded_by`). There is no history field: history is `git log`. `status` is stored, and the checker refuses a value that disagrees with the folder.
-- **`openspec/specs/` holds delivered work only.** It changes in exactly three cases: an entry is delivered, a seed is delivered, or a PR corrects a `## Purpose` and nothing else. Until then, the requirements of an entry live in its own delta specs. CI enforces this.
+- **`openspec/specs/` holds delivered work only.** It changes in exactly four cases: an entry is delivered, a seed is delivered, a correction is delivered, or a PR corrects a `## Purpose` and nothing else. Until then, the requirements of an entry live in its own delta specs. CI enforces this. A correction (`correction-<slug>`) is an unnumbered change that brings delivered requirements in line with behaviour OPM already ships. It may modify, remove, rename and add requirements of capabilities that exist, it cites the change that shipped each one, and it never carries new behaviour. CI cannot see that last rule: it is a review rule, and the accept sample is where the human checks it.
 - **Nothing is implemented here.** `tasks.md` lists which repo still has work. The repo delivers its line in its own OpenSpec change, whose proposal says `Delivers NNNN, task X.Y.`. A tick is a PR on this repo.
 - **A requirement is observable from outside one repo.** The admission test: no Go symbol, no CLI flag and no file path in a requirement. A published CUE definition may be named. An internal definition may not. Every requirement has a `SHALL` or `MUST` sentence and at least one scenario.
 - **The design has themes, not numbered decisions.** Point at a theme by its heading. Do not write `D4` or `0013:D4` in a new entry. The proposal has no decision numbers and no requirement ids.
@@ -35,8 +35,8 @@ When guidance conflicts, the most specific source wins: target-repo skill, then 
 
 ```text
 openspec/specs/            Delivered behaviour, one folder per capability
-openspec/schemas/          Schema and templates of an entry and of a seed
-openspec/changes/          One folder per live entry (draft or accepted), one per seed (seed-<capability>)
+openspec/schemas/          Schemas and templates of an entry, of a seed and of a correction
+openspec/changes/          One folder per live entry (draft or accepted), one per seed (seed-<capability>), one per correction (correction-<slug>)
 openspec/changes/archive/  Closed entries: delivered, rejected, superseded or withdrawn
 archive/                   The ten old-layout entries; frozen
 references/                Detail files

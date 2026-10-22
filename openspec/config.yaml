@@ -16,11 +16,13 @@ context: |
   - Lifecycle: draft, then accepted (both in `changes/`), then archived as delivered, rejected,
     superseded or withdrawn. `status` is stored in `config.yaml`.
   - `openspec/specs/<capability>/spec.md` holds DELIVERED work only: what OPM ships and has agreed.
-    It changes only when an entry is delivered (archive), when a seed is delivered, or in a pull
-    request that corrects a `## Purpose` and nothing else. Until an entry is archived, its
-    requirements live in its own delta specs. A seed change
+    It changes only when an entry is delivered (archive), when a seed or a correction is
+    delivered, or in a pull request that corrects a `## Purpose` and nothing else. Until an entry
+    is archived, its requirements live in its own delta specs. A seed change
     (`seed-<capability>`, schema `seed`) records behaviour that already ships so that an entry can
-    modify it; it has no number.
+    modify it; it has no number. A correction change (`correction-<slug>`, schema `correction`)
+    brings delivered requirements in line with behaviour that already ships; it has no number
+    and may touch several capabilities that exist.
   - `tasks.md` says which repo still has work. Each repo delivers its line in its own OpenSpec
     change, whose proposal says `Delivers NNNN, task X.Y.`. Nothing is implemented in this repo.
   - Caps are advice, counted without Markdown markup: proposal about 300 words (its `Open
@@ -78,6 +80,25 @@ rules:
     - At accept, every repo in `affects` has a line.
     - A ticked line ends with the change name without its date, `(<change-name>)`, or `(PR <n>)` for a repo with
       no OpenSpec change. The tick is a pull request on this repo.
+  correction:
+    - A correction is a folder `correction-<slug>` (kebab-case slug) with `.openspec.yaml`
+      (`schema: correction`, `created`), `source.md` and `specs/<capability>/spec.md`. It has no
+      `config.yaml`, proposal, design, tasks or evidence, and it never shows on the site.
+    - Every delta names a capability that exists in `openspec/specs/`. A new capability is a seed.
+    - A delta has MODIFIED, REMOVED, RENAMED and ADDED blocks, and no `## Purpose`.
+    - A MODIFIED block differs from the main requirement. REMOVED blocks do not take every
+      requirement of a capability: retiring a capability is not a correction.
+    - "`source.md` has a table under `## Shipped by` with one row for each block of each delta, and
+      no other row. A row names the capability, the requirement, the operation, the change that
+      shipped it (`<repo>` PR <n> or `<repo>` commit <sha>, with a repo from `#EntryRepo`) and, for
+      a MODIFIED block and for an ADDED block that replaces nothing, the code read."
+    - A correction states what ships and never what is wanted. It adds no behaviour. The accept
+      sample is the gate: the human reads every requirement beside its evidence.
+    - The `sampled:` line of `source.md` is written by `task accept` with CONFIRM=1. An edit to a
+      requirement after it needs a new sample, and so does a change to a main requirement the
+      correction touches. Delivery refuses without the line.
+    - A live entry with a delta spec for a capability the correction changes gets a warning that
+      names the entry and the capability: it may carry a stale base after the delivery.
 
 operations:
   apply:
@@ -86,4 +107,4 @@ operations:
   archive:
     guidance:
       - Archive an entry only through `task deliver`, `task reject`, `task withdraw` or `task supersede`. Only a
-        delivery, a seed or a Purpose-only correction changes `openspec/specs/`.
+        delivery, a seed, a correction or a Purpose-only fix changes `openspec/specs/`.

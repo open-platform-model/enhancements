@@ -4,7 +4,8 @@
 #   links       task links
 #   fresh       task fresh (INDEX.md, GRAPH.md and the README.md of each entry)
 #   specs-rule  task specs-rule: openspec/specs/ changes only by a delivery, a
-#               seed or a Purpose correction, and equals the replayed archive.
+#               seed, a correction or a Purpose correction, and equals the
+#               replayed archive.
 #               Pull requests only: every change to main lands by PR, so the
 #               push run on main skips its steps (the job still succeeds)
 #   docs:pins:check  the docs-kit pins agree (offline)

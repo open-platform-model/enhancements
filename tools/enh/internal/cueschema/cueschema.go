@@ -28,6 +28,8 @@ type Issue struct {
 type Schema struct {
 	ctx *cue.Context
 	def cue.Value
+	// repo is #EntryRepo, the list of repo names an entry may affect.
+	repo cue.Value
 	// Reserved and Blocked are the id lists of schema.cue.
 	Reserved, Blocked []string
 }
@@ -47,7 +49,11 @@ func Load(path string) (*Schema, error) {
 	if !def.Exists() {
 		return nil, fmt.Errorf("%s: #EntryConfig is not defined", path)
 	}
-	s := &Schema{ctx: ctx, def: def}
+	repo := v.LookupPath(cue.ParsePath("#EntryRepo"))
+	if !repo.Exists() {
+		return nil, fmt.Errorf("%s: #EntryRepo is not defined", path)
+	}
+	s := &Schema{ctx: ctx, def: def, repo: repo}
 	if s.Reserved, err = stringList(v, "reservedIds"); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -55,6 +61,12 @@ func Load(path string) (*Schema, error) {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return s, nil
+}
+
+// IsRepo reports whether name is a value of #EntryRepo. The list stays in
+// schema.cue; no Go copy of it exists.
+func (s *Schema) IsRepo(name string) bool {
+	return s.repo.Unify(s.ctx.Encode(name)).Validate(cue.Concrete(true)) == nil
 }
 
 func stringList(v cue.Value, name string) ([]string, error) {

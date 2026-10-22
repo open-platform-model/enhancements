@@ -118,6 +118,8 @@ task tick ID=0013 LINE=2.1 REF=change-name
 
 A seed is the other way into `openspec/specs/`. `task seed:new CAP=name` makes a change `seed-name` that records behaviour OPM already ships, so a later entry can modify it. A seed has no number.
 
+A correction is the third way. `task correction:new SLUG=name` makes a change `correction-name` that brings delivered requirements in line with behaviour OPM already ships. It has no number and does not show on the site. The `enhancements` skill gives the steps.
+
 ## Checks
 
 - `task vet` is the hard gate. It checks every `config.yaml` against `schema.cue`, the shape of each file and the requirements, and it blocks a PR. Most rules get stricter in accept and deliver mode. It runs `cue vet` on the CUE modules in `evidence/` as a warning.
@@ -133,7 +135,7 @@ Run `task check` before you open a PR. Run `task index` after any edit under an 
 | Command | Purpose |
 | --- | --- |
 | `task list`, `task show ID=NNNN` | Status table; the facts of one entry |
-| `task new ...`, `task seed:new CAP=name` | Make an entry; make a seed |
+| `task new ...`, `task seed:new CAP=name`, `task correction:new SLUG=name` | Make an entry; make a seed; make a correction |
 | `task check`, `task vet` | The gate; the checker alone |
 | `task accept ID=NNNN`, `task resample ID=NNNN` | Accept a draft; re-sample an accepted entry. `CONFIRM=1` writes |
 | `task tick`, `task deliver ID=NNNN` | Tick a line; deliver the entry |
@@ -163,7 +165,7 @@ enhancements/
 ├── archive/NNNN/           the ten old-layout entries, frozen
 └── openspec/
     ├── config.yaml         the rules of the store
-    ├── schemas/            the enhancement and seed schemas, with templates
+    ├── schemas/            the enhancement, seed and correction schemas, with templates
     ├── specs/              delivered behaviour, one folder per capability
     └── changes/
         ├── <id>-<slug>/    one live entry
@@ -176,6 +178,7 @@ enhancements/
         │   ├── tasks.md
         │   └── evidence/       proof; README.md has one line per file
         ├── seed-<capability>/  a seed: source.md and an ADDED-only spec
+        ├── correction-<slug>/  a correction: source.md and delta specs of delivered capabilities
         └── archive/<date>-<id>-<slug>/   a closed entry
 ```
 
@@ -188,6 +191,7 @@ enhancements/
 | Requirement | One `SHALL` statement a consumer can observe, with at least one scenario |
 | Delta spec | The requirements an entry adds, modifies, removes or renames, kept in the entry until delivery |
 | Seed | A change that records behaviour OPM already ships, so an entry can modify it |
+| Correction | A change that brings delivered requirements in line with behaviour OPM already ships |
 | Sample | The requirements a human reads at accept: every modified and removed one, and a random share of the added ones |
 | Re-sample | The same review after an accepted entry's requirements change |
 | Tick | A checked line of `tasks.md`, ending with the name of the repo change that delivered it |

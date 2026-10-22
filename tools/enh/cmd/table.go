@@ -56,8 +56,21 @@ var commands = []command{
 		},
 	},
 	{
+		name: "correction:new", synopsis: "correction:new [flags] SLUG [CAP,CAP]", summary: "make the correction change correction-SLUG",
+		help:  "SLUG names the fix, not a capability. Each CAP, when given, must already exist in openspec/specs/: a\ncorrection changes a delivered capability, and a new capability is a seed. It refuses a SLUG with a live\ncorrection. A correction takes no number and never shows on the site.",
+		flags: rootFlags, min: 1, max: 2, run: func(c *call) int {
+			return c.withEnv(func(e *tasks.Env) error {
+				var caps []string
+				if len(c.args) == 2 {
+					caps = splitList(c.args[1])
+				}
+				return e.CorrectionNew(c.args[0], caps)
+			})
+		},
+	},
+	{
 		name: "accept", synopsis: "accept [flags] ID", summary: "check a draft in accept mode and print the sample and the collision list",
-		help:  "A plain run prints the sample (every MODIFIED and REMOVED requirement, and max(3, 10 percent) of the ADDED\nones drawn at random with the seed printed), the collision list, and the blocking questions. A refused run\nstill prints the sample and the list under \"refused: fix the errors first\".\nCONFIRM=1 (or --confirm) then writes status: accepted and accepted:, and runs index. It refuses before a\nplain run, and after one when HEAD or the files of the entry folder changed since.\nID=seed-CAP: the sample of all ADDED requirements; CONFIRM writes only the sampled: line of source.md.",
+		help:  "A plain run prints the sample (every MODIFIED and REMOVED requirement, and max(3, 10 percent) of the ADDED\nones drawn at random with the seed printed), the collision list, and the blocking questions. A refused run\nstill prints the sample and the list under \"refused: fix the errors first\".\nCONFIRM=1 (or --confirm) then writes status: accepted and accepted:, and runs index. It refuses before a\nplain run, and after one when HEAD or the files of the entry folder changed since.\nID=seed-CAP: the sample of the ADDED requirements; CONFIRM writes only the sampled: line of source.md.\nID=correction-SLUG: every requirement block beside the main text it replaces and its source row, the ADDED\nblocks that replace nothing flagged; CONFIRM writes only the sampled: line of source.md.",
 		flags: confirmFlags, min: 1, max: 1, run: func(c *call) int {
 			return c.withEnv(func(e *tasks.Env) error { return e.Accept(c.args[0]) })
 		},
@@ -74,7 +87,7 @@ var commands = []command{
 	},
 	{
 		name: "deliver", synopsis: "deliver [flags] ID", summary: "check, set status: delivered, archive, index and commit",
-		help: "Refuses an unticked task line, a stale flag, and any error of the checker at deliver mode (V20, V21 and the\nrest). Runs `openspec archive <n> --yes`, then index, then makes one commit. ID=seed-CAP skips the entry\nfields and needs the sampled: line. Needs a clean working tree unless --no-commit.",
+		help: "Refuses an unticked task line, a stale flag, and any error of the checker at deliver mode (V20, V21 and the\nrest). Runs `openspec archive <n> --yes`, then index, then makes one commit. ID=seed-CAP or\nID=correction-SLUG skips the entry fields and needs the sampled: line; a correction also refuses a stale base. Needs a clean working tree unless --no-commit.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			gitFlags(fs, o)
 			fs.BoolVar(&o.noCommit, "no-commit", false, "leave the change in the working tree instead of making the commit")
@@ -116,7 +129,7 @@ var commands = []command{
 	},
 	{
 		name: "history", synopsis: "history [flags] REQ [CAP]", summary: "print the history of a requirement from the archived deltas",
-		help:  "Follows RENAMED pairs and a REMOVED whose Migration reads `Replaced by \"<name>\"`, both ways. Skips\nrejected, withdrawn and superseded entries. Seeds appear as origin rows.",
+		help:  "Follows RENAMED pairs and a REMOVED whose Migration reads `Replaced by \"<name>\"`, both ways. Skips\nrejected, withdrawn and superseded entries. Seeds appear as origin rows; a correction appears under its folder name.",
 		flags: rootFlags, min: 1, max: 2, run: func(c *call) int {
 			capability := ""
 			if len(c.args) == 2 {
@@ -169,8 +182,8 @@ var commands = []command{
 		min: 0, max: -1, run: runCiteRewrite,
 	},
 	{
-		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction",
-		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered or schema seed; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.",
+		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed, one correction or a Purpose correction",
+		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered, schema seed, or schema correction with a sampled: line in its source.md; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.base, "base", "", "the base ref of the pull request (an all-zero id means the parent of HEAD)")
@@ -179,7 +192,7 @@ var commands = []command{
 		min: 0, max: 0, run: runSpecsRule,
 	},
 	{
-		name: "list", synopsis: "list [flags]", summary: "list the live entries and seeds, or the archived ones",
+		name: "list", synopsis: "list [flags]", summary: "list the live entries, seeds and corrections, or the archived ones",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.BoolVar(&o.archived, "archived", false, "list the archived entries")

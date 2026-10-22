@@ -10,25 +10,32 @@ import (
 	"github.com/open-platform-model/enhancements/tools/enh/internal/vet"
 )
 
-// StaleFindings runs the stale-base check (V26) on the accepted entries that
-// keys select, or on every accepted live entry when keys is empty. A flag is
-// an error finding. It is the only place V26 runs: the vet package does not
+// StaleFindings runs the stale-base check (V26) on the accepted entries and
+// the sampled corrections that keys select, or on every one when keys is
+// empty. A correction is compared with the main commit of its sampled: line.
+// A flag is an error finding. It is the only place V26 runs: the vet package does not
 // read git history.
 func (e *Env) StaleFindings(st *entry.Store, keys []string) ([]vet.Finding, error) {
 	var out []vet.Finding
 	g := e.git()
 	for _, en := range st.Live {
-		if en.Kind == entry.Seed || en.Config.Status != "accepted" || !selected(en, keys) {
+		if en.Kind == entry.Seed || !selected(en, keys) || (en.Kind == entry.Enhancement && en.Config.Status != "accepted") {
 			continue
 		}
-		rel := e.rel(en) + "/config.yaml"
-		_, commit, ok := accepted(en)
+		rel, rerun := e.rel(en)+"/config.yaml", "resample "+en.FolderID
+		commit, ok := "", false
+		if en.Kind == entry.Correction {
+			rel, rerun = e.rel(en)+"/source.md", "accept "+en.Base
+			commit, ok = sampledCommit(en)
+		} else {
+			_, commit, ok = accepted(en)
+		}
 		if !ok {
-			continue // V7 reports the shape
+			continue // V7 and V33 report the shape
 		}
 		if !g.HasCommit(commit) {
 			out = append(out, vet.Finding{Rule: "V26", Level: vet.Error, Entry: en.Folder, Path: rel,
-				Msg: fmt.Sprintf("the accepted commit %s is not in this repository, so the stale base cannot be checked", commit)})
+				Msg: fmt.Sprintf("the accepted or sampled commit %s is not in this repository, so the stale base cannot be checked", commit)})
 			continue
 		}
 		flags, err := stale.Check(en.Specs, stale.Then(g, commit), stale.Now(st.Specs))
@@ -37,7 +44,7 @@ func (e *Env) StaleFindings(st *entry.Store, keys []string) ([]vet.Finding, erro
 		}
 		for _, f := range flags {
 			out = append(out, vet.Finding{Rule: "V26", Level: vet.Error, Entry: en.Folder, Path: rel,
-				Msg: fmt.Sprintf("stale base: %s / %s (%s) %s since %s; run `enh resample %s`", f.Capability, f.Name, f.Op, f.Reason(), commit, en.FolderID)})
+				Msg: fmt.Sprintf("stale base: %s / %s (%s) %s since %s; run `enh %s`", f.Capability, f.Name, f.Op, f.Reason(), commit, rerun)})
 		}
 	}
 	return out, nil
@@ -58,7 +65,7 @@ func selected(en *entry.Entry, keys []string) bool {
 // Deliver is the deliver task: it refuses an unticked line, a stale flag and
 // every error of the checker in deliver mode (V20, V21 and the rest), then
 // sets status: delivered, archives the change, runs index and commits once.
-// A seed skips the entry fields and needs its sampled: line.
+// A seed or a correction skips the entry fields and needs its sampled: line.
 func (e *Env) Deliver(key string) error {
 	st, err := e.load()
 	if err != nil {
@@ -68,8 +75,8 @@ func (e *Env) Deliver(key string) error {
 	if err != nil {
 		return err
 	}
-	seed := en.Kind == entry.Seed
-	if !seed && en.Config.Status != "accepted" {
+	unnumbered := en.Kind.Unnumbered()
+	if !unnumbered && en.Config.Status != "accepted" {
 		return refuse("%s has status %q; deliver takes an accepted entry", en.Base, en.Config.Status)
 	}
 	if err := e.needCleanTree(); err != nil {
@@ -88,7 +95,7 @@ func (e *Env) Deliver(key string) error {
 	}
 
 	var undo func() error
-	if !seed {
+	if !unnumbered {
 		if undo, err = e.editConfig(en, record.Edit{Key: "status", Block: "status: delivered"}); err != nil {
 			return err
 		}
@@ -101,8 +108,11 @@ func (e *Env) Deliver(key string) error {
 		return err
 	}
 	what := "enhancement " + en.FolderID + " " + en.FolderSlug
-	if seed {
+	switch en.Kind {
+	case entry.Seed:
 		what = "seed " + en.FolderSlug
+	case entry.Correction:
+		what = "correction " + en.FolderSlug
 	}
 	return e.commit("docs: deliver "+what, "openspec", "INDEX.md", "GRAPH.md")
 }
@@ -165,8 +175,8 @@ func (e *Env) End(kind, key, reason string, by []string) error {
 	if err != nil {
 		return err
 	}
-	if en.Kind == entry.Seed {
-		return refuse("%s is a seed: a seed is delivered or deleted, not %sed", en.Base, kind)
+	if en.Kind.Unnumbered() {
+		return refuse("%s is a %s: it is delivered or deleted, not %sed", en.Base, kindWord(en), kind)
 	}
 	status := en.Config.Status
 	if strings.TrimSpace(reason) == "" {
@@ -253,4 +263,12 @@ func successorExists(st *entry.Store, id string) bool {
 		}
 	}
 	return false
+}
+
+// kindWord names the kind of an unnumbered change in a message.
+func kindWord(en *entry.Entry) string {
+	if en.Kind == entry.Correction {
+		return "correction"
+	}
+	return "seed"
 }

@@ -25,8 +25,8 @@ func (e *Env) List(archived bool) error {
 		set = st.Archived
 	}
 	for _, en := range set {
-		if en.Kind == entry.Seed {
-			e.printf("%-12s %-10s %-12s %-7s %s\n", en.Base, "seed", "-", "-", en.Folder)
+		if en.Kind.Unnumbered() {
+			e.printf("%-12s %-10s %-12s %-7s %s\n", en.Base, kindWord(en), "-", "-", en.Folder)
 			continue
 		}
 		done, total := ticks(en)
@@ -61,8 +61,16 @@ func (e *Env) Show(key string) error {
 	}
 	c := en.Config
 	e.printf("folder:   %s\n", e.rel(en))
-	if en.Kind == entry.Seed {
+	switch en.Kind {
+	case entry.Seed:
 		e.printf("kind:     seed (capability %s)\n", en.FolderSlug)
+		return nil
+	case entry.Correction:
+		var caps []string
+		for _, sp := range en.Specs {
+			caps = append(caps, sp.Capability)
+		}
+		e.printf("kind:     correction (%s)\n", strings.Join(caps, ", "))
 		return nil
 	}
 	e.printf("id:       %s\nslug:     %s\ntitle:    %s\nsummary:  %s\nstatus:   %s\ncategory: %s\n", c.ID, c.Slug, c.Title, c.Summary, c.Status, c.Category)
