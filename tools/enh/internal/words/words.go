@@ -175,3 +175,24 @@ func CountExcluding(md string, skip ...string) int {
 	}
 	return n
 }
+
+// BlankComments removes HTML comments but keeps the line count.
+func BlankComments(s string) string {
+	var b strings.Builder
+	for {
+		i := strings.Index(s, "<!--")
+		if i < 0 {
+			b.WriteString(s)
+			return b.String()
+		}
+		j := strings.Index(s[i:], "-->")
+		if j < 0 {
+			b.WriteString(s[:i])
+			b.WriteString(strings.Repeat("\n", strings.Count(s[i:], "\n")))
+			return b.String()
+		}
+		b.WriteString(s[:i])
+		b.WriteString(strings.Repeat("\n", strings.Count(s[i:i+j+3], "\n")))
+		s = s[i+j+3:]
+	}
+}

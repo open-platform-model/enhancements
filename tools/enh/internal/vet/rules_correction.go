@@ -9,7 +9,7 @@ import (
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/delta"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
-	"github.com/open-platform-model/enhancements/tools/enh/internal/words"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/shipped"
 )
 
 // opRenamed is the operation of a RENAMED block; the delta package keeps
@@ -17,9 +17,6 @@ import (
 const opRenamed delta.Op = "RENAMED"
 
 var (
-	shippedHeadRe = regexp.MustCompile(`(?i)^##\s+Shipped by\s*$`)
-	nextHeadRe    = regexp.MustCompile(`^##\s`)
-	separatorRe   = regexp.MustCompile(`^:?-{3,}:?$`)
 	// A reference to the change that shipped the behaviour: the repo in a code
 	// span, then PR <n> or commit <sha>.
 	shippedRefRe = regexp.MustCompile("`([^`]+)`\\s+(PR [0-9]+|commit [0-9a-f]{7,40})\\b")
@@ -173,66 +170,6 @@ func (r *run) correctionOverlap(e *ent) {
 	}
 }
 
-// shippedRow is one row of the Shipped by table of source.md.
-type shippedRow struct {
-	line                 int
-	capability, name, op string
-	by, code             string
-	cells                int
-}
-
-// key identifies the requirement a row speaks of, with its operation.
-func (s shippedRow) key() string { return s.capability + "\x00" + s.name + "\x00" + s.op }
-
-// parseShipped reads the table under "## Shipped by". found is false when the
-// heading is absent. A comment and a fenced block are not read.
-func parseShipped(text string) (rows []shippedRow, found bool) {
-	lines := strings.Split(blankComments(text), "\n")
-	mask := words.FenceMask(lines)
-	in := false
-	for i, l := range lines {
-		if mask[i] {
-			continue
-		}
-		switch {
-		case shippedHeadRe.MatchString(l):
-			in, found = true, true
-			continue
-		case in && nextHeadRe.MatchString(l):
-			in = false
-		}
-		t := strings.TrimSpace(l)
-		if !in || !strings.HasPrefix(t, "|") {
-			continue
-		}
-		cells := strings.Split(strings.Trim(t, "|"), "|")
-		for j := range cells {
-			cells[j] = strings.TrimSpace(cells[j])
-		}
-		if isSeparator(cells) || strings.EqualFold(cells[0], "capability") {
-			continue
-		}
-		row := shippedRow{line: i + 1, cells: len(cells)}
-		if len(cells) >= 5 {
-			row.capability = strings.Trim(cells[0], "`")
-			row.name = delta.NormalizeName(strings.Trim(cells[1], "`"))
-			row.op = strings.ToUpper(cells[2])
-			row.by, row.code = cells[3], cells[4]
-		}
-		rows = append(rows, row)
-	}
-	return rows, found
-}
-
-func isSeparator(cells []string) bool {
-	for _, c := range cells {
-		if !separatorRe.MatchString(c) {
-			return false
-		}
-	}
-	return true
-}
-
 // correctionEvidence runs V37: every requirement block of the deltas has one
 // row that names the change that shipped it, and the rows name nothing else.
 func (r *run) correctionEvidence(e *ent) {
@@ -240,15 +177,15 @@ func (r *run) correctionEvidence(e *ent) {
 		return // sourceRules reports the missing file
 	}
 	src := e.rel + "/source.md"
-	rows, found := parseShipped(e.Source.Text)
+	rows, found := shipped.Parse(e.Source.Text)
 	if !found {
 		r.add(e, "V37", Error, src, 0, "source.md has no \"## Shipped by\" table")
 		return
 	}
 	// What the deltas hold: key -> display, plus the names a REMOVED replaces.
 	want := map[string]string{}
-	opsOf := map[string][]string{} // capability|name -> operations
-	replaced := map[string]bool{}  // capability|name of an ADDED that replaces a REMOVED
+	opsOf := map[string][]string{}            // capability|name -> operations
+	replaced := shipped.Replacements(e.Specs) // an ADDED that replaces a REMOVED needs no code read
 	var order []string
 	note := func(capability, name string, op delta.Op) {
 		k := capability + "\x00" + name + "\x00" + string(op)
@@ -260,13 +197,6 @@ func (r *run) correctionEvidence(e *ent) {
 	for _, sp := range e.Specs {
 		for _, q := range sp.Requirements {
 			note(sp.Capability, delta.NormalizeName(q.Name), q.Op)
-			if q.Op == delta.Removed {
-				if m := replacedForm.FindStringSubmatch(q.Migration); m != nil {
-					for _, other := range e.Specs { // a replacement may sit in another capability
-						replaced[other.Capability+"\x00"+delta.NormalizeName(m[1])] = true
-					}
-				}
-			}
 		}
 		for _, rn := range sp.Renames {
 			note(sp.Capability, delta.NormalizeName(rn.To), opRenamed)
@@ -274,29 +204,29 @@ func (r *run) correctionEvidence(e *ent) {
 	}
 	seen := map[string]bool{}
 	for _, row := range rows {
-		if row.cells < 5 {
-			r.add(e, "V37", Error, src, row.line, "a Shipped by row has %d cells; it needs Capability, Requirement, Change, Shipped by and Code read", row.cells)
+		if row.Cells < 5 {
+			r.add(e, "V37", Error, src, row.Line, "a Shipped by row has %d cells; it needs Capability, Requirement, Change, Shipped by and Code read", row.Cells)
 			continue
 		}
-		k := row.key()
+		k := row.Key()
 		_, inDelta := want[k]
 		switch {
-		case !inDelta && len(opsOf[row.capability+"\x00"+row.name]) > 0:
-			r.add(e, "V37", Error, src, row.line, "the row for %q in %s says %s, but the delta says %s", row.name, row.capability, row.op, strings.Join(opsOf[row.capability+"\x00"+row.name], " and "))
+		case !inDelta && len(opsOf[row.Capability+"\x00"+row.Name]) > 0:
+			r.add(e, "V37", Error, src, row.Line, "the row for %q in %s says %s, but the delta says %s", row.Name, row.Capability, row.Op, strings.Join(opsOf[row.Capability+"\x00"+row.Name], " and "))
 			continue
 		case !inDelta:
-			r.add(e, "V37", Error, src, row.line, "the row for %q in %s names no requirement of the deltas", row.name, row.capability)
+			r.add(e, "V37", Error, src, row.Line, "the row for %q in %s names no requirement of the deltas", row.Name, row.Capability)
 			continue
 		case seen[k]:
-			r.add(e, "V37", Error, src, row.line, "two rows for %s", want[k])
+			r.add(e, "V37", Error, src, row.Line, "two rows for %s", want[k])
 			continue
 		}
 		seen[k] = true
 		r.shippedRefs(e, src, row)
-		needsCode := row.op == string(delta.Modified) ||
-			(row.op == string(delta.Added) && !replaced[row.capability+"\x00"+row.name])
-		if needsCode && !codeSpanRe.MatchString(row.code) {
-			r.add(e, "V37", Error, src, row.line, "the row for %s needs the code read, as `path:line` in a code span", want[k])
+		needsCode := row.Op == string(delta.Modified) ||
+			(row.Op == string(delta.Added) && !replaced[row.Capability+"\x00"+row.Name])
+		if needsCode && !codeSpanRe.MatchString(row.Code) {
+			r.add(e, "V37", Error, src, row.Line, "the row for %s needs the code read, as `path:line` in a code span", want[k])
 		}
 	}
 	for _, k := range order {
@@ -308,19 +238,19 @@ func (r *run) correctionEvidence(e *ent) {
 
 // shippedRefs checks the Shipped by cell of one row: at least one reference,
 // every reference with a repo that #EntryRepo lists, and no text besides them.
-func (r *run) shippedRefs(e *ent, src string, row shippedRow) {
-	refs := shippedRefRe.FindAllStringSubmatch(row.by, -1)
+func (r *run) shippedRefs(e *ent, src string, row shipped.Row) {
+	refs := shippedRefRe.FindAllStringSubmatch(row.By, -1)
 	if len(refs) == 0 {
-		r.add(e, "V37", Error, src, row.line, "the row for %q has no reference; write `<repo>` PR <n> or `<repo>` commit <sha>", row.name)
+		r.add(e, "V37", Error, src, row.Line, "the row for %q has no reference; write `<repo>` PR <n> or `<repo>` commit <sha>", row.Name)
 		return
 	}
 	for _, m := range refs {
 		if !r.schema.IsRepo(m[1]) {
-			r.add(e, "V37", Error, src, row.line, "the row for %q names repo %q, which #EntryRepo in schema.cue does not list", row.name, m[1])
+			r.add(e, "V37", Error, src, row.Line, "the row for %q names repo %q, which #EntryRepo in schema.cue does not list", row.Name, m[1])
 		}
 	}
-	rest := shippedRefRe.ReplaceAllString(row.by, "")
+	rest := shippedRefRe.ReplaceAllString(row.By, "")
 	if strings.Trim(rest, " ,;") != "" {
-		r.add(e, "V37", Error, src, row.line, "the Shipped by cell of %q holds text that is not a reference (%q)", row.name, strings.TrimSpace(rest))
+		r.add(e, "V37", Error, src, row.Line, "the Shipped by cell of %q holds text that is not a reference (%q)", row.Name, strings.TrimSpace(rest))
 	}
 }

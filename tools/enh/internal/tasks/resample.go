@@ -3,12 +3,14 @@ package tasks
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/delta"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/record"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/stale"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/words"
 )
 
 // accepted splits the accepted field into its date and commit.
@@ -18,6 +20,18 @@ func accepted(en *entry.Entry) (date, commit string, ok bool) {
 		return "", "", false
 	}
 	return f[0], f[1], true
+}
+
+var sampledRe = regexp.MustCompile(`(?m)^sampled:[ \t]*(\S+)[ \t]+(\S+)[ \t]*$`)
+
+// sampledCommit splits the sampled: line of source.md into its commit. A line
+// inside a comment is the template's note and does not count.
+func sampledCommit(en *entry.Entry) (commit string, ok bool) {
+	m := sampledRe.FindStringSubmatch(words.BlankComments(en.Source.Text))
+	if m == nil {
+		return "", false
+	}
+	return m[2], true
 }
 
 // Resample is the re-sample task for an accepted entry (design part one,
@@ -35,8 +49,8 @@ func (e *Env) Resample(key string) error {
 	if err != nil {
 		return err
 	}
-	if en.Kind == entry.Seed {
-		return usage("%s is a seed: a seed is sampled again with `enh accept %s`", en.Base, en.Base)
+	if en.Kind.Unnumbered() {
+		return usage("%s is a %s: it is sampled again with `enh accept %s`", en.Base, kindWord(en), en.Base)
 	}
 	if en.Config.Status != "accepted" {
 		return refuse("%s has status %q; resample takes an accepted entry", en.Base, en.Config.Status)

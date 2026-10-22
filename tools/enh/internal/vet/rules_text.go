@@ -49,33 +49,12 @@ func proseLines(md string) []string {
 			b.WriteByte('\n')
 		}
 	}
-	text := blankComments(b.String())
+	text := words.BlankComments(b.String())
 	out := strings.Split(text, "\n")
 	for i := range out {
 		out[i] = inlineCodeRe.ReplaceAllString(out[i], "")
 	}
 	return out
-}
-
-// blankComments removes HTML comments but keeps the line count.
-func blankComments(s string) string {
-	var b strings.Builder
-	for {
-		i := strings.Index(s, "<!--")
-		if i < 0 {
-			b.WriteString(s)
-			return b.String()
-		}
-		j := strings.Index(s[i:], "-->")
-		if j < 0 {
-			b.WriteString(s[:i])
-			b.WriteString(strings.Repeat("\n", strings.Count(s[i:], "\n")))
-			return b.String()
-		}
-		b.WriteString(s[:i])
-		b.WriteString(strings.Repeat("\n", strings.Count(s[i:i+j+3], "\n")))
-		s = s[i+j+3:]
-	}
 }
 
 // proposalRules runs V14, V15 and V22.
@@ -386,7 +365,7 @@ func (r *run) sourceRules(e *ent) {
 		r.add(e, "V33", Error, src, 0, "source.md names no repo spec or code (write each as a `code span`)")
 	}
 	// A line inside an HTML comment is the template's note, not a sample.
-	m := samplingRe.FindStringSubmatch(blankComments(e.Source.Text))
+	m := samplingRe.FindStringSubmatch(words.BlankComments(e.Source.Text))
 	switch {
 	case m == nil:
 		r.add(e, "V33", e.from(Deliver, Error), src, 0, "source.md has no \"sampled: <date> <commit>\" line")
