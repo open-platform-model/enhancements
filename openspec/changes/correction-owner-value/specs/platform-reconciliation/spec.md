@@ -1,5 +1,79 @@
 ## MODIFIED Requirements
 
+### Requirement: Only the cluster Platform is reconciled
+
+The controller SHALL reconcile only the Platform named `cluster`. A reconcile triggered for a Platform of any other name SHALL do nothing and return without error. This guard sits behind the declarative singleton rule at admission.
+
+#### Scenario: A Platform of another name is ignored
+
+- **WHEN** the reconciler is triggered for a Platform whose name is not `cluster`
+- **THEN** it generates nothing, changes no status and returns without error
+
+### Requirement: An unchanged package is not rebuilt
+
+A reconcile whose inputs resolve to the package identity the controller already holds, for a module directory that still exists, SHALL regenerate nothing and SHALL still report the outcome on the Platform status. If the directory has gone, the controller SHALL rebuild, because renders read that directory.
+
+#### Scenario: Repeated wake-ups rewrite nothing
+
+- **WHEN** the reconciler is woken several times while the Platform spec and the active claims are unchanged
+- **THEN** the held package is not rewritten and the Platform still reports Ready=True with reason Generated
+
+#### Scenario: A missing directory forces a rebuild
+
+- **WHEN** the held package's directory no longer exists and the reconciler is woken with the same inputs
+- **THEN** the controller generates and builds the package again before it reports Ready
+
+### Requirement: A failure records the observed generation
+
+On a failure the reconciler SHALL record the generation it reconciled on the Platform status, as it does on success, so that a stalled Platform does not read as one the controller has not seen.
+
+#### Scenario: A stalled Platform reports its generation
+
+- **WHEN** the build fails for generation N
+- **THEN** the Platform status records generation N as observed beside the failure
+
+### Requirement: A failed build requeues on a bounded interval
+
+When the dependency closure, the generation or the build fails, the controller SHALL requeue the Platform after a bounded interval and SHALL NOT wait for a spec change. It SHALL mark Ready false and Stalled true with the failure reason. No such failure is terminal.
+
+#### Scenario: A failure requeues
+
+- **WHEN** the build fails for the Platform named `cluster`
+- **THEN** the reconcile asks to run again after a non-zero interval, and the Platform reports Ready=False and Stalled=True
+
+#### Scenario: Recovery needs no spec change
+
+- **WHEN** a Platform is in BuildFailed and the cause clears with no change to the spec
+- **THEN** a later automatic reconcile builds the package, reports Ready=True with reason Generated and clears the Stalled condition
+
+### Requirement: A registry failure does not outlive its reconcile
+
+Each reconcile SHALL look up the published module files it needs afresh, so that a lookup failure met by an earlier reconcile never decides a later one. A registry that refuses a module file once and then serves it SHALL let the next reconcile succeed with no other change.
+
+#### Scenario: A transient refusal is forgotten
+
+- **WHEN** a reconcile ends Ready=False with reason BuildFailed because the registry refused a catalog's module file, and the registry then serves it again with no change to the Platform spec, the configuration or the controller process
+- **THEN** the next reconcile fetches the file, builds the package and reports Ready=True with reason Generated at the same generation
+
+### Requirement: One generated platform is held for readers
+
+The controller SHALL hold at most one current generated platform, keyed by its package identity. A new identity SHALL replace the held record. A render that started before the replacement SHALL finish against the platform it started with.
+
+#### Scenario: A spec change replaces the held record
+
+- **WHEN** the Platform spec changes and the new package builds
+- **THEN** readers get the record of the new identity and the earlier record is no longer current
+
+#### Scenario: A claim change replaces the held record
+
+- **WHEN** the reconciler records a package under a new identity while the Platform's generation is unchanged
+- **THEN** readers get the record of the new identity
+
+#### Scenario: A render in flight keeps its record
+
+- **WHEN** a render is running and the reconciler then records a regenerated package
+- **THEN** the running render completes against the package it started with, and the next render uses the new one
+
 ### Requirement: The skew policy is recorded with the package
 
 The reconciler SHALL resolve the Platform's skew policy, Warn when unset, and hold it beside the generated package, so that every render against that package applies the same policy. A change to the policy alone SHALL give a new generation and a new package, and SHALL re-enqueue the instances.

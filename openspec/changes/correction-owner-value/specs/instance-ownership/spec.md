@@ -56,6 +56,24 @@ Whether the controller removes the workloads of a deleted instance SHALL follow 
 
 ## REMOVED Requirements
 
+### Requirement: The operator leaves a CLI-owned instance alone
+
+**Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
+
+**Migration**: Replaced by "The controller leaves a CLI-owned instance alone"
+
+### Requirement: The operator releases a CLI-owned instance's leftover finalizer
+
+**Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
+
+**Migration**: Replaced by "The controller releases a CLI-owned instance's leftover finalizer"
+
+### Requirement: The operator acknowledges a CLI-owned instance once
+
+**Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
+
+**Migration**: Replaced by "The controller acknowledges a CLI-owned instance once"
+
 ### Requirement: An unconfirmed operator edit fails the apply
 
 **Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
@@ -105,6 +123,56 @@ Whether the controller removes the workloads of a deleted instance SHALL follow 
 **Migration**: Replaced by "Data deletion does not change a controller-owned instance"
 
 ## ADDED Requirements
+
+### Requirement: The controller leaves a CLI-owned instance alone
+
+When an instance's owner is `cli`, the controller SHALL return from its reconcile without rendering, applying, pruning or running deletion cleanup, and SHALL NOT add its cleanup finalizer. It SHALL decide this before it registers the finalizer, so an instance that was always CLI-owned never carries one.
+
+#### Scenario: A live CLI-owned instance is not reconciled
+
+- **WHEN** the controller reconciles an instance with owner `cli` that is not being deleted
+- **THEN** nothing is rendered or applied and the cleanup finalizer is not added
+- **AND** the controller does not requeue it for work
+
+#### Scenario: Deleting a CLI-owned instance prunes nothing
+
+- **WHEN** the controller reconciles a CLI-owned instance that is being deleted and has no cleanup finalizer
+- **THEN** it prunes nothing and does not hold the deletion
+
+### Requirement: The controller releases a CLI-owned instance's leftover finalizer
+
+An instance can carry the controller's cleanup finalizer from when the controller owned it. When such an instance is being deleted, the controller SHALL remove the finalizer, SHALL NOT delete any object in the instance's inventory whatever its prune setting, and SHALL write no status. On a CLI-owned instance that is not being deleted it SHALL change no finalizer.
+
+#### Scenario: Deletion releases the finalizer without a prune
+
+- **WHEN** the controller reconciles a CLI-owned instance that is being deleted, with prune true, a non-empty inventory and the cleanup finalizer
+- **THEN** the finalizer is removed and the instance is deleted
+- **AND** every object in the inventory still exists
+
+#### Scenario: A live instance keeps a leftover finalizer
+
+- **WHEN** the controller reconciles a CLI-owned instance that carries the finalizer and is not being deleted
+- **THEN** the finalizer stays and the instance is acknowledged as managed externally
+
+### Requirement: The controller acknowledges a CLI-owned instance once
+
+On a CLI-owned instance that is not being deleted, the controller SHALL set Ready to Unknown with reason `ManagedExternally`, remove the Reconciling, Stalled and Healthy conditions, and write no other status field: not the observed generation, the inventory, the last-applied digests, the instance UUID or anything else the CLI writes. A repeated acknowledgement SHALL change nothing.
+
+#### Scenario: The acknowledgement is set
+
+- **WHEN** the controller reconciles a CLI-owned instance that is not being deleted
+- **THEN** Ready is Unknown with reason `ManagedExternally`
+- **AND** the Reconciling, Stalled and Healthy conditions are absent
+
+#### Scenario: CLI-written status is untouched
+
+- **WHEN** the instance carries CLI-written inventory, last-applied digests and instance UUID
+- **THEN** after the reconcile those fields and the observed generation are unchanged
+
+#### Scenario: Acknowledging again is a no-op
+
+- **WHEN** the controller reconciles an instance that already carries the acknowledgement
+- **THEN** the status patch is empty and no condition transition time changes
 
 ### Requirement: An unconfirmed controller edit fails the apply
 
