@@ -39,7 +39,23 @@ An instance that the CLI creates SHALL carry the owner `cli` explicitly. When th
 - **WHEN** any CLI command that writes a ModuleInstance runs against an existing instance
 - **THEN** the stored owner after the command equals the owner before it
 
+## REMOVED Requirements
+
 ### Requirement: The CLI reads ownership from the owner field
+
+**Reason**: A scenario name uses the old word for the controller.
+
+**Migration**: Replaced by "The CLI reads ownership from the stored owner"
+
+### Requirement: A hand-over to the operator is adopted
+
+**Reason**: The requirement and a scenario name use the old word for the controller.
+
+**Migration**: Replaced by "A hand-over to the controller is adopted"
+
+## ADDED Requirements
+
+### Requirement: The CLI reads ownership from the stored owner
 
 The CLI SHALL treat an instance as CLI-owned when no instance exists yet or its owner is `cli`, and as controller-owned for any other state of an existing instance, an absent owner included. Apply and delete SHALL reach the same verdict for the same instance.
 
@@ -48,7 +64,7 @@ The CLI SHALL treat an instance as CLI-owned when no instance exists yet or its 
 - **WHEN** the CLI reads an instance whose owner is `cli`
 - **THEN** it treats the instance as CLI-owned
 
-#### Scenario: Operator and absent owners are operator-owned
+#### Scenario: Controller and absent owners are controller-owned
 
 - **WHEN** the CLI reads an instance whose owner is `controller`, or has no owner
 - **THEN** it treats the instance as controller-owned
@@ -58,11 +74,11 @@ The CLI SHALL treat an instance as CLI-owned when no instance exists yet or its 
 - **WHEN** apply and delete read the same controller-owned instance
 - **THEN** apply edits its spec and delete hands its cleanup to the controller, and neither writes a resource itself
 
-### Requirement: A hand-over to the operator is adopted
+### Requirement: A hand-over to the controller is adopted
 
 When an instance's owner changes from `cli` to `controller`, the controller's next reconcile SHALL take the normal path: register the cleanup finalizer, render, apply, prune and write the real Ready status over the acknowledgement.
 
-#### Scenario: A flip to operator adopts the instance
+#### Scenario: A flip to controller adopts the instance
 
 - **WHEN** the owner of a CLI-owned instance that is not the controller's own is set to `controller` and the controller reconciles it
 - **THEN** the cleanup finalizer is added and the instance is rendered and applied
