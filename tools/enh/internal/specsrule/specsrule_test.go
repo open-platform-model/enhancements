@@ -463,10 +463,11 @@ func TestACorrectionFolderCannotPassAsAnotherCase(t *testing.T) {
 	})
 	t.Run("config.yaml with status delivered", func(t *testing.T) {
 		r := newRig(t)
+		r.write("openspec/changes/correction-fix/.openspec.yaml", "schema: spec-driven\ncreated: 2026-10-10\n")
 		r.write("openspec/changes/correction-fix/config.yaml", strings.Replace(draftConfig, "%s", "delivered", 1))
 		r.deliver("correction-fix")
 		r.commit("docs: a correction that claims to be an entry")
-		wantFail(t, r.check(r.base), "was never sampled")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: correction")
 	})
 	t.Run("seed folder with another schema", func(t *testing.T) {
 		r := newRig(t)
