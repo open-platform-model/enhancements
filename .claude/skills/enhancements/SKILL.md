@@ -1,6 +1,6 @@
 ---
 name: enhancements
-description: Workflow protocol for the OPM enhancements repo. Load before you create an entry, edit anything under openspec/changes/ in enhancements (config.yaml, proposal.md, design.md, specs/, tasks.md, evidence/), accept, re-sample, deliver, reject, withdraw or supersede an entry, make a seed, tick a task line, or run any task other than a read-only one. Skip it only when you read an existing entry to learn it: open its README.md, then proposal.md and design.md.
+description: Workflow protocol for the OPM enhancements repo. Load before you create an entry, edit anything under openspec/changes/ in enhancements (config.yaml, proposal.md, design.md, specs/, tasks.md, evidence/), accept, re-sample, deliver, reject, withdraw or supersede an entry, make a seed or a correction, tick a task line, or run any task other than a read-only one. Skip it only when you read an existing entry to learn it: open its README.md, then proposal.md and design.md.
 user-invocable: true
 ---
 
@@ -12,7 +12,7 @@ This skill is the protocol for the entries under `openspec/changes/` in the `enh
 
 Load it when you:
 
-- make a new entry or a seed (`task new`, `task seed:new`);
+- make a new entry, a seed or a correction (`task new`, `task seed:new`, `task correction:new`);
 - edit `config.yaml`, `proposal.md`, `design.md`, `specs/`, `tasks.md` or `evidence/` of an entry;
 - accept or re-sample an entry, deliver it, or end it without delivery;
 - tick a task line, or cut a change in another repo that delivers a line;
@@ -141,7 +141,7 @@ A reason is required. A rejected idea may return as a new entry that names the o
 
 ## Seeds
 
-`openspec/specs/` fills only through deliveries and seeds. A seed records behaviour OPM already ships, so an entry can modify it. It has no number, never shows on the site as an enhancement, and has two files: `specs/<capability>/spec.md` (ADDED only) and `source.md`.
+`openspec/specs/` fills only through deliveries and seeds, and a correction repairs it. A seed records behaviour OPM already ships, so an entry can modify it. It has no number, never shows on the site as an enhancement, and has two files: `specs/<capability>/spec.md` (ADDED only) and `source.md`.
 
 ```bash
 task seed:new CAP=registration-acceptance     # refuses a capability already in openspec/specs/
@@ -152,11 +152,32 @@ task deliver ID=seed-registration-acceptance  # refuses a seed with no sampled: 
 
 `source.md` names the repo specs and code each requirement comes from, at the commit read, and what was left out. Behaviour a live entry owns stays out. Never write the `sampled:` line by hand. An edit to a requirement after it needs a new sample.
 
+## Corrections
+
+A delivered requirement can drift from what OPM ships. An entry would need a number, a proposal and a design to fix that, so a correction is the way in. It has no number, never shows on the site as an enhancement, and holds `.openspec.yaml`, `source.md` and one `specs/<capability>/spec.md` for each capability it corrects. One correction may touch several capabilities, and each must already be in `openspec/specs/`. A new capability is a seed.
+
+```bash
+task correction:new SLUG=owner-value CAPS=instance-ownership,platform-reconciliation
+task vet ID=correction-owner-value
+task accept ID=correction-owner-value                  # plain run: prints every requirement block
+CONFIRM=1 task accept ID=correction-owner-value        # writes only the sampled: line of source.md
+task deliver ID=correction-owner-value                 # refuses with no sampled: line, and on a stale base
+```
+
+`SLUG` names the fix, not a capability. `openspec/schemas/correction/` holds the templates, and `openspec/config.yaml` states the rules.
+
+- **What a delta may hold.** MODIFIED, REMOVED, RENAMED and ADDED blocks, with no `## Purpose`. The rules of an entry's delta apply: a MODIFIED block keeps its name and every scenario that still holds, a reversal is a REMOVED with `Replaced by "<new name>"` plus an ADDED, and the admission test holds. A MODIFIED block must differ from the main text. The REMOVED blocks never take every requirement of a capability.
+- **What it must cite.** `source.md` has a table under `## Shipped by` with one row for each block of each delta: capability, requirement, operation, the change that shipped it, and the code read. A change is `<repo>` PR `<n>` or `<repo>` commit `<sha>`, in code spans, with a repo from `#EntryRepo`. A MODIFIED block, and an ADDED block that replaces nothing, also need the code read as `path:line`. The checker (V36, V37) refuses a missing row, a row for nothing, a bad reference and a missing code read.
+- **What the checker cannot see.** That the cited change is merged and shows the text, and that an ADDED block is a recorded fact and not a feature. Verify each reference yourself with `git -C <repo> show` or `gh pr view`, and say so in the report. The accept sample is the gate: it prints every block beside the main text it replaces, its evidence, and a flag on each ADDED block that replaces nothing. The human reads all of it. Ask for each block: does the code do this today?
+- **Overlap with an entry.** A live entry whose delta names the same requirement gets a warning. After the correction lands, that entry has a stale base and needs `task resample`.
+- **After the sample.** Never write the `sampled:` line by hand. An edit to a requirement, or a change to a main requirement it touches, needs a new sample. Delivery refuses a stale base and CI refuses an archived correction with no `sampled:` line.
+- **History.** `task history` follows a correction by its folder name, a RENAMED pair and a `Replaced by` removal.
+
 ## Checks
 
 | Task | Use when |
 | --- | --- |
-| `task vet [ID=NNNN]` | After each edit. Add `MODE=accept` or `MODE=deliver` to see the stricter rules. `MODE=accept -- --openspec` also runs `openspec validate` (accept and deliver mode only). |
+| `task vet [ID=NNNN]` | After each edit, for an entry, a seed or a correction. Add `MODE=accept` or `MODE=deliver` to see the stricter rules. `MODE=accept -- --openspec` also runs `openspec validate` (accept and deliver mode only). |
 | `task check` | Before a PR: `vet` (with `--cue` and `ENH_FINAL=1`), `links`, then `fresh`. |
 | `task index`, `task fresh` | After any edit to `config.yaml`, `proposal.md`, `design.md` or `tasks.md`, or after adding `specs/` or `evidence/`. `README.md` of each entry, `INDEX.md` and `GRAPH.md` are generated and never edited by hand. |
 | `task links` | After you add a link. A link into another entry's folder is an error: cite the id in words. |
@@ -177,6 +198,8 @@ task deliver ID=seed-registration-acceptance  # refuses a seed with no sampled: 
 - **Editing an archived entry.** The checker refuses any change in `openspec/changes/archive/` other than regenerating a `README.md`. The same holds for the ten entries in `archive/NNNN/`.
 - **A bare id in a code comment.** Write the reason in words and put the id beside it.
 - **Scaffolding for something that is not a feature.** Walk Step 0 first.
+- **A correction that adds a wish.** A correction states what ships. A behaviour that does not ship yet is an entry, and a capability that does not exist is a seed.
+- **A correction with no evidence row.** Each block needs its row in `## Shipped by` before `task accept` takes it.
 
 ## Source of truth precedence
 
@@ -187,7 +210,7 @@ When guidance conflicts, the most specific source wins: target-repo skill, then 
 - `AGENTS.md`: the rules.
 - `references/tasks.md`: the full task table.
 - `openspec/config.yaml`: the rules of the store, by artifact.
-- `openspec/schemas/enhancement/` and `openspec/schemas/seed/`: the schemas and templates.
+- `openspec/schemas/enhancement/`, `openspec/schemas/seed/` and `openspec/schemas/correction/`: the schemas and templates.
 - `schema.cue`: the schema of `config.yaml`, the repo list, the reserved and blocked ids.
 - `.github/ISSUE_TEMPLATE/idea.yml`: the idea issue form.
 - `enhancement-experiments`, `enhancement-diagrams`: sibling skills in this folder.

@@ -11,12 +11,13 @@ Run from `enhancements/` (`cd enhancements && task <name>`) or from the workspac
 | Task | Purpose |
 | --- | --- |
 | `task check` | The gate of this repo: `vet` (with `--cue`, `ENH_FINAL=1`), `links`, then `fresh`. CI runs the same, plus the specs rule and the docs checks. |
-| `task vet [ID=0013] [MODE=accept\|deliver] [BASE=origin/main]` | Every checker rule on the entries and seeds. `MODE` adds the rules of accept and deliver. `task vet ID=0013 MODE=accept -- --openspec` also runs `openspec validate` (accept and deliver mode only); add `--strict` for `--strict`. |
+| `task vet [ID=0013] [MODE=accept\|deliver] [BASE=origin/main]` | Every checker rule on the entries, seeds and corrections. `MODE` adds the rules of accept and deliver. `task vet ID=0013 MODE=accept -- --openspec` also runs `openspec validate` (accept and deliver mode only); add `--strict` for `--strict`. |
 | `task new SLUG=foo TITLE="Foo Bar" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli` | Take the lowest free id and make a draft entry with `openspec new change --schema enhancement`. |
 | `task seed:new CAP=registration-acceptance` | Make the seed change `seed-registration-acceptance`. |
-| `task accept ID=0013` | Check a draft in accept mode. Print the sample and the collision list. Then `CONFIRM=1 task accept ID=0013` writes `status: accepted` and `accepted:`. For a seed, it writes `sampled:`. The plain run comes first, always. |
+| `task correction:new SLUG=owner-value [CAPS=a,b]` | Make the correction change `correction-owner-value`. `SLUG` names the fix. Each capability in `CAPS` must be in `openspec/specs/`. |
+| `task accept ID=0013` | Check a draft in accept mode. Print the sample and the collision list. Then `CONFIRM=1 task accept ID=0013` writes `status: accepted` and `accepted:`. For a seed or a correction, it writes `sampled:`; a correction prints every requirement block, not a draw. The plain run comes first, always. |
 | `task resample ID=0013` | The same for an accepted entry whose requirements changed. `CONFIRM=1` rewrites `accepted:`. |
-| `task deliver ID=0013` | Refuse an unticked line or a stale flag. Set `status: delivered`, archive with OpenSpec, run `task index` and make one commit. Only a delivery changes `openspec/specs/`. |
+| `task deliver ID=0013` | Refuse an unticked line or a stale flag. Set `status: delivered`, archive with OpenSpec, run `task index` and make one commit. A seed or a correction needs its `sampled:` line instead of a status. Only a delivery changes `openspec/specs/`. |
 | `task reject\|withdraw ID=0013 REASON="..."` | End a draft (reject) or a draft or accepted entry (withdraw). Write the record and archive with `--skip-specs`. |
 | `task supersede ID=0013 BY=0033 REASON="..."` | End an entry that one or more others replace. `BY` is a comma-separated list. |
 | `task tick ID=0013 LINE=1.1 REF=change-name` | Tick one line of `tasks.md` and append `(REF)`. `REF` is a change name, `PR <n>` or `commit <sha>`. |
@@ -26,7 +27,7 @@ Run from `enhancements/` (`cd enhancements && task <name>`) or from the workspac
 | `task reconcile` | Compare the `Delivers` lines of the sibling repos with the ticks of `tasks.md`. Needs sibling checkouts. |
 | `task cite-lint` | Flag decision numbers and lone ids in Go and CUE comments. |
 | `task test` | The checker's own tests: `go test` of `tools/enh` and the `tests/schema` fixtures. Not part of `task check`. CI runs it as the `test` job. The specs rule tests skip without the pinned openspec CLI on `PATH`. |
-| `task specs-rule [BASE=ref]` | The CI rule for `openspec/specs/`: one delivery, one seed or a Purpose correction. Needs the pinned openspec CLI and full git history. |
+| `task specs-rule [BASE=ref]` | The CI rule for `openspec/specs/`: one delivery, one seed, one correction or a Purpose correction. Needs the pinned openspec CLI and full git history. |
 | `task ideas` | List open idea issues on GitHub (needs `gh`). |
 | `task docs:bundle` / `task docs:bundle:check` | Build the enhancements bundle into `out/enhancements/` / build and lint it without writing `out/`. |
 | `task docs:pins:check` | Refuse a docs-kit `publish.yml` ref that names another release than `.opm-docs-version` (offline; CI runs it). |
