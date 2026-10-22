@@ -21,6 +21,7 @@
 | [0025](./openspec/changes/0025-self-describing-modules/) | schema | core, library | draft | 0 of 2 | no | Self-Describing Modules | Let a module state facts about itself as a whole, as named bundles of catalog-published traits that the kernel matches and renders the way it already does components. |
 | [0026](./openspec/changes/0026-module-dictated-catalog-versions/) | schema | core, library, cli, opm-controller, catalog_opm | draft | 1 of 6 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range, and let each module's own pin pick the version inside it. |
 | [0027](./openspec/changes/0027-self-service-kinds/) | runtime | core, library, catalog_opm, cli, opm-controller | draft | 0 of 6 | no | Self-Service Kinds from Published Modules | Let a platform team bind a published module to a kind consumers can create, so a consumer supplies values and never names a module or a version. |
+| [0030](./openspec/changes/0030-owner-value-controller/) | runtime | cli, opm-controller | draft | 0 of 2 | yes | Owner value is controller | The ModuleInstance owner field accepts cli and controller. |
 
 ## Archived (delivered / rejected / superseded / withdrawn)
 

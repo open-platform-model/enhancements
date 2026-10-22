@@ -26,7 +26,7 @@ graph LR
   classDef category    fill:#ede9fe,stroke:#6d28d9,color:#000
 
   Cschema["schema (5 live entries, 3 closed)"]:::category
-  Cruntime["runtime (4 live entries, 2 closed)"]:::category
+  Cruntime["runtime (5 live entries, 2 closed)"]:::category
   Cdistribution["distribution (4 live entries, 4 closed)"]:::category
   Ctooling["tooling (4 entries)"]:::category
   Cmisc["misc (0 live entries, 1 closed)"]:::category
@@ -102,6 +102,7 @@ graph TD
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
+  N0030["0030: Owner value is controller"]:::draft
   N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub

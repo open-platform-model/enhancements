@@ -1,0 +1,14 @@
+# Facts only. History is `git log`.
+id: "0030"
+slug: owner-value-controller
+title: "Owner value is controller"
+summary: "The ModuleInstance owner field accepts cli and controller."
+status: draft
+category: runtime
+breaking: true
+affects:
+  - cli
+  - opm-controller
+authors:
+  - "emil@jacero.se"
+created: "2026-10-22"
