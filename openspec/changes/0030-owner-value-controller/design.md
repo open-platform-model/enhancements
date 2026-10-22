@@ -20,7 +20,7 @@ The controller was once called the operator, and the value was `operator`. When 
 
 ### Only the value and its holder change
 
-The change touches the requirements that state the value, and the word for the controller inside them. The scenario names of those requirements stay as they are, because a delta cannot rename a live scenario. The other delivered requirements keep the older word until another change corrects them.
+The change touches the requirements that state the value, and the word for the controller inside them. The scenario names of those requirements stay as they are, because a delta cannot rename a live scenario. The other delivered requirements keep the older word.
 
 ## Risks
 

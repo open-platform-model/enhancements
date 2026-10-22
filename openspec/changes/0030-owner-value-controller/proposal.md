@@ -4,7 +4,7 @@ The ModuleInstance owner field accepts `cli` and `controller`. The delivered spe
 
 ## Why
 
-The API server rejects the owner `operator` and accepts `controller`. Two delivered requirements still tell a reader that `operator` is valid, and they call the OPM controller "the operator". A reader who follows them writes a ModuleInstance that the API server refuses.
+The API server rejects the owner `operator` and accepts `controller`. Five delivered requirements in two capabilities still tell a reader that `operator` is valid, and they call the OPM controller "the operator". A reader who follows them writes a ModuleInstance that the API server refuses.
 
 ## What Changes
 
@@ -15,7 +15,7 @@ The API server rejects the owner `operator` and accepts `controller`. Two delive
 ## What this is not
 
 - Not a new behaviour. The controller and the CLI already ship the value.
-- Not a rename of the other delivered requirements that say "operator". Another change corrects them.
+- Not a rename of the other delivered requirements that say "operator".
 
 ## Capabilities
 
@@ -29,4 +29,4 @@ The API server rejects the owner `operator` and accepts `controller`. Two delive
 
 ## Open questions
 
-- Not blocking: Which of the remaining delivered requirements say "operator" for the controller, and when does a change correct them?
+- Not blocking: Which of the remaining delivered requirements say "operator" for the controller, and which change corrects them?
