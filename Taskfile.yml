@@ -103,12 +103,13 @@ tasks:
       - go -C tools/enh run . correction:new {{.SLUG | default "" | shellQuote}} {{if .CAPS}}{{.CAPS | shellQuote}}{{end}} {{.CLI_ARGS}}
 
   accept:
-    desc: "Accept a draft: print the sample and collisions (CONFIRM=1 writes the record)"
+    desc: "Accept a draft, seed or correction: print the sample (CONFIRM=1 writes the record)"
     summary: |
       Usage:
         task accept ID=0013
         CONFIRM=1 task accept ID=0013
         task accept ID=seed-registration-acceptance
+        task accept ID=correction-owner-value
         task accept ID=0013 BASE=origin/main
       BASE is the branch the PR starts from (default origin/main when that ref
       exists, else main). V7, V27 and V31 compare with it. Extra flags of the
@@ -127,7 +128,7 @@ tasks:
       - go -C tools/enh run . resample {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
   deliver:
-    desc: "Deliver an accepted entry or a seed: check, archive, index, commit"
+    desc: "Deliver an accepted entry, a seed or a correction: check, archive, index, commit"
     summary: |
       Usage:
         task deliver ID=0013
@@ -267,7 +268,7 @@ tasks:
       - go -C tools/enh run . questions {{.ID | default "" | shellQuote}} {{.CLI_ARGS}}
 
   specs-rule:
-    desc: "Check that a change to openspec/specs/ is one delivery, one seed or a Purpose correction"
+    desc: "Check that a change to openspec/specs/ is one delivery, one seed, one correction or a Purpose correction"
     summary: |
       Usage:
         task specs-rule                  against origin/main
