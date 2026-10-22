@@ -449,3 +449,30 @@ func TestFolderPrefixesAgreeWithTheEntryPackage(t *testing.T) {
 		t.Error("undatedRe accepts an unknown prefix")
 	}
 }
+
+// The folder name decides the case: a correction folder cannot pass as a seed
+// or as a delivered entry, which would skip the sampled: check.
+func TestACorrectionFolderCannotPassAsAnotherCase(t *testing.T) {
+	needOpenSpec(t)
+	t.Run("schema seed", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/correction-fix/.openspec.yaml", "schema: seed\ncreated: 2026-10-10\n")
+		r.deliver("correction-fix")
+		r.commit("docs: a correction that claims the seed schema")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: correction")
+	})
+	t.Run("config.yaml with status delivered", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/correction-fix/config.yaml", strings.Replace(draftConfig, "%s", "delivered", 1))
+		r.deliver("correction-fix")
+		r.commit("docs: a correction that claims to be an entry")
+		wantFail(t, r.check(r.base), "was never sampled")
+	})
+	t.Run("seed folder with another schema", func(t *testing.T) {
+		r := newRig(t)
+		r.write("openspec/changes/seed-shipped/.openspec.yaml", "schema: spec-driven\ncreated: 2026-10-10\n")
+		r.deliver("seed-shipped")
+		r.commit("docs: a seed folder with another schema")
+		wantFail(t, r.check(r.base), "needs .openspec.yaml schema: seed")
+	})
+}

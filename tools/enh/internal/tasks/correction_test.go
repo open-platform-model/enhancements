@@ -328,8 +328,8 @@ func TestCorrectionNameMayReturnAfterTheArchive(t *testing.T) {
 	f.mustNil(f.env.CorrectionNew("fix-values", []string{"existing-cap"}))
 }
 
-// The shipped templates make a correction that passes the checker.
-func TestCorrectionTemplatesAreAdmitted(t *testing.T) {
+// The shipped templates, left unfilled, are refused: their placeholders name nothing real.
+func TestUnfilledCorrectionTemplatesAreRefused(t *testing.T) {
 	f := newFx(t)
 	f.mustNil(f.env.CorrectionNew("from-template", []string{"existing-cap"}))
 	src, err := os.ReadFile("../../../../openspec/schemas/correction/templates/source.md")
@@ -345,8 +345,14 @@ func TestCorrectionTemplatesAreAdmitted(t *testing.T) {
 	f.write("openspec/changes/correction-from-template/source.md", string(src))
 	res, err := f.env.vet(vet.Draft, "correction-from-template")
 	f.mustNil(err)
-	if !res.HasErrors() {
-		t.Error("the unfilled templates pass the checker")
+	found := false
+	for _, fi := range res.Findings {
+		if fi.Rule == "V37" || fi.Rule == "V20" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the unfilled templates draw no V20 or V37 finding: %v", res.Findings)
 	}
 	// The template of source.md holds no sample line of its own.
 	if strings.Contains(strings.ReplaceAll(string(src), "`sampled:", ""), "\nsampled:") {

@@ -273,24 +273,36 @@ func (c *checker) oneDelivery(mb, head string) (name, dated string, err error) {
 
 // deliveredOrUnnumbered returns "" when the archived folder is a seed, a
 // sampled correction or an entry with status delivered, else the reason it is
-// none of them. name is the undated folder name.
+// none of them. The folder name decides the case, never a value inside the
+// folder: a correction cannot pass as a seed or as an entry. name is the
+// undated folder name.
 func (c *checker) deliveredOrUnnumbered(head, folder, name string) (string, error) {
+	schema := ""
 	if b, err := c.show(head, folder+"/.openspec.yaml"); err == nil {
 		var meta struct {
 			Schema string `yaml:"schema"`
 		}
 		if yaml.Unmarshal(b, &meta) == nil {
-			switch meta.Schema {
-			case "seed":
-				return "", nil
-			case "correction":
-				return c.sampledCorrection(head, folder, name)
-			}
+			schema = meta.Schema
 		}
+	}
+	switch {
+	case strings.HasPrefix(name, entry.CorrectionPrefix):
+		if schema != "correction" {
+			return fmt.Sprintf("a folder named %s<slug> needs .openspec.yaml schema: correction, not %q", entry.CorrectionPrefix, schema), nil
+		}
+		return c.sampledCorrection(head, folder)
+	case strings.HasPrefix(name, entry.SeedPrefix):
+		if schema != "seed" {
+			return fmt.Sprintf("a folder named %s<capability> needs .openspec.yaml schema: seed, not %q", entry.SeedPrefix, schema), nil
+		}
+		return "", nil
+	case schema == "correction":
+		return fmt.Sprintf("schema correction needs a folder named %s<slug>, not %q", entry.CorrectionPrefix, name), nil
 	}
 	b, err := c.show(head, folder+"/config.yaml")
 	if err != nil {
-		return "neither a seed (.openspec.yaml schema: seed), a correction (schema: correction) nor an entry with a config.yaml", nil
+		return "not an entry with a config.yaml", nil
 	}
 	var cfg struct {
 		Status string `yaml:"status"`
@@ -304,13 +316,9 @@ func (c *checker) deliveredOrUnnumbered(head, folder, name string) (string, erro
 	return "", nil
 }
 
-// sampledCorrection checks the folder of a correction: it is named
-// correction-<slug> and its source.md carries the sampled: line. The sample is
+// sampledCorrection checks the folder of a correction: its source.md carries the sampled: line. The sample is
 // the human gate for "no new behaviour", and a hand-made archive has none.
-func (c *checker) sampledCorrection(head, folder, name string) (string, error) {
-	if !strings.HasPrefix(name, entry.CorrectionPrefix) {
-		return fmt.Sprintf("schema correction needs a folder named %s<slug>, not %q", entry.CorrectionPrefix, name), nil
-	}
+func (c *checker) sampledCorrection(head, folder string) (string, error) {
 	b, err := c.show(head, folder+"/source.md")
 	if err != nil {
 		return "a correction needs its source.md with a sampled: line; none is archived", nil
