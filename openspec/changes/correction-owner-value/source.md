@@ -47,3 +47,5 @@ Corrects: `instance-ownership` and `platform-reconciliation`. The owner value a 
 ## Left out
 
 - Nothing. Every requirement of the two capabilities that said "operator" for the controller is corrected. Purpose sections, the reason `ManagedExternally` and history text are not changed.
+
+sampled: 2026-10-22 99af655f
