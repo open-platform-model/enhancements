@@ -7,7 +7,7 @@ State how the controller reconciles the cluster-scoped Platform after its module
 
 ### Requirement: Only the cluster Platform is reconciled
 
-The operator SHALL reconcile only the Platform named `cluster`. A reconcile triggered for a Platform of any other name SHALL do nothing and return without error. This guard sits behind the declarative singleton rule at admission.
+The controller SHALL reconcile only the Platform named `cluster`. A reconcile triggered for a Platform of any other name SHALL do nothing and return without error. This guard sits behind the declarative singleton rule at admission.
 
 #### Scenario: A Platform of another name is ignored
 
@@ -16,7 +16,7 @@ The operator SHALL reconcile only the Platform named `cluster`. A reconcile trig
 
 ### Requirement: An unchanged package is not rebuilt
 
-A reconcile whose inputs resolve to the package identity the operator already holds, for a module directory that still exists, SHALL regenerate nothing and SHALL still report the outcome on the Platform status. If the directory has gone, the operator SHALL rebuild, because renders read that directory.
+A reconcile whose inputs resolve to the package identity the controller already holds, for a module directory that still exists, SHALL regenerate nothing and SHALL still report the outcome on the Platform status. If the directory has gone, the controller SHALL rebuild, because renders read that directory.
 
 #### Scenario: Repeated wake-ups rewrite nothing
 
@@ -26,11 +26,11 @@ A reconcile whose inputs resolve to the package identity the operator already ho
 #### Scenario: A missing directory forces a rebuild
 
 - **WHEN** the held package's directory no longer exists and the reconciler is woken with the same inputs
-- **THEN** the operator generates and builds the package again before it reports Ready
+- **THEN** the controller generates and builds the package again before it reports Ready
 
 ### Requirement: A failure records the observed generation
 
-On a failure the reconciler SHALL record the generation it reconciled on the Platform status, as it does on success, so that a stalled Platform does not read as one the operator has not seen.
+On a failure the reconciler SHALL record the generation it reconciled on the Platform status, as it does on success, so that a stalled Platform does not read as one the controller has not seen.
 
 #### Scenario: A stalled Platform reports its generation
 
@@ -39,7 +39,7 @@ On a failure the reconciler SHALL record the generation it reconciled on the Pla
 
 ### Requirement: A failed build requeues on a bounded interval
 
-When the dependency closure, the generation or the build fails, the operator SHALL requeue the Platform after a bounded interval and SHALL NOT wait for a spec change. It SHALL mark Ready false and Stalled true with the failure reason. No such failure is terminal.
+When the dependency closure, the generation or the build fails, the controller SHALL requeue the Platform after a bounded interval and SHALL NOT wait for a spec change. It SHALL mark Ready false and Stalled true with the failure reason. No such failure is terminal.
 
 #### Scenario: A failure requeues
 
@@ -57,7 +57,7 @@ Each reconcile SHALL look up the published module files it needs afresh, so that
 
 #### Scenario: A transient refusal is forgotten
 
-- **WHEN** a reconcile ends Ready=False with reason BuildFailed because the registry refused a catalog's module file, and the registry then serves it again with no change to the Platform spec, the configuration or the operator process
+- **WHEN** a reconcile ends Ready=False with reason BuildFailed because the registry refused a catalog's module file, and the registry then serves it again with no change to the Platform spec, the configuration or the controller process
 - **THEN** the next reconcile fetches the file, builds the package and reports Ready=True with reason Generated at the same generation
 
 ### Requirement: Transient failures retry faster than other failures
@@ -100,11 +100,11 @@ The reconciler SHALL resolve the Platform's skew policy, Warn when unset, and ho
 #### Scenario: A policy edit regenerates and re-enqueues
 
 - **WHEN** the skew policy changes from Warn to Refuse with no other edit
-- **THEN** the Platform reconciles to a new generation with reason Generated, the held record carries Refuse, and the operator-managed instances are re-enqueued
+- **THEN** the Platform reconciles to a new generation with reason Generated, the held record carries Refuse, and the controller-managed instances are re-enqueued
 
 ### Requirement: One generated platform is held for readers
 
-The operator SHALL hold at most one current generated platform, keyed by its package identity. A new identity SHALL replace the held record. A render that started before the replacement SHALL finish against the platform it started with.
+The controller SHALL hold at most one current generated platform, keyed by its package identity. A new identity SHALL replace the held record. A render that started before the replacement SHALL finish against the platform it started with.
 
 #### Scenario: A spec change replaces the held record
 
@@ -137,8 +137,8 @@ When the Platform named `cluster` is deleted, or is being deleted, the reconcile
 
 #### Scenario: Instances freeze without a platform
 
-- **WHEN** an operator-managed instance reconciles after the Platform is deleted
-- **THEN** it reports PlatformNotReady and the operator prunes nothing
+- **WHEN** a controller-managed instance reconciles after the Platform is deleted
+- **THEN** it reports PlatformNotReady and the controller prunes nothing
 
 ### Requirement: A ModuleInstance renders against the held platform
 
@@ -170,7 +170,7 @@ When no generated platform is held, the reconciler SHALL set the ModuleInstance 
 
 ### Requirement: A Platform change re-enqueues consuming instances
 
-The instance reconciler SHALL watch the Platform and, on an update, re-enqueue only when a field that a render consumes differs: the Ready status, the package identity or the resolved registry, the skew policy, the observed generation, or the operator version the Platform reports. Create and delete events SHALL re-enqueue.
+The instance reconciler SHALL watch the Platform and, on an update, re-enqueue only when a field that a render consumes differs: the Ready status, the package identity or the resolved registry, the skew policy, the observed generation, or the controller version the Platform reports. Create and delete events SHALL re-enqueue.
 
 #### Scenario: A blocked instance retries when the platform appears
 
@@ -180,7 +180,7 @@ The instance reconciler SHALL watch the Platform and, on an update, re-enqueue o
 #### Scenario: A new pin set re-renders instances
 
 - **WHEN** the package identity changes because a claim became active, with the generation unchanged
-- **THEN** every operator-managed, unsuspended instance is re-enqueued
+- **THEN** every controller-managed, unsuspended instance is re-enqueued
 
 #### Scenario: A report-only write enqueues nothing
 
@@ -192,20 +192,20 @@ The instance reconciler SHALL watch the Platform and, on an update, re-enqueue o
 - **WHEN** a spec edit that leaves the skew policy unchanged bumps the generation, and the reconciler has not yet recorded the regenerated package
 - **THEN** no instance is enqueued, and the later status write that carries the new observed generation re-enqueues them
 
-### Requirement: Only operator-managed instances are re-enqueued
-
-A Platform event SHALL re-enqueue only the ModuleInstances that render against the Platform: those the operator manages (owner absent or `operator`) and that are not suspended. An instance owned by the CLI, or suspended, SHALL NOT be enqueued by a Platform event.
-
-#### Scenario: CLI-owned and suspended instances stay out
-
-- **WHEN** the Platform becomes Ready with reason Generated, and one instance is CLI-owned, one is suspended and one is operator-managed
-- **THEN** only the operator-managed instance is enqueued
-
 ### Requirement: A restart recovers instances blocked on no platform
 
-After an operator restart the held platform is empty, so instances can render into PlatformNotReady before the platform is regenerated. The status write that records the regenerated Platform under the new operator version SHALL re-enqueue them, even when nothing else in the status differs, so they recover without waiting for the backoff.
+After a controller restart the held platform is empty, so instances can render into PlatformNotReady before the platform is regenerated. The status write that records the regenerated Platform under the new controller version SHALL re-enqueue them, even when nothing else in the status differs, so they recover without waiting for the backoff.
 
 #### Scenario: An upgrade into a Ready Platform recovers instances
 
-- **WHEN** the operator restarts under a new version into a Platform already Ready, instances report PlatformNotReady, and the reconciler then regenerates the platform and writes a status that differs only in the operator version
-- **THEN** every operator-managed, unsuspended instance is re-enqueued and renders on the next reconcile
+- **WHEN** the controller restarts under a new version into a Platform already Ready, instances report PlatformNotReady, and the reconciler then regenerates the platform and writes a status that differs only in the controller version
+- **THEN** every controller-managed, unsuspended instance is re-enqueued and renders on the next reconcile
+
+### Requirement: Only controller-managed instances are re-enqueued
+
+A Platform event SHALL re-enqueue only the ModuleInstances that render against the Platform: those the controller manages (owner absent or `controller`) and that are not suspended. An instance owned by the CLI, or suspended, SHALL NOT be enqueued by a Platform event.
+
+#### Scenario: CLI-owned and suspended instances stay out
+
+- **WHEN** the Platform becomes Ready with reason Generated, and one instance is CLI-owned, one is suspended and one is controller-managed
+- **THEN** only the controller-managed instance is enqueued
