@@ -128,45 +128,30 @@ func allIn(want map[string]string, have map[string]bool) bool {
 	return true
 }
 
-// correctionOverlap warns when a live numbered entry names a requirement that
-// the correction touches: after the correction is delivered, that entry has a
-// stale base.
+// correctionOverlap warns when a live numbered entry has a delta spec for a
+// capability that the correction corrects: after the correction is delivered,
+// the entry may carry a stale base. The warning names the entry and the
+// capabilities.
 func (r *run) correctionOverlap(e *ent) {
-	touched := map[string]bool{}
+	corrected := map[string]bool{}
 	for _, sp := range e.Specs {
-		for _, q := range sp.Requirements {
-			touched[sp.Capability+"\x00"+delta.NormalizeName(q.Name)] = true
-		}
-		for _, rn := range sp.Renames {
-			touched[sp.Capability+"\x00"+delta.NormalizeName(rn.From)] = true
-			touched[sp.Capability+"\x00"+delta.NormalizeName(rn.To)] = true
-		}
+		corrected[sp.Capability] = true
 	}
 	for _, o := range r.store.Live {
 		if o.Kind != entry.Enhancement {
 			continue
 		}
-		var hits []string
+		var caps []string
 		for _, sp := range o.Specs {
-			names := map[string]bool{}
-			for _, q := range sp.Requirements {
-				names[delta.NormalizeName(q.Name)] = true
-			}
-			for _, rn := range sp.Renames {
-				names[delta.NormalizeName(rn.From)] = true
-				names[delta.NormalizeName(rn.To)] = true
-			}
-			for n := range names {
-				if touched[sp.Capability+"\x00"+n] {
-					hits = append(hits, sp.Capability+" / "+n)
-				}
+			if corrected[sp.Capability] {
+				caps = append(caps, sp.Capability)
 			}
 		}
-		if len(hits) == 0 {
+		if len(caps) == 0 {
 			continue
 		}
-		sort.Strings(hits)
-		r.add(e, "V36", Warning, e.rel, 0, "live entry %s names the same requirement (%s); it will carry a stale base after this correction is delivered", o.Folder, strings.Join(hits, "; "))
+		sort.Strings(caps)
+		r.add(e, "V36", Warning, e.rel, 0, "live entry %s has delta specs for capability %s, which this correction also changes; the entry may carry a stale base after this correction is delivered", o.Folder, strings.Join(caps, ", "))
 	}
 }
 

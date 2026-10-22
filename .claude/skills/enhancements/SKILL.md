@@ -168,7 +168,7 @@ task deliver ID=correction-owner-value                 # refuses with no sampled
 
 - **The rules.** `openspec/config.yaml` states what a delta may hold and what `source.md` must cite (checker rules V36 and V37). Fill the table under `## Shipped by` from the template, one row for each block of each delta.
 - **What the checker cannot see.** That the cited change is merged and shows the text, and that an ADDED block is a recorded fact and not a feature. Verify each reference yourself with `git -C <repo> show` or `gh pr view`, and say so in the report. The accept sample is the gate: it prints every block beside the main text it replaces, its evidence, and a flag on each ADDED block that replaces nothing. The human reads all of it. Ask for each block: does the code do this today?
-- **Overlap with an entry.** A live entry whose delta names the same requirement gets a warning. After the correction lands, that entry has a stale base and needs `task resample`.
+- **Overlap with an entry.** A live entry with a delta spec for a capability the correction changes gets a warning that names the entry and the capability. After the correction lands, that entry has a stale base and needs `task resample`.
 - **After the sample.** Never write the `sampled:` line by hand. An edit to a requirement, or a change to a main requirement it touches, needs a new sample. Delivery refuses a stale base and CI refuses an archived correction with no `sampled:` line.
 - **History.** `task history` follows a correction by its folder name, a RENAMED pair and a `Replaced by` removal.
 

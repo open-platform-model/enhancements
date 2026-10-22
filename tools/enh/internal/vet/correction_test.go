@@ -372,7 +372,7 @@ func TestCorrectionReplacementNeedsNoCode(t *testing.T) {
 	}
 }
 
-// A live entry that names the same requirement draws a warning, never an error.
+// A live entry with a delta spec for a capability the correction changes draws a warning, never an error.
 func TestCorrectionOverlapIsAWarning(t *testing.T) {
 	root := correctionRoot(t)
 	p := filepath.Join(root, "openspec/changes/0100-demo-entry/specs/ship-a")
@@ -383,7 +383,7 @@ func TestCorrectionOverlapIsAWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := corrFindings(t, root, Draft)
-	if !hasFinding(fs, "V36", Warning, "live entry 0100-demo-entry names the same requirement") {
+	if !hasFinding(fs, "V36", Warning, "live entry 0100-demo-entry has delta specs for capability ship-a") {
 		t.Fatalf("no overlap warning:\n%s", dumpFindings(fs))
 	}
 	for _, f := range fs {
@@ -447,4 +447,22 @@ func TestCorrectionV27EditAfterSample(t *testing.T) {
 			t.Errorf("an edit before sampling is free:\n%s", dump(res))
 		}
 	})
+}
+
+// The warning is about the capability: a live entry that touches another
+// requirement of the same capability still draws it, and one that touches
+// another capability does not.
+func TestCorrectionOverlapIsPerCapability(t *testing.T) {
+	root := correctionRoot(t)
+	p := filepath.Join(root, "openspec/changes/0100-demo-entry/specs/ship-a")
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	other := "## MODIFIED Requirements\n\n### Requirement: Old thing stays\n\nThe system SHALL keep the old thing for good.\n\n#### Scenario: Kept\n\n- **WHEN** a user asks\n- **THEN** the old thing is kept\n"
+	if err := os.WriteFile(filepath.Join(p, "spec.md"), []byte(other), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if fs := corrFindings(t, root, Draft); !hasFinding(fs, "V36", Warning, "capability ship-a") {
+		t.Errorf("no per-capability warning:\n%s", dumpFindings(fs))
+	}
 }

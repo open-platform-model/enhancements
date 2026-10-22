@@ -97,8 +97,8 @@ rules:
     - The `sampled:` line of `source.md` is written by `task accept` with CONFIRM=1. An edit to a
       requirement after it needs a new sample, and so does a change to a main requirement the
       correction touches. Delivery refuses without the line.
-    - A live entry whose delta names the same requirement gets a warning: it will carry a stale
-      base after the delivery.
+    - A live entry with a delta spec for a capability the correction changes gets a warning that
+      names the entry and the capability: it may carry a stale base after the delivery.
 
 operations:
   apply:
