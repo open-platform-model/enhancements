@@ -126,6 +126,34 @@ func TestSeedNew(t *testing.T) {
 	}
 }
 
+func TestCorrectionNew(t *testing.T) {
+	f := newFx(t)
+	if err := f.env.CorrectionNew("owner-value", []string{"no-such-cap"}); !IsRefusal(err) || !strings.Contains(err.Error(), "make a seed") {
+		t.Errorf("a capability not in specs/: %v", err)
+	}
+	if err := f.env.CorrectionNew("Bad Slug", nil); !IsUsage(err) {
+		t.Errorf("bad slug: %v", err)
+	}
+	if err := f.env.CorrectionNew("owner-value", []string{"Bad Cap"}); !IsUsage(err) {
+		t.Errorf("bad capability: %v", err)
+	}
+	if len(f.calls) != 0 {
+		t.Errorf("openspec ran: %v", f.calls)
+	}
+	f.mustNil(f.env.CorrectionNew("owner-value", []string{"existing-cap"}))
+	if !contains(f.calls, "new change correction-owner-value --schema correction") || !f.exists("openspec/changes/correction-owner-value/.openspec.yaml") {
+		t.Errorf("calls = %v", f.calls)
+	}
+	if !strings.Contains(f.out.String(), "specs/existing-cap/spec.md") {
+		t.Errorf("output:\n%s", f.out)
+	}
+	if err := f.env.CorrectionNew("owner-value", nil); !IsRefusal(err) {
+		t.Errorf("twice: %v", err)
+	}
+	// A slug may equal no capability at all: it names the fix.
+	f.mustNil(f.env.CorrectionNew("another-fix", nil))
+}
+
 func TestIndexAndFresh(t *testing.T) {
 	f := newFx(t)
 	if err := f.env.Fresh(); !IsRefusal(err) {

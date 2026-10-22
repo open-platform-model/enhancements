@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-platform-model/enhancements/tools/enh/internal/alloc"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/cueschema"
+	"github.com/open-platform-model/enhancements/tools/enh/internal/entry"
 	"github.com/open-platform-model/enhancements/tools/enh/internal/record"
 )
 
@@ -159,5 +160,36 @@ func (e *Env) SeedNew(capability string) error {
 		return fmt.Errorf("openspec new change %s failed: %w\n%s", folder, err, strings.TrimSpace(string(out)))
 	}
 	e.printf("created openspec/changes/%s/\n", folder)
+	return nil
+}
+
+// CorrectionNew makes the change correction-<slug>. The slug names the fix,
+// not a capability. Each capability given must already be in specs/: a
+// correction changes delivered requirements, and a new capability is a seed.
+// It refuses a slug with a live correction.
+func (e *Env) CorrectionNew(slug string, capabilities []string) error {
+	if !slugRe.MatchString(slug) {
+		return usage("slug %q must be kebab-case", slug)
+	}
+	for _, c := range capabilities {
+		if !slugRe.MatchString(c) {
+			return usage("capability %q must be kebab-case", c)
+		}
+		if _, err := os.Stat(filepath.Join(e.Root, "openspec", "specs", c)); err != nil {
+			return refuse("capability %q is not in openspec/specs/: a correction changes a delivered capability; make a seed for a new one", c)
+		}
+	}
+	folder := entry.CorrectionPrefix + slug
+	if _, err := os.Stat(filepath.Join(e.Root, "openspec", "changes", folder)); err == nil {
+		return refuse("%s already exists in openspec/changes/", folder)
+	}
+	if out, err := e.Run(e.Root, "openspec", "new", "change", folder, "--schema", "correction"); err != nil {
+		return fmt.Errorf("openspec new change %s failed: %w\n%s", folder, err, strings.TrimSpace(string(out)))
+	}
+	e.printf("created openspec/changes/%s/\n", folder)
+	for _, c := range capabilities {
+		e.printf("next: write specs/%s/spec.md in it\n", c)
+	}
+	e.printf("next: write source.md with one row in the Shipped by table for each requirement of each delta\n")
 	return nil
 }

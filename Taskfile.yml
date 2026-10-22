@@ -34,6 +34,7 @@ tasks:
           task vet [ID=0013] [MODE=accept|deliver] [BASE=origin/main] — check the entries
           task new SLUG=foo TITLE="Foo Bar" SUMMARY="OPM gains X." CATEGORY=tooling AFFECTS=core,cli
           task seed:new CAP=registration-acceptance
+          task correction:new SLUG=owner-value [CAPS=instance-ownership,platform-reconciliation]
           task accept ID=0013 [BASE=origin/main] — print the sample; then CONFIRM=1 task accept ID=0013
           task resample ID=0013                  — same for an accepted entry whose text changed
           task deliver ID=0013 [BASE=origin/main] — check, archive, index, commit
@@ -89,6 +90,17 @@ tasks:
       Extra flags of the enh command go after `--`. See `enh help`.
     cmds:
       - go -C tools/enh run . seed:new {{.CAP | default "" | shellQuote}} {{.CLI_ARGS}}
+
+  correction:new:
+    desc: "Make the correction change correction-SLUG"
+    summary: |
+      Usage:
+        task correction:new SLUG=owner-value
+        task correction:new SLUG=owner-value CAPS=instance-ownership,platform-reconciliation
+      SLUG names the fix. Each capability in CAPS must exist in openspec/specs/.
+      Extra flags of the enh command go after `--`. See `enh help`.
+    cmds:
+      - go -C tools/enh run . correction:new {{.SLUG | default "" | shellQuote}} {{if .CAPS}}{{.CAPS | shellQuote}}{{end}} {{.CLI_ARGS}}
 
   accept:
     desc: "Accept a draft: print the sample and collisions (CONFIRM=1 writes the record)"

@@ -121,7 +121,7 @@ func TestEveryCommandHasHelp(t *testing.T) {
 			t.Errorf("help %s: exit %d out %q", c.name, code, out)
 		}
 	}
-	for _, name := range []string{"vet", "new", "seed:new", "accept", "resample", "deliver", "reject", "withdraw", "supersede", "tick",
+	for _, name := range []string{"vet", "new", "seed:new", "correction:new", "accept", "resample", "deliver", "reject", "withdraw", "supersede", "tick",
 		"index", "fresh", "history", "stale", "links", "reconcile", "cite-lint", "cite-rewrite", "specs-rule", "list", "show", "questions"} {
 		if lookup(name) == nil {
 			t.Errorf("command %s is not wired", name)
@@ -132,18 +132,19 @@ func TestEveryCommandHasHelp(t *testing.T) {
 func TestArgumentErrorsAreUsageErrors(t *testing.T) {
 	r := newRepo(t)
 	for name, args := range map[string][]string{
-		"accept without id":      {"accept"},
-		"accept with two":        {"accept", "0100", "0101"},
-		"new with four":          {"new", "a", "b", "c", "d"},
-		"reject without reason":  {"reject", "0100"},
-		"unknown flag":           {"show", "--nope", "0100"},
-		"bad seed":               {"accept", "0100", "--seed", "abc"},
-		"flag needs a value":     {"accept", "0100", "--seed"},
-		"unknown entry":          {"show", "9999"},
-		"history without name":   {"history"},
-		"help of unknown":        {"help", "nope"},
-		"tick short":             {"tick", "0100", "1.1"},
-		"list takes no argument": {"list", "extra"},
+		"accept without id":       {"accept"},
+		"accept with two":         {"accept", "0100", "0101"},
+		"correction without slug": {"correction:new"},
+		"new with four":           {"new", "a", "b", "c", "d"},
+		"reject without reason":   {"reject", "0100"},
+		"unknown flag":            {"show", "--nope", "0100"},
+		"bad seed":                {"accept", "0100", "--seed", "abc"},
+		"flag needs a value":      {"accept", "0100", "--seed"},
+		"unknown entry":           {"show", "9999"},
+		"history without name":    {"history"},
+		"help of unknown":         {"help", "nope"},
+		"tick short":              {"tick", "0100", "1.1"},
+		"list takes no argument":  {"list", "extra"},
 	} {
 		code, out, errOut := r.do(args...)
 		wantCode(t, name, code, ExitUsage, out, errOut)

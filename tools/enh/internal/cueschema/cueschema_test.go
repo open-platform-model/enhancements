@@ -28,6 +28,15 @@ func TestLists(t *testing.T) {
 	}
 }
 
+func TestIsRepo(t *testing.T) {
+	s := load(t)
+	for name, want := range map[string]bool{"core": true, "opm-controller": true, ".github": true, "nope": false, "": false, "Core": false} {
+		if got := s.IsRepo(name); got != want {
+			t.Errorf("IsRepo(%q) = %v, want %v", name, got, want)
+		}
+	}
+}
+
 // The fixtures of tests/schema are the ground truth of the schema; this test
 // proves the Go path agrees with the cue command line on all of them.
 func TestSchemaFixtures(t *testing.T) {
