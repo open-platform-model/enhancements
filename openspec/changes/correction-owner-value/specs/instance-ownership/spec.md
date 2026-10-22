@@ -56,6 +56,12 @@ Whether the controller removes the workloads of a deleted instance SHALL follow 
 
 ## REMOVED Requirements
 
+### Requirement: An unconfirmed operator edit fails the apply
+
+**Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
+
+**Migration**: Replaced by "An unconfirmed controller edit fails the apply"
+
 ### Requirement: Apply refuses modules the operator cannot fetch
 
 **Reason**: The requirement or a scenario name uses the old owner value or the old name of the controller.
@@ -99,6 +105,20 @@ Whether the controller removes the workloads of a deleted instance SHALL follow 
 **Migration**: Replaced by "Data deletion does not change a controller-owned instance"
 
 ## ADDED Requirements
+
+### Requirement: An unconfirmed controller edit fails the apply
+
+When the controller does not report the edit Ready within the bound, or reports it not Ready, the apply SHALL exit 1. It SHALL say that the spec change is written and the controller will retry, and SHALL name how to investigate. When no read during the wait returns the instance and one failed other than by not being found, the apply SHALL instead exit 1 with the read error.
+
+#### Scenario: An edit the controller does not confirm in time
+
+- **WHEN** the controller does not report the edit Ready within the bound
+- **THEN** the command exits 1, says the spec change is written and the controller will retry, and names how to investigate
+
+#### Scenario: An edit the controller reports not Ready
+
+- **WHEN** the controller reports Ready False for the edited generation
+- **THEN** the command exits 1 with the same statement and names the controller's outcome
 
 ### Requirement: Apply refuses modules the controller cannot fetch
 
