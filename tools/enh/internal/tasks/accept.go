@@ -181,7 +181,7 @@ func (e *Env) correctionSample(st *entry.Store, en *entry.Entry) {
 		if sp := st.Specs[capability]; sp != nil {
 			for _, q := range sp.By(delta.Main) {
 				if delta.NormalizeName(q.Name) == delta.NormalizeName(name) {
-					e.printf("  main requirement now:\n%s\n", indent(block(q), "    "))
+					e.printf("  main requirement now:\n%s\n", padBlock(block(q)))
 					return
 				}
 			}
@@ -191,13 +191,13 @@ func (e *Env) correctionSample(st *entry.Store, en *entry.Entry) {
 	for _, c := range modified {
 		e.printf("\n[MODIFIED] %s/%s\n", c.Capability, delta.NormalizeName(c.Name))
 		main(c.Capability, c.Name)
-		e.printf("  correction:\n%s\n", indent(block(c.Requirement), "    "))
+		e.printf("  correction:\n%s\n", padBlock(block(c.Requirement)))
 		evidence(c.Capability, delta.NormalizeName(c.Name), "MODIFIED")
 	}
 	for _, c := range removed {
 		e.printf("\n[REMOVED] %s/%s\n", c.Capability, delta.NormalizeName(c.Name))
 		main(c.Capability, c.Name)
-		e.printf("  correction:\n%s\n", indent(block(c.Requirement), "    "))
+		e.printf("  correction:\n%s\n", padBlock(block(c.Requirement)))
 		evidence(c.Capability, delta.NormalizeName(c.Name), "REMOVED")
 	}
 	for _, c := range renames {
@@ -208,13 +208,24 @@ func (e *Env) correctionSample(st *entry.Store, en *entry.Entry) {
 	uni, skip := universe(st), skipTargets(en)
 	for _, c := range added {
 		e.printf("\n[ADDED] %s/%s\n", c.Capability, delta.NormalizeName(c.Name))
-		e.printf("  correction:\n%s\n", indent(block(c.Requirement), "    "))
+		e.printf("  correction:\n%s\n", padBlock(block(c.Requirement)))
 		evidence(c.Capability, delta.NormalizeName(c.Name), "ADDED")
 		if !replaced[c.Capability+"\x00"+delta.NormalizeName(c.Name)] {
 			e.printf("  NEW REQUIREMENT, NOT A RENAME: confirm it states behaviour that already ships.\n  Nearest requirements:\n")
 			e.printNearest(c.req(), uni, skip, false)
 		}
 	}
+}
+
+// padBlock puts four spaces before each non-empty line of a block.
+func padBlock(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if strings.TrimSpace(l) != "" {
+			lines[i] = "    " + l
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // capRename is a RENAMED pair with its capability.
