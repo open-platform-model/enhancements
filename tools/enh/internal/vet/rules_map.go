@@ -44,7 +44,7 @@ type mapRow struct {
 // mapRules runs V25 on a migrated entry: the map covers every old
 // requirement, decision and open question, and each target exists.
 func (r *run) mapRules(e *ent) {
-	if e.isSeed() || !containsStr(e.Evidence, "migration-map.md") {
+	if e.unnumbered() || !containsStr(e.Evidence, "migration-map.md") {
 		return
 	}
 	mapPath := e.rel + "/evidence/migration-map.md"

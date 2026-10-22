@@ -40,7 +40,7 @@ var fieldRule = map[string]string{
 }
 
 func (r *run) configRules(e *ent) {
-	if e.isSeed() {
+	if e.unnumbered() {
 		return
 	}
 	cfgPath := e.rel + "/config.yaml"
@@ -304,6 +304,9 @@ func (r *run) recordRules(e *ent, has map[string]bool) {
 
 // V10: the id is not reserved, blocked or used twice.
 func (r *run) idRules(e *ent) {
+	if e.isCorrection() {
+		return // a live name is unique on disk; the same name may return after the archive
+	}
 	if e.isSeed() {
 		for _, o := range r.store.All() {
 			if o != e.Entry && o.Kind == entry.Seed && o.Base == e.Base {
@@ -350,6 +353,10 @@ func (r *run) repoRules() {
 
 var allowedOpenSpecKeys = []string{"schema", "created", "skip_specs", "retire_capabilities"}
 
+// correctionOpenSpecKeys are the only keys of a correction: it never skips specs
+// and never retires a capability.
+var correctionOpenSpecKeys = []string{"schema", "created"}
+
 // V11 and V12.
 func (r *run) openspecYamlRules(e *ent) {
 	path := e.rel + "/.openspec.yaml"
@@ -363,15 +370,23 @@ func (r *run) openspecYamlRules(e *ent) {
 		r.add(e, "V11", Error, path, 0, ".openspec.yaml cannot be read: %s", firstLine(e.OpenSpecErr.Error()))
 		return
 	}
+	allowed := allowedOpenSpecKeys
+	if e.isCorrection() {
+		allowed = correctionOpenSpecKeys
+	}
 	for _, k := range e.OpenSpecKeys {
-		if !containsStr(allowedOpenSpecKeys, k) {
-			r.add(e, "V11", Error, path, 0, "unknown key %q in .openspec.yaml (allowed: %s)", k, strings.Join(allowedOpenSpecKeys, ", "))
+		if !containsStr(allowed, k) {
+			r.add(e, "V11", Error, path, 0, "unknown key %q in .openspec.yaml (allowed: %s)", k, strings.Join(allowed, ", "))
 		}
 	}
 	if e.Archived {
 		return
 	}
-	// V12: skip_specs is true if and only if there is no specs folder.
+	// V12: skip_specs is true if and only if there is no specs folder. A
+	// correction has no skip_specs key; V36 requires its specs folder.
+	if e.isCorrection() {
+		return
+	}
 	switch {
 	case e.SkipSpecs && e.HasSpecsDir:
 		r.add(e, "V12", e.warnThenError(Accept), path, 0, "skip_specs is true but specs/ exists")

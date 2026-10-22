@@ -85,13 +85,13 @@ func (r *run) gitRules(e *ent) {
 	if !r.haveBase() {
 		return
 	}
-	if !e.isSeed() {
+	if !e.unnumbered() {
 		r.acceptedAncestry(e)
 	}
 	if e.Archived {
 		return
 	}
-	if e.isSeed() {
+	if e.unnumbered() {
 		r.editAfterSample(e)
 	} else if e.Config.Status == "accepted" {
 		r.editAfterAccept(e)
@@ -137,7 +137,7 @@ func (r *run) editAfterAccept(e *ent) {
 	r.compareSpecs(e, baseDir, "accepted")
 }
 
-// V27 for a seed: the requirement text differs from Base after `sampled:`.
+// V27 for a seed or a correction: the requirement text differs from Base after `sampled:`.
 func (r *run) editAfterSample(e *ent) {
 	baseDir := e.rel
 	baseSrc, ok := r.baseFile(path.Join(baseDir, "source.md"))
@@ -170,7 +170,7 @@ func (r *run) baseFolder(e *ent) (string, bool) {
 	if _, ok := r.baseFile(path.Join(e.rel, "config.yaml")); ok {
 		return e.rel, true
 	}
-	if e.isSeed() || e.FolderID == "" {
+	if e.unnumbered() || e.FolderID == "" {
 		return "", false
 	}
 	files, err := r.opts.GitFiles(r.store.Root, r.since, "openspec/changes")

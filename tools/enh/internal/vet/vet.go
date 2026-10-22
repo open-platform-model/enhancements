@@ -371,7 +371,7 @@ func (r *run) entry(raw *entry.Entry) {
 	r.taskRules(e)
 	r.linkRules(e)
 	r.evidenceRules(e)
-	r.seedRules(e)
+	r.unnumberedRules(e)
 	r.mapRules(e)
 	r.openspecValidate(e)
 }
@@ -384,7 +384,11 @@ func relSlash(root, p string) string {
 	return filepath.ToSlash(rel)
 }
 
-func (e *ent) isSeed() bool { return e.Kind == entry.Seed }
+func (e *ent) isSeed() bool       { return e.Kind == entry.Seed }
+func (e *ent) isCorrection() bool { return e.Kind == entry.Correction }
+
+// unnumbered reports a seed or a correction: no config.yaml, proposal, design or tasks.
+func (e *ent) unnumbered() bool { return e.Kind.Unnumbered() }
 
 func containsStr(list []string, s string) bool {
 	for _, x := range list {

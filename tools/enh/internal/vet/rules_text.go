@@ -26,7 +26,7 @@ var (
 	inlineCodeRe = regexp.MustCompile("`[^`\n]*`")
 	linkRe       = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
 	schemeRe     = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
-	otherEntryRe = regexp.MustCompile(`^(\d{4}(-[a-z0-9-]+)?|archive|seed-[a-z0-9-]+)$`)
+	otherEntryRe = regexp.MustCompile(`^(\d{4}(-[a-z0-9-]+)?|archive|(?:` + entry.SeedPrefix + `|` + entry.CorrectionPrefix + `)[a-z0-9-]+)$`)
 	changeRefRe  = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 	prRefRe      = regexp.MustCompile(`^PR \d+$`)
 	commitRefRe  = regexp.MustCompile(`^commit [0-9a-f]{7,40}$`)
@@ -80,7 +80,7 @@ func blankComments(s string) string {
 
 // proposalRules runs V14, V15 and V22.
 func (r *run) proposalRules(e *ent) {
-	if e.isSeed() {
+	if e.unnumbered() {
 		return
 	}
 	// V14: the two documents exist.
@@ -163,7 +163,7 @@ func (r *run) placeholders(e *ent, path, text string) {
 
 // taskRules runs V23 and V24.
 func (r *run) taskRules(e *ent) {
-	if e.isSeed() || e.Archived {
+	if e.unnumbered() || e.Archived {
 		return
 	}
 	path := e.rel + "/tasks.md"
@@ -208,7 +208,7 @@ func (r *run) taskRules(e *ent) {
 
 // linkRules runs V28.
 func (r *run) linkRules(e *ent) {
-	if e.isSeed() {
+	if e.unnumbered() {
 		return
 	}
 	files := []struct{ rel, text string }{
@@ -261,7 +261,7 @@ func foreignEntryLink(rel, target string) string {
 // evidenceRules runs V29: the README index of evidence/ and, when a cue runner
 // is given, `cue vet` on each module under it.
 func (r *run) evidenceRules(e *ent) {
-	if e.isSeed() || !e.HasEvidence {
+	if e.unnumbered() || !e.HasEvidence {
 		return
 	}
 	r.evidenceIndex(e)
@@ -345,11 +345,22 @@ func (r *run) evidenceIndex(e *ent) {
 	}
 }
 
-// seedRules runs the V33 rules that are about the seed folder itself.
-func (r *run) seedRules(e *ent) {
-	if !e.isSeed() || e.Archived {
+// unnumberedRules runs the rules about the folder of a seed or a correction:
+// V33 for a seed, V36 and V37 for a correction, and V33 on source.md for both.
+func (r *run) unnumberedRules(e *ent) {
+	if !e.unnumbered() || e.Archived {
 		return
 	}
+	if e.isSeed() {
+		r.seedRules(e)
+	} else {
+		r.correctionRules(e)
+	}
+	r.sourceRules(e)
+}
+
+// seedRules runs the V33 rules that are about the seed folder itself.
+func (r *run) seedRules(e *ent) {
 	if !slugRe.MatchString(e.FolderSlug) {
 		r.add(e, "V1", Error, e.rel, 0, "seed folder %q must be seed-<capability> with a kebab-case capability", e.Base)
 	}
@@ -361,6 +372,11 @@ func (r *run) seedRules(e *ent) {
 			r.add(e, "V33", Error, relSlash(r.store.Root, sp.Path), 0, "seed-%s holds capability %q; a seed holds the one capability it is named for", e.FolderSlug, sp.Capability)
 		}
 	}
+}
+
+// sourceRules runs V33 on source.md of a seed or a correction: it exists,
+// names code in code spans, and carries a well formed sampled line.
+func (r *run) sourceRules(e *ent) {
 	src := e.rel + "/source.md"
 	if !e.Source.Exists {
 		r.add(e, "V33", Error, src, 0, "source.md is missing")

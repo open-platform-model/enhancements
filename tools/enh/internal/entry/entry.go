@@ -129,9 +129,11 @@ type Entry struct {
 	OpenSpecFile File
 	// OpenSpecKeys lists the top-level keys of .openspec.yaml.
 	OpenSpecKeys []string
-	SkipSpecs    bool
-	RetireCaps   bool
-	OpenSpecErr  error
+	// Schema is the value of the schema key of .openspec.yaml.
+	Schema      string
+	SkipSpecs   bool
+	RetireCaps  bool
+	OpenSpecErr error
 
 	Proposal, Design, Tasks, Readme, Source File
 	Questions                               []Question
@@ -405,6 +407,7 @@ func (e *Entry) readOpenSpec() {
 		e.OpenSpecErr = err
 		return
 	}
+	e.Schema, _ = m["schema"].(string)
 	e.SkipSpecs, _ = m["skip_specs"].(bool)
 	e.RetireCaps, _ = m["retire_capabilities"].(bool)
 }
