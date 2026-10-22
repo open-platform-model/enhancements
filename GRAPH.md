@@ -102,7 +102,7 @@ graph TD
   N0014["0014: Export a Deployed Instance as GitOps Manifests"]:::draft
   N0019["0019: Kernel render path parity with pure CUE"]:::delivered
   N0027["0027: Self-Service Kinds from Published Modules"]:::draft
-  N0030["0030: Owner value is controller"]:::draft
+  N0030["0030: Owner value is controller"]:::accepted
   N0009["0009 · schema"]:::stub
   N0010["0010 · distribution"]:::stub
   N0013["0013 · schema"]:::stub

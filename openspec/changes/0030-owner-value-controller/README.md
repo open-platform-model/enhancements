@@ -4,7 +4,7 @@
 
 The ModuleInstance owner field accepts cli and controller.
 
-**Draft** 2026-10-22 · 0 of 2 tasks shipped · breaking
+**Accepted** 2026-10-22 · ready to implement · 0 of 2 tasks shipped · breaking
 
 ## Read
 
