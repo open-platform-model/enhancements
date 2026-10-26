@@ -36,7 +36,7 @@ env:
   # cue.mod language version in every entry module is v0.17.0; v0.17.1 is the
   # binary the other OPM repos pin.
   CUE_VERSION: 'v0.17.1'
-  TASK_VERSION: '3.52.0'
+  TASK_VERSION: '3.54.0'
   # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
   # replay refuses another version.
   OPENSPEC_VERSION: '1.14.1'
