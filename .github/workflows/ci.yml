@@ -36,7 +36,7 @@ env:
   # cue.mod language version in every entry module is v0.17.0; v0.17.1 is the
   # binary the other OPM repos pin.
   CUE_VERSION: 'v0.17.1'
-  TASK_VERSION: '3.52.0'
+  TASK_VERSION: '3.54.0'
   # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
   # replay refuses another version.
   OPENSPEC_VERSION: '1.14.1'
@@ -167,7 +167,7 @@ jobs:
 
       - name: Set up Node
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -238,7 +238,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
