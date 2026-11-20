@@ -2,8 +2,8 @@ schema: enhancement
 
 context: |
   This repo is the OpenSpec store `opm-enhancements`: the design record of the Open Platform
-  Model (OPM), read by every OPM repo through `references:`. Its rules live here, never in a
-  patch to an OpenSpec skill file.
+  Model (OPM), read by every OPM repo through `references:`. Its rules live here and in the
+  schemas under `openspec/schemas/`, never in a patch to an OpenSpec skill file.
 
   - An enhancement is one OpenSpec change: `openspec/changes/<id>-<slug>/`. One feature is one
     id and one folder, however large. The id has four digits and is never reused or renumbered.
@@ -60,45 +60,13 @@ rules:
       A published CUE definition, which is part of a module's public schema, may be named. An internal
       definition stays out.
     - No `- Design:` line and no `- Changed by:` line. Provenance comes from `task history`.
-    - A delta that creates a capability opens with a real `## Purpose` of at least 50 characters that does not
-      start with `TBD` or `TODO`.
-    - A MODIFIED requirement keeps its name and every scenario of the main spec that still holds. To reverse a
-      shipped scenario, write a REMOVED whose `**Migration**` line has the fixed form `Replaced by "<new name>"`,
-      and an ADDED under the new name.
-    - A REMOVED requirement has `**Reason**` and `**Migration**`. A requirement is ADDED, MODIFIED, REMOVED or
-      RENAMED against `openspec/specs/` only. An entry that needs an undelivered entry stays a draft.
-    - "An entry with no requirements has no `specs/` folder and sets `skip_specs: true` in `.openspec.yaml`. An
-      entry with a `specs/` folder does not. The checker warns in a draft and refuses from accept."
-    - "A REMOVED that takes the last requirement of a capability needs `retire_capabilities: true` in
-      `.openspec.yaml`. Without it `openspec archive` aborts, and the checker refuses at delivery."
-    - "After accept, an edit to a requirement needs a re-sample. Run `task resample`, review what it prints, then
-      confirm. The confirmation rewrites the `accepted:` line. The checker refuses the edit in a pull request
-      until then. A seed follows the same rule after its `sampled:` line."
+    - A requirement is ADDED, MODIFIED, REMOVED or RENAMED against `openspec/specs/` only.
   tasks:
     - "One line per repo change, written `- [ ] <n>.<m> <repo>: <outcome>`, under `## <n>. <Theme>`. Name the outcome, never the method."
     - The sections run in order - section 1 is done before section 2. This is advice; no field or check holds it.
     - At accept, every repo in `affects` has a line.
     - A ticked line ends with the change name without its date, `(<change-name>)`, or `(PR <n>)` for a repo with
       no OpenSpec change. The tick is a pull request on this repo.
-  correction:
-    - A correction is a folder `correction-<slug>` (kebab-case slug) with `.openspec.yaml`
-      (`schema: correction`, `created`), `source.md` and `specs/<capability>/spec.md`. It has no
-      `config.yaml`, proposal, design, tasks or evidence, and it never shows on the site.
-    - Every delta names a capability that exists in `openspec/specs/`. A new capability is a seed.
-    - A delta has MODIFIED, REMOVED, RENAMED and ADDED blocks, and no `## Purpose`.
-    - A MODIFIED block differs from the main requirement. REMOVED blocks do not take every
-      requirement of a capability: retiring a capability is not a correction.
-    - "`source.md` has a table under `## Shipped by` with one row for each block of each delta, and
-      no other row. A row names the capability, the requirement, the operation, the change that
-      shipped it (`<repo>` PR <n> or `<repo>` commit <sha>, with a repo from `#EntryRepo`) and, for
-      a MODIFIED block and for an ADDED block that replaces nothing, the code read."
-    - A correction states what ships and never what is wanted. It adds no behaviour. The accept
-      sample is the gate: the human reads every requirement beside its evidence.
-    - The `sampled:` line of `source.md` is written by `task accept` with CONFIRM=1. An edit to a
-      requirement after it needs a new sample, and so does a change to a main requirement the
-      correction touches. Delivery refuses without the line.
-    - A live entry with a delta spec for a capability the correction changes gets a warning that
-      names the entry and the capability: it may carry a stale base after the delivery.
 
 operations:
   apply:

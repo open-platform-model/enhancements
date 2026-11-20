@@ -154,6 +154,11 @@ artifacts:
       After accept, an edit to a requirement needs a re-sample: run `task resample`, review what
       it prints, then confirm. The confirmation rewrites `accepted:`. Until then the checker
       refuses the edit in a pull request.
+
+      Rules:
+
+      - A REMOVED that takes the last requirement of a capability needs `retire_capabilities: true` in
+        `.openspec.yaml`. Without it `openspec archive` aborts, and the checker refuses at delivery.
     requires:
       - design
 

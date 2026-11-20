@@ -38,7 +38,7 @@ One entry is one OpenSpec change, `openspec/changes/<id>-<slug>/`. A human owns 
 | `tasks.md` | Which repo still has work? | an agent writes and ticks | none |
 | `evidence/` | What is the proof? | an agent or the human | none |
 
-The total of proposal, design and requirement text is about 3,000 words. All caps are advice: the checker warns and never refuses. `openspec/config.yaml` states the rule for each file, and the templates are in `openspec/schemas/enhancement/templates/`. Read them before you write.
+The total of proposal, design and requirement text is about 3,000 words. All caps are advice: the checker warns and never refuses. `openspec/config.yaml` and the schema in `openspec/schemas/enhancement/` state the rule for each file, and the templates are in `openspec/schemas/enhancement/templates/`. Read them before you write.
 
 ## Step 0: decide whether it is an entry
 
@@ -164,9 +164,9 @@ CONFIRM=1 task accept ID=correction-owner-value        # writes only the sampled
 task deliver ID=correction-owner-value                 # refuses with no sampled: line, and on a stale base
 ```
 
-`SLUG` names the fix, not a capability. `openspec/schemas/correction/` holds the templates, and `openspec/config.yaml` states the rules.
+`SLUG` names the fix, not a capability. `openspec/schemas/correction/` holds the templates and the rules that do not hold for every kind of change; the specs rules for every kind stay in `openspec/config.yaml`.
 
-- **The rules.** `openspec/config.yaml` states what a delta may hold and what `source.md` must cite (checker rules V36 and V37). Fill the table under `## Shipped by` from the template, one row for each block of each delta.
+- **The rules.** The correction schema in `openspec/schemas/correction/` states what a delta may hold and what `source.md` must cite (checker rules V36 and V37). OpenSpec serves each rule with the instruction of its artifact. Fill the table under `## Shipped by` from the template, one row for each block of each delta.
 - **What the checker cannot see.** That the cited change is merged and shows the text, and that an ADDED block is a recorded fact and not a feature. Verify each reference yourself with `git -C <repo> show` or `gh pr view`, and say so in the report. The accept sample is the gate: it prints every block beside the main text it replaces, its evidence, and a flag on each ADDED block that replaces nothing. The human reads all of it. Ask for each block: does the code do this today?
 - **Overlap with an entry.** A live entry with a delta spec for a capability the correction changes gets a warning that names the entry and the capability. After the correction lands, that entry may have a stale base for a requirement the correction changed; `task stale` says, and `task resample` clears it.
 - **After the sample.** Never write the `sampled:` line by hand. An edit to a requirement, or a change to a main requirement it touches, needs a new sample. Delivery refuses a stale base and CI refuses an archived correction with no `sampled:` line.
@@ -208,7 +208,7 @@ When guidance conflicts, the most specific source wins: target-repo skill, then 
 
 - `AGENTS.md`: the rules.
 - `references/tasks.md`: the full task table.
-- `openspec/config.yaml`: the rules of the store, by artifact.
+- `openspec/config.yaml`: the rules of the store, by artifact. A rule that does not hold for every kind of change is in the instruction of its artifact, in a schema under `openspec/schemas/`.
 - `openspec/schemas/enhancement/`, `openspec/schemas/seed/` and `openspec/schemas/correction/`: the schemas and templates.
 - `schema.cue`: the schema of `config.yaml`, the repo list, the reserved and blocked ids.
 - `.github/ISSUE_TEMPLATE/idea.yml`: the idea issue form.

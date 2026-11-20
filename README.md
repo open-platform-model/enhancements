@@ -200,7 +200,7 @@ enhancements/
 
 - [`AGENTS.md`](AGENTS.md): repository rules and agent orientation.
 - [`.claude/skills/enhancements/SKILL.md`](.claude/skills/enhancements/SKILL.md): the binding workflow, step by step.
-- [`openspec/config.yaml`](openspec/config.yaml): the rules of the store, by artifact.
+- [`openspec/config.yaml`](openspec/config.yaml): the rules of the store, by artifact. A rule that does not hold for every kind of change is in the instruction of its artifact, in a schema under `openspec/schemas/`.
 - [`schema.cue`](schema.cue): the metadata contract, with rationale in comments.
 - Sibling skills under `.claude/skills/`: `enhancement-experiments`, `enhancement-diagrams`.
 

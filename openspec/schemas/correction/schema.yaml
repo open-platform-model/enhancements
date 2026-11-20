@@ -44,6 +44,17 @@ artifacts:
       - The last line is `sampled: <date> <commit>`. Do not write it yourself. `task accept
         ID=correction-<slug>` with CONFIRM=1 writes it after the owner has read the sample.
 
+      Rules:
+
+      - A correction is a folder `correction-<slug>` (kebab-case slug) with `.openspec.yaml`
+        (`schema: correction`, `created`), `source.md` and `specs/<capability>/spec.md`. It has no
+        `config.yaml`, proposal, design, tasks or evidence, and it never shows on the site.
+      - A correction states what ships and never what is wanted. It adds no behaviour. The accept
+        sample is the gate: the human reads every requirement beside its evidence.
+      - The `sampled:` line of `source.md` is written by `task accept` with CONFIRM=1. An edit to a
+        requirement after it needs a new sample, and so does a change to a main requirement the
+        correction touches. Delivery refuses without the line.
+
       Keep it short: a correction is a record of what is.
     requires: []
 
@@ -65,12 +76,20 @@ artifacts:
       - RENAMED uses a FROM and a TO line, as OpenSpec defines it.
       - An ADDED requirement records behaviour that ships and no delta spec names yet. It is
         not a feature. Its source row needs code read.
-      - A REMOVED that takes every requirement of a capability is not a correction.
+      - REMOVED blocks do not take every requirement of a capability: retiring a capability is
+        not a correction.
       - The name is a short plain statement, at most 8 words. One SHALL (or MUST) statement
         of at most 500 characters. At least one scenario with WHEN and THEN.
       - The admission test: no Go symbol, no CLI flag, no file path. A published CUE
         definition may be named.
       - After `sampled:` is written, an edit to a requirement needs a new sample: run `task
-        accept ID=correction-<slug>`, review it, then confirm.
+        accept ID=correction-<slug>`, review it, then confirm. The checker refuses the edit
+        in a pull request until the `sampled:` line is rewritten.
+
+      Rules:
+
+      - A MODIFIED block differs from the main requirement.
+      - A live entry with a delta spec for a capability the correction changes gets a warning that
+        names the entry and the capability: it may carry a stale base after the delivery.
     requires:
       - source
