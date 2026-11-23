@@ -20,7 +20,7 @@ import (
 var commands = []command{
 	{
 		name: "vet", synopsis: "vet [flags] [ID|FOLDER ...]", summary: "check every entry, or the named ones",
-		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).\nV7, V27 and V31 compare with a base ref and run only when one exists; a CI run passes the base of the pull\nrequest with --base. Without a ref they print a skipped line.\n--cue runs `cue vet ./...` in each evidence module (a folder with cue.mod/module.cue under evidence/); a\nfailure is a V29 warning, never an error. Without --cue the rule prints a skipped line.\n--v35 is the migration closing check (design part two, section 2, V35): it runs only that rule and needs the\nopenspec CLI (1.14.1). It is not part of the daily check.",
+		help: "Modes: draft (default), accept and deliver. A later mode adds errors. At deliver mode the stale-base\ncheck (V26) also runs on each accepted entry.\nENH_FINAL=1 makes a remaining legacy folder an error (V30).\nV7, V27 and V31 compare with a base ref and run only when one exists; a CI run passes the base of the pull\nrequest with --base. Without a ref they print a skipped line.\n--cue runs `cue vet ./...` in each evidence module (a folder with cue.mod/module.cue under evidence/); a\nfailure is a V29 warning, never an error. Without --cue the rule prints a skipped line.\n--v35 is the migration closing check (design part two, section 2, V35): it runs only that rule and needs the\nopenspec CLI (2.1.1). It is not part of the daily check.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.mode, "mode", "draft", "draft, accept or deliver")
@@ -183,7 +183,7 @@ var commands = []command{
 	},
 	{
 		name: "specs-rule", synopsis: "specs-rule [flags]", summary: "check that a change to openspec/specs/ is one delivery, one seed, one correction or a Purpose correction",
-		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered, schema seed, or schema correction with a sampled: line in its source.md; replay `openspec archive <name> --yes` (the pinned version, 1.14.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.",
+		help: "Steps (design part two, section 4.3): list the changes under openspec/specs/ between the merge base of BASE and\nHEAD; pass when there are none, or when they change ## Purpose text only; else require exactly one folder added\nunder openspec/changes/archive/ whose undated folder was in changes/ at the base and is gone at head, with\nstatus delivered, schema seed, or schema correction with a sampled: line in its source.md; replay `openspec archive <name> --yes` (the pinned version, 2.1.1) on the base\ntree in a scratch copy; fail on any byte of difference in openspec/specs/. Needs the full history.",
 		flags: func(fs *flag.FlagSet, o *options) {
 			rootFlags(fs, o)
 			fs.StringVar(&o.base, "base", "", "the base ref of the pull request (an all-zero id means the parent of HEAD)")

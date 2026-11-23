@@ -159,7 +159,7 @@ func TestADeliveryThatEqualsTheReplayPasses(t *testing.T) {
 	res := r.check(r.base)
 	wantOK(t, res)
 	log := strings.Join(res.Lines, "\n")
-	for _, want := range []string{"step 2: one archived folder", "step 3: replayed `openspec archive 0100-demo --yes` (OpenSpec 1.14.1)", "step 4: openspec/specs equals the replay byte for byte"} {
+	for _, want := range []string{"step 2: one archived folder", "step 3: replayed `openspec archive 0100-demo --yes` (OpenSpec " + PinnedOpenSpec + ")", "step 4: openspec/specs equals the replay byte for byte"} {
 		if !strings.Contains(log, want) {
 			t.Errorf("log lacks %q:\n%s", want, log)
 		}
@@ -281,7 +281,7 @@ func TestTheReplayNeedsThePinnedVersion(t *testing.T) {
 	_, err := Check(Options{Root: r.root, Base: r.base, OpenSpec: func(dir, name string, args ...string) ([]byte, error) {
 		return []byte("1.12.0\n"), nil
 	}})
-	if err == nil || !strings.Contains(err.Error(), "needs OpenSpec 1.14.1, found \"1.12.0\"") {
+	if err == nil || !strings.Contains(err.Error(), "needs OpenSpec "+PinnedOpenSpec+", found \"1.12.0\"") {
 		t.Errorf("err = %v", err)
 	}
 }
