@@ -180,7 +180,7 @@ task deliver ID=correction-owner-value                 # refuses with no sampled
 | `task check` | Before a PR: `vet` (with `--cue` and `ENH_FINAL=1`), `links`, then `fresh`. |
 | `task index`, `task fresh` | After any edit to `config.yaml`, `proposal.md`, `design.md` or `tasks.md`, or after adding `specs/` or `evidence/`. `README.md` of each entry, `INDEX.md` and `GRAPH.md` are generated and never edited by hand. |
 | `task links` | After you add a link. A link into another entry's folder is an error: cite the id in words. |
-| `task specs-rule` | CI runs it. It needs openspec 1.14.1 and full history. |
+| `task specs-rule` | CI runs it. It needs openspec 2.1.1 and full history. |
 | `task list`, `task show ID=NNNN`, `task history REQ="Name"` | Read-only views. `history` follows renames and `Replaced by` removals through the archived deltas. |
 
 ## Common pitfalls

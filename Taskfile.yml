@@ -6,7 +6,7 @@
 # enhancements/ directory, or via the workspace-root include
 # (`task enhancements:<name>`).
 #
-# Deps: go (for enh), cue; the openspec CLI (1.14.1) for the tasks that run
+# Deps: go (for enh), cue; the openspec CLI (2.1.1) for the tasks that run
 # it; gh for `ideas`. Same toolchain as every other OPM Taskfile.
 version: "3"
 
@@ -47,7 +47,7 @@ tasks:
           task list | show ID=0013 | questions ID=0013 | stale ID=0013 | history REQ="Name"
           task reconcile                         — Delivers lines against ticks (needs sibling checkouts)
           task cite-lint                         — decision numbers and lone ids in Go and CUE comments
-          task specs-rule [BASE=ref]             — CI rule for openspec/specs/ (needs openspec 1.14.1)
+          task specs-rule [BASE=ref]             — CI rule for openspec/specs/ (needs openspec 2.1.1)
           task ideas                             — open idea issues on GitHub (needs gh)
           task docs:bundle:check                 — build and lint the enhancements docs bundle (opm-docs)
         EOF
@@ -273,7 +273,7 @@ tasks:
       Usage:
         task specs-rule                  against origin/main
         task specs-rule BASE=some-ref
-      Replays `openspec archive` (the pinned 1.14.1) in a scratch copy, so
+      Replays `openspec archive` (the pinned 2.1.1) in a scratch copy, so
       it needs that CLI and the full git history. Extra flags of the enh
       command go after `--`. See `enh help specs-rule`.
     cmds:
@@ -294,7 +294,7 @@ tasks:
     desc: "The checker's own tests: go test of tools/enh, then the schema fixtures"
     summary: |
       Runs `go -C tools/enh test ./...` and `bash tests/schema/run.sh`.
-      The specsrule tests skip without the pinned openspec CLI (1.14.1) on
+      The specsrule tests skip without the pinned openspec CLI (2.1.1) on
       PATH, so install it for a full run; CI does. Not part of `task check`,
       which stays the gate of the entries (about 30 s because of the cue
       vet); CI runs this task as its own job.

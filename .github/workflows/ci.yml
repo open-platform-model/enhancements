@@ -39,7 +39,7 @@ env:
   TASK_VERSION: '3.54.0'
   # The OpenSpec CLI that the archive replay of specs-rule runs (N20). The
   # replay refuses another version.
-  OPENSPEC_VERSION: '1.14.1'
+  OPENSPEC_VERSION: '2.1.1'
 
 jobs:
   vet:

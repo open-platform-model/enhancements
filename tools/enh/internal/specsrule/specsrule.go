@@ -23,7 +23,7 @@ import (
 // PinnedOpenSpec is the OpenSpec CLI version the replay needs (N20, DECISIONS.md
 // 2026-10-10 19:50). The replay refuses another version, since a different
 // archive would give different specs.
-const PinnedOpenSpec = "1.14.1"
+const PinnedOpenSpec = "2.1.1"
 
 const (
 	specsDir   = "openspec/specs"
