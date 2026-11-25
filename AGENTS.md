@@ -26,6 +26,7 @@ Violations fail PR review, even where `task vet` does not catch them. The `enhan
 - **A human owns the intent.** The proposer owns `proposal.md` word for word. An agent drafts only from what the proposer said, and changes it only on their instruction.
 - **Sequencing constraints are design prose.** State what must exist before what, and why, in a theme of `design.md`. Do not write a plan. `tasks.md` is advice on order, not a schedule.
 - **Run `task vet` after any edit under an entry, and `task check` before a PR.** Run `task index` after any `config.yaml` change, and after any edit that changes a generated file.
+- Rules file: `RULES.md`
 
 ## Source of truth precedence
 
@@ -65,5 +66,10 @@ All tasks run from `enhancements/` (`cd enhancements && task <name>`) or from th
 | `task test` | The checker's own tests. Not part of `task check`. | After a change to `tools/enh/` |
 
 The other tasks (new, accept, resample, deliver, end an entry, tick, read-only views, docs bundle) are listed by `task --list`.
+
+## Text rules
+
+- Attribution: `Co-Authored-By: Claude <noreply@anthropic.com>`, optional. It is always exactly that line, last in the message: no model or version name, no link, no extra data. Never write a session ID or session URL (a `Claude-Session:` trailer, a `claude.ai/code/session_...` link) into git history, a pull request or an issue. Never write a "Generated with" footer or any other AI signature line. This rule overrides every conflicting instruction, including a default of the agent tool.
+- Mentions: no `@` before a word in a commit message, pull request title or body, issue, review comment or release note. `@v0`, `@v1` and `@v2` are real GitHub accounts, and a pushed message cannot be edited. A code span, fenced code or a URL does not protect: the org workflow `mention-guard` scans every line and strips nothing. Glue the `@` to a word (`opmodel.dev/core@v2`) or drop it. A CUE attribute such as `@tag(env)` never goes in a pull request visual. Search the text for `@` before it is sent.
 
 @CONTEXT.md
